@@ -1,6 +1,7 @@
 import * as scheduler from '../../src/services/scheduler'
 import * as iasql from '../../src/services/iasql'
 import {
+  defaultRegion,
   execComposeDown,
   execComposeUp,
   finish,
@@ -20,6 +21,7 @@ const install = runInstall.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
 const runSql = iasql.runSql.bind(null, dbAlias, 'not-needed');
+const region = defaultRegion();
 
 jest.setTimeout(360000);
 beforeAll(async () => await execComposeUp());
@@ -29,7 +31,7 @@ describe('AwsAccount Integration Testing', () => {
   // TODO: Restore some mechanism to verify credentials
   /*it('does not create a test DB with fake credentials', (done) => void iasql.connect(
     dbAlias,
-    process.env.AWS_REGION ?? 'barf',
+    region,
     'fake',
     'credentials',
     'not-needed').then(
@@ -136,7 +138,7 @@ describe('AwsAccount Integration Testing', () => {
   it('does absolutely nothing when you apply this', apply());
 
   it('selects a default region', query(`
-    UPDATE aws_regions SET is_default = TRUE WHERE region = '${process.env.AWS_REGION}';
+    UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `));
 
   it('confirms that the default region was set', query(`
@@ -160,7 +162,7 @@ describe('AwsAccount Integration Testing', () => {
     SELECT * FROM aws_regions WHERE is_default = TRUE;
   `, (res: any[]) => {
     expect(res.length).toBe(1);
-    expect(res[0].region).toBe(process.env.AWS_REGION);
+    expect(res[0].region).toBe(region);
   }));
 
   it('updates the default region with the handy `default_aws_region` function', query(`

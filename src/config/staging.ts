@@ -20,6 +20,7 @@ const config: ConfigInterface = {
   logger: {
     debug: true,
     test: false,
+    forceLocal: true,
     logDnaKey: 'b98181227b606d8ee6c5674b5bb948e7',
   },
   auth: {
@@ -35,7 +36,6 @@ const config: ConfigInterface = {
     release: process.env.SENTRY_RELEASE ?? throwError('No Sentry Release defined'),
   },
   telemetry: {
-    amplitudeKey: '1f380d1286396641d1e9a56f15e80e65',
     posthogKey: 'phc_r8CxqcF9mvr6lZ6DZkcUcqfomLvI1hEGmHJvncKIMXw',
   },
 };

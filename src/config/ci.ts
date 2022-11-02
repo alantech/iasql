@@ -19,6 +19,7 @@ const config: ConfigInterface = {
   logger: {
     debug: true,
     test: false,
+    forceLocal: false,
   },
   cors: {
     origin: 'http://localhost:3000',

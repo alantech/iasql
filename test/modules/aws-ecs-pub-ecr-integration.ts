@@ -1,15 +1,16 @@
 import config from '../../src/config'
 import * as iasql from '../../src/services/iasql'
 import {
-  getPrefix,
-  runInstall,
-  runUninstall,
-  runQuery,
-  runApply,
-  finish,
-  execComposeUp,
+  defaultRegion,
   execComposeDown,
+  execComposeUp,
+  finish,
+  getPrefix,
+  runApply,
+  runInstall,
+  runQuery,
   runSync,
+  runUninstall,
 } from '../helpers'
 
 const {
@@ -21,7 +22,7 @@ const dbAlias = 'ecstest';
 const dbAliasSidecar = `${dbAlias}sync`;
 const sidecarSync = runSync.bind(null, dbAliasSidecar);
 const sidecarInstall = runInstall.bind(null, dbAliasSidecar);
-const region = process.env.AWS_REGION || 'barf';
+const region = defaultRegion();
 const apply = runApply.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
@@ -252,7 +253,7 @@ describe('ECS Integration Testing', () => {
   it('adds a new service', query(`
     BEGIN;
       INSERT INTO service ("name", desired_count, subnets, assign_public_ip, cluster_id, task_definition_id, target_group_id)
-      VALUES ('${servicePublicRepositoryName}', ${serviceDesiredCount}, (select array(select subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true and vpc.region = '${process.env.AWS_REGION}' limit 3)), 'ENABLED', (SELECT id FROM cluster WHERE cluster_name = '${clusterName}'), (select id from task_definition where family = '${tdPublicRepositoryFamily}' order by revision desc limit 1), (SELECT id FROM target_group WHERE target_group_name = '${serviceTargetGroupName}' and region = '${region}'));
+      VALUES ('${servicePublicRepositoryName}', ${serviceDesiredCount}, (select array(select subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true and vpc.region = '${region}' limit 3)), 'ENABLED', (SELECT id FROM cluster WHERE cluster_name = '${clusterName}'), (select id from task_definition where family = '${tdPublicRepositoryFamily}' order by revision desc limit 1), (SELECT id FROM target_group WHERE target_group_name = '${serviceTargetGroupName}' and region = '${region}'));
 
       INSERT INTO service_security_groups (service_id, security_group_id)
       VALUES ((SELECT id FROM service WHERE name = '${servicePublicRepositoryName}'), (select id from security_group where group_name = '${securityGroup}' and region = '${region}' limit 1));

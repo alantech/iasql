@@ -1,12 +1,13 @@
 import * as iasql from '../../src/services/iasql';
 import {
-  getPrefix,
-  runQuery,
-  runInstall,
-  runApply,
-  finish,
-  execComposeUp,
+  defaultRegion as dr,
   execComposeDown,
+  execComposeUp,
+  finish,
+  getPrefix,
+  runApply,
+  runInstall,
+  runQuery,
   runSync,
 } from '../helpers';
 
@@ -14,7 +15,7 @@ const prefix = getPrefix();
 const dbAlias = 'sgtest';
 const sgName = `${prefix}${dbAlias}`;
 const nonDefaultRegion = 'us-east-1';
-const defaultRegion = process.env.AWS_REGION;
+const defaultRegion = dr();
 const apply = runApply.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
@@ -48,7 +49,7 @@ describe('Security Group Multi region Integration Testing', () => {
   it(
     'sets the default region',
     query(`
-    UPDATE aws_regions SET is_default = TRUE WHERE region = '${process.env.AWS_REGION}';
+    UPDATE aws_regions SET is_default = TRUE WHERE region = '${defaultRegion}';
   `),
   );
 

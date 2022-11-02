@@ -1,4 +1,3 @@
-import * as Amplitude from '@amplitude/node';
 import * as sentry from '@sentry/node';
 import { PostHog } from 'posthog-node';
 
@@ -18,11 +17,13 @@ enum IasqlOperationType {
   UPGRADE = 'UPGRADE',
 }
 
-const singletonAmp = config.telemetry ? Amplitude.init(config.telemetry.amplitudeKey) : undefined;
+const DISCONNECT = 'DISCONNECT';
 const singletonPh = config.telemetry
   ? new PostHog(config.telemetry.posthogKey, { host: 'https://app.posthog.com' })
   : undefined;
 
+// TODO remove unused fields after 0.0.20 and make the rest required
+// instead of making them all optional
 export type DbProps = {
   dbAlias?: string;
   dbId?: string;
@@ -31,6 +32,7 @@ export type DbProps = {
   operationCount?: number;
   rpcCount?: number;
   email?: string;
+  dbVersion?: string;
 };
 
 export type EventProps = {
@@ -47,14 +49,6 @@ export async function logEvent(uid: string, event: string, dbProps: DbProps, eve
   event = event.toUpperCase();
   try {
     dbProps.iasqlEnv = IASQL_ENV;
-    if (singletonAmp) {
-      await singletonAmp.logEvent({
-        event_type: event,
-        user_id: uid,
-        user_properties: dbProps,
-        event_properties: eventProps,
-      });
-    }
     if (singletonPh) {
       singletonPh.capture({
         event,
@@ -62,7 +56,25 @@ export async function logEvent(uid: string, event: string, dbProps: DbProps, eve
         properties: {
           ...eventProps,
           // set user properties
-          $set: dbProps,
+          $set:
+            event !== DISCONNECT
+              ? {
+                  [`record_count__${dbProps.dbAlias}`]: dbProps.recordCount,
+                  [`rpc_count__${dbProps.dbAlias}`]: dbProps.rpcCount,
+                  [`version__${dbProps.dbAlias}`]: dbProps.dbVersion,
+                }
+              : {},
+          $unset:
+            event === DISCONNECT
+              ? [
+                  `record_count__${dbProps.dbAlias}`,
+                  `rpc_count__${dbProps.dbAlias}`,
+                  `version__${dbProps.dbAlias}`,
+                ]
+              : [],
+          $setOnce: {
+            email: dbProps.email,
+          },
         },
       });
     }
@@ -82,7 +94,7 @@ export async function logConnect(uid: string, dbProps: DbProps, eventProps?: Eve
 }
 
 export async function logDisconnect(uid: string, dbProps: DbProps, eventProps?: EventProps) {
-  await logEvent(uid, 'DISCONNECT', dbProps, eventProps);
+  await logEvent(uid, DISCONNECT, dbProps, eventProps);
 }
 
 export async function logExport(uid: string, dbProps: DbProps, eventProps: EventProps) {

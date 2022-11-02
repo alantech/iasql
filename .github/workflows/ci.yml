@@ -95,7 +95,6 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID_TESTING }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY_TESTING }}
           A0_IASQL_API_TOKEN: ${{ secrets.A0_IASQL_API_TOKEN }}
-          AWS_REGION: us-east-1
 
   readonly-test:
     runs-on: ubuntu-latest
@@ -118,7 +117,6 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID_READONLY_TESTING }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY_READONLY_TESTING }}
           A0_IASQL_API_TOKEN: ${{ secrets.A0_IASQL_API_TOKEN }}
-          AWS_REGION: us-east-1
 
   upgrade-test:
     runs-on: ubuntu-latest
@@ -141,7 +139,6 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID_TESTING }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY_TESTING }}
           A0_IASQL_API_TOKEN: ${{ secrets.A0_IASQL_API_TOKEN }}
-          AWS_REGION: us-east-1
 
   setup-module-test:
     runs-on: ubuntu-latest
@@ -190,20 +187,11 @@ jobs:
           ACCOUNT_INDEX=$(echo $RESPONSE | jq '.[0]' || exit 1)
           echo "::set-output name=account_index::$(echo ${ACCOUNT_INDEX})"
 
-          # TODO: Drop regions when multi-region is done
-          regions=("ap-northeast-1" "ap-northeast-2" "ap-northeast-3" "ap-south-1" "ap-southeast-1" "ap-southeast-2" "ca-central-1" "eu-central-1" "eu-north-1" "eu-west-1" "eu-west-2" "eu-west-3" "sa-east-1" "us-east-2" "us-west-1" "us-west-2")
-          regionslen=${#regions[@]}
-          index=$(($RANDOM % $regionslen))
-          region=${regions[$index]}
-
-          echo "::set-output name=region::$(echo ${region})"
-
       - name: Pre-clean Test Account
         id: pre-clean-test-account
         env:
           IASQL_ENV: ci
           ACCOUNT_INDEX: ${{ steps['determine-test-account'].outputs['account_index'] }}
-          AWS_REGION: ${{ steps['determine-test-account'].outputs['region'] }}
           ACCESS_KEY_IDS: ${{ secrets.ACCESS_KEY_IDS }}
           SECRET_ACCESS_KEYS: ${{ secrets.SECRET_ACCESS_KEYS }}
         run: |
@@ -237,20 +225,6 @@ jobs:
             SELECT * FROM iasql_sync();
           ";
 
-          psql postgres://postgres:test@localhost:5432/iasql -c "
-            SELECT * FROM default_aws_region('${AWS_REGION}');
-          ";
-
-          # Disable all non-default regions so we only try to clean the region we're using
-          psql postgres://postgres:test@localhost:5432/iasql -c "
-            UPDATE aws_regions SET is_enabled = false WHERE is_default = false;
-          ";
-
-          echo "\nDebug log..."
-          psql postgres://postgres:test@localhost:5432/iasql -c "
-            SELECT * FROM aws_regions;
-          ";
-
           echo "\nInstalling all modules in iasql db..."
           psql postgres://postgres:test@localhost:5432/iasql -c "
             select iasql_install(
@@ -274,7 +248,6 @@ jobs:
           IASQL_ENV: test
           MODULES: ${{ needs.setup-module-test.outputs['test-modules'] }}
           ACCOUNT_INDEX: ${{ steps['determine-test-account'].outputs['account_index'] }}
-          AWS_REGION: ${{ steps['determine-test-account'].outputs['region'] }}
           ACCESS_KEY_IDS: ${{ secrets.ACCESS_KEY_IDS }}
           SECRET_ACCESS_KEYS: ${{ secrets.SECRET_ACCESS_KEYS }}
           STAGING_ACCESS_KEY_ID: ${{ secrets.STAGING_ACCESS_KEY_ID }}

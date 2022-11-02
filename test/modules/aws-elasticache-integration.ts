@@ -3,15 +3,16 @@ import { ElastiCache } from '@aws-sdk/client-elasticache';
 import config from '../../src/config';
 import * as iasql from '../../src/services/iasql';
 import {
-  runQuery,
-  runInstall,
-  runUninstall,
-  runApply,
-  finish,
-  execComposeUp,
+  defaultRegion,
   execComposeDown,
-  runSync,
+  execComposeUp,
+  finish,
   getPrefix,
+  runApply,
+  runInstall,
+  runQuery,
+  runSync,
+  runUninstall,
 } from '../helpers';
 
 const prefix = getPrefix();
@@ -27,7 +28,7 @@ const uninstall = runUninstall.bind(null, dbAlias);
 const cacheType = 'redis';
 const modules = ['aws_elasticache'];
 
-const region = process.env.AWS_REGION ?? '';
+const region = defaultRegion();
 const accessKeyId = process.env.AWS_ACCESS_KEY_ID ?? '';
 const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY ?? '';
 const elasticacheclient = new ElastiCache({
@@ -80,7 +81,7 @@ describe('Elasticache Integration Testing', () => {
   it('syncs the regions', sync());
 
   it('sets the default region', query(`
-    UPDATE aws_regions SET is_default = TRUE WHERE region = '${process.env.AWS_REGION}';
+    UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `));
 
   it('installs the elasticache module', install(modules));

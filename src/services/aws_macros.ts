@@ -108,7 +108,10 @@ export class AWS {
       region: config.region,
       retryStrategy: this.slowRetryStrategy,
     });
-    this.acmClient = new ACM(config);
+    this.acmClient = new ACM({
+      ...config,
+      retryStrategy: this.slowRetryStrategy,
+    });
     this.appSyncClient = new AppSync(config);
     this.cloudfrontClient = new CloudFront(config);
     this.cbClient = new CodeBuild({
@@ -130,7 +133,10 @@ export class AWS {
       region: config.region,
       retryStrategy: this.slowRetryStrategy,
     });
-    this.lambdaClient = new Lambda(config);
+    this.lambdaClient = new Lambda({
+      ...config,
+      retryStrategy: this.slowRetryStrategy,
+    });
     this.rdsClient = new RDS(config);
     this.route53Client = new Route53(config);
     this.secretsClient = new SecretsManager(config);

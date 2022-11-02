@@ -1,15 +1,16 @@
 import config from '../../src/config';
 import * as iasql from '../../src/services/iasql';
 import {
-  runQuery,
-  runInstall,
-  runUninstall,
-  runApply,
-  finish,
-  execComposeUp,
+  defaultRegion,
   execComposeDown,
-  runSync,
+  execComposeUp,
+  finish,
   getPrefix,
+  runApply,
+  runInstall,
+  runQuery,
+  runSync,
+  runUninstall,
 } from '../helpers';
 
 const prefix = getPrefix();
@@ -56,6 +57,7 @@ const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
+const region = defaultRegion();
 const modules = ['aws_cloudfront', 'aws_s3'];
 
 jest.setTimeout(620000);
@@ -84,7 +86,7 @@ describe('Cloudfront Integration Testing', () => {
   it('syncs the regions', sync());
 
   it('sets the default region', query(`
-    UPDATE aws_regions SET is_default = TRUE WHERE region = '${process.env.AWS_REGION}';
+    UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `));
 
   it("installs the cloudfront module", install(modules));

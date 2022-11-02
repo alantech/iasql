@@ -3,19 +3,20 @@ import { EC2 } from '@aws-sdk/client-ec2';
 import config from '../../src/config';
 import * as iasql from '../../src/services/iasql';
 import {
-  getPrefix,
-  runQuery,
-  runInstall,
-  runUninstall,
-  runApply,
-  finish,
-  execComposeUp,
+  defaultRegion,
   execComposeDown,
+  execComposeUp,
+  finish,
+  getPrefix,
+  runApply,
+  runInstall,
+  runQuery,
   runSync,
+  runUninstall,
 } from '../helpers';
 
 const dbAlias = 'ec2test';
-const region = process.env.AWS_REGION ?? '';
+const region = defaultRegion();
 const accessKeyId = process.env.AWS_ACCESS_KEY_ID ?? '';
 const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY ?? '';
 const ec2client = new EC2({
@@ -138,7 +139,7 @@ describe('EC2 Integration Testing', () => {
   it(
     'sets the default region',
     query(`
-    UPDATE aws_regions SET is_default = TRUE WHERE region = '${process.env.AWS_REGION}';
+    UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `),
   );
 
@@ -180,7 +181,7 @@ describe('EC2 Integration Testing', () => {
           LIMIT 1;
         INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
           (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'),
-          (SELECT id FROM security_group WHERE group_name='default' AND region = '${process.env.AWS_REGION}');
+          (SELECT id FROM security_group WHERE group_name='default' AND region = '${region}');
       COMMIT;
 
       BEGIN;
@@ -191,7 +192,7 @@ describe('EC2 Integration Testing', () => {
           LIMIT 1;
         INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
           (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-2'),
-          (SELECT id FROM security_group WHERE group_name='default' AND region = '${process.env.AWS_REGION}');
+          (SELECT id FROM security_group WHERE group_name='default' AND region = '${region}');
       COMMIT;
     `)((e?: any) => {
       if (!!e) return done(e);
@@ -224,7 +225,7 @@ describe('EC2 Integration Testing', () => {
           LIMIT 1;
         INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
           (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'),
-          (SELECT id FROM security_group WHERE group_name='default' AND region = '${process.env.AWS_REGION}');
+          (SELECT id FROM security_group WHERE group_name='default' AND region = '${region}');
       COMMIT;
 
       BEGIN;
@@ -235,7 +236,7 @@ describe('EC2 Integration Testing', () => {
           LIMIT 1;
         INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
           (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-2'),
-          (SELECT id FROM security_group WHERE group_name='default' AND region = '${process.env.AWS_REGION}');
+          (SELECT id FROM security_group WHERE group_name='default' AND region = '${region}');
       COMMIT;
     `)((e?: any) => {
       if (!!e) return done(e);
@@ -1010,7 +1011,7 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
   it(
     'sets the default region',
     query(`
-    UPDATE aws_regions SET is_default = TRUE WHERE region = '${process.env.AWS_REGION}';
+    UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `),
   );
 

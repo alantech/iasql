@@ -1,11 +1,22 @@
 import * as iasql from '../../src/services/iasql'
-import { runQuery, runInstall, runUninstall, runApply, finish, execComposeUp, execComposeDown, runSync, getPrefix, } from '../helpers'
+import {
+  defaultRegion,
+  execComposeDown,
+  execComposeUp,
+  finish,
+  getPrefix,
+  runApply,
+  runInstall,
+  runQuery,
+  runSync,
+  runUninstall,
+} from '../helpers'
 
 const prefix = getPrefix();
 const dbAlias = 'vpctest';
+const region = defaultRegion();
 const nonDefaultRegion = 'us-east-1';
 const nonDefaultRegionAvailabilityZone = 'us-east-1a';
-const availabilityZone = `${process.env.AWS_REGION ?? 'barf'}a`;
 const ng = `${prefix}${dbAlias}-ng`;
 const pubNg = `${prefix}${dbAlias}-pub-ng1`;
 const eip = `${prefix}${dbAlias}-eip`;
@@ -41,7 +52,7 @@ describe('VPC Multiregion Integration Testing', () => {
   it('syncs the regions', sync());
 
   it('sets the default region', query(`
-    UPDATE aws_regions SET is_default = TRUE WHERE region = '${process.env.AWS_REGION}';
+    UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `));
 
   it('installs the vpc module', install(modules));
@@ -85,11 +96,11 @@ describe('VPC Multiregion Integration Testing', () => {
     DELETE FROM security_group WHERE vpc_id = (SELECT id FROM vpc WHERE tags ->> 'name' = '${prefix}-1');
     WITH updated_subnet AS (
       UPDATE subnet
-      SET region='${process.env.AWS_REGION}', availability_zone='${availabilityZone}'
+      SET region='${region}', availability_zone=(SELECT name FROM availability_zone WHERE region = '${region}' ORDER BY name LIMIT 1)
       WHERE cidr_block='192.${randIPBlock}.0.0/16' AND availability_zone='${nonDefaultRegionAvailabilityZone}' AND region = '${nonDefaultRegion}'
     )
     UPDATE vpc
-    SET region='${process.env.AWS_REGION}'
+    SET region='${region}'
     WHERE cidr_block='192.${randIPBlock}.0.0/16' AND state='available' AND tags ->> 'name' = '${prefix}-1' AND region = '${nonDefaultRegion}';
   `));
 
@@ -102,12 +113,12 @@ describe('VPC Multiregion Integration Testing', () => {
 
   it('check vpc is available in the new region', query(`
     SELECT * FROM vpc 
-    WHERE cidr_block='192.${randIPBlock}.0.0/16' AND state='available' AND tags ->> 'name' = '${prefix}-1' AND region = '${process.env.AWS_REGION}';
+    WHERE cidr_block='192.${randIPBlock}.0.0/16' AND state='available' AND tags ->> 'name' = '${prefix}-1' AND region = '${region}';
   ` , (res: any) => expect(res.length).toBe(1)));
 
   it('check subnet is available in the new region', query(`
     SELECT * FROM subnet
-    WHERE cidr_block='192.${randIPBlock}.0.0/16' AND availability_zone='${availabilityZone}' AND region = '${process.env.AWS_REGION}';
+    WHERE cidr_block='192.${randIPBlock}.0.0/16' AND availability_zone=(SELECT name FROM availability_zone WHERE region='${region}' ORDER BY name LIMIT 1) AND region = '${region}';
   ` , (res: any) => expect(res.length).toBe(1)));
 
   it('uninstalls the vpc module', uninstall(
@@ -118,7 +129,7 @@ describe('VPC Multiregion Integration Testing', () => {
 
   it('check vpc is available in the new region', query(`
     SELECT * FROM vpc 
-    WHERE cidr_block='192.${randIPBlock}.0.0/16' AND state='available' AND tags ->> 'name' = '${prefix}-1' AND region = '${process.env.AWS_REGION}';
+    WHERE cidr_block='192.${randIPBlock}.0.0/16' AND state='available' AND tags ->> 'name' = '${prefix}-1' AND region = '${region}';
   ` , (res: any) => expect(res.length).toBe(1)));
 
   describe('Elastic IP and nat gateway multi-region', () => {
@@ -280,17 +291,17 @@ describe('VPC Multiregion Integration Testing', () => {
     WITH vpc as (
       SELECT id
       FROM vpc
-      WHERE cidr_block='192.${randIPBlock}.0.0/16' AND tags ->> 'name' = '${prefix}-1' AND region = '${process.env.AWS_REGION}'
+      WHERE cidr_block='192.${randIPBlock}.0.0/16' AND tags ->> 'name' = '${prefix}-1' AND region = '${region}'
     )
     DELETE FROM security_group
     USING vpc
     WHERE vpc_id = vpc.id;
 
     DELETE FROM subnet
-    WHERE cidr_block='192.${randIPBlock}.0.0/16' AND region = '${process.env.AWS_REGION}';
+    WHERE cidr_block='192.${randIPBlock}.0.0/16' AND region = '${region}';
 
     DELETE FROM vpc
-    WHERE cidr_block='192.${randIPBlock}.0.0/16' AND tags ->> 'name' = '${prefix}-1' AND region = '${process.env.AWS_REGION}';
+    WHERE cidr_block='192.${randIPBlock}.0.0/16' AND tags ->> 'name' = '${prefix}-1' AND region = '${region}';
 
     WITH vpc as (
       SELECT id

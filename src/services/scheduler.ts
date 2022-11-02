@@ -164,12 +164,12 @@ export async function start(dbId: string, dbUser: string) {
         const email = user?.email;
         const dbAlias = user?.iasqlDatabases?.[0]?.alias;
         const db = await MetadataRepo.getDbById(dbId);
+        const versionString = await TypeormWrapper.getVersionString(dbId);
         // Do not call RPCs if db is upgrading.
         if (db?.upgrading) {
           throwError(`Database ${dbId} is upgrading.`);
         }
         try {
-          const versionString = await TypeormWrapper.getVersionString(dbId);
           const Modules = (modules as any)[versionString];
           if (!Modules) {
             throwError(`Unsupported version ${versionString}. Please upgrade or replace this database.`);
@@ -224,6 +224,7 @@ export async function start(dbId: string, dbUser: string) {
                   dbAlias,
                   recordCount,
                   rpcCount,
+                  dbVersion: versionString,
                 },
                 {
                   params,

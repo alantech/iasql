@@ -16,15 +16,28 @@ const logFactory: LogFunctionFactory = scope => {
     const logfn = createLogger(config.logger.logDnaKey, {
       levels,
     });
-    return (level, message, meta) => {
-      logfn.log(message, {
-        level: level === 'warning' ? 'warn' : level, // Graphile Logger vs LogDNA levels fix
-        meta,
-        indexMeta: true,
-        app: 'iasql-engine',
-        env: process.env.IASQL_ENV,
-      });
-    };
+    if (config.logger.forceLocal) {
+      return (level, message, meta) => {
+        console.log(`${level}: ${message}`, meta);
+        logfn.log(message, {
+          level: level === 'warning' ? 'warn' : level, // Graphile Logger vs LogDNA levels fix
+          meta,
+          indexMeta: true,
+          app: 'iasql-engine',
+          env: process.env.IASQL_ENV,
+        });
+      };
+    } else {
+      return (level, message, meta) => {
+        logfn.log(message, {
+          level: level === 'warning' ? 'warn' : level, // Graphile Logger vs LogDNA levels fix
+          meta,
+          indexMeta: true,
+          app: 'iasql-engine',
+          env: process.env.IASQL_ENV,
+        });
+      };
+    }
   } else if (config.logger.debug && config.logger.test) {
     return (level, message, meta) => {
       const str = `${level}: ${message} ${util.inspect(scope)}${

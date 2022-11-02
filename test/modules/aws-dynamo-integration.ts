@@ -1,6 +1,17 @@
 import config from '../../src/config';
 import * as iasql from '../../src/services/iasql'
-import { getPrefix, runQuery, runApply, runInstall, runUninstall, finish, execComposeUp, execComposeDown, runSync, } from '../helpers'
+import {
+  defaultRegion,
+  execComposeDown,
+  execComposeUp,
+  finish,
+  getPrefix,
+  runApply,
+  runInstall,
+  runQuery,
+  runSync,
+  runUninstall,
+} from '../helpers'
 
 const prefix = getPrefix();
 const dbAlias = 'dynamotest';
@@ -10,6 +21,7 @@ const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
+const region = defaultRegion();
 const modules = ['aws_dynamo'];
 
 jest.setTimeout(960000);
@@ -31,7 +43,7 @@ describe('Dynamo Integration Testing', () => {
   it('syncs the regions', sync());
 
   it('sets the default region', query(`
-    UPDATE aws_regions SET is_default = TRUE WHERE region = '${process.env.AWS_REGION}';
+    UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `));
 
   it('installs the dynamo module', install(modules));
@@ -135,7 +147,7 @@ describe('Dynamo Integration Testing', () => {
 
   it('changes the region the table is located in', query(`
     UPDATE dynamo_table
-    SET region = '${process.env.AWS_REGION}'
+    SET region = '${region}'
     WHERE table_name = '${prefix}regiontest';
   `));
 
@@ -147,7 +159,7 @@ describe('Dynamo Integration Testing', () => {
     WHERE table_name = '${prefix}regiontest';
   `, (res: any[]) => {
     expect(res.length).toBe(1);
-    expect(res[0].region).toBe(process.env.AWS_REGION);
+    expect(res[0].region).toBe(region);
   }));
 
   it('removes the dynamo table', query(`
