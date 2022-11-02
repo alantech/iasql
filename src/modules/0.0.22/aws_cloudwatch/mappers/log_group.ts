@@ -83,6 +83,7 @@ export class LogGroupMapper extends MapperBase<LogGroup> {
         const newEntity = this.logGroupMapper(newObject, e.region);
         if (!newEntity) continue;
         // Save the record back into the database to get the new fields updated
+        newEntity.id = e.id;
         await this.module.logGroup.db.update(newEntity, ctx);
         out.push(newEntity);
       }
