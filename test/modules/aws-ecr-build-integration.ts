@@ -9,13 +9,14 @@ import {
   runSync,
   runInstall,
   runUninstall,
-  getKeyCertPair,
+  defaultRegion,
 } from '../helpers';
 import { AWS } from '../../src/services/aws_macros';
 
 const prefix = getPrefix();
 const dbAlias = 'ecrbuildertest';
 const repositoryName = prefix + dbAlias;
+const region = defaultRegion();
 
 
 const apply = runApply.bind(null, dbAlias);
@@ -47,7 +48,7 @@ describe('AwsEcrBuild Integration Testing', () => {
   it('sets the default region', query(`
       UPDATE aws_regions
       SET is_default = TRUE
-      WHERE region = '${process.env.AWS_REGION}';
+      WHERE region = '${region}';
   `));
 
   it('installs the ecr module', install(modules));
@@ -97,7 +98,7 @@ describe('AwsEcrBuild Integration Testing', () => {
 
   it('checks if the codebuild project is deleted', async () => {
     const client = new AWS({
-      region: process.env.AWS_REGION!,
+      region,
       credentials: {
         accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
         secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
