@@ -1173,9 +1173,7 @@ export async function commit(dbId: string, dbUser: string, dryRun: boolean, cont
           mapper: mappers,
           dbEntity: tables.map((t, i) =>
             context.memo.db[t]
-              ? Object.values(context.memo.db[t]).filter(
-                  (v: any) => !relevantEntities[t].some(e => idGens[i](v) === idGens[i](e)),
-                )
+              ? Object.values(context.memo.db[t])
               : [],
           ),
           cloudEntity: tables.map(t => (context.memo.cloud[t] ? Object.values(context.memo.cloud[t]) : [])),
@@ -1208,6 +1206,9 @@ export async function commit(dbId: string, dbUser: string, dryRun: boolean, cont
         };
         records.forEach(r => {
           r.diff = findDiff(r.dbEntity, r.cloudEntity, r.idGen, r.comparator);
+          // We need to filter the changes we want to apply
+          r.diff.entitiesInDbOnly = r.diff.entitiesInDbOnly.filter((e: any) => !relevantEntities[r.table]?.find(re => r.idGen(e) === r.idGen(re)));
+          r.diff.entitiesChanged = r.diff.entitiesChanged.filter((o: any) => !relevantEntities[r.table]?.find(re => r.idGen(o.db) === r.idGen(re)));
           if (r.diff.entitiesInDbOnly.length > 0) {
             updatePlan(toDelete, r.table, r.mapper, r.diff.entitiesInDbOnly);
           }
@@ -1289,16 +1290,10 @@ export async function commit(dbId: string, dbUser: string, dryRun: boolean, cont
             const name = r.table;
             logger.info(`Checking ${name}`);
             const outArr = [];
-            // We need to filter the changes we want to apply
-
-            const filteredEntitiesInDbOnly = r.diff.entitiesInDbOnly.filter((e: any) => {
-              const id = r.idGen(e);
-              return !relevantEntities[name][id];
-            });
-            if (filteredEntitiesInDbOnly.length > 0) {
-              logger.info(`${name} has records to delete`, { records: filteredEntitiesInDbOnly });
+            if (r.diff.entitiesInDbOnly.length > 0) {
+              logger.info(`${name} has records to delete`, { records: r.diff.entitiesInDbOnly });
               outArr.push(
-                filteredEntitiesInDbOnly.map((e: any) => async () => {
+                r.diff.entitiesInDbOnly.map((e: any) => async () => {
                   await r.mapper.db.delete(e, context);
                 }),
               );
@@ -1367,9 +1362,7 @@ export async function commit(dbId: string, dbUser: string, dryRun: boolean, cont
           mapper: mappers,
           dbEntity: tables.map((t, i) =>
             context.memo.db[t]
-              ? Object.values(context.memo.db[t]).filter((v: any) =>
-                  relevantEntities[t].some(e => idGens[i](v) === idGens[i](e)),
-                )
+              ? Object.values(context.memo.db[t])
               : [],
           ),
           cloudEntity: tables.map(t => (context.memo.cloud[t] ? Object.values(context.memo.cloud[t]) : [])),
@@ -1402,6 +1395,9 @@ export async function commit(dbId: string, dbUser: string, dryRun: boolean, cont
         };
         records.forEach(r => {
           r.diff = findDiff(r.dbEntity, r.cloudEntity, r.idGen, r.comparator);
+          // We need to filter the changes we want to apply
+          r.diff.entitiesInDbOnly = r.diff.entitiesInDbOnly.filter((e: any) => relevantEntities[r.table]?.find(re => r.idGen(e) === r.idGen(re)));
+          r.diff.entitiesChanged = r.diff.entitiesChanged.filter((o: any) => relevantEntities[r.table]?.find(re => r.idGen(o.db) === r.idGen(re)));
           if (r.diff.entitiesInDbOnly.length > 0) {
             updatePlan(toCreateApply, r.table, r.mapper, r.diff.entitiesInDbOnly);
           }
