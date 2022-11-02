@@ -1,12 +1,13 @@
 import * as iasql from '../../src/services/iasql';
 import {
-  getPrefix,
-  runQuery,
-  runInstall,
-  runApply,
-  finish,
-  execComposeUp,
+  defaultRegion,
   execComposeDown,
+  execComposeUp,
+  finish,
+  getPrefix,
+  runApply,
+  runInstall,
+  runQuery,
   runSync,
 } from '../helpers';
 
@@ -21,16 +22,8 @@ const nonDefaultRegion = 'us-east-1';
 // }
 const lambdaFunctionCode =
   'UEsDBBQAAAAIADqB9VRxjjIufQAAAJAAAAAIABwAaW5kZXguanNVVAkAAzBe2WIwXtlidXgLAAEE9QEAAAQUAAAANcyxDoIwEIDhnae4MNFIOjiaOLI41AHj5NLUA5scV3K9Gojx3ZWB8R++H5c5iWb78vwkFDgD+LxygKFw0Ji4wTeythASKy5q4FPBFjkRWkpjU3f3zt1O8OAaDnDpr85mlchjHNYdcyFq4WjM3wpqEd5/26JXQT85P2H1/QFQSwECHgMUAAAACAA6gfVUcY4yLn0AAACQAAAACAAYAAAAAAABAAAApIEAAAAAaW5kZXguanNVVAUAAzBe2WJ1eAsAAQT1AQAABBQAAABQSwUGAAAAAAEAAQBOAAAAvwAAAAAA';
-// Base64 for zip file with the following code:
-// exports.handler =  async function(event, context) {
-//   console.log("EVENT: \n" + JSON.stringify(event, null, 3))
-//   return context.logStreamName
-// }
-const lambdaFunctionCodeUpdate =
-  'UEsDBBQAAAAIAI2Y9lTkWkK7fQAAAJAAAAAIABwAaW5kZXguanNVVAkAA5rY2mKc2NpidXgLAAEE9QEAAAQUAAAANcyxDoIwEIDhnae4MNFIuriZOLI41AHj5NLUA5scV3K9Gojx3ZWB8R++H5c5iWb78vwkFDgD+LxygKFw0Ji4wTeythASKy5q4FPBFjkRWkpjU3f3zt1O8OAaDnDpr85mlchjHNYdcyFq4WjM3wpqEd5/26JXQT85P2H1/QFQSwECHgMUAAAACACNmPZU5FpCu30AAACQAAAACAAYAAAAAAABAAAApIEAAAAAaW5kZXguanNVVAUAA5rY2mJ1eAsAAQT1AQAABBQAAABQSwUGAAAAAAEAAQBOAAAAvwAAAAAA';
 const lambdaFunctionHandler = 'index.handler';
 const lambdaFunctionRuntime14 = 'nodejs14.x';
-const lambdaFunctionRuntime16 = 'nodejs16.x';
 const lambdaFunctionRoleName = `${prefix}${dbAlias}-role`;
 const lambdaFunctionRoleTaskPolicyArn = 'arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole';
 const attachAssumeLambdaPolicy = JSON.stringify({
@@ -50,6 +43,7 @@ const apply = runApply.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
+const region = defaultRegion();
 const modules = ['aws_lambda'];
 
 jest.setTimeout(480000);
@@ -79,7 +73,7 @@ describe('Lambda Multi-region Integration Testing', () => {
   it(
     'sets the default region',
     query(`
-    UPDATE aws_regions SET is_default = TRUE WHERE region = '${process.env.AWS_REGION}';
+    UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `),
   );
 
@@ -143,7 +137,7 @@ describe('Lambda Multi-region Integration Testing', () => {
     'changes the region the lambda function is located in',
     query(`
       UPDATE lambda_function
-      SET region = '${process.env.AWS_REGION}', zip_b64 = '${lambdaFunctionCode}'
+      SET region = '${region}', zip_b64 = '${lambdaFunctionCode}'
       WHERE name = '${lambdaFunctionName}' and region = '${nonDefaultRegion}';
   `),
   );
@@ -156,7 +150,7 @@ describe('Lambda Multi-region Integration Testing', () => {
       `
     SELECT *
     FROM lambda_function
-    WHERE name = '${lambdaFunctionName}' and region = '${process.env.AWS_REGION}';
+    WHERE name = '${lambdaFunctionName}' and region = '${region}';
   `,
       (res: any[]) => expect(res.length).toBe(1),
     ),

@@ -1,13 +1,14 @@
 import * as iasql from '../../src/services/iasql';
 import {
-  getPrefix,
-  runQuery,
-  runApply,
-  finish,
-  execComposeUp,
+  defaultRegion,
   execComposeDown,
-  runSync,
+  execComposeUp,
+  finish,
+  getPrefix,
+  runApply,
   runInstall,
+  runQuery,
+  runSync,
 } from '../helpers';
 
 const prefix = getPrefix();
@@ -23,7 +24,6 @@ const lambdaFunctionCode =
   'UEsDBBQAAAAIADqB9VRxjjIufQAAAJAAAAAIABwAaW5kZXguanNVVAkAAzBe2WIwXtlidXgLAAEE9QEAAAQUAAAANcyxDoIwEIDhnae4MNFIOjiaOLI41AHj5NLUA5scV3K9Gojx3ZWB8R++H5c5iWb78vwkFDgD+LxygKFw0Ji4wTeythASKy5q4FPBFjkRWkpjU3f3zt1O8OAaDnDpr85mlchjHNYdcyFq4WjM3wpqEd5/26JXQT85P2H1/QFQSwECHgMUAAAACAA6gfVUcY4yLn0AAACQAAAACAAYAAAAAAABAAAApIEAAAAAaW5kZXguanNVVAUAAzBe2WJ1eAsAAQT1AQAABBQAAABQSwUGAAAAAAEAAQBOAAAAvwAAAAAA';
 const lambdaFunctionHandler = 'index.handler';
 const lambdaFunctionRuntime14 = 'nodejs14.x';
-const lambdaFunctionRuntime16 = 'nodejs16.x';
 const lambdaFunctionRoleTaskPolicyArn = 'arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole';
 const attachAssumeLambdaPolicy = JSON.stringify({
   Version: '2012-10-17',
@@ -42,6 +42,7 @@ const apply = runApply.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
+const region = defaultRegion();
 
 const modules = ['aws_cloudwatch', 'aws_lambda'];
 jest.setTimeout(240000);
@@ -71,7 +72,7 @@ describe('AwsCloudwatch and AwsLambda Integration Testing', () => {
   it(
     'sets the default region',
     query(`
-    UPDATE aws_regions SET is_default = TRUE WHERE region = '${process.env.AWS_REGION}';
+    UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `),
   );
 

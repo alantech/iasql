@@ -1,20 +1,21 @@
 import config from '../../src/config';
 import * as iasql from '../../src/services/iasql';
 import {
-  getPrefix,
-  runQuery,
-  runInstall,
-  runUninstall,
-  runApply,
-  finish,
-  execComposeUp,
+  defaultRegion,
   execComposeDown,
+  execComposeUp,
+  finish,
+  getPrefix,
+  runApply,
+  runInstall,
+  runQuery,
   runSync,
+  runUninstall,
 } from '../helpers';
 
 const prefix = getPrefix();
 const dbAlias = 'iamtest';
-const region = process.env.AWS_REGION ?? 'barf';
+const region = defaultRegion();
 const awsServiceRoleName = 'AWSServiceRoleForSupport';
 const taskRoleName = `${prefix}${dbAlias}task-${region}`;
 const taskPolicyArn = 'arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy';

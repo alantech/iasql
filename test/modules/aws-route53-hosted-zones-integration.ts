@@ -2,15 +2,16 @@ import config from '../../src/config';
 import * as iasql from '../../src/services/iasql'
 import logger from '../../src/services/logger'
 import {
-  getPrefix,
-  runQuery,
-  runInstall,
-  runUninstall,
-  runApply,
-  finish,
-  execComposeUp,
+  defaultRegion,
   execComposeDown,
+  execComposeUp,
+  finish,
+  getPrefix,
+  runApply,
+  runInstall,
+  runQuery,
   runSync,
+  runUninstall,
 } from '../helpers'
 
 const {
@@ -21,8 +22,9 @@ const {
 
 const prefix = getPrefix();
 const dbAlias = 'route53test';
-const domainName = `${dbAlias}${prefix}.${process.env.AWS_REGION}.com.`;
-const replaceDomainName = `${dbAlias}${prefix}replace.${process.env.AWS_REGION}.com.`;
+const region = defaultRegion();
+const domainName = `${dbAlias}${prefix}.${region}.com.`;
+const replaceDomainName = `${dbAlias}${prefix}replace.${region}.com.`;
 const resourceRecordSetName = `test.${domainName}`;
 const aliasResourceRecordSetName = `aliastest.${domainName}`;
 const resourceRecordSetMultilineName = `test.multiline.${replaceDomainName}`;
@@ -70,7 +72,7 @@ describe('Route53 Integration Testing', () => {
   it('syncs the regions', sync());
 
   it('sets the default region', query(`
-    UPDATE aws_regions SET is_default = TRUE WHERE region = '${process.env.AWS_REGION}';
+    UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `));
 
   it('installs module', install(modules));
@@ -135,7 +137,7 @@ describe('Route53 Integration Testing', () => {
   it('syncs the regions', syncStaging());
 
   it('sets the default region', queryStaging(`
-    UPDATE aws_regions SET is_default = TRUE WHERE region = '${process.env.AWS_REGION}';
+    UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `));
 
   it('installs module', installStaging(modules));

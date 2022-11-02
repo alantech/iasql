@@ -1,15 +1,16 @@
 import config from '../../src/config';
 import * as iasql from '../../src/services/iasql';
 import {
-  runQuery,
-  runInstall,
-  runUninstall,
-  runApply,
-  finish,
-  execComposeUp,
+  defaultRegion,
   execComposeDown,
-  runSync,
+  execComposeUp,
+  finish,
   getPrefix,
+  runApply,
+  runInstall,
+  runQuery,
+  runSync,
+  runUninstall,
 } from '../helpers';
 
 const prefix = getPrefix();
@@ -38,11 +39,12 @@ const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
+const region = defaultRegion();
 // We have to install the `aws_security_group` to test fully the integration even though is not being used,
 // since the `aws_vpc` module creates a `default` security group automatically.
 const modules = ['aws_vpc', 'aws_security_group'];
 
-const availabilityZone = `${process.env.AWS_REGION ?? 'barf'}a`;
+const availabilityZone = `${region}a`;
 const randIPBlock = Math.floor(Math.random() * 254) + 1; // 0 collides with the default CIDR block
 
 jest.setTimeout(360000);
@@ -72,7 +74,7 @@ describe('VPC Integration Testing', () => {
   it(
     'sets the default region',
     query(`
-    UPDATE aws_regions SET is_default = TRUE WHERE region = '${process.env.AWS_REGION}';
+    UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `),
   );
 

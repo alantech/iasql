@@ -1,15 +1,16 @@
 import config from "../../src/config";
 import * as iasql from "../../src/services/iasql";
 import {
-  runQuery,
-  runInstall,
-  runUninstall,
-  runApply,
-  finish,
-  execComposeUp,
+  defaultRegion,
   execComposeDown,
-  runSync,
+  execComposeUp,
+  finish,
   getPrefix,
+  runApply,
+  runInstall,
+  runQuery,
+  runSync,
+  runUninstall,
 } from "../helpers";
 
 const prefix = getPrefix();
@@ -21,6 +22,7 @@ const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const modules = ["aws_api_gateway"];
+const region = defaultRegion();
 const apiName = `${prefix}testApi`;
 
 jest.setTimeout(3600000);
@@ -43,7 +45,7 @@ describe("API Gateway Integration Testing", () => {
   it('syncs the regions', sync());
 
   it('sets the default region', query(`
-    UPDATE aws_regions SET is_default = TRUE WHERE region = '${process.env.AWS_REGION}';
+    UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `));
 
   it("installs the API gateway module", install(modules));

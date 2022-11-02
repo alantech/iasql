@@ -2,6 +2,7 @@ import { EC2 } from '@aws-sdk/client-ec2';
 
 import * as iasql from '../../src/services/iasql';
 import {
+  defaultRegion,
   execComposeDown,
   execComposeUp,
   finish,
@@ -20,6 +21,24 @@ const uninstall = runUninstall.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
+// codepipeline has a more limited region list
+const region = defaultRegion([
+  "ap-northeast-1",
+  "ap-northeast-2",
+  "ap-south-1",
+  "ap-southeast-1",
+  "ap-southeast-2",
+  "ca-central-1",
+  "eu-central-1",
+  "eu-north-1",
+  "eu-west-1",
+  "eu-west-2",
+  "eu-west-3",
+  "sa-east-1",
+  "us-east-2",
+  "us-west-1",
+  "us-west-2",
+]);
 const modules = ['aws_codepipeline', 'aws_s3', 'aws_codedeploy'];
 
 const codepipelinePolicyArn = 'arn:aws:iam::aws:policy/AWSCodePipelineFullAccess';
@@ -29,7 +48,6 @@ const bucket = `${prefix}-bucket`;
 
 const applicationNameForDeployment = `${prefix}${dbAlias}applicationForDeployment`;
 const deploymentGroupName = `${prefix}${dbAlias}deployment_group`;
-const region = `${process.env.AWS_REGION}`;
 const nonDefaultRegion = 'us-east-1';
 const codeDeployRoleName = `${prefix}-codedeploy-${region}`;
 const codePipelineRoleName = `${prefix}-codepipeline-${region}`;

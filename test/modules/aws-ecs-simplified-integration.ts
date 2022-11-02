@@ -1,15 +1,16 @@
 import config from '../../src/config';
 import * as iasql from '../../src/services/iasql'
 import {
-  getPrefix,
-  runInstall,
-  runUninstall,
-  runQuery,
-  runApply,
-  finish,
-  execComposeUp,
+  defaultRegion,
   execComposeDown,
+  execComposeUp,
+  finish,
+  getPrefix,
+  runApply,
+  runInstall,
+  runQuery,
   runSync,
+  runUninstall,
 } from '../helpers'
 
 const {
@@ -18,7 +19,7 @@ const {
 
 const prefix = getPrefix();
 const dbAlias = 'ecssmptest';
-const region = process.env.AWS_REGION || 'barf';
+const region = defaultRegion();
 const apply = runApply.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);

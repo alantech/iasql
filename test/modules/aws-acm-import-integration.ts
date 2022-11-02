@@ -1,15 +1,16 @@
 import * as iasql from '../../src/services/iasql';
 import {
-  getPrefix,
-  runQuery,
-  runApply,
-  finish,
-  execComposeUp,
+  defaultRegion,
   execComposeDown,
-  runSync,
-  runInstall,
-  runUninstall,
+  execComposeUp,
+  finish,
   getKeyCertPair,
+  getPrefix,
+  runApply,
+  runInstall,
+  runQuery,
+  runSync,
+  runUninstall,
 } from '../helpers';
 
 const prefix = getPrefix();
@@ -22,6 +23,7 @@ const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
+const region = defaultRegion();
 const modules = ['aws_acm'];
 
 jest.setTimeout(360000);
@@ -43,13 +45,13 @@ describe('AwsAcm Import Integration Testing', () => {
   it('syncs the regions', sync());
 
   it('sets the default region', query(`
-    UPDATE aws_regions SET is_default = TRUE WHERE region = '${process.env.AWS_REGION}';
+    UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `));
 
   it('installs the acm module', install(modules));
 
   it('adds a new certificate to import', query(`
-    SELECT * FROM certificate_import('${cert}', '${key}', '${process.env.AWS_REGION}', '');
+    SELECT * FROM certificate_import('${cert}', '${key}', '${region}', '');
   `));
 
   it('check new certificate added', query(`
@@ -82,7 +84,7 @@ describe('AwsAcm Import Integration Testing', () => {
   `, (res: any[]) => expect(res.length).toBe(0)));
 
   it('import a certificate in non-default region', query(`
-    SELECT * FROM certificate_import('${cert}', '${key}', '${process.env.AWS_REGION}', '');
+    SELECT * FROM certificate_import('${cert}', '${key}', '${region}', '');
   `));
 
   it('verifies the certificate in the non-default region is created', query(`

@@ -1,11 +1,12 @@
 import * as iasql from '../../src/services/iasql';
 import {
-  runQuery,
-  finish,
-  execComposeUp,
+  defaultRegion,
   execComposeDown,
-  runInstallAll,
+  execComposeUp,
+  finish,
   runInstall,
+  runInstallAll,
+  runQuery,
   runSync,
 } from '../helpers';
 
@@ -15,6 +16,7 @@ const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const installAll = runInstallAll.bind(null, dbAlias);
+const region = defaultRegion();
 
 jest.setTimeout(360000);
 beforeAll(async () => await execComposeUp());
@@ -43,7 +45,7 @@ describe('Every module installed need to have at least a table', () => {
   it(
     'sets the default region',
     query(`
-    UPDATE aws_regions SET is_default = TRUE WHERE region = '${process.env.AWS_REGION}';
+    UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `),
   );
 

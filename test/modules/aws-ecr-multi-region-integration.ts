@@ -1,21 +1,22 @@
 import { execSync } from 'child_process';
 
-import config from '../../src/config';
 import * as iasql from '../../src/services/iasql';
 import {
-  getPrefix,
-  runQuery,
-  runInstall,
-  runApply,
-  finish,
-  execComposeUp,
+  defaultRegion,
   execComposeDown,
+  execComposeUp,
+  finish,
+  getPrefix,
+  runApply,
+  runInstall,
+  runQuery,
   runSync,
 } from '../helpers';
 
 const prefix = getPrefix();
 const dbAlias = 'ecrtest';
 const repositoryName = `${prefix}${dbAlias}`;
+const region = defaultRegion();
 const nonDefaultRegion = 'us-east-1';
 const policyMock =
   '{ "Version": "2012-10-17", "Statement": [ { "Sid": "DenyPull", "Effect": "Deny", "Principal": "*", "Action": [ "ecr:BatchGetImage", "ecr:GetDownloadUrlForLayer" ] } ]}';
@@ -26,7 +27,6 @@ const install = runInstall.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const modules = ['aws_ecr'];
 const dockerImage = 'public.ecr.aws/docker/library/hello-world:latest';
-const repositoryTag = 'v1';
 
 jest.setTimeout(360000);
 beforeAll(async () => {
@@ -63,7 +63,7 @@ describe('ECR Multi-region Integration Testing', () => {
   it(
     'sets the default region',
     query(`
-    UPDATE aws_regions SET is_default = TRUE WHERE region = '${process.env.AWS_REGION}';
+    UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `),
   );
 
@@ -174,16 +174,16 @@ describe('ECR Multi-region Integration Testing', () => {
       query(`
       with updated_repository_policy as (
         UPDATE repository_policy
-        SET region = '${process.env.AWS_REGION}'
+        SET region = '${region}'
         WHERE repository_id = (select id from repository where repository_name = '${repositoryName}')
       ),
       updated_repository_image as (
         UPDATE repository_image
-        SET private_repository_region = '${process.env.AWS_REGION}'
+        SET private_repository_region = '${region}'
         WHERE private_repository_id = (select id from repository where repository_name = '${repositoryName}')
       )
       UPDATE repository
-      SET region = '${process.env.AWS_REGION}'
+      SET region = '${region}'
       WHERE repository_name = '${repositoryName}' and region = '${nonDefaultRegion}';
   `);
     } catch (e: any) {
@@ -206,11 +206,11 @@ describe('ECR Multi-region Integration Testing', () => {
     query(`
       with updated_repository_policy as (
         UPDATE repository_policy
-        SET region = '${process.env.AWS_REGION}'
+        SET region = '${region}'
         WHERE repository_id = (select id from repository where repository_name = '${repositoryName}')
       )
       UPDATE repository
-      SET region = '${process.env.AWS_REGION}'
+      SET region = '${region}'
       WHERE repository_name = '${repositoryName}' and region = '${nonDefaultRegion}';
   `),
   );
@@ -233,7 +233,7 @@ describe('ECR Multi-region Integration Testing', () => {
       `
       SELECT *
       FROM repository
-      WHERE repository_name = '${repositoryName}' and region = '${process.env.AWS_REGION}';
+      WHERE repository_name = '${repositoryName}' and region = '${region}';
   `,
       (res: any[]) => expect(res.length).toBe(1),
     ),
@@ -257,7 +257,7 @@ describe('ECR Multi-region Integration Testing', () => {
       `
     SELECT *
     FROM repository_policy
-    WHERE repository_id = (select id from repository where repository_name = '${repositoryName}') and region = '${process.env.AWS_REGION}';
+    WHERE repository_id = (select id from repository where repository_name = '${repositoryName}') and region = '${region}';
   `,
       (res: any[]) => expect(res.length).toBe(1),
     ),
@@ -271,7 +271,7 @@ describe('ECR Multi-region Integration Testing', () => {
       `
       SELECT *
       FROM repository
-      WHERE repository_name = '${repositoryName}' and region = '${process.env.AWS_REGION}';
+      WHERE repository_name = '${repositoryName}' and region = '${region}';
   `,
       (res: any[]) => expect(res.length).toBe(1),
     ),
@@ -283,7 +283,7 @@ describe('ECR Multi-region Integration Testing', () => {
       `
       SELECT *
       FROM repository_policy
-      WHERE repository_id = (select id from repository where repository_name = '${repositoryName}') and region = '${process.env.AWS_REGION}';
+      WHERE repository_id = (select id from repository where repository_name = '${repositoryName}') and region = '${region}';
   `,
       (res: any[]) => expect(res.length).toBe(1),
     ),
@@ -294,10 +294,10 @@ describe('ECR Multi-region Integration Testing', () => {
     query(`
       BEGIN;
         DELETE FROM repository_policy
-        WHERE repository_id = (select id from repository where repository_name = '${repositoryName}' and region = '${process.env.AWS_REGION}');
+        WHERE repository_id = (select id from repository where repository_name = '${repositoryName}' and region = '${region}');
 
         DELETE FROM repository
-        WHERE repository_name = '${repositoryName}' and region = '${process.env.AWS_REGION}';
+        WHERE repository_name = '${repositoryName}' and region = '${region}';
       COMMIT;
   `),
   );
@@ -310,7 +310,7 @@ describe('ECR Multi-region Integration Testing', () => {
       `
     SELECT *
     FROM repository_policy
-    WHERE repository_id = (select id from repository where repository_name = '${repositoryName}' and region = '${process.env.AWS_REGION}');
+    WHERE repository_id = (select id from repository where repository_name = '${repositoryName}' and region = '${region}');
   `,
       (res: any[]) => expect(res.length).toBe(0),
     ),
