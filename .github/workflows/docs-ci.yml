@@ -22,13 +22,13 @@ jobs:
         uses: actions/checkout@v2
       # Node is required for npm
       - name: Set up Node
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v3
         with:
           node-version: '16'
+          cache: 'yarn'
       # Install and build Docusaurus website
       - name: Build Docusaurus website
         run: |
           cd docs
-          yarn
-          yarn install
+          yarn --prefer-offline
           yarn build

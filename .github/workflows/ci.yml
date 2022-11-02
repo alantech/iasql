@@ -25,12 +25,13 @@ jobs:
 
       # Set up Node.js
       - name: Use Node.js 16.x
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v3
         with:
           node-version: 16.x
+          cache: 'yarn'
 
       - name: Install dependencies
-        run: yarn
+        run: yarn --prefer-offline
 
       - name: Run linter check
         run: yarn lint
@@ -46,12 +47,13 @@ jobs:
 
       # Set up Node.js
       - name: Use Node.js 16.x
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v3
         with:
           node-version: 16.x
+          cache: 'yarn'
 
       - name: Install dependencies
-        run: yarn
+        run: yarn --prefer-offline
 
       - name: Run code style check
         run: yarn style
@@ -64,12 +66,13 @@ jobs:
           fetch-depth: 0
 
       - name: Use Node.js 16.x
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v3
         with:
           node-version: 16.x
+          cache: 'yarn'
 
       - name: Install dependencies
-        run: yarn
+        run: yarn --prefer-offline
 
       - name: checks modified files
         run: yarn changes-in-version
@@ -81,12 +84,13 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Use Node.js 16.x
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v3
         with:
           node-version: 16.x
+          cache: 'yarn'
 
       - name: Install dependencies
-        run: yarn
+        run: yarn --prefer-offline
 
       - name: Run common tests
         run: yarn coverage **/common/*
@@ -104,12 +108,13 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Use Node.js 16.x
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v3
         with:
           node-version: 16.x
+          cache: 'yarn'
 
       - name: Install dependencies
-        run: yarn
+        run: yarn --prefer-offline
 
       - name: Run read-only tests
         run: yarn coverage **/readonly/*
@@ -127,12 +132,13 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Use Node.js 16.x
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v3
         with:
           node-version: 16.x
+          cache: 'yarn'
 
       - name: Install dependencies
-        run: yarn
+        run: yarn --prefer-offline
 
       - name: Run common tests
         run: ./test/upgrade/run-upgrade.sh
@@ -173,12 +179,13 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Use Node.js 16.x
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v3
         with:
           node-version: 16.x
+          cache: 'yarn'
 
       - name: Install dependencies
-        run: yarn
+        run: yarn --prefer-offline
 
       - name: Determine Test Account To Use
         id: determine-test-account
