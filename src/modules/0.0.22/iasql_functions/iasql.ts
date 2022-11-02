@@ -1070,21 +1070,18 @@ export async function commit(dbId: string, dbUser: string, dryRun: boolean, cont
       },
     });
     const relevantChangesTables = relevantChanges.map(c => c.tableName);
-    console.log(`+-+ relevant changes = ${JSON.stringify(relevantChanges)}`);
 
     // TODO: REFACTOR THIS!!!
     const relevantEntities: { [key: string]: any[] } = {};
     relevantChanges.forEach((c: IasqlAuditLog) => {
       const camelCaseEntityName = camelCase(c.tableName);
       const entityName = camelCaseEntityName.charAt(0).toUpperCase() + camelCaseEntityName.slice(1);
-      console.log(`++++ entity names ${entityName}`);
       const entity: any = {};
       if (c.changeType === AuditLogChangeType.DELETE) {
         Object.entries(c.change.original).forEach(([k, v]: [string, any]) => (entity[camelCase(k)] = v));
       } else if ([AuditLogChangeType.INSERT, AuditLogChangeType.UPDATE].includes(c.changeType)) {
         Object.entries(c.change.change).forEach(([k, v]: [string, any]) => (entity[camelCase(k)] = v));
       }
-      entity[c.change.change];
       if (relevantEntities[entityName]) {
         relevantEntities[entityName].push(entity);
       } else {
@@ -1121,16 +1118,13 @@ export async function commit(dbId: string, dbUser: string, dryRun: boolean, cont
 
     const modulesAffected: ModuleInterface[] = [...moduleDirectlyAffected, ...extraMods];
 
-    console.log(`+-+ relevant entities = ${JSON.stringify(relevantEntities)}`);
     const rootToLeafOrder: ModuleInterface[] = sortModules(modulesAffected, moduleNames);
-    console.log(`+-+ end sorting`);
     const mappers = rootToLeafOrder
       .map(mod => Object.values(mod))
       .flat()
       .filter(val => val instanceof MapperBase)
       .flat()
       .filter(mapper => mapper.source === 'db');
-    console.log(`+-+ mappers defined`);
 
     // TODO: DRY THIS!!!
     // -- Sync with those mappers
@@ -1171,11 +1165,7 @@ export async function commit(dbId: string, dbUser: string, dryRun: boolean, cont
         const records = colToRow({
           table: tables,
           mapper: mappers,
-          dbEntity: tables.map((t, i) =>
-            context.memo.db[t]
-              ? Object.values(context.memo.db[t])
-              : [],
-          ),
+          dbEntity: tables.map(t => (context.memo.db[t] ? Object.values(context.memo.db[t]) : [])),
           cloudEntity: tables.map(t => (context.memo.cloud[t] ? Object.values(context.memo.cloud[t]) : [])),
           comparator: comparators,
           idGen: idGens,
@@ -1206,9 +1196,18 @@ export async function commit(dbId: string, dbUser: string, dryRun: boolean, cont
         };
         records.forEach(r => {
           r.diff = findDiff(r.dbEntity, r.cloudEntity, r.idGen, r.comparator);
-          // We need to filter the changes we want to apply
-          r.diff.entitiesInDbOnly = r.diff.entitiesInDbOnly.filter((e: any) => !relevantEntities[r.table]?.find(re => r.idGen(e) === r.idGen(re)));
-          r.diff.entitiesChanged = r.diff.entitiesChanged.filter((o: any) => !relevantEntities[r.table]?.find(re => r.idGen(o.db) === r.idGen(re)));
+          // Case entities in AWS only: we want to create from AWS.
+          // We do nothing here, we bring all changes from the cloud to keep everything up-to-date.
+          // Case entities in DB only: we want to delete from the DB.
+          // We need to filter the changes we want to apply and exclude them. Otherwise, we will override.
+          r.diff.entitiesInDbOnly = r.diff.entitiesInDbOnly.filter(
+            (e: any) => !relevantEntities[r.table]?.find(re => r.idGen(e) === r.idGen(re)),
+          );
+          // Case entities changed: we want to update the DB with the AWS value.
+          // We need to filter the changes we want to apply and exclude them. Otherwise, we will override.
+          r.diff.entitiesChanged = r.diff.entitiesChanged.filter(
+            (o: any) => !relevantEntities[r.table]?.find(re => r.idGen(o.db) === r.idGen(re)),
+          );
           if (r.diff.entitiesInDbOnly.length > 0) {
             updatePlan(toDelete, r.table, r.mapper, r.diff.entitiesInDbOnly);
           }
@@ -1360,11 +1359,7 @@ export async function commit(dbId: string, dbUser: string, dryRun: boolean, cont
         const records = colToRow({
           table: tables,
           mapper: mappers,
-          dbEntity: tables.map((t, i) =>
-            context.memo.db[t]
-              ? Object.values(context.memo.db[t])
-              : [],
-          ),
+          dbEntity: tables.map(t => (context.memo.db[t] ? Object.values(context.memo.db[t]) : [])),
           cloudEntity: tables.map(t => (context.memo.cloud[t] ? Object.values(context.memo.cloud[t]) : [])),
           comparator: comparators,
           idGen: idGens,
@@ -1395,9 +1390,21 @@ export async function commit(dbId: string, dbUser: string, dryRun: boolean, cont
         };
         records.forEach(r => {
           r.diff = findDiff(r.dbEntity, r.cloudEntity, r.idGen, r.comparator);
-          // We need to filter the changes we want to apply
-          r.diff.entitiesInDbOnly = r.diff.entitiesInDbOnly.filter((e: any) => relevantEntities[r.table]?.find(re => r.idGen(e) === r.idGen(re)));
-          r.diff.entitiesChanged = r.diff.entitiesChanged.filter((o: any) => relevantEntities[r.table]?.find(re => r.idGen(o.db) === r.idGen(re)));
+          // Case entities in DB only: we want to create in the cloud.
+          // We need to filter which of those are the changes we are taking into account. Otherwise we could be applying changes from other cycle.
+          r.diff.entitiesInDbOnly = r.diff.entitiesInDbOnly.filter((e: any) =>
+            relevantEntities[r.table]?.find(re => r.idGen(e) === r.idGen(re)),
+          );
+          // Case entities in AWS only: we want to delete from the cloud.
+          // We need to filter which of those are the changes we are taking into account. Otherwise we could be applying changes from other cycle.
+          r.diff.entitiesInAwsOnly = r.diff.entitiesInAwsOnly.filter((e: any) =>
+            relevantEntities[r.table]?.find(re => r.idGen(e) === r.idGen(re)),
+          );
+          // Case entities changed: we want to update/restore/replace to/from the cloud.
+          // We need to filter which of those are the changes we are taking into account. Otherwise we could be applying changes from other cycle.
+          r.diff.entitiesChanged = r.diff.entitiesChanged.filter((o: any) =>
+            relevantEntities[r.table]?.find(re => r.idGen(o.db) === r.idGen(re)),
+          );
           if (r.diff.entitiesInDbOnly.length > 0) {
             updatePlan(toCreateApply, r.table, r.mapper, r.diff.entitiesInDbOnly);
           }
