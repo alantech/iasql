@@ -22,7 +22,23 @@ const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const modules = ["aws_api_gateway"];
-const region = defaultRegion();
+// the AWS website lied, API gateway also has restricted regions
+const region = defaultRegion([
+  'ap-northeast-1',
+  'ap-northeast-2',
+  'ap-south-1',
+  'ap-southeast-1',
+  'ap-southeast-2',
+  'ca-central-1',
+  'eu-central-1',
+  'eu-north-1',
+  'eu-west-1',
+  'eu-west-2',
+  'sa-east-1',
+  'us-east-2',
+  'us-west-1',
+  'us-west-2',
+]);
 const apiName = `${prefix}testApi`;
 
 jest.setTimeout(3600000);
