@@ -1074,12 +1074,6 @@ export async function commit(dbId: string, dryRun: boolean, context: Context) {
     );
 
     const rootToLeafOrder: ModuleInterface[] = sortModules(modulesWithChanges, installedModulesNames);
-    const mappers: MapperBase<any>[] = rootToLeafOrder
-      .map(mod => Object.values(mod))
-      .flat()
-      .filter(val => val instanceof MapperBase)
-      .flat()
-      .filter(mapper => mapper.source === 'db');
 
     const t2 = Date.now();
     logger.info(`Setup took ${t2 - t1}ms`);
@@ -1091,7 +1085,7 @@ export async function commit(dbId: string, dryRun: boolean, context: Context) {
     if (modulesWithChanges.length) {
       await commitSync(
         dbId,
-        mappers,
+        rootToLeafOrder,
         context,
         toCreate,
         toUpdate,
@@ -1102,7 +1096,7 @@ export async function commit(dbId: string, dryRun: boolean, context: Context) {
       );
       return await commitApply(
         dbId,
-        mappers,
+        rootToLeafOrder,
         context,
         toCreate,
         toUpdate,
@@ -1117,7 +1111,16 @@ export async function commit(dbId: string, dryRun: boolean, context: Context) {
        * If we sync everything and a user inserts something during the sync, could be detected and override the changes.
        * We need to bring changes on AWS only always, ignore db only changes, but what to do with existing db records that might have changed? how to avoid overrides?
        */
-      return await commitSync(dbId, mappers, context, toCreate, toUpdate, toReplace, toDelete, dryRun);
+      return await commitSync(
+        dbId,
+        rootToLeafOrder,
+        context,
+        toCreate,
+        toUpdate,
+        toReplace,
+        toDelete,
+        dryRun,
+      );
     }
   } catch (e: any) {
     debugObj(e);
@@ -1211,16 +1214,21 @@ function getModulesWithChanges(
 
 async function commitSync(
   dbId: string,
-  mappers: MapperBase<any>[],
+  modules: ModuleInterface[],
   context: Context,
   toCreate: Crupde,
   toUpdate: Crupde,
   toReplace: Crupde,
   toDelete: Crupde,
   dryRun: boolean,
-  changesByEntity?: { [key: string]: any[] }, // If no changesByEntity, means we just need to bring changes from cloud to
+  changesByEntity?: { [key: string]: any[] }, // If no changesByEntity, means we just need to bring changes from cloud
 ): Promise<{ iasqlPlanVersion: number; rows: any[] }> {
   const t1 = Date.now();
+  const mappers = modules
+    .map(mod => Object.values(mod))
+    .flat()
+    .filter(val => val instanceof MapperBase)
+    .flat();
   let ranFullUpdate = false;
   let failureCount = -1;
   let dbCount = -1;
@@ -1415,7 +1423,7 @@ async function commitSync(
 
 async function commitApply(
   dbId: string,
-  mappers: MapperBase<any>[],
+  modules: ModuleInterface[],
   context: Context,
   toCreate: Crupde,
   toUpdate: Crupde,
@@ -1425,6 +1433,12 @@ async function commitApply(
   changesByEntity: { [key: string]: any[] },
 ): Promise<{ iasqlPlanVersion: number; rows: any[] }> {
   const t1 = Date.now();
+  const mappers = modules
+    .map(mod => Object.values(mod))
+    .flat()
+    .filter(val => val instanceof MapperBase)
+    .flat()
+    .filter(mapper => mapper.source === 'db');
   let ranFullUpdate = false;
   let failureCount = -1;
   let dbCount = -1;
