@@ -61,7 +61,7 @@ describe('AwsEcrBuild Integration Testing', () => {
 
   it('builds hello world image and pushes to the new ecr repo', query(`
       SELECT ecr_build(
-                     'https://github.com/mtp1376/docker-helloworld',
+                     'https://github.com/iasql/docker-helloworld',
                      (SELECT id FROM repository WHERE repository_name = '${repositoryName}')::varchar(255),
                      '.',
                      '${process.env.GH_PAT}',
