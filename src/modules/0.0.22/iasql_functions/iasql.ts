@@ -1046,7 +1046,7 @@ export async function commit(dbId: string, dryRun: boolean, context: Context) {
   try {
     orm = await TypeormWrapper.createConn(dbId);
     context.orm = orm;
-    const newStartCommit = await insertCommit(orm, 'start');
+    const newStartCommit = await insertCommit(orm, dryRun ? 'preview_start' : 'start');
     context.startCommit = newStartCommit;
     const previousStartCommit = await getPreviousStartCommit(orm);
     const changesToCommit: IasqlAuditLog[] = await orm.find(IasqlAuditLog, {
@@ -1129,7 +1129,7 @@ export async function commit(dbId: string, dryRun: boolean, context: Context) {
     throw e;
   } finally {
     // Create end commit object
-    await insertCommit(orm, 'end');
+    await insertCommit(orm, dryRun ? 'preview_end' : 'end');
     orm?.dropConn();
   }
 }
@@ -1144,11 +1144,29 @@ async function getLatestImportedModules(dbId: string, versionString: string) {
   return modules;
 }
 
-async function insertCommit(orm: TypeormWrapper | null, type: 'start' | 'end') {
+async function insertCommit(
+  orm: TypeormWrapper | null,
+  type: 'start' | 'preview_start' | 'end' | 'preview_end',
+) {
   const commitLog = new IasqlAuditLog();
   commitLog.user = config.db.user;
   commitLog.change = {};
-  commitLog.changeType = type === 'start' ? AuditLogChangeType.START_COMMIT : AuditLogChangeType.END_COMMIT;
+  switch (type) {
+    case 'start':
+      commitLog.changeType = AuditLogChangeType.START_COMMIT;
+      break;
+    case 'preview_start':
+      commitLog.changeType = AuditLogChangeType.PREVIEW_START_COMMIT;
+      break;
+    case 'end':
+      commitLog.changeType = AuditLogChangeType.END_COMMIT;
+      break;
+    case 'preview_end':
+      commitLog.changeType = AuditLogChangeType.PREVIEW_END_COMMIT;
+      break;
+    default:
+      break;
+  }
   commitLog.tableName = 'iasql_audit_log';
   commitLog.ts = new Date();
   await orm?.save(IasqlAuditLog, commitLog);

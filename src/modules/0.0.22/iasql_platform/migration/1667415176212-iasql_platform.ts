@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class iasqlPlatform1666970535017 implements MigrationInterface {
-  name = 'iasqlPlatform1666970535017';
+export class iasqlPlatform1667415176212 implements MigrationInterface {
+  name = 'iasqlPlatform1667415176212';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
@@ -11,7 +11,7 @@ export class iasqlPlatform1666970535017 implements MigrationInterface {
       `CREATE TABLE "iasql_tables" ("table" character varying NOT NULL, "module" character varying NOT NULL, CONSTRAINT "PK_2e2832f9cf90115571eb803a943" PRIMARY KEY ("table", "module"))`,
     );
     await queryRunner.query(
-      `CREATE TYPE "public"."iasql_audit_log_change_type_enum" AS ENUM('INSERT', 'UPDATE', 'DELETE', 'START_COMMIT', 'END_COMMIT')`,
+      `CREATE TYPE "public"."iasql_audit_log_change_type_enum" AS ENUM('INSERT', 'UPDATE', 'DELETE', 'START_COMMIT', 'PREVIEW_START_COMMIT', 'END_COMMIT', 'PREVIEW_END_COMMIT')`,
     );
     await queryRunner.query(
       `CREATE TABLE "iasql_audit_log" ("id" SERIAL NOT NULL, "ts" TIMESTAMP NOT NULL, "user" character varying NOT NULL, "table_name" character varying NOT NULL, "change_type" "public"."iasql_audit_log_change_type_enum" NOT NULL, "change" json NOT NULL, CONSTRAINT "PK_96a7317761701ced55a158c195d" PRIMARY KEY ("id"))`,
