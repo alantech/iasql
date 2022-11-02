@@ -20,6 +20,7 @@ const config: ConfigInterface = {
   logger: {
     debug: true,
     test: false,
+    forceLocal: true,
     logDnaKey: 'b98181227b606d8ee6c5674b5bb948e7',
   },
   auth: {
