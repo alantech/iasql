@@ -97,10 +97,10 @@ export class EcrBuildRpc extends RpcBase {
     const prefix = (Math.random() + 1).toString(36).substring(7);
 
     // create github credentials
-    let credentialsArn;
-    if (githubPersonalAccessToken) {
-      credentialsArn = await this.createGithubCredentials(githubPersonalAccessToken, credentialsArn, client);
+    if (!githubPersonalAccessToken) {
+      throw new Error('Github personal access token should be provided.');
     }
+    const credentialsArn = await this.createGithubCredentials(githubPersonalAccessToken, client);
 
     // create service role
     const role: IamRole = await this.createServiceRole(prefix, ctx);
@@ -129,9 +129,7 @@ export class EcrBuildRpc extends RpcBase {
     awsIamModule.role.cloud.delete(role, ctx);
 
     // delete credentials
-    if (credentialsArn) {
-      await this.deleteGithubCredentials(credentialsArn, client);
-    }
+    await this.deleteGithubCredentials(credentialsArn, client);
 
     // delete codebuild project
     await this.deleteCodebuildProject(codeBuildProjectName, client);
@@ -276,13 +274,13 @@ phases:
     return role;
   }
 
-  private async createGithubCredentials(githubPersonalAccessToken: string, credentialsArn: any, client: AWS) {
+  private async createGithubCredentials(githubPersonalAccessToken: string, client: AWS) {
     const createCredentialsInput: ImportSourceCredentialsInput = {
       token: githubPersonalAccessToken,
       serverType: 'GITHUB',
       authType: 'PERSONAL_ACCESS_TOKEN',
     };
-    credentialsArn = await this.importSourceCredentials(client.cbClient, createCredentialsInput);
+    const credentialsArn = await this.importSourceCredentials(client.cbClient, createCredentialsInput);
     if (!credentialsArn) throw new Error('Error adding Github credentials');
     return credentialsArn;
   }

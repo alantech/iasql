@@ -64,7 +64,7 @@ describe('AwsEcrBuild Integration Testing', () => {
                      'https://github.com/karthequian/docker-helloworld',
                      (SELECT id FROM repository WHERE repository_name = '${repositoryName}')::varchar(255),
                      '.',
-                     NULL, -- no github access token needed
+                     '${process.env.GH_PAT}',
                      'master'
                  );
   `));
