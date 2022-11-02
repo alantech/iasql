@@ -121,4 +121,8 @@ describe('AwsEcrBuild Integration Testing', () => {
   `));
 
   it('applies the deletion of resources', apply());
+
+  it('deletes the test db', (done) => void iasql
+    .disconnect(dbAlias, 'not-needed')
+    .then(...finish(done)));
 });
