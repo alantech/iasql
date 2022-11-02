@@ -1,15 +1,16 @@
 import config from '../../src/config';
 import * as iasql from '../../src/services/iasql';
 import {
-  runQuery,
-  runInstall,
-  runUninstall,
-  runApply,
-  finish,
-  execComposeUp,
+  defaultRegion,
   execComposeDown,
-  runSync,
+  execComposeUp,
+  finish,
   getPrefix,
+  runApply,
+  runInstall,
+  runQuery,
+  runSync,
+  runUninstall,
 } from '../helpers';
 
 const prefix = getPrefix();
@@ -20,6 +21,7 @@ const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
+const region = defaultRegion();
 const modules = ['aws_appsync'];
 const apiName = `${prefix}testApi`;
 const {
@@ -56,7 +58,7 @@ describe('App Sync Integration Testing', () => {
   it(
     'sets the default region',
     query(`
-    UPDATE aws_regions SET is_default = TRUE WHERE region = '${process.env.AWS_REGION}';
+    UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `),
   );
 

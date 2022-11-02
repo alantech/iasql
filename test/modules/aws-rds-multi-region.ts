@@ -1,5 +1,15 @@
 import * as iasql from '../../src/services/iasql'
-import { getPrefix, runQuery, runApply, runInstall, finish, execComposeUp, execComposeDown, runSync, } from '../helpers'
+import {
+  defaultRegion,
+  execComposeDown,
+  execComposeUp,
+  finish,
+  getPrefix,
+  runApply,
+  runInstall,
+  runQuery,
+  runSync,
+} from '../helpers'
 
 const prefix = getPrefix();
 const dbAlias = 'rdstest';
@@ -10,6 +20,7 @@ const apply = runApply.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
+const region = defaultRegion();
 const modules = ['aws_security_group', 'aws_rds', 'aws_vpc'];
 
 jest.setTimeout(960000);
@@ -31,7 +42,7 @@ describe('RDS Multi-Region Testing', () => {
   it('syncs the regions', sync());
 
   it('sets the default region', query(`
-    UPDATE aws_regions SET is_default = TRUE WHERE region = '${process.env.AWS_REGION}';
+    UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `));
 
   it('installs the rds module', install(modules));
@@ -39,10 +50,10 @@ describe('RDS Multi-Region Testing', () => {
   it('creates an RDS instance', query(`
     BEGIN;
       INSERT INTO rds (db_instance_identifier, allocated_storage, db_instance_class, master_username, master_user_password, availability_zone, engine, backup_retention_period)
-        VALUES ('${prefix}test', 20, 'db.t3.micro', 'test', 'testpass', (SELECT name FROM availability_zone WHERE region = '${process.env.AWS_REGION}' LIMIT 1), 'postgres:13.4', 0);
+        VALUES ('${prefix}test', 20, 'db.t3.micro', 'test', 'testpass', (SELECT name FROM availability_zone WHERE region = '${region}' LIMIT 1), 'postgres:13.4', 0);
       INSERT INTO rds_security_groups (rds_id, security_group_id) SELECT
         (SELECT id FROM rds WHERE db_instance_identifier='${prefix}test'),
-        (SELECT id FROM security_group WHERE group_name='default' AND region = '${process.env.AWS_REGION}');
+        (SELECT id FROM security_group WHERE group_name='default' AND region = '${region}');
     COMMIT;
   `));
 

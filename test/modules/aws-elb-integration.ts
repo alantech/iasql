@@ -3,16 +3,17 @@ import { LoadBalancerStateEnum } from '@aws-sdk/client-elastic-load-balancing-v2
 import config from '../../src/config';
 import * as iasql from '../../src/services/iasql';
 import {
-  getPrefix,
-  runQuery,
-  runInstall,
-  runUninstall,
-  runApply,
-  finish,
-  execComposeUp,
+  defaultRegion,
   execComposeDown,
-  runSync,
+  execComposeUp,
+  finish,
   getKeyCertPair,
+  getPrefix,
+  runApply,
+  runInstall,
+  runQuery,
+  runSync,
+  runUninstall,
 } from '../helpers';
 
 const {
@@ -34,6 +35,7 @@ const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
+const region = defaultRegion();
 const modules = [
   'aws_security_group',
   'aws_elb',
@@ -85,7 +87,7 @@ describe('ELB Integration Testing', () => {
     query(`
         UPDATE aws_regions
         SET is_default = TRUE
-        WHERE region = '${process.env.AWS_REGION}';
+        WHERE region = '${region}';
     `),
   );
 
@@ -301,7 +303,7 @@ describe('ELB Integration Testing', () => {
   it(
     'adds a new certificate to import',
     query(`
-      SELECT * FROM certificate_import('${cert}', '${key}', '${process.env.AWS_REGION}', '');
+      SELECT * FROM certificate_import('${cert}', '${key}', '${region}', '');
   `),
   );
 

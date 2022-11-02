@@ -1,18 +1,36 @@
 import * as iasql from '../../src/services/iasql';
 import {
+  defaultRegion,
+  execComposeDown,
+  execComposeUp,
+  finish,
   getPrefix,
-  runQuery,
   runApply,
   runInstall,
-  finish,
-  execComposeUp,
-  execComposeDown,
+  runQuery,
   runSync,
 } from '../helpers';
 
 const prefix = getPrefix();
 const dbAlias = 'memorydbtest';
 
+// MemoryDB has a *very* constrained set of regions
+const region = defaultRegion([
+  'ap-northeast-1',
+  'ap-northeast-2',
+  'ap-south-1',
+  'ap-southeast-1',
+  'ap-southeast-2',
+  'ca-central-1',
+  'eu-central-1',
+  'eu-north-1',
+  'eu-west-1',
+  'eu-west-2',
+  'sa-east-1',
+  'us-east-2',
+  'us-west-1',
+  'us-west-2',
+]);
 const nonDefaultRegion = 'us-east-1';
 
 const subnetGroupName = `${prefix}${dbAlias}sng`;
@@ -51,7 +69,7 @@ describe('MemoryDB Multi-region Integration Testing', () => {
   it(
     'sets the default region',
     query(`
-    UPDATE aws_regions SET is_default = TRUE WHERE region = '${process.env.AWS_REGION}';
+    UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `),
   );
 
@@ -90,7 +108,7 @@ describe('MemoryDB Multi-region Integration Testing', () => {
   it('should fail inserting the memory db cluster security group in the wrong region', done =>
     void query(`
       INSERT INTO memory_db_cluster_security_groups (security_group_id, memory_db_cluster_id, region)
-      VALUES ((select id from security_group where group_name = 'default' and region = '${process.env.AWS_REGION}'), (select id from memory_db_cluster where cluster_name = '${clusterName}'), '${nonDefaultRegion}');
+      VALUES ((select id from security_group where group_name = 'default' and region = '${region}'), (select id from memory_db_cluster where cluster_name = '${clusterName}'), '${nonDefaultRegion}');
   `)((e?: any) => {
       console.log({ e });
       try {
@@ -107,7 +125,7 @@ describe('MemoryDB Multi-region Integration Testing', () => {
     'inserts the memory db cluster security group',
     query(`
       INSERT INTO memory_db_cluster_security_groups (security_group_id, memory_db_cluster_id, region)
-      VALUES ((select id from security_group where group_name = 'default' and region = '${process.env.AWS_REGION}'), (select id from memory_db_cluster where cluster_name = '${clusterName}'), '${process.env.AWS_REGION}');
+      VALUES ((select id from security_group where group_name = 'default' and region = '${region}'), (select id from memory_db_cluster where cluster_name = '${clusterName}'), '${region}');
     `),
   );
 
@@ -146,7 +164,7 @@ describe('MemoryDB Multi-region Integration Testing', () => {
     void query(`
     UPDATE security_group
     SET region = '${nonDefaultRegion}'
-    WHERE group_name = 'default' and region = '${process.env.AWS_REGION}';
+    WHERE group_name = 'default' and region = '${region}';
   `)((e?: any) => {
       console.log({ e });
       try {
@@ -185,7 +203,7 @@ describe('MemoryDB Multi-region Integration Testing', () => {
       `
     SELECT *
     FROM subnet_group
-    WHERE subnet_group_name = '${subnetGroupName}' and region = '${process.env.AWS_REGION}';
+    WHERE subnet_group_name = '${subnetGroupName}' and region = '${region}';
   `,
       (res: any[]) => expect(res.length).toBe(0),
     ),
@@ -209,7 +227,7 @@ describe('MemoryDB Multi-region Integration Testing', () => {
       `
     SELECT *
     FROM memory_db_cluster
-    WHERE cluster_name = '${clusterName}' and region = '${process.env.AWS_REGION}';
+    WHERE cluster_name = '${clusterName}' and region = '${region}';
   `,
       (res: any[]) => expect(res.length).toBe(0),
     ),

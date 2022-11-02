@@ -1,15 +1,16 @@
 import config from '../../src/config';
 import * as iasql from '../../src/services/iasql';
 import {
-  getPrefix,
-  runInstall,
-  runUninstall,
-  runQuery,
-  runApply,
-  finish,
-  execComposeUp,
+  defaultRegion,
   execComposeDown,
+  execComposeUp,
+  finish,
+  getPrefix,
+  runApply,
+  runInstall,
+  runQuery,
   runSync,
+  runUninstall,
 } from '../helpers';
 
 const {
@@ -22,7 +23,7 @@ const dbAlias = 'ecstest';
 const dbAliasSidecar = `${dbAlias}sync`;
 const sidecarSync = runSync.bind(null, dbAliasSidecar);
 const sidecarInstall = runInstall.bind(null, dbAliasSidecar);
-const region = process.env.AWS_REGION || 'barf';
+const region = defaultRegion();
 const nonDefaultRegion = 'us-east-1';
 const apply = runApply.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);

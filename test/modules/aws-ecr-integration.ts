@@ -3,22 +3,24 @@ import { execSync } from 'child_process';
 import config from '../../src/config';
 import * as iasql from '../../src/services/iasql';
 import {
-  getPrefix,
-  runQuery,
-  runInstall,
-  runUninstall,
-  runApply,
-  finish,
-  execComposeUp,
+  defaultRegion,
   execComposeDown,
+  execComposeUp,
+  finish,
+  getPrefix,
+  runApply,
+  runInstall,
+  runQuery,
   runSync,
+  runUninstall,
 } from '../helpers';
 
 const prefix = getPrefix();
 const dbAlias = 'ecrtest';
 const repositoryName = prefix + dbAlias;
-const region = 'us-east-1';
-const pubRepositoryName = `pub${prefix}${dbAlias}-${process.env.AWS_REGION ?? 'barf'}`;
+const publicRegion = 'us-east-1';
+const region = defaultRegion();
+const pubRepositoryName = `pub${prefix}${dbAlias}-${region}`;
 const policyMock =
   '{ "Version": "2012-10-17", "Statement": [ { "Sid": "DenyPull", "Effect": "Deny", "Principal": "*", "Action": [ "ecr:BatchGetImage", "ecr:GetDownloadUrlForLayer" ] } ]}';
 const updatePolicyMock =
@@ -39,7 +41,7 @@ jest.setTimeout(360000);
 beforeAll(async () => {
   // pull sample image
   execSync(
-    `docker login --username AWS -p $(aws ecr-public get-login-password --region ${region}) public.ecr.aws`,
+    `docker login --username AWS -p $(aws ecr-public get-login-password --region ${publicRegion}) public.ecr.aws`,
   );
   execSync(`docker pull ${dockerImage}`);
   execSync(`docker pull ${dockerImageUpdated}`);
@@ -71,7 +73,7 @@ describe('ECR Integration Testing', () => {
   it(
     'sets the default region',
     query(`
-    UPDATE aws_regions SET is_default = TRUE WHERE region = '${process.env.AWS_REGION}';
+    UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `),
   );
 
@@ -135,7 +137,7 @@ describe('ECR Integration Testing', () => {
           const repositoryUri = res[0]['repository_uri'];
           execSync(`docker tag ${dockerImage} ${repositoryUri}`);
           execSync(
-            `docker login --username AWS -p $(aws ecr get-login-password --region ${process.env.AWS_REGION}) ${repositoryUri}`,
+            `docker login --username AWS -p $(aws ecr get-login-password --region ${region}) ${repositoryUri}`,
           );
           execSync(`docker push ${repositoryUri}`);
           // We push a different image with the same tag to leave the previous one untagged
@@ -375,7 +377,7 @@ describe('ECR Integration Testing', () => {
           const repositoryUri = res[0]['repository_uri'];
           execSync(`docker tag ${dockerImage} ${repositoryUri}`);
           execSync(
-            `docker login --username AWS -p $(aws ecr-public get-login-password --region ${region}) ${repositoryUri}`,
+            `docker login --username AWS -p $(aws ecr-public get-login-password --region ${publicRegion}) ${repositoryUri}`,
           );
 
           execSync(`docker push ${repositoryUri}`);

@@ -2,6 +2,7 @@ import { EC2 } from '@aws-sdk/client-ec2';
 
 import * as iasql from '../../src/services/iasql';
 import {
+  defaultRegion,
   execComposeDown,
   execComposeUp,
   finish,
@@ -22,7 +23,7 @@ const ubuntuAmiId =
   'resolve:ssm:/aws/service/canonical/ubuntu/server/20.04/stable/current/amd64/hvm/ebs-gp2/ami-id';
 
 const nonDefaultRegion = 'us-east-1';
-const region = process.env.AWS_REGION ?? '';
+const region = defaultRegion();
 const accessKeyId = process.env.AWS_ACCESS_KEY_ID ?? '';
 const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY ?? '';
 const ec2client = new EC2({
@@ -103,22 +104,6 @@ const ec2FilterTags = JSON.stringify([
   },
 ]);
 
-const revisionLocationv0 = JSON.stringify({
-  revisionType: 'GitHub',
-  gitHubLocation: {
-    repository: 'iasql/iasql-codedeploy-example',
-    commitId: 'cf6aa63cbd2502a5d1064363c2af5c56cc2107cc',
-  },
-});
-
-const revisionLocationv1 = JSON.stringify({
-  revisionType: 'GitHub',
-  gitHubLocation: {
-    repository: 'iasql/iasql-codedeploy-example',
-    commitId: '165582e107955f0b114a9d9d74cd2e4f198454a7',
-  },
-});
-
 const sgGroupName = `${prefix}sgcodedeploy`;
 
 let availabilityZone: string;
@@ -166,7 +151,7 @@ describe('AwsCodedeploy Integration Testing', () => {
   it(
     'sets the default region',
     query(`
-    UPDATE aws_regions SET is_default = TRUE WHERE region = '${process.env.AWS_REGION}';
+    UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `),
   );
 

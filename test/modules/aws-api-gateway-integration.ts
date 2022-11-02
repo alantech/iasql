@@ -1,15 +1,16 @@
 import config from "../../src/config";
 import * as iasql from "../../src/services/iasql";
 import {
-  runQuery,
-  runInstall,
-  runUninstall,
-  runApply,
-  finish,
-  execComposeUp,
+  defaultRegion,
   execComposeDown,
-  runSync,
+  execComposeUp,
+  finish,
   getPrefix,
+  runApply,
+  runInstall,
+  runQuery,
+  runSync,
+  runUninstall,
 } from "../helpers";
 
 const prefix = getPrefix();
@@ -21,6 +22,23 @@ const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const modules = ["aws_api_gateway"];
+// the AWS website lied, API gateway also has restricted regions
+const region = defaultRegion([
+  'ap-northeast-1',
+  'ap-northeast-2',
+  'ap-south-1',
+  'ap-southeast-1',
+  'ap-southeast-2',
+  'ca-central-1',
+  'eu-central-1',
+  'eu-north-1',
+  'eu-west-1',
+  'eu-west-2',
+  'sa-east-1',
+  'us-east-2',
+  'us-west-1',
+  'us-west-2',
+]);
 const apiName = `${prefix}testApi`;
 
 jest.setTimeout(3600000);
@@ -43,7 +61,7 @@ describe("API Gateway Integration Testing", () => {
   it('syncs the regions', sync());
 
   it('sets the default region', query(`
-    UPDATE aws_regions SET is_default = TRUE WHERE region = '${process.env.AWS_REGION}';
+    UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `));
 
   it("installs the API gateway module", install(modules));
