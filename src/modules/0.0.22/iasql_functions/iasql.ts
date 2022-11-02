@@ -1,6 +1,6 @@
 import * as levenshtein from 'fastest-levenshtein';
 import { default as cloneDeep } from 'lodash.clonedeep';
-import { Not, In, Between, LessThan } from 'typeorm';
+import { Not, In, Between, LessThan, MoreThan } from 'typeorm';
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
 import { camelCase, snakeCase } from 'typeorm/util/StringUtils';
 
@@ -1045,7 +1045,9 @@ export async function commit(dbId: string, dryRun: boolean, context: Context) {
   let orm: TypeormWrapper | null = null;
   try {
     orm = await TypeormWrapper.createConn(dbId);
+    context.orm = orm;
     const newStartCommit = await insertCommit(orm, 'start');
+    context.startCommit = newStartCommit;
     const previousStartCommit = await getPreviousStartCommit(orm);
     const changesToCommit: IasqlAuditLog[] = await orm.find(IasqlAuditLog, {
       order: { ts: 'DESC' },
@@ -1119,6 +1121,7 @@ export async function commit(dbId: string, dryRun: boolean, context: Context) {
         toReplace,
         toDelete,
         dryRun,
+        changesByEntity,
       );
     }
   } catch (e: any) {
@@ -1220,7 +1223,7 @@ async function commitSync(
   toReplace: Crupde,
   toDelete: Crupde,
   dryRun: boolean,
-  changesByEntity?: { [key: string]: any[] }, // If no changesByEntity, means we just need to bring changes from cloud
+  changesByEntity: { [key: string]: any[] },
 ): Promise<{ iasqlPlanVersion: number; rows: any[] }> {
   const t1 = Date.now();
   const mappers = modules
@@ -1255,6 +1258,8 @@ async function commitSync(
           await mapper.db.read(context);
         }),
       );
+      // Every time we read from db we get possible changes that occured after this commit started
+      const changesAfterCommitByEntity = await getChangesAfterCommitStartedByEntity(context);
       const t3 = Date.now();
       logger.info(`Record acquisition time: ${t3 - t2}ms`);
       const records = colToRow({
@@ -1292,21 +1297,18 @@ async function commitSync(
         // Case entities in AWS only: we want to create from AWS.
         // We do not filter here, we bring all changes from AWS to keep everything up-to-date.
 
-        if (changesByEntity) {
-          // Case entities in DB only: we want to delete from the DB.
-          // We need to filter the changes we want to apply and exclude them. Otherwise, we will override.
-          r.diff.entitiesInDbOnly = r.diff.entitiesInDbOnly.filter(
-            (e: any) => !changesByEntity[r.table]?.find(re => r.idGen(e) === r.idGen(re)),
+        // Case entities in DB only: we want to delete from the DB.
+        // We need to filter the changes we want to apply and exclude them. Otherwise, we will override.
+        r.diff.entitiesInDbOnly = r.diff.entitiesInDbOnly
+          .filter((e: any) => !changesByEntity[r.table]?.find(re => r.idGen(e) === r.idGen(re)))
+          .filter((e: any) => !changesAfterCommitByEntity[r.table]?.find(re => r.idGen(e) === r.idGen(re)));
+        // Case entities changed: we want to update the DB with the AWS value.
+        // We need to filter the changes we want to apply and exclude them. Otherwise, we will override.
+        r.diff.entitiesChanged = r.diff.entitiesChanged
+          .filter((o: any) => !changesByEntity[r.table]?.find(re => r.idGen(o.db) === r.idGen(re)))
+          .filter(
+            (o: any) => !changesAfterCommitByEntity[r.table]?.find(re => r.idGen(o.db) === r.idGen(re)),
           );
-          // Case entities changed: we want to update the DB with the AWS value.
-          // We need to filter the changes we want to apply and exclude them. Otherwise, we will override.
-          r.diff.entitiesChanged = r.diff.entitiesChanged.filter(
-            (o: any) => !changesByEntity[r.table]?.find(re => r.idGen(o.db) === r.idGen(re)),
-          );
-        } else {
-          r.diff.entitiesInDbOnly = [];
-          r.diff.entitiesChanged = [];
-        }
         if (r.diff.entitiesInDbOnly.length > 0) {
           updatePlan(toDelete, r.table, r.mapper, r.diff.entitiesInDbOnly);
         }
@@ -1633,4 +1635,16 @@ async function commitApply(
   const t7 = Date.now();
   logger.info(`${dbId} applied and synced, total time: ${t7 - t1}ms`);
   return iasqlPlanV3(toCreate, toUpdate, toReplace, toDelete);
+}
+
+async function getChangesAfterCommitStartedByEntity(context: Context): Promise<{ [key: string]: any[] }> {
+  const changesAfterCommit: IasqlAuditLog[] = await context.orm.find(IasqlAuditLog, {
+    order: { ts: 'DESC' },
+    where: {
+      changeType: Not(In([AuditLogChangeType.START_COMMIT, AuditLogChangeType.END_COMMIT])),
+      ts: MoreThan(context.startCommit.ts),
+      user: Not(config.db.user),
+    },
+  });
+  return getChangesByEntity(changesAfterCommit);
 }
