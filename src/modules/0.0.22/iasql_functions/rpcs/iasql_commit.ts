@@ -12,10 +12,10 @@ export class IasqlCommit extends RpcBase {
   } as const;
   call = async (
     dbId: string,
-    dbUser: string,
+    _dbUser: string,
     ctx: Context,
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
-    const res = (await iasql.commit(dbId, dbUser, false, ctx)).rows;
+    const res = (await iasql.commit(dbId, false, ctx)).rows;
     return res.map(rec => super.formatObjKeysToSnakeCase(rec) as RpcResponseObject<typeof this.outputTable>);
   };
 
