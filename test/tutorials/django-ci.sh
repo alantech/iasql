@@ -15,21 +15,15 @@ pip install -r requirements.txt
 echo "\nRun Django migrations"
 python manage.py migrate --database infra infra
 
-echo "\nGet the ECR URI"
-export ECR_URI=$(psql postgres://postgres:test@localhost:5432/iasql -AXqtc "
-SELECT repository_uri
-FROM ecs_simplified
-WHERE app_name = 'quickstart';")
-
-echo "\nLogin to ECR"
-aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_URI}
-
-echo "\nBuild image"
-docker build -t quickstart-repository .
-
-echo "\nPush image"
-docker tag quickstart-repository:latest ${ECR_URI}:latest
-docker push ${ECR_URI}:latest
+psql postgres://postgres:test@localhost:5432/iasql -c "
+  SELECT ecr_build(
+    'https://github.com/iasql/docker-helloworld',
+    (SELECT id FROM repository WHERE repository_name = 'quickstart-repository')::varchar(255),
+    './examples/ecs-fargate/django/app',
+    '${GH_PAT}',
+    '${GITHUB_REF}'
+  );
+"
 
 # Get DNS name, Set PGPASSWORD environment variable to avoid interaction
 echo "\nGet DNS name..."
