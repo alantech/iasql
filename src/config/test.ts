@@ -19,6 +19,7 @@ const config: ConfigInterface = {
   logger: {
     debug: false,
     test: true,
+    forceLocal: false,
   },
 };
 
