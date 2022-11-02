@@ -82,6 +82,32 @@ export class EndpointInterfaceMapper extends MapperBase<EndpointInterface> {
     );
   }
 
+  async waitForEndpointDeleted(client: EC2, endpointId: string) {
+    return createWaiter<EC2, DescribeVpcEndpointsCommandInput>(
+      {
+        client,
+        // 10 min waiter
+        maxWaitTime: 600,
+        minDelay: 1,
+        maxDelay: 4,
+      },
+      {
+        VpcEndpointIds: [endpointId],
+      },
+      async (cl, input) => {
+        try {
+          const data = await cl.describeVpcEndpoints(input);
+          if (!data.VpcEndpoints?.length) {
+            return { state: WaiterState.SUCCESS };
+          }
+          return { state: WaiterState.RETRY };
+        } catch (e: any) {
+          throw e;
+        }
+      },
+    );
+  }
+
   async endpointInterfaceMapper(eg: AwsVpcEndpoint, region: string, ctx: Context) {
     if (!eg.ServiceName) return undefined;
     const out = new EndpointInterface();
@@ -232,14 +258,25 @@ export class EndpointInterfaceMapper extends MapperBase<EndpointInterface> {
           if (
             !(
               Object.is(cloudRecord.subnets?.length, e.subnets?.length) &&
-              !!cloudRecord.subnets?.every((s: any) => !!e.subnets?.find(esub => Object.is(s, esub)))
+              !!cloudRecord.subnets?.every((s: any) => !!e.subnets?.find(esub => Object.is(s.id, esub.id)))
             )
           ) {
+            // get a list of the subnet ids
+            const oldSubnetIds = [];
+            for (const s of cloudRecord.subnets) {
+              if (s.subnetId) oldSubnetIds.push(s.subnetId);
+            }
+
+            const newSubnetIds = [];
+            for (const s of e.subnets) {
+              if (s.subnetId) newSubnetIds.push(s.subnetId);
+            }
+
             // VPC endpoint route tables update
             const input: ModifyVpcEndpointCommandInput = {
               VpcEndpointId: e.vpcEndpointId,
-              RemoveSubnetIds: cloudRecord.SubnetIds,
-              // AddSubnetIds: e.subnets,
+              RemoveSubnetIds: oldSubnetIds,
+              AddSubnetIds: newSubnetIds,
             };
             await modifyVpcEndpoint(client.ec2client, input);
             update = true;
@@ -250,6 +287,10 @@ export class EndpointInterfaceMapper extends MapperBase<EndpointInterface> {
             update = true;
           }
           if (update) {
+            // wait to be available
+            const result = await this.waitForEndpointAvailable(client.ec2client, e?.vpcEndpointId ?? '');
+            if (result.state === WaiterState.SUCCESS) continue;
+
             const rawEndpoint = await getVpcEndpoint(client.ec2client, e.vpcEndpointId ?? '');
             if (!rawEndpoint) continue;
             const newEndpoint = await this.endpointInterfaceMapper(rawEndpoint, e.region, ctx);
@@ -277,6 +318,9 @@ export class EndpointInterfaceMapper extends MapperBase<EndpointInterface> {
       for (const e of es) {
         const client = (await ctx.getAwsClient(e.region)) as AWS;
         await deleteVpcEndpoint(client.ec2client, e.vpcEndpointId ?? '');
+
+        // wait until it does not exist
+        const result = await this.waitForEndpointDeleted(client.ec2client, e?.vpcEndpointId ?? '');
       }
     },
   });

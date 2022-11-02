@@ -674,7 +674,7 @@ describe('VPC Integration Testing', () => {
         (res: any) => expect(res.length).toBe(1),
       ),
     );
-  });
+  });*/
 
   describe('VPC endpoint interface updates', () => {
     it(
@@ -767,6 +767,43 @@ describe('VPC Integration Testing', () => {
       SELECT * FROM endpoint_interface WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
     `,
         (res: any) => expect(res[0]['tags']['updated']).toBe('true'),
+      ),
+    );
+
+    it(
+      'removes the current endpoint subnets',
+      query(`
+      DELETE FROM endpoint_interface_subnets where endpoint_interface_id=(SELECT id FROM endpoint_interface WHERE tags ->> 'Name' = '${s3VpcEndpoint}')
+    `),
+    );
+    it('applies the endpoint_interface subnet removal', apply());
+
+    it(
+      'checks endpoint_interface subnet count',
+      query(
+        `
+      SELECT * FROM endpoint_interface_subnets WHERE endpoint_interface_id=(SELECT id FROM endpoint_interface WHERE tags ->> 'Name' = '${s3VpcEndpoint}');
+    `,
+        (res: any) => expect(res.length).toBe(0),
+      ),
+    );
+
+    it(
+      'adds new endpoint subnet',
+      query(`
+      INSERT INTO endpoint_interface_subnets (endpoint_interface_id, subnet_id) VALUES ((SELECT id FROM endpoint_interface WHERE tags ->> 'Name' = '${s3VpcEndpoint}' LIMIT 1), (SELECT id FROM subnet WHERE cidr_block='191.${randIPBlock}.0.0/16' LIMIT 1))
+    `),
+    );
+
+    it('applies the endpoint_interface subnet change', apply());
+
+    it(
+      'checks endpoint_interface subnet count',
+      query(
+        `
+      SELECT * FROM endpoint_interface_subnets WHERE endpoint_interface_id=(SELECT id FROM endpoint_interface WHERE tags ->> 'Name' = '${s3VpcEndpoint}');
+    `,
+        (res: any) => expect(res.length).toBe(1),
       ),
     );
   });
@@ -911,7 +948,7 @@ describe('VPC Integration Testing', () => {
       'deletes a endpoint_interface',
       query(`
       DELETE FROM endpoint_interface
-      WHERE tags ->> 'Name' = '${dynamodbVpcEndpoint}';
+      WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
     `),
     );
 
@@ -921,7 +958,7 @@ describe('VPC Integration Testing', () => {
       'checks endpoint_interface count',
       query(
         `
-      SELECT * FROM endpoint_interface WHERE tags ->> 'Name' = '${dynamodbVpcEndpoint}' OR tags ->> 'Name' = '${s3VpcEndpoint}'
+      SELECT * FROM endpoint_interface WHERE tags ->> 'Name' = '${s3VpcEndpoint}'
     `,
         (res: any) => expect(res.length).toBe(0),
       ),
