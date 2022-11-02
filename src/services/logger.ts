@@ -18,7 +18,7 @@ const logFactory: LogFunctionFactory = scope => {
     });
     if (config.logger.forceLocal) {
       return (level, message, meta) => {
-        console.log(`${level}: ${message} ${JSON.stringify(meta)}`);
+        console.log(`${level}: ${message}`, meta);
         logfn.log(message, {
           level: level === 'warning' ? 'warn' : level, // Graphile Logger vs LogDNA levels fix
           meta,
