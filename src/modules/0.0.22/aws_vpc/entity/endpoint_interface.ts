@@ -15,7 +15,6 @@ import { cloudId } from '../../../../services/cloud-id';
 import { AwsRegions } from '../../aws_account/entity';
 
 export enum EndpointInterfaceService {
-  DYNAMODB = 'dynamodb',
   S3 = 's3',
 }
 
@@ -63,14 +62,15 @@ export class EndpointInterface {
   @Column({
     type: 'boolean',
     nullable: true,
-    default: true,
+    default: false,
   })
   privateDnsEnabled: boolean;
 
   @Column({
-    nullable: false,
+    nullable: true,
     type: 'enum',
     enum: DnsRecordIpType,
+    default: DnsRecordIpType.ipv4,
   })
   dnsNameRecordType: DnsRecordIpType;
 

@@ -355,6 +355,41 @@ describe('VPC Integration Testing', () => {
     );
   });
 
+  describe('VPC endpoint interface creation', () => {
+    it(
+      'adds a new s3 endpoint interface',
+      query(`
+      INSERT INTO endpoint_interface (service, vpc_id, tags )
+      SELECT 's3', id, '{"Name": "${s3VpcEndpoint}"}'
+      FROM vpc
+      WHERE is_default = false
+      AND cidr_block = '191.${randIPBlock}.0.0/16';
+    `),
+    );
+
+    it(
+      'checks endpoint interface count',
+      query(
+        `
+      SELECT * FROM endpoint_interface WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
+    `,
+        (res: any) => expect(res.length).toBe(1),
+      ),
+    );
+
+    it('applies the endpoint interface change', apply());
+
+    it(
+      'checks endpoint interface count',
+      query(
+        `
+      SELECT * FROM endpoint_interface WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
+    `,
+        (res: any) => expect(res.length).toBe(1),
+      ),
+    );
+  });
+
   it('uninstalls the vpc module', uninstall(modules));
 
   it('installs the vpc module again (to make sure it reloads stuff)', install(modules));
@@ -404,6 +439,16 @@ describe('VPC Integration Testing', () => {
     query(
       `
     SELECT * FROM endpoint_gateway WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
+  `,
+      (res: any) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it(
+    'checks endpoint interface count',
+    query(
+      `
+    SELECT * FROM endpoint_interface WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
   `,
       (res: any) => expect(res.length).toBe(1),
     ),
@@ -631,6 +676,101 @@ describe('VPC Integration Testing', () => {
     );
   });
 
+  describe('VPC endpoint interface updates', () => {
+    it(
+      'updates a endpoint interface to be restored',
+      query(`
+      UPDATE endpoint_interface
+      SET state = 'fake'
+      WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
+    `),
+    );
+
+    it('applies the endpoint_interface change', apply());
+
+    it(
+      'checks endpoint_interface count',
+      query(
+        `
+      SELECT * FROM endpoint_interface WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
+    `,
+        (res: any) => expect(res.length).toBe(1),
+      ),
+    );
+
+    it(
+      'checks endpoint_interface restored',
+      query(
+        `
+      SELECT * FROM endpoint_interface WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
+    `,
+        (res: any) => expect(res[0]['state']).toBe('available'),
+      ),
+    );
+
+    it(
+      'updates a endpoint interface policy',
+      query(`
+      UPDATE endpoint_interface
+      SET policy_document = '${testPolicy}'
+      WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
+    `),
+    );
+
+    it('applies the endpoint_interface change', apply());
+
+    it(
+      'checks endpoint_interface count',
+      query(
+        `
+      SELECT * FROM endpoint_interface WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
+    `,
+        (res: any) => expect(res.length).toBe(1),
+      ),
+    );
+
+    it(
+      'checks endpoint_interface policy update',
+      query(
+        `
+      SELECT * FROM endpoint_interface WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
+    `,
+        (res: any) => expect(res[0]['policy_document']).toBe(testPolicy),
+      ),
+    );
+
+    it(
+      'updates a endpoint interface tags',
+      query(`
+      UPDATE endpoint_interface
+      SET tags = '{"Name": "${s3VpcEndpoint}", "updated": "true"}'
+      WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
+    `),
+    );
+
+    it('applies the endpoint_interface change', apply());
+
+    it(
+      'checks endpoint_interface count',
+      query(
+        `
+      SELECT * FROM endpoint_interface WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
+    `,
+        (res: any) => expect(res.length).toBe(1),
+      ),
+    );
+
+    it(
+      'checks endpoint_interface policy update',
+      query(
+        `
+      SELECT * FROM endpoint_interface WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
+    `,
+        (res: any) => expect(res[0]['tags']['updated']).toBe('true'),
+      ),
+    );
+  });
+
   describe('Elastic Ip and Nat gateway deletion', () => {
     it(
       'deletes a public nat gateways',
@@ -760,6 +900,28 @@ describe('VPC Integration Testing', () => {
       query(
         `
       SELECT * FROM endpoint_gateway WHERE tags ->> 'Name' = '${dynamodbVpcEndpoint}' OR tags ->> 'Name' = '${s3VpcEndpoint}'
+    `,
+        (res: any) => expect(res.length).toBe(0),
+      ),
+    );
+  });
+
+  describe('VPC endpoint interface deletion', () => {
+    it(
+      'deletes a endpoint_interface',
+      query(`
+      DELETE FROM endpoint_interface
+      WHERE tags ->> 'Name' = '${dynamodbVpcEndpoint}';
+    `),
+    );
+
+    it('applies the endpoint_interface change', apply());
+
+    it(
+      'checks endpoint_interface count',
+      query(
+        `
+      SELECT * FROM endpoint_interface WHERE tags ->> 'Name' = '${dynamodbVpcEndpoint}' OR tags ->> 'Name' = '${s3VpcEndpoint}'
     `,
         (res: any) => expect(res.length).toBe(0),
       ),
