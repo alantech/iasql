@@ -1072,9 +1072,6 @@ export async function commit(dbId: string, dryRun: boolean, context: Context) {
       tablesWithChanges,
       versionString,
     );
-
-    const rootToLeafOrder: ModuleInterface[] = sortModules(modulesWithChanges, installedModulesNames);
-
     const t2 = Date.now();
     logger.info(`Setup took ${t2 - t1}ms`);
 
@@ -1083,6 +1080,7 @@ export async function commit(dbId: string, dryRun: boolean, context: Context) {
     const toReplace: Crupde = {}; // Not actually used in sync mode, at least right now
     const toDelete: Crupde = {};
     if (modulesWithChanges.length) {
+      const rootToLeafOrder: ModuleInterface[] = sortModules(modulesWithChanges, installedModulesNames);
       await commitSync(
         dbId,
         rootToLeafOrder,
@@ -1111,6 +1109,7 @@ export async function commit(dbId: string, dryRun: boolean, context: Context) {
        * If we sync everything and a user inserts something during the sync, could be detected and override the changes.
        * We need to bring changes on AWS only always, ignore db only changes, but what to do with existing db records that might have changed? how to avoid overrides?
        */
+      const rootToLeafOrder: ModuleInterface[] = sortModules(installedModules, installedModulesNames);
       return await commitSync(
         dbId,
         rootToLeafOrder,
