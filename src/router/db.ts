@@ -130,6 +130,29 @@ db.get('/disconnect/:dbAlias', async (req, res) => {
   }
 });
 
+function until(p: Promise<any>, timeout: number) {
+  return new Promise((resolve, reject) => {
+    let finished: boolean = false;
+    p.then((val: any) => {
+      if (!finished) {
+        finished = true;
+        resolve(val);
+      }
+    }).catch((err: any) => {
+      if (!finished) {
+        finished = true;
+        reject(err);
+      }
+    });
+    setTimeout(() => {
+      if (!finished) {
+        finished = true;
+        reject(new Error(`Timeout of ${timeout}ms reached`));
+      }
+    }, timeout);
+  });
+}
+
 db.post('/run/:dbAlias', async (req, res) => {
   logger.info('Calling /run');
   if (!config.db.sqlViaRest) return res.status(400).end('SQL Querying via REST disabled');
@@ -142,7 +165,7 @@ db.post('/run/:dbAlias', async (req, res) => {
   try {
     const database: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
     dbId = database.pgName;
-    const output = await iasql.runSql(dbAlias, uid, sql, byStatement ?? false);
+    const output = await until(iasql.runSql(dbAlias, uid, sql, byStatement ?? false), 30000);
     // ignore queries done by the dashboard itself
     if (byUser) {
       telemetry.logRunSql(
@@ -162,9 +185,14 @@ db.post('/run/:dbAlias', async (req, res) => {
   } catch (e: any) {
     // do not send to sentry
     const error = e?.message ?? '';
-    logger.error(`RunSQL user error: ${error}`, { uid, dbId, email, dbAlias });
+    if (/^Timeout of/.test(error)) {
+      // Avoid 500 here to keep ELB/Fargate happy
+      res.status(400).end(error);
+    } else {
+      logger.error(`RunSQL user error: ${error}`, { uid, dbId, email, dbAlias });
+      res.status(500).end(error);
+    }
     telemetry.logRunSql(uid, { dbId, email }, { sql, error });
-    res.status(500).end(error);
   }
 });
 
