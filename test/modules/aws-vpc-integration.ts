@@ -369,8 +369,8 @@ describe('VPC Integration Testing', () => {
     it(
       'adds a new s3 endpoint interface',
       query(`
-      INSERT INTO endpoint_interface (service, vpc_id, tags, is_global, private_dns_enabled)
-      SELECT 's3', id, '{"Name": "${s3VpcEndpoint}"}', false, true
+      INSERT INTO endpoint_interface (service, vpc_id, tags, is_global)
+      SELECT 's3', id, '{"Name": "${s3VpcEndpoint}"}', false
       FROM vpc
       WHERE is_default = false
       AND cidr_block = '191.${randIPBlock}.0.0/16';
@@ -722,7 +722,7 @@ describe('VPC Integration Testing', () => {
       'updates a endpoint interface to be replaced',
       query(`
       UPDATE endpoint_interface
-      SET is_global=TRUE WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
+      SET is_global=TRUE, private_dns_enabled=TRUE WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
     `),
     );
 
