@@ -1055,7 +1055,14 @@ export async function commit(dbId: string, dryRun: boolean, context: Context) {
     const changesToCommit: IasqlAuditLog[] = await orm.find(IasqlAuditLog, {
       order: { ts: 'DESC' },
       where: {
-        changeType: Not(In([AuditLogChangeType.START_COMMIT, AuditLogChangeType.END_COMMIT])),
+        changeType: Not(
+          In([
+            AuditLogChangeType.START_COMMIT,
+            AuditLogChangeType.PREVIEW_START_COMMIT,
+            AuditLogChangeType.END_COMMIT,
+            AuditLogChangeType.PREVIEW_END_COMMIT,
+          ]),
+        ),
         ts: previousStartCommit
           ? Between(previousStartCommit.ts, newStartCommit.ts)
           : LessThan(newStartCommit.ts),
@@ -1659,7 +1666,14 @@ async function getChangesAfterCommitStartedByEntity(context: Context): Promise<{
   const changesAfterCommit: IasqlAuditLog[] = await context.orm.find(IasqlAuditLog, {
     order: { ts: 'DESC' },
     where: {
-      changeType: Not(In([AuditLogChangeType.START_COMMIT, AuditLogChangeType.END_COMMIT])),
+      changeType: Not(
+        In([
+          AuditLogChangeType.START_COMMIT,
+          AuditLogChangeType.PREVIEW_START_COMMIT,
+          AuditLogChangeType.END_COMMIT,
+          AuditLogChangeType.PREVIEW_END_COMMIT,
+        ]),
+      ),
       ts: MoreThan(context.startCommit.ts),
       user: Not(config.db.user),
     },
