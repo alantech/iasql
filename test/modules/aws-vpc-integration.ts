@@ -832,7 +832,7 @@ describe('VPC Integration Testing', () => {
       'adds new endpoint subnet',
       query(`
       INSERT INTO endpoint_interface_subnets (endpoint_interface_id, subnet_id) VALUES ((SELECT id FROM endpoint_interface WHERE tags ->> 'Name' = '${s3VpcEndpoint}' LIMIT 1),
-      (SELECT subnet.id FROM subnet INNER JOIN vpc ON vpc.id=subnet.vpc_id WHERE subnet.cidr_block='191.${randIPBlock}.0.0/16' AND vpc.tags ->> 'name' = '${prefix}-1' LIMIT 1))
+      (SELECT subnet.id FROM subnet INNER JOIN vpc ON vpc.id=subnet.vpc_id WHERE subnet.cidr_block='191.${randIPBlock}.0.0/16' AND vpc.tags ->> 'name' = '${prefix}-2' LIMIT 1))
     `),
     );
 
