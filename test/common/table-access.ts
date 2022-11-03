@@ -53,11 +53,11 @@ describe('Testing table creation and access', () => {
   
   it('dbUser: create custom table', query(`
     CREATE TABLE example_2 (id serial PRIMARY KEY);
-  `, undefined, true, pgUser, pgPassword));
+  `, undefined, true, () => ({username: pgUser, password: pgPassword})));
 
   it('dbUser: drop a custom table', query(`
     DROP TABLE example_2;
-  `, undefined, true, pgUser, pgPassword));
+  `, undefined, true, () => ({username: pgUser, password: pgPassword})));
 
   it('installs the aws_account module', install(['aws_account']));
 
