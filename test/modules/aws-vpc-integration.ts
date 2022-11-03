@@ -1046,7 +1046,7 @@ describe('VPC Integration Testing', () => {
 });
 
 describe('VPC install/uninstall', () => {
-  /*it('creates a new test db', done =>
+  it('creates a new test db', done =>
     void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
 
   it('installs the aws_account module', install(['aws_account']));
