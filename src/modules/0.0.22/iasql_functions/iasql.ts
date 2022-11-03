@@ -1116,11 +1116,6 @@ export async function commit(dbId: string, dryRun: boolean, context: Context) {
         changesByEntity,
       );
     } else {
-      /*
-       * If no changes found, what to do?
-       * If we sync everything and a user inserts something during the sync, could be detected and override the changes.
-       * We need to bring changes on AWS only always, ignore db only changes, but what to do with existing db records that might have changed? how to avoid overrides?
-       */
       const rootToLeafOrder: ModuleInterface[] = sortModules(installedModules, installedModulesNames);
       return await commitSync(
         dbId,
