@@ -12,28 +12,34 @@ const prisma = new PrismaClient();
 
 async function main() {
   const data = {
-    app_name: APP_NAME, public_ip: true, app_port: PORT, image_tag: 'latest',
+    app_name: APP_NAME,
+    public_ip: true,
+    app_port: PORT,
+    image_tag: 'latest',
   };
   await prisma.ecs_simplified.upsert({
-    where: { app_name: APP_NAME }, create: data, update: data,
+    where: { app_name: APP_NAME },
+    create: data,
+    update: data,
   });
 
   const apply = await prisma.$queryRaw`SELECT *
                                        from iasql_apply();`;
   console.dir(apply);
 
-  const repoId = (await prisma.ecs_simplified.findFirst({
-    where: { app_name: APP_NAME }, select: { id: true },
-  })).id;
-
   console.log('Using ecr_build to build the docker image and push it to ECR...');
+  const repoId = (await prisma.repository.findFirst({
+    where: { repository_name: `${APP_NAME}-repository` },
+    select: { id: true },
+  })).id.toString();
+  const repoUri = `${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}`;
   const image = await prisma.$queryRaw`SELECT ecr_build(
-                                                              '${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}',
-                                                              '${repoId}',
-                                                              './examples/ecs-fargate/prisma/app',
-                                                              '${GH_PAT}',
-                                                              '${GITHUB_REF}'
-                                                  );`;
+              ${repoUri},
+              ${repoId},
+              './examples/ecs-fargate/prisma/app',
+              ${GH_PAT},
+              ${GITHUB_REF}
+  );`;
   console.log(image);
 }
 
