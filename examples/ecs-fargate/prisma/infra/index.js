@@ -12,15 +12,10 @@ const prisma = new PrismaClient();
 
 async function main() {
   const data = {
-    app_name: APP_NAME,
-    public_ip: true,
-    app_port: PORT,
-    image_tag: 'latest',
+    app_name: APP_NAME, public_ip: true, app_port: PORT, image_tag: 'latest',
   };
   await prisma.ecs_simplified.upsert({
-    where: { app_name: APP_NAME },
-    create: data,
-    update: data,
+    where: { app_name: APP_NAME }, create: data, update: data,
   });
 
   const apply = await prisma.$queryRaw`SELECT *
@@ -28,8 +23,7 @@ async function main() {
   console.dir(apply);
 
   const repoId = (await prisma.ecs_simplified.findFirst({
-    where: { app_name: APP_NAME },
-    select: { id: true },
+    where: { app_name: APP_NAME }, select: { id: true },
   })).id;
 
   console.log('Using ecr_build to build the docker image and push it to ECR...');
