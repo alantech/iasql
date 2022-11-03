@@ -187,10 +187,15 @@ db.post('/run/:dbAlias', async (req, res) => {
     const error = e?.message ?? '';
     if (/^Timeout of/.test(error)) {
       // Avoid 500 here to keep ELB/Fargate happy
-      res.status(400).end(JSON.stringify([{
-        statement: sql,
-        error: 'This query is taking a long time. It will continue running in the background. You may query (with simpler queries) to see.',
-      }]));
+      res.status(400).end(
+        JSON.stringify([
+          {
+            statement: sql,
+            error:
+              'This query is taking a long time. It will continue running in the background. You may query (with simpler queries) to see.',
+          },
+        ]),
+      );
     } else {
       logger.error(`RunSQL user error: ${error}`, { uid, dbId, email, dbAlias });
       res.status(500).end(error);
