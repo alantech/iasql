@@ -74,7 +74,7 @@ describe('Testing table creation and access', () => {
 
   it('dbUser: select IaSQL managed table', query(`
     SELECT * FROM aws_credentials;
-  `, undefined, true, pgUser, pgPassword));
+  `, undefined, true, () => ({username: pgUser, password: pgPassword})));
 
   it('runSql: fails to drop IaSQL managed table', (done) => {
     (async () => {
