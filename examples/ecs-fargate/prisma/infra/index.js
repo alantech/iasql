@@ -1,9 +1,8 @@
-const { execSync } = require('child_process')
 const { PrismaClient } = require('@prisma/client');
 
 const pkg = require('./package.json');
 
-const REGION = process.env.AWS_REGION ?? '';
+const { GITHUB_SERVER_URL, GITHUB_REPOSITORY, GH_PAT, GITHUB_REF } = process.env;
 const PORT = 8088;
 
 // TODO replace with your desired project name
@@ -16,45 +15,29 @@ async function main() {
     app_name: APP_NAME,
     public_ip: true,
     app_port: PORT,
-    image_tag: 'latest'
+    image_tag: 'latest',
   };
   await prisma.ecs_simplified.upsert({
-    where: { app_name: APP_NAME},
+    where: { app_name: APP_NAME },
     create: data,
     update: data,
   });
 
-  const apply = await prisma.$queryRaw`SELECT * from iasql_apply();`
-  console.dir(apply)
+  const apply = await prisma.$queryRaw`SELECT *
+                                       from iasql_apply();`;
+  console.dir(apply);
 
-  const repoUri = (await prisma.ecs_simplified.findFirst({
-    where: { app_name: APP_NAME },
-    select: { repository_uri: true }
-  })).repository_uri;
-
-  console.log('Docker login...')
-  console.log(execSync(
-    `aws ecr get-login-password --region ${REGION} | docker login --username AWS --password-stdin ${repoUri}`,
-    { stdio: 'pipe', encoding: 'utf8', }, // Output stdout/err through the parent process
-  ));
-
-  console.log('Building image...')
-  console.log(execSync(
-    `docker build -t ${APP_NAME}-repository ${__dirname}/../app`,
-    { stdio: 'pipe', encoding: 'utf8', },
-  ));
-
-  console.log('Tagging image...')
-  console.log(execSync(
-    `docker tag ${APP_NAME}-repository:latest ${repoUri}:latest`,
-    { stdio: 'pipe', encoding: 'utf8', },
-  ));
-
-  console.log('Pushing image...')
-  console.log(execSync(
-    `docker push ${repoUri}:latest`,
-    { stdio: 'pipe', encoding: 'utf8', },
-  ));
+  console.log('Using ecr_build to build the docker image and push it to ECR...');
+  const image = prisma.$queryRaw`SELECT ecr_build(
+                                                        '${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}',
+                                                        (SELECT id
+                                                         FROM repository
+                                                         WHERE repository_name = '${APP_NAME}-repository')::varchar(255),
+                                                        './examples/ecs-fargate/prisma/app',
+                                                        '${GH_PAT}',
+                                                        '${GITHUB_REF}'
+                                            );`;
+  console.log(image);
 }
 
 main()
