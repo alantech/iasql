@@ -66,7 +66,7 @@ export class IasqlAuditLog {
 
   @Index()
   @Column({
-    type: 'timestamp without time zone',
+    type: 'timestamp with time zone',
   })
   ts: Date;
 
