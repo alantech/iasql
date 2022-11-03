@@ -1050,8 +1050,9 @@ export async function commit(dbId: string, dryRun: boolean, context: Context) {
     orm = await TypeormWrapper.createConn(dbId);
     context.orm = orm;
     const newStartCommit = await insertCommit(orm, dryRun ? 'preview_start' : 'start');
-    context.startCommit = newStartCommit;
-    const previousStartCommit = await getPreviousStartCommit(orm);
+    if (dryRun) context.previewStartCommit = newStartCommit;
+    else context.startCommit = newStartCommit;
+    const previousStartCommit = await getPreviousStartCommit(orm, dryRun ? 'preview_start' : 'start');
     const changesToCommit: IasqlAuditLog[] = await orm.find(IasqlAuditLog, {
       order: { ts: 'DESC' },
       where: {
@@ -1178,13 +1179,19 @@ async function insertCommit(
   return commitLog;
 }
 
-async function getPreviousStartCommit(orm: TypeormWrapper): Promise<IasqlAuditLog | null> {
+async function getPreviousStartCommit(
+  orm: TypeormWrapper,
+  type: 'preview_start' | 'start',
+): Promise<IasqlAuditLog | null> {
   // Find 'start' commits and pick the second element since the first one should be the one we've just inserted
   const startCommits = await orm.find(IasqlAuditLog, {
     order: { ts: 'DESC' },
     skip: 0,
     take: 2,
-    where: { changeType: AuditLogChangeType.START_COMMIT },
+    where: {
+      changeType:
+        type === 'start' ? AuditLogChangeType.START_COMMIT : AuditLogChangeType.PREVIEW_START_COMMIT,
+    },
   });
   return startCommits.length > 1 ? startCommits[1] : null;
 }
@@ -1315,8 +1322,10 @@ async function commitSync(
       records.forEach(r => {
         r.diff = findDiff(r.dbEntity, r.cloudEntity, r.idGen, r.comparator);
         // Case entities in AWS only: we want to create from AWS.
-        // We do not filter here, we bring all changes from AWS to keep everything up-to-date.
-
+        // We need to filter the changes we want to apply (in this case they will be deletions) and exclude them. Otherwise, we will override.
+        r.diff.entitiesInAwsOnly = r.diff.entitiesInAwsOnly
+          .filter((e: any) => !changesByEntity[r.table]?.find(re => r.idGen(e) === r.idGen(re)))
+          .filter((e: any) => !changesAfterCommitByEntity[r.table]?.find(re => r.idGen(e) === r.idGen(re)));
         // Case entities in DB only: we want to delete from the DB.
         // We need to filter the changes we want to apply and exclude them. Otherwise, we will override.
         r.diff.entitiesInDbOnly = r.diff.entitiesInDbOnly
@@ -1669,7 +1678,7 @@ async function getChangesAfterCommitStartedByEntity(context: Context): Promise<{
           AuditLogChangeType.PREVIEW_END_COMMIT,
         ]),
       ),
-      ts: MoreThan(context.startCommit.ts),
+      ts: MoreThan(context.startCommit?.ts ?? context.previewStartCommit?.ts),
       user: Not(config.db.user),
     },
   });
