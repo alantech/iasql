@@ -3,6 +3,7 @@ import {
   AvailabilityZoneMapper,
   ElasticIpMapper,
   EndpointGatewayMapper,
+  EndpointInterfaceMapper,
   NatGatewayMapper,
   SubnetMapper,
   VpcMapper,
@@ -14,6 +15,7 @@ export class AwsVpcModule extends ModuleBase {
   natGateway: NatGatewayMapper;
   elasticIp: ElasticIpMapper;
   endpointGateway: EndpointGatewayMapper;
+  endpointInterface: EndpointInterfaceMapper;
   availabilityZone: AvailabilityZoneMapper;
 
   constructor() {
@@ -23,6 +25,7 @@ export class AwsVpcModule extends ModuleBase {
     this.natGateway = new NatGatewayMapper(this);
     this.elasticIp = new ElasticIpMapper(this);
     this.endpointGateway = new EndpointGatewayMapper(this);
+    this.endpointInterface = new EndpointInterfaceMapper(this);
     this.availabilityZone = new AvailabilityZoneMapper(this);
     super.init();
   }

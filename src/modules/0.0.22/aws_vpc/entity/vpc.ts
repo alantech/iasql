@@ -37,6 +37,21 @@ export class Vpc {
   isDefault: boolean;
 
   @Column({
+    default: false,
+  })
+  enableDnsHostnames: boolean;
+
+  @Column({
+    default: false,
+  })
+  enableDnsSupport: boolean;
+
+  @Column({
+    default: false,
+  })
+  enableNetworkAddressUsageMetrics: boolean;
+
+  @Column({
     type: 'json',
     nullable: true,
   })
