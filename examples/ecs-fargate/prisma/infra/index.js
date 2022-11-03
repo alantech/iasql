@@ -28,7 +28,7 @@ async function main() {
   console.dir(apply);
 
   console.log('Using ecr_build to build the docker image and push it to ECR...');
-  const image = prisma.$queryRaw`SELECT ecr_build(
+  const image = await prisma.$queryRaw`SELECT ecr_build(
                                                         '${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}',
                                                         (SELECT id
                                                          FROM repository
