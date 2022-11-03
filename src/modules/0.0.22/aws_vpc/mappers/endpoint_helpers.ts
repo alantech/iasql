@@ -14,6 +14,10 @@ export function getServiceFromServiceName(serviceName: string) {
   if (serviceName.includes('dynamodb')) return EndpointGatewayService.DYNAMODB;
 }
 
+export function isServiceGlobal(serviceName: string) {
+  return serviceName.includes('global');
+}
+
 export const getVpcEndpointGatewayServiceName = crudBuilderFormat<
   EC2,
   'describeVpcEndpointServices',

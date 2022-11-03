@@ -101,8 +101,8 @@ describe('VPC Integration Testing', () => {
   it(
     'adds a new vpc',
     query(`  
-    INSERT INTO vpc (cidr_block, tags)
-    VALUES ('192.${randIPBlock}.0.0/16', '{"name":"${prefix}-1"}');
+    INSERT INTO vpc (cidr_block, tags, enable_dns_hostnames, enable_dns_support)
+    VALUES ('192.${randIPBlock}.0.0/16', '{"name":"${prefix}-1"}', true, true);
   `),
   );
 
@@ -133,6 +133,16 @@ describe('VPC Integration Testing', () => {
     query(
       `
   SELECT * FROM vpc WHERE tags ->> 'name' = '${prefix}-1';
+  `,
+      (res: any) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it(
+    'check vpc has the right attributes',
+    query(
+      `
+  SELECT * FROM vpc WHERE tags ->> 'name' = '${prefix}-1' AND enable_dns_hostnames and enable_dns_support;
   `,
       (res: any) => expect(res.length).toBe(1),
     ),
@@ -359,8 +369,8 @@ describe('VPC Integration Testing', () => {
     it(
       'adds a new s3 endpoint interface',
       query(`
-      INSERT INTO endpoint_interface (service, vpc_id, tags )
-      SELECT 's3', id, '{"Name": "${s3VpcEndpoint}"}'
+      INSERT INTO endpoint_interface (service, vpc_id, tags, is_global)
+      SELECT 's3', id, '{"Name": "${s3VpcEndpoint}"}', false
       FROM vpc
       WHERE is_default = false
       AND cidr_block = '191.${randIPBlock}.0.0/16';
@@ -377,7 +387,7 @@ describe('VPC Integration Testing', () => {
       ),
     );
 
-    it('applies the endpoint interface change', apply());
+    it('applies the endpoint interface creation', apply());
 
     it(
       'checks endpoint interface count',
@@ -674,7 +684,7 @@ describe('VPC Integration Testing', () => {
         (res: any) => expect(res.length).toBe(1),
       ),
     );
-  });*/
+  });
 
   describe('VPC endpoint interface updates', () => {
     it(
@@ -705,6 +715,36 @@ describe('VPC Integration Testing', () => {
       SELECT * FROM endpoint_interface WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
     `,
         (res: any) => expect(res[0]['state']).toBe('available'),
+      ),
+    );
+
+    it(
+      'updates a endpoint interface to be replaced',
+      query(`
+      UPDATE endpoint_interface
+      SET is_global=TRUE WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
+    `),
+    );
+
+    it('applies the endpoint_interface change', apply());
+
+    it(
+      'checks endpoint_interface count',
+      query(
+        `
+      SELECT * FROM endpoint_interface WHERE tags ->> 'Name' = '${s3VpcEndpoint}' AND is_global=FALSE;
+    `,
+        (res: any) => expect(res.length).toBe(0),
+      ),
+    );
+
+    it(
+      'checks endpoint_interface count',
+      query(
+        `
+      SELECT * FROM endpoint_interface WHERE tags ->> 'Name' = '${s3VpcEndpoint}' AND is_global=TRUE;
+    `,
+        (res: any) => expect(res.length).toBe(1),
       ),
     );
 
@@ -791,7 +831,8 @@ describe('VPC Integration Testing', () => {
     it(
       'adds new endpoint subnet',
       query(`
-      INSERT INTO endpoint_interface_subnets (endpoint_interface_id, subnet_id) VALUES ((SELECT id FROM endpoint_interface WHERE tags ->> 'Name' = '${s3VpcEndpoint}' LIMIT 1), (SELECT id FROM subnet WHERE cidr_block='191.${randIPBlock}.0.0/16' LIMIT 1))
+      INSERT INTO endpoint_interface_subnets (endpoint_interface_id, subnet_id) VALUES ((SELECT id FROM endpoint_interface WHERE tags ->> 'Name' = '${s3VpcEndpoint}' LIMIT 1),
+      (SELECT subnet.id FROM subnet INNER JOIN vpc ON vpc.id=subnet.vpc_id WHERE subnet.cidr_block='191.${randIPBlock}.0.0/16' AND vpc.tags ->> 'name' = '${prefix}-1' LIMIT 1))
     `),
     );
 
@@ -1005,7 +1046,7 @@ describe('VPC Integration Testing', () => {
 });
 
 describe('VPC install/uninstall', () => {
-  it('creates a new test db', done =>
+  /*it('creates a new test db', done =>
     void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
 
   it('installs the aws_account module', install(['aws_account']));

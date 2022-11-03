@@ -34,6 +34,13 @@ export class EndpointInterface {
   })
   service: EndpointInterfaceService;
 
+  @Column({
+    type: 'boolean',
+    nullable: true,
+    default: false,
+  })
+  isGlobal: boolean;
+
   @Column({ nullable: true })
   policyDocument?: string;
 
