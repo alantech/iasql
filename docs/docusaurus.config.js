@@ -3,9 +3,11 @@ const darkCodeTheme = require('prism-react-renderer/themes/nightOwl');
 
 const prodConfig = {
   url: 'https://docs.iasql.com',
+  phKey: 'phc_WjwJsXXSuEl2R2zElUWL55mWpNIfWR8HrFvjxwlTGWH',
 };
 const localConfig = {
   url: 'http://localhost:3000',
+  phKey: 'phc_xvAQWfpHug7G0SuU5P9wwAbvP9ZawgAfIEZ9FUsiarS',
 };
 const config = process.env.IASQL_ENV === 'local' ? localConfig : prodConfig;
 
@@ -37,9 +39,6 @@ const config = process.env.IASQL_ENV === 'local' ? localConfig : prodConfig;
         theme: {
           customCss: require.resolve('./src/css/custom.css'),
         },
-        gtag: {
-          trackingID: 'G-J20KBVRLE4',
-        },
       }),
     ],
   ],
@@ -48,9 +47,9 @@ const config = process.env.IASQL_ENV === 'local' ? localConfig : prodConfig;
     [
       "posthog-docusaurus",
       {
-        apiKey: "phc_WjwJsXXSuEl2R2zElUWL55mWpNIfWR8HrFvjxwlTGWH",
+        apiKey: config.phKey,
         appUrl: "https://app.posthog.com", // optional
-        enableInDevelopment: false, // optional
+        enableInDevelopment: true, // optional
         // other options are passed to posthog-js init as is
       },
     ],
