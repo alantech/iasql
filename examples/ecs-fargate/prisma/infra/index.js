@@ -11,15 +11,6 @@ const APP_NAME = pkg.name;
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log(`SELECT ecr_build(
-                                      '${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}',
-                                      (SELECT id
-                                       FROM repository
-                                       WHERE repository_name = '${APP_NAME}-repository')::varchar(255),
-                                      './examples/ecs-fargate/prisma/app',
-                                      '${GH_PAT}',
-                                      '${GITHUB_REF}'
-                          );`);
   const data = {
     app_name: APP_NAME,
     public_ip: true,
@@ -36,22 +27,15 @@ async function main() {
                                        from iasql_apply();`;
   console.dir(apply);
 
-  console.log(`SELECT ecr_build(
-                                      '${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}',
-                                      (SELECT id
-                                       FROM repository
-                                       WHERE repository_name = '${APP_NAME}-repository')::varchar(255),
-                                      './examples/ecs-fargate/prisma/app',
-                                      '${GH_PAT}',
-                                      '${GITHUB_REF}'
-                          );`);
+  const repoId = (await prisma.ecs_simplified.findFirst({
+    where: { app_name: APP_NAME },
+    select: { id: true },
+  })).id;
 
   console.log('Using ecr_build to build the docker image and push it to ECR...');
   const image = await prisma.$queryRaw`SELECT ecr_build(
                                                               '${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}',
-                                                              (SELECT id
-                                                               FROM repository
-                                                               WHERE repository_name = '${APP_NAME}-repository')::varchar(255),
+                                                              '${repoId}',
                                                               './examples/ecs-fargate/prisma/app',
                                                               '${GH_PAT}',
                                                               '${GITHUB_REF}'
