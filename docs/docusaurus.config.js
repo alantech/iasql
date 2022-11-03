@@ -2,7 +2,7 @@ const lightCodeTheme = require('prism-react-renderer/themes/nightOwlLight');
 const darkCodeTheme = require('prism-react-renderer/themes/nightOwl');
 
 const prodConfig = {
-  url: 'https://docs.iasql.com',
+  url: 'https://iasql.com',
   phKey: 'phc_WjwJsXXSuEl2R2zElUWL55mWpNIfWR8HrFvjxwlTGWH',
 };
 const localConfig = {
@@ -33,9 +33,12 @@ const config = process.env.IASQL_ENV === 'local' ? localConfig : prodConfig;
       ({
         docs: {
           sidebarPath: require.resolve('./sidebars.js'),
-          routeBasePath: '/',
+          routeBasePath: '/docs',
         },
-        blog: false,
+        blog: {
+          showReadingTime: true,
+          routeBasePath: '/blog',
+        },
         theme: {
           customCss: require.resolve('./src/css/custom.css'),
         },
@@ -68,7 +71,7 @@ const config = process.env.IASQL_ENV === 'local' ? localConfig : prodConfig;
           alt: 'logo',
           src: 'img/logo.png',
           srcDark: 'img/logo_dark.png',
-          href: 'https://iasql.com',
+          href: '/',
           target: '_self',
         },
         items: [
@@ -76,6 +79,16 @@ const config = process.env.IASQL_ENV === 'local' ? localConfig : prodConfig;
             to: 'https://app.iasql.com',
             target: '_self',
             label: 'Dashboard',
+          },
+          {
+            to: 'docs',
+            target: '_self',
+            label: 'Docs',
+          },
+          {
+            to: 'blog',
+            target: '_self',
+            label: 'Blog',
           },
           {
             to: 'https://dbdocs.io/iasql/iasql',
@@ -89,7 +102,7 @@ const config = process.env.IASQL_ENV === 'local' ? localConfig : prodConfig;
           },
           {
             type: 'docsVersionDropdown',
-            position: 'right'
+            position: 'right',
           },
           {
             href: 'https://github.com/iasql/iasql-engine',
@@ -106,19 +119,19 @@ const config = process.env.IASQL_ENV === 'local' ? localConfig : prodConfig;
             title: 'Product',
             items: [
               {
-                label: 'Dashboard',
-                href: 'https://app.iasql.com',
-                target: '_self'
-              },
-              {
-                label: 'Schema',
-                href: 'https://dbdocs.io/iasql/iasql',
-                target: '_self'
+                label: 'Docs',
+                href: 'docs',
+                target: '_self',
               },
               {
                 label: 'Blog',
-                href: 'https://blog.iasql.com',
+                href: 'blog',
                 target: '_self',
+              },
+              {
+                label: 'Dashboard',
+                href: 'https://app.iasql.com',
+                target: '_self'
               },
               {
                 label: 'GitHub',
