@@ -1198,11 +1198,8 @@ function getChangesByEntity(changesToCommit: IasqlAuditLog[]): { [key: string]: 
     } else if ([AuditLogChangeType.INSERT, AuditLogChangeType.UPDATE].includes(c.changeType)) {
       Object.entries(c.change.change).forEach(([k, v]: [string, any]) => (entity[camelCase(k)] = v));
     }
-    if (changesByEntity[entityName]) {
-      changesByEntity[entityName].push(entity);
-    } else {
-      changesByEntity[entityName] = [entity];
-    }
+    changesByEntity[entityName] = changesByEntity[entityName] ?? [];
+    changesByEntity[entityName].push(entity);
   });
   return changesByEntity;
 }
