@@ -5,6 +5,9 @@ import {
   paginateDescribeVpcs,
   CreateVpcCommandInput,
   DescribeVpcsCommandInput,
+  VpcAttributeName,
+  DescribeVpcAttributeCommandOutput,
+  AttributeBooleanValue,
 } from '@aws-sdk/client-ec2';
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 
@@ -22,11 +25,17 @@ export class VpcMapper extends MapperBase<Vpc> {
       Object.is(a.cidrBlock, b.cidrBlock) &&
       Object.is(a.state, b.state) &&
       Object.is(a.isDefault, b.isDefault) &&
+      (a.isDefault ||
+        (Object.is(a.enableDnsHostnames, b.enableDnsHostnames) &&
+          Object.is(a.enableDnsSupport, b.enableDnsSupport) &&
+          Object.is(a.enableNetworkAddressUsageMetrics, b.enableNetworkAddressUsageMetrics))) &&
       eqTags(a.tags, b.tags);
     return result;
   };
 
-  vpcMapper(vpc: AwsVpc, region: string) {
+  async vpcMapper(vpc: AwsVpc, region: string, ctx: Context) {
+    const client = (await ctx.getAwsClient(region)) as AWS;
+
     const out = new Vpc();
     if (!vpc?.VpcId || !vpc?.CidrBlock) return undefined;
     out.vpcId = vpc.VpcId;
@@ -41,6 +50,29 @@ export class VpcMapper extends MapperBase<Vpc> {
       });
     out.tags = tags;
     out.region = region;
+
+    // query for vpc attributes
+    if (!vpc.IsDefault) {
+      out.enableDnsHostnames =
+        (await this.getVpcAttribute(client.ec2client, out.vpcId, VpcAttributeName.enableDnsHostnames))
+          ?.EnableDnsHostnames?.Value ?? false;
+      out.enableDnsSupport =
+        (await this.getVpcAttribute(client.ec2client, out.vpcId, VpcAttributeName.enableDnsSupport))
+          ?.EnableDnsSupport?.Value ?? false;
+      out.enableNetworkAddressUsageMetrics =
+        (
+          await this.getVpcAttribute(
+            client.ec2client,
+            out.vpcId,
+            VpcAttributeName.enableNetworkAddressUsageMetrics,
+          )
+        )?.EnableNetworkAddressUsageMetrics?.Value ?? false;
+    } else {
+      out.enableDnsHostnames = false;
+      out.enableDnsSupport = false;
+      out.enableNetworkAddressUsageMetrics = false;
+    }
+
     return out;
   }
 
@@ -81,8 +113,40 @@ export class VpcMapper extends MapperBase<Vpc> {
     id => ({ VpcIds: [id] }),
     res => res?.Vpcs?.[0],
   );
+
+  getVpcAttribute = crudBuilderFormat<
+    EC2,
+    'describeVpcAttribute',
+    DescribeVpcAttributeCommandOutput | undefined
+  >(
+    'describeVpcAttribute',
+    (id, attribute) => ({ VpcId: id, Attribute: attribute }),
+    res => res,
+  );
+
   getVpcs = paginateBuilder<EC2>(paginateDescribeVpcs, 'Vpcs');
   deleteVpc = crudBuilder2<EC2, 'deleteVpc'>('deleteVpc', input => input);
+
+  async updateVpcAttribute(
+    client: EC2,
+    vpcId: string,
+    enableDnsHostnames: boolean | undefined,
+    enableDnsSupport: boolean | undefined,
+    enableNetworkAddressUsageMetrics: boolean | undefined,
+  ) {
+    if (enableDnsHostnames !== undefined) {
+      await client.modifyVpcAttribute({ VpcId: vpcId, EnableDnsHostnames: { Value: enableDnsHostnames } });
+    }
+    if (enableDnsSupport !== undefined) {
+      await client.modifyVpcAttribute({ VpcId: vpcId, EnableDnsSupport: { Value: enableDnsSupport } });
+    }
+    if (enableNetworkAddressUsageMetrics !== undefined) {
+      await client.modifyVpcAttribute({
+        VpcId: vpcId,
+        EnableNetworkAddressUsageMetrics: { Value: enableNetworkAddressUsageMetrics },
+      });
+    }
+  }
 
   cloud: Crud2<Vpc> = new Crud2({
     updateOrReplace: (a: Vpc, b: Vpc) => {
@@ -120,7 +184,23 @@ export class VpcMapper extends MapperBase<Vpc> {
         }
         const res: AwsVpc | undefined = await this.createVpc(client.ec2client, input);
         if (res) {
-          const newVpc = this.vpcMapper(res, e.region);
+          // also update the vpc attributes if they are not the default
+          // doing on the same run because if we wait for taking it on the loop, users can trigger endpoint creation
+          // without actually having the right vpc attributes
+          if (
+            res.VpcId &&
+            !e.isDefault &&
+            (e.enableDnsHostnames || e.enableDnsSupport || e.enableNetworkAddressUsageMetrics)
+          ) {
+            await this.updateVpcAttribute(
+              client.ec2client,
+              res.VpcId,
+              e.enableDnsHostnames,
+              e.enableDnsSupport,
+              e.enableNetworkAddressUsageMetrics,
+            );
+          }
+          const newVpc = await this.vpcMapper(res, e.region, ctx);
           if (!newVpc) continue;
           newVpc.id = e.id;
           await this.module.vpc.db.update(newVpc, ctx);
@@ -137,7 +217,7 @@ export class VpcMapper extends MapperBase<Vpc> {
         if (enabledRegions.includes(region)) {
           const client = (await ctx.getAwsClient(region)) as AWS;
           const rawVpc = await this.getVpc(client.ec2client, vpcId);
-          if (rawVpc) return this.vpcMapper(rawVpc, region);
+          if (rawVpc) return await this.vpcMapper(rawVpc, region, ctx);
         }
       } else {
         const out: Vpc[] = [];
@@ -145,7 +225,7 @@ export class VpcMapper extends MapperBase<Vpc> {
           enabledRegions.map(async region => {
             const client = (await ctx.getAwsClient(region)) as AWS;
             for (const vpc of await this.getVpcs(client.ec2client)) {
-              const outVpc = this.vpcMapper(vpc, region);
+              const outVpc = await this.vpcMapper(vpc, region, ctx);
               if (outVpc) out.push(outVpc);
             }
           }),
@@ -173,6 +253,23 @@ export class VpcMapper extends MapperBase<Vpc> {
           } else {
             if (!eqTags(e.tags, cloudRecord.tags) && e.vpcId) {
               await updateTags(client.ec2client, e.vpcId, e.tags);
+            }
+
+            // check attributes
+            if (e.vpcId) {
+              if (
+                !Object.is(e.enableDnsHostnames, cloudRecord.enableDnsHostnames) ||
+                !Object.is(e.enableDnsSupport, cloudRecord.enableDnsSupport) ||
+                !Object.is(e.enableNetworkAddressUsageMetrics, cloudRecord.enableNetworkAddressUsageMetrics)
+              ) {
+                await this.updateVpcAttribute(
+                  client.ec2client,
+                  e.vpcId,
+                  e.enableDnsHostnames,
+                  e.enableDnsSupport,
+                  e.enableNetworkAddressUsageMetrics,
+                );
+              }
             }
             out.push(e);
           }

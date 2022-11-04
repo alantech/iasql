@@ -26,6 +26,17 @@ if (config.sentry) {
   // transaction/span/breadcrumb is attached to its own Hub instance
   app.use(sentry.Handlers.requestHandler());
 }
+app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
+  logger.info(`Starting request on: ${req.path}`);
+  const realSend = res.send;
+  const start = Date.now();
+  res.send = (body?: any) => {
+    const end = Date.now();
+    logger.info(`Request on: ${req.path} took ${end - start}ms`);
+    return realSend.call(res, body);
+  };
+  next();
+});
 app.get('/health', (_, res) => res.send('ok'));
 app.use('/v1', v1);
 app.get('/debug-error', (_req, _res) => {

@@ -1,20 +1,20 @@
-name: DOCS RELEASE
+name: SITE DEPLOY
 
 on:
+  push:
+    branches: [main]
+    paths: ['site/**']
+  workflow_run:
+    workflows: ["RELEASE"]
+    types:
+      - completed
+
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
-    version:
-      description: 'Docs version to release'
-    inputs:
-      version:
-        required: false
-        description: 'Version to update the docs to'
-  repository_dispatch:
-    types: [release]
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  new-version:
+  deploy:
     runs-on: ubuntu-latest
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
@@ -31,23 +31,20 @@ jobs:
           cd site
           yarn 
           yarn build
-      # https://docusaurus.io/docs/versioning#tagging-a-new-version
-      - name: Tag a new version, commit the changes and push
-        run: |
-          cd site
-          export VERSION=(${{ github.event.client_payload.version }} ${{ github.event.client_payload.message.version }} ${{ github.event.inputs.version }})
-          yarn run docusaurus docs:version $VERSION
-          git config --local user.email "iasql-bot@users.noreply.github.com"
-          git config --local user.name "iasql-bot"
-          git add -A
-          git commit -m "$VERSION"
-          git push
+      - name: Deploy to GitHub Pages
+        if: success()
+        uses: crazy-max/ghaction-github-pages@v2
+        with:
+          target_branch: gh-pages
+          build_dir: site/build
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   notify:
     name: Discord Notification
     runs-on: ubuntu-latest
     needs: # make sure the notification is sent AFTER the jobs you want included have completed
-      - new-version
+      - deploy
     if: ${{ always() }} # You always want to be notified: success, failure, or cancelled
 
     steps:
