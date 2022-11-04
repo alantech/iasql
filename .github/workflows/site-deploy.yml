@@ -1,9 +1,9 @@
-name: DOCS DEPLOY
+name: SITE DEPLOY
 
 on:
   push:
     branches: [main]
-    paths: ['docs/**']
+    paths: ['site/**']
   workflow_run:
     workflows: ["RELEASE"]
     types:

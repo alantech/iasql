@@ -1,16 +1,16 @@
 # This is a basic workflow to help you get started with Actions
 
-name: DOCS BUILD
+name: SITE BUILD
 
 # Controls when the action will run. Triggers the workflow on push or pull request
 # events but only for the main branch
 on:
   push:
     branches: [main]
-    paths: ['docs/**']
+    paths: ['site/**']
   pull_request:
     branches: [main]
-    paths: ['docs/**']
+    paths: ['site/**']
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -28,7 +28,7 @@ jobs:
       # Install and build Docusaurus website
       - name: Build Docusaurus website
         run: |
-          cd docs
+          cd site
           yarn
           yarn install
           yarn build
