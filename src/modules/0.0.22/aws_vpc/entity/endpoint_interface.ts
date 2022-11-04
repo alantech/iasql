@@ -16,7 +16,7 @@ import { AwsRegions } from '../../aws_account/entity';
 
 export enum EndpointInterfaceService {
   S3 = 's3',
-  S3_GLOBAL = 's3-global',
+  S3_GLOBAL = 's3-global.accesspoint',
   API_GATEWAY = 'execute-api',
   RDS = 'rds',
   LOGS = 'logs',

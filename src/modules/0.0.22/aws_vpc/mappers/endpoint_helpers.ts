@@ -14,7 +14,7 @@ export function getGatewayServiceFromServiceName(serviceName: string) {
   for (const key of Object.keys(EndpointGatewayService)) {
     const val = EndpointGatewayService[key as keyof typeof EndpointGatewayService];
     // it contains key/value pairs
-    if (serviceName.includes(val)) return val;
+    if (serviceName.endsWith(val)) return val;
   }
   return undefined;
 }
@@ -23,7 +23,7 @@ export function getInterfaceServiceFromServiceName(serviceName: string) {
   for (const key of Object.keys(EndpointInterfaceService)) {
     const val = EndpointInterfaceService[key as keyof typeof EndpointInterfaceService];
     // it contains key/value pairs
-    if (serviceName.includes(val)) return val;
+    if (serviceName.endsWith(val)) return val;
   }
   return undefined;
 }

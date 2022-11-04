@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class awsVpc1667551443085 implements MigrationInterface {
-  name = 'awsVpc1667551443085';
+export class awsVpc1667590922115 implements MigrationInterface {
+  name = 'awsVpc1667590922115';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
@@ -11,7 +11,7 @@ export class awsVpc1667551443085 implements MigrationInterface {
       `CREATE TABLE "elastic_ip" ("id" SERIAL NOT NULL, "allocation_id" character varying, "public_ip" character varying, "tags" json, "region" character varying NOT NULL DEFAULT default_aws_region(), CONSTRAINT "UQ_7d16382cad0b5eea714bd8d79b1" UNIQUE ("public_ip"), CONSTRAINT "elasticip_id_region" UNIQUE ("id", "region"), CONSTRAINT "PK_8f7ca624855a83f6ce36f8a88a1" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
-      `CREATE TYPE "public"."endpoint_interface_service_enum" AS ENUM('s3', 's3-global', 'execute-api', 'rds', 'logs', 'codebuild', 'codedeploy', 'codepipeline', 'ec2', 'ecr', 'ecs', 'elasticloadbalancing', 'elasticache', 'lambda', 'memory-db')`,
+      `CREATE TYPE "public"."endpoint_interface_service_enum" AS ENUM('s3', 's3-global.accesspoint', 'execute-api', 'rds', 'logs', 'codebuild', 'codedeploy', 'codepipeline', 'ec2', 'ecr', 'ecs', 'elasticloadbalancing', 'elasticache', 'lambda', 'memory-db')`,
     );
     await queryRunner.query(
       `CREATE TYPE "public"."endpoint_interface_dns_name_record_type_enum" AS ENUM('dualstack', 'ipv4', 'ipv6', 'service-defined')`,
