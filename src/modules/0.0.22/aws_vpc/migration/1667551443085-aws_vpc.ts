@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class awsVpc1667415356767 implements MigrationInterface {
-  name = 'awsVpc1667415356767';
+export class awsVpc1667551443085 implements MigrationInterface {
+  name = 'awsVpc1667551443085';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
@@ -10,12 +10,14 @@ export class awsVpc1667415356767 implements MigrationInterface {
     await queryRunner.query(
       `CREATE TABLE "elastic_ip" ("id" SERIAL NOT NULL, "allocation_id" character varying, "public_ip" character varying, "tags" json, "region" character varying NOT NULL DEFAULT default_aws_region(), CONSTRAINT "UQ_7d16382cad0b5eea714bd8d79b1" UNIQUE ("public_ip"), CONSTRAINT "elasticip_id_region" UNIQUE ("id", "region"), CONSTRAINT "PK_8f7ca624855a83f6ce36f8a88a1" PRIMARY KEY ("id"))`,
     );
-    await queryRunner.query(`CREATE TYPE "public"."endpoint_interface_service_enum" AS ENUM('s3')`);
+    await queryRunner.query(
+      `CREATE TYPE "public"."endpoint_interface_service_enum" AS ENUM('s3', 's3-global', 'execute-api', 'rds', 'logs', 'codebuild', 'codedeploy', 'codepipeline', 'ec2', 'ecr', 'ecs', 'elasticloadbalancing', 'elasticache', 'lambda', 'memory-db')`,
+    );
     await queryRunner.query(
       `CREATE TYPE "public"."endpoint_interface_dns_name_record_type_enum" AS ENUM('dualstack', 'ipv4', 'ipv6', 'service-defined')`,
     );
     await queryRunner.query(
-      `CREATE TABLE "endpoint_interface" ("id" SERIAL NOT NULL, "vpc_endpoint_id" character varying, "service" "public"."endpoint_interface_service_enum" NOT NULL, "is_global" boolean DEFAULT false, "policy_document" character varying, "state" character varying, "private_dns_enabled" boolean DEFAULT false, "dns_name_record_type" "public"."endpoint_interface_dns_name_record_type_enum" DEFAULT 'ipv4', "tags" json, "region" character varying NOT NULL DEFAULT default_aws_region(), "vpc_id" integer NOT NULL, CONSTRAINT "PK_a68d55bf3f06feb8ac5d8b8eee6" PRIMARY KEY ("id"))`,
+      `CREATE TABLE "endpoint_interface" ("id" SERIAL NOT NULL, "vpc_endpoint_id" character varying, "service" "public"."endpoint_interface_service_enum" NOT NULL, "policy_document" character varying, "state" character varying, "private_dns_enabled" boolean DEFAULT false, "dns_name_record_type" "public"."endpoint_interface_dns_name_record_type_enum" DEFAULT 'ipv4', "tags" json, "region" character varying NOT NULL DEFAULT default_aws_region(), "vpc_id" integer NOT NULL, CONSTRAINT "PK_a68d55bf3f06feb8ac5d8b8eee6" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(`CREATE TYPE "public"."vpc_state_enum" AS ENUM('available', 'pending')`);
     await queryRunner.query(

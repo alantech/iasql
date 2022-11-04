@@ -16,6 +16,20 @@ import { AwsRegions } from '../../aws_account/entity';
 
 export enum EndpointInterfaceService {
   S3 = 's3',
+  S3_GLOBAL = 's3-global',
+  API_GATEWAY = 'execute-api',
+  RDS = 'rds',
+  LOGS = 'logs',
+  CODEBUILD = 'codebuild',
+  CODEDEPLOY = 'codedeploy',
+  CODEPIPELINE = 'codepipeline',
+  EC2 = 'ec2',
+  ECR = 'ecr',
+  ECS = 'ecs',
+  ELB = 'elasticloadbalancing',
+  ELASTICACHE = 'elasticache',
+  LAMBDA = 'lambda',
+  MEMORYDB = 'memory-db',
 }
 
 @Entity()
@@ -33,13 +47,6 @@ export class EndpointInterface {
     enum: EndpointInterfaceService,
   })
   service: EndpointInterfaceService;
-
-  @Column({
-    type: 'boolean',
-    nullable: true,
-    default: false,
-  })
-  isGlobal: boolean;
 
   @Column({ nullable: true })
   policyDocument?: string;
