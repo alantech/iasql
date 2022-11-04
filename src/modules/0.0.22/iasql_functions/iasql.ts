@@ -1052,7 +1052,7 @@ export async function commit(dbId: string, dryRun: boolean, context: Context) {
     const newStartCommit = await insertCommit(orm, dryRun ? 'preview_start' : 'start');
     if (dryRun) context.previewStartCommit = newStartCommit;
     else context.startCommit = newStartCommit;
-    const previousStartCommit = await getPreviousStartCommit(orm, dryRun ? 'preview_start' : 'start');
+    const previousStartCommit = await getPreviousStartCommit(orm);
     const changesToCommit: IasqlAuditLog[] = await orm.find(IasqlAuditLog, {
       order: { ts: 'DESC' },
       where: {
@@ -1179,18 +1179,14 @@ async function insertCommit(
   return commitLog;
 }
 
-async function getPreviousStartCommit(
-  orm: TypeormWrapper,
-  type: 'preview_start' | 'start',
-): Promise<IasqlAuditLog | null> {
+async function getPreviousStartCommit(orm: TypeormWrapper): Promise<IasqlAuditLog | null> {
   // Find 'start' commits and pick the second element since the first one should be the one we've just inserted
   const startCommits = await orm.find(IasqlAuditLog, {
     order: { ts: 'DESC' },
     skip: 0,
     take: 2,
     where: {
-      changeType:
-        type === 'start' ? AuditLogChangeType.START_COMMIT : AuditLogChangeType.PREVIEW_START_COMMIT,
+      changeType: AuditLogChangeType.START_COMMIT,
     },
   });
   return startCommits.length > 1 ? startCommits[1] : null;
