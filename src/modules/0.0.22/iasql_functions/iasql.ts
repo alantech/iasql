@@ -1092,44 +1092,38 @@ export async function commit(dbId: string, dryRun: boolean, context: Context) {
     const toUpdate: Crupde = {};
     const toReplace: Crupde = {}; // Not actually used in sync mode, at least right now
     const toDelete: Crupde = {};
-    if (modulesWithChanges.length) {
-      const rootToLeafOrder: ModuleInterface[] = sortModules(modulesWithChanges, installedModulesNames);
-      await commitSync(
-        dbId,
-        rootToLeafOrder,
-        context,
-        toCreate,
-        toUpdate,
-        toReplace,
-        toDelete,
-        dryRun,
-        changesByEntity,
-      );
+    const modulesWithChangesSorted: ModuleInterface[] = sortModules(
+      modulesWithChanges,
+      installedModulesNames,
+    );
+    const installedModulesSorted: ModuleInterface[] = sortModules(installedModules, installedModulesNames);
+    try {
+      if (modulesWithChanges.length) {
+        await commitApply(
+          dbId,
+          modulesWithChangesSorted,
+          context,
+          toCreate,
+          toUpdate,
+          toReplace,
+          toDelete,
+          dryRun,
+          changesByEntity,
+        );
+      }
+    } catch (e) {
       return await commitApply(
         dbId,
-        rootToLeafOrder,
+        installedModulesSorted,
         context,
         toCreate,
         toUpdate,
         toReplace,
         toDelete,
         dryRun,
-        changesByEntity,
-      );
-    } else {
-      const rootToLeafOrder: ModuleInterface[] = sortModules(installedModules, installedModulesNames);
-      return await commitSync(
-        dbId,
-        rootToLeafOrder,
-        context,
-        toCreate,
-        toUpdate,
-        toReplace,
-        toDelete,
-        dryRun,
-        changesByEntity,
       );
     }
+    return await commitSync(dbId, installedModulesSorted, context, toCreate, toUpdate, toReplace, toDelete, dryRun);
   } catch (e: any) {
     debugObj(e);
     throw e;
@@ -1246,7 +1240,6 @@ async function commitSync(
   toReplace: Crupde,
   toDelete: Crupde,
   dryRun: boolean,
-  changesByEntity: { [key: string]: any[] },
 ): Promise<{ iasqlPlanVersion: number; rows: any[] }> {
   const t1 = Date.now();
   const mappers = relevantModules
@@ -1317,23 +1310,16 @@ async function commitSync(
       };
       records.forEach(r => {
         r.diff = findDiff(r.dbEntity, r.cloudEntity, r.idGen, r.comparator);
-        // Case entities in AWS only: we want to create from AWS.
-        // We need to filter the changes we want to apply (in this case they will be deletions) and exclude them. Otherwise, we will override.
-        r.diff.entitiesInAwsOnly = r.diff.entitiesInAwsOnly
-          .filter((e: any) => !changesByEntity[r.table]?.find(re => r.idGen(e) === r.idGen(re)))
-          .filter((e: any) => !changesAfterCommitByEntity[r.table]?.find(re => r.idGen(e) === r.idGen(re)));
-        // Case entities in DB only: we want to delete from the DB.
-        // We need to filter the changes we want to apply and exclude them. Otherwise, we will override.
-        r.diff.entitiesInDbOnly = r.diff.entitiesInDbOnly
-          .filter((e: any) => !changesByEntity[r.table]?.find(re => r.idGen(e) === r.idGen(re)))
-          .filter((e: any) => !changesAfterCommitByEntity[r.table]?.find(re => r.idGen(e) === r.idGen(re)));
-        // Case entities changed: we want to update the DB with the AWS value.
-        // We need to filter the changes we want to apply and exclude them. Otherwise, we will override.
-        r.diff.entitiesChanged = r.diff.entitiesChanged
-          .filter((o: any) => !changesByEntity[r.table]?.find(re => r.idGen(o.db) === r.idGen(re)))
-          .filter(
-            (o: any) => !changesAfterCommitByEntity[r.table]?.find(re => r.idGen(o.db) === r.idGen(re)),
-          );
+        // Only filter changes that might have occured after this commit started
+        r.diff.entitiesInAwsOnly = r.diff.entitiesInAwsOnly.filter(
+          (e: any) => !changesAfterCommitByEntity[r.table]?.find(re => r.idGen(e) === r.idGen(re)),
+        );
+        r.diff.entitiesInDbOnly = r.diff.entitiesInDbOnly.filter(
+          (e: any) => !changesAfterCommitByEntity[r.table]?.find(re => r.idGen(e) === r.idGen(re)),
+        );
+        r.diff.entitiesChanged = r.diff.entitiesChanged.filter(
+          (o: any) => !changesAfterCommitByEntity[r.table]?.find(re => r.idGen(o.db) === r.idGen(re)),
+        );
         if (r.diff.entitiesInDbOnly.length > 0) {
           updatePlan(toDelete, r.table, r.mapper, r.diff.entitiesInDbOnly);
         }
@@ -1456,7 +1442,7 @@ async function commitApply(
   toReplace: Crupde,
   toDelete: Crupde,
   dryRun: boolean,
-  changesByEntity: { [key: string]: any[] },
+  changesByEntity?: { [key: string]: any[] },
 ): Promise<{ iasqlPlanVersion: number; rows: any[] }> {
   const t1 = Date.now();
   const mappers = relevantModules
@@ -1482,6 +1468,8 @@ async function commitApply(
         await mapper.db.read(context);
       }),
     );
+    // Every time we read from db we get possible changes that occured after this commit started
+    const changesAfterCommitByEntity = await getChangesAfterCommitStartedByEntity(context);
     const comparators = mappers.map(mapper => mapper.equals);
     const idGens = mappers.map(mapper => mapper.entityId);
     let ranUpdate = false;
@@ -1528,21 +1516,34 @@ async function commitApply(
       };
       records.forEach(r => {
         r.diff = findDiff(r.dbEntity, r.cloudEntity, r.idGen, r.comparator);
-        // Case entities in DB only: we want to create in the cloud.
-        // We need to filter which of those are the changes we are taking into account. Otherwise we could be applying changes from other cycle.
-        r.diff.entitiesInDbOnly = r.diff.entitiesInDbOnly.filter((e: any) =>
-          changesByEntity[r.table]?.find(re => r.idGen(e) === r.idGen(re)),
-        );
-        // Case entities in AWS only: we want to delete from the cloud.
-        // We need to filter which of those are the changes we are taking into account. Otherwise we could be applying changes from other cycle.
-        r.diff.entitiesInAwsOnly = r.diff.entitiesInAwsOnly.filter((e: any) =>
-          changesByEntity[r.table]?.find(re => r.idGen(e) === r.idGen(re)),
-        );
-        // Case entities changed: we want to update/restore/replace to/from the cloud.
-        // We need to filter which of those are the changes we are taking into account. Otherwise we could be applying changes from other cycle.
-        r.diff.entitiesChanged = r.diff.entitiesChanged.filter((o: any) =>
-          changesByEntity[r.table]?.find(re => r.idGen(o.db) === r.idGen(re)),
-        );
+        // If we have changes to apply only filter those, if not, filter chnages done after this commit started
+        if (changesByEntity) {
+          // Case entities in DB only: we want to create in the cloud.
+          // We need to filter which of those are the changes we are taking into account. Otherwise we could be applying changes from other cycle.
+          r.diff.entitiesInDbOnly = r.diff.entitiesInDbOnly.filter((e: any) =>
+            changesByEntity[r.table]?.find(re => r.idGen(e) === r.idGen(re)),
+          );
+          // Case entities in AWS only: we want to delete from the cloud.
+          // We need to filter which of those are the changes we are taking into account. Otherwise we could be applying changes from other cycle.
+          r.diff.entitiesInAwsOnly = r.diff.entitiesInAwsOnly.filter((e: any) =>
+            changesByEntity[r.table]?.find(re => r.idGen(e) === r.idGen(re)),
+          );
+          // Case entities changed: we want to update/restore/replace to/from the cloud.
+          // We need to filter which of those are the changes we are taking into account. Otherwise we could be applying changes from other cycle.
+          r.diff.entitiesChanged = r.diff.entitiesChanged.filter((o: any) =>
+            changesByEntity[r.table]?.find(re => r.idGen(o.db) === r.idGen(re)),
+          );
+        } else {
+          r.diff.entitiesInAwsOnly = r.diff.entitiesInAwsOnly.filter(
+            (e: any) => !changesAfterCommitByEntity[r.table]?.find(re => r.idGen(e) === r.idGen(re)),
+          );
+          r.diff.entitiesInDbOnly = r.diff.entitiesInDbOnly.filter(
+            (e: any) => !changesAfterCommitByEntity[r.table]?.find(re => r.idGen(e) === r.idGen(re)),
+          );
+          r.diff.entitiesChanged = r.diff.entitiesChanged.filter(
+            (o: any) => !changesAfterCommitByEntity[r.table]?.find(re => r.idGen(o.db) === r.idGen(re)),
+          );
+        }
         if (r.diff.entitiesInDbOnly.length > 0) {
           updatePlan(toCreate, r.table, r.mapper, r.diff.entitiesInDbOnly);
         }
