@@ -28,13 +28,13 @@ jobs:
       # Install and build Docusaurus website
       - name: Build Docusaurus website
         run: |
-          cd docs
+          cd site
           yarn 
           yarn build
       # https://docusaurus.io/docs/versioning#tagging-a-new-version
       - name: Tag a new version, commit the changes and push
         run: |
-          cd docs
+          cd site
           export VERSION=(${{ github.event.client_payload.version }} ${{ github.event.client_payload.message.version }} ${{ github.event.inputs.version }})
           yarn run docusaurus docs:version $VERSION
           git config --local user.email "iasql-bot@users.noreply.github.com"
