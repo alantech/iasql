@@ -1,0 +1,103 @@
+---
+slug: intro-iasql
+title: Introduction to Infrastructure as SQL
+authors: [depombo, dfellis, aguillenv]
+---
+
+What software you have deployed on what services and the interactions between them and the outside world is not a program, it is information about your infrastructure. Changing your infrastructure *is* a set of operations to perform, a program. A SQL database is a set of information and SQL queries read or change that data.
+
+**Infrastructure State is Data, Infrastructure Change is Code. It's as simple as that.**
+
+And manipulating your infrastructure in this way is natural.
+
+```sql
+INSERT INTO aws_ec2 (ami_id, ec2_instance_type_id)
+SELECT ami.id, ait.id
+FROM ec2_instance_type as ait, (
+    SELECT id
+    FROM   amis
+    WHERE  image_name LIKE 'amzn-ami-hvm-%'ORDER BY creation_date DESC
+    LIMIT 1
+) as ami
+WHERE  ait.instance_name = 't2.micro';
+```
+
+## **Relations and Types Matter for Infrastructure**
+
+Infrastructure as Code solutions do not have a good way of encoding dependencies across infrastructure pieces in a micro services architecture which makes it really hard to make and revert changes to infrastructure.
+
+Representing your infrastructure as SQL resolves the primary issue of YAML-based infrastructure tools by making the relations between pieces of your infrastructure first-class citizens, and enforcing type safety on the data and changes to it.
+
+You can't set the EC2 instance type as `t2.mucro` and have your deploy system try and fail to create such an instance. The `insert` statement will fail and tell you zero rows were inserted and you can quickly see why.
+
+Similarly, if you have a record in the `security_group` table, you can't delete it if there are any references to it in the `ec2_security_groups` join table. The relational structure of IaSQL prevents you from putting your infrastructure into an invalid state.
+
+## **New Powers: Explore, Query, and Automate Your Infrastructure**
+
+Because your infrastructure is presented as a SQL database, you can connect to it with a SQL client of your choice and explore what you have and what the possibilities are.
+
+```sql
+SHOW tables;
+```
+
+You can query for unusual usage patterns.
+
+```sql
+SELECT aws_ec2.*
+FROM aws_ec2
+INNER JOIN ec2_instance_type AS ait ON ait.id = aws_ec2.ec2_instance_type_id
+WHERE ait.vcpus > 8
+ORDER BY ait.vcpus DESC
+```
+
+And since it is a database, you can create your own tables with their own meaning and associate them with your infrastructure.
+
+```sql
+SELECT aws_ec2.*
+FROM aws_ec2
+INNER JOIN company_team_ec2s AS cte ON cte.aws_ec2_id = aws_ec2.id
+INNER JOIN company_teams AS ct ON ct.id = cte.company_team_id
+WHERE ct.name = 'Data Engineering'
+```
+
+Finally, your applications can know much more about what infrastructure they need than any auto-scaler solution out there. If you had a very infrequent but CPU/GPU-intensive job you need to handle at an unknown interval, you could give your application access to your IaSQL database and let it temporarily create and then destroy those resources.
+
+```jsx
+const ec2_instance_id = await iasql(`
+  INSERT INTO aws_ec2 (ami_id, ec2_instance_type_id)
+  SELECT ami.id, ait.id
+  FROM ec2_instance_type as ait, (
+      SELECT id
+      FROM amis
+      WHERE image_name = 'application-job-runner'
+  ) as ami
+  WHERE ait.instance_name = 'g3.4xlarge'
+  RETURNING id;
+`);
+await iasql(`
+  INSERT INTO ec2_security_groups (ec2_id, security_group_id)
+  SELECT ${ec2_instance_id}, sg.id
+  FROM security_groups AS sg
+  WHERE sg.name = 'application-job-group';
+`);
+// Only large-enough job runners will take it based on job metadata
+const result = await job.run(myMassiveJob); 
+await iasql(`
+  DELETE FROM aws_ec2
+  WHERE id = ${ec2_instance_id};
+`);
+```
+
+## **You Don't Need to Learn a New API (Probably)**
+
+Nearly all cloud backend systems depend on a database, and most likely a SQL database, so you do not need to learn a new language to manipulate the infrastructure in this way.
+
+And likely you're using a [migration system](https://en.wikipedia.org/wiki/Schema_migration) in your backend to review changes to your database, which you can continue to use here, making it code to be reviewed, just like Infrastructure-as-Code.
+
+## **You Can Test, Too**
+
+Since the safety guarantees are provided by the types and relations between tables, you can simply copy your production infrastructure database into a local database and run your changes/migration against that and verify it works before you run it on your actual Infrastructure-as-SQL database.
+
+## **Recover With Ease**
+
+It's 3AM and your service has gone down. You reverted the most recent IaSQL migration, but that didn't resolve the issue, and you aren't sure which change across which service today caused the outage. So, you simply replace the state of the IaSQL database with a snapshot from yesterday to bring everything back online to a known-good-state, and then take your time after you're well-rested to figure out what actually went wrong.

@@ -6,12 +6,18 @@
 
 /* You can override the default Infima variables here. */
 @import url('https://fonts.googleapis.com/css2?family=Roboto&display=swap');
+@import url('https://fonts.googleapis.com/css?family=Montserrat:600&display=swap');
 
 :root {
+  --ifm-color-primary-light: #CEE4F3;
   --ifm-color-primary: #3D95CE;
-  --ifm-color-primary-dark: #194766;
+  --ifm-color-primary-dark: rgb(16, 34, 64);
+  --ifm-color-secondary-dark:  rgb(14, 61, 70);
+  --ifm-color-secondary: #95CE3D;
+  --ifm-color-secondary-light: #E4F3CE;
   --ifm-code-font-size: 90%;
   --ifm-font-family-base: 'Roboto';
+  --ifm-heading-font-family: 'Montserrat'
 }
 
 .docusaurus-highlight-code-line {
@@ -76,4 +82,18 @@ html[data-theme='dark'] .docusaurus-highlight-code-line {
   /* TODO this is because the CSS is imported as a client module as well, and happens to be before Infima */
   padding: 5px !important;
   border-radius: var(--ifm-global-radius);
+}
+
+/* home */
+.hero--iasql, .footer {
+  background-image: linear-gradient(var(--ifm-color-primary-light), var(--ifm-color-secondary-light));
+}
+
+[data-theme='dark'] .hero--iasql, [data-theme='dark'] .footer {
+  background-image: linear-gradient(var(--ifm-color-primary-dark), var(--ifm-color-secondary-dark));
+}
+
+.card {
+  height: 15rem;
+  padding: 1rem;
 }
