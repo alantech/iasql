@@ -116,6 +116,9 @@ const config = process.env.IASQL_ENV === 'local' ? localConfig : prodConfig;
             className: 'header-github-link',
             'aria-label': 'GitHub repository',
           },
+          {
+            type: 'search',
+          }
         ],
       },
       footer: {
