@@ -72,7 +72,7 @@ export async function logEvent(uid: string, event: string, dbProps: DbProps, eve
                   `version__${dbProps.dbAlias}`,
                 ]
               : [],
-          $setOnce: {
+          $set_once: {
             email: dbProps.email,
           },
         },
