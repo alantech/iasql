@@ -2,7 +2,7 @@
 
 Thanks for your interest in helping improve IaSQL! 🎉
 
-If you are looking for IaSQL's documentation, go here instead: https://docs.iasql.com/
+If you are looking for IaSQL's documentation, go here instead: https://iasql.com/docs
 
 This document is for people who want to contribute to IaSQL. There are multiple ways to contribute to the project other than code, such as reporting bugs, creating feature requests, helping other users in online spaces, Discord etc.
 
@@ -204,7 +204,7 @@ Write PRs and merge them as you normally would.
 
 ## `apply` and `sync` Behavior
 
-This is an overview of how the `iasql-engine` detects changes in your database and/or cloud and performs operations to make them the same (in one direction or the other). This assumes knowledge of [`apply` and `sync`](https://docs.iasql.com/apply-and-sync) at the high level, software development in general and some familiarity with the `iasql-engine` codebase in particular, though it links to relevant pieces when they are being discussed.
+This is an overview of how the `iasql-engine` detects changes in your database and/or cloud and performs operations to make them the same (in one direction or the other). This assumes knowledge of [`apply` and `sync`](https://iasql.com/docs/apply-and-sync) at the high level, software development in general and some familiarity with the `iasql-engine` codebase in particular, though it links to relevant pieces when they are being discussed.
 
 <!-- TODO: Diagrams, diagrams, diagrams! -->
 
@@ -261,7 +261,7 @@ There are probably many other footguns at the moment, feel free to update this w
 
 ## How IaSQL PostgreSQL functions work
 
-IaSQL [functions or operations](https://docs.iasql.com/function) like `iasql_install(..)`, `iasql_sync()`, `iasql_apply()` are required to provide a synchronous user experience within a PostgreSQL connection such that the user can't accidentally alter data in tables while an `apply` is taking place whilst still implementing the majority of the logic behind the operations in Node.js. It is worth pointing out that fulfilling this requirement doesn't stop someone from opening two simultaneous connections to the same database or creating two databases pointing to the same cloud account.
+IaSQL [functions or operations](https://iasql.com/docs/function) like `iasql_install(..)`, `iasql_sync()`, `iasql_apply()` are required to provide a synchronous user experience within a PostgreSQL connection such that the user can't accidentally alter data in tables while an `apply` is taking place whilst still implementing the majority of the logic behind the operations in Node.js. It is worth pointing out that fulfilling this requirement doesn't stop someone from opening two simultaneous connections to the same database or creating two databases pointing to the same cloud account.
 
 [Graphile worker](https://github.com/graphile/worker) is a job queue that runs on PostgreSQL + Node.js. The engine has one Graphile worker per database. Graphile worker setup and job definition is defined in the [scheduler.ts](https://github.com/iasql/iasql-engine/blob/main/src/services/scheduler.ts). At startup, the Node.js engine looks at its [metadata repository](https://github.com/iasql/iasql-engine/blob/main/src/entity/index.ts) which stores information about all the IaSQL databases the engine is managing so it can spin up a Graphile worker per existing IaSQL database. New databases created via the `/connect` route get a new metadata repo entry and a new Graphile worker within the workers' process.
 

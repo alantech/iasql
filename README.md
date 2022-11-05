@@ -7,7 +7,7 @@
 &nbsp;
 
 [![CI](https://github.com/iasql/iasql-engine/workflows/CI/badge.svg)](https://github.com/iasql/iasql-engine/actions?query=workflow%3ACI)
-[![Docs](https://img.shields.io/badge/docs-docusaurus-blue)](https://docs.iasql.com)
+[![Docs](https://img.shields.io/badge/docs-docusaurus-blue)](https://iasql.com/docs)
 [![Discord](https://img.shields.io/badge/discord-iasql-purple)](https://discord.com/invite/machGGczea)
 [![Twitter](https://img.shields.io/badge/twitter-iasql-9cf)](https://www.twitter.com/iasql)
 
@@ -37,7 +37,7 @@ Reach out on Discord to:
 
 ## 📄 Documentation
 
-For full documentation, visit [docs.iasql.com](https://docs.iasql.com)
+For full documentation, visit [iasql.com/docs](https://iasql.com/docs)
 
 ## 🚀 Contribute
 
@@ -49,7 +49,7 @@ AWS is our main focus at the moment, but we plan to support GCP, Azure and other
 
 ### AWS services with significant API coverage
 
-- [EC2](https://docs.iasql.com/ec2)
+- [EC2](https://iasql.com/docs/aws_ec2)
 - ECR
 - ECS + Fargate
 - ELB
