@@ -52,8 +52,8 @@ export default function Home() {
           </div>
           <div className="text--center">
             <ThemedImage
-              alt="Dashboard"
-              style={{height: '25rem'}}
+              alt="Two way connection"
+              style={{width: '60%'}}
               sources={{
                 light: useBaseUrl('/img/iasql-connector.gif'),
                 dark: useBaseUrl('/img/iasql-connector_dark.gif'),
@@ -122,7 +122,7 @@ export default function Home() {
             <h1 style={{width: '100%'}}>Backed by</h1>
           </div>
           <div className="text--center">
-            <img style={{height: '10rem'}} src={useBaseUrl('/img/investors.png')}></img>
+            <img style={{width: '60%'}} src={useBaseUrl('/img/investors.png')}></img>
           </div>
         </div>
       </div>
