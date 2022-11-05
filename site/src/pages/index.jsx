@@ -26,7 +26,7 @@ export default function Home() {
               <h1 className="hero__title">Infrastructure as data in PostgreSQL</h1>
               <p className="hero__subtitle">Manage and provision cloud infrastructure via a hosted PostgreSQL database. Simpler than IaC or the AWS UI</p>
               <div>
-                <button className="button button--primary button--lg">Connect an AWS account</button>
+                <button className="button button--primary button--lg" onClick={() => window.location.href="https://app.iasql.com"}>Connect an AWS account</button>
               </div>
             </div>
             <div className="col col--6">
@@ -133,7 +133,7 @@ export default function Home() {
           </div>
           <div className="text--center">
             <p className="hero__subtitle">Drop us a line on Discord if you have any questions!</p>
-            <button className="button button--primary button--lg">Connect an AWS account</button>
+            <button className="button button--primary button--lg" onClick={() => window.location.href="https://app.iasql.com"}>Connect an AWS account</button>
           </div>
         </div>
       </div>
