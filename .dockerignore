@@ -4,6 +4,6 @@ iasql-on-iasql.out.sql
 node_modules/
 dist/
 .github/
-docs/
+site/
 rfcs/
 *.md
