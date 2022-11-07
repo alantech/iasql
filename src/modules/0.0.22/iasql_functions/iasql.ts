@@ -1143,7 +1143,8 @@ export async function commit(
   } finally {
     // Create end commit object
     await insertCommit(orm, dryRun ? 'preview_end' : 'end');
-    orm?.dropConn();
+    // do not drop the conn if it was provided
+    if (orm !== ormOpt) orm?.dropConn();
   }
 }
 
