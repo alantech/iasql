@@ -57,7 +57,7 @@ VALUES (false, 'tcp', 80, 80, '0.0.0.0/8', 'allow all to 80', (SELECT id FROM se
 Let's say we are going to deploy [this simple Express.js app](https://github.com/iasql/iasql-engine/tree/main/examples/ecs-fargate/prisma/app) to the ECS. It has a `Dockerfile` ready which `npm install`s the `express` package and then starts the Express server which listens on the port `8088`.
 
 Assuming that you have an IaSQL database, let's go and deploy the above app to our AWS account.
-```sql title="Deploy a simple Express.js app from a Github repository to ECS" showLineNumbers
+```sql title="Deploy a simple Express.js app from a Github repository to ECS" showLineNumbers TheButton="Deploy Now"
 SELECT iasql_install('aws_ecs_simplified');
 INSERT INTO ecs_simplified(app_name, app_port, image_tag, public_ip) VALUES(
   'simple-express',
@@ -91,16 +91,16 @@ INSERT INTO ecs_simplified(app_name, app_port, image_tag, public_ip) VALUES(
 );
 ```
 - This command creates a new `ecs_simplified` app by inserting a new row into the `ecs_simplified` table. Seems pretty easy, right? But under the hood, it's creating all the necessary resources like load balancers, security groups, IAM roles, etc.
-  - You can manually check the tables to see what resources are being created. For example, looking at the `load_balancer` table you'll see a load balancer named `simple-express-load-balancer` is inserted automatically by running the above insert command.
+- You can manually check the tables to see what resources are being created. For example, looking at the `load_balancer` table you'll see a load balancer named `simple-express-load-balancer` is inserted automatically by running the above insert command.
 ```sql
 SELECT iasql_apply();
 ```
 - The insert command did create the list for what resources should be created, but they've not yet created on the AWS. You need to call the `iasql_apply()` function to sync the cloud with the data on your database.
-  - For more info on the `iasql_apply()` command, check [this guide](https://iasql.com/docs/apply-and-sync/#apply-and-preview_apply) on how it works.
+- For more info on the `iasql_apply()` command, check [this guide](https://iasql.com/docs/apply-and-sync/#apply-and-preview_apply) on how it works.
 - After running the `iasql_apply()` function to completion all the necessary resources are now created on the cloud, so their ARNs are populated. You can verify this by looking at different tables, eg. `iam_role`.
 - To get your load balancer address, you can easily run `SELECT load_balancer_dns FROM ecs_simplified WHERE app_name = 'simple-express'` query and get the URL to access your app.
 - Now the ECS is waiting for an image to be pushed to your ECR repository to run it. You can get the URI for the ECR repository by running the `SELECT repository_uri FROM ecs_simplified WHERE app_name = 'simple-express'` query.
-  - In the next step, we'll automatically build an image for the code in Github repo and then push it to this URI (all through SQL and using another high-level function named `ecr_build`).
+- In the next step, we'll automatically build an image for the code in Github repo and then push it to this URI (all through SQL and using another high-level function named `ecr_build`).
 ```sql
 SELECT ecr_build(
   'https://github.com/iasql/iasql-engine/',
