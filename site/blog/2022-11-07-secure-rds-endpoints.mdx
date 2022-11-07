@@ -24,8 +24,8 @@ Please use this query to check it:
 
 <!--- https://www.urlencoder.org/ -->
 
-<a href="https://app.iasql.com/#/button/check_rds_endpoints/----%20Installing%20the%20needed%20modules%0ASELECT%20iasql_install%28%27aws_rds%27%29%3B%0ASELECT%20iasql_install%28%27aws_vpc%27%29%3B%0A%0A--%20Sync%20the%20existing%20data%0Aselect%20%2A%20from%20iasql_sync%28%29%3B%0A--%20Perform%20the%20query%20for%20endpoints%0Aselect%20RDS.region%2C%20vpc.is_default%2C%20vpc.cidr_block%2C%0A%28select%20count%28%2A%29%3E0%20from%20endpoint_interface%20where%20endpoint_interface.region%3DRDS.region%20and%20service%3D%27rds%27%20and%20endpoint_interface.vpc_id%3Dvpc.id%29%20as%20has_endpoint_interface%0Afrom%20RDS%20left%20outer%20join%20vpc%20on%20vpc.region%3DRDS.region%3B">
-  <button class="button button--lg button--primary">Check your endpoints</button>
+<a href="https://app.iasql.com/#/button/check_rds_endpoints/----%20Installing%20the%20needed%20modules%0ASELECT%20iasql_install%28%27aws_rds%27%29%3B%0ASELECT%20iasql_install%28%27aws_vpc%27%29%3B%0A%0A--%20Perform%20the%20query%20for%20endpoints%0Aselect%20RDS.region%2C%20vpc.is_default%2C%20vpc.cidr_block%2C%0A%28select%20count%28%2A%29%3E0%20from%20endpoint_interface%20where%20endpoint_interface.region%3DRDS.region%20and%20service%3D%27rds%27%20and%20endpoint_interface.vpc_id%3Dvpc.id%29%20as%20has_endpoint_interface%0Afrom%20RDS%20left%20outer%20join%20vpc%20on%20vpc.region%3DRDS.region%3B">
+  <button class="button button--lg button--primary">Run SQL to check your endpoints</button>
 </a>
 
 ```
@@ -35,12 +35,6 @@ SELECT
 
 SELECT
   iasql_install ('aws_vpc');
-
--- Sync the existing data
-SELECT
-  *
-FROM
-  iasql_sync ();
 
 -- Perform the query for endpoints
 SELECT
@@ -101,9 +95,15 @@ FROM
 --select * from iasql_apply();
 ```
 
-By clicking on the button, our engine will auto-generate the missing endpoint interfaces and will allow you to preview the changes to be applied on your cloud.
+By clicking on the button, our engine will auto-generate the missing endpoint interfaces and will allow you to preview the changes to be applied on your cloud. Once you are OK with the results, you can uncomment the `iasql_apply` query and it will create the endpoints for you.
 
 ### Testing the result
+
+After running the query, you should have Endpoint Interfaces created for your RDS resources. Those should be on the region and VPC where you had your databases:
+
+<div class="col col--12">
+  <img src="/img/rds_endpoint_interfaces_created.png" height="200" />
+</div>
 
 In order to start testing the result, you can start a new EC2 instance on a private VPC, on the same region
 where your RDS and Endpoint interface is configured. You can double check that there is no internet
@@ -113,9 +113,7 @@ connectivity. But the RDS endpoint could still be reached, by using the interfac
   <img src="/img/access_rds_endpoint.png" height="200" />
 </div>
 
-Please note that you could only use those endpoints from the same region. You could reach the services in a
-multi-region way with the use of{' '}
+Please note that you could only use those endpoints from the same region. You could reach the services in multiple regions with the use of <a href="https://docs.aws.amazon.com/vpc/latest/peering/what-is-vpc-peering.html" target="_blank">
+VPC peering
 
-<a href="https://docs.aws.amazon.com/vpc/latest/peering/what-is-vpc-peering.html" target="_blank">
-  VPC peering
 </a>
