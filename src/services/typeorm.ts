@@ -103,11 +103,11 @@ export class TypeormWrapper {
     await this.connection.close();
   }
 
-  async find(entity: EntityTarget<any>, options?: any): Promise<any[]> {
+  async find(entity: EntityTarget<any>, options?: any): Promise<any> {
     return await this.connection.manager.getRepository(entity).find(options);
   }
 
-  async findOne(entity: EntityTarget<any>, options?: any): Promise<any | undefined> {
+  async findOne(entity: EntityTarget<any>, options?: any): Promise<any> {
     return await this.connection.manager.getRepository(entity).findOne(options);
   }
 
