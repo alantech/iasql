@@ -1,0 +1,123 @@
+---
+slug: ecs-simplified
+title: Deploying to ECS, Simplified!
+authors: [mtp1376]
+---
+If you have ever tried to deploy your containerized application to ECS, you know that it's not going to be an easy click-to-deploy journey. In order to get your application up and running on ECS, you have to go through a bunch of resource creation. You'll need to:
+- deploy a load balancer as the point-of-contact for your app
+- create a target group for the load balancer and register the ECS tasks in it
+- add a new listener to your load balancer and connect it to the target group
+- create a security group, and you need to allow the port your app is listening on in that security group
+- attach the security group above to your load balancer
+- create a CloudWatch log group for your ECS task
+- create an ECS cluster, and definitely the task definition as well
+- Oh, and create an ECR repository to push your images to be run on the container
+
+I'm not going to continue this long list, since I've already got a headache. Doing those steps manually is going to give you a headache as well, so why bother doing all those steps yourself and risking different errors you might face when deploying your containerized app? You don't really have the time for the random IAM-related errors AWS demanding you to resolve. Besides, you already have your codebase ready and the `Dockerfile` is there, so why not just run a simple command doing something that should be simply done?
+
+In this post, we're going to discover an IaSQL module that's built to make deploying to ECS, simplified. Most of the details for deploying a container to ECS are the same (load balancers, security groups, IAM roles, etc), and we have created the `ecs_simplified` module for you so that you can give it your codebase and get your app deployed to ECS **in just 11 minutes**. All of those needed resources are going to be created automatically in your AWS account, and you'll have full access over them either through the AWS dashboard, or through your IaSQL database.
+
+## ** High-level vs Low-level IaSQL Modules **
+In IaSQL, you are able to do cloud actions both on a high-level and a low-level abstraction layer. It means that you can go with both of these two approaches:
+1. Deploy the folder `examples/ecs-fargate/prisma/app` of the repo `https://github.com/iasql/iasql-engine/` to ECS on my AWS account
+2. Create a security group named `allow-all` attached to the VPC with ID `vpc-f56cff91`. Then add a rule to it allowing all incoming traffic on port `80` from `0.0.0.0/0`.
+
+The first statement, is described in a high-level abstraction layer. The higher the level, the less detail. So it doesn't say anything about the underlying steps that should be taken in order for the statement to be executed. But the second statement is giving all the details necessary to create a new security group.
+
+The flexibility of IaSQL– which makes it really awesome– is that you can create both the high-level and the low-level modules for it. Both of the above statements are already possible using IaSQL modules. The first one using a module named `aws_ecs_simplified` and the latter using the `aws_security_group` module. Let's take a peek on the actual implementations really quick before we continue our main topic.
+
+```sql title="Deploy the folder 'examples/ecs-fargate/prisma/app' of the 'iasql-engine' repo to ECS on my AWS account"
+-- Install the "high-level" aws_ecs_simplified IaSQL module
+SELECT iasql_install('aws_ecs_simplified');
+-- Create the load balancer, ECS service, task definition, etc. All ready afterwards for us to build and push to deploy the app.
+INSERT INTO ecs_simplified (app_name, app_port, image_tag, public_ip) VALUES ('simple-express', 8088, 'latest', true);
+SELECT iasql_apply();
+-- Use the "high-level" ecr_build function to build the folder "examples/ecs-fargate/prisma/app" from "iasql-engine" Github repo and push it to ECR
+SELECT ecr_build(
+  'https://github.com/iasql/iasql-engine/',
+  (SELECT id FROM repository WHERE repository_name = 'simple-express-repository')::varchar(255),
+  './examples/ecs-fargate/prisma/app',
+  'ghp_XXX', -- replace your github personal access token here
+  'main'
+);
+```
+```sql title="Create a security group named 'allow-all' attached to the VPC with ID 'vpc-f56cff91'. Then add a rule to it allowing all incoming traffic on port '80' from '0.0.0.0/0'"
+-- Install the aws_security_group IaSQL module
+SELECT iasql_install('aws_security_group');
+-- "Create a security group named `allow-all` attached to the VPC with ID `vpc-f56cff91`"
+INSERT INTO security_group (description, group_name, vpc_id)
+VALUES ('allows all incoming traffic on port 80', 'allow-all', (SELECT id FROM vpc WHERE vpc_id = 'vpc-08c0a68025c2983a2'));
+-- "Then add a rule to it allowing all incoming traffic on port `80` from `0.0.0.0/0`."
+INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
+VALUES (false, 'tcp', 80, 80, '0.0.0.0/8', 'allow all to 80', (SELECT id FROM security_group WHERE group_name = 'allow-all'));
+```
+
+
+## ** An Example of `ecs_simplified` Module **
+Let's say we are going to deploy [this simple Express.js app](https://github.com/iasql/iasql-engine/tree/main/examples/ecs-fargate/prisma/app) to the ECS. It has a `Dockerfile` ready which `npm install`s the `express` package and then starts the Express server which listens on the port `8088`.
+
+Assuming that you have an IaSQL database, let's go and deploy the above app to our AWS account.
+```sql title="Deploy a simple Express.js app from a Github repository to ECS" showLineNumbers
+SELECT iasql_install('aws_ecs_simplified');
+INSERT INTO ecs_simplified(app_name, app_port, image_tag, public_ip) VALUES(
+  'simple-express',
+  8088,
+  'latest',
+  true
+);
+SELECT iasql_apply();
+
+SELECT ecr_build(
+  'https://github.com/iasql/iasql-engine/',
+  (SELECT id
+    FROM repository
+    WHERE repository_name = 'simple-express-repository')::varchar(255),
+  './examples/ecs-fargate/prisma/app',
+  'ghp_XXX', -- replace your github personal access token here
+  'main'
+);
+```
+That's it! Now wait for some time and your app is deployed! While your app is being deployed, let's go through the commands we executed in more depth:
+```sql
+SELECT iasql_install('aws_ecs_simplified');
+```
+- This command installs the `aws_ecs_simplified` high-level module. We– at IaSQL– have created that module to make it easy to deploy containerized apps to ECS. But IaSQL is so flexible that anyone can create their own high-level (and of course, low-level) modules and add it to IaSQL.
+```sql
+INSERT INTO ecs_simplified(app_name, app_port, image_tag, public_ip) VALUES(
+  'simple-express',
+  8088,
+  'latest',
+  true
+);
+```
+- This command creates a new `ecs_simplified` app by inserting a new row into the `ecs_simplified` table. Seems pretty easy, right? But under the hood, it's creating all the necessary resources like load balancers, security groups, IAM roles, etc.
+  - You can manually check the tables to see what resources are being created. For example, looking at the `load_balancer` table you'll see a load balancer named `simple-express-load-balancer` is inserted automatically by running the above insert command.
+```sql
+SELECT iasql_apply();
+```
+- The insert command did create the list for what resources should be created, but they've not yet created on the AWS. You need to call the `iasql_apply()` function to sync the cloud with the data on your database.
+  - For more info on the `iasql_apply()` command, check [this guide](https://iasql.com/docs/apply-and-sync/#apply-and-preview_apply) on how it works.
+- After running the `iasql_apply()` function to completion all the necessary resources are now created on the cloud, so their ARNs are populated. You can verify this by looking at different tables, eg. `iam_role`.
+- To get your load balancer address, you can easily run `SELECT load_balancer_dns FROM ecs_simplified WHERE app_name = 'simple-express'` query and get the URL to access your app.
+- Now the ECS is waiting for an image to be pushed to your ECR repository to run it. You can get the URI for the ECR repository by running the `SELECT repository_uri FROM ecs_simplified WHERE app_name = 'simple-express'` query.
+  - In the next step, we'll automatically build an image for the code in Github repo and then push it to this URI (all through SQL and using another high-level function named `ecr_build`).
+```sql
+SELECT ecr_build(
+  'https://github.com/iasql/iasql-engine/',
+  (SELECT id
+    FROM repository
+    WHERE repository_name = 'simple-express-repository')::varchar(255),
+  './examples/ecs-fargate/prisma/app',
+  'ghp_XXX', -- replace your github personal access token here
+  'main'
+);
+```
+- This command tells IaSQL to go clone `iasql-engine` repository, build an image on the subdirectory specified, and then push it to the ECR repository created earlier by `ecs_simplified` module. Running the above command will automatically create a CodeBuild project and the related roles, etc. Then it'll start a build, and after it's successful all the created resources are deleted to ensure there won't be any additional charges to your AWS account.
+- To access your app on the cloud, get the load balancer address and use your browser to access the live version of it:
+```sql
+SELECT load_balancer_dns
+FROM ecs_simplified
+WHERE app_name = 'simple-express';
+```
+Mine is `simple-express-load-balancer-94898832.us-east-2.elb.amazonaws.com` so I can access it by opening the following address in my browser:
+-  http://simple-express-load-balancer-94898832.us-east-2.elb.amazonaws.com:8088/health/
