@@ -42,7 +42,7 @@ To be more clear on what is going on and why in the RPC function behavior, a des
 
 1. A user connects to the Postgres database and calls an IaSQL RPC function, like `iasql_install`.
 2. This function establishes a `dblink` to the same database, but on a different process, and inserts a new graphile worker job. This is done on a separate process because functions in Postgres are transactional and no other processes can access this inserted data until the function returns, normally. The `dblink` call gets around this by effectively creating a different transaction on a different connection, making it possible for the newly inserted job record to be accessible from other future connections before the original function returns.
-3. The function then goes into a loop of polling and sleeping, using `dblink` to re-query the graphile worker job table, waiting for the job to be completed. This allows us to make the RPC function calls blocking.
+3. The function then goes into a loop of polling and sleeping, using `dblink` to re-query the graphile worker job table, waiting for the job to be completed. This allows us to make the RPC function calls blocking, which is a core requirement for our RPC system to maintain.
 4. The engine is running a graphile worker process in the `scheduler.ts` file. This is also intermittenly polling the job table using new connections for new jobs to execute. Eventually it finds it and starts executing the work.
 5. The job creates *another* new connection to the database to query the current state of things, in this case deciding what needs to be installed to install the modules requested, and then creating the new schema for the module's tables, and then populating them with data from the user's cloud account, and finally returning the results of what it did back to the job scheduler.
 6. The job scheduler writes the results to the graphile worker job table, marking the job as complete (successfully or not).
@@ -62,10 +62,10 @@ Choosing a new mechanism to implement the RPC functionality and patching up the 
 
 1. The simplest solution to the RPC behavior is to use [`pgbouncer`](https://www.pgbouncer.org/) to only allow one SQL statement per connection and fail out requests that do otherwise. This is a known configuration that every SQL editor we are aware of can handle, as well as several ORMs. This layer on top of the database should [allow us to enable proper SSL certificates](https://www.percona.com/blog/2021/06/28/enabling-ssl-tls-sessions-in-pgbouncer/) to improve trustworthiness with end users and eliminate (most) MITM possibilities.
 2. Efficiency gains as well as a reduction in complexity can be had by switching to the [`pgsql-http`](https://github.com/pramsey/pgsql-http) extension and having the RPC functions simply wait for the HTTP response from the engine, though they must *all* finish before the HTTP connection times out. This requires getting off of RDS, as this [is not one of the blessed extensions](https://docs.aws.amazon.com/AmazonRDS/latest/PostgreSQLReleaseNotes/postgresql-extensions.html). The HTTP timeout issue can be avoided entirely if the engine is a sidecar process to the Postgres instance and they communicate over `localhost`.
-3. Take the final few HTTP endpoints exposed to the end users and dashboard in the engine and turn most of them into RPC functions in the `metadata` table, and close off HTTP access to the outer world entirely, exposing only the database. The `/run` endpoint would turn into a lambda function for the dashboard, instead. This lets us simplify our deployment artifact into a singular Docker container with all three (Postgres, Engine, pgbouncer) communicating directly to each other.
+3. Take the final few HTTP endpoints exposed to the end users and dashboard in the engine and turn most of them into RPC functions in the `metadata` table, and close off HTTP access to the outer world entirely, exposing only the database. The `/run` endpoint could be turned into a lambda function for the dashboard in the short-term to continue the current behavior, and eventually replaced with something like [supabase/realtime](https://github.com/supabase/realtime) to better support long-running queries longer-term (after the authentication piece is figured out).
 4. Deploy this to a horizontally-scaling collection of EC2 instances with EBS volumes for the database, initially only one such instance, but scaling up to more requires a simple routing layer above that decides the target EC2 instance by the database ID being connected to, with the sharding on the number of logical databases per actual database being determined by the scaling factors we run into.
 
-This singular docker container can also be pushed to Dockerhub and make the deployments even simpler, being just downloading a new docker image, restarting the container, and pruning the dead image(s), with deployments taking seconds rather than minutes, though with a brief moment of downtime (before we implement the routing layer, which could hold external connections open until downstream is up again, then making it zero-downtime).
+As follow-on improvements, this singular docker container can also be pushed to Dockerhub and make the deployments even simpler, being just downloading a new docker image, restarting the container, and pruning the dead image(s), with deployments taking seconds rather than minutes, though with a brief moment of downtime (before we implement the routing layer, which could hold external connections open until downstream is up again, then making it zero-downtime).
 
 It would also be possible to consider docker-container-per-user-database (with multiple of them per EC2 instance), which would allow us to drop maintaining multiple module versions at the same time within the engine. `iasql_upgrade` would become an *actual* upgrade of the engine to a newer version triggered by the end user, instead, but this and the routing layer could be done progressively in the future after the main transition in the four points above.
 
@@ -144,6 +144,23 @@ Then it disables the socket and simply exits the extension function (the wrapper
 - Need to expose all ports between the Postgres server and the IaSQL engine, and RDS cannot be used
 
 #### Change Postgres Behavior
+
+##### Switch to MySQL
+
+MySQL may resolve things simply due to its less strict nature. It is not known if we can recreate the current blocking RPC functions, though. But assuming it is possible:
+
+**Pros:**
+
+- MySQL has better real-world scaling than Postgres.
+
+**Cons:**
+
+- MySQL also uses a process-per-connection design, so it may or may not have access to updated data during the run, and the blocking RPC functions (if possible) may still exhibit the same fundamental behavior, even if the functions aren't *explicitly* emulating a transaction.
+- MySQL's DB type system is looser, so several data-correctness enforcements we have in the database would need to be moved into the engine itself, which increases development load for us and reduces immediate feedback on bad INSERTs for users. For instance in MySQL ENUMs accept garbage input and batch it all into a singular bucket instead of failing outright
+- MySQL doesn't have an array type, so all uses of arrays currently would need to be converted to JSON (which is not typed at all). This is similar to the first point, but rather than being about weird auto-conversion of bad data into a fixed type and cause unexpected behavior, the bad data stays in its original form and could crash our code, instead.
+- Postgres has some types that help us better represent the data we're working with, like the CIDR type, and also allows us to create types to do things better, with the composite types that we can use where it makes sense for the data to be represented in a clearer way to end users.
+- MySQL is controlled by one of the more capricious corporations out there: Oracle, the company that sued to make API definitions copyrightable, which would have effectively destroyed software development in the US. So there is some amount of risk building in that ecosystem if we are very successful, as we don't have the legal budget of Google to fend them off.
+
 
 ##### Fork Postgres, make it like MySQL
 
