@@ -8,7 +8,7 @@ slug: '/aws_route53'
 Install the AWS Route53 module for hosted zones. Read more about AWS Route53 hosted zones [here](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/hosted-zones-working-with.html).
 
 ```sql
-SELECT * FROM iasql_install('aws_route53_hosted_zones');
+SELECT * FROM iasql_install('aws_route53');
 ```
 
 ## Create a hosted zone

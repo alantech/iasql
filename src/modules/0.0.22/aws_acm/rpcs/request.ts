@@ -13,8 +13,8 @@ import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 import { AwsAcmModule } from '..';
 import { AWS, paginateBuilder } from '../../../../services/aws_macros';
 import { Context, RpcBase, RpcResponseObject } from '../../../interfaces';
-import { awsRoute53HostedZoneModule } from '../../aws_route53_hosted_zones';
-import { HostedZone, ResourceRecordSet } from '../../aws_route53_hosted_zones/entity';
+import { awsRoute53Module } from '../../aws_route53';
+import { HostedZone, ResourceRecordSet } from '../../aws_route53/entity';
 import { modules } from '../../iasql_functions/iasql';
 import { Certificate } from '../entity';
 import { safeParse } from './common';
@@ -121,14 +121,14 @@ export class CertificateRequestRpc extends RpcBase {
         if (domainOption.DomainName && domainOption.ValidationDomain) {
           // check for the id of the hosted zone
           let parentZone: HostedZone | undefined;
-          const zones: HostedZone[] | undefined = await awsRoute53HostedZoneModule.hostedZone.cloud.read(ctx);
+          const zones: HostedZone[] | undefined = await awsRoute53Module.hostedZone.cloud.read(ctx);
           if (zones) {
             for (const zone of zones) {
               // if domain name ends with . remove it
               let domainToCheck = zone.domainName;
               if (domainToCheck.lastIndexOf('.') === domainToCheck.length - 1)
                 domainToCheck = domainToCheck.substring(0, domainToCheck.length - 1);
-              const parsedName = awsRoute53HostedZoneModule.hostedZone.getNameFromDomain(
+              const parsedName = awsRoute53Module.hostedZone.getNameFromDomain(
                 domainOption.DomainName,
                 domainToCheck,
               );
@@ -148,7 +148,7 @@ export class CertificateRequestRpc extends RpcBase {
                 ttl: 300,
                 recordType: RecordType.CNAME,
               };
-              const createdRecord = await awsRoute53HostedZoneModule.resourceRecordSet.cloud.create(
+              const createdRecord = await awsRoute53Module.resourceRecordSet.cloud.create(
                 record,
                 ctx,
               );
@@ -166,7 +166,7 @@ export class CertificateRequestRpc extends RpcBase {
       if (createdRecordsets.length > 0) await this.waitUntilIssued(client, arn);
 
       // now we need to remove all recordsets created
-      await awsRoute53HostedZoneModule.resourceRecordSet.cloud.delete(createdRecordsets, ctx);
+      await awsRoute53Module.resourceRecordSet.cloud.delete(createdRecordsets, ctx);
     }
   }
 
