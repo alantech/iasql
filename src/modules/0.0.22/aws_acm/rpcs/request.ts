@@ -178,11 +178,11 @@ export class CertificateRequestRpc extends RpcBase {
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
     if (validationMethod === ValidationMethod.DNS) {
       const installedModules = await modules(false, true, dbId);
-      if (!installedModules.map(m => m.moduleName).includes('aws_route53_hosted_zones')) {
+      if (!installedModules.map(m => m.moduleName).includes('aws_route53')) {
         // TODO: Should the other error path, which is an AWS error instead of a user error, also
         // use the 'throw new Error' pattern?
         throw new Error(
-          'DNS validated certificates only possible if "aws_route53_hosted_zones" is installed',
+          'DNS validated certificates only possible if "aws_route53 is installed',
         );
       }
     }
