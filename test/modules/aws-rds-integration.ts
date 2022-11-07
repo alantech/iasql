@@ -9,6 +9,7 @@ import {
   runCommit,
   runInstall,
   runQuery,
+  runRollback,
   runUninstall,
 } from '../helpers'
 
@@ -18,6 +19,7 @@ const parameterGroupName = `${prefix}${dbAlias}pg`;
 const engineFamily = `postgres13`;
 
 const commit = runCommit.bind(null, dbAlias);
+const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
@@ -58,7 +60,7 @@ describe('RDS Integration Testing', () => {
     COMMIT;
   `));
 
-  it('undo changes', commit());
+  it('undo changes', rollback());
 
   it('check adds a new repository', query(`
     SELECT *

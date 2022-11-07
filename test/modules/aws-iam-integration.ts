@@ -9,6 +9,7 @@ import {
   runCommit,
   runInstall,
   runQuery,
+  runRollback,
   runUninstall,
 } from '../helpers';
 
@@ -110,6 +111,7 @@ const userPath = `/username/`;
 const userNewPath = `/username1/`;
 
 const commit = runCommit.bind(null, dbAlias);
+const rollback = runRollback.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
@@ -156,7 +158,7 @@ describe('IAM Role Integration Testing', () => {
   `),
   );
 
-  it('undo changes', commit());
+  it('undo changes', rollback());
 
   it(
     'check undo a new role addition',
@@ -315,7 +317,7 @@ describe('IAM Role Integration Testing', () => {
     ),
   );
 
-  it('applies change which will undo it', commit());
+  it('applies change which will undo it', rollback());
 
   it(
     'check update role (noop)',
@@ -568,7 +570,7 @@ describe('IAM Role Integration Testing', () => {
     `),
     );
 
-    it('applies change which will undo it', commit());
+    it('applies change which will undo it', rollback());
 
     it(
       'check update aws service role (noop)',
@@ -656,7 +658,7 @@ describe('IAM User Integration Testing', () => {
   `),
   );
 
-  it('undo changes', commit());
+  it('undo changes', rollback());
 
   it(
     'check undo a new user addition',

@@ -11,6 +11,7 @@ import {
   runCommit,
   runInstall,
   runQuery,
+  runRollback,
   runUninstall,
 } from '../helpers';
 
@@ -63,6 +64,7 @@ const instancePort = 1234;
 
 const prefix = getPrefix();
 const commit = runCommit.bind(null, dbAlias);
+const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const querySync = runQuery.bind(null, `${dbAlias}_sync`);
 const install = runInstall.bind(null, dbAlias);
@@ -198,7 +200,7 @@ describe('EC2 Integration Testing', () => {
     });
   });
 
-  it('Undo changes', commit());
+  it('Undo changes', rollback());
 
   it(
     'check number of instances',
@@ -1039,7 +1041,7 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
     ),
   );
 
-  it('sync before apply', commit());
+  it('sync before apply', rollback());
 
   it(
     'checks volume count',

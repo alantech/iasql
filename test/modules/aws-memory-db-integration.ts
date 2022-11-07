@@ -9,6 +9,7 @@ import {
   runCommit,
   runInstall,
   runQuery,
+  runRollback,
   runUninstall,
 } from '../helpers'
 
@@ -19,6 +20,7 @@ const subnetGroupName = `${prefix}${dbAlias}sng`;
 const clusterName = `${prefix}${dbAlias}cl`;
 
 const commit = runCommit.bind(null, dbAlias);
+const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
@@ -70,7 +72,7 @@ describe('MemoryDB Integration Testing', () => {
     VALUES ('${subnetGroupName}');
   `));
 
-  it('undo changes', commit());
+  it('undo changes', rollback());
 
   it('checks it has been removed', query(`
     SELECT *
@@ -107,7 +109,7 @@ describe('MemoryDB Integration Testing', () => {
     VALUES ((select id from security_group where group_name = 'default' and region = '${region}'), (select id from memory_db_cluster where cluster_name = '${clusterName}'), '${region}');
   `));
 
-  it('undo changes', commit());
+  it('undo changes', rollback());
 
   it('checks it has been removed', query(`
     SELECT *

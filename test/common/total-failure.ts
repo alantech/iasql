@@ -93,7 +93,7 @@ describe('Testing failure path', () => {
     WHERE tags ->> 'name' = 'i-1';
   `, (res: any[]) => expect(res.length).toBe(1)));
 
-  it('fails to apply', (done) => {
+  it('fails to commit and restore', (done) => {
     query(`
       select * from iasql_commit();
     `)((_e?: any) => done());  // Ignore failure
@@ -108,7 +108,6 @@ describe('Testing failure path', () => {
     expect(row.length).toBe(1);
     expect(row[0].module_name).toBe('iasql_functions');
     expect(row[0].method_name).toBe('iasqlCommit');
-    expect(JSON.parse(row[0].err)).toHaveProperty('message')
   }));
 
   // Fail on upgrade

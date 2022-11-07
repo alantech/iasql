@@ -12,6 +12,7 @@ import {
   runCommit,
   runInstall,
   runQuery,
+  runRollback,
   runUninstall,
 } from '../helpers';
 
@@ -30,6 +31,7 @@ const domainName = `${prefix}${dbAlias}.com`;
 const [key, cert] = getKeyCertPair(domainName);
 
 const commit = runCommit.bind(null, dbAlias);
+const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
@@ -100,7 +102,7 @@ describe('ELB Integration Testing', () => {
     `),
   );
 
-  it('undo changes', commit());
+  it('undo changes', rollback());
 
   it(
     'check target_group insertion',
@@ -167,7 +169,7 @@ describe('ELB Integration Testing', () => {
     `),
   );
 
-  it('undo changes', commit());
+  it('undo changes', rollback());
 
   it(
     'check load_balancer insertion',

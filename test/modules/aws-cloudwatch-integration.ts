@@ -8,6 +8,7 @@ import {
   runCommit,
   runInstall,
   runQuery,
+  runRollback,
   runUninstall,
 } from '../helpers';
 
@@ -15,6 +16,7 @@ const prefix = getPrefix();
 const dbAlias = 'cwtest';
 const logGroupName = `${prefix}lgtest`;
 const commit = runCommit.bind(null, dbAlias);
+const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
@@ -62,7 +64,7 @@ describe('AwsCloudwatch Integration Testing', () => {
   `),
   );
 
-  it('sync before apply', commit());
+  it('sync before apply', rollback());
 
   it(
     'check no new log group',

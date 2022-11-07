@@ -9,6 +9,7 @@ import {
   runCommit,
   runInstall,
   runQuery,
+  runRollback,
   runUninstall,
 } from '../helpers'
 
@@ -20,6 +21,7 @@ const prefix = getPrefix();
 const dbAlias = 'ecssmptest';
 const region = defaultRegion();
 const commit = runCommit.bind(null, dbAlias);
+const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
@@ -76,7 +78,7 @@ describe('ECS Simplified Integration Testing', () => {
     WHERE name = '${appName}-service';
   `, (res: any[]) => expect(res.length).toBe(1)));
 
-  it('undo changes', commit());
+  it('undo changes', rollback());
 
   it('check service row', query(`
     SELECT *

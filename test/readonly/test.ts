@@ -7,6 +7,8 @@ import {
   runInstallAll,
   runUninstallAll,
   runQuery,
+  runCommit,
+  runRollback,
 } from '../helpers'
 
 const dbAlias = 'readonlytest';
@@ -14,6 +16,8 @@ const install = runInstall.bind(null, dbAlias);
 const installAll = runInstallAll.bind(null, dbAlias);
 const uninstallAll = runUninstallAll.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
+const commit = runCommit.bind(null, dbAlias);
+const rollback = runRollback.bind(null, dbAlias);
 
 jest.setTimeout(360000);
 beforeAll(async () => await execComposeUp());
@@ -46,7 +50,7 @@ describe('Aws read only Integration Testing', () => {
     VALUES ('test', false, 'MUTABLE');
   `));
 
-  it('undo changes', commit());
+  it('undo changes', rollback());
 
   it('check adds a new repository', query(`
     SELECT *
@@ -59,7 +63,7 @@ describe('Aws read only Integration Testing', () => {
     VALUES ('test', false, 'MUTABLE');
   `));
 
-  it('fails to apply', (done) => {
+  it('fails to apply and restore on sync phase', (done) => {
     query(`
       select * from iasql_commit();
     `)((_e?: any) => done());  // Ignore failure
@@ -74,7 +78,6 @@ describe('Aws read only Integration Testing', () => {
     expect(row.length).toBe(1);
     expect(row[0].module_name).toBe('iasql_functions');
     expect(row[0].method_name).toBe('iasqlCommit');
-    expect(JSON.parse(row[0].err)).toHaveProperty('message')
   }));
 
   it('uninstalls all modules', uninstallAll());

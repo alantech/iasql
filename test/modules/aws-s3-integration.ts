@@ -9,6 +9,7 @@ import {
   runCommit,
   runInstall,
   runQuery,
+  runRollback,
   runUninstall,
 } from '../helpers';
 
@@ -16,6 +17,7 @@ const prefix = getPrefix();
 const dbAlias = 's3test';
 const s3Name = `${prefix}${dbAlias}`;
 const commit = runCommit.bind(null, dbAlias);
+const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
@@ -102,7 +104,7 @@ describe('S3 Integration Testing', () => {
   `),
   );
 
-  it('undo changes', commit());
+  it('undo changes', rollback());
 
   it(
     'check bucket insertion',

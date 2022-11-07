@@ -10,6 +10,7 @@ import {
   runCommit,
   runInstall,
   runQuery,
+  runRollback,
   runUninstall,
 } from '../helpers'
 
@@ -41,6 +42,7 @@ const lbType = LoadBalancerTypeEnum.APPLICATION;
 const lbIPAddressType = IpAddressType.IPV4;
 
 const commit = runCommit.bind(null, dbAlias);
+const rollback = runRollback.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
@@ -86,7 +88,7 @@ describe('Route53 Integration Testing', () => {
     WHERE domain_name = '${domainName}';
   `, (res: any[]) => expect(res.length).toBe(1)));
 
-  it('undo changes', commit());
+  it('undo changes', rollback());
 
   it('check undo adds a new hosted zone', query(`
     SELECT *

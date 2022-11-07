@@ -11,6 +11,7 @@ import {
   runCommit,
   runInstall,
   runQuery,
+  runRollback,
   runUninstall,
 } from '../helpers';
 
@@ -25,6 +26,7 @@ const policyMock =
 const updatePolicyMock =
   '{ "Version": "2012-10-17", "Statement": [ { "Sid": "DenyPull", "Effect": "Deny", "Principal": "*", "Action": [ "ecr:BatchGetImage" ] } ]}';
 const commit = runCommit.bind(null, dbAlias);
+const rollback = runRollback.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
@@ -86,7 +88,7 @@ describe('ECR Integration Testing', () => {
     `),
     );
 
-    it('undo changes', commit());
+    it('undo changes', rollback());
 
     it(
       'check adds a new repository',
@@ -330,7 +332,7 @@ describe('ECR Integration Testing', () => {
     `),
     );
 
-    it('undo changes', commit());
+    it('undo changes', rollback());
 
     it(
       'check adds a new public repository',

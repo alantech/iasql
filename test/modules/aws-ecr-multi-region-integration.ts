@@ -10,6 +10,7 @@ import {
   runCommit,
   runInstall,
   runQuery,
+  runRollback,
 } from '../helpers';
 
 const prefix = getPrefix();
@@ -21,6 +22,7 @@ const policyMock =
   '{ "Version": "2012-10-17", "Statement": [ { "Sid": "DenyPull", "Effect": "Deny", "Principal": "*", "Action": [ "ecr:BatchGetImage", "ecr:GetDownloadUrlForLayer" ] } ]}';
 
 const commit = runCommit.bind(null, dbAlias);
+const rollback = runRollback.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const modules = ['aws_ecr'];
@@ -75,7 +77,7 @@ describe('ECR Multi-region Integration Testing', () => {
   `),
   );
 
-  it('undo changes', commit());
+  it('undo changes', rollback());
 
   it(
     'checks it has been removed',
