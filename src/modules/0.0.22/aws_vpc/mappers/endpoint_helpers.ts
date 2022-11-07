@@ -8,14 +8,24 @@ import {
 
 import { crudBuilderFormat, paginateBuilder } from '../../../../services/aws_macros';
 import { EndpointGatewayService } from '../entity';
+import { EndpointInterfaceService } from '../entity/endpoint_interface';
 
-export function getServiceFromServiceName(serviceName: string) {
-  if (serviceName.includes('s3')) return EndpointGatewayService.S3;
-  if (serviceName.includes('dynamodb')) return EndpointGatewayService.DYNAMODB;
+export function getGatewayServiceFromServiceName(serviceName: string) {
+  for (const key of Object.keys(EndpointGatewayService)) {
+    const val = EndpointGatewayService[key as keyof typeof EndpointGatewayService];
+    // it contains key/value pairs
+    if (serviceName.endsWith(val)) return val;
+  }
+  return undefined;
 }
 
-export function isServiceGlobal(serviceName: string) {
-  return serviceName.includes('global');
+export function getInterfaceServiceFromServiceName(serviceName: string) {
+  for (const key of Object.keys(EndpointInterfaceService)) {
+    const val = EndpointInterfaceService[key as keyof typeof EndpointInterfaceService];
+    // it contains key/value pairs
+    if (serviceName.endsWith(val)) return val;
+  }
+  return undefined;
 }
 
 export const getVpcEndpointGatewayServiceName = crudBuilderFormat<

@@ -15,15 +15,15 @@ import { policiesAreSame } from '../../../../services/aws-diff';
 import { AWS, crudBuilderFormat, paginateBuilder } from '../../../../services/aws_macros';
 import { isString } from '../../../../services/common';
 import { Context, Crud2, MapperBase } from '../../../interfaces';
-import { EndpointInterface, EndpointInterfaceService, Subnet } from '../entity';
+import { Subnet } from '../entity';
+import { EndpointInterface, EndpointInterfaceService } from '../entity/endpoint_interface';
 import {
   createVpcEndpoint,
   deleteVpcEndpoint,
-  getServiceFromServiceName,
+  getInterfaceServiceFromServiceName,
   getVpcEndpoint,
   getVpcEndpointInterfaces,
   getVpcEndpointInterfaceServiceName,
-  isServiceGlobal,
   modifyVpcEndpoint,
 } from './endpoint_helpers';
 import { eqTags, updateTags } from './tags';
@@ -42,8 +42,7 @@ export class EndpointInterfaceMapper extends MapperBase<EndpointInterface> {
     Object.is(a.subnets.length, b.subnets.length) &&
     !!a.subnets?.every(sa => !!b.subnets?.find(sb => Object.is(sa.id, sb.id))) &&
     eqTags(a.tags, b.tags) &&
-    Object.is(a.privateDnsEnabled, b.privateDnsEnabled) &&
-    Object.is(a.isGlobal, b.isGlobal);
+    Object.is(a.privateDnsEnabled, b.privateDnsEnabled);
 
   getVpcSubnets = crudBuilderFormat<EC2, 'describeSubnets', SubnetAWS[] | undefined>(
     'describeSubnets',
@@ -110,22 +109,13 @@ export class EndpointInterfaceMapper extends MapperBase<EndpointInterface> {
     );
   }
 
-  async getServiceNameForEndpoint(client: EC2, serviceName: string, isGlobal: boolean) {
-    let finalServiceName;
-    if (isGlobal) finalServiceName = 'com.amazonaws.' + serviceName + '-global.accesspoint';
-    else finalServiceName = await getVpcEndpointInterfaceServiceName(client, serviceName, isGlobal);
-
-    return finalServiceName;
-  }
-
   async endpointInterfaceMapper(eg: AwsVpcEndpoint, region: string, ctx: Context) {
     if (!eg.ServiceName) return undefined;
     const out = new EndpointInterface();
     out.vpcEndpointId = eg.VpcEndpointId;
     if (!out.vpcEndpointId) return undefined;
-    const service = getServiceFromServiceName(eg.ServiceName);
+    const service = getInterfaceServiceFromServiceName(eg.ServiceName);
     if (!service) return undefined;
-    out.isGlobal = isServiceGlobal(eg.ServiceName);
     out.service = service as unknown as EndpointInterfaceService;
     out.vpc =
       (await this.module.vpc.db.read(ctx, this.module.vpc.generateId({ vpcId: eg.VpcId ?? '', region }))) ??
@@ -150,7 +140,7 @@ export class EndpointInterfaceMapper extends MapperBase<EndpointInterface> {
             ctx,
             this.module.subnet.generateId({ subnetId: subnet ?? '', region }),
           ));
-        if (s) out.subnets.push(s);
+        if (s && s.state === 'available') out.subnets.push(s);
       }
     }
     if (eg.Tags?.length) {
@@ -169,7 +159,7 @@ export class EndpointInterfaceMapper extends MapperBase<EndpointInterface> {
       const out = [];
       for (const e of es) {
         const client = (await ctx.getAwsClient(e.region)) as AWS;
-        const serviceName = await this.getServiceNameForEndpoint(client.ec2client, e.service, e.isGlobal);
+        const serviceName = await getVpcEndpointInterfaceServiceName(client.ec2client, e.service);
         if (!serviceName) continue; // we cannot create without valid service name
 
         const input: CreateVpcEndpointCommandInput = {
@@ -207,6 +197,7 @@ export class EndpointInterfaceMapper extends MapperBase<EndpointInterface> {
             },
           ];
         }
+
         const res = await createVpcEndpoint(client.ec2client, input);
         const result = await this.waitForEndpointAvailable(client.ec2client, res?.VpcEndpointId ?? '');
         if (result.state === WaiterState.SUCCESS) {
@@ -248,11 +239,7 @@ export class EndpointInterfaceMapper extends MapperBase<EndpointInterface> {
       }
     },
     updateOrReplace: (a: EndpointInterface, b: EndpointInterface) => {
-      if (
-        !(Object.is(a.vpc?.vpcId, b.vpc?.vpcId) && Object.is(a.service, b.service)) ||
-        !Object.is(a.isGlobal, b.isGlobal)
-      )
-        return 'replace';
+      if (!(Object.is(a.vpc?.vpcId, b.vpc?.vpcId) && Object.is(a.service, b.service))) return 'replace';
       return 'update';
     },
     update: async (es: EndpointInterface[], ctx: Context) => {
