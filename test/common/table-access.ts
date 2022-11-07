@@ -90,7 +90,7 @@ describe('Testing table creation and access', () => {
   it('dbUser: fails to drop IaSQL managed table', (done) => {
     query(`
       DROP TABLE aws_credentials;
-    `, undefined, true, pgUser, pgPassword)((e: any) => {
+    `, undefined, true, () => ({username: pgUser, password: pgPassword}))((e: any) => {
       if (!e) return done(new Error('Somehow did not fail to drop `aws_credentials`'));
       return done();
     });
