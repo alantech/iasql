@@ -9,15 +9,18 @@
 @import url('https://fonts.googleapis.com/css?family=Montserrat:600&display=swap');
 
 :root {
-  --ifm-color-primary-light: #CEE4F3;
   --ifm-color-primary: #3D95CE;
-  --ifm-color-primary-dark: rgb(16, 34, 64);
-  --ifm-color-secondary-dark:  rgb(14, 61, 70);
   --ifm-color-secondary: #95CE3D;
-  --ifm-color-secondary-light: #E4F3CE;
+  /* https://docusaurus.io/docs/styling-layout#styling-your-site-with-infima */
+  --ifm-color-primary-dark: #3087c0;
+  --ifm-color-secondary-dark: #95CE3D;
   --ifm-code-font-size: 90%;
   --ifm-font-family-base: 'Roboto';
-  --ifm-heading-font-family: 'Montserrat'
+  --ifm-heading-font-family: 'Montserrat';
+  --background-color-primary-light: #CEE4F3;
+  --background-color-secondary-light:  #E4F3CE;
+  --background-color-primary-dark: rgb(16, 34, 64);
+  --background-color-secondary-dark:  rgb(14, 61, 70);
 }
 
 .docusaurus-highlight-code-line {
@@ -86,14 +89,40 @@ html[data-theme='dark'] .docusaurus-highlight-code-line {
 
 /* home */
 .hero--iasql, .footer {
-  background-image: linear-gradient(var(--ifm-color-primary-light), var(--ifm-color-secondary-light));
+  background-image: linear-gradient(var(--background-color-primary-light), var(--background-color-secondary-light));
 }
 
 [data-theme='dark'] .hero--iasql, [data-theme='dark'] .footer {
-  background-image: linear-gradient(var(--ifm-color-primary-dark), var(--ifm-color-secondary-dark));
+  background-image: linear-gradient(var(--background-color-primary-dark), var(--background-color-secondary-dark));
 }
 
 .card {
   height: 15rem;
   padding: 1rem;
+}
+
+/* browser window */
+.browser-window {
+  border-radius: 0.5rem;
+}
+
+.browser-content {
+  border-bottom-left-radius: 0.5rem;
+  border-bottom-right-radius: 0.5rem;
+}
+
+.browser-dot {
+  height: 12px;
+  width: 12px;
+  margin: 2px;
+  background-color: #bbb;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.browser-top {
+  padding: 0.5rem 0.5rem 0 0.5rem;
+  background: #f1f1f1;
+  border-top-left-radius: 0.5rem;
+  border-top-right-radius: 0.5rem;
 }

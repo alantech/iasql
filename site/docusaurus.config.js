@@ -42,6 +42,12 @@ const config = process.env.IASQL_ENV === 'local' ? localConfig : prodConfig;
         theme: {
           customCss: require.resolve('./src/css/custom.css'),
         },
+        sitemap: {
+          changefreq: 'weekly',
+          priority: 0.5,
+          ignorePatterns: ['/tags/**'],
+          filename: 'sitemap.xml',
+        },
       }),
     ],
   ],
@@ -110,6 +116,9 @@ const config = process.env.IASQL_ENV === 'local' ? localConfig : prodConfig;
             className: 'header-github-link',
             'aria-label': 'GitHub repository',
           },
+          {
+            type: 'search',
+          }
         ],
       },
       footer: {

@@ -16,7 +16,7 @@ import { EndpointGateway, EndpointGatewayService, Vpc } from '../entity';
 import {
   createVpcEndpoint,
   deleteVpcEndpoint,
-  getServiceFromServiceName,
+  getGatewayServiceFromServiceName,
   getVpcEndpoint,
   getVpcEndpointGateways,
   getVpcEndpointGatewayServiceName,
@@ -46,7 +46,7 @@ export class EndpointGatewayMapper extends MapperBase<EndpointGateway> {
     const out = new EndpointGateway();
     out.vpcEndpointId = eg.VpcEndpointId;
     if (!out.vpcEndpointId) return undefined;
-    const service = getServiceFromServiceName(eg.ServiceName);
+    const service = getGatewayServiceFromServiceName(eg.ServiceName);
     if (!service) return undefined;
     out.service = service;
     out.vpc =
@@ -85,10 +85,12 @@ export class EndpointGatewayMapper extends MapperBase<EndpointGateway> {
       const out = [];
       for (const e of es) {
         const client = (await ctx.getAwsClient(e.region)) as AWS;
+        const service = await getVpcEndpointGatewayServiceName(client.ec2client, e.service);
+        if (!service) continue;
 
         const input: CreateVpcEndpointCommandInput = {
           VpcEndpointType: 'Gateway',
-          ServiceName: (await getVpcEndpointGatewayServiceName(client.ec2client, e.service)) ?? '',
+          ServiceName: service,
           VpcId: e.vpc?.vpcId,
         };
         if (e.policyDocument) {

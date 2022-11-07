@@ -1,5 +1,20 @@
 import React from 'react';
 import Layout from '@theme/Layout';
+import ThemedImage from '@theme/ThemedImage';
+import useBaseUrl from '@docusaurus/useBaseUrl';
+
+function BrowserWindow(props) {
+  return (
+    <div className="browser-window">
+      <div className="browser-top">
+        <span className="browser-dot"></span>
+        <span className="browser-dot"></span>
+        <span className="browser-dot"></span>
+      </div>
+      {props.children}
+    </div>
+  )
+}
 
 export default function Home() {
   return (
@@ -11,11 +26,20 @@ export default function Home() {
               <h1 className="hero__title">Infrastructure as data in PostgreSQL</h1>
               <p className="hero__subtitle">Manage and provision cloud infrastructure via a hosted PostgreSQL database. Simpler than IaC or the AWS UI</p>
               <div>
-                <button className="button button--primary button--lg">Get Started</button>
+                <button className="button button--primary button--lg" onClick={() => window.location.href="https://app.iasql.com"}>Connect an AWS account</button>
               </div>
             </div>
-            <div className="col col--6 padding--md">
-              <img src={'https://iasql.com/lib_TQbMwqDvYvWhOqVJ/i5kxd5vazlgj28jh.gif'}></img>
+            <div className="col col--6">
+              <BrowserWindow>
+                <ThemedImage
+                  alt="Create EC2 Instance"
+                  className='shadow--tl browser-content'
+                  sources={{
+                    light: useBaseUrl('/img/ec2-typewriter.gif'),
+                    dark: useBaseUrl('/img/ec2-typewriter_dark.gif'),
+                  }}
+                />
+              </BrowserWindow>
             </div>
           </div>
         </div>
@@ -27,7 +51,14 @@ export default function Home() {
             <p className="hero__subtitle">IaSQL is an open-source SaaS that models cloud infrastructure as data by maintaining a 2-way connection between an AWS account and a hosted PostgreSQL database</p>
           </div>
           <div className="text--center">
-            <img style={{height: '25rem'}} src={'https://iasql.com/lib_TQbMwqDvYvWhOqVJ/ae7kf13uek0k6mul.gif'}></img>
+            <ThemedImage
+              alt="Two way connection"
+              style={{width: '60%'}}
+              sources={{
+                light: useBaseUrl('/img/iasql-connector.gif'),
+                dark: useBaseUrl('/img/iasql-connector_dark.gif'),
+              }}
+            />
           </div>
         </div>
       </div>
@@ -71,7 +102,17 @@ export default function Home() {
             </div>
           </div>
           <div className="row padding--lg">
-            <img src={'https://iasql.com/lib_VymYUCjjDarpARbl/87bwoyulswfitjo5.png?w=1200&h=900&fit=max'}></img>
+            {/* TODO generate new screens */}
+            <BrowserWindow>
+              <ThemedImage
+                alt="Dashboard"
+                className='shadow--tl browser-content'
+                sources={{
+                  light: useBaseUrl('/screenshots/dashboard.png'),
+                  dark: useBaseUrl('/screenshots/dashboard.png'),
+                }}
+              />
+            </BrowserWindow>
           </div>
         </div>
       </div>
@@ -81,7 +122,7 @@ export default function Home() {
             <h1 style={{width: '100%'}}>Backed by</h1>
           </div>
           <div className="text--center">
-            <img style={{height: '10rem'}} src={'https://iasql.com/lib_cPtxZdFSoiujuclX/eo5c59g9ohkk9adh.png?w=1200&h=900&fit=max'}></img>
+            <img style={{width: '60%'}} src={useBaseUrl('/img/investors.png')}></img>
           </div>
         </div>
       </div>
@@ -92,7 +133,7 @@ export default function Home() {
           </div>
           <div className="text--center">
             <p className="hero__subtitle">Drop us a line on Discord if you have any questions!</p>
-            <button className="button button--primary button--lg">Get Started</button>
+            <button className="button button--primary button--lg" onClick={() => window.location.href="https://app.iasql.com"}>Connect an AWS account</button>
           </div>
         </div>
       </div>

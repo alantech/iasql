@@ -20,6 +20,7 @@ const pubNg1 = `${prefix}${dbAlias}-pub-ng1`;
 const pubNg2 = `${prefix}${dbAlias}-pub-ng2`;
 const eip = `${prefix}${dbAlias}-eip`;
 const s3VpcEndpoint = `${prefix}${dbAlias}-s3-vpce`;
+const lambdaVpcEndpoint = `${prefix}${dbAlias}-lambda-vpce`;
 const dynamodbVpcEndpoint = `${prefix}${dbAlias}-dynamodb-vpce`;
 const testPolicy = JSON.stringify({
   Version: '2012-10-17',
@@ -369,10 +370,10 @@ describe('VPC Integration Testing', () => {
 
   describe('VPC endpoint interface creation', () => {
     it(
-      'adds a new s3 endpoint interface',
+      'adds a new lambda endpoint interface',
       query(`
-      INSERT INTO endpoint_interface (service, vpc_id, tags, is_global)
-      SELECT 's3', id, '{"Name": "${s3VpcEndpoint}"}', false
+      INSERT INTO endpoint_interface (service, vpc_id, tags)
+      SELECT 'lambda', id, '{"Name": "${lambdaVpcEndpoint}"}'
       FROM vpc
       WHERE is_default = false
       AND cidr_block = '191.${randIPBlock}.0.0/16';
@@ -383,7 +384,7 @@ describe('VPC Integration Testing', () => {
       'checks endpoint interface count',
       query(
         `
-      SELECT * FROM endpoint_interface WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
+      SELECT * FROM endpoint_interface WHERE tags ->> 'Name' = '${lambdaVpcEndpoint}';
     `,
         (res: any) => expect(res.length).toBe(1),
       ),
@@ -395,7 +396,16 @@ describe('VPC Integration Testing', () => {
       'checks endpoint interface count',
       query(
         `
-      SELECT * FROM endpoint_interface WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
+      SELECT * FROM endpoint_interface WHERE tags ->> 'Name' = '${lambdaVpcEndpoint}';
+    `,
+        (res: any) => expect(res.length).toBe(1),
+      ),
+    );
+    it(
+      'checks endpoint interface default subnet count',
+      query(
+        `
+      SELECT * FROM endpoint_interface_subnets WHERE endpoint_interface_id=(SELECT id FROM endpoint_interface WHERE tags ->> 'Name' = '${lambdaVpcEndpoint}');
     `,
         (res: any) => expect(res.length).toBe(1),
       ),
@@ -460,7 +470,7 @@ describe('VPC Integration Testing', () => {
     'checks endpoint interface count',
     query(
       `
-    SELECT * FROM endpoint_interface WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
+    SELECT * FROM endpoint_interface WHERE tags ->> 'Name' = '${lambdaVpcEndpoint}';
   `,
       (res: any) => expect(res.length).toBe(1),
     ),
@@ -694,7 +704,7 @@ describe('VPC Integration Testing', () => {
       query(`
       UPDATE endpoint_interface
       SET state = 'fake'
-      WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
+      WHERE tags ->> 'Name' = '${lambdaVpcEndpoint}';
     `),
     );
 
@@ -704,7 +714,7 @@ describe('VPC Integration Testing', () => {
       'checks endpoint_interface count',
       query(
         `
-      SELECT * FROM endpoint_interface WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
+      SELECT * FROM endpoint_interface WHERE tags ->> 'Name' = '${lambdaVpcEndpoint}';
     `,
         (res: any) => expect(res.length).toBe(1),
       ),
@@ -714,39 +724,9 @@ describe('VPC Integration Testing', () => {
       'checks endpoint_interface restored',
       query(
         `
-      SELECT * FROM endpoint_interface WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
+      SELECT * FROM endpoint_interface WHERE tags ->> 'Name' = '${lambdaVpcEndpoint}';
     `,
         (res: any) => expect(res[0]['state']).toBe('available'),
-      ),
-    );
-
-    it(
-      'updates a endpoint interface to be replaced',
-      query(`
-      UPDATE endpoint_interface
-      SET is_global=TRUE, private_dns_enabled=TRUE WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
-    `),
-    );
-
-    it('applies the endpoint_interface change', apply());
-
-    it(
-      'checks endpoint_interface count',
-      query(
-        `
-      SELECT * FROM endpoint_interface WHERE tags ->> 'Name' = '${s3VpcEndpoint}' AND is_global=FALSE;
-    `,
-        (res: any) => expect(res.length).toBe(0),
-      ),
-    );
-
-    it(
-      'checks endpoint_interface count',
-      query(
-        `
-      SELECT * FROM endpoint_interface WHERE tags ->> 'Name' = '${s3VpcEndpoint}' AND is_global=TRUE;
-    `,
-        (res: any) => expect(res.length).toBe(1),
       ),
     );
 
@@ -755,7 +735,7 @@ describe('VPC Integration Testing', () => {
       query(`
       UPDATE endpoint_interface
       SET policy_document = '${testPolicy}'
-      WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
+      WHERE tags ->> 'Name' = '${lambdaVpcEndpoint}';
     `),
     );
 
@@ -765,7 +745,7 @@ describe('VPC Integration Testing', () => {
       'checks endpoint_interface count',
       query(
         `
-      SELECT * FROM endpoint_interface WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
+      SELECT * FROM endpoint_interface WHERE tags ->> 'Name' = '${lambdaVpcEndpoint}';
     `,
         (res: any) => expect(res.length).toBe(1),
       ),
@@ -775,7 +755,7 @@ describe('VPC Integration Testing', () => {
       'checks endpoint_interface policy update',
       query(
         `
-      SELECT * FROM endpoint_interface WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
+      SELECT * FROM endpoint_interface WHERE tags ->> 'Name' = '${lambdaVpcEndpoint}';
     `,
         (res: any) => expect(res[0]['policy_document']).toBe(testPolicy),
       ),
@@ -785,8 +765,8 @@ describe('VPC Integration Testing', () => {
       'updates a endpoint interface tags',
       query(`
       UPDATE endpoint_interface
-      SET tags = '{"Name": "${s3VpcEndpoint}", "updated": "true"}'
-      WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
+      SET tags = '{"Name": "${lambdaVpcEndpoint}", "updated": "true"}'
+      WHERE tags ->> 'Name' = '${lambdaVpcEndpoint}';
     `),
     );
 
@@ -796,7 +776,7 @@ describe('VPC Integration Testing', () => {
       'checks endpoint_interface count',
       query(
         `
-      SELECT * FROM endpoint_interface WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
+      SELECT * FROM endpoint_interface WHERE tags ->> 'Name' = '${lambdaVpcEndpoint}';
     `,
         (res: any) => expect(res.length).toBe(1),
       ),
@@ -806,7 +786,7 @@ describe('VPC Integration Testing', () => {
       'checks endpoint_interface policy update',
       query(
         `
-      SELECT * FROM endpoint_interface WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
+      SELECT * FROM endpoint_interface WHERE tags ->> 'Name' = '${lambdaVpcEndpoint}';
     `,
         (res: any) => expect(res[0]['tags']['updated']).toBe('true'),
       ),
@@ -815,7 +795,7 @@ describe('VPC Integration Testing', () => {
     it(
       'removes the current endpoint subnets',
       query(`
-      DELETE FROM endpoint_interface_subnets where endpoint_interface_id=(SELECT id FROM endpoint_interface WHERE tags ->> 'Name' = '${s3VpcEndpoint}')
+      DELETE FROM endpoint_interface_subnets where endpoint_interface_id=(SELECT id FROM endpoint_interface WHERE tags ->> 'Name' = '${lambdaVpcEndpoint}')
     `),
     );
     it('applies the endpoint_interface subnet removal', apply());
@@ -824,7 +804,7 @@ describe('VPC Integration Testing', () => {
       'checks endpoint_interface subnet count',
       query(
         `
-      SELECT * FROM endpoint_interface_subnets WHERE endpoint_interface_id=(SELECT id FROM endpoint_interface WHERE tags ->> 'Name' = '${s3VpcEndpoint}');
+      SELECT * FROM endpoint_interface_subnets WHERE endpoint_interface_id=(SELECT id FROM endpoint_interface WHERE tags ->> 'Name' = '${lambdaVpcEndpoint}');
     `,
         (res: any) => expect(res.length).toBe(0),
       ),
@@ -833,7 +813,7 @@ describe('VPC Integration Testing', () => {
     it(
       'adds new endpoint subnet',
       query(`
-      INSERT INTO endpoint_interface_subnets (endpoint_interface_id, subnet_id) VALUES ((SELECT id FROM endpoint_interface WHERE tags ->> 'Name' = '${s3VpcEndpoint}' LIMIT 1),
+      INSERT INTO endpoint_interface_subnets (endpoint_interface_id, subnet_id) VALUES ((SELECT id FROM endpoint_interface WHERE tags ->> 'Name' = '${lambdaVpcEndpoint}' LIMIT 1),
       (SELECT subnet.id FROM subnet INNER JOIN vpc ON vpc.id=subnet.vpc_id WHERE subnet.cidr_block='191.${randIPBlock}.0.0/16' AND vpc.tags ->> 'name' = '${prefix}-2' LIMIT 1))
     `),
     );
@@ -844,7 +824,7 @@ describe('VPC Integration Testing', () => {
       'checks endpoint_interface subnet count',
       query(
         `
-      SELECT * FROM endpoint_interface_subnets WHERE endpoint_interface_id=(SELECT id FROM endpoint_interface WHERE tags ->> 'Name' = '${s3VpcEndpoint}');
+      SELECT * FROM endpoint_interface_subnets WHERE endpoint_interface_id=(SELECT id FROM endpoint_interface WHERE tags ->> 'Name' = '${lambdaVpcEndpoint}');
     `,
         (res: any) => expect(res.length).toBe(1),
       ),
@@ -991,7 +971,7 @@ describe('VPC Integration Testing', () => {
       'deletes a endpoint_interface',
       query(`
       DELETE FROM endpoint_interface
-      WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
+      WHERE tags ->> 'Name' = '${lambdaVpcEndpoint}';
     `),
     );
 
@@ -1001,7 +981,7 @@ describe('VPC Integration Testing', () => {
       'checks endpoint_interface count',
       query(
         `
-      SELECT * FROM endpoint_interface WHERE tags ->> 'Name' = '${s3VpcEndpoint}'
+      SELECT * FROM endpoint_interface WHERE tags ->> 'Name' = '${lambdaVpcEndpoint}'
     `,
         (res: any) => expect(res.length).toBe(0),
       ),
