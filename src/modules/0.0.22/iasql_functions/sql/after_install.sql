@@ -153,10 +153,8 @@ begin
   return query select
     x.name, x.signature, x.description, x.sample_usage
   from json_to_recordset('[
-    {"name": "apply", "signature": "iasql_apply()", "description": "Create, delete, or update the cloud resources in a hosted db", "sample_usage": "SELECT * FROM iasql_apply()"},
-    {"name": "preview_apply", "signature": "iasql_preview_apply()", "description": "Preview of the resources in the db to be modified on the next `apply`", "sample_usage": "SELECT * FROM iasql_preview_apply()"},
-    {"name": "sync", "signature": "iasql_sync()", "description": "Synchronize the hosted db with the current state of the cloud account", "sample_usage": "SELECT * FROM iasql_sync()"},
-    {"name": "preview_sync", "signature": "iasql_preview_sync()", "description": "Preview of the resources in the db to be modified on the next `sync`", "sample_usage": "SELECT * FROM iasql_preview_sync()"},
+    {"name": "commit", "signature": "iasql_commit()", "description": "Commits changes done to the databasse", "sample_usage": "SELECT * FROM iasql_commit()"},
+    {"name": "preview", "signature": "iasql_preview()", "description": "Preview of the resources in the db to be modified on the next `commit`", "sample_usage": "SELECT * FROM iasql_preview()"},
     {"name": "install", "signature": "iasql_install(variadic text[])", "description": "Install modules in the hosted db", "sample_usage": "SELECT * FROM iasql_install(''aws_vpc'', ''aws_ec2'')"},
     {"name": "uninstall", "signature": "iasql_uninstall(variadic text[])", "description": "Uninstall modules in the hosted db", "sample_usage": "SELECT * FROM iasql_uninstall(''aws_vpc'', ''aws_ec2'')"},
     {"name": "modules_list", "signature": "iasql_modules_list()", "description": "Lists all modules available to be installed", "sample_usage": "SELECT * FROM iasql_modules_list()"},
