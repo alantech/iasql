@@ -1127,7 +1127,16 @@ export async function commit(
         dryRun,
       );
     }
-    return await commitSync(dbId, installedModulesSorted, context, toCreate, toUpdate, toReplace, toDelete, dryRun);
+    return await commitSync(
+      dbId,
+      installedModulesSorted,
+      context,
+      toCreate,
+      toUpdate,
+      toReplace,
+      toDelete,
+      dryRun,
+    );
   } catch (e: any) {
     debugObj(e);
     throw e;
