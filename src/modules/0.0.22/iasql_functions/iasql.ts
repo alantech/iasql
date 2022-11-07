@@ -670,7 +670,7 @@ ${Object.keys(tableCollisions)
   // we first need to sync the existing modules to make sure there are no records the newly-added
   // modules have a dependency on.
   try {
-    await sync(dbId, false, force, syncContext ?? { memo: {}, orm }, orm);
+    await commit(dbId, false, syncContext ?? { memo: {}, orm }, force, orm);
   } catch (e: any) {
     logger.error('Sync during module install failed', e);
     throw e;
@@ -1022,7 +1022,7 @@ export async function continueUpgrade(
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${creds.access_key_id}', '${creds.secret_access_key}');
   `);
-  await sync(dbId, false, true, context);
+  await commit(dbId, false, context, true);
   if (creds.region) {
     await context.orm.query(`
       UPDATE aws_regions SET is_default = true WHERE region = '${creds.region}';
@@ -1040,14 +1040,20 @@ export async function continueUpgrade(
   await install([...modsToInstall.values()], dbId, dbUser, false, true);
 }
 
-export async function commit(dbId: string, dryRun: boolean, context: Context) {
+export async function commit(
+  dbId: string,
+  dryRun: boolean,
+  context: Context,
+  force = false,
+  ormOpt?: TypeormWrapper,
+) {
   const t1 = Date.now();
   logger.info(`Applying commit to ${dbId}`);
   const versionString = await TypeormWrapper.getVersionString(dbId);
   const importedModules = await getImportedModules(dbId, versionString);
   let orm: TypeormWrapper | null = null;
   try {
-    orm = await TypeormWrapper.createConn(dbId);
+    orm = ormOpt ? ormOpt : await TypeormWrapper.createConn(dbId);
     context.orm = orm;
     const newStartCommit = await insertCommit(orm, dryRun ? 'preview_start' : 'start');
     if (dryRun) context.previewStartCommit = newStartCommit;
