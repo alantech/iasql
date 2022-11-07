@@ -513,8 +513,7 @@ export async function sync(
 }
 
 export async function modules(all: boolean, installed: boolean, dbId: string) {
-  const dbMeta = await MetadataRepo.getDbById(dbId);
-  if (dbMeta?.upgrading) throw new Error('Cannot check modules while upgrading');
+  await throwIfUpgrading(dbId, false);
   const versionString = await TypeormWrapper.getVersionString(dbId);
   const Modules = (AllModules as any)[versionString];
   if (!Modules)
@@ -555,8 +554,7 @@ export async function install(
   syncContext?: Context,
   ormOpt?: TypeormWrapper,
 ) {
-  const dbMeta = await MetadataRepo.getDbById(dbId);
-  if (!force && dbMeta?.upgrading) throw new Error('Cannot install modules while upgrading');
+  await throwIfUpgrading(dbId, force);
   const versionString = await TypeormWrapper.getVersionString(dbId);
   const Modules = (AllModules as any)[versionString];
   if (!Modules)
@@ -784,8 +782,7 @@ ${Object.keys(tableCollisions)
 }
 
 export async function uninstall(moduleList: string[], dbId: string, force = false, orm?: TypeormWrapper) {
-  const dbMeta = await MetadataRepo.getDbById(dbId);
-  if (!force && dbMeta?.upgrading) throw new Error('Cannot uninstall modules while upgrading');
+  await throwIfUpgrading(dbId, force);
   const versionString = await TypeormWrapper.getVersionString(dbId);
   const Modules = (AllModules as any)[versionString];
   if (!Modules)
@@ -1048,7 +1045,8 @@ export async function commit(
   ormOpt?: TypeormWrapper,
 ) {
   const t1 = Date.now();
-  logger.info(`Applying commit to ${dbId}`);
+  logger.info(`Commiting to ${dbId}`);
+  await throwIfUpgrading(dbId, force);
   const versionString = await TypeormWrapper.getVersionString(dbId);
   const importedModules = await getImportedModules(dbId, versionString);
   let orm: TypeormWrapper | null = null;
@@ -1138,6 +1136,11 @@ export async function commit(
     await insertCommit(orm, dryRun ? 'preview_end' : 'end');
     orm?.dropConn();
   }
+}
+
+async function throwIfUpgrading(dbId: string, force: boolean) {
+  const dbMeta = await MetadataRepo.getDbById(dbId);
+  if (!force && dbMeta?.upgrading) throw new Error('The database is upgrading. Please try again later.');
 }
 
 async function getImportedModules(dbId: string, versionString: string) {
