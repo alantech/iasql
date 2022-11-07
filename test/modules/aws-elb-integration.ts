@@ -41,7 +41,7 @@ const modules = [
   'aws_elb',
   'aws_vpc',
   'aws_acm',
-  'aws_route53_hosted_zones',
+  'aws_route53',
 ];
 
 // Test constants
@@ -357,7 +357,7 @@ describe('ELB Integration Testing', () => {
     ),
   );
 
-  it('uninstalls the elb module', uninstall(['aws_acm', 'aws_route53_hosted_zones', 'aws_elb']));
+  it('uninstalls the elb module', uninstall(['aws_acm', 'aws_route53', 'aws_elb']));
 
   it('installs the elb module', install(['aws_elb']));
 
@@ -606,7 +606,7 @@ describe('ELB install/uninstall', () => {
       'aws_ecs_simplified',
       'aws_ec2',
       'aws_ec2_metadata',
-      'aws_route53_hosted_zones',
+      'aws_route53',
       'aws_vpc',
       'aws_acm',
       'aws_security_group',

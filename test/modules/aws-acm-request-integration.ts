@@ -22,7 +22,7 @@ const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const region = defaultRegion();
-const modules = ['aws_acm', 'aws_route53_hosted_zones', 'aws_elb'];
+const modules = ['aws_acm', 'aws_route53', 'aws_elb'];
 
 jest.setTimeout(360000);
 beforeAll(async () => await execComposeUp());
