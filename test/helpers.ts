@@ -43,12 +43,8 @@ export function finish(done: (e?: any) => {}) {
   ];
 }
 
-export function runApply(dbAlias: string) {
-  return runQuery(dbAlias, 'select iasql_apply();');
-}
-
-export function runSync(dbAlias: string) {
-  return runQuery(dbAlias, 'select iasql_sync();');
+export function runCommit(dbAlias: string) {
+  return runQuery(dbAlias, 'select iasql_commit();');
 }
 
 export function runInstall(dbAlias: string, mods: string[]) {

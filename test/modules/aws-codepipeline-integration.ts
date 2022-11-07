@@ -7,20 +7,18 @@ import {
   execComposeUp,
   finish,
   getPrefix,
-  runApply,
+  runCommit,
   runInstall,
   runQuery,
-  runSync,
   runUninstall,
 } from '../helpers';
 
 const prefix = getPrefix();
 const dbAlias = 'codepipelinetest';
-const apply = runApply.bind(null, dbAlias);
+const commit = runCommit.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
-const sync = runSync.bind(null, dbAlias);
 // codepipeline has a more limited region list
 const region = defaultRegion([
   "ap-northeast-1",
@@ -232,7 +230,7 @@ describe('AwsCodepipeline Integration Testing', () => {
     ),
   );
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it(
     'sets the default region',
@@ -299,7 +297,7 @@ describe('AwsCodepipeline Integration Testing', () => {
 
   `),
   );
-  it('applies the security group and rules creation', apply());
+  it('applies the security group and rules creation', commit());
 
   // create sample ec2 instance
   it('adds an ec2 instance', done => {
@@ -320,7 +318,7 @@ describe('AwsCodepipeline Integration Testing', () => {
     });
   });
 
-  it('applies the created instance', apply());
+  it('applies the created instance', commit());
 
   it(
     'adds a new codedeploy_application for deployment',
@@ -338,7 +336,7 @@ describe('AwsCodepipeline Integration Testing', () => {
   `),
   );
 
-  it('applies the deployment group creation', apply());
+  it('applies the deployment group creation', commit());
 
   it(
     'adds a new pipeline',
@@ -352,7 +350,7 @@ describe('AwsCodepipeline Integration Testing', () => {
     ),
   );
 
-  it('apply pipeline creation', apply());
+  it('apply pipeline creation', commit());
 
   it(
     'check pipeline is created',
@@ -419,7 +417,7 @@ describe('AwsCodepipeline Integration Testing', () => {
     `),
     );
 
-    it('applies the instance deletion', apply());
+    it('applies the instance deletion', commit());
   });
 
   it(
@@ -440,7 +438,7 @@ describe('AwsCodepipeline Integration Testing', () => {
   `),
   );
 
-  it('apply deletions', apply());
+  it('apply deletions', commit());
 
   describe('delete security groups and rules', () => {
     it(
@@ -457,10 +455,10 @@ describe('AwsCodepipeline Integration Testing', () => {
       `),
     );
 
-    it('applies the security group deletion', apply());
+    it('applies the security group deletion', commit());
   });
 
-  it('apply delete', apply());
+  it('apply delete', commit());
 
   it(
     'check pipeline list is empty',
@@ -505,7 +503,7 @@ describe('AwsCodepipeline install/uninstall', () => {
     ),
   );
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it(
     'sets the default region',

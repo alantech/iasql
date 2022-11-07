@@ -5,10 +5,9 @@ import {
   execComposeUp,
   finish,
   getPrefix,
-  runApply,
+  runCommit,
   runInstall,
   runQuery,
-  runSync,
   runUninstall,
 } from '../helpers';
 
@@ -16,8 +15,7 @@ const prefix = getPrefix();
 const dbAlias = 'acmlisttest';
 const domainName = `${prefix}${dbAlias}.com`;
 
-const apply = runApply.bind(null, dbAlias);
-const sync = runSync.bind(null, dbAlias);
+const commit = runCommit.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
@@ -46,7 +44,7 @@ describe('AwsAcm List Integration Testing', () => {
     ),
   );
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it(
     'sets the default region',
@@ -65,7 +63,7 @@ describe('AwsAcm List Integration Testing', () => {
   `),
   );
 
-  it('sync before apply (should restore)', sync());
+  it('sync before apply (should restore)', commit());
 
   it(
     'check no new certificate',
@@ -99,7 +97,7 @@ describe('AwsAcm List Integration Testing', () => {
     ),
   );
 
-  it('applies the new certificate (should delete the record)', apply());
+  it('applies the new certificate (should delete the record)', commit());
 
   it(
     'check adds new certificate',
@@ -150,7 +148,7 @@ describe('AwsAcm List install/uninstall', () => {
     ),
   );
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it(
     'sets the default region',

@@ -5,10 +5,9 @@ import {
   execComposeUp,
   finish,
   getPrefix,
-  runApply,
+  runCommit,
   runInstall,
   runQuery,
-  runSync,
 } from '../helpers';
 
 const prefix = getPrefix();
@@ -36,8 +35,7 @@ const nonDefaultRegion = 'us-east-1';
 const subnetGroupName = `${prefix}${dbAlias}sng`;
 const clusterName = `${prefix}${dbAlias}cl`;
 
-const apply = runApply.bind(null, dbAlias);
-const sync = runSync.bind(null, dbAlias);
+const commit = runCommit.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const modules = ['aws_memory_db'];
@@ -64,7 +62,7 @@ describe('MemoryDB Multi-region Integration Testing', () => {
     ),
   );
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it(
     'sets the default region',
@@ -83,7 +81,7 @@ describe('MemoryDB Multi-region Integration Testing', () => {
   `),
   );
 
-  it('applies the change', apply());
+  it('applies the change', commit());
 
   it(
     'checks the subnet group was added',
@@ -129,7 +127,7 @@ describe('MemoryDB Multi-region Integration Testing', () => {
     `),
   );
 
-  it('applies the change', apply());
+  it('applies the change', commit());
 
   it(
     'checks the memory db cluster was added',
@@ -195,7 +193,7 @@ describe('MemoryDB Multi-region Integration Testing', () => {
   `),
   );
 
-  it('applies the change', apply());
+  it('applies the change', commit());
 
   it(
     'check memory db subnet group changed region',
@@ -265,7 +263,7 @@ describe('MemoryDB Multi-region Integration Testing', () => {
     ),
   );
 
-  it('applies the change', apply());
+  it('applies the change', commit());
 
   it(
     'checks the remaining memory db cluster count again',
@@ -311,7 +309,7 @@ describe('MemoryDB Multi-region Integration Testing', () => {
     ),
   );
 
-  it('applies the change', apply());
+  it('applies the change', commit());
 
   it(
     'checks the remaining subnet group count again',

@@ -6,10 +6,9 @@ import {
   execComposeUp,
   finish,
   getPrefix,
-  runApply,
+  runCommit,
   runInstall,
   runQuery,
-  runSync,
   runUninstall,
 } from '../helpers'
 
@@ -19,8 +18,7 @@ const dbAlias = 'memorydbtest';
 const subnetGroupName = `${prefix}${dbAlias}sng`;
 const clusterName = `${prefix}${dbAlias}cl`;
 
-const apply = runApply.bind(null, dbAlias);
-const sync = runSync.bind(null, dbAlias);
+const commit = runCommit.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
@@ -59,7 +57,7 @@ describe('MemoryDB Integration Testing', () => {
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `, undefined, false));
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it('sets the default region', query(`
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
@@ -72,7 +70,7 @@ describe('MemoryDB Integration Testing', () => {
     VALUES ('${subnetGroupName}');
   `));
 
-  it('undo changes', sync());
+  it('undo changes', commit());
 
   it('checks it has been removed', query(`
     SELECT *
@@ -85,7 +83,7 @@ describe('MemoryDB Integration Testing', () => {
     VALUES ('${subnetGroupName}');
   `));
 
-  it('applies the change', apply());
+  it('applies the change', commit());
 
   it('checks the subnet group was added', query(`
     SELECT *
@@ -99,7 +97,7 @@ describe('MemoryDB Integration Testing', () => {
     WHERE subnet_group_name = '${subnetGroupName}';
   `));
 
-  it('applies the change', apply());
+  it('applies the change', commit());
 
   it ('creates a memory db cluster', query(`
     INSERT INTO memory_db_cluster (cluster_name, subnet_group_id)
@@ -109,7 +107,7 @@ describe('MemoryDB Integration Testing', () => {
     VALUES ((select id from security_group where group_name = 'default' and region = '${region}'), (select id from memory_db_cluster where cluster_name = '${clusterName}'), '${region}');
   `));
 
-  it('undo changes', sync());
+  it('undo changes', commit());
 
   it('checks it has been removed', query(`
     SELECT *
@@ -125,7 +123,7 @@ describe('MemoryDB Integration Testing', () => {
     VALUES ((select id from security_group where group_name = 'default' and region = '${region}'), (select id from memory_db_cluster where cluster_name = '${clusterName}'), '${region}');
   `));
 
-  it('applies the change', apply());
+  it('applies the change', commit());
 
   it('checks the memory db cluster was added', query(`
     SELECT *
@@ -139,7 +137,7 @@ describe('MemoryDB Integration Testing', () => {
     WHERE cluster_name = '${clusterName}';
   `));
 
-  it('applies the change', apply());
+  it('applies the change', commit());
 
   it('changes the cluster arn', query(`
     UPDATE memory_db_cluster
@@ -147,7 +145,7 @@ describe('MemoryDB Integration Testing', () => {
     WHERE cluster_name = '${clusterName}';
   `));
 
-  it('applies the change', apply());
+  it('applies the change', commit());
 
   it('uninstalls the module', uninstall(modules));
 
@@ -170,7 +168,7 @@ describe('MemoryDB Integration Testing', () => {
     WHERE cluster_name = '${clusterName}';
   `, (res: any[]) => expect(res.length).toBe(0)));
 
-  it('applies the change', apply());
+  it('applies the change', commit());
 
   it('checks the remaining memory db cluster count again', query(`
     SELECT *
@@ -195,7 +193,7 @@ describe('MemoryDB Integration Testing', () => {
     WHERE subnet_group_name = '${subnetGroupName}';
   `, (res: any[]) => expect(res.length).toBe(0)));
 
-  it('applies the change', apply());
+  it('applies the change', commit());
 
   it('checks the remaining subnet group count again', query(`
     SELECT *
@@ -220,7 +218,7 @@ describe('MemoryDB install/uninstall', () => {
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `, undefined, false));
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it('sets the default region', query(`
     UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';

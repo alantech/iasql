@@ -6,10 +6,9 @@ import {
   execComposeUp,
   finish,
   getPrefix,
-  runApply,
+  runCommit,
   runInstall,
   runQuery,
-  runSync,
   runUninstall,
 } from "../helpers";
 
@@ -18,8 +17,7 @@ const dbAlias = "secrettest";
 const secretName = `${prefix}${dbAlias}`;
 const secretValue = "value";
 
-const apply = runApply.bind(null, dbAlias);
-const sync = runSync.bind(null, dbAlias);
+const commit = runCommit.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
@@ -43,7 +41,7 @@ describe("Secrets Manager Integration Testing", () => {
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `, undefined, false));
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it('sets the default region', query(`
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
@@ -59,7 +57,7 @@ describe("Secrets Manager Integration Testing", () => {
   `)
   );
 
-  it("undo changes", sync());
+  it("undo changes", commit());
 
   it(
     "adds a new secret",
@@ -69,7 +67,7 @@ describe("Secrets Manager Integration Testing", () => {
   `)
   );
 
-  it("applies the secret change", apply());
+  it("applies the secret change", commit());
 
   it(
     "check secret is available",
@@ -88,7 +86,7 @@ describe("Secrets Manager Integration Testing", () => {
   `)
   );
 
-  it("applies the secret description update", apply());
+  it("applies the secret description update", commit());
 
   it(
     "checks that secret has been been modified",
@@ -107,7 +105,7 @@ describe("Secrets Manager Integration Testing", () => {
   `)
   );
 
-  it("applies the secret value update", apply());
+  it("applies the secret value update", commit());
 
   it(
     "tries to update version",
@@ -116,7 +114,7 @@ describe("Secrets Manager Integration Testing", () => {
   `)
   );
 
-  it("applies the secret version update", apply());
+  it("applies the secret version update", commit());
 
   it(
     "checks that version has not been modified",
@@ -149,7 +147,7 @@ describe("Secrets Manager Integration Testing", () => {
     UPDATE secret SET region='us-east-1', value='new_secret' WHERE name='${secretName}';
   `));
 
-  it("applies the secret region update", apply());
+  it("applies the secret region update", commit());
 
   it('confirms that the secret was moved', query(`
     SELECT * FROM secret WHERE name = '${secretName}';
@@ -179,7 +177,7 @@ describe("Secrets Manager Integration Testing", () => {
   `)
   );
 
-  it("applies the secret removal", apply());
+  it("applies the secret removal", commit());
 
   it("deletes the test db", (done) =>
     void iasql.disconnect(dbAlias, "not-needed").then(...finish(done)));
@@ -198,7 +196,7 @@ describe("Secret install/uninstall", () => {
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `, undefined, false));
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it('sets the default region', query(`
     UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';

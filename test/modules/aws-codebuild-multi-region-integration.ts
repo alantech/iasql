@@ -4,17 +4,15 @@ import {
   execComposeDown,
   execComposeUp,
   finish,
-  runApply,
+  runCommit,
   runInstall,
   runQuery,
-  runSync,
 } from '../helpers';
 
 const dbAlias = 'codebuildtest';
-const apply = runApply.bind(null, dbAlias);
+const commit = runCommit.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
-const sync = runSync.bind(null, dbAlias);
 const region = defaultRegion();
 const modules = ['aws_codebuild', 'aws_ecr'];
 const nonDefaultRegion = 'us-east-1';
@@ -58,7 +56,7 @@ describe('AwsCodebuild Multi-region Integration Testing', () => {
     ),
   );
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it(
     'sets the default region',
@@ -81,7 +79,7 @@ describe('AwsCodebuild Multi-region Integration Testing', () => {
     ),
   );
 
-  it('apply import', apply());
+  it('apply import', commit());
 
   it(
     'check source_credentials_import is empty',
@@ -115,7 +113,7 @@ describe('AwsCodebuild Multi-region Integration Testing', () => {
   `),
   );
 
-  it('apply delete', apply());
+  it('apply delete', commit());
 
   it(
     'check source_credentials_list is empty',
@@ -145,7 +143,7 @@ describe('AwsCodebuild Multi-region Integration Testing', () => {
   `),
   );
 
-  it('apply codebuild_project creation', apply());
+  it('apply codebuild_project creation', commit());
 
   it(
     'start build',
@@ -155,7 +153,7 @@ describe('AwsCodebuild Multi-region Integration Testing', () => {
   `),
   );
 
-  it('apply build start', apply());
+  it('apply build start', commit());
 
   it(
     'check build imports is empty',
@@ -203,7 +201,7 @@ describe('AwsCodebuild Multi-region Integration Testing', () => {
   `),
   );
 
-  it('apply deletions', apply());
+  it('apply deletions', commit());
 
   it(
     'check build list is empty',

@@ -8,10 +8,9 @@ import {
   execComposeUp,
   finish,
   getPrefix,
-  runApply,
+  runCommit,
   runInstall,
   runQuery,
-  runSync,
   runUninstall,
 } from '../helpers';
 
@@ -63,13 +62,12 @@ const ubuntuAmiId =
 const instancePort = 1234;
 
 const prefix = getPrefix();
-const apply = runApply.bind(null, dbAlias);
-const sync = runSync.bind(null, dbAlias);
+const commit = runCommit.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const querySync = runQuery.bind(null, `${dbAlias}_sync`);
 const install = runInstall.bind(null, dbAlias);
 const installSync = runInstall.bind(null, `${dbAlias}_sync`);
-const syncSync = runSync.bind(null, `${dbAlias}_sync`);
+const syncCommit = runCommit.bind(null, `${dbAlias}_sync`);
 const uninstall = runUninstall.bind(null, dbAlias);
 const modules = ['aws_ec2', 'aws_ec2_metadata', 'aws_security_group', 'aws_vpc', 'aws_elb', 'aws_iam'];
 
@@ -134,7 +132,7 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it(
     'sets the default region',
@@ -160,7 +158,7 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
-  it('syncs the regions', syncSync());
+  it('syncs the regions', syncCommit());
 
   it(
     'sets the default region',
@@ -200,7 +198,7 @@ describe('EC2 Integration Testing', () => {
     });
   });
 
-  it('Undo changes', sync());
+  it('Undo changes', commit());
 
   it(
     'check number of instances',
@@ -257,7 +255,7 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
-  it('applies the created instances', apply());
+  it('applies the created instances', commit());
 
   it(
     'check number of instances',
@@ -318,7 +316,7 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
-  it('syncs the changes from the first database to the second', runSync(`${dbAlias}_sync`));
+  it('syncs the changes from the first database to the second', runCommit(`${dbAlias}_sync`));
 
   it(
     'set both ec2 instances to the same ami',
@@ -327,7 +325,7 @@ describe('EC2 Integration Testing', () => {
   `),
   );
 
-  it('applies the instances change', apply());
+  it('applies the instances change', commit());
 
   it(
     'check number of instances',
@@ -377,7 +375,7 @@ describe('EC2 Integration Testing', () => {
       ),
     );
 
-    it('applies the role creation', apply());
+    it('applies the role creation', commit());
 
     it(
       'checks role count',
@@ -429,7 +427,7 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
-  it('applies the instance registration', apply());
+  it('applies the instance registration', commit());
 
   it(
     'check registered instance count',
@@ -479,7 +477,7 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
-  it('applies the instance registration', apply());
+  it('applies the instance registration', commit());
 
   it(
     'check registered instance count',
@@ -516,7 +514,7 @@ describe('EC2 Integration Testing', () => {
   `),
   );
 
-  it('applies the instance registration', apply());
+  it('applies the instance registration', commit());
 
   it(
     'check registered instance count',
@@ -564,7 +562,7 @@ describe('EC2 Integration Testing', () => {
       ),
     );
 
-    it('applies the instance update', apply());
+    it('applies the instance update', commit());
 
     it(
       'checks instance count',
@@ -587,7 +585,7 @@ describe('EC2 Integration Testing', () => {
   `),
   );
 
-  it('applies the instances change', apply());
+  it('applies the instances change', commit());
 
   it(
     'check number of stopped instances',
@@ -609,7 +607,7 @@ describe('EC2 Integration Testing', () => {
   `),
   );
 
-  it('applies the instances change', apply());
+  it('applies the instances change', commit());
 
   it(
     'check number of running instances',
@@ -632,7 +630,7 @@ describe('EC2 Integration Testing', () => {
   `),
   );
 
-  it('applies the instances change', apply());
+  it('applies the instances change', commit());
 
   it(
     'check number of stopped instances',
@@ -654,7 +652,7 @@ describe('EC2 Integration Testing', () => {
   `),
   );
 
-  it('applies the instances change', apply());
+  it('applies the instances change', commit());
 
   it(
     'check number of running instances',
@@ -749,7 +747,7 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
-  it('applies the created instances', apply());
+  it('applies the created instances', commit());
 
   it(
     'check number of instances',
@@ -797,7 +795,7 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
-  it('applies instance deregistration', apply());
+  it('applies instance deregistration', commit());
 
   it(
     'check registered instance count',
@@ -843,7 +841,7 @@ describe('EC2 Integration Testing', () => {
   `),
   );
 
-  it('sync instances metadata update', sync());
+  it('sync instances metadata update', commit());
 
   it(
     'check instance metadata did not change',
@@ -883,7 +881,7 @@ describe('EC2 Integration Testing', () => {
   `),
   );
 
-  it('applies the instances deletion', apply());
+  it('applies the instances deletion', commit());
 
   it(
     'check number of instances',
@@ -933,7 +931,7 @@ describe('EC2 Integration Testing', () => {
   `),
   );
 
-  it('applies target group deletion', apply());
+  it('applies target group deletion', commit());
 
   it(
     'check target group count',
@@ -967,7 +965,7 @@ describe('EC2 Integration Testing', () => {
       ),
     );
 
-    it('applies the role deletion', apply());
+    it('applies the role deletion', commit());
 
     it(
       'checks role count',
@@ -1006,7 +1004,7 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
     ),
   );
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it(
     'sets the default region',
@@ -1041,7 +1039,7 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
     ),
   );
 
-  it('sync before apply', sync());
+  it('sync before apply', commit());
 
   it(
     'checks volume count',
@@ -1079,7 +1077,7 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
     ),
   );
 
-  it('applies the change', apply());
+  it('applies the change', commit());
 
   it(
     'checks volume count',
@@ -1116,7 +1114,7 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
   `),
   );
 
-  it('applies the change which will undo the change', apply());
+  it('applies the change which will undo the change', commit());
 
   it(
     'checks volume restored',
@@ -1137,7 +1135,7 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
   `),
   );
 
-  it('applies the change', apply());
+  it('applies the change', commit());
 
   it(
     'checks volume update',
@@ -1159,7 +1157,7 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
     `)((e?: any) => (!!e ? done(e) : done()));
   });
 
-  it('applies the change', apply());
+  it('applies the change', commit());
 
   it(
     'checks volume count',
@@ -1192,7 +1190,7 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
   `),
   );
 
-  it('applies the change', apply());
+  it('applies the change', commit());
 
   it(
     'checks volume update',
@@ -1214,7 +1212,7 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
   `),
   );
 
-  it('applies the change', apply());
+  it('applies the change', commit());
 
   it(
     'check deletes the volumes',
@@ -1249,7 +1247,7 @@ describe('EC2 install/uninstall', () => {
     ),
   );
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it(
     'sets the default region',

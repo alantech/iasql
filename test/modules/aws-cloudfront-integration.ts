@@ -6,10 +6,9 @@ import {
   execComposeUp,
   finish,
   getPrefix,
-  runApply,
+  runCommit,
   runInstall,
   runQuery,
-  runSync,
   runUninstall,
 } from '../helpers';
 
@@ -52,8 +51,7 @@ const s3behavior = {
 };
 const s3behaviorString = JSON.stringify(s3behavior);
 
-const apply = runApply.bind(null, dbAlias);
-const sync = runSync.bind(null, dbAlias);
+const commit = runCommit.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
@@ -83,7 +81,7 @@ describe('Cloudfront Integration Testing', () => {
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `, undefined, false));
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it('sets the default region', query(`
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
@@ -96,7 +94,7 @@ describe('Cloudfront Integration Testing', () => {
     query(`
     INSERT INTO bucket (name) VALUES ('${bucket}')`),
   );
-  it('applies the s3 creation', apply());
+  it('applies the s3 creation', commit());
 
   it(
     'adds a new distribution',
@@ -106,7 +104,7 @@ describe('Cloudfront Integration Testing', () => {
   `),
   );
 
-  it('undo changes', sync());
+  it('undo changes', commit());
 
   it('adds a new s3 distribution', done => {
     query(`  
@@ -118,7 +116,7 @@ describe('Cloudfront Integration Testing', () => {
     });
   });
 
-  it('applies the distribution change', apply());
+  it('applies the distribution change', commit());
 
   it(
     'check distribution is available',
@@ -138,7 +136,7 @@ describe('Cloudfront Integration Testing', () => {
   `),
   );
 
-  it('applies the distribution change', apply());
+  it('applies the distribution change', commit());
 
   it(
     'check distribution is available',
@@ -157,7 +155,7 @@ describe('Cloudfront Integration Testing', () => {
   `),
   );
 
-  it('applies the distribution comment update', apply());
+  it('applies the distribution comment update', commit());
 
   it(
     'checks that distribution have been modified',
@@ -176,7 +174,7 @@ describe('Cloudfront Integration Testing', () => {
   `),
   );
 
-  it('applies the distribution id update', apply());
+  it('applies the distribution id update', commit());
 
   it(
     'checks that distribution id has not been modified',
@@ -195,7 +193,7 @@ describe('Cloudfront Integration Testing', () => {
   `),
   );
 
-  it('applies the status update', apply());
+  it('applies the status update', commit());
 
   it(
     'checks that status has not been modified',
@@ -229,7 +227,7 @@ describe('Cloudfront Integration Testing', () => {
   `),
   );
 
-  it('applies the distribution removal', apply());
+  it('applies the distribution removal', commit());
 
   it(
     'deletes the s3 bucket',
@@ -238,7 +236,7 @@ describe('Cloudfront Integration Testing', () => {
   `),
   );
 
-  it('applies the s3 removal', apply());
+  it('applies the s3 removal', commit());
 
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 });
@@ -254,7 +252,7 @@ describe('Cloudfront install/uninstall', () => {
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `, undefined, false));
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it('sets the default region', query(`
     UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';

@@ -2,13 +2,11 @@ import * as iasql from '../../src/services/iasql';
 import {
   getPrefix,
   runQuery,
-  runApply,
+  runCommit,
   finish,
   execComposeUp,
   execComposeDown,
-  runSync,
   runInstall,
-  runUninstall,
   defaultRegion,
 } from '../helpers';
 import { AWS } from '../../src/services/aws_macros';
@@ -19,11 +17,9 @@ const repositoryName = prefix + dbAlias;
 const region = defaultRegion();
 
 
-const apply = runApply.bind(null, dbAlias);
-const sync = runSync.bind(null, dbAlias);
+const commit = runCommit.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
-const uninstall = runUninstall.bind(null, dbAlias);
 const modules = ['aws_ecr', 'aws_iam'];
 
 
@@ -43,7 +39,7 @@ describe('AwsEcrBuild Integration Testing', () => {
       VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `, undefined, false));
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it('sets the default region', query(`
       UPDATE aws_regions
@@ -58,7 +54,7 @@ describe('AwsEcrBuild Integration Testing', () => {
       VALUES ('${repositoryName}', false, 'MUTABLE');
   `));
 
-  it('applies the creation of ecr repository', apply());
+  it('applies the creation of ecr repository', commit());
 
   it('builds hello world image and pushes to the new ecr repo', query(`
       SELECT ecr_build(
@@ -79,7 +75,7 @@ describe('AwsEcrBuild Integration Testing', () => {
     expect(res[0].image_tag === 'latest');
   }));
 
-  it('syncs the cloud state', sync());
+  it('syncs the cloud state', commit());
 
   it('checks if the image is still there after sync', query(`
       SELECT image_tag
@@ -146,7 +142,7 @@ describe('AwsEcrBuild Integration Testing', () => {
       WHERE repository_name = '${repositoryName}'
   `));
 
-  it('applies the deletion of resources', apply());
+  it('applies the deletion of resources', commit());
 
   it('deletes the test db', (done) => void iasql
     .disconnect(dbAlias, 'not-needed')

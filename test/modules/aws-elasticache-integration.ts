@@ -8,10 +8,9 @@ import {
   execComposeUp,
   finish,
   getPrefix,
-  runApply,
+  runCommit,
   runInstall,
   runQuery,
-  runSync,
   runUninstall,
 } from '../helpers';
 
@@ -21,8 +20,7 @@ const clusterId = `${prefix}${dbAlias}`;
 const newClusterId = `new-${prefix}${dbAlias}`;
 const anotherClusterId = `${prefix}${dbAlias}2`;
 
-const apply = runApply.bind(null, dbAlias);
-const sync = runSync.bind(null, dbAlias);
+const commit = runCommit.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
@@ -79,7 +77,7 @@ describe('Elasticache Integration Testing', () => {
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `, undefined, false));
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it('sets the default region', query(`
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
@@ -95,7 +93,7 @@ describe('Elasticache Integration Testing', () => {
   `),
   );
 
-  it('undo changes', sync());
+  it('undo changes', commit());
 
   it('adds a new cacheCluster', done => {
     query(`  
@@ -107,7 +105,7 @@ describe('Elasticache Integration Testing', () => {
     });
   });
 
-  it('applies the cache_cluster change', apply());
+  it('applies the cache_cluster change', commit());
 
   it(
     'check cache_cluster is available',
@@ -128,7 +126,7 @@ describe('Elasticache Integration Testing', () => {
     });
   });
 
-  it('applies the cache_cluster node_type update', apply());
+  it('applies the cache_cluster node_type update', commit());
 
   it('checks that cache_cluster have been modified', done => {
     query(
@@ -149,7 +147,7 @@ describe('Elasticache Integration Testing', () => {
   `),
   );
 
-  it('applies the cache_cluster engine update', apply());
+  it('applies the cache_cluster engine update', commit());
 
   it(
     'checks that cache_cluster engine has not been modified',
@@ -178,7 +176,7 @@ describe('Elasticache Integration Testing', () => {
   `),
   );
 
-  it('applies the cache_cluster cluster_id update', apply());
+  it('applies the cache_cluster cluster_id update', commit());
 
   it(
     'checks that cache_cluster cluster_id have been modified',
@@ -204,7 +202,7 @@ describe('Elasticache Integration Testing', () => {
     UPDATE cache_cluster SET region='us-east-1' WHERE cluster_id = '${newClusterId}';
   `));
 
-  it('applies the change', apply());
+  it('applies the change', commit());
 
   it('checks the region was updated', query(`
     SELECT * FROM cache_cluster WHERE cluster_id = '${newClusterId}';
@@ -247,7 +245,7 @@ describe('Elasticache Integration Testing', () => {
   `),
   );
 
-  it('applies the cache_cluster removal', apply());
+  it('applies the cache_cluster removal', commit());
 
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 });
@@ -263,7 +261,7 @@ describe('Elasticache install/uninstall', () => {
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `, undefined, false));
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it('sets the default region', query(`
     UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';

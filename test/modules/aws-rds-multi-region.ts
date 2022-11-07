@@ -5,10 +5,9 @@ import {
   execComposeUp,
   finish,
   getPrefix,
-  runApply,
+  runCommit,
   runInstall,
   runQuery,
-  runSync,
 } from '../helpers'
 
 const prefix = getPrefix();
@@ -16,8 +15,7 @@ const dbAlias = 'rdstest';
 const parameterGroupName = `${prefix}${dbAlias}pg`;
 const engineFamily = `postgres13`;
 
-const apply = runApply.bind(null, dbAlias);
-const sync = runSync.bind(null, dbAlias);
+const commit = runCommit.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const region = defaultRegion();
@@ -39,7 +37,7 @@ describe('RDS Multi-Region Testing', () => {
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `, undefined, false));
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it('sets the default region', query(`
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
@@ -57,14 +55,14 @@ describe('RDS Multi-Region Testing', () => {
     COMMIT;
   `));
 
-  it('applies the change', apply());
+  it('applies the change', commit());
 
   it('creates an RDS parameter group', query(`
     INSERT INTO parameter_group (name, family, description)
     VALUES ('${parameterGroupName}', '${engineFamily}', '${parameterGroupName} desc');
   `));
 
-  it('applies the change', apply());
+  it('applies the change', commit());
 
   it('moves the parameter group to another region', query(`
     UPDATE parameter_group SET region = 'us-east-1' WHERE name = '${parameterGroupName}';
@@ -84,21 +82,21 @@ describe('RDS Multi-Region Testing', () => {
     WHERE rds_id = (SELECT id FROM rds WHERE db_instance_identifier='${prefix}test');
   `));
 
-  it('applies the region move and parameter group usage', apply());
+  it('applies the region move and parameter group usage', commit());
 
   it('removes the RDS instance', query(`
     DELETE FROM rds
     WHERE db_instance_identifier = '${prefix}test';
   `));
 
-  it('applies the change', apply());
+  it('applies the change', commit());
 
   it('removes the parameter group and it parameters', query(`
     DELETE FROM parameter_group
     WHERE name = '${parameterGroupName}';
   `));
 
-  it('applies the change', apply());
+  it('applies the change', commit());
 
   it('deletes the test db', (done) => void iasql
     .disconnect(dbAlias, 'not-needed')

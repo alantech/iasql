@@ -6,10 +6,9 @@ import {
   finish,
   getKeyCertPair,
   getPrefix,
-  runApply,
+  runCommit,
   runInstall,
   runQuery,
-  runSync,
   runUninstall,
 } from '../helpers';
 
@@ -18,8 +17,7 @@ const dbAlias = 'acmimporttest';
 const domainName = `${prefix}${dbAlias}.com`;
 const [key, cert] = getKeyCertPair(domainName);
 
-const apply = runApply.bind(null, dbAlias);
-const sync = runSync.bind(null, dbAlias);
+const commit = runCommit.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
@@ -42,7 +40,7 @@ describe('AwsAcm Import Integration Testing', () => {
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `, undefined, false));
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it('sets the default region', query(`
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
@@ -75,7 +73,7 @@ describe('AwsAcm Import Integration Testing', () => {
     WHERE domain_name = '${domainName}';
   `));
 
-  it('applies the delete', apply());
+  it('applies the delete', commit());
 
   it('check certificate count after delete', query(`
     SELECT *
@@ -97,7 +95,7 @@ describe('AwsAcm Import Integration Testing', () => {
     DELETE FROM certificate;
   `));
 
-  it('applies the deletion of the certificate in the non-default region', apply());
+  it('applies the deletion of the certificate in the non-default region', commit());
 
   it('deletes the test db', (done) => void iasql
     .disconnect(dbAlias, 'not-needed')

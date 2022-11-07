@@ -4,19 +4,17 @@ import {
   execComposeDown,
   execComposeUp,
   finish,
-  runApply,
+  runCommit,
   runInstall,
   runQuery,
-  runSync,
   runUninstall,
 } from '../helpers';
 
 const dbAlias = 'codebuildtest';
-const apply = runApply.bind(null, dbAlias);
+const commit = runCommit.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
-const sync = runSync.bind(null, dbAlias);
 const region = defaultRegion();
 const modules = ['aws_codebuild', 'aws_ecr'];
 
@@ -59,7 +57,7 @@ describe('AwsCodebuild Integration Testing', () => {
     ),
   );
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it(
     'sets the default region',
@@ -140,7 +138,7 @@ phases:
     ),
   );
 
-  it('apply import', apply());
+  it('apply import', commit());
 
   it(
     'check source_credentials_import is empty',
@@ -174,7 +172,7 @@ phases:
   `),
   );
 
-  it('apply delete', apply());
+  it('apply delete', commit());
 
   it(
     'check source_credentials_list is empty',
@@ -212,7 +210,7 @@ phases:
   `),
   );
 
-  it('apply codebuild_project codepipeline creation', apply());
+  it('apply codebuild_project codepipeline creation', commit());
 
   it(
     'check new project exists',
@@ -241,7 +239,7 @@ phases:
   `),
   );
 
-  it('apply codebuild_project creation', apply());
+  it('apply codebuild_project creation', commit());
 
   it(
     'start and wait for build',
@@ -251,7 +249,7 @@ phases:
   `),
   );
 
-  it('apply build start', apply());
+  it('apply build start', commit());
 
   it(
     'check build imports is empty',
@@ -322,7 +320,7 @@ phases:
   `),
   );
 
-  it('apply deletions', apply());
+  it('apply deletions', commit());
 
   it(
     'check build list is empty',
@@ -392,7 +390,7 @@ describe('AwsCodebuild install/uninstall', () => {
     ),
   );
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it(
     'sets the default region',

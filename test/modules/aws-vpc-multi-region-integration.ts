@@ -5,10 +5,9 @@ import {
   execComposeUp,
   finish,
   getPrefix,
-  runApply,
+  runCommit,
   runInstall,
   runQuery,
-  runSync,
   runUninstall,
 } from '../helpers'
 
@@ -22,8 +21,7 @@ const pubNg = `${prefix}${dbAlias}-pub-ng1`;
 const eip = `${prefix}${dbAlias}-eip`;
 const s3VpcEndpoint = `${prefix}${dbAlias}-s3-vpce`;
 
-const apply = runApply.bind(null, dbAlias);
-const sync = runSync.bind(null, dbAlias);
+const commit = runCommit.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
@@ -49,7 +47,7 @@ describe('VPC Multiregion Integration Testing', () => {
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `, undefined, false));
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it('sets the default region', query(`
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
@@ -70,7 +68,7 @@ describe('VPC Multiregion Integration Testing', () => {
     AND cidr_block = '192.${randIPBlock}.0.0/16' AND region = '${nonDefaultRegion}';
   `));
 
-  it('undo changes', sync());
+  it('undo changes', commit());
 
   it('adds a new vpc', query(`  
     INSERT INTO vpc (cidr_block, tags, region)
@@ -85,7 +83,7 @@ describe('VPC Multiregion Integration Testing', () => {
     AND cidr_block = '192.${randIPBlock}.0.0/16' AND region = '${nonDefaultRegion}';
   `));
 
-  it('applies the vpc change', apply());
+  it('applies the vpc change', commit());
 
   it('check vpc is available', query(`
   SELECT * FROM vpc 
@@ -104,7 +102,7 @@ describe('VPC Multiregion Integration Testing', () => {
     WHERE cidr_block='192.${randIPBlock}.0.0/16' AND state='available' AND tags ->> 'name' = '${prefix}-1' AND region = '${nonDefaultRegion}';
   `));
 
-  it('applies the region change of the vpc', apply());
+  it('applies the region change of the vpc', commit());
 
   it('check vpc in old region', query(`
     SELECT * FROM vpc 
@@ -138,7 +136,7 @@ describe('VPC Multiregion Integration Testing', () => {
       VALUES ('{"name": "${eip}"}');
     `));
 
-    it('applies the elastic ip change', apply());
+    it('applies the elastic ip change', commit());
 
     it('check elastic ip count', query(`
       SELECT * FROM elastic_ip WHERE tags ->> 'name' = '${eip}';
@@ -151,7 +149,7 @@ describe('VPC Multiregion Integration Testing', () => {
       WHERE cidr_block = '192.${randIPBlock}.0.0/16';
     `));
 
-    it('applies the private nat gateway change', apply());
+    it('applies the private nat gateway change', commit());
 
     it('checks private nat gateway count', query(`
       SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${ng}';
@@ -171,7 +169,7 @@ describe('VPC Multiregion Integration Testing', () => {
       WHERE tags ->> 'Name' = '${ng}';
     `));
 
-    it('applies the private nat gateway region change', apply());
+    it('applies the private nat gateway region change', commit());
 
     it('checks private nat gateway count', query(`
       SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${ng}';
@@ -184,7 +182,7 @@ describe('VPC Multiregion Integration Testing', () => {
       WHERE cidr_block = '192.${randIPBlock}.0.0/16' AND elastic_ip.tags ->> 'name' = '${eip}';
     `));
 
-    it('applies the public nat gateway with existing elastic ip change', apply());
+    it('applies the public nat gateway with existing elastic ip change', commit());
 
     it('checks public nat gateway with existing elastic ip count', query(`
       SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${pubNg}';
@@ -205,7 +203,7 @@ describe('VPC Multiregion Integration Testing', () => {
       WHERE tags ->> 'Name' = '${pubNg}';
     `));
 
-    it('applies the nat gateway and elastic IP move', apply());
+    it('applies the nat gateway and elastic IP move', commit());
 
     it('checks public nat gateway with existing elastic ip count', query(`
       SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${pubNg}';
@@ -226,7 +224,7 @@ describe('VPC Multiregion Integration Testing', () => {
       WHERE tags ->> 'Name' = '${ng}';
     `));
 
-    it('applies the nat gateway and elastic IP deletions', apply());
+    it('applies the nat gateway and elastic IP deletions', commit());
 
     it('checks public nat gateways count', query(`
       SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${pubNg}';
@@ -254,7 +252,7 @@ describe('VPC Multiregion Integration Testing', () => {
       SELECT * FROM endpoint_gateway WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
     `, (res: any) => expect(res.length).toBe(1)));
 
-    it('applies the endpoint gateway change', apply());
+    it('applies the endpoint gateway change', commit());
 
     it('checks endpoint gateway count', query(`
       SELECT * FROM endpoint_gateway WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
@@ -269,7 +267,7 @@ describe('VPC Multiregion Integration Testing', () => {
       WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
     `));
 
-    it('applies the endpoint gateway region change', apply());
+    it('applies the endpoint gateway region change', commit());
 
     it('checks endpoint gateway count', query(`
       SELECT * FROM endpoint_gateway WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
@@ -280,7 +278,7 @@ describe('VPC Multiregion Integration Testing', () => {
       WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
     `));
 
-    it('applies the endpoint_gateway change', apply());
+    it('applies the endpoint_gateway change', commit());
 
     it('checks endpoint_gateway count', query(`
       SELECT * FROM endpoint_gateway WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
@@ -319,7 +317,7 @@ describe('VPC Multiregion Integration Testing', () => {
     WHERE cidr_block='191.${randIPBlock}.0.0/16' AND region = 'us-east-1';
   `));
 
-  it('applies the vpc removal', apply());
+  it('applies the vpc removal', commit());
 
   it('deletes the test db', (done) => void iasql
     .disconnect(dbAlias, 'not-needed')

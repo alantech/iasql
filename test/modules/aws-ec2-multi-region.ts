@@ -8,10 +8,9 @@ import {
   execComposeUp,
   finish,
   getPrefix,
-  runApply,
+  runCommit,
   runInstall,
   runQuery,
-  runSync,
 } from '../helpers';
 
 const dbAlias = 'ec2multi';
@@ -58,8 +57,7 @@ const ubuntuAmiId =
   'resolve:ssm:/aws/service/canonical/ubuntu/server/20.04/stable/current/amd64/hvm/ebs-gp2/ami-id';
 
 const prefix = getPrefix();
-const apply = runApply.bind(null, dbAlias);
-const sync = runSync.bind(null, dbAlias);
+const commit = runCommit.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const modules = ['aws_ec2', 'aws_ec2_metadata', 'aws_security_group', 'aws_vpc', 'aws_elb', 'aws_iam'];
@@ -118,7 +116,7 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it(
     'sets the default region',
@@ -157,7 +155,7 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
-  it('applies the created instances', apply());
+  it('applies the created instances', commit());
 
   it(
     'check number of instances',
@@ -184,7 +182,7 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
-  it('syncs the cloud state to update the metadata', sync());
+  it('syncs the cloud state to update the metadata', commit());
 
   it(
     'check instance metadata',
@@ -227,7 +225,7 @@ describe('EC2 Integration Testing', () => {
       ),
     );
 
-    it('applies the role creation', apply());
+    it('applies the role creation', commit());
 
     it(
       'checks role count',
@@ -279,7 +277,7 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
-  it('applies the instance registration', apply());
+  it('applies the instance registration', commit());
 
   it(
     'check registered instance count',
@@ -358,7 +356,7 @@ describe('EC2 Integration Testing', () => {
     );
   `));
 
-  it('applies the move', apply());
+  it('applies the move', commit());
 
   it(
     'check number of instances',
@@ -372,7 +370,7 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
-  it('syncs the cloud state to update the metadata', sync());
+  it('syncs the cloud state to update the metadata', commit());
 
   it(
     'check instance metadata again',
@@ -420,7 +418,7 @@ describe('EC2 Integration Testing', () => {
   `),
   );
 
-  it('applies the instances deletion', apply());
+  it('applies the instances deletion', commit());
 
   it(
     'check number of instances',
@@ -470,7 +468,7 @@ describe('EC2 Integration Testing', () => {
   `),
   );
 
-  it('applies target group deletion', apply());
+  it('applies target group deletion', commit());
 
   it(
     'check target group count',
@@ -504,7 +502,7 @@ describe('EC2 Integration Testing', () => {
       ),
     );
 
-    it('applies the role deletion', apply());
+    it('applies the role deletion', commit());
 
     it(
       'checks role count',

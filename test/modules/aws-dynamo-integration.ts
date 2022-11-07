@@ -6,18 +6,16 @@ import {
   execComposeUp,
   finish,
   getPrefix,
-  runApply,
+  runCommit,
   runInstall,
   runQuery,
-  runSync,
   runUninstall,
 } from '../helpers'
 
 const prefix = getPrefix();
 const dbAlias = 'dynamotest';
 
-const apply = runApply.bind(null, dbAlias);
-const sync = runSync.bind(null, dbAlias);
+const commit = runCommit.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
@@ -40,7 +38,7 @@ describe('Dynamo Integration Testing', () => {
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `, undefined, false));
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it('sets the default region', query(`
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
@@ -58,7 +56,7 @@ describe('Dynamo Integration Testing', () => {
     );
   `));
 
-  it('undo changes', sync());
+  it('undo changes', commit());
 
   it('checks it has been removed', query(`
     SELECT *
@@ -76,7 +74,7 @@ describe('Dynamo Integration Testing', () => {
     );
   `));
 
-  it('applies the change', apply());
+  it('applies the change', commit());
 
   it('checks the table was added', query(`
     SELECT *
@@ -90,7 +88,7 @@ describe('Dynamo Integration Testing', () => {
     WHERE table_name = '${prefix}test';
   `));
 
-  it('applies the change', apply());
+  it('applies the change', commit());
 
   it('uninstalls the dynamo module', uninstall(
     ['aws_dynamo']));
@@ -115,7 +113,7 @@ describe('Dynamo Integration Testing', () => {
     WHERE table_name = '${prefix}test';
   `, (res: any[]) => expect(res.length).toBe(0)));
 
-  it('applies the change', apply());
+  it('applies the change', commit());
 
   it('checks the remaining table count again', query(`
     SELECT *
@@ -134,7 +132,7 @@ describe('Dynamo Integration Testing', () => {
     );
   `));
 
-  it('applies the change', apply());
+  it('applies the change', commit());
 
   it('checks the table was added', query(`
     SELECT *
@@ -151,7 +149,7 @@ describe('Dynamo Integration Testing', () => {
     WHERE table_name = '${prefix}regiontest';
   `));
 
-  it('applies the replacement', apply());
+  it('applies the replacement', commit());
 
   it('checks the table was moved', query(`
     SELECT *
@@ -167,7 +165,7 @@ describe('Dynamo Integration Testing', () => {
     WHERE table_name = '${prefix}regiontest';
   `));
 
-  it('applies the removal', apply());
+  it('applies the removal', commit());
 
   it('checks the remaining table count for the last time', query(`
     SELECT *
@@ -192,7 +190,7 @@ describe('Dynamo install/uninstall', () => {
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `, undefined, false));
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it('sets the default region', query(`
     UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';

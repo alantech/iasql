@@ -6,10 +6,9 @@ import {
   execComposeUp,
   finish,
   getPrefix,
-  runApply,
+  runCommit,
   runInstall,
   runQuery,
-  runSync,
   runUninstall,
 } from '../helpers';
 
@@ -35,8 +34,7 @@ const testPolicy = JSON.stringify({
   ],
 });
 
-const apply = runApply.bind(null, dbAlias);
-const sync = runSync.bind(null, dbAlias);
+const commit = runCommit.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
@@ -70,7 +68,7 @@ describe('VPC Integration Testing', () => {
     ),
   );
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it(
     'sets the default region',
@@ -99,7 +97,7 @@ describe('VPC Integration Testing', () => {
   `),
   );
 
-  it('undo changes', sync());
+  it('undo changes', commit());
 
   it(
     'adds a new vpc',
@@ -109,7 +107,7 @@ describe('VPC Integration Testing', () => {
   `),
   );
 
-  it('applies the vpc change', apply());
+  it('applies the vpc change', commit());
 
   it(
     'check no vpc is pending',
@@ -162,7 +160,7 @@ describe('VPC Integration Testing', () => {
   `),
   );
 
-  it('applies the subnet change', apply());
+  it('applies the subnet change', commit());
 
   it(
     'updates vpc state',
@@ -172,7 +170,7 @@ describe('VPC Integration Testing', () => {
   `),
   );
 
-  it('applies the state change of the vpc', apply());
+  it('applies the state change of the vpc', commit());
 
   it(
     'checks that state has not been modified',
@@ -192,7 +190,7 @@ describe('VPC Integration Testing', () => {
   `),
   );
 
-  it('applies the vpc tags update', apply());
+  it('applies the vpc tags update', commit());
 
   it(
     'checks that tags have been modified',
@@ -212,7 +210,7 @@ describe('VPC Integration Testing', () => {
   `),
   );
 
-  it('applies the vpc cidr update', apply());
+  it('applies the vpc cidr update', commit());
 
   it(
     'checks that cidr have been modified',
@@ -243,7 +241,7 @@ describe('VPC Integration Testing', () => {
       ),
     );
 
-    it('applies the elastic ip change', apply());
+    it('applies the elastic ip change', commit());
 
     it(
       'check elastic ip count',
@@ -265,7 +263,7 @@ describe('VPC Integration Testing', () => {
     `),
     );
 
-    it('applies the private nat gateway change', apply());
+    it('applies the private nat gateway change', commit());
 
     it(
       'checks private nat gateway count',
@@ -287,7 +285,7 @@ describe('VPC Integration Testing', () => {
     `),
     );
 
-    it('applies the public nat gateway with existing elastic ip change', apply());
+    it('applies the public nat gateway with existing elastic ip change', commit());
 
     it(
       'checks public nat gateway with existing elastic ip count',
@@ -309,7 +307,7 @@ describe('VPC Integration Testing', () => {
     `),
     );
 
-    it('applies the public nat gateway with no existing elastic ip change', apply());
+    it('applies the public nat gateway with no existing elastic ip change', commit());
 
     it(
       'checks public nat gateway with no existing elastic ip count',
@@ -355,7 +353,7 @@ describe('VPC Integration Testing', () => {
       ),
     );
 
-    it('applies the endpoint gateway change', apply());
+    it('applies the endpoint gateway change', commit());
 
     it(
       'checks endpoint gateway count',
@@ -390,7 +388,7 @@ describe('VPC Integration Testing', () => {
       ),
     );
 
-    it('applies the endpoint interface creation', apply());
+    it('applies the endpoint interface creation', commit());
 
     it(
       'checks endpoint interface count',
@@ -486,7 +484,7 @@ describe('VPC Integration Testing', () => {
     `),
     );
 
-    it('applies the elastic ip change', apply());
+    it('applies the elastic ip change', commit());
 
     it(
       'check elastic ip count',
@@ -517,7 +515,7 @@ describe('VPC Integration Testing', () => {
     `),
     );
 
-    it('applies the public nat gateway with existing elastic ip to be private change', apply());
+    it('applies the public nat gateway with existing elastic ip to be private change', commit());
 
     it(
       'checks public nat gateway with existing elastic ip to be private count',
@@ -549,7 +547,7 @@ describe('VPC Integration Testing', () => {
     `),
     );
 
-    it('applies the public nat gateway with no existing elastic ip change', apply());
+    it('applies the public nat gateway with no existing elastic ip change', commit());
 
     it(
       'checks public nat gateway with no existing elastic ip count',
@@ -582,7 +580,7 @@ describe('VPC Integration Testing', () => {
     `),
     );
 
-    it('applies the endpoint_gateway change', apply());
+    it('applies the endpoint_gateway change', commit());
 
     it(
       'checks endpoint_gateway count',
@@ -613,7 +611,7 @@ describe('VPC Integration Testing', () => {
     `),
     );
 
-    it('applies the endpoint_gateway change', apply());
+    it('applies the endpoint_gateway change', commit());
 
     it(
       'checks endpoint_gateway count',
@@ -644,7 +642,7 @@ describe('VPC Integration Testing', () => {
     `),
     );
 
-    it('applies the endpoint_gateway change', apply());
+    it('applies the endpoint_gateway change', commit());
 
     it(
       'checks endpoint_gateway count',
@@ -675,7 +673,7 @@ describe('VPC Integration Testing', () => {
     `),
     );
 
-    it('applies the endpoint_gateway change', apply());
+    it('applies the endpoint_gateway change', commit());
 
     it(
       'checks endpoint_gateway count',
@@ -708,7 +706,7 @@ describe('VPC Integration Testing', () => {
     `),
     );
 
-    it('applies the endpoint_interface change', apply());
+    it('applies the endpoint_interface change', commit());
 
     it(
       'checks endpoint_interface count',
@@ -739,7 +737,7 @@ describe('VPC Integration Testing', () => {
     `),
     );
 
-    it('applies the endpoint_interface change', apply());
+    it('applies the endpoint_interface change', commit());
 
     it(
       'checks endpoint_interface count',
@@ -770,7 +768,7 @@ describe('VPC Integration Testing', () => {
     `),
     );
 
-    it('applies the endpoint_interface change', apply());
+    it('applies the endpoint_interface change', commit());
 
     it(
       'checks endpoint_interface count',
@@ -798,7 +796,7 @@ describe('VPC Integration Testing', () => {
       DELETE FROM endpoint_interface_subnets where endpoint_interface_id=(SELECT id FROM endpoint_interface WHERE tags ->> 'Name' = '${lambdaVpcEndpoint}')
     `),
     );
-    it('applies the endpoint_interface subnet removal', apply());
+    it('applies the endpoint_interface subnet removal', commit());
 
     it(
       'checks endpoint_interface subnet count',
@@ -818,7 +816,7 @@ describe('VPC Integration Testing', () => {
     `),
     );
 
-    it('applies the endpoint_interface subnet change', apply());
+    it('applies the endpoint_interface subnet change', commit());
 
     it(
       'checks endpoint_interface subnet count',
@@ -840,7 +838,7 @@ describe('VPC Integration Testing', () => {
     `),
     );
 
-    it('applies the public nat gateways change', apply());
+    it('applies the public nat gateways change', commit());
 
     it(
       'checks public nat gateways count',
@@ -860,7 +858,7 @@ describe('VPC Integration Testing', () => {
     `),
     );
 
-    it('applies the elastic ip created by the nat gateway change', apply());
+    it('applies the elastic ip created by the nat gateway change', commit());
 
     it(
       'check elastic ip created by the nat gateway count',
@@ -880,7 +878,7 @@ describe('VPC Integration Testing', () => {
     `),
     );
 
-    it('applies the elastic ip change', apply());
+    it('applies the elastic ip change', commit());
 
     it(
       'check elastic ip count',
@@ -901,7 +899,7 @@ describe('VPC Integration Testing', () => {
     `),
     );
 
-    it('applies the private nat gateway change', apply());
+    it('applies the private nat gateway change', commit());
 
     it(
       'checks private nat gateway count',
@@ -931,7 +929,7 @@ describe('VPC Integration Testing', () => {
     `),
     );
 
-    it('applies the private nat gateway change', apply());
+    it('applies the private nat gateway change', commit());
 
     it(
       'checks private nat gateway count',
@@ -953,7 +951,7 @@ describe('VPC Integration Testing', () => {
     `),
     );
 
-    it('applies the endpoint_gateway change', apply());
+    it('applies the endpoint_gateway change', commit());
 
     it(
       'checks endpoint_gateway count',
@@ -975,7 +973,7 @@ describe('VPC Integration Testing', () => {
     `),
     );
 
-    it('applies the endpoint_interface change', apply());
+    it('applies the endpoint_interface change', commit());
 
     it(
       'checks endpoint_interface count',
@@ -1003,7 +1001,7 @@ describe('VPC Integration Testing', () => {
   `),
   );
 
-  it('applies the subnet removal', apply());
+  it('applies the subnet removal', commit());
 
   it(
     'deletes the vpc',
@@ -1022,7 +1020,7 @@ describe('VPC Integration Testing', () => {
   `),
   );
 
-  it('applies the vpc removal', apply());
+  it('applies the vpc removal', commit());
 
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 });
@@ -1045,7 +1043,7 @@ describe('VPC install/uninstall', () => {
     ),
   );
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it(
     'sets the default region',

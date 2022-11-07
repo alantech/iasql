@@ -5,10 +5,9 @@ import {
   execComposeUp,
   finish,
   getPrefix,
-  runApply,
+  runCommit,
   runInstall,
   runQuery,
-  runSync,
 } from '../helpers';
 
 const prefix = getPrefix();
@@ -38,8 +37,7 @@ const attachAssumeLambdaPolicy = JSON.stringify({
   ],
 });
 
-const apply = runApply.bind(null, dbAlias);
-const sync = runSync.bind(null, dbAlias);
+const commit = runCommit.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const region = defaultRegion();
@@ -67,7 +65,7 @@ describe('AwsCloudwatch and AwsLambda Integration Testing', () => {
     ),
   );
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it(
     'sets the default region',
@@ -91,7 +89,7 @@ describe('AwsCloudwatch and AwsLambda Integration Testing', () => {
   `),
   );
 
-  it('applies the lambda function change', apply());
+  it('applies the lambda function change', commit());
 
   it(
     'check function insertion',
@@ -128,7 +126,7 @@ describe('AwsCloudwatch and AwsLambda Integration Testing', () => {
   `),
   );
 
-  it('apply deletion', apply());
+  it('apply deletion', commit());
 
   it(
     'check function deletion',

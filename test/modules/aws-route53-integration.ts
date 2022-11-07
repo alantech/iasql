@@ -7,10 +7,9 @@ import {
   execComposeUp,
   finish,
   getPrefix,
-  runApply,
+  runCommit,
   runInstall,
   runQuery,
-  runSync,
   runUninstall,
 } from '../helpers'
 
@@ -41,12 +40,11 @@ const lbScheme = LoadBalancerSchemeEnum.INTERNET_FACING;
 const lbType = LoadBalancerTypeEnum.APPLICATION;
 const lbIPAddressType = IpAddressType.IPV4;
 
-const apply = runApply.bind(null, dbAlias);
-const sync = runSync.bind(null, dbAlias);
+const commit = runCommit.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
-const syncStaging = runSync.bind(null, dbAlias + 'staging');
+const commitStaging = runCommit.bind(null, dbAlias + 'staging');
 const installStaging = runInstall.bind(null, dbAlias + 'staging');
 const uninstallStaging = runUninstall.bind(null, dbAlias + 'staging');
 const queryStaging = runQuery.bind(null, dbAlias + 'staging');
@@ -69,7 +67,7 @@ describe('Route53 Integration Testing', () => {
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `, undefined, false));
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it('sets the default region', query(`
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
@@ -88,7 +86,7 @@ describe('Route53 Integration Testing', () => {
     WHERE domain_name = '${domainName}';
   `, (res: any[]) => expect(res.length).toBe(1)));
 
-  it('undo changes', sync());
+  it('undo changes', commit());
 
   it('check undo adds a new hosted zone', query(`
     SELECT *
@@ -107,7 +105,7 @@ describe('Route53 Integration Testing', () => {
     WHERE domain_name = '${domainName}';
   `, (res: any[]) => expect(res.length).toBe(1)));
 
-  it('applies the hosted zone change', apply());
+  it('applies the hosted zone change', commit());
 
   it('check adds a new hosted zone', query(`
     SELECT *
@@ -134,7 +132,7 @@ describe('Route53 Integration Testing', () => {
     VALUES ('${process.env.STAGING_ACCESS_KEY_ID}', '${process.env.STAGING_SECRET_ACCESS_KEY}')
   `, undefined, false));
 
-  it('syncs the regions', syncStaging());
+  it('syncs the regions', commitStaging());
 
   it('sets the default region', queryStaging(`
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
@@ -186,7 +184,7 @@ describe('Route53 Integration Testing', () => {
     WHERE domain_name = '${domainName}';
   `, (res: any[]) => expect(res.length).toBe(3)));
 
-  it('applies new resource record set', apply());
+  it('applies new resource record set', commit());
 
   it('check default record sets have been added', query(`
     SELECT *
@@ -218,7 +216,7 @@ describe('Route53 Integration Testing', () => {
     WHERE domain_name = '${domainName}';
   `, (res: any[]) => expect(res.length).toBe(4)));
 
-  it('applies new resource record set', apply());
+  it('applies new resource record set', commit());
 
   it('check alias target record has been added', query(`
     SELECT *
@@ -231,7 +229,7 @@ describe('Route53 Integration Testing', () => {
     UPDATE hosted_zone SET domain_name = '${replaceDomainName}' WHERE domain_name = '${domainName}';
   `));
 
-  it('applies hosted zone replacement', apply());
+  it('applies hosted zone replacement', commit());
   
   it('check replaced hosted zone', query(`
     SELECT *
@@ -267,7 +265,7 @@ describe('Route53 Integration Testing', () => {
     WHERE domain_name = '${replaceDomainName}';
   `, (res: any[]) => expect(res.length).toBe(5)));
 
-  it('applies new multiline resource record set', apply());
+  it('applies new multiline resource record set', commit());
 
   it('check multiline record set have been added', query(`
     SELECT *
@@ -289,7 +287,7 @@ describe('Route53 Integration Testing', () => {
     WHERE domain_name = '${replaceDomainName}' AND name = '${resourceRecordSetMultilineName}';
   `));
 
-  it('applies updates a record name', apply());
+  it('applies updates a record name', commit());
 
   it('check records after update', query(`
     SELECT *
@@ -312,7 +310,7 @@ describe('Route53 Integration Testing', () => {
     SELECT * FROM hosted_zone WHERE domain_name = '${replaceDomainName}';
   `, (res: any[]) => expect(res.length).toBe(2)));
 
-  it('applies the hosted zone with the same name', apply());
+  it('applies the hosted zone with the same name', commit());
 
   it('checks creation of default records', query(`
     SELECT *
@@ -331,7 +329,7 @@ describe('Route53 Integration Testing', () => {
     COMMIT;
   `));
 
-  it('applies the removal of hosted zone with the same name', apply());
+  it('applies the removal of hosted zone with the same name', commit());
 
 
   it('deletes records', query(`
@@ -347,7 +345,7 @@ describe('Route53 Integration Testing', () => {
     WHERE domain_name = '${replaceDomainName}';
   `, (res: any[]) => expect(res.length).toBe(0)));
 
-  it('applies deletes records', apply());
+  it('applies deletes records', commit());
 
   it('check records after delete. SOA and NS recordsets have to be keeped', query(`
     SELECT *
@@ -379,7 +377,7 @@ describe('Route53 Integration Testing', () => {
     WHERE domain_name = '${replaceDomainName}';
   `, (res: any[]) => expect(res.length).toBe(0)));
 
-  it('applies deletes records', apply());
+  it('applies deletes records', commit());
 
   it('check records after delete', query(`
     SELECT *
@@ -410,7 +408,7 @@ describe('Route53 install/uninstall', () => {
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `, undefined, false));
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it('sets the default region', query(`
     UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';

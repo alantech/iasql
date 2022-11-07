@@ -7,12 +7,12 @@ import {
   runInstall,
   runInstallAll,
   runQuery,
-  runSync,
+  runCommit,
 } from '../helpers';
 
 const dbAlias = 'allmodulestest';
 
-const sync = runSync.bind(null, dbAlias);
+const commit = runCommit.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const installAll = runInstallAll.bind(null, dbAlias);
@@ -40,7 +40,7 @@ describe('Every module installed need to have at least a table', () => {
     ),
   );
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it(
     'sets the default region',

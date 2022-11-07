@@ -95,7 +95,7 @@ describe('Testing failure path', () => {
 
   it('fails to apply', (done) => {
     query(`
-      select * from iasql_apply();
+      select * from iasql_commit();
     `)((_e?: any) => done());  // Ignore failure
   });
 

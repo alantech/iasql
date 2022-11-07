@@ -7,10 +7,9 @@ import {
   execComposeUp,
   finish,
   getPrefix,
-  runApply,
+  runCommit,
   runInstall,
   runQuery,
-  runSync,
   runUninstall,
 } from '../helpers';
 
@@ -109,11 +108,10 @@ const sgGroupName = `${prefix}sgcodedeploy`;
 let availabilityZone: string;
 let instanceType: string;
 
-const apply = runApply.bind(null, dbAlias);
+const commit = runCommit.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
-const sync = runSync.bind(null, dbAlias);
 const modules = ['aws_codedeploy', 'aws_iam', 'aws_ec2'];
 
 jest.setTimeout(560000);
@@ -146,7 +144,7 @@ describe('AwsCodedeploy Integration Testing', () => {
     ),
   );
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it(
     'sets the default region',
@@ -173,7 +171,7 @@ describe('AwsCodedeploy Integration Testing', () => {
   `),
   );
 
-  it('applies the role creation', apply());
+  it('applies the role creation', commit());
 
   it(
     'adds a new security group',
@@ -201,7 +199,7 @@ describe('AwsCodedeploy Integration Testing', () => {
 
   `),
   );
-  it('applies the security group and rules creation', apply());
+  it('applies the security group and rules creation', commit());
 
   // create sample ec2 instance
   it('adds an ec2 instance', done => {
@@ -222,7 +220,7 @@ describe('AwsCodedeploy Integration Testing', () => {
     });
   });
 
-  it('applies the created instance', apply());
+  it('applies the created instance', commit());
 
   it(
     'adds a new codedeploy_application',
@@ -232,7 +230,7 @@ describe('AwsCodedeploy Integration Testing', () => {
   `),
   );
 
-  it('undo changes', sync());
+  it('undo changes', commit());
 
   it(
     'adds a new codedeploy_application',
@@ -242,7 +240,7 @@ describe('AwsCodedeploy Integration Testing', () => {
   `),
   );
 
-  it('apply codedeploy_application creation', apply());
+  it('apply codedeploy_application creation', commit());
 
   it(
     'check codedeploy_application is available',
@@ -261,7 +259,7 @@ describe('AwsCodedeploy Integration Testing', () => {
   `),
   );
 
-  it('applies the application ID update', apply());
+  it('applies the application ID update', commit());
 
   it(
     'checks that application ID has not been been modified',
@@ -280,7 +278,7 @@ describe('AwsCodedeploy Integration Testing', () => {
   `),
   );
 
-  it('applies the codedeploy_application compute_platform update', apply());
+  it('applies the codedeploy_application compute_platform update', commit());
 
   it(
     'checks that codedeploy_application compute_platform has been modified',
@@ -303,7 +301,7 @@ describe('AwsCodedeploy Integration Testing', () => {
     WHERE name = '${applicationName}';
   `),
   );
-  it('applies the application deletion', apply());
+  it('applies the application deletion', commit());
 
   // deployment group testing
   it(
@@ -322,7 +320,7 @@ describe('AwsCodedeploy Integration Testing', () => {
   `),
   );
 
-  it('apply codedeploy_deployment_group creation', apply());
+  it('apply codedeploy_deployment_group creation', commit());
 
   it(
     'check codedeploy_deployment_group is available',
@@ -341,7 +339,7 @@ describe('AwsCodedeploy Integration Testing', () => {
   `),
   );
 
-  it('applies the codedeploy_deployment_group update', apply());
+  it('applies the codedeploy_deployment_group update', commit());
 
   it(
     'checks that codedeploy_deployment_group has been modified',
@@ -416,7 +414,7 @@ describe('Move deployments to another region', () => {
     `),
   );
 
-  it('apply region move', apply());
+  it('apply region move', commit());
 });
 
 // cleanup
@@ -437,7 +435,7 @@ describe('deployment cleanup', () => {
     `),
   );
 
-  it('apply codedeploy_application deletion', apply());
+  it('apply codedeploy_application deletion', commit());
 
   it(
     'check no codedeploy_deployment_groups remain',
@@ -475,7 +473,7 @@ SELECT * FROM codedeploy_deployment_group WHERE application_id = (SELECT id FROM
     `),
     );
 
-    it('applies the instance deletion', apply());
+    it('applies the instance deletion', commit());
   });
 
   describe('delete roles', () => {
@@ -486,7 +484,7 @@ SELECT * FROM codedeploy_deployment_group WHERE application_id = (SELECT id FROM
       `),
     );
 
-    it('applies the role deletion', apply());
+    it('applies the role deletion', commit());
   });
 
   describe('delete security groups and rules', () => {
@@ -504,10 +502,10 @@ SELECT * FROM codedeploy_deployment_group WHERE application_id = (SELECT id FROM
       `),
     );
 
-    it('applies the security group deletion', apply());
+    it('applies the security group deletion', commit());
   });
 
-  it('apply delete', apply());
+  it('apply delete', commit());
 
   // cleanup
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
@@ -531,7 +529,7 @@ describe('AwsCodedeploy install/uninstall', () => {
     ),
   );
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it(
     'sets the default region',

@@ -9,10 +9,9 @@ import {
   finish,
   getKeyCertPair,
   getPrefix,
-  runApply,
+  runCommit,
   runInstall,
   runQuery,
-  runSync,
   runUninstall,
 } from '../helpers';
 
@@ -30,8 +29,7 @@ const dbAlias = 'elbtest';
 const domainName = `${prefix}${dbAlias}.com`;
 const [key, cert] = getKeyCertPair(domainName);
 
-const apply = runApply.bind(null, dbAlias);
-const sync = runSync.bind(null, dbAlias);
+const commit = runCommit.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
@@ -80,7 +78,7 @@ describe('ELB Integration Testing', () => {
     ),
   );
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it(
     'sets the default region',
@@ -102,7 +100,7 @@ describe('ELB Integration Testing', () => {
     `),
   );
 
-  it('undo changes', sync());
+  it('undo changes', commit());
 
   it(
     'check target_group insertion',
@@ -136,7 +134,7 @@ describe('ELB Integration Testing', () => {
     ),
   );
 
-  it('applies the change', apply());
+  it('applies the change', commit());
 
   it(
     'tries to update a target group field',
@@ -147,7 +145,7 @@ describe('ELB Integration Testing', () => {
     `),
   );
 
-  it('applies the change', apply());
+  it('applies the change', commit());
 
   it(
     'tries to update a target group field (replace)',
@@ -158,7 +156,7 @@ describe('ELB Integration Testing', () => {
     `),
   );
 
-  it('applies the change', apply());
+  it('applies the change', commit());
 
   // Load balancer
   it(
@@ -169,7 +167,7 @@ describe('ELB Integration Testing', () => {
     `),
   );
 
-  it('undo changes', sync());
+  it('undo changes', commit());
 
   it(
     'check load_balancer insertion',
@@ -192,7 +190,7 @@ describe('ELB Integration Testing', () => {
     `),
   );
 
-  it('applies the change', apply());
+  it('applies the change', commit());
 
   it(
     'adds a new load balancer',
@@ -232,7 +230,7 @@ describe('ELB Integration Testing', () => {
     ),
   );
 
-  it('applies the change', apply());
+  it('applies the change', commit());
 
   it(
     'tries to update a load balancer attribute (update)',
@@ -267,7 +265,7 @@ describe('ELB Integration Testing', () => {
     `),
   );
 
-  it('applies the change and restore it', apply());
+  it('applies the change and restore it', commit());
 
   it(
     'tries to update a load balancer security group (replace)',
@@ -278,7 +276,7 @@ describe('ELB Integration Testing', () => {
     `),
   );
 
-  it('applies the change', apply());
+  it('applies the change', commit());
 
   it(
     'tries to update a load balancer scheme (replace)',
@@ -289,7 +287,7 @@ describe('ELB Integration Testing', () => {
     `),
   );
 
-  it('applies the change', apply());
+  it('applies the change', commit());
 
   it(
     'adds a new listener',
@@ -314,7 +312,7 @@ describe('ELB Integration Testing', () => {
     ),
   );
 
-  it('applies the change', apply());
+  it('applies the change', commit());
 
   it(
     'tries to update a listener field',
@@ -325,7 +323,7 @@ describe('ELB Integration Testing', () => {
     `),
   );
 
-  it('applies the change', apply());
+  it('applies the change', commit());
 
   it(
     'adds a new certificate to import',
@@ -370,7 +368,7 @@ describe('ELB Integration Testing', () => {
     ),
   );
 
-  it('applies the https listener change', apply());
+  it('applies the https listener change', commit());
 
   it(
     'check https listener insertion',
@@ -409,7 +407,7 @@ describe('ELB Integration Testing', () => {
     ),
   );
 
-  it('applies the change', apply());
+  it('applies the change', commit());
 
   it(
     'deletes the load balancer',
@@ -453,7 +451,7 @@ describe('ELB Integration Testing', () => {
     ),
   );
 
-  it('applies the change', apply());
+  it('applies the change', commit());
 
   it(
     'deletes the target group',
@@ -476,7 +474,7 @@ describe('ELB Integration Testing', () => {
     ),
   );
 
-  it('applies the change (last time)', apply());
+  it('applies the change (last time)', commit());
 
   it(
     'deletes the certificate',
@@ -499,7 +497,7 @@ describe('ELB Integration Testing', () => {
     ),
   );
 
-  it('applies the cert delete change', apply());
+  it('applies the cert delete change', commit());
 
   it(
     'creates a target group in non-default region',
@@ -509,7 +507,7 @@ describe('ELB Integration Testing', () => {
     `),
   );
 
-  it('applies creation of the target group in non-default region', apply());
+  it('applies creation of the target group in non-default region', commit());
 
   it(
     'verifies the target group is created',
@@ -548,7 +546,7 @@ describe('ELB Integration Testing', () => {
   `),
   );
 
-  it('applies the creation of load balancer and security group in non-default region', apply());
+  it('applies the creation of load balancer and security group in non-default region', commit());
 
   it(
     'verifies that load balancer in non-default region is created',
@@ -576,7 +574,7 @@ describe('ELB Integration Testing', () => {
   `),
   );
 
-  it('applies creation of the listener in non-default region', apply());
+  it('applies creation of the listener in non-default region', commit());
 
   it(
     'verifies the listener in non-default region is created',
@@ -615,7 +613,7 @@ describe('ELB Integration Testing', () => {
   `),
   );
 
-  it('applies deletion of multi-region resources', apply());
+  it('applies deletion of multi-region resources', commit());
 
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 });
@@ -638,7 +636,7 @@ describe('ELB install/uninstall', () => {
     ),
   );
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it(
     'sets the default region',

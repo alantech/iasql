@@ -5,18 +5,16 @@ import {
   execComposeUp,
   finish,
   getPrefix,
-  runApply,
+  runCommit,
   runInstall,
   runQuery,
-  runSync,
   runUninstall,
 } from '../helpers';
 
 const prefix = getPrefix();
 const dbAlias = 'cwtest';
 const logGroupName = `${prefix}lgtest`;
-const apply = runApply.bind(null, dbAlias);
-const sync = runSync.bind(null, dbAlias);
+const commit = runCommit.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
@@ -45,7 +43,7 @@ describe('AwsCloudwatch Integration Testing', () => {
     ),
   );
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it(
     'sets the default region',
@@ -64,7 +62,7 @@ describe('AwsCloudwatch Integration Testing', () => {
   `),
   );
 
-  it('sync before apply', sync());
+  it('sync before apply', commit());
 
   it(
     'check no new log group',
@@ -98,7 +96,7 @@ describe('AwsCloudwatch Integration Testing', () => {
     ),
   );
 
-  it('applies the log group change', apply());
+  it('applies the log group change', commit());
 
   it('uninstalls the cloudwatch module', uninstall(modules));
 
@@ -111,7 +109,7 @@ describe('AwsCloudwatch Integration Testing', () => {
   `),
   );
 
-  it('applies the log group change which will undo the change', apply());
+  it('applies the log group change which will undo the change', commit());
 
   it(
     'deletes the log group',
@@ -121,7 +119,7 @@ describe('AwsCloudwatch Integration Testing', () => {
   `),
   );
 
-  it('applies the log group change (last time)', apply());
+  it('applies the log group change (last time)', commit());
 
   it(
     'check deletes the log group',
@@ -153,7 +151,7 @@ describe('AwsCloudwatch Integration Testing', () => {
   `),
   );
 
-  it('applies creation of two log groups with the same name, but different regions', apply());
+  it('applies creation of two log groups with the same name, but different regions', commit());
 
   it(
     'ARNs and regions for the two log groups with the same name should be different',
@@ -184,7 +182,7 @@ describe('AwsCloudwatch Integration Testing', () => {
   `),
   );
 
-  it('syncs the state with the cloud to make sure it gets the resource from non-default region', sync());
+  it('syncs the state with the cloud to make sure it gets the resource from non-default region', commit());
 
   it(
     'checks if the log group from the non-default region is back',
@@ -205,9 +203,9 @@ describe('AwsCloudwatch Integration Testing', () => {
   `),
   );
 
-  it('applies the deletion of the log group from the non-default region', apply());
+  it('applies the deletion of the log group from the non-default region', commit());
 
-  it('syncs the state with the cloud', sync());
+  it('syncs the state with the cloud', commit());
 
   it(
     'checks if the log group in the default region is still there',
@@ -239,7 +237,7 @@ describe('AwsCloudwatch Integration Testing', () => {
   `),
   );
 
-  it('applies deletion of the log group in the default region', apply());
+  it('applies deletion of the log group in the default region', commit());
 
   it(
     'checks the deletion of all of the log groups',
@@ -261,7 +259,7 @@ describe('AwsCloudwatch Integration Testing', () => {
   `),
   );
 
-  it('applies creation of the log group to be moved', apply());
+  it('applies creation of the log group to be moved', commit());
 
   it(
     'moves the log group to a new region',
@@ -272,9 +270,9 @@ describe('AwsCloudwatch Integration Testing', () => {
   `),
   );
 
-  it('applies moving the log group to the new region', apply());
+  it('applies moving the log group to the new region', commit());
 
-  it('syncs the log groups from the cloud', sync());
+  it('syncs the log groups from the cloud', commit());
 
   it(
     'checks if the log group has been moved to the new region',
@@ -296,7 +294,7 @@ describe('AwsCloudwatch Integration Testing', () => {
   `),
   );
 
-  it('applies deletion of all records', apply());
+  it('applies deletion of all records', commit());
 
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 });
@@ -319,7 +317,7 @@ describe('AwsCloudwatch install/uninstall', () => {
     ),
   );
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it(
     'sets the default region',

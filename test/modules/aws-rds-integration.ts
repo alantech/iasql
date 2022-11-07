@@ -6,10 +6,9 @@ import {
   execComposeUp,
   finish,
   getPrefix,
-  runApply,
+  runCommit,
   runInstall,
   runQuery,
-  runSync,
   runUninstall,
 } from '../helpers'
 
@@ -18,8 +17,7 @@ const dbAlias = 'rdstest';
 const parameterGroupName = `${prefix}${dbAlias}pg`;
 const engineFamily = `postgres13`;
 
-const apply = runApply.bind(null, dbAlias);
-const sync = runSync.bind(null, dbAlias);
+const commit = runCommit.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
@@ -42,7 +40,7 @@ describe('RDS Integration Testing', () => {
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `, undefined, false));
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it('sets the default region', query(`
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
@@ -60,7 +58,7 @@ describe('RDS Integration Testing', () => {
     COMMIT;
   `));
 
-  it('undo changes', sync());
+  it('undo changes', commit());
 
   it('check adds a new repository', query(`
     SELECT *
@@ -85,7 +83,7 @@ describe('RDS Integration Testing', () => {
     COMMIT;
   `));
 
-  it('applies the change', apply());
+  it('applies the change', commit());
 
   it('check adds a new repository', query(`
     SELECT *
@@ -104,14 +102,14 @@ describe('RDS Integration Testing', () => {
     UPDATE rds SET engine = 'postgres:13.5' WHERE db_instance_identifier = '${prefix}test';
   `));
 
-  it('applies the change', apply());
+  it('applies the change', commit());
 
   it('creates an RDS parameter group', query(`
     INSERT INTO parameter_group (name, family, description)
     VALUES ('${parameterGroupName}', '${engineFamily}', '${parameterGroupName} desc');
   `));
 
-  it('applies the change', apply());
+  it('applies the change', commit());
 
   it('check parameter group insertion', query(`
     SELECT *
@@ -143,7 +141,7 @@ describe('RDS Integration Testing', () => {
     );
   `));
 
-  it('applies the change', apply());
+  it('applies the change', commit());
 
   it('check all modifiable boolean parameters are true', query(`
     SELECT params ->> 'ParameterValue' as value
@@ -180,7 +178,7 @@ describe('RDS Integration Testing', () => {
     WHERE db_instance_identifier = '${prefix}test';
   `, (res: any[]) => expect(res.length).toBe(0)));
 
-  it('applies the change', apply());
+  it('applies the change', commit());
 
   it('check rds delete count', query(`
     SELECT *
@@ -199,7 +197,7 @@ describe('RDS Integration Testing', () => {
     WHERE name = '${parameterGroupName}';
   `, (res: any[]) => expect(res.length).toBe(0)));
 
-  it('applies the change', apply());
+  it('applies the change', commit());
 
   it('check parameter group count after delete', query(`
     SELECT *
@@ -224,7 +222,7 @@ describe('RDS install/uninstall', () => {
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `, undefined, false));
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it('sets the default region', query(`
     UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';

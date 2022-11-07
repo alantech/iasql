@@ -6,18 +6,16 @@ import {
   execComposeUp,
   finish,
   getPrefix,
-  runApply,
+  runCommit,
   runInstall,
   runQuery,
-  runSync,
   runUninstall,
 } from "../helpers";
 
 const prefix = getPrefix();
 const dbAlias = `${prefix}apigatewaytest`;
 
-const apply = runApply.bind(null, dbAlias);
-const sync = runSync.bind(null, dbAlias);
+const commit = runCommit.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
@@ -58,7 +56,7 @@ describe("API Gateway Integration Testing", () => {
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `, undefined, false));
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it('sets the default region', query(`
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
@@ -74,7 +72,7 @@ describe("API Gateway Integration Testing", () => {
   `)
   );
 
-  it("undo changes", sync());
+  it("undo changes", commit());
 
   it(
     "adds a new API gateway",
@@ -84,7 +82,7 @@ describe("API Gateway Integration Testing", () => {
   `)
   );
 
-  it("applies the API gateway change", apply());
+  it("applies the API gateway change", commit());
 
   it(
     "check API gateway is available",
@@ -103,7 +101,7 @@ describe("API Gateway Integration Testing", () => {
   `)
   );
 
-  it("applies the API description update", apply());
+  it("applies the API description update", commit());
 
   it(
     "checks that API has been been modified",
@@ -122,7 +120,7 @@ describe("API Gateway Integration Testing", () => {
   `)
   );
 
-  it("applies the API ID update", apply());
+  it("applies the API ID update", commit());
 
   it(
     "checks that API ID has not been been modified",
@@ -141,7 +139,7 @@ describe("API Gateway Integration Testing", () => {
   `)
   );
 
-  it("applies the API protocol update", apply());
+  it("applies the API protocol update", commit());
 
   it(
     "checks that API protocol has not been been modified",
@@ -187,7 +185,7 @@ describe("API Gateway Integration Testing", () => {
   `)
   );
 
-  it("applies the API removal", apply());
+  it("applies the API removal", commit());
 
   it("deletes the test db", (done) =>
     void iasql.disconnect(dbAlias, "not-needed").then(...finish(done)));
@@ -206,7 +204,7 @@ describe("API install/uninstall", () => {
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `, undefined, false));
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it('sets the default region', query(`
     UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';

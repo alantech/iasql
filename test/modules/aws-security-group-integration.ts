@@ -6,18 +6,16 @@ import {
   execComposeUp,
   finish,
   getPrefix,
-  runApply,
+  runCommit,
   runInstall,
   runQuery,
-  runSync,
   runUninstall,
 } from '../helpers';
 
 const prefix = getPrefix();
 const dbAlias = 'sgtest';
 const sgName = `${prefix}${dbAlias}`;
-const apply = runApply.bind(null, dbAlias);
-const sync = runSync.bind(null, dbAlias);
+const commit = runCommit.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
@@ -48,7 +46,7 @@ describe('Security Group Integration Testing', () => {
     ),
   );
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it(
     'sets the default region',
@@ -67,7 +65,7 @@ describe('Security Group Integration Testing', () => {
   `),
   );
 
-  it('undo changes', sync());
+  it('undo changes', commit());
 
   it(
     'check security_group insertion',
@@ -89,7 +87,7 @@ describe('Security Group Integration Testing', () => {
   `),
   );
 
-  it('applies the security group change', apply());
+  it('applies the security group change', commit());
 
   it(
     'check security_group insertion',
@@ -117,7 +115,7 @@ describe('Security Group Integration Testing', () => {
   `),
   );
 
-  it('applies the security group rule change', apply());
+  it('applies the security group rule change', commit());
 
   it(
     'updates the security group rule',
@@ -144,7 +142,7 @@ describe('Security Group Integration Testing', () => {
     ),
   );
 
-  it('applies the security group rule change (again)', apply());
+  it('applies the security group rule change (again)', commit());
 
   it(
     'updates the security group',
@@ -153,7 +151,7 @@ describe('Security Group Integration Testing', () => {
   `),
   );
 
-  it('applies the security group change (again)', apply());
+  it('applies the security group change (again)', commit());
 
   it(
     'check security_group insertion',
@@ -228,7 +226,7 @@ describe('Security Group Integration Testing', () => {
   `),
   );
 
-  it('should successfully create this mess', apply());
+  it('should successfully create this mess', commit());
 
   // create rule targetting to another security group
   it(
@@ -247,7 +245,7 @@ describe('Security Group Integration Testing', () => {
   `),
   );
 
-  it('creates the source security group', apply());
+  it('creates the source security group', commit());
 
   it('should fail when inserting a security group rule with ip and security rule', () => {
     try {
@@ -269,7 +267,7 @@ describe('Security Group Integration Testing', () => {
   (SELECT id FROM security_group WHERE group_name='${prefix}sgsourcetest'), false);
   `),
   );
-  it('creates the source security group rule', apply());
+  it('creates the source security group rule', commit());
 
   it(
     'check security group rule expanded for TCP',
@@ -314,7 +312,7 @@ describe('Security Group Integration Testing', () => {
     ),
   );
 
-  it('applies the deletion of source security group rule', apply());
+  it('applies the deletion of source security group rule', commit());
 
   it(
     'check no security group rules remain',
@@ -345,7 +343,7 @@ describe('Security Group Integration Testing', () => {
   `),
   );
 
-  it('creates the non-default security group', apply());
+  it('creates the non-default security group', commit());
 
   it(
     'adds a new security group rule for non default',
@@ -356,7 +354,7 @@ describe('Security Group Integration Testing', () => {
   `),
   );
 
-  it('creates the source security group rule for non default', apply());
+  it('creates the source security group rule for non default', commit());
 
   it(
     'check security group rule expanded for TCP',
@@ -401,7 +399,7 @@ describe('Security Group Integration Testing', () => {
     ),
   );
 
-  it('applies the deletion of source security group rule for not default', apply());
+  it('applies the deletion of source security group rule for not default', commit());
 
   it(
     'check no security group rules remain',
@@ -439,7 +437,7 @@ describe('Security Group Integration Testing', () => {
   (SELECT id FROM security_group WHERE group_name='${prefix}sgforsource'), false);
   `),
   );
-  it('creates the source security group rule pointing to itself', apply());
+  it('creates the source security group rule pointing to itself', commit());
 
   it(
     'check security group rule expanded for TCP pointing to itself',
@@ -484,7 +482,7 @@ describe('Security Group Integration Testing', () => {
     ),
   );
 
-  it('applies the deletion of source security group rule', apply());
+  it('applies the deletion of source security group rule', commit());
 
   it(
     'check no security group rules remain',
@@ -503,7 +501,7 @@ describe('Security Group Integration Testing', () => {
     query(`DELETE FROM security_group WHERE group_name = '${prefix}sgforsource'`),
   );
 
-  it('applies the deletion of source security group rule', apply());
+  it('applies the deletion of source security group rule', commit());
 
   it(
     'check no security group for source remain',
@@ -534,7 +532,7 @@ describe('Security Group Integration Testing', () => {
   `),
   );
 
-  it('applies the vpc removal', apply());
+  it('applies the vpc removal', commit());
 
   // tests cycle in security rules
   it(
@@ -553,7 +551,7 @@ describe('Security Group Integration Testing', () => {
   `),
   );
 
-  it('creates the source groups and rules', apply());
+  it('creates the source groups and rules', commit());
 
   it(
     'check that security group and rules are correctly created - tcp, udp, icmp',
@@ -597,7 +595,7 @@ describe('Security Group Integration Testing', () => {
     query(`DELETE FROM security_group WHERE group_name = '${prefix}sgtestB'`),
   );
 
-  it('deletes rules and groups', apply());
+  it('deletes rules and groups', commit());
 
   it(
     'check no security group rules remain',
@@ -646,7 +644,7 @@ describe('Security Group Integration Testing', () => {
   `),
   );
 
-  it('applies the security group rule change (last time)', apply());
+  it('applies the security group rule change (last time)', commit());
 
   it(
     'deletes the security groups',
@@ -666,7 +664,7 @@ describe('Security Group Integration Testing', () => {
   `),
   );
 
-  it('applies the security group change (last time)', apply());
+  it('applies the security group change (last time)', commit());
 
   it(
     'check security_group insertion',
@@ -705,7 +703,7 @@ describe('Security Group Integration Testing', () => {
   `),
   );
 
-  it('applies this change', apply());
+  it('applies this change', commit());
 
   it(
     'tries to delete the default security group',
@@ -714,7 +712,7 @@ describe('Security Group Integration Testing', () => {
   `),
   );
 
-  it('applies the security group change which will restore the record', apply());
+  it('applies the security group change which will restore the record', commit());
 
   it(
     'tries to change the default security group description',
@@ -723,7 +721,7 @@ describe('Security Group Integration Testing', () => {
   `),
   );
 
-  it('applies the security group change which will undo this change', apply());
+  it('applies the security group change which will undo this change', commit());
 
   it(
     'tries to change the default security group id which triggers simultaneous create/delete',
@@ -732,7 +730,7 @@ describe('Security Group Integration Testing', () => {
   `),
   );
 
-  it('applies the security group change which will recreate the record', apply());
+  it('applies the security group change which will recreate the record', commit());
 
   it(
     'adds another two security groups for a more complex test',
@@ -744,7 +742,7 @@ describe('Security Group Integration Testing', () => {
   `),
   );
 
-  it('creates these security groups', apply());
+  it('creates these security groups', commit());
 
   it(
     'creates a new security group, deletes another security group, and modifies a third',
@@ -760,7 +758,7 @@ describe('Security Group Integration Testing', () => {
   `),
   );
 
-  it('performs all of these operations', apply());
+  it('performs all of these operations', commit());
 
   it(
     'checks all of these security_group changes',
@@ -785,7 +783,7 @@ describe('Security Group Integration Testing', () => {
   `),
   );
 
-  it('deletes the final test records', apply());
+  it('deletes the final test records', commit());
 
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 });
@@ -808,7 +806,7 @@ describe('Security Group install/uninstall', () => {
     ),
   );
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it(
     'sets the default region',
@@ -870,7 +868,7 @@ describe('Security Group install/uninstall', () => {
   `),
   );
 
-  it('creates the VPC', apply());
+  it('creates the VPC', commit());
 
   it('installs the Security Group module', install(['aws_security_group']));
 
@@ -898,7 +896,7 @@ describe('Security Group install/uninstall', () => {
   `),
   );
 
-  it('applies the vpc removal', apply());
+  it('applies the vpc removal', commit());
 
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 });

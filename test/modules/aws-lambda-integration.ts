@@ -6,10 +6,9 @@ import {
   execComposeUp,
   finish,
   getPrefix,
-  runApply,
+  runCommit,
   runInstall,
   runQuery,
-  runSync,
   runUninstall,
 } from '../helpers';
 
@@ -48,8 +47,7 @@ const attachAssumeLambdaPolicy = JSON.stringify({
   ],
 });
 
-const apply = runApply.bind(null, dbAlias);
-const sync = runSync.bind(null, dbAlias);
+const commit = runCommit.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
@@ -78,7 +76,7 @@ describe('Lambda Integration Testing', () => {
     ),
   );
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it(
     'sets the default region',
@@ -102,7 +100,7 @@ describe('Lambda Integration Testing', () => {
   `),
   );
 
-  it('undo changes', sync());
+  it('undo changes', commit());
 
   it(
     'check function insertion',
@@ -129,7 +127,7 @@ describe('Lambda Integration Testing', () => {
   `),
   );
 
-  it('applies the lambda function change', apply());
+  it('applies the lambda function change', commit());
 
   it(
     'check function insertion',
@@ -197,7 +195,7 @@ describe('Lambda Integration Testing', () => {
   `),
   );
 
-  it('applies the lambda function update', apply());
+  it('applies the lambda function update', commit());
 
   it(
     'check lambda function is restored',
@@ -231,7 +229,7 @@ describe('Lambda Integration Testing', () => {
   `),
   );
 
-  it('applies the lambda function update', apply());
+  it('applies the lambda function update', commit());
 
   it(
     'check lambda function is updated',
@@ -265,7 +263,7 @@ describe('Lambda Integration Testing', () => {
   `),
   );
 
-  it('applies the lambda function update', apply());
+  it('applies the lambda function update', commit());
 
   it(
     'check lambda function is updated',
@@ -299,7 +297,7 @@ describe('Lambda Integration Testing', () => {
   `),
   );
 
-  it('applies the lambda function update', apply());
+  it('applies the lambda function update', commit());
 
   it(
     'check lambda function is updated',
@@ -348,7 +346,7 @@ describe('Lambda Integration Testing', () => {
     ),
   );
 
-  it('applies the lambda function removal', apply());
+  it('applies the lambda function removal', commit());
 
   it(
     'check lambda function does not exist',
@@ -381,7 +379,7 @@ describe('Lambda Integration Testing', () => {
     ),
   );
 
-  it('applies the lambda function role removal', apply());
+  it('applies the lambda function role removal', commit());
 
   it(
     'check lambda function role does not exist',
@@ -416,7 +414,7 @@ describe('Lambda install/uninstall', () => {
     ),
   );
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it(
     'sets the default region',

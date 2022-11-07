@@ -6,10 +6,9 @@ import {
   execComposeUp,
   finish,
   getPrefix,
-  runApply,
+  runCommit,
   runInstall,
   runQuery,
-  runSync,
   runUninstall,
 } from '../helpers';
 
@@ -20,16 +19,15 @@ const {
 const prefix = getPrefix();
 const dbAlias = 'ecstest';
 const dbAliasSidecar = `${dbAlias}sync`;
-const sidecarSync = runSync.bind(null, dbAliasSidecar);
+const sidecarCommit = runCommit.bind(null, dbAliasSidecar);
 const sidecarInstall = runInstall.bind(null, dbAliasSidecar);
 const region = defaultRegion();
-const apply = runApply.bind(null, dbAlias);
-const sync = runSync.bind(null, dbAlias);
+const commit = runCommit.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const querySync = runQuery.bind(null, dbAliasSidecar);
 const installSync = runInstall.bind(null, dbAliasSidecar);
-const syncSync = runSync.bind(null, dbAliasSidecar);
+const syncCommit = runCommit.bind(null, dbAliasSidecar);
 const uninstall = runUninstall.bind(null, dbAlias);
 const modules = [
   'aws_ecr',
@@ -100,7 +98,7 @@ describe('ECS Integration Testing', () => {
     ),
   );
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it(
     'sets the default region',
@@ -130,7 +128,7 @@ describe('ECS Integration Testing', () => {
     ),
   );
 
-  it('syncs the regions', syncSync());
+  it('syncs the regions', syncCommit());
 
   it(
     'sets the default region',
@@ -156,7 +154,7 @@ describe('ECS Integration Testing', () => {
   `),
   );
 
-  it('undo changes', sync());
+  it('undo changes', commit());
 
   it(
     'check cluster insertion',
@@ -178,7 +176,7 @@ describe('ECS Integration Testing', () => {
   `),
   );
 
-  it('applies adds a new cluster', apply());
+  it('applies adds a new cluster', commit());
 
   it(
     'check cluster insertion',
@@ -229,7 +227,7 @@ describe('ECS Integration Testing', () => {
   `),
   );
 
-  it('applies service dependencies', apply());
+  it('applies service dependencies', commit());
 
   it(
     'check target group insertion',
@@ -349,7 +347,7 @@ describe('ECS Integration Testing', () => {
     ),
   );
 
-  it('applies adds a new task definition with container definition', apply());
+  it('applies adds a new task definition with container definition', commit());
 
   it(
     'check task_definition insertion',
@@ -438,9 +436,9 @@ describe('ECS Integration Testing', () => {
     ),
   );
 
-  it('applies service insertion', apply());
+  it('applies service insertion', commit());
 
-  it('sync sidecar database', sidecarSync());
+  it('sync sidecar database', sidecarCommit());
 
   it(
     'check service insertion',
@@ -476,7 +474,7 @@ describe('ECS Integration Testing', () => {
     ),
   );
 
-  it('applies role deletion', apply());
+  it('applies role deletion', commit());
 
   it(
     'check role deletion',
@@ -506,7 +504,7 @@ describe('ECS Integration Testing', () => {
   `),
   );
 
-  it('applies deletes service', apply());
+  it('applies deletes service', commit());
 
   it(
     'check service deletion',
@@ -537,9 +535,9 @@ describe('ECS Integration Testing', () => {
   `),
   );
 
-  it('applies deletes tasks and container definitions', apply());
+  it('applies deletes tasks and container definitions', commit());
 
-  it('sync sidecar database', sidecarSync());
+  it('sync sidecar database', sidecarCommit());
 
   it(
     'check role deletion',
@@ -598,7 +596,7 @@ describe('ECS Integration Testing', () => {
   `),
   );
 
-  it('applies deletes service dependencies', apply());
+  it('applies deletes service dependencies', commit());
 
   it(
     'tries to update a cluster field (restore)',
@@ -607,7 +605,7 @@ describe('ECS Integration Testing', () => {
   `),
   );
 
-  it('applies tries to update a cluster field (restore)', apply());
+  it('applies tries to update a cluster field (restore)', commit());
 
   it(
     'tries to update cluster (replace)',
@@ -616,7 +614,7 @@ describe('ECS Integration Testing', () => {
   `),
   );
 
-  it('applies tries to update cluster (replace)', apply());
+  it('applies tries to update cluster (replace)', commit());
 
   it(
     'deletes the cluster',
@@ -626,7 +624,7 @@ describe('ECS Integration Testing', () => {
   `),
   );
 
-  it('applies deletes the cluster', apply());
+  it('applies deletes the cluster', commit());
 
   it('deletes the sidecar test db', done =>
     void iasql.disconnect(dbAliasSidecar, 'not-needed').then(...finish(done)));

@@ -8,10 +8,9 @@ import {
   execComposeUp,
   finish,
   getPrefix,
-  runApply,
+  runCommit,
   runInstall,
   runQuery,
-  runSync,
   runUninstall,
 } from '../helpers';
 
@@ -25,8 +24,7 @@ const policyMock =
   '{ "Version": "2012-10-17", "Statement": [ { "Sid": "DenyPull", "Effect": "Deny", "Principal": "*", "Action": [ "ecr:BatchGetImage", "ecr:GetDownloadUrlForLayer" ] } ]}';
 const updatePolicyMock =
   '{ "Version": "2012-10-17", "Statement": [ { "Sid": "DenyPull", "Effect": "Deny", "Principal": "*", "Action": [ "ecr:BatchGetImage" ] } ]}';
-const apply = runApply.bind(null, dbAlias);
-const sync = runSync.bind(null, dbAlias);
+const commit = runCommit.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
@@ -68,7 +66,7 @@ describe('ECR Integration Testing', () => {
     ),
   );
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it(
     'sets the default region',
@@ -88,7 +86,7 @@ describe('ECR Integration Testing', () => {
     `),
     );
 
-    it('undo changes', sync());
+    it('undo changes', commit());
 
     it(
       'check adds a new repository',
@@ -126,7 +124,7 @@ describe('ECR Integration Testing', () => {
       ),
     );
 
-    it('applies the repository change', apply());
+    it('applies the repository change', commit());
 
     it(
       'pushes repository image',
@@ -151,7 +149,7 @@ describe('ECR Integration Testing', () => {
       ),
     );
 
-    it('syncs the images', sync());
+    it('syncs the images', commit());
 
     it(
       'check that new images has been created under a private repo',
@@ -174,7 +172,7 @@ describe('ECR Integration Testing', () => {
         `DELETE FROM repository_image WHERE private_repository_id = (select id from repository where repository_name = '${repositoryName}') AND image_tag='${repositoryTag}';`,
       ),
     );
-    it('applies image delete change', apply());
+    it('applies image delete change', commit());
 
     it(
       'check that image has been deleted properly',
@@ -197,7 +195,7 @@ describe('ECR Integration Testing', () => {
     `),
     );
 
-    it('applies change which will undo it', apply());
+    it('applies change which will undo it', commit());
 
     it(
       'tries to update a repository field',
@@ -206,7 +204,7 @@ describe('ECR Integration Testing', () => {
     `),
     );
 
-    it('applies the change', apply());
+    it('applies the change', commit());
 
     it(
       'check adds a new repository',
@@ -231,7 +229,7 @@ describe('ECR Integration Testing', () => {
     `),
     );
 
-    it('applies the change', apply());
+    it('applies the change', commit());
 
     it(
       'check adds a new repository policy',
@@ -254,7 +252,7 @@ describe('ECR Integration Testing', () => {
     `),
     );
 
-    it('applies change which will undo it', apply());
+    it('applies change which will undo it', commit());
 
     it(
       'tries to update a repository field',
@@ -265,7 +263,7 @@ describe('ECR Integration Testing', () => {
     `),
     );
 
-    it('applies the change', apply());
+    it('applies the change', commit());
 
     it(
       'deletes the repository policy',
@@ -275,7 +273,7 @@ describe('ECR Integration Testing', () => {
     `),
     );
 
-    it('applies the delete repository policy', apply());
+    it('applies the delete repository policy', commit());
 
     it(
       'check deletes the repository policy',
@@ -308,7 +306,7 @@ describe('ECR Integration Testing', () => {
     `),
     );
 
-    it('applies deletes the repository', apply());
+    it('applies deletes the repository', commit());
 
     it(
       'check deletes the repository',
@@ -332,7 +330,7 @@ describe('ECR Integration Testing', () => {
     `),
     );
 
-    it('undo changes', sync());
+    it('undo changes', commit());
 
     it(
       'check adds a new public repository',
@@ -366,7 +364,7 @@ describe('ECR Integration Testing', () => {
       ),
     );
 
-    it('applies the public repository change', apply());
+    it('applies the public repository change', commit());
 
     it(
       'pushes public repository image',
@@ -385,7 +383,7 @@ describe('ECR Integration Testing', () => {
       ),
     );
 
-    it('syncs the images', sync());
+    it('syncs the images', commit());
 
     it(
       'check that new images has been created under a public repo',
@@ -408,7 +406,7 @@ describe('ECR Integration Testing', () => {
     `),
     );
 
-    it('applies change which will undo it', apply());
+    it('applies change which will undo it', commit());
 
     it(
       'check update public repository (noop)',
@@ -441,7 +439,7 @@ describe('ECR Integration Testing', () => {
     `),
     );
 
-    it('applies the log group change (last time)', apply());
+    it('applies the log group change (last time)', commit());
 
     it(
       'check deletes the public repository',
@@ -477,7 +475,7 @@ describe('ECR install/uninstall', () => {
     ),
   );
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it(
     'sets the default region',

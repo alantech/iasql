@@ -5,10 +5,9 @@ import {
   execComposeUp,
   finish,
   getPrefix,
-  runApply,
+  runCommit,
   runInstall,
   runQuery,
-  runSync,
 } from '../helpers';
 
 const prefix = getPrefix();
@@ -39,8 +38,7 @@ const attachAssumeLambdaPolicy = JSON.stringify({
   ],
 });
 
-const apply = runApply.bind(null, dbAlias);
-const sync = runSync.bind(null, dbAlias);
+const commit = runCommit.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const region = defaultRegion();
@@ -68,7 +66,7 @@ describe('Lambda Multi-region Integration Testing', () => {
     ),
   );
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it(
     'sets the default region',
@@ -92,7 +90,7 @@ describe('Lambda Multi-region Integration Testing', () => {
   `),
   );
 
-  it('undo changes', sync());
+  it('undo changes', commit());
 
   it(
     'checks it has been removed',
@@ -119,7 +117,7 @@ describe('Lambda Multi-region Integration Testing', () => {
   `),
   );
 
-  it('applies the change', apply());
+  it('applies the change', commit());
 
   it(
     'checks the lambda function was added',
@@ -142,7 +140,7 @@ describe('Lambda Multi-region Integration Testing', () => {
   `),
   );
 
-  it('applies the replacement', apply());
+  it('applies the replacement', commit());
 
   it(
     'checks the lambda function was moved',
@@ -164,7 +162,7 @@ describe('Lambda Multi-region Integration Testing', () => {
   `),
   );
 
-  it('applies the removal', apply());
+  it('applies the removal', commit());
 
   it(
     'checks the remaining table count for the last time',

@@ -7,10 +7,9 @@ import {
   execComposeUp,
   finish,
   getPrefix,
-  runApply,
+  runCommit,
   runInstall,
   runQuery,
-  runSync,
 } from '../helpers';
 
 const prefix = getPrefix();
@@ -21,8 +20,7 @@ const nonDefaultRegion = 'us-east-1';
 const policyMock =
   '{ "Version": "2012-10-17", "Statement": [ { "Sid": "DenyPull", "Effect": "Deny", "Principal": "*", "Action": [ "ecr:BatchGetImage", "ecr:GetDownloadUrlForLayer" ] } ]}';
 
-const apply = runApply.bind(null, dbAlias);
-const sync = runSync.bind(null, dbAlias);
+const commit = runCommit.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const modules = ['aws_ecr'];
@@ -58,7 +56,7 @@ describe('ECR Multi-region Integration Testing', () => {
     ),
   );
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it(
     'sets the default region',
@@ -77,7 +75,7 @@ describe('ECR Multi-region Integration Testing', () => {
   `),
   );
 
-  it('undo changes', sync());
+  it('undo changes', commit());
 
   it(
     'checks it has been removed',
@@ -99,7 +97,7 @@ describe('ECR Multi-region Integration Testing', () => {
   `),
   );
 
-  it('applies the change', apply());
+  it('applies the change', commit());
 
   it(
     'checks the repository was added',
@@ -129,7 +127,7 @@ describe('ECR Multi-region Integration Testing', () => {
     ),
   );
 
-  it('syncs the images', sync());
+  it('syncs the images', commit());
 
   it(
     'check that new images has been created under a private repo',
@@ -155,7 +153,7 @@ describe('ECR Multi-region Integration Testing', () => {
   `),
   );
 
-  it('applies the change', apply());
+  it('applies the change', commit());
 
   it(
     'check adds a new repository policy',
@@ -199,7 +197,7 @@ describe('ECR Multi-region Integration Testing', () => {
   `),
   );
 
-  it('applies the deletion', apply());
+  it('applies the deletion', commit());
 
   it(
     'changes the region the repository is located in',
@@ -263,7 +261,7 @@ describe('ECR Multi-region Integration Testing', () => {
     ),
   );
 
-  it('applies the replacement', apply());
+  it('applies the replacement', commit());
 
   it(
     'checks the repository was moved',
@@ -302,7 +300,7 @@ describe('ECR Multi-region Integration Testing', () => {
   `),
   );
 
-  it('applies the removal', apply());
+  it('applies the removal', commit());
 
   it(
     'checks the remaining table count for the last time',

@@ -5,10 +5,9 @@ import {
   execComposeDown,
   execComposeUp,
   finish,
-  runApply,
+  runCommit,
   runInstall,
   runQuery,
-  runSync,
 } from '../helpers'
 import config from '../../src/config'
 
@@ -16,10 +15,9 @@ const latestVersion = config.modules.latestVersion;
 const oldestVersion = config.modules.oldestVersion;
 
 const dbAlias = 'accounttest';
-const apply = runApply.bind(null, dbAlias);
+const commit = runCommit.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
-const sync = runSync.bind(null, dbAlias);
 const runSql = iasql.runSql.bind(null, dbAlias, 'not-needed');
 const region = defaultRegion();
 
@@ -135,7 +133,7 @@ describe('AwsAccount Integration Testing', () => {
     INSERT INTO aws_credentials (access_key_id, secret_access_key) VALUES ('fake', 'creds')
   `));
 
-  it('does absolutely nothing when you apply this', apply());
+  it('does absolutely nothing when you apply this', commit());
 
   it('selects a default region', query(`
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
@@ -198,10 +196,10 @@ describe('AwsAccount Integration Testing', () => {
     .init()
     .then(...finish(done)));
 
-  it('does absolutely nothing when you sync this', sync());
+  it('does absolutely nothing when you sync this', commit());
 
   it('does absolutely nothing when you preview this', query(`
-    select iasql_preview_apply();
+    select iasql_preview();
   `, (res: any[]) => expect(res.length).toBe(0)));
 
   it('removes the useless row', query(`
@@ -257,7 +255,7 @@ describe('AwsAccount Integration Testing', () => {
   }));
 
   it('confirms that you cannot apply in a busted db', (done) => void query(`
-    SELECT * FROM iasql_apply();
+    SELECT * FROM iasql_commit();
   `)((e?: any) => {
     console.log({ e, });
     try {

@@ -6,18 +6,16 @@ import {
   execComposeUp,
   finish,
   getPrefix,
-  runApply,
+  runCommit,
   runInstall,
   runQuery,
-  runSync,
   runUninstall,
 } from '../helpers';
 
 const prefix = getPrefix();
 const dbAlias = 's3test';
 const s3Name = `${prefix}${dbAlias}`;
-const apply = runApply.bind(null, dbAlias);
-const sync = runSync.bind(null, dbAlias);
+const commit = runCommit.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
@@ -85,7 +83,7 @@ describe('S3 Integration Testing', () => {
     ),
   );
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it(
     'sets the default region',
@@ -104,7 +102,7 @@ describe('S3 Integration Testing', () => {
   `),
   );
 
-  it('undo changes', sync());
+  it('undo changes', commit());
 
   it(
     'check bucket insertion',
@@ -126,7 +124,7 @@ describe('S3 Integration Testing', () => {
   `),
   );
 
-  it('applies the s3 bucket change', apply());
+  it('applies the s3 bucket change', commit());
 
   it(
     'check s3 insertion',
@@ -146,7 +144,7 @@ describe('S3 Integration Testing', () => {
       `INSERT INTO bucket_object (bucket_name, key, region) VALUES ('${s3Name}', 'fake_bucket', '${region}')`,
     ),
   );
-  it('applies the s3 object removal', apply());
+  it('applies the s3 object removal', commit());
 
   it(
     'check fake object deletion',
@@ -194,7 +192,7 @@ describe('S3 Integration Testing', () => {
   `),
   );
 
-  it('applies the s3 object removal', apply());
+  it('applies the s3 object removal', commit());
 
   it(
     'check object deletion',
@@ -236,7 +234,7 @@ describe('S3 Integration Testing', () => {
   `),
   );
 
-  it('applies the s3 bucket update', apply());
+  it('applies the s3 bucket update', commit());
 
   it(
     'check s3 bucket timestamp is reverted',
@@ -297,7 +295,7 @@ describe('S3 Integration Testing', () => {
     UPDATE bucket SET policy_document='${newPolicyDocument}' WHERE name = '${s3Name}';
     `),
     );
-    it('applies the s3 bucket policy update', apply());
+    it('applies the s3 bucket policy update', commit());
 
     it(
       'gets current bucket policy with updated document',
@@ -360,7 +358,7 @@ describe('S3 Integration Testing', () => {
     DELETE FROM bucket WHERE name = '${s3Name}';
   `));
 
-  it('applies the s3 bucket removal', apply());
+  it('applies the s3 bucket removal', commit());
 
   it(
     'check s3 removal',
@@ -395,7 +393,7 @@ describe('S3 install/uninstall', () => {
     ),
   );
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it(
     'sets the default region',

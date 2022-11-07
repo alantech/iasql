@@ -1,5 +1,5 @@
 import * as iasql from '../../src/services/iasql'
-import { runApply, runInstall, runQuery, finish, execComposeUp, execComposeDown } from '../helpers'
+import { runCommit, runInstall, runQuery, finish, execComposeUp, execComposeDown } from '../helpers'
 import MetadataRepo from '../../src/services/repositories/metadata'
 
 const metadataQuery = runQuery.bind(null, 'iasql_metadata');
@@ -8,7 +8,7 @@ const uid = '12345';
 const email = 'test@example.com';
 const dbQuery = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
-const apply = runApply.bind(null, dbAlias);
+const commit = runCommit.bind(null, dbAlias);
 
 jest.setTimeout(360000);
 beforeAll(async () => await execComposeUp());
@@ -78,7 +78,7 @@ describe('Testing metadata repo', () => {
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `, undefined, false));
 
-  it('apply updates db counts', apply());
+  it('apply updates db counts', commit());
 
   it('check rpc db count', metadataQuery(`
     SELECT rpc_count

@@ -5,10 +5,9 @@ import {
   execComposeUp,
   finish,
   getPrefix,
-  runApply,
+  runCommit,
   runInstall,
   runQuery,
-  runSync,
 } from '../helpers';
 
 const prefix = getPrefix();
@@ -16,8 +15,7 @@ const dbAlias = 'sgtest';
 const sgName = `${prefix}${dbAlias}`;
 const nonDefaultRegion = 'us-east-1';
 const defaultRegion = dr();
-const apply = runApply.bind(null, dbAlias);
-const sync = runSync.bind(null, dbAlias);
+const commit = runCommit.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const modules = ['aws_security_group', 'aws_vpc'];
@@ -44,7 +42,7 @@ describe('Security Group Multi region Integration Testing', () => {
     ),
   );
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it(
     'sets the default region',
@@ -63,7 +61,7 @@ describe('Security Group Multi region Integration Testing', () => {
   `),
   );
 
-  it('undo changes', sync());
+  it('undo changes', commit());
 
   it(
     'check security_group insertion',
@@ -85,7 +83,7 @@ describe('Security Group Multi region Integration Testing', () => {
   `),
   );
 
-  it('applies the security group change', apply());
+  it('applies the security group change', commit());
 
   it(
     'check security_group insertion',
@@ -113,7 +111,7 @@ describe('Security Group Multi region Integration Testing', () => {
   `),
   );
 
-  it('applies the security group rule change', apply());
+  it('applies the security group rule change', commit());
 
   it(
     'updates the security group rule',
@@ -140,7 +138,7 @@ describe('Security Group Multi region Integration Testing', () => {
     ),
   );
 
-  it('applies the security group rule change (again)', apply());
+  it('applies the security group rule change (again)', commit());
 
   it(
     'updates the security group',
@@ -152,7 +150,7 @@ describe('Security Group Multi region Integration Testing', () => {
   `),
   );
 
-  it('applies the security group change (again)', apply());
+  it('applies the security group change (again)', commit());
 
   it(
     'check security_group insertion',
@@ -198,7 +196,7 @@ describe('Security Group Multi region Integration Testing', () => {
   `),
   );
 
-  it('deletes the final test records', apply());
+  it('deletes the final test records', commit());
 
   it(
     'check security_group insertion',

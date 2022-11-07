@@ -6,10 +6,9 @@ import {
   execComposeUp,
   finish,
   getPrefix,
-  runApply,
+  runCommit,
   runInstall,
   runQuery,
-  runSync,
   runUninstall,
 } from '../helpers'
 
@@ -20,8 +19,7 @@ const {
 const prefix = getPrefix();
 const dbAlias = 'ecssmptest';
 const region = defaultRegion();
-const apply = runApply.bind(null, dbAlias);
-const sync = runSync.bind(null, dbAlias);
+const commit = runCommit.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
@@ -55,7 +53,7 @@ describe('ECS Simplified Integration Testing', () => {
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `, undefined, false));
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it('sets the default region', query(`
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
@@ -78,7 +76,7 @@ describe('ECS Simplified Integration Testing', () => {
     WHERE name = '${appName}-service';
   `, (res: any[]) => expect(res.length).toBe(1)));
 
-  it('undo changes', sync());
+  it('undo changes', commit());
 
   it('check service row', query(`
     SELECT *
@@ -166,7 +164,7 @@ describe('ECS Simplified Integration Testing', () => {
     WHERE name = '${appName}-service';
   `, (res: any[]) => expect(res.length).toBe(1)));
 
-  it('applies adds a new row', apply());
+  it('applies adds a new row', commit());
 
   it('check service row', query(`
     SELECT *
@@ -210,7 +208,7 @@ describe('ECS Simplified Integration Testing', () => {
     WHERE app_name = '${appName}';
   `));
 
-  it('applies row update and should restore the dns value', apply());
+  it('applies row update and should restore the dns value', commit());
 
   it('check row was restored', query(`
     SELECT *
@@ -236,7 +234,7 @@ describe('ECS Simplified Integration Testing', () => {
     expect(res[0]['port']).toBe(appPort + 1);
   }));
 
-  it('applies row update and should replace', apply());
+  it('applies row update and should replace', commit());
 
   it('check row was replaced', query(`
     SELECT *
@@ -254,7 +252,7 @@ describe('ECS Simplified Integration Testing', () => {
     WHERE app_name = '${appName}';
   `));
 
-  it('applies row update and should restore using the right repository uri', apply());
+  it('applies row update and should restore using the right repository uri', commit());
 
   it('check that the repository_uri has been restored with the same repository', query(`
     SELECT *
@@ -271,7 +269,7 @@ describe('ECS Simplified Integration Testing', () => {
     WHERE app_name = '${appName}';
   `));
 
-  it('applies row update and should update service', apply());
+  it('applies row update and should update service', commit());
 
   it('check row was updated', query(`
     SELECT *
@@ -305,7 +303,7 @@ describe('ECS Simplified Integration Testing', () => {
       expect(res[0]['env_variables']).toBeDefined();
   }));
 
-  it('applies app update', apply());
+  it('applies app update', commit());
 
   it('check service force update', query(`
     SELECT *
@@ -340,7 +338,7 @@ describe('ECS Simplified Integration Testing', () => {
     where app_name = '${appName}';
   `));
 
-  it('applies deletes the app', apply());
+  it('applies deletes the app', commit());
 
   it('check there are no more rows', query(`
     SELECT *
@@ -365,7 +363,7 @@ describe('ECS Simplified install/uninstall', () => {
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `, undefined, false));
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it('sets the default region', query(`
     UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';

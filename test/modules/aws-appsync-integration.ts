@@ -6,18 +6,16 @@ import {
   execComposeUp,
   finish,
   getPrefix,
-  runApply,
+  runCommit,
   runInstall,
   runQuery,
-  runSync,
   runUninstall,
 } from '../helpers';
 
 const prefix = getPrefix();
 const dbAlias = `${prefix}appsynctest`;
 
-const apply = runApply.bind(null, dbAlias);
-const sync = runSync.bind(null, dbAlias);
+const commit = runCommit.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
@@ -53,7 +51,7 @@ describe('App Sync Integration Testing', () => {
     ),
   );
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it(
     'sets the default region',
@@ -72,7 +70,7 @@ describe('App Sync Integration Testing', () => {
   `),
   );
 
-  it('undo changes', sync());
+  it('undo changes', commit());
 
   it(
     'adds a new GraphQL API entry',
@@ -82,7 +80,7 @@ describe('App Sync Integration Testing', () => {
   `),
   );
 
-  it('applies the Graphql API change', apply());
+  it('applies the Graphql API change', commit());
 
   it(
     'check Graphql API is available',
@@ -101,7 +99,7 @@ describe('App Sync Integration Testing', () => {
   `),
   );
 
-  it('applies the Graphql API auth type update', apply());
+  it('applies the Graphql API auth type update', commit());
 
   it(
     'checks that Graphql API has been been modified',
@@ -120,7 +118,7 @@ describe('App Sync Integration Testing', () => {
   `),
   );
 
-  it('applies the Graphql API ID update', apply());
+  it('applies the Graphql API ID update', commit());
 
   it(
     'checks that Graphql API ID has not been been modified',
@@ -154,7 +152,7 @@ describe('App Sync Integration Testing', () => {
   `),
   );
 
-  it('applies the Graphql API removal', apply());
+  it('applies the Graphql API removal', commit());
 
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 });
@@ -177,7 +175,7 @@ describe('API install/uninstall', () => {
     ),
   );
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it(
     'sets the default region',
