@@ -148,10 +148,7 @@ export class CertificateRequestRpc extends RpcBase {
                 ttl: 300,
                 recordType: RecordType.CNAME,
               };
-              const createdRecord = await awsRoute53Module.resourceRecordSet.cloud.create(
-                record,
-                ctx,
-              );
+              const createdRecord = await awsRoute53Module.resourceRecordSet.cloud.create(record, ctx);
               if (createdRecord) {
                 createdRecordsets.push(record);
               }
