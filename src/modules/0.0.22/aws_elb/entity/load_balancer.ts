@@ -10,6 +10,8 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 
+import { LoadBalancerAttribute } from '@aws-sdk/client-elastic-load-balancing-v2';
+
 import { cloudId } from '../../../../services/cloud-id';
 import { AwsRegions } from '../../aws_account/entity';
 import { SecurityGroup } from '../../aws_security_group/entity';
@@ -133,4 +135,18 @@ export class LoadBalancer {
   @ManyToOne(() => AwsRegions, { nullable: false })
   @JoinColumn({ name: 'region' })
   region: string;
+
+  @Column({
+    type: 'json',
+    nullable: true,
+  })
+  attributes?: LoadBalancerAttribute[];
+
+  @Column({
+    type: 'json',
+    nullable: true,
+  })
+  connectionSettings?: {
+    idleTimeout?: number | undefined;
+  };
 }
