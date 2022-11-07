@@ -181,9 +181,7 @@ export class CertificateRequestRpc extends RpcBase {
       if (!installedModules.map(m => m.moduleName).includes('aws_route53')) {
         // TODO: Should the other error path, which is an AWS error instead of a user error, also
         // use the 'throw new Error' pattern?
-        throw new Error(
-          'DNS validated certificates only possible if "aws_route53 is installed',
-        );
+        throw new Error('DNS validated certificates only possible if "aws_route53 is installed');
       }
     }
     const opts = safeParse(options);
