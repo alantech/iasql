@@ -13,7 +13,8 @@ services:
     links:
       - postgresql
   postgresql:
-    image: postgres:13.4
+    build:
+      dockerfile: Dockerfile.pg
     ports:
       - "5432:5432"
     environment:
