@@ -222,7 +222,7 @@ jobs:
           ";
 
           psql postgres://postgres:test@localhost:5432/iasql -c "
-            SELECT * FROM iasql_sync();
+            SELECT * FROM iasql_commit();
           ";
 
           echo "\nInstalling all modules in iasql db..."
@@ -237,7 +237,7 @@ jobs:
           psql postgres://postgres:test@localhost:5432/iasql -c "select * from delete_all_records();"
 
           echo "\nApply..."
-          psql postgres://postgres:test@localhost:5432/iasql -c "select * from iasql_apply();"
+          psql postgres://postgres:test@localhost:5432/iasql -c "select * from iasql_commit();"
 
           # Shut down the engine
           docker-compose down
