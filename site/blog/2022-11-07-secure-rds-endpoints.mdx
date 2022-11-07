@@ -1,0 +1,60 @@
+---
+slug: rds-privatelink
+title: Securely connect Amazon RDS using PrivateLink
+authors: [depombo, dfellis, aguillenv, yrobla]
+---
+
+# Securely connect Amazon RDS using PrivateLink
+
+<p>Do you have some database instances on RDS and wonder what's the most secure way to reach them?</p>
+<p>
+  While RDS endpoints can be reached from public internet, you should consider accessing them internally from
+  your VPC, to grant additional security to those services that are critical.
+</p>
+<p>
+  AWS PrivateLink offers the possibility to securely access those services without exposing them to internet,
+  just using Amazon's private network.
+</p>
+
+## Do you want to know if you have it properly configured? Please use this query to check it:
+
+<!--- https://www.urlencoder.org/ -->
+
+<p>
+  <a href="https://app.iasql.com/#/button/Check RDSA endpoints/----%20Installing%20the%20needed%20modules%0ASELECT%20iasql_install%28%27aws_rds%27%29%3B%0ASELECT%20iasql_install%28%27aws_vpc%27%29%3B%0A%0A--%20Sync%20the%20existing%20data%0Aselect%20%2A%20from%20iasql_sync%28%29%3B%0A--%20Perform%20the%20query%20for%20endpoints%0Aselect%20RDS.region%2C%20vpc.is_default%2C%20vpc.cidr_block%2C%0A%28select%20count%28%2A%29%3E0%20from%20endpoint_interface%20where%20endpoint_interface.region%3DRDS.region%20and%20service%3D%27rds%27%20and%20endpoint_interface.vpc_id%3Dvpc.id%29%20as%20has_endpoint_interface%0Afrom%20RDS%20left%20outer%20join%20vpc%20on%20vpc.region%3DRDS.region%3B">
+    <button class="button button--lg button--primary">Check your endpoints</button>
+  </a>
+</p>
+
+<p>Have you found missing endpoints? No problem, IaSQL can generate missing Endpoint Interfaces for you.</p>
+
+<p>
+  <a href="https://app.iasql.com/#/button/Add RDS endpoint interfaces/--%20Inserts%20the%20missing%20endpoints%0Ainsert%20into%20endpoint_interface%28region%2C%20vpc_id%2C%20service%2C%20private_dns_enabled%29%20select%20RDS.region%2C%20vpc.id%2C%20%27rds%27%2C%20true%20from%20RDS%20inner%20join%20vpc%0Aon%20RDS.region%3Dvpc.region%20where%20not%20exists%20%28select%20id%20from%20endpoint_interface%20where%20endpoint_interface.region%3DRDS.region%20and%20endpoint_interface.vpc_id%3Dvpc.id%29%3B%0A--%20Preview%20the%20changes%0Aselect%20%2A%20from%20iasql_preview_apply%28%29%3B%0A--%20Apply%20the%20changes%0A--select%20%2A%20from%20iasql_apply%28%29%3B">
+    <button class="button button--lg button--primary">Add missing endpoint interfaces</button>
+  </a>
+</p>
+
+<p>
+  By clicking on the button, our engine will auto-generate the missing endpoint interfaces and will allow you
+  to preview the changes to be applied on your cloud.
+</p>
+
+## Testing the result
+
+<p>
+  in order to start testing the result, you can start a new EC2 instance on a private VPC, on the same region
+  where your RDS and Endpoint interface is configured. You can double check that there is no internet
+  connectivity. But the RDS endpoint could still be reached, by using the interface that has been created:
+</p>
+
+<div class="col col--12">
+  <img src="/img/access_rds_endpoint.png" height="200" />
+</div>
+
+<p>
+  Please note that you could only use those endpoints from the same region. You could reach the services in a
+  multi-region way with the use of{' '}
+  <a href="https://docs.aws.amazon.com/vpc/latest/peering/what-is-vpc-peering.html" target="_blank">
+    VPC peering
+  </a>
+</p>
