@@ -25,6 +25,12 @@ export default function NavbarItem(props) {
     if (label === 'Blog') return null;
   }
 
+  if (pathname.includes('schema')) {
+    if (label === 'Blog') return null;
+    if (label === 'Schema') return null;
+    if (type === 'docsVersionDropdown') return null;
+  }
+
   return (
     <>
       <OriginalNavBarItem {...props} />

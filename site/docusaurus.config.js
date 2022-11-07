@@ -97,7 +97,7 @@ const config = process.env.IASQL_ENV === 'local' ? localConfig : prodConfig;
             label: 'Blog',
           },
           {
-            to: 'https://dbdocs.io/iasql/iasql',
+            to: 'schema',
             target: '_self',
             label: 'Schema',
           },
