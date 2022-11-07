@@ -1700,3 +1700,55 @@ async function getChangesAfterCommitStartedByEntity(context: Context): Promise<{
   });
   return getChangesByEntity(changesAfterCommit);
 }
+
+export async function rollback(
+  dbId: string,
+  context: Context,
+  force = false,
+  ormOpt?: TypeormWrapper,
+) {
+  const t1 = Date.now();
+  logger.info(`Sync to ${dbId}`);
+  await throwIfUpgrading(dbId, force);
+  const versionString = await TypeormWrapper.getVersionString(dbId);
+  const importedModules = await getImportedModules(dbId, versionString);
+  let orm: TypeormWrapper | null = null;
+  try {
+    orm = ormOpt ? ormOpt : await TypeormWrapper.createConn(dbId);
+    context.orm = orm;
+    const newStartCommit = await insertCommit(orm, 'start');
+    context.startCommit = newStartCommit;
+
+    const installedModulesNames = (await orm.find(IasqlModule)).map((m: any) => m.name);
+    const installedModules: ModuleInterface[] = (Object.values(importedModules) as ModuleInterface[]).filter(
+      mod => installedModulesNames.includes(`${mod.name}@${mod.version}`),
+    );
+
+    const t2 = Date.now();
+    logger.info(`Setup took ${t2 - t1}ms`);
+
+    const toCreate: Crupde = {};
+    const toUpdate: Crupde = {};
+    const toReplace: Crupde = {}; // Not actually used in sync mode, at least right now
+    const toDelete: Crupde = {};
+    const installedModulesSorted: ModuleInterface[] = sortModules(installedModules, installedModulesNames);
+    return await commitSync(
+      dbId,
+      installedModulesSorted,
+      context,
+      toCreate,
+      toUpdate,
+      toReplace,
+      toDelete,
+      false,
+    );
+  } catch (e: any) {
+    debugObj(e);
+    throw e;
+  } finally {
+    // Create end commit object
+    await insertCommit(orm, 'end');
+    // do not drop the conn if it was provided
+    if (orm !== ormOpt) orm?.dropConn();
+  }
+}
