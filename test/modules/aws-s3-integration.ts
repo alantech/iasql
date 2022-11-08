@@ -173,6 +173,9 @@ describe('S3 Integration Testing', () => {
     'inserts content into bucket object',
     query(
       `INSERT INTO bucket_object (bucket_name, key, region) VALUES ('${s3Name}', 'fake_bucket', '${region}')`,
+      undefined,
+      true,
+      () => ({ username, password }),
     ),
   );
   it('applies the s3 object removal', commit());

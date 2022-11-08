@@ -201,6 +201,9 @@ describe('ECR Integration Testing', () => {
       'deletes image with a tag from a private repo',
       query(
         `DELETE FROM repository_image WHERE private_repository_id = (select id from repository where repository_name = '${repositoryName}') AND image_tag='${repositoryTag}';`,
+        undefined,
+        true,
+        () => ({ username, password }),
       ),
     );
     it('applies image delete change', commit());

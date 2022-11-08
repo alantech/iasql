@@ -370,6 +370,9 @@ describe('Security Group Integration Testing', () => {
     'deletes the source security group rule',
     query(
       `DELETE FROM security_group_rule WHERE source_security_group = (SELECT id FROM security_group WHERE group_name='${prefix}sgsourcetest')`,
+      undefined,
+      true,
+      () => ({ username, password }),
     ),
   );
 
@@ -467,6 +470,9 @@ describe('Security Group Integration Testing', () => {
     'deletes the source security group rule for not default',
     query(
       `DELETE FROM security_group_rule WHERE source_security_group = (SELECT id FROM security_group WHERE group_name='${prefix}sgsourcetestnotdefault')`,
+      undefined,
+      true,
+      () => ({ username, password }),
     ),
   );
 
@@ -563,6 +569,9 @@ describe('Security Group Integration Testing', () => {
     'deletes the source security group rule pointing to itself',
     query(
       `DELETE FROM security_group_rule WHERE source_security_group = (SELECT id FROM security_group WHERE group_name='${prefix}sgforsource')`,
+      undefined,
+      true,
+      () => ({ username, password }),
     ),
   );
 
@@ -670,12 +679,18 @@ describe('Security Group Integration Testing', () => {
     'deletes the source security group rule for A',
     query(
       `DELETE FROM security_group_rule WHERE source_security_group = (SELECT id FROM security_group WHERE group_name='${prefix}sgtestA')`,
+      undefined,
+      true,
+      () => ({ username, password }),
     ),
   );
   it(
     'deletes the source security group rule for B',
     query(
       `DELETE FROM security_group_rule WHERE source_security_group = (SELECT id FROM security_group WHERE group_name='${prefix}sgtestB')`,
+      undefined,
+      true,
+      () => ({ username, password }),
     ),
   );
   it(
