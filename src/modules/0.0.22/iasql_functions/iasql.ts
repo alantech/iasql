@@ -1703,12 +1703,7 @@ async function getChangesAfterCommitStartedByEntity(context: Context): Promise<{
   return getChangesByEntity(changesAfterCommit);
 }
 
-export async function rollback(
-  dbId: string,
-  context: Context,
-  force = false,
-  ormOpt?: TypeormWrapper,
-) {
+export async function rollback(dbId: string, context: Context, force = false, ormOpt?: TypeormWrapper) {
   const t1 = Date.now();
   logger.info(`Sync to ${dbId}`);
   await throwIfUpgrading(dbId, force);
