@@ -79,85 +79,40 @@ VALUES ('quickstart', 8088, true, 'latest');
 SELECT * from iasql_apply();
 ```
 
-<!--- https://www.urlencoder.org/ -->
-<button
-  className={"button button--primary button--lg margin-bottom--lg"}
-  onClick={() => window.open('https://app.iasql.com/#/button/INSERT%20INTO%20ecs_simplified%20%28app_name%2C%20app_port%2C%20public_ip%2C%20image_tag%29%0AVALUES%20%28%27quickstart%27%2C%208088%2C%20true%2C%20%27latest%27%29%3B%0A%0ASELECT%20%2A%20from%20iasql_apply%28%29%3B', '_blank')}
->
-Run SQL
-</button>
-
 If the function call is successful, it will return a virtual table with a record for each cloud resource that has been created, deleted, or updated.
 Login, build and push your code to the container registry
 
-1. Grab your new `ECR URI` from the hosted DB
+Previously, you needed to manually build and push your image to the ECR. But recently we've added the high-level `ecr_build` SQL function which does all those steps automatically. It will do the following:
+- Pull the code from your Github repository
+- Build the Docker image in the directory you've specified
+- Push the image to the ECR repository you've provided
 
+All of these steps will be done in a CodeBuild project in your AWS account. To use the `ecr_build` function, you can run:
 ```sql
-SELECT repository_uri
-FROM ecs_simplified
-WHERE app_name = 'quickstart';
+SELECT ecr_build(
+   'https://github.com/iasql/iasql-engine/', -- replace with your own Github repo if you want to use your own codebase
+   (SELECT id
+    FROM repository
+    WHERE repository_name = 'quickstart-repository')::varchar(255), -- replace quickstart if you've changed the project name
+   './examples/ecs-fargate/prisma/app', -- the sub directory in the Github repo that the image should be built in
+   'ghp_XXX', -- replace your github personal access token here
+   'main' -- the Github repo branch name
+);
 ```
 
-<!--- https://www.urlencoder.org/ -->
-<button
-  className={"button button--primary button--lg margin-bottom--lg"}
-  onClick={() => window.open('https://app.iasql.com/#/button/SELECT%20repository_uri%0AFROM%20ecs_simplified%0AWHERE%20app_name%20%3D%20%27quickstart%27%3B', '_blank')}
->
-Run SQL
-</button>
-
-2. Login to AWS ECR using the AWS CLI. Run the following command and use the correct `<ECR-URI>` and AWS `<profile>`
-
+After running the above SQL command to completion, you can check the running app using the load balancer DNS name. To grab the name, run:
 ```bash
-aws ecr get-login-password --region ${AWS_REGION} --profile <profile> | docker login --username AWS --password-stdin ${QUICKSTART_ECR_URI}
+QUICKSTART_LB_DNS=$(psql -At 'postgres://d0va6ywg:nfdDh#EP4CyzveFr@db.iasql.com/_4b2bb09a59a411e4' -c "
+SELECT dns_name
+FROM load_balancer
+WHERE load_balancer_name = '<project-name>-load-balancer';")
 ```
+And then connect to your service!
 
-:::caution
-
-Make sure the [CLI is configured with the same credentials](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html), via environment variables or `~/.aws/credentials`, as the ones provided to IaSQL, or this will fail.
-
-:::
-
-3. Build your image locally
-
-```bash
-docker build -t quickstart-repository app
 ```
-
-4. Tag your image
-
-```bash
-docker tag quickstart-repository:latest ${QUICKSTART_ECR_URI}:latest
-```
-
-5. Push your image
-
-```bash
-docker push ${QUICKSTART_ECR_URI}:latest
-```
-
-6. Grab your load balancer DNS and access your service!
-
-```sql
-SELECT load_balancer_dns
-FROM ecs_simplified
-WHERE app_name = 'quickstart';
-```
-
-<!--- https://www.urlencoder.org/ -->
-<a href='https://app.iasql.com/#/button/SELECT%20load_balancer_dns%0AFROM%20ecs_simplified%0AWHERE%20app_name%20%3D%20%27quickstart%27%3B'>
-<button
-  className={"button button--primary button--lg margin-bottom--lg"}
->
-Run SQL
-</button>
-</a>
-
-7. Connect to your service!
-
-```bash
 curl ${QUICKSTART_LB_DNS}:8088/health
 ```
+
 
 ## Delete managed cloud resources
 
@@ -173,15 +128,6 @@ Delete all IaSQL records invoking the void `delete_all_records` function and app
 SELECT delete_all_records();
 SELECT * from iasql_apply();
 ```
-
-<!--- https://www.urlencoder.org/ -->
-<a href='https://app.iasql.com/#/button/SELECT%20delete_all_records%28%29%3B%0ASELECT%20%2A%20from%20iasql_apply%28%29%3B'>
-<button
-  className={"button button--primary button--lg margin-bottom--lg"}
->
-Run SQL
-</button>
-</a>
 
 If the function call is successful, it will return a virtual table with a record for each cloud resource that has been created, deleted or updated.
 

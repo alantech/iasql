@@ -79,10 +79,12 @@ cd infra
 npm i
 ```
 
-3. Modify the [`.env file`](https://www.prisma.io/docs/guides/development-environment/environment-variables) that Prisma expects with the connection parameters provided on db creation. In this case:
+3. Modify the [`.env file`](https://www.prisma.io/docs/guides/development-environment/environment-variables) that Prisma expects with the connection parameters provided on db creation. You'll need to add your [Github personal access token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token) for the `ecr_build` SQL function to be able to do the pull. Also, if you're going to deploy a codebase other than the default one, set the `REPO_URI` variable. In this case:
 
 ```bash title="prisma/infra/.env"
 DATABASE_URL="postgres://d0va6ywg:nfdDh#EP4CyzveFr@db.iasql.com/_4b2bb09a59a411e4"
+GH_PAT=ghp_XXX
+REPO_URI="https://github.com/iasql/iasql-engine"
 ```
 
 4. (Optional) Set the desired project name that your resources will be named after by changing the `name` in the `my_project/infra/package.json`. If the name is not changed, `quickstart` will be used.
@@ -134,46 +136,49 @@ node index.js
 This will run the following [code](https://github.com/iasql/iasql-engine/tree/main/examples/ecs-fargate/prisma/infra/index.js)
 
 ```js title="my_project/migrations/index.js"
-const { PrismaClient, load_balancer_scheme_enum, task_definition_cpu_memory_enum } = require('@prisma/client')
-
-const pkg = require('./package.json');
-// TODO replace with your desired project name
-const PROJECT_NAME = pkg.name;
-
-const CONTAINER_MEM_RESERVATION = 8192; // in MiB
-const PORT = 8088;
-
-const prisma = new PrismaClient()
-
 async function main() {
   const data = {
-    app_name: PROJECT_NAME, public_ip: true, app_port: PORT
+    app_name: APP_NAME,
+    public_ip: true,
+    app_port: PORT,
+    image_tag: 'latest',
   };
   await prisma.ecs_simplified.upsert({
-    where: { app_name: PROJECT_NAME},
+    where: { app_name: APP_NAME },
     create: data,
     update: data,
   });
 
-  const apply = await prisma.$queryRaw`SELECT * from iasql_apply();`
-  console.dir(apply)
+  const apply = await prisma.$queryRaw`SELECT *
+                                       from iasql_apply();`;
+  console.dir(apply);
 
-  const repo_uri = (await prisma.ecs_simplified.findFirst({
-    where: { app_name: PROJECT_NAME },
-    select: { repository_uri: true }
-  })).repository_uri;
-
+  console.log('Using ecr_build to build the docker image and push it to ECR...');
+  const repoId = (await prisma.repository.findFirst({
+    where: { repository_name: `${APP_NAME}-repository` },
+    select: { id: true },
+  })).id.toString();
+  const repoUri = `${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}`;
+  const image = await prisma.$queryRaw`SELECT ecr_build(
+              ${repoUri},
+              ${repoId},
+              './examples/ecs-fargate/prisma/app',
+              ${GH_PAT},
+              ${GITHUB_REF}
+  );`;
+  console.log(image);
 }
+
 ```
 
-The last part of the script will apply the changes described in the hosted db to your cloud account which will take a few minutes waiting for AWS
+It'll use the `ecs_simplified` module to create all the necessary AWS resources needed for you app to run (load balancer, ECR repository, IAM role, etc). 
 
 ```js title="my_project/migrations/index.js"
 const apply = await prisma.$queryRaw`SELECT * from iasql_apply();`
 console.dir(apply)
 ```
 
-If the function call is successful, it will return a virtual table with a record for each cloud resource that has been created, deleted or updated.
+If that function call is successful, it will return a virtual table with a record for each cloud resource that has been created, deleted or updated.
 
 ```sql
  action |    table_name       |   id   |      description      
@@ -193,53 +198,33 @@ If the function call is successful, it will return a virtual table with a record
 
 ## Login, build and push your code to the container registry
 
-1. Grab your new `ECR URI` from the hosted DB
-```bash
-QUICKSTART_ECR_URI=$(psql -At 'postgres://d0va6ywg:nfdDh#EP4CyzveFr@db.iasql.com/_4b2bb09a59a411e4' -c "
-SELECT repository_uri
-FROM repository
-WHERE repository_name = '<project-name>-repository';")
+Previously, you needed to manually build and push your image to the ECR. But recently we've added the high-level `ecr_build` SQL function which does all those steps automatically. It will do the following:
+- Pull the code from your Github repository
+- Build the Docker image in the directory you've specified
+- Push the image to the ECR repository you've provided
+
+All of these steps will be done in a CodeBuild project in your AWS account. To use the `ecr_build` function, you can run:
+```sql
+SELECT ecr_build(
+   'https://github.com/iasql/iasql-engine/', -- replace with your own Github repo if you want to use your own codebase
+   (SELECT id
+    FROM repository
+    WHERE repository_name = 'quickstart-repository')::varchar(255), -- replace quickstart if you've changed the project name
+   './examples/ecs-fargate/prisma/app', -- the sub directory in the Github repo that the image should be built in
+   'ghp_XXX', -- replace your github personal access token here
+   'main' -- the Github repo branch name
+);
 ```
+That command is already being run in the `infra/index.js` script. So no need for extra steps if you're using it.
 
-2. Login to AWS ECR using the AWS CLI. Run the following command and use the correct `<ECR-URI>` and AWS `<profile>`
-
-```bash
-aws ecr get-login-password --region ${AWS_REGION} --profile <profile> | docker login --username AWS --password-stdin ${QUICKSTART_ECR_URI}
-```
-
-:::caution
-
-Make sure the [CLI is configured with the same credentials](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html), via environment variables or `~/.aws/credentials`, as the ones provided to IaSQL or this will fail.
-
-:::
-
-3. Build your image locally
-
-```bash
-docker build -t <project-name>-repository app
-```
-
-4. Tag your image
-
-```bash
-docker tag <project-name>-repository:latest ${QUICKSTART_ECR_URI}:latest
-```
-
-5. Push your image
-
-```bash
-docker push ${QUICKSTART_ECR_URI}:latest
-```
-
-6. Grab your load balancer DNS and access your service!
+After running the above SQL command to completion, you can check the running app using the load balancer DNS name. To grab the name, run:
 ```bash
 QUICKSTART_LB_DNS=$(psql -At 'postgres://d0va6ywg:nfdDh#EP4CyzveFr@db.iasql.com/_4b2bb09a59a411e4' -c "
 SELECT dns_name
 FROM load_balancer
 WHERE load_balancer_name = '<project-name>-load-balancer';")
 ```
-
-7. Connect to your service!
+And then connect to your service!
 
 ```
 curl ${QUICKSTART_LB_DNS}:8088/health
