@@ -68,7 +68,7 @@ describe('AwsCloudwatch Integration Testing', () => {
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -83,7 +83,7 @@ describe('AwsCloudwatch Integration Testing', () => {
     VALUES ('${logGroupName}');
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -110,7 +110,7 @@ describe('AwsCloudwatch Integration Testing', () => {
     VALUES ('${logGroupName}');
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -140,7 +140,7 @@ describe('AwsCloudwatch Integration Testing', () => {
     UPDATE log_group SET log_group_arn = '${logGroupName}2' WHERE log_group_name = '${logGroupName}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -155,7 +155,7 @@ describe('AwsCloudwatch Integration Testing', () => {
     WHERE log_group_name = '${logGroupName}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -182,7 +182,7 @@ describe('AwsCloudwatch Integration Testing', () => {
     VALUES ('${logGroupName}');
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -197,7 +197,7 @@ describe('AwsCloudwatch Integration Testing', () => {
     );
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -233,7 +233,7 @@ describe('AwsCloudwatch Integration Testing', () => {
     WHERE log_group_name = '${logGroupName}' AND region != default_aws_region();
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -259,7 +259,7 @@ describe('AwsCloudwatch Integration Testing', () => {
     WHERE log_group_name = '${logGroupName}' AND region != default_aws_region();
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -298,7 +298,7 @@ describe('AwsCloudwatch Integration Testing', () => {
     WHERE log_group_name = '${logGroupName}' AND region = default_aws_region();
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -325,7 +325,7 @@ describe('AwsCloudwatch Integration Testing', () => {
     VALUES ('${logGroupName}', 'us-east-1');
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -341,7 +341,7 @@ describe('AwsCloudwatch Integration Testing', () => {
     WHERE log_group_name = '${logGroupName}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -370,7 +370,7 @@ describe('AwsCloudwatch Integration Testing', () => {
     DELETE FROM log_group;
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );

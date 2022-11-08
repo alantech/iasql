@@ -162,7 +162,7 @@ describe('IAM Role Integration Testing', () => {
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -177,7 +177,7 @@ describe('IAM Role Integration Testing', () => {
     VALUES ('${lambdaRoleName}', '${attachAssumeLambdaPolicy}');
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -307,7 +307,7 @@ describe('IAM Role Integration Testing', () => {
     UPDATE iam_role SET arn = 'dummy' WHERE role_name = '${taskRoleName}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -367,7 +367,7 @@ describe('IAM Role Integration Testing', () => {
     UPDATE iam_role SET description = 'description' WHERE role_name = '${taskRoleName}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -381,7 +381,7 @@ describe('IAM Role Integration Testing', () => {
     UPDATE iam_role SET assume_role_policy_document = '${attachAssumeLambdaPolicy}' WHERE role_name = '${ec2RoleName}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -395,7 +395,7 @@ describe('IAM Role Integration Testing', () => {
     UPDATE iam_role SET assume_role_policy_document = '${attachAssumeEc2Policy}' WHERE role_name = '${ec2RoleName}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -450,7 +450,7 @@ describe('IAM Role Integration Testing', () => {
     WHERE role_name = '${taskRoleName}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -463,7 +463,7 @@ describe('IAM Role Integration Testing', () => {
     WHERE role_name = '${lambdaRoleName}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -476,7 +476,7 @@ describe('IAM Role Integration Testing', () => {
     WHERE role_name = '${ec2RoleName}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -489,7 +489,7 @@ describe('IAM Role Integration Testing', () => {
     WHERE role_name = '${ec2RoleNameArray}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -502,7 +502,7 @@ describe('IAM Role Integration Testing', () => {
     WHERE role_name = '${anotherRoleName}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -515,7 +515,7 @@ describe('IAM Role Integration Testing', () => {
     WHERE role_name = '${principalServArr}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -644,7 +644,7 @@ describe('IAM Role Integration Testing', () => {
       UPDATE iam_role SET arn = 'dummy' WHERE role_name = '${awsServiceRoleName}';
     `,
         undefined,
-        false,
+        true,
         () => ({ username, password }),
       ),
     );
@@ -670,7 +670,7 @@ describe('IAM Role Integration Testing', () => {
       DELETE FROM iam_role WHERE role_name = '${awsServiceRoleName}';
     `,
         undefined,
-        false,
+        true,
         () => ({ username, password }),
       ),
     );
@@ -744,7 +744,7 @@ describe('IAM User Integration Testing', () => {
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -781,7 +781,7 @@ describe('IAM User Integration Testing', () => {
     VALUES ('${userName}', '${userPath}');
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -807,7 +807,7 @@ describe('IAM User Integration Testing', () => {
     UPDATE iam_user SET arn = 'arn' WHERE user_name = '${userName}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -833,7 +833,7 @@ describe('IAM User Integration Testing', () => {
     UPDATE iam_user SET path = '${userNewPath}' WHERE user_name = '${userName}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -883,7 +883,7 @@ describe('IAM User Integration Testing', () => {
     DELETE FROM iam_user WHERE user_name = '${userName}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );

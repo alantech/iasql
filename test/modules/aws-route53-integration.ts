@@ -98,7 +98,7 @@ describe('Route53 Integration Testing', () => {
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -113,7 +113,7 @@ describe('Route53 Integration Testing', () => {
     VALUES ('${domainName}');
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -152,7 +152,7 @@ describe('Route53 Integration Testing', () => {
     VALUES ('${domainName}');
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -282,7 +282,7 @@ describe('Route53 Integration Testing', () => {
     WHERE domain_name = '${domainName}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -369,7 +369,7 @@ describe('Route53 Integration Testing', () => {
     UPDATE hosted_zone SET domain_name = '${replaceDomainName}' WHERE domain_name = '${domainName}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -424,7 +424,7 @@ describe('Route53 Integration Testing', () => {
     WHERE domain_name = '${replaceDomainName}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -476,7 +476,7 @@ describe('Route53 Integration Testing', () => {
     WHERE domain_name = '${replaceDomainName}' AND name = '${resourceRecordSetMultilineName}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -511,7 +511,7 @@ describe('Route53 Integration Testing', () => {
     INSERT INTO hosted_zone (domain_name) VALUES ('${replaceDomainName}');
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -565,7 +565,7 @@ describe('Route53 Integration Testing', () => {
     WHERE hosted_zone.id = parent_hosted_zone_id AND domain_name = '${replaceDomainName}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );

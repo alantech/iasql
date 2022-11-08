@@ -84,7 +84,7 @@ describe('API Gateway Integration Testing', () => {
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -99,7 +99,7 @@ describe('API Gateway Integration Testing', () => {
     VALUES ('${apiName}', 'description');
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -114,7 +114,7 @@ describe('API Gateway Integration Testing', () => {
     VALUES ('${apiName}', 'description', false, '1.0');
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -138,7 +138,7 @@ describe('API Gateway Integration Testing', () => {
   UPDATE api SET description='new description' WHERE name='${apiName}'
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -162,7 +162,7 @@ describe('API Gateway Integration Testing', () => {
   UPDATE api SET api_id='fake' WHERE name='${apiName}'
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -186,7 +186,7 @@ describe('API Gateway Integration Testing', () => {
   UPDATE api SET protocol_type='WEBSOCKET' WHERE name='${apiName}'
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -234,7 +234,7 @@ describe('API Gateway Integration Testing', () => {
     WHERE name = '${apiName}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );

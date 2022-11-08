@@ -69,7 +69,7 @@ describe('AwsAcm Import Integration Testing', () => {
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -119,7 +119,7 @@ describe('AwsAcm Import Integration Testing', () => {
     WHERE domain_name = '${domainName}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -164,7 +164,7 @@ describe('AwsAcm Import Integration Testing', () => {
     DELETE FROM certificate;
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );

@@ -81,7 +81,7 @@ describe('ECR Multi-region Integration Testing', () => {
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -96,7 +96,7 @@ describe('ECR Multi-region Integration Testing', () => {
       VALUES ('${repositoryName}', false, 'MUTABLE', '${nonDefaultRegion}');
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -123,7 +123,7 @@ describe('ECR Multi-region Integration Testing', () => {
       VALUES ('${repositoryName}', false, 'MUTABLE', '${nonDefaultRegion}');
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -184,7 +184,7 @@ describe('ECR Multi-region Integration Testing', () => {
     VALUES ((select id from repository where repository_name = '${repositoryName}'), '${policyMock}', '${nonDefaultRegion}');
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -233,7 +233,7 @@ describe('ECR Multi-region Integration Testing', () => {
       WHERE private_repository_id = (select id from repository where repository_name = '${repositoryName}');
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );

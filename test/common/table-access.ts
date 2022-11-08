@@ -95,7 +95,7 @@ describe('Testing table creation and access', () => {
     SELECT * FROM aws_credentials;
   `,
       undefined,
-      true,
+      false,
       () => ({ username, password }),
     ),
   );

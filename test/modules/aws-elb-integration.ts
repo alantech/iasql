@@ -105,7 +105,7 @@ describe('ELB Integration Testing', () => {
         WHERE region = '${region}';
     `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -177,7 +177,7 @@ describe('ELB Integration Testing', () => {
         WHERE target_group_name = '${tgName}';
     `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -193,7 +193,7 @@ describe('ELB Integration Testing', () => {
         VALUES ('${lbName}', '${lbScheme}', null, '${lbType}', '${lbIPAddressType}');
     `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -221,7 +221,7 @@ describe('ELB Integration Testing', () => {
               VALUES ('Security Group Test 2', '${sg2}');
     `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -301,7 +301,7 @@ describe('ELB Integration Testing', () => {
         WHERE load_balancer_name = '${lbName}';
     `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -317,7 +317,7 @@ describe('ELB Integration Testing', () => {
         WHERE load_balancer_id = (SELECT id FROM load_balancer WHERE load_balancer_name = '${lbName}');
     `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -333,7 +333,7 @@ describe('ELB Integration Testing', () => {
         WHERE load_balancer_name = '${lbName}';
     `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -351,7 +351,7 @@ describe('ELB Integration Testing', () => {
                 (SELECT id FROM target_group WHERE target_group_name = '${tgName}'));
     `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -412,7 +412,7 @@ describe('ELB Integration Testing', () => {
                 (SELECT id FROM certificate WHERE domain_name = '${domainName}'));
     `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -456,7 +456,7 @@ describe('ELB Integration Testing', () => {
         WHERE load_balancer_id = (SELECT id FROM load_balancer WHERE load_balancer_name = '${lbName}');
     `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -484,7 +484,7 @@ describe('ELB Integration Testing', () => {
         WHERE load_balancer_name = '${lbName}';
     `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -510,7 +510,7 @@ describe('ELB Integration Testing', () => {
         WHERE group_name IN ('${sg1}', '${sg2}');
     `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -538,7 +538,7 @@ describe('ELB Integration Testing', () => {
         WHERE target_group_name = '${tgName}';
     `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -566,7 +566,7 @@ describe('ELB Integration Testing', () => {
         WHERE domain_name = '${domainName}';
     `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -660,7 +660,7 @@ describe('ELB Integration Testing', () => {
               (SELECT id FROM target_group WHERE target_group_name = '${tgName}'));
     `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );

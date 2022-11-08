@@ -74,7 +74,7 @@ describe('App Sync Multi-region Integration Testing', () => {
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -89,7 +89,7 @@ describe('App Sync Multi-region Integration Testing', () => {
     VALUES ('${apiName}', '${authType}', '${nonDefaultRegion}');
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -116,7 +116,7 @@ describe('App Sync Multi-region Integration Testing', () => {
     VALUES ('${apiName}', '${authType}', '${nonDefaultRegion}');
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -144,7 +144,7 @@ describe('App Sync Multi-region Integration Testing', () => {
       WHERE name = '${apiName}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -178,7 +178,7 @@ describe('App Sync Multi-region Integration Testing', () => {
     WHERE name = '${apiName}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );

@@ -88,7 +88,7 @@ describe('AwsCloudwatch and AwsLambda Integration Testing', () => {
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -105,7 +105,7 @@ describe('AwsCloudwatch and AwsLambda Integration Testing', () => {
       INSERT INTO lambda_function (name, zip_b64, handler, runtime, role_name)
       VALUES ('${resourceName}', '${lambdaFunctionCode}', '${lambdaFunctionHandler}', '${lambdaFunctionRuntime14}', '${resourceName}');
     COMMIT;
-  `, undefined, false, () => ({ username, password })),
+  `, undefined, true, () => ({ username, password })),
   );
 
   it('applies the lambda function change', commit());
@@ -142,7 +142,7 @@ describe('AwsCloudwatch and AwsLambda Integration Testing', () => {
       DELETE FROM iam_role WHERE role_name = '${resourceName}';
       DELETE FROM log_group WHERE log_group_name = '${lambdaLogGroupName}';
     COMMIT;
-  `, undefined, false, () => ({ username, password })),
+  `, undefined, true, () => ({ username, password })),
   );
 
   it('apply deletion', commit());

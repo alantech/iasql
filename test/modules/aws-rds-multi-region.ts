@@ -66,7 +66,7 @@ describe('RDS Multi-Region Testing', () => {
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -96,7 +96,7 @@ describe('RDS Multi-Region Testing', () => {
     VALUES ('${parameterGroupName}', '${engineFamily}', '${parameterGroupName} desc');
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -137,7 +137,7 @@ describe('RDS Multi-Region Testing', () => {
     WHERE db_instance_identifier = '${prefix}test';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -152,7 +152,7 @@ describe('RDS Multi-Region Testing', () => {
     WHERE name = '${parameterGroupName}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );

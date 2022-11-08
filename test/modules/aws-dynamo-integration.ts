@@ -69,7 +69,7 @@ describe('Dynamo Integration Testing', () => {
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -165,7 +165,7 @@ describe('Dynamo Integration Testing', () => {
     WHERE table_name = '${prefix}test';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -236,7 +236,7 @@ describe('Dynamo Integration Testing', () => {
     WHERE table_name = '${prefix}regiontest';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -266,7 +266,7 @@ describe('Dynamo Integration Testing', () => {
     WHERE table_name = '${prefix}regiontest';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );

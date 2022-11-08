@@ -76,7 +76,7 @@ describe('Aws read only Integration Testing', () => {
     VALUES ('test', false, 'MUTABLE');
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -103,7 +103,7 @@ describe('Aws read only Integration Testing', () => {
     VALUES ('test', false, 'MUTABLE');
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );

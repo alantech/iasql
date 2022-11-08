@@ -69,7 +69,7 @@ describe('AwsAcm List Integration Testing', () => {
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -84,7 +84,7 @@ describe('AwsAcm List Integration Testing', () => {
     VALUES ('${domainName}');
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -111,7 +111,7 @@ describe('AwsAcm List Integration Testing', () => {
     VALUES ('${domainName}');
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );

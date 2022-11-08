@@ -85,7 +85,7 @@ describe('MemoryDB Multi-region Integration Testing', () => {
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -100,7 +100,7 @@ describe('MemoryDB Multi-region Integration Testing', () => {
     VALUES ('${subnetGroupName}');
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -127,7 +127,7 @@ describe('MemoryDB Multi-region Integration Testing', () => {
       VALUES ('${clusterName}', (select id from subnet_group where subnet_group_name = '${subnetGroupName}'));
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -139,7 +139,7 @@ describe('MemoryDB Multi-region Integration Testing', () => {
       VALUES ((select id from security_group where group_name = 'default' and region = '${region}'), (select id from memory_db_cluster where cluster_name = '${clusterName}'), '${nonDefaultRegion}');
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     )((e?: any) => {
       console.log({ e });
@@ -161,7 +161,7 @@ describe('MemoryDB Multi-region Integration Testing', () => {
       VALUES ((select id from security_group where group_name = 'default' and region = '${region}'), (select id from memory_db_cluster where cluster_name = '${clusterName}'), '${region}');
     `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -188,7 +188,7 @@ describe('MemoryDB Multi-region Integration Testing', () => {
   WHERE cluster_name = '${clusterName}';
 `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     )((e?: any) => {
       console.log({ e });
@@ -210,7 +210,7 @@ describe('MemoryDB Multi-region Integration Testing', () => {
     WHERE group_name = 'default' and region = '${region}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     )((e?: any) => {
       console.log({ e });
@@ -300,7 +300,7 @@ describe('MemoryDB Multi-region Integration Testing', () => {
     WHERE cluster_name = '${clusterName}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -351,7 +351,7 @@ describe('MemoryDB Multi-region Integration Testing', () => {
     WHERE subnet_group_name = '${subnetGroupName}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );

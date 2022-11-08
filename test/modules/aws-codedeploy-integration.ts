@@ -167,7 +167,7 @@ describe('AwsCodedeploy Integration Testing', () => {
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -200,7 +200,7 @@ describe('AwsCodedeploy Integration Testing', () => {
     VALUES ('CodedeploySecurity Group', '${sgGroupName}');
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -254,7 +254,7 @@ describe('AwsCodedeploy Integration Testing', () => {
     VALUES ('${applicationName}', 'Server');
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -269,7 +269,7 @@ describe('AwsCodedeploy Integration Testing', () => {
     VALUES ('${applicationName}', 'Server');
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -293,7 +293,7 @@ describe('AwsCodedeploy Integration Testing', () => {
   UPDATE codedeploy_application SET application_id='fake' WHERE name='${applicationName}'
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -317,7 +317,7 @@ describe('AwsCodedeploy Integration Testing', () => {
   UPDATE codedeploy_application SET compute_platform='Lambda' WHERE name='${applicationName}'
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -346,7 +346,7 @@ describe('AwsCodedeploy Integration Testing', () => {
     WHERE name = '${applicationName}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -361,7 +361,7 @@ describe('AwsCodedeploy Integration Testing', () => {
     VALUES ('${applicationNameForDeployment}', 'Server');
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -374,7 +374,7 @@ describe('AwsCodedeploy Integration Testing', () => {
     VALUES ((SELECT id FROM codedeploy_application WHERE name = '${applicationNameForDeployment}'), '${deploymentGroupName}', '${roleName}');
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -398,7 +398,7 @@ describe('AwsCodedeploy Integration Testing', () => {
   UPDATE codedeploy_deployment_group SET ec2_tag_filters='${ec2FilterTags}' WHERE name='${deploymentGroupName}'
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -429,7 +429,7 @@ describe('Move deployments to another region', () => {
       WHERE name = '${deploymentGroupName}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     )((e?: any) => {
       try {
@@ -450,7 +450,7 @@ describe('Move deployments to another region', () => {
       WHERE name = '${applicationNameForDeployment}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     )((e?: any) => {
       console.log({ e });
@@ -501,7 +501,7 @@ describe('deployment cleanup', () => {
       WHERE name = '${deploymentGroupName}';
     `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -514,7 +514,7 @@ describe('deployment cleanup', () => {
       WHERE name = '${applicationNameForDeployment}';
     `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -568,7 +568,7 @@ SELECT * FROM codedeploy_deployment_group WHERE application_id = (SELECT id FROM
         DELETE FROM iam_role WHERE role_name = '${roleName}' OR role_name='${ec2RoleName}';
       `,
         undefined,
-        false,
+        true,
         () => ({ username, password }),
       ),
     );
@@ -584,7 +584,7 @@ SELECT * FROM codedeploy_deployment_group WHERE application_id = (SELECT id FROM
         DELETE FROM security_group_rule WHERE description='${prefix}codedeploy_rule_ssh' or description='${prefix}codedeploy_rule_http' or description='${prefix}codedeploy_rule_egress';
       `,
         undefined,
-        false,
+        true,
         () => ({ username, password }),
       ),
     );
@@ -596,7 +596,7 @@ SELECT * FROM codedeploy_deployment_group WHERE application_id = (SELECT id FROM
         DELETE FROM security_group WHERE group_name = '${sgGroupName}';
       `,
         undefined,
-        false,
+        true,
         () => ({ username, password }),
       ),
     );

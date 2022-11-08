@@ -253,7 +253,7 @@ describe('AwsCodepipeline Integration Testing', () => {
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -290,7 +290,7 @@ describe('AwsCodepipeline Integration Testing', () => {
       `
     INSERT INTO bucket (name) VALUES ('${bucket}')`,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -303,7 +303,7 @@ describe('AwsCodepipeline Integration Testing', () => {
     VALUES ('CodedeploySecurity Group', '${sgGroupName}');
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -357,7 +357,7 @@ describe('AwsCodepipeline Integration Testing', () => {
     VALUES ('${applicationNameForDeployment}', 'Server');
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -370,7 +370,7 @@ describe('AwsCodepipeline Integration Testing', () => {
     VALUES ((SELECT id FROM codedeploy_application WHERE name = '${applicationNameForDeployment}'), '${deploymentGroupName}', '${codeDeployRoleName}', '${ec2FilterTags}');
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -432,7 +432,7 @@ describe('AwsCodepipeline Integration Testing', () => {
       WHERE name = '${deploymentGroupName}';
     `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -445,7 +445,7 @@ describe('AwsCodepipeline Integration Testing', () => {
       WHERE name = '${applicationNameForDeployment}';
     `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -477,7 +477,7 @@ describe('AwsCodepipeline Integration Testing', () => {
     WHERE role_name = '${codePipelineRoleName}' OR role_name='${codeDeployRoleName}' OR role_name='${ec2RoleName}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -492,7 +492,7 @@ describe('AwsCodepipeline Integration Testing', () => {
     WHERE name = '${bucket}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -507,7 +507,7 @@ describe('AwsCodepipeline Integration Testing', () => {
         DELETE FROM security_group_rule WHERE description='${prefix}codedeploy_rule_ssh' or description='${prefix}codedeploy_rule_http' or description='${prefix}codedeploy_rule_egress';
       `,
         undefined,
-        false,
+        true,
         () => ({ username, password }),
       ),
     );
@@ -519,7 +519,7 @@ describe('AwsCodepipeline Integration Testing', () => {
         DELETE FROM security_group WHERE group_name = '${sgGroupName}';
       `,
         undefined,
-        false,
+        true,
         () => ({ username, password }),
       ),
     );
@@ -593,7 +593,7 @@ describe('AwsCodepipeline install/uninstall', () => {
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );

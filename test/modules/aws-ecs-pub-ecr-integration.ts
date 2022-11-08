@@ -107,7 +107,7 @@ describe('ECS Integration Testing', () => {
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -165,7 +165,7 @@ describe('ECS Integration Testing', () => {
     VALUES('${clusterName}');
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -192,7 +192,7 @@ describe('ECS Integration Testing', () => {
     VALUES('${clusterName}');
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -286,7 +286,7 @@ describe('ECS Integration Testing', () => {
         ('${publicRepositoryName}');
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -569,7 +569,7 @@ describe('ECS Integration Testing', () => {
     UPDATE cluster SET cluster_status = 'fake' WHERE cluster_name = '${clusterName}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -583,7 +583,7 @@ describe('ECS Integration Testing', () => {
     UPDATE cluster SET cluster_name = '${newClusterName}' WHERE cluster_name = '${clusterName}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -598,7 +598,7 @@ describe('ECS Integration Testing', () => {
     where cluster_name = '${newClusterName}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );

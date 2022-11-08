@@ -129,7 +129,7 @@ describe('ECS Integration Testing', () => {
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -187,7 +187,7 @@ describe('ECS Integration Testing', () => {
     VALUES('${clusterName}');
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -214,7 +214,7 @@ describe('ECS Integration Testing', () => {
     VALUES('${clusterName}');
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -571,7 +571,7 @@ describe('ECS Integration Testing', () => {
     UPDATE service SET status = 'fake' WHERE name = '${serviceName}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -597,7 +597,7 @@ describe('ECS Integration Testing', () => {
     UPDATE service SET name = '${newServiceName}' WHERE name = '${serviceName}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -623,7 +623,7 @@ describe('ECS Integration Testing', () => {
     UPDATE service SET force_new_deployment = true WHERE name = '${newServiceName}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -662,7 +662,7 @@ describe('ECS Integration Testing', () => {
       WHERE name = '${newServiceName}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     )((e?: any) => {
       try {
@@ -813,7 +813,7 @@ describe('ECS Integration Testing', () => {
     UPDATE cluster SET cluster_status = 'fake' WHERE cluster_name = '${clusterName}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -827,7 +827,7 @@ describe('ECS Integration Testing', () => {
     UPDATE cluster SET cluster_name = '${newClusterName}' WHERE cluster_name = '${clusterName}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -842,7 +842,7 @@ describe('ECS Integration Testing', () => {
     where cluster_name = '${newClusterName}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );

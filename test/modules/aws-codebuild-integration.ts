@@ -80,7 +80,7 @@ describe('AwsCodebuild Integration Testing', () => {
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -192,7 +192,7 @@ phases:
     WHERE source_type = 'GITHUB';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -219,7 +219,7 @@ phases:
     VALUES ('${dbAlias}');
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -269,7 +269,7 @@ phases:
     VALUES ('${dbAlias}', 'GITHUB', '${dbAlias}', '${ghUrl}');
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -284,7 +284,7 @@ phases:
     VALUES ('${dbAlias}');
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -336,7 +336,7 @@ phases:
     WHERE project_name = '${dbAlias}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -349,7 +349,7 @@ phases:
     WHERE project_name = '${dbAlias}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -362,7 +362,7 @@ phases:
     WHERE repository_name = '${dbAlias}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -375,7 +375,7 @@ phases:
     WHERE role_name = '${dbAlias}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );

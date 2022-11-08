@@ -107,7 +107,7 @@ describe('Elasticache Integration Testing', () => {
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -122,7 +122,7 @@ describe('Elasticache Integration Testing', () => {
     VALUES ('${clusterId}');
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -136,7 +136,7 @@ describe('Elasticache Integration Testing', () => {
       VALUES ('${clusterId}', '${nodeType}', '${cacheType}', 1);
     `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     )((e?: any) => {
       if (!!e) return done(e);
@@ -162,7 +162,7 @@ describe('Elasticache Integration Testing', () => {
     UPDATE cache_cluster SET node_type='${updatedNodeType}' WHERE cluster_id='${clusterId}';
     `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     )((e?: any) => {
       if (!!e) return done(e);
@@ -191,7 +191,7 @@ describe('Elasticache Integration Testing', () => {
   UPDATE cache_cluster SET engine='memcached' WHERE cluster_id='${clusterId}'
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -225,7 +225,7 @@ describe('Elasticache Integration Testing', () => {
   UPDATE cache_cluster SET cluster_id='${newClusterId}' WHERE cluster_id='${clusterId}'
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -320,7 +320,7 @@ describe('Elasticache Integration Testing', () => {
     WHERE cluster_id = '${newClusterId}' OR cluster_id = '${anotherClusterId}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );

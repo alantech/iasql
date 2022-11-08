@@ -171,7 +171,7 @@ describe('AwsAccount Integration Testing', () => {
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -235,7 +235,7 @@ describe('AwsAccount Integration Testing', () => {
     UPDATE aws_regions SET is_default = false;
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -352,7 +352,7 @@ describe('AwsAccount Integration Testing', () => {
     UPDATE iasql_module SET name = 'iasql_functions@0.0.2' WHERE name = 'iasql_functions@${latestVersion}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );

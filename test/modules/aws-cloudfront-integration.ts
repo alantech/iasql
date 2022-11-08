@@ -111,7 +111,7 @@ describe('Cloudfront Integration Testing', () => {
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -124,7 +124,7 @@ describe('Cloudfront Integration Testing', () => {
       `
     INSERT INTO bucket (name) VALUES ('${bucket}')`,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -138,7 +138,7 @@ describe('Cloudfront Integration Testing', () => {
     VALUES ('${callerReference}', '${behaviorString}', '${originsString}');
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -152,7 +152,7 @@ describe('Cloudfront Integration Testing', () => {
     VALUES ('${s3CallerReference}', 'a comment', true, false, '${s3behaviorString}', '${s3OriginsString}');
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     )((e?: any) => {
       if (!!e) return done(e);
@@ -180,7 +180,7 @@ describe('Cloudfront Integration Testing', () => {
     VALUES ('${callerReference}', 'a comment', true, false, '${behaviorString}', '${originsString}');
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -204,7 +204,7 @@ describe('Cloudfront Integration Testing', () => {
   UPDATE distribution SET comment='new comment' WHERE caller_reference='${callerReference}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -228,7 +228,7 @@ describe('Cloudfront Integration Testing', () => {
   UPDATE distribution SET distribution_id='fake' WHERE caller_reference='${callerReference}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -252,7 +252,7 @@ describe('Cloudfront Integration Testing', () => {
   UPDATE distribution SET status='fake' WHERE caller_reference='${callerReference}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -291,7 +291,7 @@ describe('Cloudfront Integration Testing', () => {
     WHERE caller_reference = '${callerReference}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -305,7 +305,7 @@ describe('Cloudfront Integration Testing', () => {
     DELETE FROM bucket WHERE name = '${bucket}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );

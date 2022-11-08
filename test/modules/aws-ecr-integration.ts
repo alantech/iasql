@@ -91,7 +91,7 @@ describe('ECR Integration Testing', () => {
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -107,7 +107,7 @@ describe('ECR Integration Testing', () => {
       VALUES ('${repositoryName}', false, 'MUTABLE');
     `,
         undefined,
-        false,
+        true,
         () => ({ username, password }),
       ),
     );
@@ -134,7 +134,7 @@ describe('ECR Integration Testing', () => {
       VALUES ('${repositoryName}', false, 'MUTABLE');
     `,
         undefined,
-        false,
+        true,
         () => ({ username, password }),
       ),
     );
@@ -226,7 +226,7 @@ describe('ECR Integration Testing', () => {
       UPDATE repository SET repository_arn = '${repositoryName}arn' WHERE repository_name = '${repositoryName}';
     `,
         undefined,
-        false,
+        true,
         () => ({ username, password }),
       ),
     );
@@ -240,7 +240,7 @@ describe('ECR Integration Testing', () => {
       UPDATE repository SET scan_on_push = true WHERE repository_name = '${repositoryName}';
     `,
         undefined,
-        false,
+        true,
         () => ({ username, password }),
       ),
     );
@@ -270,7 +270,7 @@ describe('ECR Integration Testing', () => {
       VALUES ((select id from repository where repository_name = '${repositoryName}'), '${policyMock}');
     `,
         undefined,
-        false,
+        true,
         () => ({ username, password }),
       ),
     );
@@ -298,7 +298,7 @@ describe('ECR Integration Testing', () => {
       WHERE repository_id = (select id from repository where repository_name = '${repositoryName}');
     `,
         undefined,
-        false,
+        true,
         () => ({ username, password }),
       ),
     );
@@ -314,7 +314,7 @@ describe('ECR Integration Testing', () => {
       WHERE repository_id = (select id from repository where repository_name = '${repositoryName}');
     `,
         undefined,
-        false,
+        true,
         () => ({ username, password }),
       ),
     );
@@ -329,7 +329,7 @@ describe('ECR Integration Testing', () => {
       WHERE repository_id = (select id from repository where repository_name = '${repositoryName}');
     `,
         undefined,
-        false,
+        true,
         () => ({ username, password }),
       ),
     );
@@ -359,7 +359,7 @@ describe('ECR Integration Testing', () => {
     DELETE FROM repository_image WHERE private_repository_id = (select id from repository where repository_name = '${repositoryName}');
   `,
         undefined,
-        false,
+        true,
         () => ({ username, password }),
       ),
     );
@@ -372,7 +372,7 @@ describe('ECR Integration Testing', () => {
       WHERE repository_name = '${repositoryName}';
     `,
         undefined,
-        false,
+        true,
         () => ({ username, password }),
       ),
     );
@@ -401,7 +401,7 @@ describe('ECR Integration Testing', () => {
       VALUES ('${pubRepositoryName}');
     `,
         undefined,
-        false,
+        true,
         () => ({ username, password }),
       ),
     );
@@ -428,7 +428,7 @@ describe('ECR Integration Testing', () => {
       VALUES ('${pubRepositoryName}');
     `,
         undefined,
-        false,
+        true,
         () => ({ username, password }),
       ),
     );
@@ -487,7 +487,7 @@ describe('ECR Integration Testing', () => {
       UPDATE public_repository SET repository_arn = '${pubRepositoryName}arn' WHERE repository_name = '${pubRepositoryName}';
     `,
         undefined,
-        false,
+        true,
         () => ({ username, password }),
       ),
     );
@@ -517,7 +517,7 @@ describe('ECR Integration Testing', () => {
     DELETE FROM repository_image WHERE public_repository= '${pubRepositoryName}';
   `,
         undefined,
-        false,
+        true,
         () => ({ username, password }),
       ),
     );
@@ -530,7 +530,7 @@ describe('ECR Integration Testing', () => {
       WHERE repository_name = '${pubRepositoryName}';
     `,
         undefined,
-        false,
+        true,
         () => ({ username, password }),
       ),
     );

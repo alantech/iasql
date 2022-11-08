@@ -74,7 +74,7 @@ describe('App Sync Integration Testing', () => {
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -89,7 +89,7 @@ describe('App Sync Integration Testing', () => {
     VALUES ('${apiName}', '${authType}');
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -104,7 +104,7 @@ describe('App Sync Integration Testing', () => {
     VALUES ('${apiName}', '${authType}');
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -128,7 +128,7 @@ describe('App Sync Integration Testing', () => {
   UPDATE graphql_api SET authentication_type='${newAuthType}' WHERE name='${apiName}'
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -152,7 +152,7 @@ describe('App Sync Integration Testing', () => {
   UPDATE graphql_api SET api_id='fake' WHERE name='${apiName}'
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -191,7 +191,7 @@ describe('App Sync Integration Testing', () => {
     WHERE name = '${apiName}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );

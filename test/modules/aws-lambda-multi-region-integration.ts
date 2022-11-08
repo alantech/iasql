@@ -91,7 +91,7 @@ describe('Lambda Multi-region Integration Testing', () => {
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -161,7 +161,7 @@ describe('Lambda Multi-region Integration Testing', () => {
       WHERE name = '${lambdaFunctionName}' and region = '${nonDefaultRegion}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -188,7 +188,7 @@ describe('Lambda Multi-region Integration Testing', () => {
     WHERE name = '${lambdaFunctionName}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );

@@ -68,7 +68,7 @@ describe('AwsEcrBuild Integration Testing', () => {
       WHERE region = '${region}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -83,7 +83,7 @@ describe('AwsEcrBuild Integration Testing', () => {
       VALUES ('${repositoryName}', false, 'MUTABLE');
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -169,7 +169,7 @@ describe('AwsEcrBuild Integration Testing', () => {
       WHERE private_repository_id = (SELECT id FROM repository WHERE repository_name = '${repositoryName}');
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -225,7 +225,7 @@ describe('AwsEcrBuild Integration Testing', () => {
       WHERE repository_name = '${repositoryName}'
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );

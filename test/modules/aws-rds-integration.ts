@@ -71,7 +71,7 @@ describe('RDS Integration Testing', () => {
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -175,7 +175,7 @@ describe('RDS Integration Testing', () => {
     VALUES ('${parameterGroupName}', '${engineFamily}', '${parameterGroupName} desc');
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -277,7 +277,7 @@ describe('RDS Integration Testing', () => {
     WHERE db_instance_identifier = '${prefix}test';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -316,7 +316,7 @@ describe('RDS Integration Testing', () => {
     WHERE name = '${parameterGroupName}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );

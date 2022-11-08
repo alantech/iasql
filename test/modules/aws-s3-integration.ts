@@ -108,7 +108,7 @@ describe('S3 Integration Testing', () => {
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -123,7 +123,7 @@ describe('S3 Integration Testing', () => {
     VALUES ('${s3Name}');
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -150,7 +150,7 @@ describe('S3 Integration Testing', () => {
     VALUES ('${s3Name}', '${policyDocument}');
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -223,7 +223,7 @@ describe('S3 Integration Testing', () => {
     DELETE FROM bucket_object WHERE bucket_name = '${s3Name}' AND key='iasql_message';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -332,7 +332,7 @@ describe('S3 Integration Testing', () => {
     UPDATE bucket SET policy_document='${newPolicyDocument}' WHERE name = '${s3Name}';
     `,
         undefined,
-        false,
+        true,
         () => ({ username, password }),
       ),
     );
@@ -356,7 +356,7 @@ describe('S3 Integration Testing', () => {
       UPDATE bucket SET region='${nonDefaultRegion}' WHERE name = '${s3Name}';
       `,
         undefined,
-        false,
+        true,
         () => ({ username, password }),
       );
     } catch (e) {
@@ -371,7 +371,7 @@ describe('S3 Integration Testing', () => {
       UPDATE bucket SET name='${nonDefaultRegion}' WHERE name = '${s3Name}';
       `,
         undefined,
-        false,
+        true,
         () => ({ username, password }),
       );
     } catch (e) {
@@ -433,7 +433,7 @@ describe('S3 Integration Testing', () => {
     DELETE FROM bucket WHERE name = '${s3Name}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );

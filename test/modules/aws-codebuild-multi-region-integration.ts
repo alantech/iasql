@@ -79,7 +79,7 @@ describe('AwsCodebuild Multi-region Integration Testing', () => {
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -133,7 +133,7 @@ describe('AwsCodebuild Multi-region Integration Testing', () => {
     WHERE source_type = 'GITHUB' and region = '${nonDefaultRegion}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -168,7 +168,7 @@ describe('AwsCodebuild Multi-region Integration Testing', () => {
     VALUES ('${dbAlias}', 'GITHUB', '${dbAlias}', '${ghUrl}', '${nonDefaultRegion}');
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -183,7 +183,7 @@ describe('AwsCodebuild Multi-region Integration Testing', () => {
     VALUES ('${dbAlias}', '${nonDefaultRegion}');
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -220,7 +220,7 @@ describe('AwsCodebuild Multi-region Integration Testing', () => {
     WHERE project_name = '${dbAlias}' and region = '${nonDefaultRegion}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -233,7 +233,7 @@ describe('AwsCodebuild Multi-region Integration Testing', () => {
     WHERE project_name = '${dbAlias}' and region = '${nonDefaultRegion}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -246,7 +246,7 @@ describe('AwsCodebuild Multi-region Integration Testing', () => {
     WHERE role_name = '${dbAlias}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );

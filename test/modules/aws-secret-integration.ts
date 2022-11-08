@@ -69,7 +69,7 @@ describe('Secrets Manager Integration Testing', () => {
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -84,7 +84,7 @@ describe('Secrets Manager Integration Testing', () => {
     VALUES ('${secretName}', '${secretValue}');
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -99,7 +99,7 @@ describe('Secrets Manager Integration Testing', () => {
     VALUES ('${secretName}', 'description', '${secretValue}');
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -123,7 +123,7 @@ describe('Secrets Manager Integration Testing', () => {
   UPDATE secret SET description='new description' WHERE name='${secretName}'
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -147,7 +147,7 @@ describe('Secrets Manager Integration Testing', () => {
   UPDATE secret SET value='newvalue' WHERE name='${secretName}'
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -161,7 +161,7 @@ describe('Secrets Manager Integration Testing', () => {
   UPDATE secret SET version_id='fakeVersion' WHERE name='${secretName}'
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -244,7 +244,7 @@ describe('Secrets Manager Integration Testing', () => {
     WHERE name = '${secretName}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );

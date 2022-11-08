@@ -71,7 +71,7 @@ describe('Security Group Integration Testing', () => {
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -86,7 +86,7 @@ describe('Security Group Integration Testing', () => {
     VALUES ('Security Group Test', '${prefix}sgtest');
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -113,7 +113,7 @@ describe('Security Group Integration Testing', () => {
     VALUES ('Security Group Test', '${prefix}sgtest');
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -156,7 +156,7 @@ describe('Security Group Integration Testing', () => {
     UPDATE security_group_rule SET to_port = 8022 WHERE description = '${prefix}testrule2';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -187,7 +187,7 @@ describe('Security Group Integration Testing', () => {
     UPDATE security_group SET group_name = '${prefix}sgtest2' WHERE group_name = '${prefix}sgtest';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -278,7 +278,7 @@ describe('Security Group Integration Testing', () => {
     VALUES ('Security Group to test source', '${prefix}sgforsource');
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -291,7 +291,7 @@ describe('Security Group Integration Testing', () => {
     VALUES ('Source Security Group Test', '${prefix}sgsourcetest');
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -307,7 +307,7 @@ describe('Security Group Integration Testing', () => {
       (SELECT id FROM security_group WHERE group_name='${prefix}sgforsourcetest'), false);
       `,
         undefined,
-        false,
+        true,
         () => ({ username, password }),
       );
     } catch (e) {
@@ -324,7 +324,7 @@ describe('Security Group Integration Testing', () => {
   (SELECT id FROM security_group WHERE group_name='${prefix}sgsourcetest'), false);
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -415,7 +415,7 @@ describe('Security Group Integration Testing', () => {
   (SELECT id FROM security_group WHERE group_name='${prefix}sgsourcetestnotdefault'), false);
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -504,7 +504,7 @@ describe('Security Group Integration Testing', () => {
   (SELECT id FROM security_group WHERE group_name='${prefix}sgforsource'), false);
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -622,7 +622,7 @@ describe('Security Group Integration Testing', () => {
   (SELECT id FROM security_group WHERE group_name='${prefix}sgtestA'), false);
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -779,7 +779,7 @@ describe('Security Group Integration Testing', () => {
     AND security_group.group_name = 'default';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -793,7 +793,7 @@ describe('Security Group Integration Testing', () => {
     DELETE FROM security_group WHERE group_name = 'default';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -807,7 +807,7 @@ describe('Security Group Integration Testing', () => {
     UPDATE security_group SET description = 'Not the default' where group_name = 'default';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -821,7 +821,7 @@ describe('Security Group Integration Testing', () => {
     UPDATE security_group SET group_id = 'remakethis' where group_name = 'default';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -838,7 +838,7 @@ describe('Security Group Integration Testing', () => {
       ('Security Group Test 4', '${prefix}sgtest4');
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -859,7 +859,7 @@ describe('Security Group Integration Testing', () => {
     WHERE group_name = '${prefix}sgtest4';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -889,7 +889,7 @@ describe('Security Group Integration Testing', () => {
     DELETE FROM security_group WHERE group_name in ('${prefix}sgtest4', '${prefix}sgtest5');
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );

@@ -101,7 +101,7 @@ describe('Lambda Integration Testing', () => {
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -216,7 +216,7 @@ describe('Lambda Integration Testing', () => {
     UPDATE lambda_function SET arn = 'fake' WHERE name = '${lambdaFunctionName}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -255,7 +255,7 @@ describe('Lambda Integration Testing', () => {
     UPDATE lambda_function SET runtime = '${lambdaFunctionRuntime16}' WHERE name = '${lambdaFunctionName}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -294,7 +294,7 @@ describe('Lambda Integration Testing', () => {
     UPDATE lambda_function SET zip_b64 = '${lambdaFunctionCodeUpdate}' WHERE name = '${lambdaFunctionName}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -370,7 +370,7 @@ describe('Lambda Integration Testing', () => {
     DELETE FROM lambda_function WHERE name = '${lambdaFunctionName}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -408,7 +408,7 @@ describe('Lambda Integration Testing', () => {
     DELETE FROM iam_role WHERE role_name = '${lambdaFunctionRoleName}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );

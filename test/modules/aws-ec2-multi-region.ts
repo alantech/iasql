@@ -139,7 +139,7 @@ describe('EC2 Integration Testing', () => {
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -232,7 +232,7 @@ describe('EC2 Integration Testing', () => {
       VALUES ('${roleName}', '${ec2RolePolicy}');
     `,
         undefined,
-        false,
+        true,
         () => ({ username, password }),
       ),
     );
@@ -495,7 +495,7 @@ describe('EC2 Integration Testing', () => {
     WHERE target_group_name = '${tgName}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -522,7 +522,7 @@ describe('EC2 Integration Testing', () => {
       DELETE FROM iam_role WHERE role_name = '${roleName}';
     `,
         undefined,
-        false,
+        true,
         () => ({ username, password }),
       ),
     );

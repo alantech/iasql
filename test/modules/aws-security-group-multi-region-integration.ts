@@ -67,7 +67,7 @@ describe('Security Group Multi region Integration Testing', () => {
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${defaultRegion}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -82,7 +82,7 @@ describe('Security Group Multi region Integration Testing', () => {
     VALUES ('Security Group Test', '${prefix}sgtest', '${nonDefaultRegion}');
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -109,7 +109,7 @@ describe('Security Group Multi region Integration Testing', () => {
     VALUES ('Security Group Test', '${prefix}sgtest', '${nonDefaultRegion}', (select id from vpc where is_default = true and region = '${nonDefaultRegion}' limit 1));
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -152,7 +152,7 @@ describe('Security Group Multi region Integration Testing', () => {
     UPDATE security_group_rule SET to_port = 8022 WHERE description = '${prefix}testrule2';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -232,7 +232,7 @@ describe('Security Group Multi region Integration Testing', () => {
     DELETE FROM security_group WHERE group_name = '${sgName}' and region = '${defaultRegion}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );

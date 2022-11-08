@@ -84,7 +84,7 @@ describe('ECS Simplified Integration Testing', () => {
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -106,7 +106,7 @@ describe('ECS Simplified Integration Testing', () => {
     VALUES ('${appName}', ${desiredCount}, ${appPort}, '${cpuMem}', '${imageTag}', ${publicIp});
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -157,7 +157,7 @@ describe('ECS Simplified Integration Testing', () => {
     VALUES ('${appName}', ${desiredCount}, ${appPort}, '${cpuMem}', '${imageTag}', ${publicIp});
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -236,7 +236,7 @@ describe('ECS Simplified Integration Testing', () => {
     where app_name = '${appName}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -275,7 +275,7 @@ describe('ECS Simplified Integration Testing', () => {
     VALUES ('${appName}', ${desiredCount}, ${appPort}, '${cpuMem}', '${imageTag}', ${publicIp});
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -363,7 +363,7 @@ describe('ECS Simplified Integration Testing', () => {
     WHERE app_name = '${appName}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -436,7 +436,7 @@ describe('ECS Simplified Integration Testing', () => {
     WHERE app_name = '${appName}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -467,7 +467,7 @@ describe('ECS Simplified Integration Testing', () => {
     WHERE app_name = '${appName}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -497,7 +497,7 @@ describe('ECS Simplified Integration Testing', () => {
     UPDATE ecs_simplified SET force_new_deployment = true, env_variables = '${envVariables}' WHERE app_name = '${appName}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
@@ -588,7 +588,7 @@ describe('ECS Simplified Integration Testing', () => {
     where app_name = '${appName}';
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
