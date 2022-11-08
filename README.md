@@ -71,6 +71,6 @@ AWS is our main focus at the moment, but we plan to support GCP, Azure and other
 - GraphQL
 - MemoryDB
 - [Route53](https://iasql.com/docs/aws_route53/)
-- Secrets
+- Secrets Manager
 
 Check out AWS services that are going to be added next [here](https://github.com/iasql/iasql-engine/issues?q=is%3Aissue+is%3Aopen+label%3A%22cloud+coverage%22) and let us know if you would like to see one that is not listed!
