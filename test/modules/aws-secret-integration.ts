@@ -9,6 +9,7 @@ import {
   runCommit,
   runInstall,
   runQuery,
+  runRollback,
   runUninstall,
 } from '../helpers';
 
@@ -18,6 +19,7 @@ const secretName = `${prefix}${dbAlias}`;
 const secretValue = 'value';
 
 const commit = runCommit.bind(null, dbAlias);
+const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
@@ -89,7 +91,7 @@ describe('Secrets Manager Integration Testing', () => {
     ),
   );
 
-  it('undo changes', commit());
+  it('undo changes', rollback());
 
   it(
     'adds a new secret',

@@ -9,6 +9,7 @@ import {
   runCommit,
   runInstall,
   runQuery,
+  runRollback,
   runUninstall,
 } from '../helpers';
 
@@ -52,6 +53,7 @@ const s3behavior = {
 const s3behaviorString = JSON.stringify(s3behavior);
 
 const commit = runCommit.bind(null, dbAlias);
+const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
@@ -143,7 +145,7 @@ describe('Cloudfront Integration Testing', () => {
     ),
   );
 
-  it('undo changes', commit());
+  it('undo changes', rollback());
 
   it('adds a new s3 distribution', done => {
     query(

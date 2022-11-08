@@ -11,6 +11,7 @@ import {
   runCommit,
   runInstall,
   runQuery,
+  runRollback,
   runUninstall,
 } from '../helpers';
 
@@ -21,6 +22,7 @@ const newClusterId = `new-${prefix}${dbAlias}`;
 const anotherClusterId = `${prefix}${dbAlias}2`;
 
 const commit = runCommit.bind(null, dbAlias);
+const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
@@ -127,7 +129,7 @@ describe('Elasticache Integration Testing', () => {
     ),
   );
 
-  it('undo changes', commit());
+  it('undo changes', rollback());
 
   it('adds a new cacheCluster', done => {
     query(

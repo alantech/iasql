@@ -10,6 +10,7 @@ import {
   runCommit,
   runInstall,
   runQuery,
+  runRollback,
   runUninstall,
 } from '../helpers';
 
@@ -109,6 +110,7 @@ let availabilityZone: string;
 let instanceType: string;
 
 const commit = runCommit.bind(null, dbAlias);
+const rollback = runRollback.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
@@ -279,7 +281,7 @@ describe('AwsCodedeploy Integration Testing', () => {
     ),
   );
 
-  it('undo changes', commit());
+  it('undo changes', rollback());
 
   it(
     'adds a new codedeploy_application',
