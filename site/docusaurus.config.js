@@ -10,6 +10,7 @@ const localConfig = {
   phKey: 'phc_xvAQWfpHug7G0SuU5P9wwAbvP9ZawgAfIEZ9FUsiarS',
 };
 const config = process.env.IASQL_ENV === 'local' ? localConfig : prodConfig;
+const theButton = require('./src/rehype/thebutton');
 
 // With JSDoc @type annotations, IDEs can provide config autocompletion
 /** @type {import('@docusaurus/types').DocusaurusConfig} */
@@ -34,10 +35,12 @@ const config = process.env.IASQL_ENV === 'local' ? localConfig : prodConfig;
         docs: {
           sidebarPath: require.resolve('./sidebars.js'),
           routeBasePath: '/docs',
+          remarkPlugins: [theButton]
         },
         blog: {
           showReadingTime: true,
           routeBasePath: '/blog',
+          remarkPlugins: [theButton]
         },
         theme: {
           customCss: require.resolve('./src/css/custom.css'),
