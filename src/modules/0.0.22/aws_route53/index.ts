@@ -82,7 +82,7 @@ const getRecord = async (client: Route53, hostedZoneId: string, recordName: stri
 };
 
 class HostedZoneMapper extends MapperBase<HostedZone> {
-  module: AwsRoute53HostedZoneModule;
+  module: AwsRoute53Module;
   entity = HostedZone;
   equals = (a: HostedZone, b: HostedZone) => Object.is(a.domainName, b.domainName);
 
@@ -190,7 +190,7 @@ class HostedZoneMapper extends MapperBase<HostedZone> {
     },
   });
 
-  constructor(module: AwsRoute53HostedZoneModule) {
+  constructor(module: AwsRoute53Module) {
     super();
     this.module = module;
     super.init();
@@ -198,7 +198,7 @@ class HostedZoneMapper extends MapperBase<HostedZone> {
 }
 
 class ResourceRecordSetMapper extends MapperBase<ResourceRecordSet> {
-  module: AwsRoute53HostedZoneModule;
+  module: AwsRoute53Module;
   entity = ResourceRecordSet;
   generateId = (fields: IdFields) => {
     const requiredFields = ['hostedZoneId', 'name', 'recordType'];
@@ -472,14 +472,14 @@ class ResourceRecordSetMapper extends MapperBase<ResourceRecordSet> {
     },
   });
 
-  constructor(module: AwsRoute53HostedZoneModule) {
+  constructor(module: AwsRoute53Module) {
     super();
     this.module = module;
     super.init();
   }
 }
 
-class AwsRoute53HostedZoneModule extends ModuleBase {
+class AwsRoute53Module extends ModuleBase {
   hostedZone: HostedZoneMapper;
   resourceRecordSet: ResourceRecordSetMapper;
 
@@ -490,4 +490,4 @@ class AwsRoute53HostedZoneModule extends ModuleBase {
     super.init();
   }
 }
-export const awsRoute53HostedZoneModule = new AwsRoute53HostedZoneModule();
+export const awsRoute53Module = new AwsRoute53Module();

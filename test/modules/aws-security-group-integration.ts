@@ -854,7 +854,7 @@ describe('Security Group install/uninstall', () => {
       'aws_security_group',
       'aws_ec2',
       'aws_ec2_metadata',
-      'aws_route53_hosted_zones',
+      'aws_route53',
       'aws_memory_db',
       'aws_acm',
       'aws_codedeploy',

@@ -8,7 +8,7 @@ const query = runQuery.bind(null, dbAlias)
 const runSql = iasql.runSql.bind(null, dbAlias, uid);
 const email = 'test@example.com';
 
-let pgPassword: string, pgUser: string;
+let password: string, username: string;
 
 jest.setTimeout(360000);
 beforeAll(async () => await execComposeUp());
@@ -18,10 +18,10 @@ describe('Testing table creation and access', () => {
   it('creates a new test db', done => {
     (async () => {
       try {
-        const {user, password} = await iasql.connect(dbAlias, uid, email);
-        pgPassword = password;
-        pgUser = user;
-        if (!pgPassword || !pgUser) done(new Error('Did not fetch pg credentials'));
+        const {user, password: newPassword} = await iasql.connect(dbAlias, uid, email);
+        password = newPassword;
+        username = user;
+        if (!password || !username) done(new Error('Did not fetch pg credentials'));
         done();
       } catch(e) {
         done(e);
@@ -53,11 +53,11 @@ describe('Testing table creation and access', () => {
   
   it('dbUser: create custom table', query(`
     CREATE TABLE example_2 (id serial PRIMARY KEY);
-  `, undefined, true, () => ({username: pgUser, password: pgPassword})));
+  `, undefined, true, () => ({username, password})));
 
   it('dbUser: drop a custom table', query(`
     DROP TABLE example_2;
-  `, undefined, true, () => ({username: pgUser, password: pgPassword})));
+  `, undefined, true, () => ({username, password})));
 
   it('installs the aws_account module', install(['aws_account']));
 
@@ -74,7 +74,7 @@ describe('Testing table creation and access', () => {
 
   it('dbUser: select IaSQL managed table', query(`
     SELECT * FROM aws_credentials;
-  `, undefined, true, () => ({username: pgUser, password: pgPassword})));
+  `, undefined, true, () => ({username, password})));
 
   it('runSql: fails to drop IaSQL managed table', (done) => {
     (async () => {
@@ -90,7 +90,7 @@ describe('Testing table creation and access', () => {
   it('dbUser: fails to drop IaSQL managed table', (done) => {
     query(`
       DROP TABLE aws_credentials;
-    `, undefined, true, () => ({username: pgUser, password: pgPassword}))((e: any) => {
+    `, undefined, true, () => ({username, password}))((e: any) => {
       if (!e) return done(new Error('Somehow did not fail to drop `aws_credentials`'));
       return done();
     });

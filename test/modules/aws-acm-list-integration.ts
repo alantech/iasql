@@ -174,7 +174,7 @@ describe('AwsAcm List install/uninstall', () => {
       'aws_ecs_simplified',
       'aws_ec2',
       'aws_ec2_metadata',
-      'aws_route53_hosted_zones',
+      'aws_route53',
       'aws_codedeploy',
       'aws_codepipeline',
     ]),

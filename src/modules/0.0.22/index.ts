@@ -19,7 +19,7 @@ export * from './aws_iam';
 export * from './aws_lambda';
 export * from './aws_memory_db';
 export * from './aws_rds';
-export * from './aws_route53_hosted_zones';
+export * from './aws_route53';
 export * from './aws_s3';
 export * from './aws_secrets_manager';
 export * from './aws_security_group';
