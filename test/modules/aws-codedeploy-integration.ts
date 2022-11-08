@@ -126,9 +126,22 @@ beforeAll(async () => {
 });
 afterAll(async () => await execComposeDown());
 
+let username: string, password: string;
+
 describe('AwsCodedeploy Integration Testing', () => {
-  it('creates a new test db with the same name', done =>
-    void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
+  it('creates a new test db with the same name', done => {
+    (async () => {
+      try {
+        const { user, password: pgPassword } = await iasql.connect(dbAlias, 'not-needed', 'not-needed');
+        username = user;
+        password = pgPassword;
+        if (!username || !password) throw new Error('Did not fetch pg credentials');
+        done();
+      } catch (e) {
+        done(e);
+      }
+    })();
+  });
 
   it('installs the aws_account module', install(['aws_account']));
 
@@ -141,6 +154,7 @@ describe('AwsCodedeploy Integration Testing', () => {
   `,
       undefined,
       false,
+      () => ({ username, password }),
     ),
   );
 
@@ -148,9 +162,14 @@ describe('AwsCodedeploy Integration Testing', () => {
 
   it(
     'sets the default region',
-    query(`
+    query(
+      `
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it('installs the codedeploy module and dependencies', install(modules));
@@ -175,10 +194,15 @@ describe('AwsCodedeploy Integration Testing', () => {
 
   it(
     'adds a new security group',
-    query(`  
+    query(
+      `  
     INSERT INTO security_group (description, group_name)
     VALUES ('CodedeploySecurity Group', '${sgGroupName}');
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it(
@@ -224,20 +248,30 @@ describe('AwsCodedeploy Integration Testing', () => {
 
   it(
     'adds a new codedeploy_application',
-    query(`
+    query(
+      `
     INSERT INTO codedeploy_application (name, compute_platform)
     VALUES ('${applicationName}', 'Server');
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it('undo changes', commit());
 
   it(
     'adds a new codedeploy_application',
-    query(`
+    query(
+      `
     INSERT INTO codedeploy_application (name, compute_platform)
     VALUES ('${applicationName}', 'Server');
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it('apply codedeploy_application creation', commit());
@@ -254,9 +288,14 @@ describe('AwsCodedeploy Integration Testing', () => {
 
   it(
     'tries to update application ID',
-    query(`
+    query(
+      `
   UPDATE codedeploy_application SET application_id='fake' WHERE name='${applicationName}'
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the application ID update', commit());
@@ -273,9 +312,14 @@ describe('AwsCodedeploy Integration Testing', () => {
 
   it(
     'tries to update the codedeploy_application compute_platform',
-    query(`
+    query(
+      `
   UPDATE codedeploy_application SET compute_platform='Lambda' WHERE name='${applicationName}'
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the codedeploy_application compute_platform update', commit());
@@ -296,28 +340,43 @@ describe('AwsCodedeploy Integration Testing', () => {
 
   it(
     'delete application',
-    query(`
+    query(
+      `
     DELETE FROM codedeploy_application
     WHERE name = '${applicationName}';
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
   it('applies the application deletion', commit());
 
   // deployment group testing
   it(
     'adds a new codedeploy_application for deployment',
-    query(`
+    query(
+      `
     INSERT INTO codedeploy_application (name, compute_platform)
     VALUES ('${applicationNameForDeployment}', 'Server');
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it(
     'adds a new deployment_group',
-    query(`
+    query(
+      `
     INSERT INTO codedeploy_deployment_group (application_id, name, role_name)
     VALUES ((SELECT id FROM codedeploy_application WHERE name = '${applicationNameForDeployment}'), '${deploymentGroupName}', '${roleName}');
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it('apply codedeploy_deployment_group creation', commit());
@@ -334,9 +393,14 @@ describe('AwsCodedeploy Integration Testing', () => {
 
   it(
     'tries to update the codedeploy_deployment_group tags',
-    query(`
+    query(
+      `
   UPDATE codedeploy_deployment_group SET ec2_tag_filters='${ec2FilterTags}' WHERE name='${deploymentGroupName}'
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the codedeploy_deployment_group update', commit());
@@ -358,11 +422,16 @@ describe('AwsCodedeploy Integration Testing', () => {
 
 describe('Move deployments to another region', () => {
   it('should fail moving just the deployment group', done =>
-    void query(`
+    void query(
+      `
       UPDATE codedeploy_deployment_group
       SET region = '${nonDefaultRegion}'
       WHERE name = '${deploymentGroupName}';
-  `)((e?: any) => {
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    )((e?: any) => {
       try {
         expect(e?.message).toContain('violates foreign key constraint');
       } catch (err) {
@@ -371,14 +440,19 @@ describe('Move deployments to another region', () => {
       }
       done();
       return {};
-  }));
+    }));
 
   it('should fail moving just the application', done =>
-    void query(`
+    void query(
+      `
       UPDATE codedeploy_application
       SET region = '${nonDefaultRegion}'
       WHERE name = '${applicationNameForDeployment}';
-  `)((e?: any) => {
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    )((e?: any) => {
       console.log({ e });
       try {
         expect(e?.message).toContain('violates foreign key constraint');
@@ -388,7 +462,7 @@ describe('Move deployments to another region', () => {
       }
       done();
       return {};
-  }));
+    }));
 
   it(
     'moves a deployment to another region',
@@ -421,18 +495,28 @@ describe('Move deployments to another region', () => {
 describe('deployment cleanup', () => {
   it(
     'delete deployment group',
-    query(`
+    query(
+      `
       DELETE FROM codedeploy_deployment_group
       WHERE name = '${deploymentGroupName}';
-    `),
+    `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it(
     'delete application',
-    query(`
+    query(
+      `
       DELETE FROM codedeploy_application
       WHERE name = '${applicationNameForDeployment}';
-    `),
+    `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it('apply codedeploy_application deletion', commit());
@@ -479,9 +563,14 @@ SELECT * FROM codedeploy_deployment_group WHERE application_id = (SELECT id FROM
   describe('delete roles', () => {
     it(
       'deletes role',
-      query(`
+      query(
+        `
         DELETE FROM iam_role WHERE role_name = '${roleName}' OR role_name='${ec2RoleName}';
-      `),
+      `,
+        undefined,
+        false,
+        () => ({ username, password }),
+      ),
     );
 
     it('applies the role deletion', commit());
@@ -490,16 +579,26 @@ SELECT * FROM codedeploy_deployment_group WHERE application_id = (SELECT id FROM
   describe('delete security groups and rules', () => {
     it(
       'deletes security group rules',
-      query(`
+      query(
+        `
         DELETE FROM security_group_rule WHERE description='${prefix}codedeploy_rule_ssh' or description='${prefix}codedeploy_rule_http' or description='${prefix}codedeploy_rule_egress';
-      `),
+      `,
+        undefined,
+        false,
+        () => ({ username, password }),
+      ),
     );
 
     it(
       'deletes security group',
-      query(`
+      query(
+        `
         DELETE FROM security_group WHERE group_name = '${sgGroupName}';
-      `),
+      `,
+        undefined,
+        false,
+        () => ({ username, password }),
+      ),
     );
 
     it('applies the security group deletion', commit());
@@ -512,8 +611,19 @@ SELECT * FROM codedeploy_deployment_group WHERE application_id = (SELECT id FROM
 });
 
 describe('AwsCodedeploy install/uninstall', () => {
-  it('creates a new test db', done =>
-    void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
+  it('creates a new test db', done => {
+    (async () => {
+      try {
+        const { user, password: pgPassword } = await iasql.connect(dbAlias, 'not-needed', 'not-needed');
+        username = user;
+        password = pgPassword;
+        if (!username || !password) throw new Error('Did not fetch pg credentials');
+        done();
+      } catch (e) {
+        done(e);
+      }
+    })();
+  });
 
   it('installs the aws_account module', install(['aws_account']));
 
@@ -526,6 +636,7 @@ describe('AwsCodedeploy install/uninstall', () => {
   `,
       undefined,
       false,
+      () => ({ username, password }),
     ),
   );
 
@@ -550,4 +661,3 @@ describe('AwsCodedeploy install/uninstall', () => {
 
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 });
-

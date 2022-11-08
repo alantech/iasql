@@ -26,9 +26,22 @@ jest.setTimeout(360000);
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown());
 
+let username: string, password: string;
+
 describe('AwsAcm Request Integration Testing', () => {
-  it('creates a new test db', done =>
-    void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
+  it('creates a new test db', done => {
+    (async () => {
+      try {
+        const { user, password: pgPassword } = await iasql.connect(dbAlias, 'not-needed', 'not-needed');
+        username = user;
+        password = pgPassword;
+        if (!username || !password) throw new Error('Did not fetch pg credentials');
+        done();
+      } catch (e) {
+        done(e);
+      }
+    })();
+  });
 
   it('installs the aws_account module', install(['aws_account']));
 
@@ -41,6 +54,7 @@ describe('AwsAcm Request Integration Testing', () => {
   `,
       undefined,
       false,
+      () => ({ username, password }),
     ),
   );
 
@@ -48,26 +62,28 @@ describe('AwsAcm Request Integration Testing', () => {
 
   it(
     'sets the default region',
-    query(`
+    query(
+      `
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it('installs the acm module alone', install(['aws_acm']));
 
-  it(
-    'adds a new certificate to request with a domain without route53 support',
-    (done) => {
-      query(`
+  it('adds a new certificate to request with a domain without route53 support', done => {
+    query(`
         SELECT * FROM certificate_request('fakeDomain.com', 'DNS', '${region}', '');
       `)((e: any) => {
-        if (e instanceof Error) {
-          return done();
-        }
-        return done('Somehow did not get an error back from the function');
-      });
-    }
-  );
+      if (e instanceof Error) {
+        return done();
+      }
+      return done('Somehow did not get an error back from the function');
+    });
+  });
 
   it('installs the rest of the modules needed', install(modules));
 
@@ -127,10 +143,15 @@ describe('AwsAcm Request Integration Testing', () => {
 
   it(
     'deletes a certificate requested',
-    query(`
+    query(
+      `
     DELETE FROM certificate
     WHERE domain_name = '${domainName}';
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the delete', commit());
@@ -147,34 +168,56 @@ describe('AwsAcm Request Integration Testing', () => {
     ),
   );
 
-  it('creates a certificate request in non-default region', query(`
+  it(
+    'creates a certificate request in non-default region',
+    query(`
       SELECT * FROM certificate_request('${domainName}', 'DNS', 'us-east-1', '');
   `),
   );
 
-  it('checks the certificate in non-default region is created and validated', query(`
+  it(
+    'checks the certificate in non-default region is created and validated',
+    query(
+      `
       SELECT *
       FROM certificate
       WHERE domain_name = '${domainName}'
         AND status = 'ISSUED'
         AND region = 'us-east-1';
-  `, (res: any[]) => expect(res.length).toBe(1)));
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
 
-  it('deletes the certificate issued in the non-default region', query(`
+  it(
+    'deletes the certificate issued in the non-default region',
+    query(
+      `
       DELETE
       FROM certificate
       WHERE domain_name = '${domainName}';
-  `));
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
+  );
 
   it('applies the deletion of the certificate in the non-default region', commit());
 
-  it('checks the deletion of the certificate in the non-default region', query(`
+  it(
+    'checks the deletion of the certificate in the non-default region',
+    query(
+      `
       SELECT *
       FROM certificate
       WHERE domain_name = '${domainName}'
         AND status = 'ISSUED'
         AND region = 'us-east-1';
-  `, (res: any[]) => expect(res.length).toBe(0)));
+  `,
+      (res: any[]) => expect(res.length).toBe(0),
+    ),
+  );
 
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 });

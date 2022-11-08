@@ -30,9 +30,22 @@ jest.setTimeout(300000);
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown());
 
+let username: string, password: string;
+
 describe('Security Group Integration Testing', () => {
-  it('creates a new test db', done =>
-    void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
+  it('creates a new test db', done => {
+    (async () => {
+      try {
+        const { user, password: pgPassword } = await iasql.connect(dbAlias, 'not-needed', 'not-needed');
+        username = user;
+        password = pgPassword;
+        if (!username || !password) throw new Error('Did not fetch pg credentials');
+        done();
+      } catch (e) {
+        done(e);
+      }
+    })();
+  });
 
   it('installs the aws_account module', install(['aws_account']));
 
@@ -45,6 +58,7 @@ describe('Security Group Integration Testing', () => {
   `,
       undefined,
       false,
+      () => ({ username, password }),
     ),
   );
 
@@ -52,19 +66,29 @@ describe('Security Group Integration Testing', () => {
 
   it(
     'sets the default region',
-    query(`
+    query(
+      `
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it('installs the security group module', install(modules));
 
   it(
     'adds a new security group',
-    query(`  
+    query(
+      `  
     INSERT INTO security_group (description, group_name)
     VALUES ('Security Group Test', '${prefix}sgtest');
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it('undo changes', rollback());
@@ -83,10 +107,15 @@ describe('Security Group Integration Testing', () => {
 
   it(
     'adds a new security group',
-    query(`  
+    query(
+      `  
     INSERT INTO security_group (description, group_name)
     VALUES ('Security Group Test', '${prefix}sgtest');
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the security group change', commit());
@@ -121,10 +150,15 @@ describe('Security Group Integration Testing', () => {
 
   it(
     'updates the security group rule',
-    query(`
+    query(
+      `
     UPDATE security_group_rule SET to_port = 8443 WHERE description = '${prefix}testrule';
     UPDATE security_group_rule SET to_port = 8022 WHERE description = '${prefix}testrule2';
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it(
@@ -148,9 +182,14 @@ describe('Security Group Integration Testing', () => {
 
   it(
     'updates the security group',
-    query(`
+    query(
+      `
     UPDATE security_group SET group_name = '${prefix}sgtest2' WHERE group_name = '${prefix}sgtest';
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the security group change (again)', commit());
@@ -233,29 +272,44 @@ describe('Security Group Integration Testing', () => {
   // create rule targetting to another security group
   it(
     'adds a new security group',
-    query(`  
+    query(
+      `  
     INSERT INTO security_group (description, group_name)
     VALUES ('Security Group to test source', '${prefix}sgforsource');
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it(
     'adds a new security group',
-    query(`  
+    query(
+      `  
     INSERT INTO security_group (description, group_name)
     VALUES ('Source Security Group Test', '${prefix}sgsourcetest');
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it('creates the source security group', commit());
 
   it('should fail when inserting a security group rule with ip and security rule', () => {
     try {
-      query(`
+      query(
+        `
       INSERT INTO security_group_rule(security_group_id, ip_protocol, source_security_group, is_egress) 
       VALUES ((SELECT id FROM security_group WHERE group_name='${prefix}sgforsource'), 'tcp',
       (SELECT id FROM security_group WHERE group_name='${prefix}sgforsourcetest'), false);
-      `);
+      `,
+        undefined,
+        false,
+        () => ({ username, password }),
+      );
     } catch (e) {
       expect(e).toBeTruthy;
     }
@@ -263,11 +317,16 @@ describe('Security Group Integration Testing', () => {
 
   it(
     'adds a new security group rule',
-    query(`
+    query(
+      `
   INSERT INTO security_group_rule(description, security_group_id, source_security_group, is_egress) 
   VALUES ('${prefix}sgsourcetestrule', (SELECT id FROM security_group WHERE group_name='${prefix}sgforsource'),
   (SELECT id FROM security_group WHERE group_name='${prefix}sgsourcetest'), false);
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
   it('creates the source security group rule', commit());
 
@@ -349,11 +408,16 @@ describe('Security Group Integration Testing', () => {
 
   it(
     'adds a new security group rule for non default',
-    query(`
+    query(
+      `
   INSERT INTO security_group_rule(description, security_group_id, source_security_group, is_egress) 
   VALUES ('${prefix}sgsourcetestrulenotdefault', (SELECT id FROM security_group WHERE group_name='${prefix}sgforsource'),
   (SELECT id FROM security_group WHERE group_name='${prefix}sgsourcetestnotdefault'), false);
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it('creates the source security group rule for non default', commit());
@@ -433,11 +497,16 @@ describe('Security Group Integration Testing', () => {
   // tests self referencing security group
   it(
     'adds a new security group rule pointing to itself',
-    query(`
+    query(
+      `
   INSERT INTO security_group_rule(description, security_group_id, source_security_group, is_egress) 
   VALUES ('${prefix}sgsourcetestrule', (SELECT id FROM security_group WHERE group_name='${prefix}sgforsource'),
   (SELECT id FROM security_group WHERE group_name='${prefix}sgforsource'), false);
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
   it('creates the source security group rule pointing to itself', commit());
 
@@ -539,7 +608,8 @@ describe('Security Group Integration Testing', () => {
   // tests cycle in security rules
   it(
     'adds self-referential security groups A and B',
-    query(`  
+    query(
+      `  
     INSERT INTO security_group (description, group_name)
     VALUES ('Security Group Test A', '${prefix}sgtestA'), ('Security Group Test B', '${prefix}sgtestB');
     
@@ -550,7 +620,11 @@ describe('Security Group Integration Testing', () => {
   INSERT INTO security_group_rule(description, security_group_id, source_security_group, is_egress) 
   VALUES ('${prefix}sgtestB', (SELECT id FROM security_group WHERE group_name='${prefix}sgtestB'),
   (SELECT id FROM security_group WHERE group_name='${prefix}sgtestA'), false);
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it('creates the source groups and rules', commit());
@@ -697,58 +771,84 @@ describe('Security Group Integration Testing', () => {
 
   it(
     'clears out any default security group rules if they exist',
-    query(`
+    query(
+      `
     DELETE FROM security_group_rule
     USING security_group
     WHERE security_group_rule.security_group_id = security_group.id
     AND security_group.group_name = 'default';
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies this change', commit());
 
   it(
     'tries to delete the default security group',
-    query(`
+    query(
+      `
     DELETE FROM security_group WHERE group_name = 'default';
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the security group change which will restore the record', commit());
 
   it(
     'tries to change the default security group description',
-    query(`
+    query(
+      `
     UPDATE security_group SET description = 'Not the default' where group_name = 'default';
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the security group change which will undo this change', commit());
 
   it(
     'tries to change the default security group id which triggers simultaneous create/delete',
-    query(`
+    query(
+      `
     UPDATE security_group SET group_id = 'remakethis' where group_name = 'default';
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the security group change which will recreate the record', commit());
 
   it(
     'adds another two security groups for a more complex test',
-    query(`
+    query(
+      `
     INSERT INTO security_group (description, group_name)
     VALUES
       ('Security Group Test 3', '${prefix}sgtest3'),
       ('Security Group Test 4', '${prefix}sgtest4');
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it('creates these security groups', commit());
 
   it(
     'creates a new security group, deletes another security group, and modifies a third',
-    query(`
+    query(
+      `
     INSERT INTO security_group (description, group_name)
     VALUES ('Security Group Test 5', '${prefix}sgtest5');
 
@@ -757,7 +857,11 @@ describe('Security Group Integration Testing', () => {
     UPDATE security_group
     SET description = 'Security Group Test Four'
     WHERE group_name = '${prefix}sgtest4';
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it('performs all of these operations', commit());
@@ -780,9 +884,14 @@ describe('Security Group Integration Testing', () => {
 
   it(
     'deletes these test records',
-    query(`
+    query(
+      `
     DELETE FROM security_group WHERE group_name in ('${prefix}sgtest4', '${prefix}sgtest5');
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it('deletes the final test records', commit());
@@ -791,8 +900,19 @@ describe('Security Group Integration Testing', () => {
 });
 
 describe('Security Group install/uninstall', () => {
-  it('creates a new test db', done =>
-    void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
+  it('creates a new test db', done => {
+    (async () => {
+      try {
+        const { user, password: pgPassword } = await iasql.connect(dbAlias, 'not-needed', 'not-needed');
+        username = user;
+        password = pgPassword;
+        if (!username || !password) throw new Error('Did not fetch pg credentials');
+        done();
+      } catch (e) {
+        done(e);
+      }
+    })();
+  });
 
   it('installs the aws_account module', install(['aws_account']));
 
@@ -805,6 +925,7 @@ describe('Security Group install/uninstall', () => {
   `,
       undefined,
       false,
+      () => ({ username, password }),
     ),
   );
 

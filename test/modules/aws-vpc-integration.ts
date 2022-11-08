@@ -52,9 +52,22 @@ jest.setTimeout(360000);
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown());
 
+let username: string, password: string;
+
 describe('VPC Integration Testing', () => {
-  it('creates a new test db', done =>
-    void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
+  it('creates a new test db', done => {
+    (async () => {
+      try {
+        const { user, password: pgPassword } = await iasql.connect(dbAlias, 'not-needed', 'not-needed');
+        username = user;
+        password = pgPassword;
+        if (!username || !password) throw new Error('Did not fetch pg credentials');
+        done();
+      } catch (e) {
+        done(e);
+      }
+    })();
+  });
 
   it('installs the aws_account module', install(['aws_account']));
 
@@ -67,6 +80,7 @@ describe('VPC Integration Testing', () => {
   `,
       undefined,
       false,
+      () => ({ username, password }),
     ),
   );
 
@@ -74,9 +88,14 @@ describe('VPC Integration Testing', () => {
 
   it(
     'sets the default region',
-    query(`
+    query(
+      `
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it('installs the vpc module', install(modules));
@@ -1028,8 +1047,19 @@ describe('VPC Integration Testing', () => {
 });
 
 describe('VPC install/uninstall', () => {
-  it('creates a new test db', done =>
-    void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
+  it('creates a new test db', done => {
+    (async () => {
+      try {
+        const { user, password: pgPassword } = await iasql.connect(dbAlias, 'not-needed', 'not-needed');
+        username = user;
+        password = pgPassword;
+        if (!username || !password) throw new Error('Did not fetch pg credentials');
+        done();
+      } catch (e) {
+        done(e);
+      }
+    })();
+  });
 
   it('installs the aws_account module', install(['aws_account']));
 
@@ -1042,6 +1072,7 @@ describe('VPC install/uninstall', () => {
   `,
       undefined,
       false,
+      () => ({ username, password }),
     ),
   );
 

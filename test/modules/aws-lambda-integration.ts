@@ -60,9 +60,22 @@ jest.setTimeout(480000);
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown());
 
+let username: string, password: string;
+
 describe('Lambda Integration Testing', () => {
-  it('creates a new test db', done =>
-    void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
+  it('creates a new test db', done => {
+    (async () => {
+      try {
+        const { user, password: pgPassword } = await iasql.connect(dbAlias, 'not-needed', 'not-needed');
+        username = user;
+        password = pgPassword;
+        if (!username || !password) throw new Error('Did not fetch pg credentials');
+        done();
+      } catch (e) {
+        done(e);
+      }
+    })();
+  });
 
   it('installs the aws_account module', install(['aws_account']));
 
@@ -75,6 +88,7 @@ describe('Lambda Integration Testing', () => {
   `,
       undefined,
       false,
+      () => ({ username, password }),
     ),
   );
 
@@ -82,9 +96,14 @@ describe('Lambda Integration Testing', () => {
 
   it(
     'sets the default region',
-    query(`
+    query(
+      `
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it('installs the lambda module', install(modules));
@@ -154,7 +173,7 @@ describe('Lambda Integration Testing', () => {
       (res: any[]) => {
         console.log(res[0]);
         expect(res[0]['status']).toBe('200');
-        return expect(res.length).toBe(1)
+        return expect(res.length).toBe(1);
       },
     ),
   );
@@ -172,7 +191,7 @@ describe('Lambda Integration Testing', () => {
       }
       done();
       return {};
-  }));
+    }));
 
   it('should fail invoking with wrong payload', done =>
     void query(`
@@ -187,14 +206,19 @@ describe('Lambda Integration Testing', () => {
       }
       done();
       return {};
-  }));
+    }));
 
   // Check restore path
   it(
     'updates the function arn',
-    query(`
+    query(
+      `
     UPDATE lambda_function SET arn = 'fake' WHERE name = '${lambdaFunctionName}';
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the lambda function update', commit());
@@ -226,9 +250,14 @@ describe('Lambda Integration Testing', () => {
   // Check configuration update path
   it(
     'updates the function',
-    query(`
+    query(
+      `
     UPDATE lambda_function SET runtime = '${lambdaFunctionRuntime16}' WHERE name = '${lambdaFunctionName}';
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the lambda function update', commit());
@@ -260,9 +289,14 @@ describe('Lambda Integration Testing', () => {
   // Check code update path
   it(
     'updates the function',
-    query(`
+    query(
+      `
     UPDATE lambda_function SET zip_b64 = '${lambdaFunctionCodeUpdate}' WHERE name = '${lambdaFunctionName}';
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the lambda function update', commit());
@@ -331,9 +365,14 @@ describe('Lambda Integration Testing', () => {
 
   it(
     'deletes the lambda function',
-    query(`
+    query(
+      `
     DELETE FROM lambda_function WHERE name = '${lambdaFunctionName}';
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it(
@@ -364,9 +403,14 @@ describe('Lambda Integration Testing', () => {
 
   it(
     'deletes the lambda function role',
-    query(`
+    query(
+      `
     DELETE FROM iam_role WHERE role_name = '${lambdaFunctionRoleName}';
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it(
@@ -399,8 +443,19 @@ describe('Lambda Integration Testing', () => {
 });
 
 describe('Lambda install/uninstall', () => {
-  it('creates a new test db', done =>
-    void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
+  it('creates a new test db', done => {
+    (async () => {
+      try {
+        const { user, password: pgPassword } = await iasql.connect(dbAlias, 'not-needed', 'not-needed');
+        username = user;
+        password = pgPassword;
+        if (!username || !password) throw new Error('Did not fetch pg credentials');
+        done();
+      } catch (e) {
+        done(e);
+      }
+    })();
+  });
 
   it('installs the aws_account module', install(['aws_account']));
 
@@ -413,6 +468,7 @@ describe('Lambda install/uninstall', () => {
   `,
       undefined,
       false,
+      () => ({ username, password }),
     ),
   );
 

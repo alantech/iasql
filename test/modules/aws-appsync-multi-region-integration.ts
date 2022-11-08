@@ -33,9 +33,22 @@ jest.setTimeout(3600000);
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown());
 
+let username: string, password: string;
+
 describe('App Sync Multi-region Integration Testing', () => {
-  it('creates a new test db', done =>
-    void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
+  it('creates a new test db', done => {
+    (async () => {
+      try {
+        const { user, password: pgPassword } = await iasql.connect(dbAlias, 'not-needed', 'not-needed');
+        username = user;
+        password = pgPassword;
+        if (!username || !password) throw new Error('Did not fetch pg credentials');
+        done();
+      } catch (e) {
+        done(e);
+      }
+    })();
+  });
 
   it('installs the aws_account module', install(['aws_account']));
 
@@ -48,6 +61,7 @@ describe('App Sync Multi-region Integration Testing', () => {
   `,
       undefined,
       false,
+      () => ({ username, password }),
     ),
   );
 
@@ -55,19 +69,29 @@ describe('App Sync Multi-region Integration Testing', () => {
 
   it(
     'sets the default region',
-    query(`
+    query(
+      `
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it('installs the app sync module', install(modules));
 
   it(
     'adds a new Graphql API',
-    query(`  
+    query(
+      `  
     INSERT INTO graphql_api (name, authentication_type, region)
     VALUES ('${apiName}', '${authType}', '${nonDefaultRegion}');
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it('undo changes', rollback());
@@ -86,10 +110,15 @@ describe('App Sync Multi-region Integration Testing', () => {
 
   it(
     'adds a new Graphql API',
-    query(`  
+    query(
+      `  
     INSERT INTO graphql_api (name, authentication_type, region)
     VALUES ('${apiName}', '${authType}', '${nonDefaultRegion}');
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the change', commit());
@@ -108,11 +137,16 @@ describe('App Sync Multi-region Integration Testing', () => {
 
   it(
     'changes the region the graphql api is located in',
-    query(`
+    query(
+      `
       UPDATE graphql_api
       SET region = '${region}'
       WHERE name = '${apiName}';
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the replacement', commit());
@@ -134,14 +168,19 @@ describe('App Sync Multi-region Integration Testing', () => {
     VALUES ('${apiName}', '${authType}', '${nonDefaultRegion}');
   `));
 
-  it('applies the addition', apply());
+  it('applies the addition', commit());
 
   it(
-    'removes the graphql apis',
-    query(`
+    'removes the graphql api',
+    query(
+      `
     DELETE FROM graphql_api
     WHERE name = '${apiName}';
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the removal', commit());

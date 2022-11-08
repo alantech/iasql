@@ -116,9 +116,22 @@ beforeAll(async () => {
 });
 afterAll(async () => await execComposeDown());
 
+let username: string, password: string;
+
 describe('EC2 Integration Testing', () => {
-  it('creates a new test db', done =>
-    void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
+  it('creates a new test db', done => {
+    (async () => {
+      try {
+        const { user, password: pgPassword } = await iasql.connect(dbAlias, 'not-needed', 'not-needed');
+        username = user;
+        password = pgPassword;
+        if (!username || !password) throw new Error('Did not fetch pg credentials');
+        done();
+      } catch (e) {
+        done(e);
+      }
+    })();
+  });
 
   it('installs the aws_account module', install(['aws_account']));
 
@@ -131,6 +144,7 @@ describe('EC2 Integration Testing', () => {
   `,
       undefined,
       false,
+      () => ({ username, password }),
     ),
   );
 
@@ -138,9 +152,14 @@ describe('EC2 Integration Testing', () => {
 
   it(
     'sets the default region',
-    query(`
+    query(
+      `
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it('creates a new test db to test sync', done =>
@@ -359,10 +378,15 @@ describe('EC2 Integration Testing', () => {
   describe('create IAM role', () => {
     it(
       'creates ec2 instance role',
-      query(`
+      query(
+        `
       INSERT INTO iam_role (role_name, assume_role_policy_document)
       VALUES ('${roleName}', '${ec2RolePolicy}');
-    `),
+    `,
+        undefined,
+        false,
+        () => ({ username, password }),
+      ),
     );
 
     it(
@@ -927,10 +951,15 @@ describe('EC2 Integration Testing', () => {
 
   it(
     'deletes the target group',
-    query(`
+    query(
+      `
     DELETE FROM target_group
     WHERE target_group_name = '${tgName}';
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies target group deletion', commit());
@@ -950,9 +979,14 @@ describe('EC2 Integration Testing', () => {
   describe('delete role', () => {
     it(
       'deletes role',
-      query(`
+      query(
+        `
       DELETE FROM iam_role WHERE role_name = '${roleName}';
-    `),
+    `,
+        undefined,
+        false,
+        () => ({ username, password }),
+      ),
     );
 
     it(
@@ -989,8 +1023,19 @@ describe('EC2 Integration Testing', () => {
 });
 
 describe('EC2 General Purpose Volume Integration Testing', () => {
-  it('creates a new test db', done =>
-    void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
+  it('creates a new test db', done => {
+    (async () => {
+      try {
+        const { user, password: pgPassword } = await iasql.connect(dbAlias, 'not-needed', 'not-needed');
+        username = user;
+        password = pgPassword;
+        if (!username || !password) throw new Error('Did not fetch pg credentials');
+        done();
+      } catch (e) {
+        done(e);
+      }
+    })();
+  });
 
   it('installs the aws_account module', install(['aws_account']));
 
@@ -1003,6 +1048,7 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
   `,
       undefined,
       false,
+      () => ({ username, password }),
     ),
   );
 
@@ -1010,9 +1056,14 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
 
   it(
     'sets the default region',
-    query(`
+    query(
+      `
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it('installs the module', install(modules));
@@ -1232,8 +1283,19 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
 });
 
 describe('EC2 install/uninstall', () => {
-  it('creates a new test db', done =>
-    void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
+  it('creates a new test db', done => {
+    (async () => {
+      try {
+        const { user, password: pgPassword } = await iasql.connect(dbAlias, 'not-needed', 'not-needed');
+        username = user;
+        password = pgPassword;
+        if (!username || !password) throw new Error('Did not fetch pg credentials');
+        done();
+      } catch (e) {
+        done(e);
+      }
+    })();
+  });
 
   it('installs the aws_account module', install(['aws_account']));
 
@@ -1246,6 +1308,7 @@ describe('EC2 install/uninstall', () => {
   `,
       undefined,
       false,
+      () => ({ username, password }),
     ),
   );
 

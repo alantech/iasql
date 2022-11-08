@@ -9,11 +9,11 @@ const uid = '12345';
 const email = 'test@example.com';
 const logGroupName = 'teslgcommit';
 
-let username: string, password: string;
-
 jest.setTimeout(360000);
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown());
+
+let username: string, password: string;
 
 describe('basic rollback functionality', () => {
   it('creates a new test db', done => {
@@ -41,6 +41,7 @@ describe('basic rollback functionality', () => {
   `,
       undefined,
       false,
+      () => ({ username, password }),
     ),
   );
 

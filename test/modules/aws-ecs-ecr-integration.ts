@@ -82,9 +82,22 @@ jest.setTimeout(1800000); // 30min timeout
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown());
 
+let username: string, password: string;
+
 describe('ECS Integration Testing', () => {
-  it('creates a new test db ECS', done =>
-    void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
+  it('creates a new test db ECS', done => {
+    (async () => {
+      try {
+        const { user, password: pgPassword } = await iasql.connect(dbAlias, 'not-needed', 'not-needed');
+        username = user;
+        password = pgPassword;
+        if (!username || !password) throw new Error('Did not fetch pg credentials');
+        done();
+      } catch (e) {
+        done(e);
+      }
+    })();
+  });
 
   it('installs the aws_account module', install(['aws_account']));
 
@@ -97,6 +110,7 @@ describe('ECS Integration Testing', () => {
   `,
       undefined,
       false,
+      () => ({ username, password }),
     ),
   );
 
@@ -104,14 +118,22 @@ describe('ECS Integration Testing', () => {
 
   it(
     'sets the default region',
-    query(`
+    query(
+      `
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
-  it('sets only 2 enabled regions to avoid long runs', query(`
+  it(
+    'sets only 2 enabled regions to avoid long runs',
+    query(`
     UPDATE aws_regions SET is_enabled = FALSE WHERE region != '${region}' AND region != (SELECT region FROM aws_regions WHERE region != 'us-east-1' AND region != '${region}' ORDER BY region DESC LIMIT 1);
-  `));
+  `),
+  );
 
   it('creates a new sidecar test db ECS', done =>
     void iasql.connect(dbAliasSidecar, 'not-needed', 'not-needed').then(...finish(done)));
@@ -139,9 +161,12 @@ describe('ECS Integration Testing', () => {
   `),
   );
 
-  it('sets only 2 enabled regions to avoid long runs', querySync(`
+  it(
+    'sets only 2 enabled regions to avoid long runs',
+    querySync(`
     UPDATE aws_regions SET is_enabled = FALSE WHERE region != '${region}' AND region != (SELECT region FROM aws_regions WHERE region != 'us-east-1' AND region != '${region}' ORDER BY region DESC LIMIT 1);
-  `));
+  `),
+  );
 
   it('installs the ecs module and its dependencies in sidecar db', sidecarInstall(modules));
 
@@ -150,10 +175,15 @@ describe('ECS Integration Testing', () => {
   // Cluster
   it(
     'adds a new cluster',
-    query(`
+    query(
+      `
     INSERT INTO cluster (cluster_name)
     VALUES('${clusterName}');
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it('undo changes', rollback());
@@ -172,10 +202,15 @@ describe('ECS Integration Testing', () => {
 
   it(
     'adds a new cluster',
-    query(`
+    query(
+      `
     INSERT INTO cluster (cluster_name)
     VALUES('${clusterName}');
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies adds a new cluster', commit());
@@ -259,12 +294,17 @@ describe('ECS Integration Testing', () => {
   // ECR
   it(
     'adds a new ECR',
-    query(`
+    query(
+      `
     INSERT INTO repository
         (repository_name)
     VALUES
         ('${repositoryName}');
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it(
@@ -458,10 +498,15 @@ describe('ECS Integration Testing', () => {
 
   it(
     'delete role while ecs is uninstalled',
-    query(`
+    query(
+      `
     delete from iam_role
     where role_name = '${taskExecRoleName}';
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it(
@@ -602,28 +647,43 @@ describe('ECS Integration Testing', () => {
 
   it(
     'tries to update a cluster field (restore)',
-    query(`
+    query(
+      `
     UPDATE cluster SET cluster_status = 'fake' WHERE cluster_name = '${clusterName}';
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies tries to update a cluster field (restore)', commit());
 
   it(
     'tries to update cluster (replace)',
-    query(`
+    query(
+      `
     UPDATE cluster SET cluster_name = '${newClusterName}' WHERE cluster_name = '${clusterName}';
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies tries to update cluster (replace)', commit());
 
   it(
     'deletes the cluster',
-    query(`
+    query(
+      `
     delete from cluster
     where cluster_name = '${newClusterName}';
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies deletes the cluster', commit());

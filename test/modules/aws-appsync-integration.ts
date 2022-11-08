@@ -33,9 +33,22 @@ jest.setTimeout(3600000);
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown());
 
+let username: string, password: string;
+
 describe('App Sync Integration Testing', () => {
-  it('creates a new test db', done =>
-    void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
+  it('creates a new test db', done => {
+    (async () => {
+      try {
+        const { user, password: pgPassword } = await iasql.connect(dbAlias, 'not-needed', 'not-needed');
+        username = user;
+        password = pgPassword;
+        if (!username || !password) throw new Error('Did not fetch pg credentials');
+        done();
+      } catch (e) {
+        done(e);
+      }
+    })();
+  });
 
   it('installs the aws_account module', install(['aws_account']));
 
@@ -48,6 +61,7 @@ describe('App Sync Integration Testing', () => {
   `,
       undefined,
       false,
+      () => ({ username, password }),
     ),
   );
 
@@ -55,29 +69,44 @@ describe('App Sync Integration Testing', () => {
 
   it(
     'sets the default region',
-    query(`
+    query(
+      `
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it('installs the App Sync module', install(modules));
 
   it(
     'adds a new Graphql API',
-    query(`  
+    query(
+      `  
     INSERT INTO graphql_api (name, authentication_type)
     VALUES ('${apiName}', '${authType}');
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it('undo changes', commit());
 
   it(
     'adds a new GraphQL API entry',
-    query(`  
+    query(
+      `  
     INSERT INTO graphql_api (name, authentication_type)
     VALUES ('${apiName}', '${authType}');
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the Graphql API change', commit());
@@ -94,9 +123,14 @@ describe('App Sync Integration Testing', () => {
 
   it(
     'tries to update Graphql API auth type',
-    query(`
+    query(
+      `
   UPDATE graphql_api SET authentication_type='${newAuthType}' WHERE name='${apiName}'
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the Graphql API auth type update', commit());
@@ -113,9 +147,14 @@ describe('App Sync Integration Testing', () => {
 
   it(
     'tries to update Graphql API ID',
-    query(`
+    query(
+      `
   UPDATE graphql_api SET api_id='fake' WHERE name='${apiName}'
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the Graphql API ID update', commit());
@@ -146,10 +185,15 @@ describe('App Sync Integration Testing', () => {
 
   it(
     'deletes the Graphql API',
-    query(`
+    query(
+      `
     DELETE FROM graphql_api
     WHERE name = '${apiName}';
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the Graphql API removal', commit());
@@ -158,8 +202,19 @@ describe('App Sync Integration Testing', () => {
 });
 
 describe('API install/uninstall', () => {
-  it('creates a new test db', done =>
-    void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
+  it('creates a new test db', done => {
+    (async () => {
+      try {
+        const { user, password: pgPassword } = await iasql.connect(dbAlias, 'not-needed', 'not-needed');
+        username = user;
+        password = pgPassword;
+        if (!username || !password) throw new Error('Did not fetch pg credentials');
+        done();
+      } catch (e) {
+        done(e);
+      }
+    })();
+  });
 
   it('installs the aws_account module', install(['aws_account']));
 
@@ -172,6 +227,7 @@ describe('API install/uninstall', () => {
   `,
       undefined,
       false,
+      () => ({ username, password }),
     ),
   );
 

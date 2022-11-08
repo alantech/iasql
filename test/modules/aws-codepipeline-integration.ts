@@ -21,21 +21,21 @@ const install = runInstall.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 // codepipeline has a more limited region list
 const region = defaultRegion([
-  "ap-northeast-1",
-  "ap-northeast-2",
-  "ap-south-1",
-  "ap-southeast-1",
-  "ap-southeast-2",
-  "ca-central-1",
-  "eu-central-1",
-  "eu-north-1",
-  "eu-west-1",
-  "eu-west-2",
-  "eu-west-3",
-  "sa-east-1",
-  "us-east-2",
-  "us-west-1",
-  "us-west-2",
+  'ap-northeast-1',
+  'ap-northeast-2',
+  'ap-south-1',
+  'ap-southeast-1',
+  'ap-southeast-2',
+  'ca-central-1',
+  'eu-central-1',
+  'eu-north-1',
+  'eu-west-1',
+  'eu-west-2',
+  'eu-west-3',
+  'sa-east-1',
+  'us-east-2',
+  'us-west-1',
+  'us-west-2',
 ]);
 const modules = ['aws_codepipeline', 'aws_s3', 'aws_codedeploy'];
 
@@ -212,9 +212,22 @@ beforeAll(async () => {
 });
 afterAll(async () => await execComposeDown());
 
+let username: string, password: string;
+
 describe('AwsCodepipeline Integration Testing', () => {
-  it('creates a new test db with the same name', done =>
-    void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
+  it('creates a new test db with the same name', done => {
+    (async () => {
+      try {
+        const { user, password: pgPassword } = await iasql.connect(dbAlias, 'not-needed', 'not-needed');
+        username = user;
+        password = pgPassword;
+        if (!username || !password) throw new Error('Did not fetch pg credentials');
+        done();
+      } catch (e) {
+        done(e);
+      }
+    })();
+  });
 
   it('installs the aws_account module', install(['aws_account']));
 
@@ -227,6 +240,7 @@ describe('AwsCodepipeline Integration Testing', () => {
   `,
       undefined,
       false,
+      () => ({ username, password }),
     ),
   );
 
@@ -234,9 +248,14 @@ describe('AwsCodepipeline Integration Testing', () => {
 
   it(
     'sets the default region',
-    query(`
+    query(
+      `
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it('installs the codepipeline module', install(modules));
@@ -267,16 +286,26 @@ describe('AwsCodepipeline Integration Testing', () => {
 
   it(
     'add storage s3 endpoint',
-    query(`
-    INSERT INTO bucket (name) VALUES ('${bucket}')`),
+    query(
+      `
+    INSERT INTO bucket (name) VALUES ('${bucket}')`,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it(
     'adds a new security group',
-    query(`  
+    query(
+      `  
     INSERT INTO security_group (description, group_name)
     VALUES ('CodedeploySecurity Group', '${sgGroupName}');
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it(
@@ -322,18 +351,28 @@ describe('AwsCodepipeline Integration Testing', () => {
 
   it(
     'adds a new codedeploy_application for deployment',
-    query(`
+    query(
+      `
     INSERT INTO codedeploy_application (name, compute_platform)
     VALUES ('${applicationNameForDeployment}', 'Server');
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it(
     'adds a new deployment_group',
-    query(`
+    query(
+      `
     INSERT INTO codedeploy_deployment_group (application_id, name, role_name, ec2_tag_filters)
     VALUES ((SELECT id FROM codedeploy_application WHERE name = '${applicationNameForDeployment}'), '${deploymentGroupName}', '${codeDeployRoleName}', '${ec2FilterTags}');
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the deployment group creation', commit());
@@ -387,18 +426,28 @@ describe('AwsCodepipeline Integration Testing', () => {
 
   it(
     'delete deployment group',
-    query(`
+    query(
+      `
       DELETE FROM codedeploy_deployment_group
       WHERE name = '${deploymentGroupName}';
-    `),
+    `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it(
     'delete application',
-    query(`
+    query(
+      `
       DELETE FROM codedeploy_application
       WHERE name = '${applicationNameForDeployment}';
-    `),
+    `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   describe('ec2 cleanup', () => {
@@ -422,20 +471,30 @@ describe('AwsCodepipeline Integration Testing', () => {
 
   it(
     'delete role',
-    query(`
+    query(
+      `
     DELETE FROM iam_role
     WHERE role_name = '${codePipelineRoleName}' OR role_name='${codeDeployRoleName}' OR role_name='${ec2RoleName}';
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it('cleans up the bucket', query(`DELETE FROM bucket_object WHERE bucket_name='${bucket}'`));
 
   it(
     'delete bucket',
-    query(`
+    query(
+      `
     DELETE FROM bucket
     WHERE name = '${bucket}';
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it('apply deletions', commit());
@@ -443,16 +502,26 @@ describe('AwsCodepipeline Integration Testing', () => {
   describe('delete security groups and rules', () => {
     it(
       'deletes security group rules',
-      query(`
+      query(
+        `
         DELETE FROM security_group_rule WHERE description='${prefix}codedeploy_rule_ssh' or description='${prefix}codedeploy_rule_http' or description='${prefix}codedeploy_rule_egress';
-      `),
+      `,
+        undefined,
+        false,
+        () => ({ username, password }),
+      ),
     );
 
     it(
       'deletes security group',
-      query(`
+      query(
+        `
         DELETE FROM security_group WHERE group_name = '${sgGroupName}';
-      `),
+      `,
+        undefined,
+        false,
+        () => ({ username, password }),
+      ),
     );
 
     it('applies the security group deletion', commit());
@@ -486,8 +555,19 @@ describe('AwsCodepipeline Integration Testing', () => {
 });
 
 describe('AwsCodepipeline install/uninstall', () => {
-  it('creates a new test db', done =>
-    void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
+  it('creates a new test db', done => {
+    (async () => {
+      try {
+        const { user, password: pgPassword } = await iasql.connect(dbAlias, 'not-needed', 'not-needed');
+        username = user;
+        password = pgPassword;
+        if (!username || !password) throw new Error('Did not fetch pg credentials');
+        done();
+      } catch (e) {
+        done(e);
+      }
+    })();
+  });
 
   it('installs the aws_account module', install(['aws_account']));
 
@@ -500,6 +580,7 @@ describe('AwsCodepipeline install/uninstall', () => {
   `,
       undefined,
       false,
+      () => ({ username, password }),
     ),
   );
 
@@ -507,9 +588,14 @@ describe('AwsCodepipeline install/uninstall', () => {
 
   it(
     'sets the default region',
-    query(`
+    query(
+      `
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it('installs the codepipeline module', install(modules));

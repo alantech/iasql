@@ -40,9 +40,22 @@ beforeAll(async () => {
 });
 afterAll(async () => await execComposeDown());
 
+let username: string, password: string;
+
 describe('ECR Multi-region Integration Testing', () => {
-  it('creates a new test db', done =>
-    void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
+  it('creates a new test db', done => {
+    (async () => {
+      try {
+        const { user, password: pgPassword } = await iasql.connect(dbAlias, 'not-needed', 'not-needed');
+        username = user;
+        password = pgPassword;
+        if (!username || !password) throw new Error('Did not fetch pg credentials');
+        done();
+      } catch (e) {
+        done(e);
+      }
+    })();
+  });
 
   it('installs the aws_account module', install(['aws_account']));
 
@@ -55,6 +68,7 @@ describe('ECR Multi-region Integration Testing', () => {
   `,
       undefined,
       false,
+      () => ({ username, password }),
     ),
   );
 
@@ -62,19 +76,29 @@ describe('ECR Multi-region Integration Testing', () => {
 
   it(
     'sets the default region',
-    query(`
+    query(
+      `
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it('installs the ECR module', install(modules));
 
   it(
     'adds a new repository',
-    query(`  
+    query(
+      `  
     INSERT INTO repository (repository_name, scan_on_push, image_tag_mutability, region)
       VALUES ('${repositoryName}', false, 'MUTABLE', '${nonDefaultRegion}');
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it('undo changes', rollback());
@@ -93,10 +117,15 @@ describe('ECR Multi-region Integration Testing', () => {
 
   it(
     'adds a new repository',
-    query(`  
+    query(
+      `  
       INSERT INTO repository (repository_name, scan_on_push, image_tag_mutability, region)
       VALUES ('${repositoryName}', false, 'MUTABLE', '${nonDefaultRegion}');
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the change', commit());
@@ -149,10 +178,15 @@ describe('ECR Multi-region Integration Testing', () => {
 
   it(
     'adds a new repository policy',
-    query(`
+    query(
+      `
     INSERT INTO repository_policy (repository_id, policy_text, region)
     VALUES ((select id from repository where repository_name = '${repositoryName}'), '${policyMock}', '${nonDefaultRegion}');
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the change', commit());
@@ -193,10 +227,15 @@ describe('ECR Multi-region Integration Testing', () => {
 
   it(
     'removes the repository images',
-    query(`
+    query(
+      `
       DELETE FROM repository_image
       WHERE private_repository_id = (select id from repository where repository_name = '${repositoryName}');
-  `),
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the deletion', commit());
