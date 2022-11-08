@@ -65,10 +65,10 @@ AWS is our main focus at the moment, but we plan to support GCP, Azure and other
 ### AWS services with basic API coverage
 
 - API Gateway
+- AppSync
 - CloudFront
 - Dynamo DB
 - ElastiCache
-- GraphQL
 - MemoryDB
 - [Route53](https://iasql.com/docs/aws_route53/)
 - Secrets Manager
