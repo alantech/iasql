@@ -223,7 +223,8 @@ describe('RDS Integration Testing', () => {
 
   it(
     'changes all boolean parameters for the new parameter group to be true',
-    query(`
+    query(
+      `
     WITH parameters AS (
       SELECT name, params
       FROM parameter_group,
@@ -239,7 +240,11 @@ describe('RDS Integration Testing', () => {
       FROM updated_parameters
       WHERE updated_parameters.name = parameter_group.name
     );
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the change', commit());

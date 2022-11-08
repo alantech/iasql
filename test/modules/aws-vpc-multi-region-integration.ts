@@ -160,7 +160,8 @@ describe('VPC Multiregion Integration Testing', () => {
 
   it(
     'updates vpc region',
-    query(`
+    query(
+      `
     DELETE FROM security_group WHERE vpc_id = (SELECT id FROM vpc WHERE tags ->> 'name' = '${prefix}-1');
     WITH updated_subnet AS (
       UPDATE subnet
@@ -170,7 +171,11 @@ describe('VPC Multiregion Integration Testing', () => {
     UPDATE vpc
     SET region='${region}'
     WHERE cidr_block='192.${randIPBlock}.0.0/16' AND state='available' AND tags ->> 'name' = '${prefix}-1' AND region = '${nonDefaultRegion}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the region change of the vpc', commit());
@@ -278,7 +283,8 @@ describe('VPC Multiregion Integration Testing', () => {
 
     it(
       'updates the private nat gateway to another region',
-      query(`
+      query(
+        `
       INSERT INTO vpc (cidr_block, region)
       VALUES ('191.${randIPBlock}.0.0/16', 'us-east-1');
       INSERT INTO subnet (availability_zone, vpc_id, cidr_block, region)
@@ -290,7 +296,11 @@ describe('VPC Multiregion Integration Testing', () => {
         region = 'us-east-1',
         subnet_id = (SELECT id FROM subnet WHERE cidr_block = '191.${randIPBlock}.0.0/16')
       WHERE tags ->> 'Name' = '${ng}';
-    `),
+    `,
+        undefined,
+        true,
+        () => ({ username, password }),
+      ),
     );
 
     it('applies the private nat gateway region change', commit());
@@ -307,12 +317,17 @@ describe('VPC Multiregion Integration Testing', () => {
 
     it(
       'adds a public nat gateway with existing elastic ip',
-      query(`
+      query(
+        `
       INSERT INTO nat_gateway (connectivity_type, subnet_id, tags, elastic_ip_id)
       SELECT 'public', subnet.id, '{"Name":"${pubNg}"}', elastic_ip.id
       FROM subnet, elastic_ip
       WHERE cidr_block = '192.${randIPBlock}.0.0/16' AND elastic_ip.tags ->> 'name' = '${eip}';
-    `),
+    `,
+        undefined,
+        true,
+        () => ({ username, password }),
+      ),
     );
 
     it('applies the public nat gateway with existing elastic ip change', commit());
@@ -359,26 +374,41 @@ describe('VPC Multiregion Integration Testing', () => {
 
     it(
       'deletes a public nat gateway',
-      query(`
+      query(
+        `
       DELETE FROM nat_gateway
       WHERE tags ->> 'Name' = '${pubNg}';
-    `),
+    `,
+        undefined,
+        true,
+        () => ({ username, password }),
+      ),
     );
 
     it(
       'deletes a elastic ip',
-      query(`
+      query(
+        `
       DELETE FROM elastic_ip
       WHERE tags ->> 'name' = '${eip}';
-    `),
+    `,
+        undefined,
+        true,
+        () => ({ username, password }),
+      ),
     );
 
     it(
       'deletes a private nat gateway',
-      query(`
+      query(
+        `
       DELETE FROM nat_gateway
       WHERE tags ->> 'Name' = '${ng}';
-    `),
+    `,
+        undefined,
+        true,
+        () => ({ username, password }),
+      ),
     );
 
     it('applies the nat gateway and elastic IP deletions', commit());
@@ -479,10 +509,15 @@ describe('VPC Multiregion Integration Testing', () => {
 
     it(
       'deletes a endpoint_gateway',
-      query(`
+      query(
+        `
       DELETE FROM endpoint_gateway
       WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
-    `),
+    `,
+        undefined,
+        true,
+        () => ({ username, password }),
+      ),
     );
 
     it('applies the endpoint_gateway change', commit());
@@ -500,7 +535,8 @@ describe('VPC Multiregion Integration Testing', () => {
 
   it(
     'deletes the vpcs',
-    query(`
+    query(
+      `
     WITH vpc as (
       SELECT id
       FROM vpc
@@ -530,7 +566,11 @@ describe('VPC Multiregion Integration Testing', () => {
 
     DELETE FROM vpc
     WHERE cidr_block='191.${randIPBlock}.0.0/16' AND region = 'us-east-1';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the vpc removal', commit());
