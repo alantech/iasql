@@ -1050,7 +1050,7 @@ export async function commit(
   logger.info(`Commiting to ${dbId}`);
   await throwIfUpgrading(dbId, force);
   const versionString = await TypeormWrapper.getVersionString(dbId);
-  const importedModules = await getImportedModules(dbId, versionString);
+  const importedModules = await getImportedModules(dbId, versionString, force);
   let orm: TypeormWrapper | null = null;
   try {
     orm = ormOpt ? ormOpt : await TypeormWrapper.createConn(dbId);
@@ -1155,9 +1155,9 @@ async function throwIfUpgrading(dbId: string, force: boolean) {
   if (!force && dbMeta?.upgrading) throw new Error('The database is upgrading. Please try again later.');
 }
 
-async function getImportedModules(dbId: string, versionString: string) {
+async function getImportedModules(dbId: string, versionString: string, force: boolean) {
   const dbMeta = await MetadataRepo.getDbById(dbId);
-  if (dbMeta?.upgrading) throw new Error('Cannot apply a change while upgrading');
+  if (!force && dbMeta?.upgrading) throw new Error('Cannot apply a change while upgrading');
   const importedModules = (AllModules as any)[versionString];
   if (!importedModules) {
     throw new Error(`Unsupported version ${versionString}. Please upgrade or replace this database.`);
@@ -1708,7 +1708,7 @@ export async function rollback(dbId: string, context: Context, force = false, or
   logger.info(`Sync to ${dbId}`);
   await throwIfUpgrading(dbId, force);
   const versionString = await TypeormWrapper.getVersionString(dbId);
-  const importedModules = await getImportedModules(dbId, versionString);
+  const importedModules = await getImportedModules(dbId, versionString, force);
   let orm: TypeormWrapper | null = null;
   try {
     orm = ormOpt ? ormOpt : await TypeormWrapper.createConn(dbId);
