@@ -79,7 +79,7 @@ cd infra
 npm i
 ```
 
-3. Modify the [`.env file`](https://www.prisma.io/docs/guides/development-environment/environment-variables) that Prisma expects with the connection parameters provided on db creation. Also, you'll need to add your [Github personal acccess token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token) for the `ecr_builder` module to be able to do the pull. Also, if you're going to deploy a codebase other than the default one, set the `REPO_URI` variable. In this case:
+3. Modify the [`.env file`](https://www.prisma.io/docs/guides/development-environment/environment-variables) that Prisma expects with the connection parameters provided on db creation. You'll need to add your [Github personal acccess token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token) for the `ecr_builder` module to be able to do the pull. Also, if you're going to deploy a codebase other than the default one, set the `REPO_URI` variable. In this case:
 
 ```bash title="prisma/infra/.env"
 DATABASE_URL="postgres://d0va6ywg:nfdDh#EP4CyzveFr@db.iasql.com/_4b2bb09a59a411e4"
@@ -171,7 +171,7 @@ async function main() {
 
 ```
 
-It'll use the `ecs_simplified` module to create all the necessary AWS resources needed for you app to be run (load balancer, ECR repository, IAM role, etc). 
+It'll use the `ecs_simplified` module to create all the necessary AWS resources needed for you app to run (load balancer, ECR repository, IAM role, etc). 
 
 ```js title="my_project/migrations/index.js"
 const apply = await prisma.$queryRaw`SELECT * from iasql_apply();`
@@ -199,7 +199,7 @@ If that function call is successful, it will return a virtual table with a recor
 ## Login, build and push your code to the container registry
 
 Previously, you needed to manually build and push your image to the ECR. But recently we've added the high-level `ecr_build` SQL function which does all those steps automatically. It will do the following:
-- Pull the codes from your Github repository
+- Pull the code from your Github repository
 - Build the Docker image in the directory you've specified
 - Push the image to the ECR repository you've provided
 

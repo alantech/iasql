@@ -83,7 +83,7 @@ If the function call is successful, it will return a virtual table with a record
 Login, build and push your code to the container registry
 
 Previously, you needed to manually build and push your image to the ECR. But recently we've added the high-level `ecr_build` SQL function which does all those steps automatically. It will do the following:
-- Pull the codes from your Github repository
+- Pull the code from your Github repository
 - Build the Docker image in the directory you've specified
 - Push the image to the ECR repository you've provided
 
