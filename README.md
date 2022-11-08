@@ -24,6 +24,7 @@ Use the dashboard to connect a hosted PostgreSQL database to an AWS account. Vis
 ## 💬 Community, Support and Questions
 
 Reach out on Discord to:
+
 - Get help with errors you encounter using IaSQL
 - Ask about general problems with databases or infrastructure
 - Discuss database and infrastructure best practices
@@ -49,21 +50,30 @@ AWS is our main focus at the moment, but we plan to support GCP, Azure and other
 
 ### AWS services with significant API coverage
 
-- [EC2](https://iasql.com/docs/aws_ec2)
-- ECR
-- ECS + Fargate
-- ELB
-- RDS
-- Security Groups
 - CloudWatch
-- IAM
-- VPC
+- CodeBuild
+- CodeDeploy
+- CodePipeline
+- [EC2](https://iasql.com/docs/aws_ec2)
+- [ECR](https://iasql.com/docs/aws_ecr/)
+- [ECS + Fargate](https://iasql.com/docs/fargate/)
+- ELB
+- [IAM](https://iasql.com/docs/aws_iam/)
+- Lambda
+- [RDS](https://iasql.com/docs/aws_rds/)
+- S3
+- [Security Groups](https://iasql.com/docs/aws_security_group/)
+- [VPC](https://iasql.com/docs/vpc/)
 
 ### AWS services with basic API coverage
 
-- Route53
-- ACM
+- API Gateway
+- CloudFront
 - Dynamo DB
-- S3
+- Elasticache
+- GraphQL
+- MemoryDB
+- [Route53](https://iasql.com/docs/aws_route53/)
+- Secrets
 
 Check out AWS services that are going to be added next [here](https://github.com/iasql/iasql-engine/issues?q=is%3Aissue+is%3Aopen+label%3A%22cloud+coverage%22) and let us know if you would like to see one that is not listed!
