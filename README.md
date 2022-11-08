@@ -67,7 +67,7 @@ AWS is our main focus at the moment, but we plan to support GCP, Azure and other
 - API Gateway
 - CloudFront
 - Dynamo DB
-- Elasticache
+- ElastiCache
 - GraphQL
 - MemoryDB
 - [Route53](https://iasql.com/docs/aws_route53/)
