@@ -165,7 +165,7 @@ db.post('/run/:dbAlias', async (req, res) => {
   try {
     const database: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
     dbId = database.pgName;
-    const output = await until(iasql.runSql(dbAlias, uid, sql, byStatement ?? false), 30000);
+    const output = await until(iasql.runSql(dbAlias, uid, sql, byStatement ?? false), 5 * 60 * 1000);
     // ignore queries done by the dashboard itself
     if (byUser) {
       telemetry.logRunSql(
