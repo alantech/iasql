@@ -1,4 +1,4 @@
-FROM node:lts
+FROM public.ecr.aws/docker/library/node:lts
 
 COPY . .
 
