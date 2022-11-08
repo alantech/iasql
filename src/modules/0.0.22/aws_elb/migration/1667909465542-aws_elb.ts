@@ -1,27 +1,9 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class awsElb1667846659810 implements MigrationInterface {
-  name = 'awsElb1667846659810';
+export class awsElb1667909465542 implements MigrationInterface {
+  name = 'awsElb1667909465542';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(
-      `CREATE TYPE "public"."load_balancer_scheme_enum" AS ENUM('internal', 'internet-facing')`,
-    );
-    await queryRunner.query(
-      `CREATE TYPE "public"."load_balancer_state_enum" AS ENUM('active', 'active_impaired', 'failed', 'provisioning')`,
-    );
-    await queryRunner.query(
-      `CREATE TYPE "public"."load_balancer_load_balancer_type_enum" AS ENUM('application', 'gateway', 'network')`,
-    );
-    await queryRunner.query(
-      `CREATE TYPE "public"."load_balancer_ip_address_type_enum" AS ENUM('dualstack', 'ipv4')`,
-    );
-    await queryRunner.query(
-      `CREATE TABLE "load_balancer" ("id" SERIAL NOT NULL, "load_balancer_name" character varying NOT NULL, "load_balancer_arn" character varying, "dns_name" character varying, "canonical_hosted_zone_id" character varying, "created_time" TIMESTAMP WITH TIME ZONE, "scheme" "public"."load_balancer_scheme_enum" NOT NULL, "state" "public"."load_balancer_state_enum", "load_balancer_type" "public"."load_balancer_load_balancer_type_enum" NOT NULL, "subnets" character varying array, "availability_zones" character varying array, "ip_address_type" "public"."load_balancer_ip_address_type_enum" NOT NULL, "customer_owned_ipv4_pool" character varying, "region" character varying NOT NULL DEFAULT default_aws_region(), "attributes" json, "connection_settings" json, "vpc" integer, CONSTRAINT "check_load_balancer_subnets" CHECK (check_load_balancer_subnets(subnets)), CONSTRAINT "check_load_balancer_availability_zones" CHECK (check_load_balancer_availability_zones(load_balancer_name, availability_zones)), CONSTRAINT "PK_602633aa1c4c1fbccc503e355b6" PRIMARY KEY ("id"))`,
-    );
-    await queryRunner.query(
-      `CREATE UNIQUE INDEX "IDX_b4a4a3134224cdac89d0e1d804" ON "load_balancer" ("load_balancer_name", "region") `,
-    );
     await queryRunner.query(
       `CREATE TYPE "public"."target_group_target_type_enum" AS ENUM('alb', 'instance', 'ip', 'lambda')`,
     );
@@ -44,6 +26,24 @@ export class awsElb1667846659810 implements MigrationInterface {
       `CREATE UNIQUE INDEX "IDX_47ec3727ae525fc83627d0d148" ON "target_group" ("target_group_name", "region") `,
     );
     await queryRunner.query(
+      `CREATE TYPE "public"."load_balancer_scheme_enum" AS ENUM('internal', 'internet-facing')`,
+    );
+    await queryRunner.query(
+      `CREATE TYPE "public"."load_balancer_state_enum" AS ENUM('active', 'active_impaired', 'failed', 'provisioning')`,
+    );
+    await queryRunner.query(
+      `CREATE TYPE "public"."load_balancer_load_balancer_type_enum" AS ENUM('application', 'gateway', 'network')`,
+    );
+    await queryRunner.query(
+      `CREATE TYPE "public"."load_balancer_ip_address_type_enum" AS ENUM('dualstack', 'ipv4')`,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "load_balancer" ("id" SERIAL NOT NULL, "load_balancer_name" character varying NOT NULL, "load_balancer_arn" character varying, "dns_name" character varying, "canonical_hosted_zone_id" character varying, "created_time" TIMESTAMP WITH TIME ZONE, "scheme" "public"."load_balancer_scheme_enum" NOT NULL, "state" "public"."load_balancer_state_enum", "load_balancer_type" "public"."load_balancer_load_balancer_type_enum" NOT NULL, "subnets" character varying array, "availability_zones" character varying array, "ip_address_type" "public"."load_balancer_ip_address_type_enum" NOT NULL, "customer_owned_ipv4_pool" character varying, "region" character varying NOT NULL DEFAULT default_aws_region(), "attributes" json, "vpc" integer, CONSTRAINT "check_load_balancer_subnets" CHECK (check_load_balancer_subnets(subnets)), CONSTRAINT "check_load_balancer_availability_zones" CHECK (check_load_balancer_availability_zones(load_balancer_name, availability_zones)), CONSTRAINT "PK_602633aa1c4c1fbccc503e355b6" PRIMARY KEY ("id"))`,
+    );
+    await queryRunner.query(
+      `CREATE UNIQUE INDEX "IDX_b4a4a3134224cdac89d0e1d804" ON "load_balancer" ("load_balancer_name", "region") `,
+    );
+    await queryRunner.query(
       `CREATE TYPE "public"."listener_protocol_enum" AS ENUM('GENEVE', 'HTTP', 'HTTPS', 'TCP', 'TCP_UDP', 'TLS', 'UDP')`,
     );
     await queryRunner.query(`CREATE TYPE "public"."listener_action_type_enum" AS ENUM('forward')`);
@@ -60,16 +60,16 @@ export class awsElb1667846659810 implements MigrationInterface {
       `CREATE INDEX "IDX_4da7e08287b5693e5b22959ced" ON "load_balancer_security_groups" ("security_group_id") `,
     );
     await queryRunner.query(
-      `ALTER TABLE "load_balancer" ADD CONSTRAINT "FK_85469e168fb53493324102075fe" FOREIGN KEY ("vpc") REFERENCES "vpc"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "load_balancer" ADD CONSTRAINT "FK_a4f6eeb873d220424ac06190323" FOREIGN KEY ("region") REFERENCES "aws_regions"("region") ON DELETE NO ACTION ON UPDATE NO ACTION`,
-    );
-    await queryRunner.query(
       `ALTER TABLE "target_group" ADD CONSTRAINT "FK_5e47493d36e4558ffb2418ef961" FOREIGN KEY ("vpc") REFERENCES "vpc"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
       `ALTER TABLE "target_group" ADD CONSTRAINT "FK_bec24b781f4a7feb3a0650fb539" FOREIGN KEY ("region") REFERENCES "aws_regions"("region") ON DELETE NO ACTION ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "load_balancer" ADD CONSTRAINT "FK_85469e168fb53493324102075fe" FOREIGN KEY ("vpc") REFERENCES "vpc"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "load_balancer" ADD CONSTRAINT "FK_a4f6eeb873d220424ac06190323" FOREIGN KEY ("region") REFERENCES "aws_regions"("region") ON DELETE NO ACTION ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
       `ALTER TABLE "listener" ADD CONSTRAINT "FK_515921874a4505a3f4786aaad75" FOREIGN KEY ("load_balancer_id") REFERENCES "load_balancer"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
@@ -98,16 +98,22 @@ export class awsElb1667846659810 implements MigrationInterface {
     await queryRunner.query(`ALTER TABLE "listener" DROP CONSTRAINT "FK_21beaace54890e2a63d2150a56b"`);
     await queryRunner.query(`ALTER TABLE "listener" DROP CONSTRAINT "FK_5c1fa345667a762a249d9398688"`);
     await queryRunner.query(`ALTER TABLE "listener" DROP CONSTRAINT "FK_515921874a4505a3f4786aaad75"`);
-    await queryRunner.query(`ALTER TABLE "target_group" DROP CONSTRAINT "FK_bec24b781f4a7feb3a0650fb539"`);
-    await queryRunner.query(`ALTER TABLE "target_group" DROP CONSTRAINT "FK_5e47493d36e4558ffb2418ef961"`);
     await queryRunner.query(`ALTER TABLE "load_balancer" DROP CONSTRAINT "FK_a4f6eeb873d220424ac06190323"`);
     await queryRunner.query(`ALTER TABLE "load_balancer" DROP CONSTRAINT "FK_85469e168fb53493324102075fe"`);
+    await queryRunner.query(`ALTER TABLE "target_group" DROP CONSTRAINT "FK_bec24b781f4a7feb3a0650fb539"`);
+    await queryRunner.query(`ALTER TABLE "target_group" DROP CONSTRAINT "FK_5e47493d36e4558ffb2418ef961"`);
     await queryRunner.query(`DROP INDEX "public"."IDX_4da7e08287b5693e5b22959ced"`);
     await queryRunner.query(`DROP INDEX "public"."IDX_b04ed8dca40b77dfa54096a4b6"`);
     await queryRunner.query(`DROP TABLE "load_balancer_security_groups"`);
     await queryRunner.query(`DROP TABLE "listener"`);
     await queryRunner.query(`DROP TYPE "public"."listener_action_type_enum"`);
     await queryRunner.query(`DROP TYPE "public"."listener_protocol_enum"`);
+    await queryRunner.query(`DROP INDEX "public"."IDX_b4a4a3134224cdac89d0e1d804"`);
+    await queryRunner.query(`DROP TABLE "load_balancer"`);
+    await queryRunner.query(`DROP TYPE "public"."load_balancer_ip_address_type_enum"`);
+    await queryRunner.query(`DROP TYPE "public"."load_balancer_load_balancer_type_enum"`);
+    await queryRunner.query(`DROP TYPE "public"."load_balancer_state_enum"`);
+    await queryRunner.query(`DROP TYPE "public"."load_balancer_scheme_enum"`);
     await queryRunner.query(`DROP INDEX "public"."IDX_47ec3727ae525fc83627d0d148"`);
     await queryRunner.query(`DROP TABLE "target_group"`);
     await queryRunner.query(`DROP TYPE "public"."target_group_protocol_version_enum"`);
@@ -115,11 +121,5 @@ export class awsElb1667846659810 implements MigrationInterface {
     await queryRunner.query(`DROP TYPE "public"."target_group_protocol_enum"`);
     await queryRunner.query(`DROP TYPE "public"."target_group_ip_address_type_enum"`);
     await queryRunner.query(`DROP TYPE "public"."target_group_target_type_enum"`);
-    await queryRunner.query(`DROP INDEX "public"."IDX_b4a4a3134224cdac89d0e1d804"`);
-    await queryRunner.query(`DROP TABLE "load_balancer"`);
-    await queryRunner.query(`DROP TYPE "public"."load_balancer_ip_address_type_enum"`);
-    await queryRunner.query(`DROP TYPE "public"."load_balancer_load_balancer_type_enum"`);
-    await queryRunner.query(`DROP TYPE "public"."load_balancer_state_enum"`);
-    await queryRunner.query(`DROP TYPE "public"."load_balancer_scheme_enum"`);
   }
 }

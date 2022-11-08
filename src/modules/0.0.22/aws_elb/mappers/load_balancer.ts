@@ -26,36 +26,39 @@ import {
 export class LoadBalancerMapper extends MapperBase<LoadBalancer> {
   module: AwsElbModule;
   entity = LoadBalancer;
-  equals = (a: LoadBalancer, b: LoadBalancer) =>
-    Object.is(a.availabilityZones?.length, b.availabilityZones?.length) &&
-    (a.availabilityZones
-      ?.filter(aaz => !!aaz)
-      .every(aaz => !!b.availabilityZones?.filter(baz => !!baz).find(baz => Object.is(aaz, baz))) ??
-      false) &&
-    Object.is(a.canonicalHostedZoneId, b.canonicalHostedZoneId) &&
-    Object.is(a.createdTime?.getTime(), b.createdTime?.getTime()) &&
-    // This property might be comparing null vs undefined
-    // tslint:disable-next-line: triple-equals
-    a.customerOwnedIpv4Pool == b.customerOwnedIpv4Pool &&
-    Object.is(a.dnsName, b.dnsName) &&
-    Object.is(a.ipAddressType, b.ipAddressType) &&
-    Object.is(a.loadBalancerName, b.loadBalancerName) &&
-    Object.is(a.loadBalancerType, b.loadBalancerType) &&
-    Object.is(a.scheme, b.scheme) &&
-    Object.is(a.securityGroups?.length, b.securityGroups?.length) &&
-    (a.securityGroups?.every(asg => !!b.securityGroups?.find(bsg => Object.is(asg.groupId, bsg.groupId))) ??
-      false) &&
-    Object.is(a.state, b.state) &&
-    Object.is(a.subnets?.length, b.subnets?.length) &&
-    (a.subnets?.every(asn => !!b.subnets?.find(bsn => Object.is(asn, bsn))) ?? false) &&
-    Object.is(a.vpc?.vpcId, b.vpc?.vpcId) &&
-    Object.is(a.region, b.region) &&
-    Object.is(a.attributes?.length, b.attributes?.length) &&
-    (a.attributes?.every(
-      aatt =>
-        !!b.attributes?.find(batt => Object.is(aatt.Key, batt.Key) && Object.is(aatt.Value, batt.Value)),
-    ) ??
-      false);
+  equals = (a: LoadBalancer, b: LoadBalancer) => {
+    return (
+      Object.is(a.availabilityZones?.length, b.availabilityZones?.length) &&
+      (a.availabilityZones
+        ?.filter(aaz => !!aaz)
+        .every(aaz => !!b.availabilityZones?.filter(baz => !!baz).find(baz => Object.is(aaz, baz))) ??
+        false) &&
+      Object.is(a.canonicalHostedZoneId, b.canonicalHostedZoneId) &&
+      Object.is(a.createdTime?.getTime(), b.createdTime?.getTime()) &&
+      // This property might be comparing null vs undefined
+      // tslint:disable-next-line: triple-equals
+      a.customerOwnedIpv4Pool == b.customerOwnedIpv4Pool &&
+      Object.is(a.dnsName, b.dnsName) &&
+      Object.is(a.ipAddressType, b.ipAddressType) &&
+      Object.is(a.loadBalancerName, b.loadBalancerName) &&
+      Object.is(a.loadBalancerType, b.loadBalancerType) &&
+      Object.is(a.scheme, b.scheme) &&
+      Object.is(a.securityGroups?.length, b.securityGroups?.length) &&
+      (a.securityGroups?.every(asg => !!b.securityGroups?.find(bsg => Object.is(asg.groupId, bsg.groupId))) ??
+        false) &&
+      Object.is(a.state, b.state) &&
+      Object.is(a.subnets?.length, b.subnets?.length) &&
+      (a.subnets?.every(asn => !!b.subnets?.find(bsn => Object.is(asn, bsn))) ?? false) &&
+      Object.is(a.vpc?.vpcId, b.vpc?.vpcId) &&
+      Object.is(a.region, b.region) &&
+      Object.is(a.attributes?.length, b.attributes?.length) &&
+      (a.attributes?.every(
+        aatt =>
+          !!b.attributes?.find(batt => Object.is(aatt.Key, batt.Key) && Object.is(aatt.Value, batt.Value)),
+      ) ??
+        false)
+    );
+  };
 
   async loadBalancerMapper(lb: LoadBalancerAws, ctx: Context, region: string) {
     const out = new LoadBalancer();
@@ -154,6 +157,8 @@ export class LoadBalancerMapper extends MapperBase<LoadBalancer> {
     const waiterInput: DescribeLoadBalancersCommandInput = {
       LoadBalancerArns: [loadBalancer?.LoadBalancerArn!],
     };
+
+    let newLoadBalancer: LoadBalancerAws | undefined;
     // TODO: should we use the paginator instead?
     await createWaiter<ElasticLoadBalancingV2, DescribeLoadBalancersCommandInput>(
       {
@@ -169,7 +174,7 @@ export class LoadBalancerMapper extends MapperBase<LoadBalancer> {
           const data = await cl.describeLoadBalancers(cmd);
           for (const lb of data?.LoadBalancers ?? []) {
             if (lb.State?.Code !== 'active') return { state: WaiterState.RETRY };
-            loadBalancer = lb;
+            newLoadBalancer = lb;
           }
           return { state: WaiterState.SUCCESS };
         } catch (e: any) {
@@ -178,7 +183,7 @@ export class LoadBalancerMapper extends MapperBase<LoadBalancer> {
       },
     );
 
-    return loadBalancer;
+    return newLoadBalancer ?? undefined;
   }
 
   // TODO: Really refactor the client access in this thing later
@@ -260,21 +265,25 @@ export class LoadBalancerMapper extends MapperBase<LoadBalancer> {
           input.SecurityGroups = securityGroups;
         }
         const result = await this.createLoadBalancer(client.elbClient, input);
-        // TODO: Handle if it fails (somehow)
-        if (!result?.hasOwnProperty('LoadBalancerArn')) {
-          // Failure
-          throw new Error('what should we do here?');
+        if (result) {
+          // TODO: Handle if it fails (somehow)
+          if (!result?.hasOwnProperty('LoadBalancerArn')) {
+            // Failure
+            throw new Error('what should we do here?');
+          }
+          // Re-get the inserted record to get all of the relevant records we care about
+          const newObject = await this.getLoadBalancer(client.elbClient, result.LoadBalancerArn ?? '');
+          if (!newObject) continue;
+
+          // We map this into the same kind of entity as `obj`
+          const newEntity = await this.loadBalancerMapper(newObject, ctx, e.region);
+          if (!newEntity) continue;
+          newEntity.id = e.id;
+
+          // Save the record back into the database to get the new fields updated
+          await this.module.loadBalancer.db.update(newEntity, ctx);
+          out.push(newEntity);
         }
-        // Re-get the inserted record to get all of the relevant records we care about
-        const newObject = await this.getLoadBalancer(client.elbClient, result.LoadBalancerArn ?? '');
-        if (!newObject) continue;
-        // We map this into the same kind of entity as `obj`
-        const newEntity = await this.loadBalancerMapper(newObject, ctx, e.region);
-        if (!newEntity) continue;
-        newEntity.id = e.id;
-        // Save the record back into the database to get the new fields updated
-        await this.module.loadBalancer.db.update(newEntity, ctx);
-        out.push(newEntity);
       }
       return out;
     },
@@ -396,6 +405,11 @@ export class LoadBalancerMapper extends MapperBase<LoadBalancer> {
               await this.module.loadBalancer.db.update(updatedRecord, ctx);
               out.push(updatedRecord);
             }
+          } else {
+            // we just restore the cloud record
+            cloudRecord.id = e.id;
+            await this.module.loadBalancer.db.update(cloudRecord, ctx);
+            out.push(cloudRecord);
           }
         } else {
           // We need to delete the current cloud record and create the new one.

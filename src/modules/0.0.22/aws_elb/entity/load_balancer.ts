@@ -141,12 +141,4 @@ export class LoadBalancer {
     nullable: true,
   })
   attributes?: LoadBalancerAttribute[];
-
-  @Column({
-    type: 'json',
-    nullable: true,
-  })
-  connectionSettings?: {
-    idleTimeout?: number | undefined;
-  };
 }
