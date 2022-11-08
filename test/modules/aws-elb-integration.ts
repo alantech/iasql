@@ -115,10 +115,15 @@ describe('ELB Integration Testing', () => {
   // Target group
   it(
     'adds a new targetGroup',
-    query(`
+    query(
+      `
         INSERT INTO target_group (target_group_name, target_type, protocol, port, vpc, health_check_path)
         VALUES ('${tgName}', '${tgType}', '${protocol}', ${port}, null, '/health');
-    `),
+    `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('undo changes', rollback());
@@ -137,10 +142,15 @@ describe('ELB Integration Testing', () => {
 
   it(
     'adds a new targetGroup',
-    query(`
+    query(
+      `
         INSERT INTO target_group (target_group_name, target_type, protocol, port, vpc, health_check_path)
         VALUES ('${tgName}', '${tgType}', '${protocol}', ${port}, null, '/health');
-    `),
+    `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(

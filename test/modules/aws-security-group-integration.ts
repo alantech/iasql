@@ -134,7 +134,8 @@ describe('Security Group Integration Testing', () => {
 
   it(
     'adds security group rules',
-    query(`
+    query(
+      `
     INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
     SELECT true, 'tcp', 443, 443, '0.0.0.0/8', '${prefix}testrule', id
     FROM security_group
@@ -143,7 +144,11 @@ describe('Security Group Integration Testing', () => {
     SELECT false, 'tcp', 22, 22, '::/8', '${prefix}testrule2', id
     FROM security_group
     WHERE group_name = '${prefix}sgtest';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the security group rule change', commit());
@@ -396,6 +401,9 @@ describe('Security Group Integration Testing', () => {
     query(
       `INSERT INTO vpc (cidr_block, is_default)
   VALUES ('192.${randIPBlock}.0.0/24', false);`,
+      undefined,
+      true,
+      () => ({ username, password }),
     ),
   );
 
@@ -510,6 +518,9 @@ describe('Security Group Integration Testing', () => {
     'deletes the default security group for vpc',
     query(
       `DELETE FROM security_group WHERE vpc_id=(SELECT id FROM vpc WHERE cidr_block='192.${randIPBlock}.0.0/24')`,
+      undefined,
+      true,
+      () => ({ username, password }),
     ),
   );
 
@@ -613,7 +624,8 @@ describe('Security Group Integration Testing', () => {
 
   it(
     'deletes the vpc',
-    query(`
+    query(
+      `
     WITH vpc as (
       SELECT id
       FROM vpc
@@ -625,7 +637,11 @@ describe('Security Group Integration Testing', () => {
 
     DELETE FROM vpc
     WHERE cidr_block = '192.${randIPBlock}.0.0/24';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the vpc removal', commit());
@@ -741,7 +757,8 @@ describe('Security Group Integration Testing', () => {
 
   it(
     'deletes the security group rules',
-    query(`
+    query(
+      `
     DELETE FROM security_group_rule WHERE description = '${prefix}testrule';
     DELETE FROM security_group_rule WHERE description = '${prefix}testrule2';
 
@@ -754,14 +771,19 @@ describe('Security Group Integration Testing', () => {
     USING security_group
     WHERE security_group_rule.security_group_id = security_group.id
     AND security_group.group_name = '${prefix}beegbeegsg';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the security group rule change (last time)', commit());
 
   it(
     'deletes the security groups',
-    query(`
+    query(
+      `
     DELETE FROM security_group
     WHERE group_name in (
       '${prefix}sgtest2', '${prefix}beegbeegsg', '${prefix}teenysg',
@@ -774,7 +796,11 @@ describe('Security Group Integration Testing', () => {
     AND vpc.cidr_block IN ('192.${randIPBlock}.0.0/16', '192.${randIPBlock2}.0.0/16');
 
     DELETE FROM vpc WHERE cidr_block IN ('192.${randIPBlock}.0.0/16', '192.${randIPBlock2}.0.0/16');
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the security group change (last time)', commit());
@@ -1022,10 +1048,15 @@ describe('Security Group install/uninstall', () => {
 
   it(
     'inserts a new VPC (that creates a new default SG automatically)',
-    query(`
+    query(
+      `
     INSERT INTO vpc (cidr_block)
     VALUES ('192.${randIPBlock}.0.0/16');
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('creates the VPC', commit());
@@ -1050,10 +1081,15 @@ describe('Security Group install/uninstall', () => {
 
   it(
     'deletes the vpc',
-    query(`
+    query(
+      `
     DELETE FROM vpc
     WHERE cidr_block = '192.${randIPBlock}.0.0/16';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the vpc removal', commit());

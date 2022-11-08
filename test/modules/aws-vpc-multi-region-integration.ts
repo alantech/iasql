@@ -100,13 +100,18 @@ describe('VPC Multiregion Integration Testing', () => {
 
   it(
     'adds a subnet',
-    query(`
+    query(
+      `
     INSERT INTO subnet (availability_zone, vpc_id, cidr_block, region)
     SELECT '${nonDefaultRegionAvailabilityZone}', id, '192.${randIPBlock}.0.0/16', '${nonDefaultRegion}'
     FROM vpc
     WHERE is_default = false
     AND cidr_block = '192.${randIPBlock}.0.0/16' AND region = '${nonDefaultRegion}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('undo changes', rollback());
@@ -126,13 +131,18 @@ describe('VPC Multiregion Integration Testing', () => {
 
   it(
     'adds a subnet',
-    query(`
+    query(
+      `
     INSERT INTO subnet (availability_zone, vpc_id, cidr_block, region)
     SELECT '${nonDefaultRegionAvailabilityZone}', id, '192.${randIPBlock}.0.0/16', '${nonDefaultRegion}'
     FROM vpc
     WHERE is_default = false
     AND cidr_block = '192.${randIPBlock}.0.0/16' AND region = '${nonDefaultRegion}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the vpc change', commit());
@@ -241,12 +251,17 @@ describe('VPC Multiregion Integration Testing', () => {
 
     it(
       'adds a private nat gateway',
-      query(`
+      query(
+        `
       INSERT INTO nat_gateway (connectivity_type, subnet_id, tags)
       SELECT 'private', id, '{"Name":"${ng}"}'
       FROM subnet
       WHERE cidr_block = '192.${randIPBlock}.0.0/16';
-    `),
+    `,
+        undefined,
+        true,
+        () => ({ username, password }),
+      ),
     );
 
     it('applies the private nat gateway change', commit());
@@ -402,13 +417,18 @@ describe('VPC Multiregion Integration Testing', () => {
   describe('VPC endpoint gateway multi-region', () => {
     it(
       'adds a new s3 endpoint gateway',
-      query(`
+      query(
+        `
       INSERT INTO endpoint_gateway (service, vpc_id, tags)
       SELECT 's3', id, '{"Name": "${s3VpcEndpoint}"}'
       FROM vpc
       WHERE is_default = false
       AND cidr_block = '192.${randIPBlock}.0.0/16';
-    `),
+    `,
+        undefined,
+        true,
+        () => ({ username, password }),
+      ),
     );
 
     it(

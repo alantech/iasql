@@ -182,23 +182,33 @@ describe('VPC Integration Testing', () => {
 
   it(
     'adds a subnet',
-    query(`
+    query(
+      `
     INSERT INTO subnet (availability_zone, vpc_id, cidr_block)
     SELECT '${availabilityZone}', id, '192.${randIPBlock}.0.0/16'
     FROM vpc
     WHERE is_default = false
     AND cidr_block = '192.${randIPBlock}.0.0/16';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the subnet change', commit());
 
   it(
     'updates vpc state',
-    query(`
+    query(
+      `
     UPDATE vpc
     SET state='pending' WHERE cidr_block='192.${randIPBlock}.0.0/16';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the state change of the vpc', commit());
@@ -235,10 +245,15 @@ describe('VPC Integration Testing', () => {
 
   it(
     'tries to update vpc cidr',
-    query(`
+    query(
+      `
     UPDATE subnet SET cidr_block='191.${randIPBlock}.0.0/16' WHERE cidr_block='192.${randIPBlock}.0.0/16';
     UPDATE vpc SET cidr_block='191.${randIPBlock}.0.0/16' WHERE cidr_block='192.${randIPBlock}.0.0/16';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the vpc cidr update', commit());
@@ -291,12 +306,17 @@ describe('VPC Integration Testing', () => {
 
     it(
       'adds a private nat gateway',
-      query(`
+      query(
+        `
       INSERT INTO nat_gateway (connectivity_type, subnet_id, tags)
       SELECT 'private', id, '{"Name":"${ng}"}'
       FROM subnet
       WHERE cidr_block = '191.${randIPBlock}.0.0/16';
-    `),
+    `,
+        undefined,
+        true,
+        () => ({ username, password }),
+      ),
     );
 
     it('applies the private nat gateway change', commit());
@@ -335,12 +355,17 @@ describe('VPC Integration Testing', () => {
 
     it(
       'adds a public nat gateway with no existing elastic ip',
-      query(`
+      query(
+        `
       INSERT INTO nat_gateway (connectivity_type, subnet_id, tags)
       SELECT 'public', subnet.id, '{"Name":"${pubNg2}"}'
       FROM subnet
       WHERE cidr_block = '191.${randIPBlock}.0.0/16';
-    `),
+    `,
+        undefined,
+        true,
+        () => ({ username, password }),
+      ),
     );
 
     it('applies the public nat gateway with no existing elastic ip change', commit());
@@ -370,13 +395,18 @@ describe('VPC Integration Testing', () => {
   describe('VPC endpoint gateway creation', () => {
     it(
       'adds a new s3 endpoint gateway',
-      query(`
+      query(
+        `
       INSERT INTO endpoint_gateway (service, vpc_id, tags)
       SELECT 's3', id, '{"Name": "${s3VpcEndpoint}"}'
       FROM vpc
       WHERE is_default = false
       AND cidr_block = '191.${randIPBlock}.0.0/16';
-    `),
+    `,
+        undefined,
+        true,
+        () => ({ username, password }),
+      ),
     );
 
     it(
@@ -405,13 +435,18 @@ describe('VPC Integration Testing', () => {
   describe('VPC endpoint interface creation', () => {
     it(
       'adds a new lambda endpoint interface',
-      query(`
+      query(
+        `
       INSERT INTO endpoint_interface (service, vpc_id, tags)
       SELECT 'lambda', id, '{"Name": "${lambdaVpcEndpoint}"}'
       FROM vpc
       WHERE is_default = false
       AND cidr_block = '191.${randIPBlock}.0.0/16';
-    `),
+    `,
+        undefined,
+        true,
+        () => ({ username, password }),
+      ),
     );
 
     it(
@@ -1024,7 +1059,8 @@ describe('VPC Integration Testing', () => {
 
   it(
     'deletes the subnet',
-    query(`
+    query(
+      `
     WITH vpc as (
       SELECT id
       FROM vpc
@@ -1034,7 +1070,11 @@ describe('VPC Integration Testing', () => {
     DELETE FROM subnet
     USING vpc
     WHERE vpc_id = vpc.id;
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the subnet removal', commit());

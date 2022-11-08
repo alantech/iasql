@@ -130,7 +130,8 @@ describe('Security Group Multi region Integration Testing', () => {
 
   it(
     'adds security group rules',
-    query(`
+    query(
+      `
     INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id, region)
     SELECT true, 'tcp', 443, 443, '0.0.0.0/8', '${prefix}testrule', id, '${nonDefaultRegion}'
     FROM security_group
@@ -139,7 +140,11 @@ describe('Security Group Multi region Integration Testing', () => {
     SELECT false, 'tcp', 22, 22, '::/8', '${prefix}testrule2', id, '${nonDefaultRegion}'
     FROM security_group
     WHERE group_name = '${sgName}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the security group rule change', commit());
