@@ -13,7 +13,13 @@ Install the AWS EC2 module
 SELECT * FROM iasql_install('aws_ec2');
 ```
 
-Create two new EC2 instances associated with the `default` security group. An instance `name` tag is required. `resolve:ssm:/aws/service/canonical/ubuntu/server/20.04/stable/current/amd64/hvm/ebs-gp2/ami-id` resolves to the AMI ID for Ubuntu v20.04 in the corresponding AWS region.
+Create two new EC2 instances associated with the `default` security group. An instance `name` tag is required. `resolve:ssm:/aws/service/canonical/ubuntu/server/20.04/stable/current/amd64/hvm/ebs-gp2/ami-id` resolves to the AMI ID for Ubuntu v20.04 in the corresponding AWS region using existing [AWS SSM parameters for AMIs](https://aws.amazon.com/blogs/compute/using-system-manager-parameter-as-an-alias-for-ami-id/).
+
+:::warning
+
+AWS uses a different AMI id for the same instance type in each region. If you do not use an AWS SSM parameter described above to resolve the AMI id be sure to find and use the correct AMI id for the corresponding region and instance type.
+
+:::
 
 ```sql
 INSERT INTO instance (ami, instance_type, tags)
