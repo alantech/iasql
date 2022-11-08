@@ -100,7 +100,7 @@ SELECT ecr_build(
 );
 ```
 
-After running the above SQL command to completion, you can check the running app using the load balancer DNS. To grab the DNS, run:
+After running the above SQL command to completion, you can check the running app using the load balancer DNS name. To grab the name, run:
 ```bash
 QUICKSTART_LB_DNS=$(psql -At 'postgres://d0va6ywg:nfdDh#EP4CyzveFr@db.iasql.com/_4b2bb09a59a411e4' -c "
 SELECT dns_name
