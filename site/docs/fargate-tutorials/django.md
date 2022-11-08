@@ -180,59 +180,36 @@ If the function call is successful, it will return a list of dicts with each clo
 
 ## Login, build and push your code to the container registry
 
-1. Grab your new `ECR URI` from the hosted DB
+Previously, you needed to manually build and push your image to the ECR. But recently we've added the high-level `ecr_build` SQL function which does all those steps automatically. It will do the following:
+- Pull the codes from your Github repository
+- Build the Docker image in the directory you've specified
+- Push the image to the ECR repository you've provided
 
-    ```bash
-    QUICKSTART_ECR_URI=$(psql -At postgres://qpp3pzqb:LN6jnHfhRJTBD6ia@db.iasql.com/_3ba201e349a11daf -c "
-    SELECT repository_uri
-    FROM ecs_simplified
-    WHERE app_name = '<project-name>';")
-    ```
+All of these steps will be done in a CodeBuild project in your AWS account. To use the `ecr_build` function, you can run:
+```sql
+SELECT ecr_build(
+   'https://github.com/iasql/iasql-engine/', -- replace with your own Github repo if you want to use your own codebase
+   (SELECT id
+    FROM repository
+    WHERE repository_name = 'quickstart-repository')::varchar(255), -- replace quickstart if you've changed the project name
+   './examples/ecs-fargate/django/app', -- the sub directory in the Github repo that the image should be built in
+   'ghp_XXX', -- replace your github personal access token here
+   'main' -- the Github repo branch name
+);
+```
 
-2. Login to AWS ECR using the AWS CLI. Run the following command and using the correct `<ECR-URI>` and AWS `<profile>`
+After running the above SQL command to completion, you can check the running app using the load balancer DNS. To grab the DNS, run:
+```bash
+QUICKSTART_LB_DNS=$(psql -At 'postgres://d0va6ywg:nfdDh#EP4CyzveFr@db.iasql.com/_4b2bb09a59a411e4' -c "
+SELECT dns_name
+FROM load_balancer
+WHERE load_balancer_name = '<project-name>-load-balancer';")
+```
+And then connect to your service!
 
-    ```bash
-    aws ecr get-login-password --region ${AWS_REGION} --profile <profile> | docker login --username AWS --password-stdin ${QUICKSTART_ECR_URI}
-    ```
-
-:::caution
-
-Make sure the [CLI is configured with the same credentials](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html), via environment variables or `~/.aws/credentials`, as the ones provided to IaSQL or this will fail.
-
-:::
-
-3. Build your image locally
-
-    ```bash
-    docker build -t <project-name>-repository .
-    ```
-
-4. Tag your image
-
-    ```bash
-    docker tag <project-name>-repository:latest ${QUICKSTART_ECR_URI}:latest
-    ```
-
-5. Push your image
-
-    ```bash
-    docker push ${QUICKSTART_ECR_URI}:latest
-    ```
-
-6. Grab your load balancer DNS and access your service!
-
-    ```bash
-    QUICKSTART_LB_DNS=$(psql -At postgres://qpp3pzqb:LN6jnHfhRJTBD6ia@db.iasql.com/_3ba201e349a11daf -c "
-    SELECT load_balancer_dns
-    FROM ecs_simplified
-    WHERE app_name = '<project-name>';")
-    ```
-
-7. Connect to your service!
-
-    ```bash
-    curl ${QUICKSTART_LB_DNS}:8088/health
-    ```
+```
+curl ${QUICKSTART_LB_DNS}:8088/health
+```
 
 ## Delete managed cloud resources
 
