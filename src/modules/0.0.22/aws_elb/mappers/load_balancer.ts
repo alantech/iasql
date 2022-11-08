@@ -152,8 +152,8 @@ export class LoadBalancerMapper extends MapperBase<LoadBalancer> {
   // TODO: Create a waiter macro function
   async createLoadBalancer(client: ElasticLoadBalancingV2, input: CreateLoadBalancerCommandInput) {
     const create = await client.createLoadBalancer(input);
-    let loadBalancer = create?.LoadBalancers?.pop() ?? null;
-    if (!loadBalancer) return loadBalancer;
+    const loadBalancer = create?.LoadBalancers?.pop() ?? null;
+    if (!loadBalancer) return undefined;
     const waiterInput: DescribeLoadBalancersCommandInput = {
       LoadBalancerArns: [loadBalancer?.LoadBalancerArn!],
     };
