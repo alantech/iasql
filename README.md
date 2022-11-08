@@ -51,9 +51,6 @@ AWS is our main focus at the moment, but we plan to support GCP, Azure and other
 ### AWS services with significant API coverage
 
 - CloudWatch
-- CodeBuild
-- CodeDeploy
-- CodePipeline
 - [EC2](https://iasql.com/docs/aws_ec2)
 - [ECR](https://iasql.com/docs/aws_ecr/)
 - [ECS + Fargate](https://iasql.com/docs/fargate/)
