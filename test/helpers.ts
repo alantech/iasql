@@ -82,10 +82,10 @@ export function runQuery(
   queryString: string,
   assertFn?: (res: any[]) => void,
   log = true,
-  username = 'postgres',
-  password = 'test',
+  withUserAndPassword = () => ({ username: 'postgres', password: 'test' })
 ) {
   return function (done: (e?: any) => {}) {
+    const { username, password } = withUserAndPassword();
     if (log) logger.info(queryString);
     createConnection({
       name: uuidv4(),
