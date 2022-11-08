@@ -85,10 +85,15 @@ describe('VPC Multiregion Integration Testing', () => {
 
   it(
     'adds a new vpc',
-    query(`  
+    query(
+      `  
     INSERT INTO vpc (cidr_block, region)
     VALUES ('192.${randIPBlock}.0.0/16', '${nonDefaultRegion}');
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(
@@ -106,10 +111,15 @@ describe('VPC Multiregion Integration Testing', () => {
 
   it(
     'adds a new vpc',
-    query(`  
+    query(
+      `  
     INSERT INTO vpc (cidr_block, tags, region)
     VALUES ('192.${randIPBlock}.0.0/16', '{"name":"${prefix}-1"}', '${nonDefaultRegion}');
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(
@@ -204,10 +214,15 @@ describe('VPC Multiregion Integration Testing', () => {
   describe('Elastic IP and nat gateway multi-region', () => {
     it(
       'adds a new elastic ip',
-      query(`
+      query(
+        `
       INSERT INTO elastic_ip (tags)
       VALUES ('{"name": "${eip}"}');
-    `),
+    `,
+        undefined,
+        true,
+        () => ({ username, password }),
+      ),
     );
 
     it('applies the elastic ip change', commit());

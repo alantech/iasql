@@ -198,15 +198,21 @@ describe('IAM Role Integration Testing', () => {
 
   it(
     'adds a new role',
-    query(`
+    query(
+      `
     INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
     VALUES ('${taskRoleName}', '${attachAssumeTaskPolicy}', array['${taskPolicyArn}']);
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(
     'adds a new role',
-    query(`
+    query(
+      `
     BEGIN;
       INSERT INTO iam_role (role_name, assume_role_policy_document)
       VALUES ('${lambdaRoleName}', '${attachAssumeLambdaPolicy}');
@@ -223,7 +229,11 @@ describe('IAM Role Integration Testing', () => {
       INSERT INTO iam_role (role_name, assume_role_policy_document)
       VALUES ('${principalServArr}', '${attachPrincipalServArrPolicy}');
     COMMIT;
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(
@@ -416,9 +426,14 @@ describe('IAM Role Integration Testing', () => {
 
   it(
     'tries to update role attached policies',
-    query(`
+    query(
+      `
     UPDATE iam_role SET attached_policies_arns=array['${servicePolicyArn}'] WHERE role_name = '${taskRoleName}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies change', commit());
@@ -753,10 +768,15 @@ describe('IAM User Integration Testing', () => {
 
   it(
     'adds a new user',
-    query(`
+    query(
+      `
     INSERT INTO iam_user (user_name, path, attached_policies_arns)
     VALUES ('${userName}', '${userPath}', array['${userConfigPolicyArn}']);
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('undo changes', rollback());
@@ -854,9 +874,14 @@ describe('IAM User Integration Testing', () => {
 
   it(
     'tries to update user attached policies',
-    query(`
+    query(
+      `
     UPDATE iam_user SET attached_policies_arns=array['${supportUserPolicyArn}'] WHERE user_name = '${userName}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies change', commit());

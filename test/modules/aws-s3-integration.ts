@@ -296,7 +296,13 @@ describe('S3 Integration Testing', () => {
     ),
   );
 
-  it('cleans the bucket', query(`DELETE FROM bucket_object WHERE bucket_name='${s3Name}'`));
+  it(
+    'cleans the bucket',
+    query(`DELETE FROM bucket_object WHERE bucket_name='${s3Name}'`, undefined, true, () => ({
+      username,
+      password,
+    })),
+  );
 
   it(
     'check no s3 objects still exist',

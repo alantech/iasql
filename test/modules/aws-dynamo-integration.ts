@@ -78,7 +78,8 @@ describe('Dynamo Integration Testing', () => {
 
   it(
     'creates a Dynamo table',
-    query(`
+    query(
+      `
     INSERT INTO dynamo_table (table_name, table_class, throughput, primary_key)
     VALUES (
       '${prefix}test',
@@ -86,7 +87,11 @@ describe('Dynamo Integration Testing', () => {
       '"PAY_PER_REQUEST"',
       '{"key": "S", "val": "S"}'
     );
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('undo changes', rollback());
@@ -105,7 +110,8 @@ describe('Dynamo Integration Testing', () => {
 
   it(
     'creates a Dynamo table',
-    query(`
+    query(
+      `
     INSERT INTO dynamo_table (table_name, table_class, throughput, primary_key)
     VALUES (
       '${prefix}test',
@@ -113,7 +119,11 @@ describe('Dynamo Integration Testing', () => {
       '"PAY_PER_REQUEST"',
       '{"key": "S", "val": "S"}'
     );
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the change', commit());
@@ -132,11 +142,16 @@ describe('Dynamo Integration Testing', () => {
 
   it(
     'changes the column definition',
-    query(`
+    query(
+      `
     UPDATE dynamo_table
     SET primary_key = '{"key": "S", "val": "N"}'
     WHERE table_name = '${prefix}test';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the change', commit());
@@ -198,7 +213,8 @@ describe('Dynamo Integration Testing', () => {
 
   it(
     'creates a table in a non-default region',
-    query(`
+    query(
+      `
     INSERT INTO dynamo_table (table_name, table_class, throughput, primary_key, region)
     VALUES (
       '${prefix}regiontest',
@@ -207,7 +223,11 @@ describe('Dynamo Integration Testing', () => {
       '{"key": "S", "val": "S"}',
       'us-east-1'
     );
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the change', commit());
@@ -322,9 +342,14 @@ describe('Dynamo install/uninstall', () => {
 
   it(
     'sets the default region',
-    query(`
+    query(
+      `
     UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('installs the Dynamo module', install(modules));

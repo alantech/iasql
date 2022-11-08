@@ -317,7 +317,8 @@ describe('Route53 Integration Testing', () => {
 
   it(
     'adds a new A record to hosted zone',
-    query(`
+    query(
+      `
     BEGIN;
       INSERT INTO load_balancer (load_balancer_name, scheme, load_balancer_type, ip_address_type)
       VALUES ('${lbName}', '${lbScheme}', '${lbType}', '${lbIPAddressType}');
@@ -331,7 +332,11 @@ describe('Route53 Integration Testing', () => {
       INNER JOIN load_balancer ON load_balancer.id = alias_target.load_balancer_id
       WHERE domain_name = '${domainName}' AND load_balancer.load_balancer_name = '${lbName}';
     COMMIT;
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(
@@ -543,7 +548,8 @@ describe('Route53 Integration Testing', () => {
 
   it(
     'deletes the hosted zone with the same name',
-    query(`
+    query(
+      `
     BEGIN;
       DELETE FROM resource_record_set
       USING hosted_zone
@@ -551,7 +557,11 @@ describe('Route53 Integration Testing', () => {
       DELETE FROM hosted_zone
       WHERE id IN (SELECT id FROM hosted_zone WHERE domain_name = '${replaceDomainName}' ORDER BY ID DESC LIMIT 1);
     COMMIT;
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the removal of hosted zone with the same name', commit());
@@ -600,7 +610,8 @@ describe('Route53 Integration Testing', () => {
 
   it(
     'deletes mandatory records and hosted zone',
-    query(`
+    query(
+      `
     BEGIN;
       DELETE FROM resource_record_set
       USING hosted_zone
@@ -608,7 +619,11 @@ describe('Route53 Integration Testing', () => {
       DELETE FROM hosted_zone
       WHERE domain_name = '${replaceDomainName}';
     COMMIT;
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(

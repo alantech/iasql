@@ -178,12 +178,17 @@ describe('Security Group Multi region Integration Testing', () => {
 
   it(
     'updates the security group',
-    query(`
+    query(
+      `
     WITH updated_security_group_rules AS (
       UPDATE security_group_rule SET region = '${defaultRegion}' WHERE description = '${prefix}testrule' OR description = '${prefix}testrule2'
     )
     UPDATE security_group SET region = '${defaultRegion}', vpc_id = (select id from vpc where region = '${defaultRegion}' and is_default = true limit 1) WHERE group_name = '${sgName}' and region = '${nonDefaultRegion}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the security group change (again)', commit());

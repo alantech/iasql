@@ -191,7 +191,8 @@ describe('EC2 Integration Testing', () => {
   it('installs the ec2 module', install(modules));
 
   it('adds two ec2 instance', done => {
-    query(`
+    query(
+      `
       BEGIN;
         INSERT INTO instance (ami, instance_type, tags, subnet_id)
           SELECT '${ubuntuAmiId}', '${instanceType1}', '{"name":"${prefix}-1"}', id
@@ -213,7 +214,11 @@ describe('EC2 Integration Testing', () => {
           (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-2'),
           (SELECT id FROM security_group WHERE group_name='default' AND region = '${region}');
       COMMIT;
-    `)((e?: any) => {
+    `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    )((e?: any) => {
       if (!!e) return done(e);
       done();
     });
@@ -235,7 +240,8 @@ describe('EC2 Integration Testing', () => {
   );
 
   it('adds two ec2 instance', done => {
-    query(`
+    query(
+      `
       BEGIN;
         INSERT INTO instance (ami, instance_type, tags, user_data, subnet_id)
           SELECT '${ubuntuAmiId}', '${instanceType1}', '{"name":"${prefix}-1"}', 'ls;', id
@@ -257,7 +263,11 @@ describe('EC2 Integration Testing', () => {
           (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-2'),
           (SELECT id FROM security_group WHERE group_name='default' AND region = '${region}');
       COMMIT;
-    `)((e?: any) => {
+    `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    )((e?: any) => {
       if (!!e) return done(e);
       done();
     });
@@ -341,9 +351,14 @@ describe('EC2 Integration Testing', () => {
 
   it(
     'set both ec2 instances to the same ami',
-    query(`
+    query(
+      `
     UPDATE instance SET ami = '${amznAmiId}' WHERE tags ->> 'name' = '${prefix}-1';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the instances change', commit());
@@ -418,7 +433,8 @@ describe('EC2 Integration Testing', () => {
 
   it(
     'create target group and register instance to it',
-    query(`
+    query(
+      `
     BEGIN;
       INSERT INTO target_group (target_group_name, target_type, protocol, port, health_check_path)
       VALUES ('${tgName}', '${tgType}', '${protocol}', ${tgPort}, '/health');
@@ -426,7 +442,11 @@ describe('EC2 Integration Testing', () => {
       INSERT INTO registered_instance (instance, target_group_id)
       SELECT (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'), (SELECT id FROM target_group WHERE target_group_name = '${tgName}');
     COMMIT;
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(
@@ -485,10 +505,15 @@ describe('EC2 Integration Testing', () => {
 
   it(
     'register instance with custom port to target group',
-    query(`
+    query(
+      `
     INSERT INTO registered_instance (instance, target_group_id, port)
     SELECT (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-2'), (SELECT id FROM target_group WHERE target_group_name = '${tgName}'), ${instancePort}
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(
@@ -532,12 +557,17 @@ describe('EC2 Integration Testing', () => {
 
   it(
     'updates register instance with custom port to target group',
-    query(`
+    query(
+      `
     UPDATE registered_instance
     SET port = ${instancePort + 1}
     FROM instance
     WHERE instance.id = registered_instance.instance AND target_group_id = (SELECT id FROM target_group WHERE target_group_name = '${tgName}') AND instance.tags ->> 'name' = '${prefix}-2';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the instance registration', commit());
@@ -570,10 +600,15 @@ describe('EC2 Integration Testing', () => {
   describe('update instance with IAM role', () => {
     it(
       'assigns role to instance',
-      query(`
+      query(
+        `
       UPDATE instance SET role_name = '${roleName}'
       WHERE tags ->> 'name' = '${prefix}-2';
-    `),
+    `,
+        undefined,
+        true,
+        () => ({ username, password }),
+      ),
     );
 
     it(
@@ -605,10 +640,15 @@ describe('EC2 Integration Testing', () => {
 
   it(
     'stop instance',
-    query(`
+    query(
+      `
     UPDATE instance SET state = 'stopped'
     WHERE tags ->> 'name' = '${prefix}-2';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the instances change', commit());
@@ -628,9 +668,14 @@ describe('EC2 Integration Testing', () => {
 
   it(
     'start instance',
-    query(`
+    query(
+      `
     UPDATE instance SET state = 'running' WHERE tags ->> 'name' = '${prefix}-2';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the instances change', commit());
@@ -650,10 +695,15 @@ describe('EC2 Integration Testing', () => {
 
   it(
     'hibernates instance',
-    query(`
+    query(
+      `
     UPDATE instance SET state = 'hibernate'
     WHERE tags ->> 'name' = '${prefix}-2';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the instances change', commit());
@@ -673,9 +723,14 @@ describe('EC2 Integration Testing', () => {
 
   it(
     'start instance',
-    query(`
+    query(
+      `
     UPDATE instance SET state = 'running' WHERE tags ->> 'name' = '${prefix}-2';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the instances change', commit());
@@ -749,13 +804,18 @@ describe('EC2 Integration Testing', () => {
   );
 
   it('adds an ec2 instance with no security group', done => {
-    query(`
+    query(
+      `
       INSERT INTO instance (ami, instance_type, tags, subnet_id)
         SELECT '${amznAmiId}', '${instanceType2}', '{"name":"${prefix}-nosg"}', id
         FROM subnet
         WHERE availability_zone = '${availabilityZone2}'
         LIMIT 1;
-    `)((e?: any) => {
+    `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    )((e?: any) => {
       if (!!e) return done(e);
       done();
     });
@@ -802,11 +862,16 @@ describe('EC2 Integration Testing', () => {
 
   it(
     'deletes one of the registered instances',
-    query(`
+    query(
+      `
     DELETE FROM registered_instance
     USING instance
     WHERE instance.tags ->> 'name' = '${prefix}-1' AND instance.id = registered_instance.instance;
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(
@@ -857,14 +922,19 @@ describe('EC2 Integration Testing', () => {
 
   it(
     'update instance metadata',
-    query(`
+    query(
+      `
     UPDATE instance_metadata SET cpu_cores = 10
     WHERE instance_id = (
       SELECT instance_id
       FROM instance
       WHERE tags ->> 'name' = '${prefix}-1'
     );
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('sync instances metadata update', commit());
@@ -890,7 +960,8 @@ describe('EC2 Integration Testing', () => {
 
   it(
     'deletes all ec2 instances',
-    query(`
+    query(
+      `
     BEGIN;
       DELETE FROM general_purpose_volume
       USING instance
@@ -904,7 +975,11 @@ describe('EC2 Integration Testing', () => {
         tags ->> 'name' = '${prefix}-1' OR
         tags ->> 'name' = '${prefix}-2';
     COMMIT;
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the instances deletion', commit());
@@ -1069,7 +1144,8 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
   it('installs the module', install(modules));
 
   it('adds new volumes', done => {
-    query(`
+    query(
+      `
       BEGIN;
         INSERT INTO general_purpose_volume (volume_type, availability_zone, tags)
         VALUES ('gp2', '${availabilityZone2}', '{"Name": "${gp2VolumeName}"}');
@@ -1077,7 +1153,11 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
         INSERT INTO general_purpose_volume (volume_type, availability_zone, size, tags)
         VALUES ('gp3', '${availabilityZone1}', 50, '{"Name": "${gp3VolumeName}"}');
       COMMIT;
-    `)((e?: any) => (!!e ? done(e) : done()));
+    `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    )((e?: any) => (!!e ? done(e) : done()));
   });
 
   it(
@@ -1107,7 +1187,8 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
   );
 
   it('adds new volumes', done => {
-    query(`
+    query(
+      `
       BEGIN;
         INSERT INTO general_purpose_volume (volume_type, availability_zone, tags)
         VALUES ('gp2', '${availabilityZone2}', '{"Name": "${gp2VolumeName}"}');
@@ -1115,7 +1196,11 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
         INSERT INTO general_purpose_volume (volume_type, availability_zone, size, tags)
         VALUES ('gp3', '${availabilityZone1}', 50, '{"Name": "${gp3VolumeName}"}');
       COMMIT;
-    `)((e?: any) => (!!e ? done(e) : done()));
+    `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    )((e?: any) => (!!e ? done(e) : done()));
   });
 
   it(
@@ -1162,9 +1247,14 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
 
   it(
     'tries to update a volume field to be restored',
-    query(`
+    query(
+      `
     UPDATE general_purpose_volume SET state = 'creating' WHERE tags ->> 'Name' = '${gp2VolumeName}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the change which will undo the change', commit());
@@ -1183,9 +1273,14 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
 
   it(
     'tries to update a volume size',
-    query(`
+    query(
+      `
     UPDATE general_purpose_volume SET size = 150 WHERE tags ->> 'Name' = '${gp3VolumeName}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the change', commit());
@@ -1203,11 +1298,16 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
   );
 
   it('tries to update a volume availability zone', done => {
-    query(`
+    query(
+      `
       UPDATE general_purpose_volume
       SET availability_zone = '${availabilityZone2}'
       WHERE tags ->> 'Name' = '${gp3VolumeName}';
-    `)((e?: any) => (!!e ? done(e) : done()));
+    `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    )((e?: any) => (!!e ? done(e) : done()));
   });
 
   it('applies the change', commit());
@@ -1238,9 +1338,14 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
 
   it(
     'tries to update a volume availability zone',
-    query(`
+    query(
+      `
     UPDATE general_purpose_volume SET tags = '{"Name": "${gp2VolumeName}", "updated": true}' WHERE tags ->> 'Name' = '${gp2VolumeName}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the change', commit());
@@ -1259,10 +1364,15 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
 
   it(
     'deletes the volumes',
-    query(`
+    query(
+      `
     DELETE FROM general_purpose_volume
     WHERE tags ->> 'Name' = '${gp2VolumeName}' OR tags ->> 'Name' = '${gp3VolumeName}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the change', commit());
@@ -1316,9 +1426,14 @@ describe('EC2 install/uninstall', () => {
 
   it(
     'sets the default region',
-    query(`
+    query(
+      `
     UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   // Install can automatically pull in all dependencies, so we only need to specify ec2 here

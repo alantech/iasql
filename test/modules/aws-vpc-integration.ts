@@ -112,20 +112,30 @@ describe('VPC Integration Testing', () => {
 
   it(
     'adds a new vpc',
-    query(`  
+    query(
+      `  
     INSERT INTO vpc (cidr_block)
     VALUES ('192.${randIPBlock}.0.0/16');
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('undo changes', rollback());
 
   it(
     'adds a new vpc',
-    query(`  
+    query(
+      `  
     INSERT INTO vpc (cidr_block, tags, enable_dns_hostnames, enable_dns_support)
     VALUES ('192.${randIPBlock}.0.0/16', '{"name":"${prefix}-1"}', true, true);
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the vpc change', commit());
@@ -246,10 +256,15 @@ describe('VPC Integration Testing', () => {
   describe('Elastic IP and nat gateway creation', () => {
     it(
       'adds a new elastic ip',
-      query(`
+      query(
+        `
       INSERT INTO elastic_ip (tags)
       VALUES ('{"name": "${eip}"}');
-    `),
+    `,
+        undefined,
+        true,
+        () => ({ username, password }),
+      ),
     );
 
     it(

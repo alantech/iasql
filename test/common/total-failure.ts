@@ -105,7 +105,8 @@ describe('Testing failure path', () => {
   // Fail on apply
   it(
     'insert a new instance with wrong values',
-    query(`
+    query(
+      `
     BEGIN;
       INSERT INTO instance (ami, instance_type, tags)
         VALUES ('fake', 't2.micro', '{"name":"i-1"}');
@@ -119,7 +120,11 @@ describe('Testing failure path', () => {
         (SELECT id FROM instance WHERE tags ->> 'name' = 'i-2'),
         (SELECT id FROM security_group WHERE group_name='default' AND region='us-west-2');
     COMMIT;
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(

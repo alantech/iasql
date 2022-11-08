@@ -306,10 +306,15 @@ describe('ECS Integration Testing', () => {
   // Task definition
   it(
     'adds a new task definition',
-    query(`
+    query(
+      `
     INSERT INTO task_definition ("family", cpu_memory)
     VALUES ('${tdPublicRepositoryFamily}', '${tdCpuMem}');
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(
@@ -326,10 +331,15 @@ describe('ECS Integration Testing', () => {
 
   it(
     'adds a new container definition',
-    query(`
+    query(
+      `
     INSERT INTO container_definition ("name", public_repository_name, tag, essential, memory_reservation, host_port, container_port, protocol, env_variables, task_definition_id)
     VALUES('${containerNamePublicRepository}', '${publicRepositoryName}', '${imageTag}', ${containerEssential}, ${containerMemoryReservation}, ${hostPort}, ${containerPort}, '${protocol}', '{ "test": 2}', (select id from task_definition where family = '${tdPublicRepositoryFamily}' and status is null and region = '${region}' limit 1));
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(
@@ -387,7 +397,8 @@ describe('ECS Integration Testing', () => {
   // Service
   it(
     'adds a new service',
-    query(`
+    query(
+      `
     BEGIN;
       INSERT INTO service ("name", desired_count, subnets, assign_public_ip, cluster_id, task_definition_id, target_group_id)
       VALUES ('${servicePublicRepositoryName}', ${serviceDesiredCount}, (select array(select subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true and vpc.region = '${region}' limit 3)), 'ENABLED', (SELECT id FROM cluster WHERE cluster_name = '${clusterName}'), (select id from task_definition where family = '${tdPublicRepositoryFamily}' order by revision desc limit 1), (SELECT id FROM target_group WHERE target_group_name = '${serviceTargetGroupName}' and region = '${region}'));
@@ -395,7 +406,11 @@ describe('ECS Integration Testing', () => {
       INSERT INTO service_security_groups (service_id, security_group_id)
       VALUES ((SELECT id FROM service WHERE name = '${servicePublicRepositoryName}'), (select id from security_group where group_name = '${securityGroup}' and region = '${region}' limit 1));
     COMMIT;
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(
@@ -444,7 +459,8 @@ describe('ECS Integration Testing', () => {
 
   it(
     'deletes service',
-    query(`
+    query(
+      `
     BEGIN;
       delete from service_security_groups
       using service
@@ -453,7 +469,11 @@ describe('ECS Integration Testing', () => {
       delete from service
       where name = '${servicePublicRepositoryName}';
     COMMIT;
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies deletes service', commit());
@@ -472,7 +492,8 @@ describe('ECS Integration Testing', () => {
 
   it(
     'deletes container definitons',
-    query(`
+    query(
+      `
     begin;
       delete from container_definition
       using task_definition
@@ -484,7 +505,11 @@ describe('ECS Integration Testing', () => {
       delete from public_repository
       where repository_name = '${publicRepositoryName}';
     commit;
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies deletes tasks and container definitions', commit());
@@ -534,7 +559,8 @@ describe('ECS Integration Testing', () => {
   // deletes service dependencies
   it(
     'deletes service dependencies',
-    query(`
+    query(
+      `
     BEGIN;
       DELETE FROM listener
       WHERE load_balancer_id = (SELECT id FROM load_balancer WHERE load_balancer_name = '${serviceLoadBalancerName}')
@@ -557,7 +583,11 @@ describe('ECS Integration Testing', () => {
       DELETE FROM security_group
       WHERE group_name = '${securityGroup}';
     COMMIT;
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies deletes service dependencies', commit());

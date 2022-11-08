@@ -110,7 +110,8 @@ describe('Lambda Integration Testing', () => {
 
   it(
     'adds a new lambda function and role',
-    query(`
+    query(
+      `
     BEGIN;
       INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
       VALUES ('${lambdaFunctionRoleName}', '${attachAssumeLambdaPolicy}', array['${lambdaFunctionRoleTaskPolicyArn}']);
@@ -118,7 +119,11 @@ describe('Lambda Integration Testing', () => {
       INSERT INTO lambda_function (name, zip_b64, handler, runtime, role_name)
       VALUES ('${lambdaFunctionName}', '${lambdaFunctionCode}', '${lambdaFunctionHandler}', '${lambdaFunctionRuntime14}', '${lambdaFunctionRoleName}');
     COMMIT;
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('undo changes', rollback());
@@ -137,7 +142,8 @@ describe('Lambda Integration Testing', () => {
 
   it(
     'adds a new lambda function and role',
-    query(`
+    query(
+      `
     BEGIN;
       INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
       VALUES ('${lambdaFunctionRoleName}', '${attachAssumeLambdaPolicy}', array['${lambdaFunctionRoleTaskPolicyArn}']);
@@ -145,7 +151,11 @@ describe('Lambda Integration Testing', () => {
       INSERT INTO lambda_function (name, zip_b64, handler, runtime, role_name)
       VALUES ('${lambdaFunctionName}', '${lambdaFunctionCode}', '${lambdaFunctionHandler}', '${lambdaFunctionRuntime14}', '${lambdaFunctionRoleName}');
     COMMIT;
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the lambda function change', commit());
@@ -328,9 +338,14 @@ describe('Lambda Integration Testing', () => {
   // Check tags update path
   it(
     'updates the function',
-    query(`
+    query(
+      `
     UPDATE lambda_function SET tags = '{"updated": "true"}' WHERE name = '${lambdaFunctionName}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the lambda function update', commit());

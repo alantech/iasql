@@ -97,7 +97,8 @@ describe('AwsCloudwatch and AwsLambda Integration Testing', () => {
 
   it(
     'adds a new lambda function and role',
-    query(`
+    query(
+      `
     BEGIN;
       INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
       VALUES ('${resourceName}', '${attachAssumeLambdaPolicy}', array['${lambdaFunctionRoleTaskPolicyArn}']);
@@ -105,7 +106,11 @@ describe('AwsCloudwatch and AwsLambda Integration Testing', () => {
       INSERT INTO lambda_function (name, zip_b64, handler, runtime, role_name)
       VALUES ('${resourceName}', '${lambdaFunctionCode}', '${lambdaFunctionHandler}', '${lambdaFunctionRuntime14}', '${resourceName}');
     COMMIT;
-  `, undefined, true, () => ({ username, password })),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the lambda function change', commit());
@@ -136,13 +141,18 @@ describe('AwsCloudwatch and AwsLambda Integration Testing', () => {
 
   it(
     'delete resources',
-    query(`
+    query(
+      `
     BEGIN;
       DELETE FROM lambda_function WHERE name = '${resourceName}';
       DELETE FROM iam_role WHERE role_name = '${resourceName}';
       DELETE FROM log_group WHERE log_group_name = '${lambdaLogGroupName}';
     COMMIT;
-  `, undefined, true, () => ({ username, password })),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('apply deletion', commit());

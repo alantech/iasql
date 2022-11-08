@@ -262,26 +262,41 @@ describe('AwsCodepipeline Integration Testing', () => {
 
   it(
     'adds a new role',
-    query(`
+    query(
+      `
     INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
     VALUES ('${codePipelineRoleName}', '${assumeServicePolicy}', array['${codepipelinePolicyArn}', '${s3PolicyArn}', '${codedeployPolicyArn}']);
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(
     'adds a new ec2 role',
-    query(`
+    query(
+      `
     INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
     VALUES ('${ec2RoleName}', '${ec2RolePolicy}', array['${deployEC2PolicyArn}', '${ssmPolicyArn}', '${codedeployPolicyArn}', '${s3PolicyArn}']);
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(
     'adds a new codedeploy role',
-    query(`
+    query(
+      `
     INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
     VALUES ('${codeDeployRoleName}', '${codedeployRolePolicy}', array['${codedeployPolicyArn}', '${deployEC2PolicyArn}', '${s3PolicyArn}']);
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(
@@ -310,7 +325,8 @@ describe('AwsCodepipeline Integration Testing', () => {
 
   it(
     'adds security group rules',
-    query(`
+    query(
+      `
     INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
     SELECT false, 'tcp', 22, 22, '0.0.0.0/0', '${prefix}codedeploy_rule_ssh', id
     FROM security_group
@@ -324,13 +340,18 @@ describe('AwsCodepipeline Integration Testing', () => {
     FROM security_group
     WHERE group_name = '${sgGroupName}';
 
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
   it('applies the security group and rules creation', commit());
 
   // create sample ec2 instance
   it('adds an ec2 instance', done => {
-    query(`
+    query(
+      `
       BEGIN;
         INSERT INTO instance (ami, instance_type, tags, subnet_id, role_name, user_data)
           SELECT '${ubuntuAmiId}', '${instanceType}', '{"name":"${instanceTag}"}', id, '${ec2RoleName}', (SELECT generate_codedeploy_agent_install_script('${region}', 'ubuntu'))
@@ -341,7 +362,11 @@ describe('AwsCodepipeline Integration Testing', () => {
           (SELECT id FROM instance WHERE tags ->> 'name' = '${instanceTag}'),
           (SELECT id FROM security_group WHERE group_name='${sgGroupName}');
       COMMIT;
-      `)((e?: any) => {
+      `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    )((e?: any) => {
       if (!!e) return done(e);
       done();
     });
@@ -404,9 +429,14 @@ describe('AwsCodepipeline Integration Testing', () => {
 
   it('should fail when changing the region', () => {
     try {
-      query(`
+      query(
+        `
       UPDATE pipeline_declaration SET region='${nonDefaultRegion} WHERE name='${prefix}-${dbAlias}');
-      `);
+      `,
+        undefined,
+        true,
+        () => ({ username, password }),
+      );
     } catch (e) {
       expect(e).toBeTruthy;
     }
@@ -418,10 +448,15 @@ describe('AwsCodepipeline Integration Testing', () => {
 
   it(
     'delete pipeline',
-    query(`
+    query(
+      `
     DELETE FROM pipeline_declaration
     WHERE name = '${prefix}-${dbAlias}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(
@@ -453,7 +488,8 @@ describe('AwsCodepipeline Integration Testing', () => {
   describe('ec2 cleanup', () => {
     it(
       'deletes all ec2 instances',
-      query(`
+      query(
+        `
       BEGIN;
         DELETE FROM general_purpose_volume
         USING instance
@@ -463,7 +499,11 @@ describe('AwsCodepipeline Integration Testing', () => {
         DELETE FROM instance
         WHERE tags ->> 'name' = '${instanceTag}';
       COMMIT;
-    `),
+    `,
+        undefined,
+        true,
+        () => ({ username, password }),
+      ),
     );
 
     it('applies the instance deletion', commit());
@@ -482,7 +522,13 @@ describe('AwsCodepipeline Integration Testing', () => {
     ),
   );
 
-  it('cleans up the bucket', query(`DELETE FROM bucket_object WHERE bucket_name='${bucket}'`));
+  it(
+    'cleans up the bucket',
+    query(`DELETE FROM bucket_object WHERE bucket_name='${bucket}'`, undefined, true, () => ({
+      username,
+      password,
+    })),
+  );
 
   it(
     'delete bucket',

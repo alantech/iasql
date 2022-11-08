@@ -147,7 +147,8 @@ describe('EC2 Integration Testing', () => {
   it('installs the ec2 module', install(modules));
 
   it('adds an ec2 instance', done => {
-    query(`
+    query(
+      `
       INSERT INTO instance (ami, instance_type, tags, subnet_id)
         SELECT '${ubuntuAmiId}', '${instanceType1}', '{"name":"${prefix}-1"}', id
         FROM subnet
@@ -156,7 +157,11 @@ describe('EC2 Integration Testing', () => {
       INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
         (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'),
         (SELECT id FROM security_group WHERE group_name='default' AND region = '${region}');
-    `)((e?: any) => {
+    `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    )((e?: any) => {
       if (!!e) return done(e);
       done();
     });
@@ -266,7 +271,8 @@ describe('EC2 Integration Testing', () => {
 
   it(
     'create target group and register instance to it',
-    query(`
+    query(
+      `
     BEGIN;
       INSERT INTO target_group (target_group_name, target_type, protocol, port, health_check_path)
       VALUES ('${tgName}', '${tgType}', '${protocol}', ${tgPort}, '/health');
@@ -274,7 +280,11 @@ describe('EC2 Integration Testing', () => {
       INSERT INTO registered_instance (instance, target_group_id)
       SELECT (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'), (SELECT id FROM target_group WHERE target_group_name = '${tgName}');
     COMMIT;
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(
@@ -335,7 +345,8 @@ describe('EC2 Integration Testing', () => {
 
   it(
     'moves the instance to another region',
-    query(`
+    query(
+      `
     -- You can't move a registered instance at all, so unregister it
     DELETE FROM registered_instance WHERE instance = (
       SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'
@@ -380,7 +391,11 @@ describe('EC2 Integration Testing', () => {
     DELETE FROM instance_security_groups WHERE instance_id = (
       SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'
     );
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the move', commit());
@@ -434,7 +449,8 @@ describe('EC2 Integration Testing', () => {
 
   it(
     'deletes the instance',
-    query(`
+    query(
+      `
       DELETE FROM general_purpose_volume
       USING instance
       WHERE instance.id = general_purpose_volume.attached_instance_id AND 
@@ -442,7 +458,11 @@ describe('EC2 Integration Testing', () => {
 
       DELETE FROM instance
       WHERE tags ->> 'name' = '${prefix}-1';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the instances deletion', commit());

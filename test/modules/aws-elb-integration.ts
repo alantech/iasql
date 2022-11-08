@@ -230,7 +230,8 @@ describe('ELB Integration Testing', () => {
 
   it(
     'adds a new load balancer',
-    query(`
+    query(
+      `
     BEGIN;
       INSERT INTO load_balancer (load_balancer_name, scheme, vpc, load_balancer_type, ip_address_type)
       VALUES ('${lbName}', '${lbScheme}', null, '${lbType}', '${lbIPAddressType}');
@@ -239,7 +240,11 @@ describe('ELB Integration Testing', () => {
       SELECT (SELECT id FROM load_balancer WHERE load_balancer_name = '${lbName}'),
              (SELECT id FROM security_group WHERE group_name = '${sg1}');
     COMMIT;
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(
@@ -372,11 +377,16 @@ describe('ELB Integration Testing', () => {
 
   it(
     'tries to update a listener field',
-    query(`
+    query(
+      `
         UPDATE listener
         SET port = ${port + 1}
         WHERE load_balancer_id = (SELECT id FROM load_balancer WHERE load_balancer_name = '${lbName}');
-    `),
+    `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the change', commit());
@@ -683,7 +693,8 @@ describe('ELB Integration Testing', () => {
 
   it(
     'deletes multi-region resources',
-    query(`
+    query(
+      `
     BEGIN;
         DELETE
         FROM listener
@@ -701,7 +712,11 @@ describe('ELB Integration Testing', () => {
         FROM load_balancer
         WHERE load_balancer_name = '${lbName}';
     COMMIT;
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies deletion of multi-region resources', commit());

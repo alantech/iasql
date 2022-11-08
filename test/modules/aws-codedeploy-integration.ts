@@ -176,18 +176,28 @@ describe('AwsCodedeploy Integration Testing', () => {
 
   it(
     'adds a new codedeploy role',
-    query(`
+    query(
+      `
     INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
     VALUES ('${roleName}', '${codedeployRolePolicy}', array['${codedeployPolicyArn}', '${deployEC2PolicyArn}']);
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(
     'adds a new ec2 role',
-    query(`
+    query(
+      `
     INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
     VALUES ('${ec2RoleName}', '${ec2RolePolicy}', array['${deployEC2PolicyArn}', '${ssmPolicyArn}']);
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the role creation', commit());
@@ -207,7 +217,8 @@ describe('AwsCodedeploy Integration Testing', () => {
 
   it(
     'adds security group rules',
-    query(`
+    query(
+      `
     INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
     SELECT false, 'tcp', 22, 22, '0.0.0.0/0', '${prefix}codedeploy_rule_ssh', id
     FROM security_group
@@ -221,13 +232,18 @@ describe('AwsCodedeploy Integration Testing', () => {
     FROM security_group
     WHERE group_name = '${sgGroupName}';
 
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
   it('applies the security group and rules creation', commit());
 
   // create sample ec2 instance
   it('adds an ec2 instance', done => {
-    query(`
+    query(
+      `
       BEGIN;
         INSERT INTO instance (ami, instance_type, tags, subnet_id, role_name, user_data)
           SELECT '${ubuntuAmiId}', '${instanceType}', '{"name":"${instanceTag}"}', id, '${ec2RoleName}', (SELECT generate_codedeploy_agent_install_script('${region}', 'ubuntu'))
@@ -238,7 +254,11 @@ describe('AwsCodedeploy Integration Testing', () => {
           (SELECT id FROM instance WHERE tags ->> 'name' = '${instanceTag}'),
           (SELECT id FROM security_group WHERE group_name='${sgGroupName}');
       COMMIT;
-      `)((e?: any) => {
+      `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    )((e?: any) => {
       if (!!e) return done(e);
       done();
     });
@@ -466,7 +486,8 @@ describe('Move deployments to another region', () => {
 
   it(
     'moves a deployment to another region',
-    query(`
+    query(
+      `
       WITH
         updated_deployment_group AS (
           UPDATE codedeploy_deployment_group
@@ -485,7 +506,11 @@ describe('Move deployments to another region', () => {
         UPDATE codedeploy_application
         SET region = '${nonDefaultRegion}'
         WHERE name = '${applicationNameForDeployment}'
-    `),
+    `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('apply region move', commit());
@@ -544,7 +569,8 @@ SELECT * FROM codedeploy_deployment_group WHERE application_id = (SELECT id FROM
   describe('ec2 cleanup', () => {
     it(
       'deletes all ec2 instances',
-      query(`
+      query(
+        `
       BEGIN;
         DELETE FROM general_purpose_volume
         USING instance
@@ -554,7 +580,11 @@ SELECT * FROM codedeploy_deployment_group WHERE application_id = (SELECT id FROM
         DELETE FROM instance
         WHERE tags ->> 'name' = '${instanceTag}';
       COMMIT;
-    `),
+    `,
+        undefined,
+        true,
+        () => ({ username, password }),
+      ),
     );
 
     it('applies the instance deletion', commit());
@@ -644,9 +674,14 @@ describe('AwsCodedeploy install/uninstall', () => {
 
   it(
     'sets the default region',
-    query(`
+    query(
+      `
     UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('installs the codedeploy module', install(modules));

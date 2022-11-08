@@ -226,7 +226,8 @@ describe('MemoryDB Multi-region Integration Testing', () => {
 
   it(
     'changes the region',
-    query(`
+    query(
+      `
     WITH updated_subnet_group AS (
       UPDATE subnet_group
       SET region = '${nonDefaultRegion}', subnets = ARRAY(SELECT subnet_id FROM subnet INNER JOIN vpc ON vpc.id = subnet.vpc_id WHERE subnet.region = '${nonDefaultRegion}' AND vpc.is_default = TRUE LIMIT 2)
@@ -239,7 +240,11 @@ describe('MemoryDB Multi-region Integration Testing', () => {
     UPDATE memory_db_cluster
     SET region = '${nonDefaultRegion}'
     WHERE cluster_name = '${clusterName}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the change', commit());

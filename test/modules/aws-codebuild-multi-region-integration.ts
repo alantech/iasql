@@ -154,10 +154,15 @@ describe('AwsCodebuild Multi-region Integration Testing', () => {
 
   it(
     'adds a new role',
-    query(`
+    query(
+      `
     INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
     VALUES ('${dbAlias}', '${assumeServicePolicy}', array['${codebuildPolicyArn}', '${cloudwatchLogsArn}', '${pushEcrPolicyArn}']);
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(

@@ -164,11 +164,16 @@ describe('ECS Simplified Integration Testing', () => {
 
   it(
     'updates a row',
-    query(`
+    query(
+      `
     UPDATE ecs_simplified
     SET app_port = ${appPort + 1}
     WHERE app_name = '${appName}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(
@@ -387,11 +392,16 @@ describe('ECS Simplified Integration Testing', () => {
 
   it(
     'updates a row',
-    query(`
+    query(
+      `
     UPDATE ecs_simplified
     SET app_port = ${appPort + 1}
     WHERE app_name = '${appName}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(

@@ -100,7 +100,8 @@ describe('Lambda Multi-region Integration Testing', () => {
 
   it(
     'adds a new Lambda function',
-    query(`  
+    query(
+      `  
     BEGIN;
       INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
       VALUES ('${lambdaFunctionRoleName}', '${attachAssumeLambdaPolicy}', array['${lambdaFunctionRoleTaskPolicyArn}']);
@@ -108,7 +109,11 @@ describe('Lambda Multi-region Integration Testing', () => {
       INSERT INTO lambda_function (name, zip_b64, handler, runtime, role_name, region)
       VALUES ('${lambdaFunctionName}', '${lambdaFunctionCode}', '${lambdaFunctionHandler}', '${lambdaFunctionRuntime14}', '${lambdaFunctionRoleName}', '${nonDefaultRegion}');
     COMMIT;
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('undo changes', rollback());
@@ -127,7 +132,8 @@ describe('Lambda Multi-region Integration Testing', () => {
 
   it(
     'adds a new Lambda function',
-    query(`  
+    query(
+      `  
     BEGIN;
       INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
       VALUES ('${lambdaFunctionRoleName}', '${attachAssumeLambdaPolicy}', array['${lambdaFunctionRoleTaskPolicyArn}']);
@@ -135,7 +141,11 @@ describe('Lambda Multi-region Integration Testing', () => {
       INSERT INTO lambda_function (name, zip_b64, handler, runtime, role_name, region)
       VALUES ('${lambdaFunctionName}', '${lambdaFunctionCode}', '${lambdaFunctionHandler}', '${lambdaFunctionRuntime14}', '${lambdaFunctionRoleName}', '${nonDefaultRegion}');
     COMMIT;
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the change', commit());

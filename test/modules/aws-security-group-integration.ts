@@ -398,10 +398,15 @@ describe('Security Group Integration Testing', () => {
 
   it(
     'adds a new security group with non-default vpc',
-    query(`  
+    query(
+      `  
     INSERT INTO security_group (description, group_name, vpc_id)
     VALUES ('Source Security Group Test with non-default VPC', '${prefix}sgsourcetestnotdefault', (SELECT id FROM vpc WHERE cidr_block='192.${randIPBlock}.0.0/24'));
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('creates the non-default security group', commit());
@@ -481,11 +486,19 @@ describe('Security Group Integration Testing', () => {
 
   it(
     'deletes the source security group',
-    query(`DELETE FROM security_group WHERE group_name = '${prefix}sgsourcetest'`),
+    query(`DELETE FROM security_group WHERE group_name = '${prefix}sgsourcetest'`, undefined, true, () => ({
+      username,
+      password,
+    })),
   );
   it(
     'deletes the source security group for non default',
-    query(`DELETE FROM security_group WHERE group_name = '${prefix}sgsourcetestnotdefault'`),
+    query(
+      `DELETE FROM security_group WHERE group_name = '${prefix}sgsourcetestnotdefault'`,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
   it(
     'deletes the default security group for vpc',
@@ -569,7 +582,10 @@ describe('Security Group Integration Testing', () => {
 
   it(
     'deletes the original security group to test source',
-    query(`DELETE FROM security_group WHERE group_name = '${prefix}sgforsource'`),
+    query(`DELETE FROM security_group WHERE group_name = '${prefix}sgforsource'`, undefined, true, () => ({
+      username,
+      password,
+    })),
   );
 
   it('applies the deletion of source security group rule', commit());
@@ -664,11 +680,17 @@ describe('Security Group Integration Testing', () => {
   );
   it(
     'deletes the source security group for A',
-    query(`DELETE FROM security_group WHERE group_name = '${prefix}sgtestA'`),
+    query(`DELETE FROM security_group WHERE group_name = '${prefix}sgtestA'`, undefined, true, () => ({
+      username,
+      password,
+    })),
   );
   it(
     'deletes the source security group for B',
-    query(`DELETE FROM security_group WHERE group_name = '${prefix}sgtestB'`),
+    query(`DELETE FROM security_group WHERE group_name = '${prefix}sgtestB'`, undefined, true, () => ({
+      username,
+      password,
+    })),
   );
 
   it('deletes rules and groups', commit());

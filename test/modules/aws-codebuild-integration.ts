@@ -226,18 +226,28 @@ phases:
 
   it(
     'adds a new role',
-    query(`
+    query(
+      `
     INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
     VALUES ('${dbAlias}', '${assumeServicePolicy}', array['${codebuildPolicyArn}', '${cloudwatchLogsArn}', '${pushEcrPolicyArn}']);
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(
     'adds a new codebuild_project with codepipeline type',
-    query(`
+    query(
+      `
     INSERT INTO codebuild_project (project_name, source_type, service_role_name)
     VALUES ('${dbAlias}-codepipeline', 'CODEPIPELINE', '${dbAlias}');
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('apply codebuild_project codepipeline creation', commit());
@@ -256,9 +266,14 @@ phases:
 
   it(
     'deletes codebuild codepipeline project',
-    query(`
+    query(
+      `
     DELETE FROM codebuild_project WHERE project_name='${dbAlias}-codepipeline';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(
@@ -466,9 +481,14 @@ describe('AwsCodebuild install/uninstall', () => {
 
   it(
     'sets the default region',
-    query(`
+    query(
+      `
     UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('installs the codebuild module', install(modules));

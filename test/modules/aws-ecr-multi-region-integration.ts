@@ -205,7 +205,8 @@ describe('ECR Multi-region Integration Testing', () => {
 
   it('should fail trying to move a repository with its images to a different region', () => {
     try {
-      query(`
+      query(
+        `
       with updated_repository_policy as (
         UPDATE repository_policy
         SET region = '${region}'
@@ -219,7 +220,11 @@ describe('ECR Multi-region Integration Testing', () => {
       UPDATE repository
       SET region = '${region}'
       WHERE repository_name = '${repositoryName}' and region = '${nonDefaultRegion}';
-  `);
+  `,
+        undefined,
+        true,
+        () => ({ username, password }),
+      );
     } catch (e: any) {
       expect(e.message).toContain('Region cannot be modified');
     }
@@ -242,7 +247,8 @@ describe('ECR Multi-region Integration Testing', () => {
 
   it(
     'changes the region the repository is located in',
-    query(`
+    query(
+      `
       with updated_repository_policy as (
         UPDATE repository_policy
         SET region = '${region}'
@@ -251,7 +257,11 @@ describe('ECR Multi-region Integration Testing', () => {
       UPDATE repository
       SET region = '${region}'
       WHERE repository_name = '${repositoryName}' and region = '${nonDefaultRegion}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(
@@ -330,7 +340,8 @@ describe('ECR Multi-region Integration Testing', () => {
 
   it(
     'removes the repository',
-    query(`
+    query(
+      `
       BEGIN;
         DELETE FROM repository_policy
         WHERE repository_id = (select id from repository where repository_name = '${repositoryName}' and region = '${region}');
@@ -338,7 +349,11 @@ describe('ECR Multi-region Integration Testing', () => {
         DELETE FROM repository
         WHERE repository_name = '${repositoryName}' and region = '${region}';
       COMMIT;
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the removal', commit());

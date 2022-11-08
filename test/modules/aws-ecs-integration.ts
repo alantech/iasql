@@ -136,9 +136,14 @@ describe('ECS Integration Testing', () => {
 
   it(
     'sets only 2 enabled regions to avoid long runs',
-    query(`
+    query(
+      `
     UPDATE aws_regions SET is_enabled = FALSE WHERE region != '${region}' AND region != (SELECT region FROM aws_regions WHERE region != 'us-east-1' AND region != '${region}' ORDER BY region DESC LIMIT 1);
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('creates a new sidecar test db ECS', done =>
@@ -238,7 +243,8 @@ describe('ECS Integration Testing', () => {
 
   it(
     'adds service dependencies',
-    query(`
+    query(
+      `
     BEGIN;
       INSERT INTO security_group
         (description, group_name)
@@ -269,7 +275,11 @@ describe('ECS Integration Testing', () => {
             ${hostPort}, 'HTTP', 'forward',
            (SELECT id FROM target_group WHERE target_group_name = '${serviceTargetGroupName}'));
     COMMIT;
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(
@@ -300,14 +310,19 @@ describe('ECS Integration Testing', () => {
   // Container definition
   it(
     'adds container dependencies',
-    query(`
+    query(
+      `
     BEGIN;
       INSERT INTO log_group (log_group_name)
       VALUES ('${logGroupName}');
       INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
       VALUES ('${taskExecRoleName}', '${taskRolePolicyDoc}', array['${taskPolicyArn}']);
     COMMIT;
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies adds container dependencies', commit());
@@ -339,10 +354,15 @@ describe('ECS Integration Testing', () => {
   // Task definition
   it(
     'adds a new task definition',
-    query(`
+    query(
+      `
     INSERT INTO task_definition ("family", task_role_name, execution_role_name, cpu_memory)
     VALUES ('${tdFamily}', '${taskExecRoleName}', '${taskExecRoleName}', '${tdCpuMem}');
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(
@@ -359,24 +379,29 @@ describe('ECS Integration Testing', () => {
 
   it(
     'adds a new container definition',
-    query(`
+    query(
+      `
     BEGIN;
       INSERT INTO container_definition ("name", image, essential, memory_reservation, host_port, container_port, protocol, env_variables, task_definition_id, log_group_id)
       VALUES('${containerName}', '${image}', ${containerEssential}, ${containerMemoryReservation}, ${hostPort}, ${containerPort}, '${protocol}', '{ "test": 2}', (select id from task_definition where family = '${tdFamily}' and status is null and region = '${region}' limit 1), (select id from log_group where log_group_name = '${logGroupName}' and region = '${region}'));
       INSERT INTO container_definition ("name", image, tag, essential, memory_reservation, host_port, container_port, protocol, env_variables, task_definition_id, log_group_id)
       VALUES('${containerNameTag}', '${image}', '${imageTag}', false, ${containerMemoryReservation}, ${
-      hostPort + 1
-    }, ${
-      containerPort + 1
-    }, '${protocol}', '{ "test": 2}', (select id from task_definition where family = '${tdFamily}' and status is null and region = '${region}' limit 1), (select id from log_group where log_group_name = '${logGroupName}' and region = '${region}'));
+        hostPort + 1
+      }, ${
+        containerPort + 1
+      }, '${protocol}', '{ "test": 2}', (select id from task_definition where family = '${tdFamily}' and status is null and region = '${region}' limit 1), (select id from log_group where log_group_name = '${logGroupName}' and region = '${region}'));
       INSERT INTO container_definition ("name", image, digest, essential, memory_reservation, host_port, container_port, protocol, env_variables, task_definition_id, log_group_id)
       VALUES('${containerNameDigest}', '${image}', '${imageDigest}', false, ${containerMemoryReservation}, ${
-      hostPort + 2
-    }, ${
-      containerPort + 2
-    }, '${protocol}', '{ "test": 2}', (select id from task_definition where family = '${tdFamily}' and status is null and region = '${region}' limit 1), (select id from log_group where log_group_name = '${logGroupName}' and region = '${region}'));
+        hostPort + 2
+      }, ${
+        containerPort + 2
+      }, '${protocol}', '{ "test": 2}', (select id from task_definition where family = '${tdFamily}' and status is null and region = '${region}' limit 1), (select id from log_group where log_group_name = '${logGroupName}' and region = '${region}'));
     COMMIT;
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(
@@ -468,7 +493,8 @@ describe('ECS Integration Testing', () => {
   // Service
   it(
     'adds a new service',
-    query(`
+    query(
+      `
     BEGIN;
       INSERT INTO service ("name", desired_count, subnets, assign_public_ip, cluster_id, task_definition_id, target_group_id)
       VALUES ('${serviceName}', ${serviceDesiredCount}, (select array(select subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true and vpc.region = '${region}' limit 3)), 'ENABLED', (SELECT id FROM cluster WHERE cluster_name = '${clusterName}'), (select id from task_definition where family = '${tdFamily}' and region = '${region}' order by revision desc limit 1), (SELECT id FROM target_group WHERE target_group_name = '${serviceTargetGroupName}' and region = '${region}'));
@@ -476,7 +502,11 @@ describe('ECS Integration Testing', () => {
       INSERT INTO service_security_groups (service_id, security_group_id)
       VALUES ((SELECT id FROM service WHERE name = '${serviceName}'), (select id from security_group where group_name = '${securityGroup}' and region = '${region}' limit 1));
     COMMIT;
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(
@@ -505,7 +535,8 @@ describe('ECS Integration Testing', () => {
 
   it(
     'tries to update a task definition',
-    query(`
+    query(
+      `
     WITH td AS (
       SELECT revision
       FROM task_definition
@@ -514,7 +545,11 @@ describe('ECS Integration Testing', () => {
       LIMIT 1
     )
     UPDATE task_definition SET revision = 55 WHERE family = '${tdFamily}' AND revision IN (SELECT revision FROM td) ;
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies tries to update a task definition field', commit());
@@ -545,9 +580,14 @@ describe('ECS Integration Testing', () => {
 
   it(
     'tries to update a service (update)',
-    query(`
+    query(
+      `
     UPDATE service SET desired_count = ${serviceDesiredCount + 1} WHERE name = '${serviceName}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies tries to update a service (update)', commit());
@@ -683,7 +723,8 @@ describe('ECS Integration Testing', () => {
 
   it(
     'deletes service',
-    query(`
+    query(
+      `
     BEGIN;
       delete from service_security_groups
       using service
@@ -694,7 +735,11 @@ describe('ECS Integration Testing', () => {
 
 
     COMMIT;
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies deletes service', commit());
@@ -713,7 +758,8 @@ describe('ECS Integration Testing', () => {
 
   it(
     'deletes container definitons',
-    query(`
+    query(
+      `
     begin;
       delete from container_definition
       using task_definition
@@ -728,7 +774,11 @@ describe('ECS Integration Testing', () => {
       delete from log_group
       where log_group_name = '${logGroupName}';
     commit;
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies deletes tasks and container definitions', commit());
@@ -778,7 +828,8 @@ describe('ECS Integration Testing', () => {
   // deletes service dependencies
   it(
     'deletes service dependencies',
-    query(`
+    query(
+      `
     BEGIN;
       DELETE FROM listener
       WHERE load_balancer_id = (SELECT id FROM load_balancer WHERE load_balancer_name = '${serviceLoadBalancerName}')
@@ -801,7 +852,11 @@ describe('ECS Integration Testing', () => {
       DELETE FROM security_group
       WHERE group_name = '${securityGroup}';
     COMMIT;
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies deletes service dependencies', commit());
