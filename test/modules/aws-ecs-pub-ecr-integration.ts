@@ -214,7 +214,8 @@ describe('ECS Integration Testing', () => {
   // Service dependencies
   it(
     'adds service dependencies',
-    query(`
+    query(
+      `
     BEGIN;
       INSERT INTO security_group
         (description, group_name)
@@ -245,7 +246,11 @@ describe('ECS Integration Testing', () => {
             ${hostPort}, 'HTTP', 'forward',
            (SELECT id FROM target_group WHERE target_group_name = '${serviceTargetGroupName}'));
     COMMIT;
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies service dependencies', commit());

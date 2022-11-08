@@ -193,11 +193,16 @@ describe('ECS Simplified Integration Testing', () => {
 
   it(
     'update target group directly',
-    query(`
+    query(
+      `
     UPDATE target_group
     SET health_check_path = '/'
     WHERE target_group_name = '${appName}-target';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(
@@ -214,11 +219,16 @@ describe('ECS Simplified Integration Testing', () => {
 
   it(
     'update target_group directly to correct value',
-    query(`
+    query(
+      `
     UPDATE target_group
     SET health_check_path = '/health'
     WHERE target_group_name = '${appName}-target';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(
@@ -654,9 +664,14 @@ describe('ECS Simplified install/uninstall', () => {
 
   it(
     'sets the default region',
-    query(`
+    query(
+      `
     UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(

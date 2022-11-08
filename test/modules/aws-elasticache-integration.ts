@@ -256,9 +256,14 @@ describe('Elasticache Integration Testing', () => {
 
   it(
     'changes the region the cache_cluster is in',
-    query(`
+    query(
+      `
     UPDATE cache_cluster SET region='us-east-1' WHERE cluster_id = '${newClusterId}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the change', commit());
@@ -366,9 +371,14 @@ describe('Elasticache install/uninstall', () => {
 
   it(
     'sets the default region',
-    query(`
+    query(
+      `
     UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('installs the Elasticache module', install(modules));

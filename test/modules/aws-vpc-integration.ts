@@ -226,9 +226,14 @@ describe('VPC Integration Testing', () => {
 
   it(
     'tries to update vpc tags',
-    query(`
+    query(
+      `
   UPDATE vpc SET tags = '{"name": "${prefix}-2"}' WHERE cidr_block='192.${randIPBlock}.0.0/16';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the vpc tags update', commit());
@@ -1135,9 +1140,14 @@ describe('VPC install/uninstall', () => {
 
   it(
     'sets the default region',
-    query(`
+    query(
+      `
     UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('installs the VPC module', install(modules));

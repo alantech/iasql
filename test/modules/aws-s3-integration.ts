@@ -268,9 +268,14 @@ describe('S3 Integration Testing', () => {
 
   it(
     'updates the bucket timestamp',
-    query(`
+    query(
+      `
     UPDATE bucket SET created_at = '1984-01-01T00:00:00' WHERE name = '${s3Name}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the s3 bucket update', commit());
@@ -498,9 +503,14 @@ describe('S3 install/uninstall', () => {
 
   it(
     'sets the default region',
-    query(`
+    query(
+      `
     UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(

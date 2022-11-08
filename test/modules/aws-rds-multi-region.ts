@@ -110,14 +110,20 @@ describe('RDS Multi-Region Testing', () => {
 
   it(
     'moves the parameter group to another region',
-    query(`
+    query(
+      `
     UPDATE parameter_group SET region = 'us-east-1' WHERE name = '${parameterGroupName}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(
     'updates the RDS instance to use the parameter group and moves it to another region',
-    query(`
+    query(
+      `
     UPDATE rds SET
       region = 'us-east-1',
       availability_zone = (SELECT name FROM availability_zone WHERE region = 'us-east-1' LIMIT 1),
@@ -129,7 +135,11 @@ describe('RDS Multi-Region Testing', () => {
     UPDATE rds_security_groups SET
       security_group_id = (SELECT id FROM security_group WHERE group_name='default' AND region = 'us-east-1')
     WHERE rds_id = (SELECT id FROM rds WHERE db_instance_identifier='${prefix}test');
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the region move and parameter group usage', commit());

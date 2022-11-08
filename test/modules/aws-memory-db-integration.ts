@@ -243,11 +243,16 @@ describe('MemoryDB Integration Testing', () => {
 
   it(
     'changes the cluster arn',
-    query(`
+    query(
+      `
     UPDATE memory_db_cluster
     SET arn = 'fake-arn'
     WHERE cluster_name = '${clusterName}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the change', commit());
@@ -395,9 +400,14 @@ describe('MemoryDB install/uninstall', () => {
 
   it(
     'sets the default region',
-    query(`
+    query(
+      `
     UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('installs the module', install(modules));

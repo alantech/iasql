@@ -196,9 +196,14 @@ describe('Secrets Manager Integration Testing', () => {
 
   it(
     'moves the secret to another region with a new value',
-    query(`
+    query(
+      `
     UPDATE secret SET region='us-east-1', value='new_secret' WHERE name='${secretName}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the secret region update', commit());
@@ -290,9 +295,14 @@ describe('Secret install/uninstall', () => {
 
   it(
     'sets the default region',
-    query(`
+    query(
+      `
     UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('installs the secret module', install(modules));

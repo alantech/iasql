@@ -169,11 +169,16 @@ describe('ELB Integration Testing', () => {
 
   it(
     'tries to update a target group field',
-    query(`
+    query(
+      `
         UPDATE target_group
         SET health_check_path = '/fake-health'
         WHERE target_group_name = '${tgName}';
-    `),
+    `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the change', commit());
@@ -607,10 +612,15 @@ describe('ELB Integration Testing', () => {
 
   it(
     'creates a target group in non-default region',
-    query(`
+    query(
+      `
         INSERT INTO target_group (target_group_name, target_type, protocol, port, vpc, health_check_path, region)
         VALUES ('${tgName}', '${tgType}', '${protocol}', ${port}, null, '/health', 'us-east-1');
-    `),
+    `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies creation of the target group in non-default region', commit());
@@ -632,15 +642,21 @@ describe('ELB Integration Testing', () => {
 
   it(
     'creates a security group in non-default region',
-    query(`
+    query(
+      `
       INSERT INTO security_group (description, group_name, region)
       VALUES ('Security Group Multi-region Test 1', '${sg1}', 'us-east-1');
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(
     'creates a load balancer in non-default region',
-    query(`
+    query(
+      `
     BEGIN;
       INSERT INTO load_balancer (load_balancer_name, scheme, vpc, load_balancer_type, ip_address_type, region)
       VALUES ('${lbName}', '${lbScheme}', null, '${lbType}', '${lbIPAddressType}', 'us-east-1');
@@ -649,7 +665,11 @@ describe('ELB Integration Testing', () => {
       SELECT (SELECT id FROM load_balancer WHERE load_balancer_name = '${lbName}'),
              (SELECT id FROM security_group WHERE group_name = '${sg1}');
     COMMIT;
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the creation of load balancer and security group in non-default region', commit());
@@ -768,11 +788,16 @@ describe('ELB install/uninstall', () => {
 
   it(
     'sets the default region',
-    query(`
+    query(
+      `
         UPDATE aws_regions
         SET is_default = TRUE
         WHERE region = 'us-east-1';
-    `),
+    `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('installs the ELB module', install(modules));
