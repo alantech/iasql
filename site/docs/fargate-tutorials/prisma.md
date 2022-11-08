@@ -230,25 +230,24 @@ And then connect to your service!
 curl ${QUICKSTART_LB_DNS}:8088/health
 ```
 
-## Delete managed cloud resources
+## Delete Managed Cloud Resources
 
-:::warning
+Delete the resources created by this tutorial using the following SQL code:
 
-If you did not create a new account this section will delete **all** records managed by IaSQL, including the ones that previously existed in the account under any of the used modules. Run `SELECT * FROM iasql_plan_apply()` after `SELECT delete_all_records();` and before `SELECT iasql_apply();` to get a preview of what would get deleted. To undo `SELECT delete_all_records();`, simply run `SELECT iasql_sync();` which will synchronize the database with the cloud's state.
+```sql title="psql postgres://qpp3pzqb:LN6jnHfhRJTBD6ia@db.iasql.com/_3ba201e349a11daf -c"
+DELETE FROM repository_image WHERE private_repository_id = (SELECT id FROM repository WHERE repository_name = 'quickstart-repository');
+DELETE FROM ecs_simplified WHERE app_name = 'quickstart';
+```
 
-:::
+Apply the changes described in the hosted db to your cloud account
 
-Delete all iasql records invoking the void `delete_all_records` function and apply the changes described in the hosted db to your cloud account:
-
-```sql
-SELECT delete_all_records();
-
-SELECT * from iasql_apply();
+```sql title="psql postgres://qpp3pzqb:LN6jnHfhRJTBD6ia@db.iasql.com/_3ba201e349a11daf -c"
+ SELECT * from iasql_apply();
 ```
 
 If the function call is successful, it will return a virtual table with a record for each cloud resource that has been created, deleted or updated.
 
-```sql
+```text
  action |     table_name      |   id   |                                                         description                                                         
 --------+---------------------+--------+-----------------------------------------------------------------------------------------------------------------------------
  delete | cluster             | [NULL] | arn:aws:ecs:sa-east-1:658401754851:cluster/quickstart-cluster
