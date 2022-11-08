@@ -79,7 +79,7 @@ cd infra
 npm i
 ```
 
-3. Modify the [`.env file`](https://www.prisma.io/docs/guides/development-environment/environment-variables) that Prisma expects with the connection parameters provided on db creation. You'll need to add your [Github personal acccess token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token) for the `ecr_builder` module to be able to do the pull. Also, if you're going to deploy a codebase other than the default one, set the `REPO_URI` variable. In this case:
+3. Modify the [`.env file`](https://www.prisma.io/docs/guides/development-environment/environment-variables) that Prisma expects with the connection parameters provided on db creation. You'll need to add your [Github personal access token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token) for the `ecr_build` SQL function to be able to do the pull. Also, if you're going to deploy a codebase other than the default one, set the `REPO_URI` variable. In this case:
 
 ```bash title="prisma/infra/.env"
 DATABASE_URL="postgres://d0va6ywg:nfdDh#EP4CyzveFr@db.iasql.com/_4b2bb09a59a411e4"
