@@ -411,6 +411,7 @@ describe('AwsCodepipeline Integration Testing', () => {
   `,
       undefined,
       false,
+      () => ({ username, password }),
     ),
   );
 
