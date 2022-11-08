@@ -2,7 +2,7 @@ const { PrismaClient } = require('@prisma/client');
 
 const pkg = require('./package.json');
 
-const { GITHUB_SERVER_URL, GITHUB_REPOSITORY, GH_PAT, GITHUB_REF } = process.env;
+const { GITHUB_SERVER_URL, GITHUB_REPOSITORY, GH_PAT, GITHUB_REF, REPO_URI } = process.env;
 const PORT = 8088;
 
 // TODO replace with your desired project name
@@ -32,7 +32,13 @@ async function main() {
     where: { repository_name: `${APP_NAME}-repository` },
     select: { id: true },
   })).id.toString();
-  const repoUri = `${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}`;
+  let repoUri;
+  if (REPO_URI) // manual
+    repoUri = REPO_URI;
+  else if (GITHUB_SERVER_URL && GITHUB_REPOSITORY) // CI
+    repoUri = `${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}`;
+  else
+    repoUri = 'https://github.com/iasql/iasql-engine'
   const image = await prisma.$queryRaw`SELECT ecr_build(
               ${repoUri},
               ${repoId},
