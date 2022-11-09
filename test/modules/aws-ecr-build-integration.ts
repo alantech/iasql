@@ -115,6 +115,31 @@ describe('AwsEcrBuild Integration Testing', () => {
       WHERE private_repository_id = (SELECT id FROM repository WHERE repository_name = '${repositoryName}');
   `));
 
+  it('builds hello world image and pushes to the new ecr repo without Github personal access token', query(`
+      SELECT ecr_build(
+                     'https://github.com/iasql/docker-helloworld',
+                     (SELECT id FROM repository WHERE repository_name = '${repositoryName}')::varchar(255),
+                     '.',
+                     NULL,
+                     'main'
+                 );
+  `));
+
+  it('checks if the image is created in the database', query(`
+      SELECT image_tag
+      FROM repository_image
+      WHERE private_repository_id = (SELECT id FROM repository WHERE repository_name = '${repositoryName}');
+  `, (res: any) => {
+    expect(res.length).toBe(1);
+    expect(res[0].image_tag === 'latest');
+  }));
+
+  it('deletes the image', query(`
+      DELETE
+      FROM repository_image
+      WHERE private_repository_id = (SELECT id FROM repository WHERE repository_name = '${repositoryName}');
+  `));
+
   it('deletes the repository', query(`
       DELETE
       FROM repository
