@@ -26,7 +26,7 @@ In IaSQL, you are able to do cloud actions both on a high-level and a low-level 
 
 The first statement, is described in a high-level abstraction layer. The higher the level, the less detail. So it doesn't say anything about the underlying steps that should be taken in order for the statement to be executed. But the second statement is giving all the details necessary to create a new security group.
 
-The flexibility of IaSQL– which makes it really awesome– is that you can create both the high-level and the low-level modules for it. Both of the above statements are already possible using IaSQL modules. The first one using a module named `aws_ecs_simplified` and the latter using the `aws_security_group` module. Let's take a peek on the actual implementations really quick before we continue our main topic.
+The flexibility of IaSQL– which makes it really awesome– is that you can create both the high-level and the low-level modules for it. Both of the above statements are already possible using IaSQL modules. The first one using a module named `aws_ecs_simplified` and the latter using the `aws_security_group` module.
 
 ```sql title="Deploy the folder 'examples/ecs-fargate/prisma/app' of the 'iasql-engine' repo to ECS on my AWS account"
 -- Install the "high-level" aws_ecs_simplified IaSQL module
@@ -40,22 +40,26 @@ SELECT ecr_build(
   (SELECT id FROM repository WHERE repository_name = '<app_name>-repository')::varchar(255), -- ECR repo for the image to be pushed
   './examples/ecs-fargate/prisma/app', -- the subdirectory in Github repo
   'main', -- the Github branch or ref
-  '' -- Github personal access token - can be omitted if public repository
+  NULL -- Github personal access token - can be omitted if public repository
 );
 ```
-```sql title="Create a security group named 'allow-all' attached to the VPC with ID 'vpc-f56cff91'. Then add a rule to it allowing all incoming traffic on port '80' from '0.0.0.0/0'"
--- Install the aws_security_group IaSQL module
-SELECT iasql_install('aws_security_group');
--- "Create a security group named `allow-all` attached to the VPC with ID `vpc-f56cff91`"
-INSERT INTO security_group (description, group_name, vpc_id)
-VALUES ('allows all incoming traffic on port 80', 'allow-all', (SELECT id FROM vpc WHERE vpc_id = 'vpc-08c0a68025c2983a2'));
--- "Then add a rule to it allowing all incoming traffic on port `80` from `0.0.0.0/0`."
-INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
-VALUES (false, 'tcp', 80, 80, '0.0.0.0/8', 'allow all to 80', (SELECT id FROM security_group WHERE group_name = 'allow-all'));
+
+In this example, we've used the high-level `aws_ecs_simplified` module. It is written purely in SQL and depends on other low-level modules like `aws_ecr`, `aws_elb` `aws_ecs_fargate`. It will automatically create needed resources like [load balancers](https://github.com/iasql/iasql-engine/blob/main/src/modules/0.0.22/aws_ecs_simplified/sql/after_install.sql#L75-L94) while the logic for the actual creation is handled by low-level modules (`aws_elb` in load balancer case). A full list of the resources it creates by leveraging low-level modules are as follows:
+- Security group and its rules
+- Load balancer, its listener, security group, and target group
+- CloudWatch log group
+- ECS cluster, service, task definition, and container definition
+- IAM role
+- ECR repository
+
+Despite high-level stuff seem like limiting you from accessing the low-level details, but `ecs_simplified` does not limit you from accessing the inner details of each of these resources. For example if you want to attach some additional policies to the IAM role you can simply do it as follows:
+```sql
+UPDATE iam_role SET attached_policies_arns = attached_policies_arns || 'arn:aws:iam::aws:policy/CloudWatchLogsFullAccess' -- column is of text[] type
 ```
 
+Now that we have an overview of the high-level modules, let's dive in to the `aws_ecs_simplified` module and deploy an example app using it.
 
-## ** An Example of `ecs_simplified` Module **
+## ** An Example of `aws_ecs_simplified` Module **
 Let's say we are going to deploy [this simple Express.js app](https://github.com/iasql/iasql-engine/tree/main/examples/ecs-fargate/prisma/app) to the ECS. It has a `Dockerfile` ready which `npm install`s the `express` package and then starts the Express server which listens on the port `8088`.
 
 Assuming that you have an IaSQL database, let's go and deploy the above app to our AWS account.
@@ -76,7 +80,7 @@ SELECT ecr_build(
     WHERE repository_name = 'simple-express-repository')::varchar(255), -- ECR repo for the image to be pushed
   './examples/ecs-fargate/prisma/app', -- the subdirectory in Github repo
   'main', -- the Github branch or ref
-  '' -- Github personal access token - can be omitted if public repository
+  NULL -- Github personal access token - can be omitted if public repository
 );
 ```
 That's it! Now wait for some time and your app is deployed! While your app is being deployed, let's go through the commands we executed in more depth:
@@ -93,16 +97,16 @@ INSERT INTO ecs_simplified(app_name, app_port, image_tag, public_ip) VALUES(
 );
 ```
 - This command creates a new `ecs_simplified` app by inserting a new row into the `ecs_simplified` table. Seems pretty easy, right? But under the hood, it's creating all the necessary resources like load balancers, security groups, IAM roles, etc.
-- You can manually check the tables to see what resources are being created. For example, looking at the `load_balancer` table you'll see a load balancer named `simple-express-load-balancer` is inserted automatically by running the above insert command.
+  - You can manually check the tables to see what resources are being created. For example, looking at the `load_balancer` table you'll see a load balancer named `simple-express-load-balancer` is inserted automatically by running the above insert command.
 ```sql
 SELECT iasql_apply();
 ```
 - The insert command did create the list for what resources should be created, but they've not yet created on the AWS. You need to call the `iasql_apply()` function to sync the cloud with the data on your database.
-- For more info on the `iasql_apply()` command, check [this guide](https://iasql.com/docs/apply-and-sync/#apply-and-preview_apply) on how it works.
+  - For more info on the `iasql_apply()` command, check [this guide](https://iasql.com/docs/apply-and-sync/#apply-and-preview_apply) on how it works.
 - After running the `iasql_apply()` function to completion all the necessary resources are now created on the cloud, so their ARNs are populated. You can verify this by looking at different tables, eg. `iam_role`.
 - To get your load balancer address, you can easily run `SELECT load_balancer_dns FROM ecs_simplified WHERE app_name = 'simple-express'` query and get the URL to access your app.
-- Now the ECS is waiting for an image to be pushed to your ECR repository to run it. You can get the URI for the ECR repository by running the `SELECT repository_uri FROM ecs_simplified WHERE app_name = 'simple-express'` query.
-- In the next step, we'll automatically build an image for the code in Github repo and then push it to this URI (all through SQL and using another high-level function named `ecr_build`).
+- Now the ECS is waiting for an image to be pushed to your ECR repository to run it. You can get the URI for the ECR repository by running the `SELECT repository_uri FROM ecs_simplified WHERE app_name = 'simple-express'` query.  You *could* build your docker image locally and then follow [Steps 2 and 4 from this guide](https://docs.aws.amazon.com/AmazonECR/latest/userguide/getting-started-cli.html) to connect your local docker CLI to your ECR repository and push that docker image into your ECR repository, but we have a simpler solution next.
+  - In the next step, we'll automatically build an image for the code in Github repo and then push it to this URI (all through SQL and using another high-level function named `ecr_build`).
 ```sql
 SELECT ecr_build(
   'https://github.com/iasql/iasql-engine/', -- the Github repo URL
@@ -111,7 +115,7 @@ SELECT ecr_build(
     WHERE repository_name = 'simple-express-repository')::varchar(255), -- ECR repo for the image to be pushed
   './examples/ecs-fargate/prisma/app', -- the subdirectory in Github repo
   'main',  -- the Github branch or ref
-  '' -- Github personal access token - can be omitted if public repository
+  NULL -- Github personal access token - can be omitted if public repository
 );
 ```
 - This command tells IaSQL to go clone `iasql-engine` repository, build an image on the subdirectory specified, and then push it to the ECR repository created earlier by `ecs_simplified` module. Running the above command will automatically create a CodeBuild project and the related roles, etc. Then it'll start a build, and after it's successful all the created resources are deleted to ensure there won't be any additional charges to your AWS account.
