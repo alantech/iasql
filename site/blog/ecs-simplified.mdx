@@ -36,11 +36,11 @@ INSERT INTO ecs_simplified (app_name, app_port, image_tag, public_ip) VALUES ('<
 SELECT iasql_apply();
 -- Use the "high-level" ecr_build function to build the folder "examples/ecs-fargate/prisma/app" from "iasql-engine" Github repo and push it to ECR
 SELECT ecr_build(
-  'https://github.com/iasql/iasql-engine/',
-  (SELECT id FROM repository WHERE repository_name = '<app_name>-repository')::varchar(255),
-  './examples/ecs-fargate/prisma/app',
-  'main',
-  ''
+  'https://github.com/iasql/iasql-engine/', -- the Github repo URL
+  (SELECT id FROM repository WHERE repository_name = '<app_name>-repository')::varchar(255), -- ECR repo for the image to be pushed
+  './examples/ecs-fargate/prisma/app', -- the subdirectory in Github repo
+  'main', -- the Github branch or ref
+  '' -- Github personal access token - can be omitted if public repository
 );
 ```
 ```sql title="Create a security group named 'allow-all' attached to the VPC with ID 'vpc-f56cff91'. Then add a rule to it allowing all incoming traffic on port '80' from '0.0.0.0/0'"
@@ -70,13 +70,13 @@ INSERT INTO ecs_simplified(app_name, app_port, image_tag, public_ip) VALUES(
 SELECT iasql_apply();
 
 SELECT ecr_build(
-  'https://github.com/iasql/iasql-engine/',
+  'https://github.com/iasql/iasql-engine/', -- the Github repo URL
   (SELECT id
     FROM repository
-    WHERE repository_name = 'simple-express-repository')::varchar(255),
-  './examples/ecs-fargate/prisma/app',
-  'main',
-  '' -- replace your github personal access token here if you want to deploy a private repo
+    WHERE repository_name = 'simple-express-repository')::varchar(255), -- ECR repo for the image to be pushed
+  './examples/ecs-fargate/prisma/app', -- the subdirectory in Github repo
+  'main', -- the Github branch or ref
+  '' -- Github personal access token - can be omitted if public repository
 );
 ```
 That's it! Now wait for some time and your app is deployed! While your app is being deployed, let's go through the commands we executed in more depth:
@@ -105,13 +105,13 @@ SELECT iasql_apply();
 - In the next step, we'll automatically build an image for the code in Github repo and then push it to this URI (all through SQL and using another high-level function named `ecr_build`).
 ```sql
 SELECT ecr_build(
-  'https://github.com/iasql/iasql-engine/',
+  'https://github.com/iasql/iasql-engine/', -- the Github repo URL
   (SELECT id
     FROM repository
-    WHERE repository_name = 'simple-express-repository')::varchar(255),
-  './examples/ecs-fargate/prisma/app',
-  'main',
-  '' -- replace your github personal access token here if you want to deploy a private repo
+    WHERE repository_name = 'simple-express-repository')::varchar(255), -- ECR repo for the image to be pushed
+  './examples/ecs-fargate/prisma/app', -- the subdirectory in Github repo
+  'main',  -- the Github branch or ref
+  '' -- Github personal access token - can be omitted if public repository
 );
 ```
 - This command tells IaSQL to go clone `iasql-engine` repository, build an image on the subdirectory specified, and then push it to the ECR repository created earlier by `ecs_simplified` module. Running the above command will automatically create a CodeBuild project and the related roles, etc. Then it'll start a build, and after it's successful all the created resources are deleted to ensure there won't be any additional charges to your AWS account.
@@ -121,5 +121,4 @@ SELECT load_balancer_dns
 FROM ecs_simplified
 WHERE app_name = 'simple-express';
 ```
-Mine is `simple-express-load-balancer-94898832.us-east-2.elb.amazonaws.com` so I can access it by opening the following address in my browser:
--  http://simple-express-load-balancer-94898832.us-east-2.elb.amazonaws.com:8088/health/
+Then you can check if the server is running on the `url:8088/health` address.
