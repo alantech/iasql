@@ -1214,8 +1214,8 @@ async function getPreviousStartCommit(orm: TypeormWrapper, currentTs: Date): Pro
 function getChangesByEntity(changesToCommit: IasqlAuditLog[]): { [key: string]: any[] } {
   const changesByEntity: { [key: string]: any[] } = {};
   changesToCommit.forEach((c: IasqlAuditLog) => {
-    const camelCaseEntityName = camelCase(c.tableName);
-    const entityName = camelCaseEntityName.charAt(0).toUpperCase() + camelCaseEntityName.slice(1);
+    // Since table names and entity names does not match 100% we keep the standard as no-snake-lower-case.
+    const entityName = camelCase(c.tableName).toLowerCase();
     const entity: any = {};
     if (c.changeType === AuditLogChangeType.DELETE) {
       Object.entries(c.change.original).forEach(([k, v]: [string, any]) => (entity[camelCase(k)] = v));
@@ -1337,13 +1337,13 @@ async function commitSync(
         r.diff = findDiff(r.dbEntity, r.cloudEntity, r.idGen, r.comparator);
         // Only filter changes that might have occured after this commit started
         r.diff.entitiesInAwsOnly = r.diff.entitiesInAwsOnly.filter(
-          (e: any) => !changesAfterCommitByEntity[r.table]?.find(re => r.idGen(e) === r.idGen(re)),
+          (e: any) => !changesAfterCommitByEntity[(r.table as string).toLowerCase()]?.find(re => r.idGen(e) === r.idGen(re)),
         );
         r.diff.entitiesInDbOnly = r.diff.entitiesInDbOnly.filter(
-          (e: any) => !changesAfterCommitByEntity[r.table]?.find(re => r.idGen(e) === r.idGen(re)),
+          (e: any) => !changesAfterCommitByEntity[(r.table as string).toLowerCase()]?.find(re => r.idGen(e) === r.idGen(re)),
         );
         r.diff.entitiesChanged = r.diff.entitiesChanged.filter(
-          (o: any) => !changesAfterCommitByEntity[r.table]?.find(re => r.idGen(o.db) === r.idGen(re)),
+          (o: any) => !changesAfterCommitByEntity[(r.table as string).toLowerCase()]?.find(re => r.idGen(o.db) === r.idGen(re)),
         );
         if (r.diff.entitiesInDbOnly.length > 0) {
           updatePlan(toDelete, r.table, r.mapper, r.diff.entitiesInDbOnly);
@@ -1546,27 +1546,27 @@ async function commitApply(
           // Case entities in DB only: we want to create in the cloud.
           // We need to filter which of those are the changes we are taking into account. Otherwise we could be applying changes from other cycle.
           r.diff.entitiesInDbOnly = r.diff.entitiesInDbOnly.filter((e: any) =>
-            changesByEntity[r.table]?.find(re => r.idGen(e) === r.idGen(re)),
+            changesByEntity[(r.table as string).toLowerCase()]?.find(re => r.idGen(e) === r.idGen(re)),
           );
           // Case entities in AWS only: we want to delete from the cloud.
           // We need to filter which of those are the changes we are taking into account. Otherwise we could be applying changes from other cycle.
           r.diff.entitiesInAwsOnly = r.diff.entitiesInAwsOnly.filter((e: any) =>
-            changesByEntity[r.table]?.find(re => r.idGen(e) === r.idGen(re)),
+            changesByEntity[(r.table as string).toLowerCase()]?.find(re => r.idGen(e) === r.idGen(re)),
           );
           // Case entities changed: we want to update/restore/replace to/from the cloud.
           // We need to filter which of those are the changes we are taking into account. Otherwise we could be applying changes from other cycle.
           r.diff.entitiesChanged = r.diff.entitiesChanged.filter((o: any) =>
-            changesByEntity[r.table]?.find(re => r.idGen(o.db) === r.idGen(re)),
+            changesByEntity[(r.table as string).toLowerCase()]?.find(re => r.idGen(o.db) === r.idGen(re)),
           );
         } else {
           r.diff.entitiesInAwsOnly = r.diff.entitiesInAwsOnly.filter(
-            (e: any) => !changesAfterCommitByEntity[r.table]?.find(re => r.idGen(e) === r.idGen(re)),
+            (e: any) => !changesAfterCommitByEntity[(r.table as string).toLowerCase()]?.find(re => r.idGen(e) === r.idGen(re)),
           );
           r.diff.entitiesInDbOnly = r.diff.entitiesInDbOnly.filter(
-            (e: any) => !changesAfterCommitByEntity[r.table]?.find(re => r.idGen(e) === r.idGen(re)),
+            (e: any) => !changesAfterCommitByEntity[(r.table as string).toLowerCase()]?.find(re => r.idGen(e) === r.idGen(re)),
           );
           r.diff.entitiesChanged = r.diff.entitiesChanged.filter(
-            (o: any) => !changesAfterCommitByEntity[r.table]?.find(re => r.idGen(o.db) === r.idGen(re)),
+            (o: any) => !changesAfterCommitByEntity[(r.table as string).toLowerCase()]?.find(re => r.idGen(o.db) === r.idGen(re)),
           );
         }
         if (r.diff.entitiesInDbOnly.length > 0) {
