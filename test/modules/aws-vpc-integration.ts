@@ -932,6 +932,20 @@ describe('VPC Integration Testing', () => {
         () => ({ username, password }),
       ),
     );
+
+    it(
+      'AUDIT',
+      query(
+        `
+      select * from iasql_audit_log order by ts desc limit 5;
+    `,
+        (res: any) => {
+          console.log(`+-+ audit logs = ${JSON.stringify(res)}`)
+          expect(res.length).toBe(5);
+        },
+      ),
+    );
+
     it('applies the endpoint_interface subnet removal', commit());
 
     it(
