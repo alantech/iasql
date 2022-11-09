@@ -28,19 +28,10 @@ SELECT * FROM iasql_apply();
 
 A VPC spans all of the Availability Zones in an AWS Region. After you create a VPC, you can add one or more subnets in each Availability Zone. The snippet below creates a non-default subnet in one of the availability zones within the newly created VPC
 
-```sql
+```sql TheButton[Create VPC subnet]="Run SQLs"
 INSERT INTO subnet (availability_zone, vpc_id, cidr_block)
 SELECT (SELECT * FROM availability_zone LIMIT 1), id, '192.168.0.0/16'
 FROM vpc
 WHERE is_default = false
 AND cidr_block = '192.168.0.0/16';
 ```
-
-<!--- https://www.urlencoder.org/ -->
-<a href='https://app.iasql.com/#/button/SELECT%20%2A%20FROM%20iasql_install%28%27aws_vpc%27%29%3B%0A%0AINSERT%20INTO%20vpc%20%28cidr_block%29%0AVALUES%20%28%27192.168.0.0%2F16%27%29%3B%0A%0ASELECT%20%2A%20FROM%20iasql_apply%28%29%3B%0A%0AINSERT%20INTO%20subnet%20%28availability_zone%2C%20vpc_id%2C%20cidr_block%29%0ASELECT%20%28select%20%2A%20from%20availability_zone%20limit%201%29%2C%20id%2C%20%27192.168.0.0%2F16%27%0AFROM%20vpc%0AWHERE%20is_default%20%3D%20false%0AAND%20cidr_block%20%3D%20%27192.168.0.0%2F16%27%3B%0A%0ASELECT%20%2A%20FROM%20iasql_apply%28%29%3B'>
-<button
-  className={"button button--primary button--lg margin-bottom--lg"}
->
-Run SQL
-</button>
-</a>
