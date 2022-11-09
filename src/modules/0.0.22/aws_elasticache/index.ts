@@ -103,6 +103,7 @@ class CacheClusterMapper extends MapperBase<CacheCluster> {
           const newCluster = this.cacheClusterMapper(res, cluster.region);
           if (!newCluster) continue;
           newCluster.clusterId = cluster.clusterId;
+          newCluster.id = cluster.id;
           await this.module.cacheCluster.db.update(newCluster, ctx);
           out.push(newCluster);
         }
@@ -178,6 +179,7 @@ class CacheClusterMapper extends MapperBase<CacheCluster> {
               const newCluster = this.cacheClusterMapper(res, cluster.region);
               if (!newCluster) continue;
               newCluster.clusterId = cluster.clusterId;
+              newCluster.id = cluster.id;
               await this.module.cacheCluster.db.update(newCluster, ctx);
               out.push(newCluster);
             }
