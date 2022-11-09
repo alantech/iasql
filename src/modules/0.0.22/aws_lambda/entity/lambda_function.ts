@@ -1,8 +1,19 @@
-import { Check, Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, Unique } from 'typeorm';
+import {
+  Check,
+  Column,
+  Entity,
+  JoinColumn,
+  JoinTable,
+  ManyToMany,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+  Unique,
+} from 'typeorm';
 
 import { cloudId } from '../../../../services/cloud-id';
 import { AwsRegions } from '../../aws_account/entity';
 import { IamRole } from '../../aws_iam/entity';
+import { SecurityGroup } from '../../aws_security_group/entity';
 
 export enum Architecture {
   arm64 = 'arm64',
@@ -129,6 +140,15 @@ export class LambdaFunction {
     nullable: true,
   })
   tags?: { [key: string]: string };
+
+  @Column('varchar', { array: true, nullable: true })
+  subnets?: string[];
+
+  @ManyToMany(() => SecurityGroup, { eager: true })
+  @JoinTable({
+    name: 'lambda_function_security_groups',
+  })
+  securityGroups: SecurityGroup[];
 
   @Column({
     type: 'character varying',

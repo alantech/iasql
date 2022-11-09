@@ -35,6 +35,9 @@ const lambdaFunctionRuntime14 = 'nodejs14.x';
 const lambdaFunctionRuntime16 = 'nodejs16.x';
 const lambdaFunctionRoleName = `${prefix}${dbAlias}-role`;
 const lambdaFunctionRoleTaskPolicyArn = 'arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole';
+const lambdaVpcFunctionRoleTaskPolicyArn =
+  'arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole';
+
 const attachAssumeLambdaPolicy = JSON.stringify({
   Version: '2012-10-17',
   Statement: [
@@ -47,6 +50,7 @@ const attachAssumeLambdaPolicy = JSON.stringify({
     },
   ],
 });
+const sgGroupName = `${prefix}sglambda`;
 
 const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
@@ -109,12 +113,35 @@ describe('Lambda Integration Testing', () => {
   it('installs the lambda module', install(modules));
 
   it(
+    'adds a new security group',
+    query(`  
+    INSERT INTO security_group (description, group_name)
+    VALUES ('Lambda Security Group', '${sgGroupName}');
+  `),
+  );
+
+  it(
+    'adds security group rules',
+    query(`
+    INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
+    SELECT false, 'tcp', 80, 80, '0.0.0.0/0', '${prefix}lambda_rule_http', id
+    FROM security_group
+    WHERE group_name = '${sgGroupName}';
+    INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
+    SELECT true, 'tcp', 1, 65335, '0.0.0.0/0', '${prefix}lambda_rule_egress', id
+    FROM security_group
+    WHERE group_name = '${sgGroupName}';
+  `),
+  );
+  it('applies the security group and rules creation', apply());
+
+  it(
     'adds a new lambda function and role',
     query(
       `
     BEGIN;
       INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
-      VALUES ('${lambdaFunctionRoleName}', '${attachAssumeLambdaPolicy}', array['${lambdaFunctionRoleTaskPolicyArn}']);
+      VALUES ('${lambdaFunctionRoleName}', '${attachAssumeLambdaPolicy}', array['${lambdaFunctionRoleTaskPolicyArn}', '${lambdaVpcFunctionRoleTaskPolicyArn}']);
 
       INSERT INTO lambda_function (name, zip_b64, handler, runtime, role_name)
       VALUES ('${lambdaFunctionName}', '${lambdaFunctionCode}', '${lambdaFunctionHandler}', '${lambdaFunctionRuntime14}', '${lambdaFunctionRoleName}');
@@ -133,7 +160,7 @@ describe('Lambda Integration Testing', () => {
     query(
       `
     SELECT *
-    FROM lambda_function 
+    FROM lambda_function
     WHERE name = '${lambdaFunctionName}';
   `,
       (res: any[]) => expect(res.length).toBe(0),
@@ -146,10 +173,14 @@ describe('Lambda Integration Testing', () => {
       `
     BEGIN;
       INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
-      VALUES ('${lambdaFunctionRoleName}', '${attachAssumeLambdaPolicy}', array['${lambdaFunctionRoleTaskPolicyArn}']);
+      VALUES ('${lambdaFunctionRoleName}', '${attachAssumeLambdaPolicy}', array['${lambdaFunctionRoleTaskPolicyArn}', '${lambdaVpcFunctionRoleTaskPolicyArn}']);
 
-      INSERT INTO lambda_function (name, zip_b64, handler, runtime, role_name)
-      VALUES ('${lambdaFunctionName}', '${lambdaFunctionCode}', '${lambdaFunctionHandler}', '${lambdaFunctionRuntime14}', '${lambdaFunctionRoleName}');
+      INSERT INTO lambda_function (name, zip_b64, handler, runtime, subnets, role_name)
+      VALUES ('${lambdaFunctionName}', '${lambdaFunctionCode}', '${lambdaFunctionHandler}', '${lambdaFunctionRuntime14}', (select array(select subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true and vpc.region = '${region}' limit 3)), '${lambdaFunctionRoleName}');
+
+      INSERT INTO lambda_function_security_groups (lambda_function_id, security_group_id)
+      VALUES ((SELECT id FROM lambda_function WHERE name = '${lambdaFunctionName}'), (select id from security_group where group_name = '${sgGroupName}' and region = '${region}' limit 1));
+
     COMMIT;
   `,
       undefined,
@@ -167,6 +198,29 @@ describe('Lambda Integration Testing', () => {
     SELECT *
     FROM lambda_function 
     WHERE name = '${lambdaFunctionName}';
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+  it(
+    'check security group insertion',
+    query(
+      `
+    SELECT *
+    FROM lambda_function_security_groups
+    WHERE lambda_function_id=(SELECT id FROM lambda_function WHERE name = '${lambdaFunctionName}');
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it(
+    'check subnets',
+    query(
+      `
+    SELECT cardinality(subnets) as total_subnets, (select count(*) from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true and vpc.region = '${region}' limit 3) as computed_subnets
+    FROM lambda_function 
+    WHERE name = '${lambdaFunctionName}' AND total_subnets=computed_subnets;
   `,
       (res: any[]) => expect(res.length).toBe(1),
     ),
@@ -382,7 +436,13 @@ describe('Lambda Integration Testing', () => {
     'deletes the lambda function',
     query(
       `
+      BEGIN;
+      DELETE FROM lambda_function_security_groups
+      WHERE lambda_function_id = (SELECT id FROM lambda_function WHERE name = '${lambdaFunctionName}');
+  
     DELETE FROM lambda_function WHERE name = '${lambdaFunctionName}';
+    COMMIT;
+
   `,
       undefined,
       true,
@@ -454,6 +514,22 @@ describe('Lambda Integration Testing', () => {
     ),
   );
 
+  it(
+    'deletes security group rules',
+    query(`
+      DELETE FROM security_group_rule WHERE description='${prefix}lambda_rule_http' or description='${prefix}lambda_rule_egress';
+    `),
+  );
+
+  it(
+    'deletes security group',
+    query(`
+      DELETE FROM security_group WHERE group_name = '${sgGroupName}';
+    `),
+  );
+
+  it('applies the security group deletion', apply());
+
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 });
 
@@ -502,25 +578,25 @@ describe('Lambda install/uninstall', () => {
   );
 
   it(
-    'installs the Lambda module and confirms one table is created',
+    'installs the Lambda module and confirms two tables are created',
     query(
       `
     select * from iasql_install('aws_lambda');
   `,
       (res: any[]) => {
-        expect(res.length).toBe(1);
+        expect(res.length).toBe(2);
       },
     ),
   );
 
   it(
-    'uninstalls the Lambda module and confirms one table is removed',
+    'uninstalls the Lambda module and confirms two tables are removed',
     query(
       `
     select * from iasql_uninstall('aws_lambda');
   `,
       (res: any[]) => {
-        expect(res.length).toBe(1);
+        expect(res.length).toBe(2);
       },
     ),
   );
