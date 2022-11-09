@@ -120,7 +120,7 @@ describe('AwsEcrBuild Integration Testing', () => {
                      'https://github.com/iasql/docker-helloworld',
                      (SELECT id FROM repository WHERE repository_name = '${repositoryName}')::varchar(255),
                      '.',
-                     NULL,
+                     '',
                      'main'
                  );
   `));
