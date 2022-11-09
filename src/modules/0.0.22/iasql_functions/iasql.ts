@@ -1060,7 +1060,7 @@ export async function commit(
     const newStartCommit = await insertCommit(orm, dryRun ? 'preview_start' : 'start');
     if (dryRun) context.previewStartCommit = newStartCommit;
     else context.startCommit = newStartCommit;
-    const previousStartCommit = await getPreviousStartCommit(orm);
+    const previousStartCommit = await getPreviousStartCommit(orm, newStartCommit.ts);
     const changesToCommit: IasqlAuditLog[] = await orm.find(IasqlAuditLog, {
       order: { ts: 'DESC' },
       where: {
@@ -1197,17 +1197,18 @@ async function insertCommit(
   return commitLog;
 }
 
-async function getPreviousStartCommit(orm: TypeormWrapper): Promise<IasqlAuditLog | null> {
-  // Find 'start' commits and pick the second element since the first one should be the one we've just inserted
+async function getPreviousStartCommit(orm: TypeormWrapper, currentTs: Date): Promise<IasqlAuditLog | null> {
+  // Find 'START_COMMIT's and pick the first element since it should be the previous one to the ts we have just inserted
   const startCommits = await orm.find(IasqlAuditLog, {
     order: { ts: 'DESC' },
     skip: 0,
     take: 2,
     where: {
       changeType: AuditLogChangeType.START_COMMIT,
+      ts: LessThan(currentTs),
     },
   });
-  return startCommits.length > 1 ? startCommits[1] : null;
+  return startCommits.length > 0 ? startCommits[0] : null;
 }
 
 function getChangesByEntity(changesToCommit: IasqlAuditLog[]): { [key: string]: any[] } {
