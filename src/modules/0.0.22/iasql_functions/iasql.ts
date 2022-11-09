@@ -1107,7 +1107,7 @@ export async function commit(
     const installedModulesSorted: ModuleInterface[] = sortModules(installedModules, installedModulesNames);
     try {
       if (modulesWithChanges.length) {
-        await commitApply(
+        const applyRes = await commitApply(
           dbId,
           modulesWithChangesSorted,
           context,
@@ -1118,6 +1118,7 @@ export async function commit(
           dryRun,
           changesByEntity,
         );
+        if (dryRun) return applyRes;
       }
     } catch (e) {
       return await commitApply(
