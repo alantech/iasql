@@ -28,7 +28,7 @@ SELECT * FROM iasql_apply();
 
 A VPC spans all of the Availability Zones in an AWS Region. After you create a VPC, you can add one or more subnets in each Availability Zone. The snippet below creates a non-default subnet in one of the availability zones within the newly created VPC
 
-```sql TheButton
+```sql TheButton[Create VPC subnet]="Run SQLs"
 INSERT INTO subnet (availability_zone, vpc_id, cidr_block)
 SELECT (SELECT * FROM availability_zone LIMIT 1), id, '192.168.0.0/16'
 FROM vpc
