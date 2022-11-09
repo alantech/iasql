@@ -940,7 +940,7 @@ describe('VPC Integration Testing', () => {
       select * from iasql_audit_log order by ts desc limit 5;
     `,
         (res: any) => {
-          console.log(`+-+ audit logs = ${JSON.stringify(res)}`)
+          console.log(`+-+ audit logs = ${JSON.stringify(res)}`);
           expect(res.length).toBe(5);
         },
       ),

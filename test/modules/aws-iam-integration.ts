@@ -328,7 +328,7 @@ describe('IAM Role Integration Testing', () => {
     query(
       `
     SELECT *
-    FROM iasql_preview_commit();
+    FROM iasql_preview();
   `,
       (res: any[]) => expect(res.length).toBe(1),
     ),
@@ -339,7 +339,7 @@ describe('IAM Role Integration Testing', () => {
     query(
       `
     SELECT *
-    FROM iasql_preview_commit();
+    FROM iasql_preview();
   `,
       (res: any[]) => expect(res.length).toBe(1),
     ),
@@ -350,7 +350,7 @@ describe('IAM Role Integration Testing', () => {
     query(
       `
     SELECT *
-    FROM iasql_preview_commit();
+    FROM iasql_preview();
   `,
       (res: any[]) => expect(res.length).toBe(1),
     ),
@@ -611,13 +611,18 @@ describe('IAM Role Integration Testing', () => {
 
   it(
     'creates a lot of similar roles to try to hit the rate-limiter',
-    query(`
+    query(
+      `
     INSERT INTO iam_role (role_name, assume_role_policy_document)
     VALUES ${Array(100)
       .fill('')
       .map((_, i) => `('${lambdaRoleName}-${i}', '${attachAssumeLambdaPolicy}')`)
       .join(', ')};
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('creates these things', commit());
@@ -628,13 +633,18 @@ describe('IAM Role Integration Testing', () => {
 
   it(
     'deletes all of this similar roles',
-    query(`
+    query(
+      `
     DELETE FROM iam_role
     WHERE role_name in (${Array(100)
       .fill('')
       .map((_, i) => `'${lambdaRoleName}-${i}'`)
       .join(', ')});
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('deletes these things', commit());

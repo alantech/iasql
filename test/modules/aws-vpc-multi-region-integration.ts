@@ -344,7 +344,8 @@ describe('VPC Multiregion Integration Testing', () => {
 
     it(
       'moves the nat gateway and elastic IP to another region',
-      query(`
+      query(
+        `
       -- Detaching and re-attaching the elastic IP record to avoid join issues
       UPDATE nat_gateway
       SET 
@@ -357,7 +358,11 @@ describe('VPC Multiregion Integration Testing', () => {
       SET
         elastic_ip_id = (SELECT id from elastic_ip WHERE tags ->> 'name' = '${eip}')
       WHERE tags ->> 'Name' = '${pubNg}';
-    `),
+    `,
+        undefined,
+        true,
+        () => ({ username, password }),
+      ),
     );
 
     it('applies the nat gateway and elastic IP move', commit());
@@ -485,14 +490,19 @@ describe('VPC Multiregion Integration Testing', () => {
 
     it(
       'moves the endpoint gateway to another region',
-      query(`
+      query(
+        `
       UPDATE endpoint_gateway
       SET
         region = 'us-east-1',
         route_table_ids = NULL, -- TODO: Handle this in the mapper instead?
         vpc_id = (SELECT id from vpc WHERE is_default = true AND region='us-east-1')
       WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
-    `),
+    `,
+        undefined,
+        true,
+        () => ({ username, password }),
+      ),
     );
 
     it('applies the endpoint gateway region change', commit());
