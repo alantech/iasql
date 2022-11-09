@@ -43,8 +43,8 @@ async function main() {
               ${repoUri},
               ${repoId},
               './examples/ecs-fargate/prisma/app',
-              ${GH_PAT},
-              ${GITHUB_REF}
+              ${GITHUB_REF},
+              ${GH_PAT}
   );`;
   console.log(image);
 }

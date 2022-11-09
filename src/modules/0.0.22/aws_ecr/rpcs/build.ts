@@ -86,8 +86,8 @@ export class EcrBuildRpc extends RpcBase {
     githubRepoUrl: string,
     ecrRepositoryId: string,
     buildPath: string,
-    githubPersonalAccessToken: string,
     githubRef: string,
+    githubPersonalAccessToken: string,
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
     await this.ensureAwsIamModule(_dbId);
 

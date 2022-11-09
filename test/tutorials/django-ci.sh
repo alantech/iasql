@@ -20,8 +20,8 @@ psql postgres://postgres:test@localhost:5432/iasql -c "
     '$GITHUB_SERVER_URL/$GITHUB_REPOSITORY',
     (SELECT id FROM repository WHERE repository_name = 'quickstart-repository')::varchar(255),
     './examples/ecs-fargate/django/app',
-    '${GH_PAT}',
-    '${GITHUB_REF}'
+    '${GITHUB_REF}',
+    '${GH_PAT}'
   );
 "
 
