@@ -19,6 +19,7 @@ const prefix = getPrefix();
 const dbAlias = 'elasticachetest';
 const clusterId = `${prefix}${dbAlias}`;
 const newClusterId = `new-${prefix}${dbAlias}`;
+const anotherClusterId = `${prefix}${dbAlias}2`;
 
 const apply = runApply.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
@@ -212,10 +213,12 @@ describe('Elasticache Integration Testing', () => {
     expect(res[0].region).toBe('us-east-1');
   }));
 
-  it('makes another cache cluster with the same cluster_id in the original region', done => {
+  it('makes two more cache clusters with the same cluster_id in different regions', done => {
     query(`
       INSERT INTO cache_cluster (cluster_id, node_type, engine, num_nodes, region)
-      VALUES ('${newClusterId}', '${nodeType}', '${cacheType}', 1, '${region}');
+      VALUES
+        ('${anotherClusterId}', '${nodeType}', '${cacheType}', 1, '${region}'),
+        ('${anotherClusterId}', '${nodeType}', '${cacheType}', 1, 'us-east-1');
     `)((e?: any) => {
       if (!!e) return done(e);
       done();
@@ -228,21 +231,19 @@ describe('Elasticache Integration Testing', () => {
 
   it('installs the elasticache module again (to make sure it reloads stuff)', install(modules));
 
-  it(
-    'checks cache_cluster count',
-    query(
-      `
+  it('checks cache_cluster count of one set', query(`
     SELECT * FROM cache_cluster WHERE cluster_id='${newClusterId}';
-  `,
-      (res: any) => expect(res.length).toBe(2),
-    ),
-  );
+  `, (res: any) => expect(res.length).toBe(1)));
+
+  it('checks cache_cluster count of second set', query(`
+    SELECT * FROM cache_cluster WHERE cluster_id='${anotherClusterId}';
+  `, (res: any) => expect(res.length).toBe(2)));
 
   it(
     'deletes the cache_cluster',
     query(`
     DELETE FROM cache_cluster
-    WHERE cluster_id = '${newClusterId}';
+    WHERE cluster_id = '${newClusterId}' OR cluster_id = '${anotherClusterId}';
   `),
   );
 
