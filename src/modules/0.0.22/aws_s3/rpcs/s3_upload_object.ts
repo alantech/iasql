@@ -1,21 +1,10 @@
-import { S3, waitUntilObjectExists, _Object } from '@aws-sdk/client-s3';
+import { S3, waitUntilObjectExists } from '@aws-sdk/client-s3';
 import { WaiterOptions } from '@aws-sdk/util-waiter';
 
 import { AwsS3Module } from '..';
-import { AWS, crudBuilder2, crudBuilderFormat } from '../../../../services/aws_macros';
+import { AWS, crudBuilderFormat } from '../../../../services/aws_macros';
 import { Context, RpcBase, RpcResponseObject } from '../../../interfaces';
 import { BucketObject } from '../entity';
-
-function isValidHttpUrl(path: string) {
-  let url;
-
-  try {
-    url = new URL(path);
-  } catch (_) {
-    return false;
-  }
-  return url.protocol === 'http:' || url.protocol === 'https:';
-}
 
 export class S3UploadObjectRpc extends RpcBase {
   module: AwsS3Module;

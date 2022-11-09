@@ -334,12 +334,31 @@ describe('S3 Integration Testing', () => {
 
   it('installs the s3 module', install(modules));
 
-  it(
-    'deletes the s3 bucket',
-    query(`
+  it('re-adds content to bucket', query(
+    `SELECT * FROM s3_upload_object('${s3Name}', 'iasql_message', '${bucketContent}', 'application/json')`,
+    (res: any[]) => expect(res[0].status).toStrictEqual('OK'),
+  ));
+
+  it('checks object re-creation', query(`
+    SELECT *
+    FROM bucket_object 
+    WHERE bucket_name = '${s3Name}';
+  `, (res: any[]) => {
+    expect(res.length).toBe(1);
+    console.log(res);
+  }));
+
+  it('cleans the bucket again', query(`DELETE FROM bucket_object WHERE bucket_name='${s3Name}'`));
+
+  it('checks object re-deletion', query(`
+    SELECT *
+    FROM bucket_object 
+    WHERE bucket_name = '${s3Name}';
+  `, (res: any[]) => expect(res.length).toBe(0)));
+
+  it('deletes the s3 bucket', query(`
     DELETE FROM bucket WHERE name = '${s3Name}';
-  `),
-  );
+  `));
 
   it('applies the s3 bucket removal', apply());
 
