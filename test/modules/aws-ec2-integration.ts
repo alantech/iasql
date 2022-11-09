@@ -347,7 +347,7 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
-  it('syncs the changes from the first database to the second', syncCommit(`${dbAlias}_sync`));
+  it('syncs the changes from the first database to the second', syncCommit());
 
   it(
     'set both ec2 instances to the same ami',
