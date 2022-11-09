@@ -212,6 +212,18 @@ describe('Elasticache Integration Testing', () => {
     expect(res[0].region).toBe('us-east-1');
   }));
 
+  it('makes another cache cluster with the same cluster_id in the original region', done => {
+    query(`
+      INSERT INTO cache_cluster (cluster_id, node_type, engine, num_nodes)
+      VALUES ('${newClusterId}', '${nodeType}', '${cacheType}', 1);
+    `)((e?: any) => {
+      if (!!e) return done(e);
+      done();
+    });
+  });
+
+  it('makes the cache_cluster change', apply());
+
   it('uninstalls the elasticache module', uninstall(modules));
 
   it('installs the elasticache module again (to make sure it reloads stuff)', install(modules));
@@ -222,7 +234,7 @@ describe('Elasticache Integration Testing', () => {
       `
     SELECT * FROM cache_cluster WHERE cluster_id='${newClusterId}';
   `,
-      (res: any) => expect(res.length).toBe(1),
+      (res: any) => expect(res.length).toBe(2),
     ),
   );
 
