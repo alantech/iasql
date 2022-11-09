@@ -61,7 +61,7 @@ Choosing a new mechanism to implement the RPC functionality and patching up the 
 
 Additionally, there is a problem on the consumption of these functions. When connecting our engine with a client, we rely on an express endpoint, that is deployed on an AWS server and connected via load balancers with some fixed timeout.
 This approach is not suitable for communications with a client, basically due to the async nature of our engine. When a request is sent, the engine is processing this on the background, and is returning a response in an unknown amount of time outside of our control, depending on the AWS cloud API calls involved.
-This response time can be quite high depending on the queries, and will hit a maxium easily for some queries, either causing failures or not letting the user discover the result of the query.
+This response time can be quite high depending on the queries, and will hit a maximum easily for some queries, either causing failures or not letting the user discover the result of the query.
 
 There needs to be a better way to manage these client calls, to let the server respond in the time it needs, and in a gradual mode, while still letting the user get a relevant and informative answer for the requests.
 
