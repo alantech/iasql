@@ -32,15 +32,15 @@ The flexibility of IaSQL– which makes it really awesome– is that you can cre
 -- Install the "high-level" aws_ecs_simplified IaSQL module
 SELECT iasql_install('aws_ecs_simplified');
 -- Create the load balancer, ECS service, task definition, etc. All ready afterwards for us to build and push to deploy the app.
-INSERT INTO ecs_simplified (app_name, app_port, image_tag, public_ip) VALUES ('simple-express', 8088, 'latest', true);
+INSERT INTO ecs_simplified (app_name, app_port, image_tag, public_ip) VALUES ('<app_name>', 8088, 'latest', true);
 SELECT iasql_apply();
 -- Use the "high-level" ecr_build function to build the folder "examples/ecs-fargate/prisma/app" from "iasql-engine" Github repo and push it to ECR
 SELECT ecr_build(
   'https://github.com/iasql/iasql-engine/',
-  (SELECT id FROM repository WHERE repository_name = 'simple-express-repository')::varchar(255),
+  (SELECT id FROM repository WHERE repository_name = '<app_name>-repository')::varchar(255),
   './examples/ecs-fargate/prisma/app',
-  'ghp_XXX', -- replace your github personal access token here
-  'main'
+  'main',
+  ''
 );
 ```
 ```sql title="Create a security group named 'allow-all' attached to the VPC with ID 'vpc-f56cff91'. Then add a rule to it allowing all incoming traffic on port '80' from '0.0.0.0/0'"
@@ -75,8 +75,8 @@ SELECT ecr_build(
     FROM repository
     WHERE repository_name = 'simple-express-repository')::varchar(255),
   './examples/ecs-fargate/prisma/app',
-  'ghp_XXX', -- replace your github personal access token here
-  'main'
+  'main',
+  '' -- replace your github personal access token here if you want to deploy a private repo
 );
 ```
 That's it! Now wait for some time and your app is deployed! While your app is being deployed, let's go through the commands we executed in more depth:
@@ -110,8 +110,8 @@ SELECT ecr_build(
     FROM repository
     WHERE repository_name = 'simple-express-repository')::varchar(255),
   './examples/ecs-fargate/prisma/app',
-  'ghp_XXX', -- replace your github personal access token here
-  'main'
+  'main',
+  '' -- replace your github personal access token here if you want to deploy a private repo
 );
 ```
 - This command tells IaSQL to go clone `iasql-engine` repository, build an image on the subdirectory specified, and then push it to the ECR repository created earlier by `ecs_simplified` module. Running the above command will automatically create a CodeBuild project and the related roles, etc. Then it'll start a build, and after it's successful all the created resources are deleted to ensure there won't be any additional charges to your AWS account.
