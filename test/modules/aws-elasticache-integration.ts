@@ -214,8 +214,8 @@ describe('Elasticache Integration Testing', () => {
 
   it('makes another cache cluster with the same cluster_id in the original region', done => {
     query(`
-      INSERT INTO cache_cluster (cluster_id, node_type, engine, num_nodes)
-      VALUES ('${newClusterId}', '${nodeType}', '${cacheType}', 1);
+      INSERT INTO cache_cluster (cluster_id, node_type, engine, num_nodes, region)
+      VALUES ('${newClusterId}', '${nodeType}', '${cacheType}', 1, '${region});
     `)((e?: any) => {
       if (!!e) return done(e);
       done();
