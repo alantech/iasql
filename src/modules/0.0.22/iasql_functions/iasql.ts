@@ -1719,6 +1719,7 @@ async function getChangesAfterCommitStartedByEntity(context: Context): Promise<{
           AuditLogChangeType.PREVIEW_END_COMMIT,
         ]),
       ),
+      // todo: should this only be start_commit?
       ts: MoreThan(context.startCommit?.ts ?? context.previewStartCommit?.ts),
       user: Not(config.db.user),
     },
