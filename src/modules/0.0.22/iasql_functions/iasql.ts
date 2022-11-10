@@ -1253,6 +1253,7 @@ async function getChangesByEntity(
             ),
           });
         } else if (c.changeType === AuditLogChangeType.DELETE) {
+          changedE = {};
           // we cannot get the exact entity because does not exists in the db anymore, but we recreate the object with the information we have for it
           Object.entries(c.change.original).forEach(([k, v]: [string, any]) => (changedE[camelCase(k)] = v));
         }
