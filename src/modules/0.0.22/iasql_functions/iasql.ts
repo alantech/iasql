@@ -1019,6 +1019,7 @@ export async function continueUpgrade(
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${creds.access_key_id}', '${creds.secret_access_key}');
   `);
+  // todo: move this orm re-assingment inside the the commit fn or handle it differently
   const orm = context.orm;
   await commit(dbId, false, context, true);
   context.orm = orm;
