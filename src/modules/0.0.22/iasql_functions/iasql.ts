@@ -1249,7 +1249,7 @@ async function getChangesByEntity(
           const primaryCols = metadata.primaryColumns.map(pc => pc.databaseName); // databaseName should return in snake_case
           changedE = await orm.findOne(entity, {
             where: Object.fromEntries(
-              Object.entries(c.change.change).filter(([k, _]: [string, any]) => primaryCols.includes(k)),
+              Object.entries(c.change.change).filter(([k, _]: [string, any]) => primaryCols.includes(k)).map(([k, v]: [string, any]) => [camelCase(k), v]),
             ),
           });
         } else if (c.changeType === AuditLogChangeType.DELETE) {
@@ -1278,7 +1278,7 @@ async function getChangesByEntity(
                 .filter(([k, _]: [string, any]) => !!joinTableCols[c.tableName].find(jc => jc[0] === k))
                 .map(([k, v]: [string, any]) => {
                   const joinColWithReference = joinTableCols[c.tableName].find(jc => jc[0] === k);
-                  return [joinColWithReference?.[1], v];
+                  return [camelCase(joinColWithReference?.[1] ?? ''), v];
                 }),
             ),
           });
