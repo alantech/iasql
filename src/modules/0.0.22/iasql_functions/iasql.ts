@@ -1101,6 +1101,8 @@ export async function commit(
       tablesIndexed,
     );
 
+    // todo: remove this logger
+    // tslint:disable-next-line:no-console
     console.log(`+-+ changes by entity = ${JSON.stringify(changesByEntity)}`);
 
     const t2 = Date.now();
@@ -1854,9 +1856,9 @@ export async function rollback(dbId: string, context: Context, force = false, or
   }
 }
 
-function indexTables(modules: ModuleInterface[]): { [key: string]: ModuleInterface } {
+function indexTables(mods: ModuleInterface[]): { [key: string]: ModuleInterface } {
   const tablesIndexed: { [key: string]: ModuleInterface } = {};
-  modules.forEach(mod => {
+  mods.forEach(mod => {
     mod.provides?.tables?.forEach((t: string) => (tablesIndexed[t] = mod));
   });
   return tablesIndexed;
