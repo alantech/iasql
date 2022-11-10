@@ -2,9 +2,9 @@ import { S3, _Object, paginateListObjectsV2, waitUntilObjectNotExists } from '@a
 import { WaiterOptions } from '@aws-sdk/util-waiter';
 
 import { AwsS3Module } from '..';
-import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../../services/aws_macros';
+import { AWS, crudBuilder2, paginateBuilder } from '../../../../services/aws_macros';
 import { Context, Crud2, MapperBase } from '../../../interfaces';
-import { Bucket, BucketObject } from '../entity';
+import { BucketObject } from '../entity';
 
 export class BucketObjectMapper extends MapperBase<BucketObject> {
   module: AwsS3Module;
@@ -34,10 +34,11 @@ export class BucketObjectMapper extends MapperBase<BucketObject> {
     return res;
   };
 
-  getBucketObjects = paginateBuilder<S3>(paginateListObjectsV2, 'Contents', undefined, undefined, (b, k) => ({
-    Bucket: b,
-    Prefix: k,
-  }));
+  getBucketObjects = paginateBuilder<S3>(paginateListObjectsV2, 'Contents', undefined, undefined, (b, k) => {
+    const out: any = { Bucket: b };
+    if (k) out.Prefix = k;
+    return out;
+  });
 
   deleteBucketObject = crudBuilder2<S3, 'deleteObject'>('deleteObject', (b, k) => ({ Bucket: b, Key: k }));
 
@@ -68,8 +69,8 @@ export class BucketObjectMapper extends MapperBase<BucketObject> {
         const out: BucketObject[] = [];
 
         // we need to retrieve all buckets from all regions, then read their objects
-        const rawBuckets =
-          (await this.module.bucket.db.read(ctx)) ?? (await this.module.bucket.cloud.read(ctx)) ?? [];
+        // CANNOT use the db listing in case the bucket itself was deleted by the user
+        const rawBuckets = (await this.module.bucket.cloud.read(ctx)) ?? [];
         for (const bucket of rawBuckets) {
           // instantiate client with the specific region
           const clientRegion = (await ctx.getAwsClient(bucket.region ?? 'us-east-1')) as AWS;
@@ -106,14 +107,14 @@ export class BucketObjectMapper extends MapperBase<BucketObject> {
           const client = (await ctx.getAwsClient(e.region)) as AWS;
           await this.deleteBucketObject(client.s3Client, e.bucketName, e.key);
 
-          // wait until the object is available
-          const res = await waitUntilObjectNotExists(
+          // wait until the object is no longer available
+          await waitUntilObjectNotExists(
             {
               client: client.s3Client,
               // all in seconds
               maxWaitTime: 900,
               minDelay: 1,
-              maxDelay: 4,
+              maxDelay: 30,
             } as WaiterOptions<S3>,
             { Bucket: e.bucketName, Key: e.key },
           );
