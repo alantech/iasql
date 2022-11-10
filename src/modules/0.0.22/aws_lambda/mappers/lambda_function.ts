@@ -37,7 +37,7 @@ export class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
 
   updateableFunctionFieldsEq(a: LambdaFunction, b: LambdaFunction) {
     return (
-      Object.is(a.role.roleName, b.role.roleName) &&
+      Object.is(a.role?.roleName, b.role?.roleName) &&
       Object.is(a.handler, b.handler) &&
       Object.is(a.memorySize, b.memorySize) &&
       Object.is(a.description, b.description) &&
