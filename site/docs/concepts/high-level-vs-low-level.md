@@ -13,6 +13,18 @@ The first statement, is described in a high-level abstraction layer. The higher 
 
 The flexibility of IaSQL– which makes it really awesome– is that you can create both the high-level and the low-level modules for it. Both of the above statements are already possible using IaSQL modules. The first one using a module named `aws_ecs_simplified` and the latter using the `aws_security_group` module.
 
+Low-level modules provide building blocks that can be used by the high-level modules. In this case, `aws_security_group` defines these two entities:
+- [SecurityGroup](https://github.com/iasql/iasql-engine/blob/main/src/modules/0.0.22/aws_security_group/entity/index.ts#L19)
+- [SecurityGroupRule](https://github.com/iasql/iasql-engine/blob/main/src/modules/0.0.22/aws_security_group/entity/index.ts#L70)
+
+Which have their own tables in the IaSQL database (`security_group` and `security_group_rule`). These tables can be easily used for CRUD operations on those entities. For example, if you execute an `INSERT` statement in the `security_group` table followed by an `iasql_apply()` RPC, a new security group will be created in your AWS account. The logic for creation of a `SecurityGroup` entity in the cloud is also [handled by the `aws_security_group` module](https://github.com/iasql/iasql-engine/blob/main/src/modules/0.0.22/aws_security_group/index.ts#L219). So this module is providing a great building block for doing all the CRUD operations on `SecurityGroup` entities on the cloud.
+
+Now comes in the `aws_ecs_simplified` high-level module. It takes the advantage of the CRUD operations handled by the `aws_security_group` module. So when you insert a new record into the `ecs_simplified` table (to create an ECS app with all the needed resources), that `INSERT` command [triggers](https://github.com/iasql/iasql-engine/blob/main/src/modules/0.0.22/aws_ecs_simplified/sql/after_install.sql#L159-L165) a function that [inserts records for a new security group with two rules](https://github.com/iasql/iasql-engine/blob/main/src/modules/0.0.22/aws_ecs_simplified/sql/after_install.sql#L64-L73) into the tables managed by `aws_security_group`. So in the next `iasql_apply()`, the `aws_security_group` module will provision that security group and add those two rules to it.
+
+We will explain the different high-level operations available in IaSQL later in this doc, but let's first see an example of `aws_ecs_simplified` and how it works, before we go into that level of detail.
+
+## A High-level Example Using `aws_ecs_simplified` Module and `ecr_build` RPC
+
 ```sql title="Deploy the folder 'examples/ecs-fargate/prisma/app' of the 'iasql-engine' repo to ECS on my AWS account"
 -- Install the "high-level" aws_ecs_simplified IaSQL module
 SELECT iasql_install('aws_ecs_simplified');
@@ -37,7 +49,7 @@ In this example, we've used the high-level `aws_ecs_simplified` module. It is wr
 - IAM role
 - ECR repository
 
-We also have used another high-level function named `ecr_build` in this case. It clones a Github repo, builds an image based on the codebase and pushes that image to your ECR repository. It simplifies the use of CodeBuild (as a runner for Docker `build` and `push`), IAM, and ECR.
+We also have used another high-level function named `ecr_build` in this guide. It clones a Github repo, builds an image based on the codebase and pushes that image to your ECR repository. It simplifies the use of CodeBuild (as a runner for Docker `build` and `push`), IAM, and ECR.
 
 ## Controlling the Low-level Details
 
@@ -49,3 +61,10 @@ SET attached_policies_arns = attached_policies_arns ||
 WHERE role_name = '<app_name>-ecs-task-exec-role';
 ```
 
+### Types of High-level IaSQL Operations
+
+We saw that with the `aws_ecs_simplified`, you have access to the low-level details while benefiting from the high-level simplicity. But the `ecr_build` RPC function and the `aws_ecs_simplified` module come from two different natures:
+- `aws_ecs_simplified` module is a pure-SQL module, and it could even live outside the main `iasql-engine` repo. And in that case, it could be used with a syntax like `SELECT iasql_install('http://github.com/you/another-pure-sql-module');`. A pure-SQL module will leverage the already-built low-level IaSQL modules and trigger their behavior by doing manipulations on their database tables. For example, it can do a `INSERT INTO load_balancer` query and trigger [the `cloud.create` logic](https://github.com/iasql/iasql-engine/blob/main/src/modules/0.0.22/aws_elb/mappers/load_balancer.ts#L246) of the [load balancer entity](https://github.com/iasql/iasql-engine/blob/main/src/modules/0.0.22/aws_elb/entity/load_balancer.ts) in the `aws_elb` low-level module.
+- `ecr_build` is an RPC function under the `aws_ecr` module, and [it's written in Node.js](https://github.com/iasql/iasql-engine/blob/main/src/modules/0.0.22/aws_ecr/rpcs/build.ts#L92). Its relation with the low-level modules (such as `aws_iam`) can't be altered, and its code cannot reside anywhere outside the main `iasql-engine` repository.
+
+So, if you're doing something that can be done using the pure-SQL commands working with the low-level modules in IaSQL, your code can reside in your own Github repository. But if you're doing something that can't be done just by using the building blocks available, you can create a new one yourself. Just add the RPC, or the module to the `iasql-engine` codebase, and submit a PR. Reading our [contribution guide](https://github.com/iasql/iasql-engine/blob/main/CONTRIBUTING.md) can help you and if you have questions regarding the development or the usage of our system, feel free to ask it in our [Discord channel](https://discord.com/invite/machGGczea). 
