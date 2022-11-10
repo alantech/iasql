@@ -153,7 +153,12 @@ export class BucketMapper extends MapperBase<Bucket> {
       if (rawBuckets && rawBuckets.length > 0) {
         for (const rawBucket of rawBuckets) {
           // for each bucket, retrieve the location
-          let location = await this.getBucketLocation(client.s3Client, rawBucket.Name);
+          let location;
+          try {
+            location = await this.getBucketLocation(client.s3Client, rawBucket.Name);
+          } catch (_) {
+            // The bucket may have been deleted in the meantime
+          }
           if (!location) location = 'us-east-1';
           if (enabledRegions.includes(location)) {
             // read policy
