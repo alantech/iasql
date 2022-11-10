@@ -1,5 +1,5 @@
 import { Pool } from 'pg';
-import { Connection, createConnection, EntityTarget, getConnectionManager } from 'typeorm';
+import { Connection, createConnection, EntityMetadata, EntityTarget, getConnectionManager } from 'typeorm';
 import { SnakeNamingStrategy } from 'typeorm-naming-strategies';
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
 import { PostgresDriver } from 'typeorm/driver/postgres/PostgresDriver';
@@ -151,5 +151,9 @@ export class TypeormWrapper {
         if (value[k] === null) value[k] = undefined;
       });
     }
+  }
+
+  async getEntityMetadata(entity: EntityTarget<any>): Promise<EntityMetadata> {
+    return await this.connection.getMetadata(entity);
   }
 }
