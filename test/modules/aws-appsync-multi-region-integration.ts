@@ -129,8 +129,15 @@ describe('App Sync Multi-region Integration Testing', () => {
     ),
   );
 
+  it('creates a graphql api in the original region', query(`
+    INSERT INTO graphql_api (name, authentication_type, region)
+    VALUES ('${apiName}', '${authType}', '${nonDefaultRegion}');
+  `));
+
+  it('applies the addition', apply());
+
   it(
-    'removes the graphql api',
+    'removes the graphql apis',
     query(`
     DELETE FROM graphql_api
     WHERE name = '${apiName}';

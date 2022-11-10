@@ -82,6 +82,7 @@ class GraphqlApiMapper extends MapperBase<GraphqlApi> {
         if (res && res.graphqlApi) {
           const newApi = this.graphqlApiMapper(res.graphqlApi, api.region);
           if (!newApi) continue;
+          newApi.id = api.id;
           await this.module.graphqlApi.db.update(newApi, ctx);
           out.push(newApi);
         }
@@ -142,6 +143,7 @@ class GraphqlApiMapper extends MapperBase<GraphqlApi> {
             const newApi: GraphqlApi | undefined = this.graphqlApiMapper(res.graphqlApi, api.region);
             if (newApi) {
               newApi.name = api.name;
+              newApi.id = api.id;
               // Save the record back into the database to get the new fields updated
               await this.module.graphqlApi.db.update(newApi, ctx);
               out.push(newApi);
