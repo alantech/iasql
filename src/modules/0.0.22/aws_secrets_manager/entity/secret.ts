@@ -1,11 +1,14 @@
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryColumn } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 
 import { cloudId } from '../../../../services/cloud-id';
 import { AwsRegions } from '../../aws_account/entity';
 
 @Entity()
 export class Secret {
-  @PrimaryColumn({
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Column({
     nullable: false,
     type: 'varchar',
   })
