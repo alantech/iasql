@@ -1080,7 +1080,6 @@ export async function commit(
       },
     });
     const tablesWithChanges = [...new Set(changesToCommit.map(c => c.tableName))];
-    const changesByEntity: { [key: string]: any[] } = getChangesByEntity(changesToCommit);
 
     const installedModulesNames = (await orm.find(IasqlModule)).map((m: any) => m.name);
     const installedModules: ModuleInterface[] = (Object.values(importedModules) as ModuleInterface[]).filter(
@@ -1094,6 +1093,16 @@ export async function commit(
       tablesWithChanges,
       versionString,
     );
+
+    const tablesIndexed = indexTables(modulesWithChanges);
+    const changesByEntity: { [key: string]: any[] } = await getChangesByEntity(
+      orm,
+      changesToCommit,
+      tablesIndexed,
+    );
+
+    console.log(`+-+ changes by entity = ${JSON.stringify(changesByEntity)}`);
+
     const t2 = Date.now();
     logger.info(`Setup took ${t2 - t1}ms`);
 
@@ -1108,6 +1117,7 @@ export async function commit(
     const installedModulesSorted: ModuleInterface[] = sortModules(installedModules, installedModulesNames);
     try {
       if (modulesWithChanges.length) {
+        logger.info('Starting commit apply phase for modules with changes');
         const applyRes = await commitApply(
           dbId,
           modulesWithChangesSorted,
@@ -1122,6 +1132,7 @@ export async function commit(
         if (dryRun) return applyRes;
       }
     } catch (e) {
+      logger.info('Something failed. Starting commit apply phase for all modules');
       return await commitApply(
         dbId,
         installedModulesSorted,
@@ -1133,6 +1144,7 @@ export async function commit(
         dryRun,
       );
     }
+    logger.info('Starting commit sync phase for all modules');
     return await commitSync(
       dbId,
       installedModulesSorted,
@@ -1212,20 +1224,61 @@ async function getPreviousStartCommit(orm: TypeormWrapper, currentTs: Date): Pro
   return startCommits.length > 0 ? startCommits[0] : null;
 }
 
-function getChangesByEntity(changesToCommit: IasqlAuditLog[]): { [key: string]: any[] } {
+async function getChangesByEntity(
+  orm: TypeormWrapper,
+  changesToCommit: IasqlAuditLog[],
+  tablesIndexed: { [key: string]: ModuleInterface },
+): Promise<{ [key: string]: any[] }> {
   const changesByEntity: { [key: string]: any[] } = {};
-  changesToCommit.forEach((c: IasqlAuditLog) => {
-    // Since table names and entity names does not match 100% we keep the standard as no-snake-lower-case.
-    const entityName = camelCase(c.tableName).toLowerCase();
-    const entity: any = {};
-    if (c.changeType === AuditLogChangeType.DELETE) {
-      Object.entries(c.change.original).forEach(([k, v]: [string, any]) => (entity[camelCase(k)] = v));
-    } else if ([AuditLogChangeType.INSERT, AuditLogChangeType.UPDATE].includes(c.changeType)) {
-      Object.entries(c.change.change).forEach(([k, v]: [string, any]) => (entity[camelCase(k)] = v));
+  for (const c of changesToCommit) {
+    const mod = tablesIndexed[c.tableName];
+    const mappers = Object.values(mod).filter(val => val instanceof MapperBase);
+    const entityMapper: { [key: string]: MapperBase<any> } = {};
+    mappers.forEach(m => (entityMapper[m.entity.name] = m));
+    for (const e of Object.keys(entityMapper)) {
+      const entity = entityMapper[e].entity;
+      const entityName = entity.name;
+      let changedE: any;
+      const metadata = await orm.getEntityMetadata(entity);
+      if (metadata.tableName === c.tableName) {
+        if ([AuditLogChangeType.INSERT, AuditLogChangeType.UPDATE].includes(c.changeType)) {
+          // When we are inserting or updating we are sure that the value exists in the database.
+          // We need to look for the primary database columns and then get the object.
+          const primaryCols = metadata.primaryColumns.map(pc => pc.databaseName); // databaseName should return in snake_case
+          changedE = await orm.findOne(entity, {
+            where: Object.fromEntries(
+              Object.entries(c.change.change).filter(([k, _]: [string, any]) => primaryCols.includes(k)),
+            ),
+          });
+        } else if (c.changeType === AuditLogChangeType.DELETE) {
+          // we cannot get the exact entity because does not exists in the db anymore, but we recreate the object with the information we have for it
+          Object.entries(c.change.original).forEach(([k, v]: [string, any]) => (changedE[camelCase(k)] = v));
+        }
+      } else {
+        // It might be a join table from this entity
+        // we look for the relation and since it is a join table we find the primary object and push that as the change
+        const tableAndCols: { [key: string]: string[] } = {};
+        metadata.ownRelations.forEach(
+          or => (tableAndCols[or.joinTableName] = or.joinColumns.map(jc => jc.databaseName)),
+        ); // databaseName should return in snake_case
+        if (Object.keys(tableAndCols).includes(c.tableName)) {
+          // Here in any case we know that the parent entity should exists, because is not possible to be in a join table and relate to something that is not in the db.
+          const changeObj = c.changeType === AuditLogChangeType.DELETE ? c.change.original : c.change.change;
+          changedE = await orm.findOne(entity, {
+            where: Object.fromEntries(
+              Object.entries(changeObj).filter(([k, _]: [string, any]) =>
+                tableAndCols[c.tableName].includes(k),
+              ),
+            ),
+          });
+        }
+      }
+      if (changedE) {
+        changesByEntity[entityName] = changesByEntity[entityName] ?? [];
+        changesByEntity[entityName].push(changedE);
+      }
     }
-    changesByEntity[entityName] = changesByEntity[entityName] ?? [];
-    changesByEntity[entityName].push(entity);
-  });
+  }
   return changesByEntity;
 }
 
@@ -1301,7 +1354,12 @@ async function commitSync(
         }),
       );
       // Every time we read from db we get possible changes that occured after this commit started
-      const changesAfterCommitByEntity = await getChangesAfterCommitStartedByEntity(context);
+      const changesAfterCommitByEntity = await getChangesAfterCommitStartedByEntity(
+        context.orm,
+        context,
+        dbId,
+        false,
+      );
       const t3 = Date.now();
       logger.info(`Record acquisition time: ${t3 - t2}ms`);
       const records = colToRow({
@@ -1339,19 +1397,19 @@ async function commitSync(
         // Only filter changes that might have occured after this commit started
         r.diff.entitiesInAwsOnly = r.diff.entitiesInAwsOnly.filter(
           (e: any) =>
-            !changesAfterCommitByEntity[(r.table as string).toLowerCase()]?.find(
+            !changesAfterCommitByEntity[r.table]?.find(
               re => r.idGen(e) === r.idGen(re),
             ),
         );
         r.diff.entitiesInDbOnly = r.diff.entitiesInDbOnly.filter(
           (e: any) =>
-            !changesAfterCommitByEntity[(r.table as string).toLowerCase()]?.find(
+            !changesAfterCommitByEntity[r.table]?.find(
               re => r.idGen(e) === r.idGen(re),
             ),
         );
         r.diff.entitiesChanged = r.diff.entitiesChanged.filter(
           (o: any) =>
-            !changesAfterCommitByEntity[(r.table as string).toLowerCase()]?.find(
+            !changesAfterCommitByEntity[r.table]?.find(
               re => r.idGen(o.db) === r.idGen(re),
             ),
         );
@@ -1504,7 +1562,12 @@ async function commitApply(
       }),
     );
     // Every time we read from db we get possible changes that occured after this commit started
-    const changesAfterCommitByEntity = await getChangesAfterCommitStartedByEntity(context);
+    const changesAfterCommitByEntity = await getChangesAfterCommitStartedByEntity(
+      context.orm,
+      context,
+      dbId,
+      false,
+    );
     const comparators = mappers.map(mapper => mapper.equals);
     const idGens = mappers.map(mapper => mapper.entityId);
     let ranUpdate = false;
@@ -1556,34 +1619,34 @@ async function commitApply(
           // Case entities in DB only: we want to create in the cloud.
           // We need to filter which of those are the changes we are taking into account. Otherwise we could be applying changes from other cycle.
           r.diff.entitiesInDbOnly = r.diff.entitiesInDbOnly.filter((e: any) =>
-            changesByEntity[(r.table as string).toLowerCase()]?.find(re => r.idGen(e) === r.idGen(re)),
+            changesByEntity[r.table]?.find(re => r.idGen(e) === r.idGen(re)),
           );
           // Case entities in AWS only: we want to delete from the cloud.
           // We need to filter which of those are the changes we are taking into account. Otherwise we could be applying changes from other cycle.
           r.diff.entitiesInAwsOnly = r.diff.entitiesInAwsOnly.filter((e: any) =>
-            changesByEntity[(r.table as string).toLowerCase()]?.find(re => r.idGen(e) === r.idGen(re)),
+            changesByEntity[r.table]?.find(re => r.idGen(e) === r.idGen(re)),
           );
           // Case entities changed: we want to update/restore/replace to/from the cloud.
           // We need to filter which of those are the changes we are taking into account. Otherwise we could be applying changes from other cycle.
           r.diff.entitiesChanged = r.diff.entitiesChanged.filter((o: any) =>
-            changesByEntity[(r.table as string).toLowerCase()]?.find(re => r.idGen(o.db) === r.idGen(re)),
+            changesByEntity[r.table]?.find(re => r.idGen(o.db) === r.idGen(re)),
           );
         } else {
           r.diff.entitiesInAwsOnly = r.diff.entitiesInAwsOnly.filter(
             (e: any) =>
-              !changesAfterCommitByEntity[(r.table as string).toLowerCase()]?.find(
+              !changesAfterCommitByEntity[r.table]?.find(
                 re => r.idGen(e) === r.idGen(re),
               ),
           );
           r.diff.entitiesInDbOnly = r.diff.entitiesInDbOnly.filter(
             (e: any) =>
-              !changesAfterCommitByEntity[(r.table as string).toLowerCase()]?.find(
+              !changesAfterCommitByEntity[r.table]?.find(
                 re => r.idGen(e) === r.idGen(re),
               ),
           );
           r.diff.entitiesChanged = r.diff.entitiesChanged.filter(
             (o: any) =>
-              !changesAfterCommitByEntity[(r.table as string).toLowerCase()]?.find(
+              !changesAfterCommitByEntity[r.table]?.find(
                 re => r.idGen(o.db) === r.idGen(re),
               ),
           );
@@ -1707,7 +1770,12 @@ async function commitApply(
   return iasqlPlanV3(toCreate, toUpdate, toReplace, toDelete);
 }
 
-async function getChangesAfterCommitStartedByEntity(context: Context): Promise<{ [key: string]: any[] }> {
+async function getChangesAfterCommitStartedByEntity(
+  orm: TypeormWrapper,
+  context: Context,
+  dbId: string,
+  force: boolean,
+): Promise<{ [key: string]: any[] }> {
   const changesAfterCommit: IasqlAuditLog[] = await context.orm.find(IasqlAuditLog, {
     order: { ts: 'DESC' },
     where: {
@@ -1724,7 +1792,28 @@ async function getChangesAfterCommitStartedByEntity(context: Context): Promise<{
       user: Not(config.db.user),
     },
   });
-  return getChangesByEntity(changesAfterCommit);
+
+  const versionString = await TypeormWrapper.getVersionString(dbId);
+  const importedModules = await getImportedModules(dbId, versionString, force);
+
+  const tablesWithChanges = [...new Set(changesAfterCommit.map(c => c.tableName))];
+
+  const installedModulesNames = (await orm.find(IasqlModule)).map((m: any) => m.name);
+  const installedModules: ModuleInterface[] = (Object.values(importedModules) as ModuleInterface[]).filter(
+    mod => installedModulesNames.includes(`${mod.name}@${mod.version}`),
+  );
+
+  const modulesWithChanges: ModuleInterface[] = getModulesWithChanges(
+    importedModules,
+    installedModules,
+    installedModulesNames,
+    tablesWithChanges,
+    versionString,
+  );
+
+  const tablesIndexed = indexTables(modulesWithChanges);
+
+  return await getChangesByEntity(orm, changesAfterCommit, tablesIndexed);
 }
 
 export async function rollback(dbId: string, context: Context, force = false, ormOpt?: TypeormWrapper) {
@@ -1772,4 +1861,12 @@ export async function rollback(dbId: string, context: Context, force = false, or
     // do not drop the conn if it was provided
     if (orm !== ormOpt) orm?.dropConn();
   }
+}
+
+function indexTables(modules: ModuleInterface[]): { [key: string]: ModuleInterface } {
+  const tablesIndexed: { [key: string]: ModuleInterface } = {};
+  modules.forEach(mod => {
+    mod.provides?.tables?.forEach((t: string) => (tablesIndexed[t] = mod));
+  });
+  return tablesIndexed;
 }
