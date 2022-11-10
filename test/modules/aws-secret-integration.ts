@@ -163,6 +163,8 @@ describe("Secrets Manager Integration Testing", () => {
     VALUES ('${secretName}', 'description', '${secretValue}');
   `));
 
+  it('applies the secret re-creation', apply());
+
   it('confirms that the secret was created', query(`
     SELECT * FROM secret WHERE name = '${secretName}';
   `, (res: any[]) => {
