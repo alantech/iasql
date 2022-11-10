@@ -1258,23 +1258,26 @@ async function getChangesByEntity(
         // It might be a join table from this entity
         // we look for the relation and since it is a join table we find the primary object and push that as the change
         const joinTableCols: { [key: string]: string[][] } = {};
-        metadata.ownRelations.forEach(
-          or => {
-            console.log(`+-+ join coulmn names ${JSON.stringify(or.joinColumns.map(jc => jc.propertyName))}`);
-            return (joinTableCols[or.joinTableName] = or.joinColumns.map(jc => [jc.databaseName, jc.referencedColumn?.databaseName ?? '']))
-          },
-        ); // databaseName should return in snake_case
+        metadata.ownRelations
+          .filter(or => !!or.joinTableName)
+          .forEach(
+            or =>
+              (joinTableCols[or.joinTableName] = or.joinColumns.map(jc => [
+                jc.databaseName,
+                jc.referencedColumn?.databaseName ?? '',
+              ])),
+          ); // databaseName should return in snake_case
         if (Object.keys(joinTableCols).includes(c.tableName)) {
           // Here in any case we know that the parent entity should exists, because is not possible to be in a join table and relate to something that is not in the db.
           const changeObj = c.changeType === AuditLogChangeType.DELETE ? c.change.original : c.change.change;
           changedE = await orm.findOne(entity, {
             where: Object.fromEntries(
-              Object.entries(changeObj).map(([k, v]: [string, any]) =>
-              {
-                const joinColWithReference = joinTableCols[c.tableName].find(jc => jc[0] === k);
-                return [joinColWithReference?.[1], v];
-              }
-              ),
+              Object.entries(changeObj)
+                .filter(([k, _]: [string, any]) => !!joinTableCols[c.tableName].find(jc => jc[0] === k))
+                .map(([k, v]: [string, any]) => {
+                  const joinColWithReference = joinTableCols[c.tableName].find(jc => jc[0] === k);
+                  return [joinColWithReference?.[1], v];
+                }),
             ),
           });
         }
