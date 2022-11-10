@@ -86,8 +86,8 @@ export class EcrBuildRpc extends RpcBase {
     githubRepoUrl: string,
     ecrRepositoryId: string,
     buildPath: string,
-    githubPersonalAccessToken: string,
     githubRef: string,
+    githubPersonalAccessToken: string,
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
     await this.ensureAwsIamModule(_dbId);
 
@@ -97,22 +97,27 @@ export class EcrBuildRpc extends RpcBase {
     const prefix = (Math.random() + 1).toString(36).substring(7);
 
     // create github credentials
-    if (!githubPersonalAccessToken) {
-      throw new Error('Github personal access token should be provided.');
-    }
-    const credentialsArn = await this.createGithubCredentials(githubPersonalAccessToken, client);
+    let credentialsArn;
+    if (githubPersonalAccessToken)
+      credentialsArn = await this.createGithubCredentials(githubPersonalAccessToken, client);
 
     // create service role
     const role: IamRole = await this.createServiceRole(prefix, ctx);
 
     // create codebuild project
     const codeBuildProjectName = `${prefix}-ecr-builder`;
-    const buildSpec = this.generateBuildSpec(region, ecrRepository.repositoryUri!, buildPath);
+    const buildSpec = this.generateBuildSpec(
+      region,
+      ecrRepository.repositoryUri!,
+      buildPath,
+      githubPersonalAccessToken ? '' : githubRepoUrl,
+      githubRef,
+    );
     await this.createCodebuildProject(
       codeBuildProjectName,
       buildSpec,
       githubRef,
-      githubRepoUrl,
+      githubPersonalAccessToken ? githubRepoUrl : '',
       role,
       client,
     );
@@ -129,7 +134,7 @@ export class EcrBuildRpc extends RpcBase {
     awsIamModule.role.cloud.delete(role, ctx);
 
     // delete credentials
-    await this.deleteGithubCredentials(credentialsArn, client);
+    if (githubPersonalAccessToken) await this.deleteGithubCredentials(credentialsArn, client);
 
     // delete codebuild project
     await this.deleteCodebuildProject(codeBuildProjectName, client);
@@ -206,6 +211,19 @@ export class EcrBuildRpc extends RpcBase {
     role: IamRole,
     client: AWS,
   ) {
+    let source, sourceVersion;
+    if (githubRepoUrl) {
+      source = {
+        location: githubRepoUrl,
+        type: 'GITHUB',
+        buildspec: buildSpec,
+      };
+      sourceVersion = githubRef ?? 'main';
+    } else
+      source = {
+        type: 'NO_SOURCE',
+        buildspec: buildSpec,
+      };
     const createProjectInput: CreateProjectCommandInput = {
       name: codebuildProjectName,
       environment: {
@@ -215,12 +233,8 @@ export class EcrBuildRpc extends RpcBase {
         environmentVariables: [],
         privilegedMode: true,
       },
-      sourceVersion: githubRef ?? 'main',
-      source: {
-        location: githubRepoUrl,
-        type: 'GITHUB',
-        buildspec: buildSpec,
-      },
+      sourceVersion,
+      source,
       serviceRole: role.arn,
       artifacts: {
         type: 'NO_ARTIFACTS',
@@ -230,12 +244,25 @@ export class EcrBuildRpc extends RpcBase {
     if (!codeBuildProject) throw new Error("Couldn't create CodeBuild project");
   }
 
-  private generateBuildSpec(region: string, ecrRepositoryUri: string, buildPath: string) {
+  private generateBuildSpec(
+    region: string,
+    ecrRepositoryUri: string,
+    buildPath: string,
+    githubRepoUrl: string,
+    githubRef: string,
+  ) {
+    let additionalCommands = 'echo Github repo pulled successfuly using personal access token';
+    if (githubRepoUrl) {
+      additionalCommands = `git clone ${githubRepoUrl} repo && cd repo && git checkout ${
+        githubRef ?? 'main'
+      }`;
+    }
     return `version: 0.2
 
 phases:
   pre_build:
     commands:
+      - ${additionalCommands}
       - echo Logging in to Amazon ECR...
       - aws ecr get-login-password --region ${region} | docker login --username AWS --password-stdin ${ecrRepositoryUri}
   build:

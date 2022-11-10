@@ -163,8 +163,8 @@ async function main() {
               ${repoUri},
               ${repoId},
               './examples/ecs-fargate/prisma/app',
-              ${GH_PAT},
-              ${GITHUB_REF}
+              ${GITHUB_REF},
+              ${GH_PAT}
   );`;
   console.log(image);
 }
@@ -211,8 +211,8 @@ SELECT ecr_build(
     FROM repository
     WHERE repository_name = 'quickstart-repository')::varchar(255), -- replace quickstart if you've changed the project name
    './examples/ecs-fargate/prisma/app', -- the sub directory in the Github repo that the image should be built in
-   'ghp_XXX', -- replace your github personal access token here
-   'main' -- the Github repo branch name
+   'main', -- the Github repo branch name
+   '' -- replace your github personal access token here if the repo is private
 );
 ```
 That command is already being run in the `infra/index.js` script. So no need for extra steps if you're using it.

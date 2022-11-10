@@ -36,14 +36,14 @@ const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const region = defaultRegion();
-const modules = [
-  'aws_security_group',
-  'aws_elb',
-  'aws_vpc',
-  'aws_acm',
-  'aws_route53',
-];
+const modules = ['aws_security_group', 'aws_elb', 'aws_vpc', 'aws_acm', 'aws_route53'];
 
+const loadBalancerAttribute = {
+  Key: 'idle_timeout.timeout_seconds',
+  Value: '120',
+};
+
+const loadBalancerAttributes = JSON.stringify([loadBalancerAttribute]);
 // Test constants
 const tgName = `${prefix}${dbAlias}tg`;
 const lbName = `${prefix}${dbAlias}lb`;
@@ -177,11 +177,14 @@ describe('ELB Integration Testing', () => {
       `SELECT *
        FROM load_balancer
        WHERE load_balancer_name = '${lbName}';
-      `, (res: any[]) => expect(res.length).toBe(0),
+      `,
+      (res: any[]) => expect(res.length).toBe(0),
     ),
   );
 
-  it('adds new security groups', query(`
+  it(
+    'adds new security groups',
+    query(`
               INSERT INTO security_group (description, group_name)
               VALUES ('Security Group Test 1', '${sg1}');
               INSERT INTO security_group (description, group_name)
@@ -230,6 +233,30 @@ describe('ELB Integration Testing', () => {
   );
 
   it('applies the change', apply());
+
+  it(
+    'tries to update a load balancer attribute (update)',
+    query(
+      `UPDATE load_balancer SET attributes='${loadBalancerAttributes}' WHERE load_balancer_name='${lbName}'`,
+    ),
+  );
+  it('applies the change', apply());
+  it(
+    'check load balancer attributes modification',
+    query(
+      `
+          SELECT *
+          FROM load_balancer
+          WHERE load_balancer_name = '${lbName}';
+      `,
+      (res: any[]) => {
+        expect(res.length).toBe(1);
+        expect(res[0].attributes).toEqual(
+          expect.arrayContaining([expect.objectContaining(loadBalancerAttribute)]),
+        );
+      },
+    ),
+  );
 
   it(
     'tries to update a load balancer field',
@@ -484,21 +511,32 @@ describe('ELB Integration Testing', () => {
 
   it('applies creation of the target group in non-default region', apply());
 
-  it('verifies the target group is created', query(`
+  it(
+    'verifies the target group is created',
+    query(
+      `
       SELECT target_group_arn
       FROM target_group
       WHERE target_group_name = '${tgName}';
-  `, (res: any) => {
-    expect(res.length).toBe(1);
-    expect(res[0].target_group_arn).not.toEqual('');
-  }));
+  `,
+      (res: any) => {
+        expect(res.length).toBe(1);
+        expect(res[0].target_group_arn).not.toEqual('');
+      },
+    ),
+  );
 
-  it('creates a security group in non-default region', query(`
+  it(
+    'creates a security group in non-default region',
+    query(`
       INSERT INTO security_group (description, group_name, region)
       VALUES ('Security Group Multi-region Test 1', '${sg1}', 'us-east-1');
-  `));
+  `),
+  );
 
-  it('creates a load balancer in non-default region', query(`
+  it(
+    'creates a load balancer in non-default region',
+    query(`
     BEGIN;
       INSERT INTO load_balancer (load_balancer_name, scheme, vpc, load_balancer_type, ip_address_type, region)
       VALUES ('${lbName}', '${lbScheme}', null, '${lbType}', '${lbIPAddressType}', 'us-east-1');
@@ -507,38 +545,56 @@ describe('ELB Integration Testing', () => {
       SELECT (SELECT id FROM load_balancer WHERE load_balancer_name = '${lbName}'),
              (SELECT id FROM security_group WHERE group_name = '${sg1}');
     COMMIT;
-  `));
+  `),
+  );
 
   it('applies the creation of load balancer and security group in non-default region', apply());
 
-  it('verifies that load balancer in non-default region is created', query(`
+  it(
+    'verifies that load balancer in non-default region is created',
+    query(
+      `
       SELECT load_balancer_arn
       FROM load_balancer
       WHERE load_balancer_name = '${lbName}';
-  `, (res: any) => {
-    expect(res.length).toBe(1);
-    expect(res[0].load_balancer_arn).not.toBeNull();
-  }));
+  `,
+      (res: any) => {
+        expect(res.length).toBe(1);
+        expect(res[0].load_balancer_arn).not.toBeNull();
+      },
+    ),
+  );
 
-  it('adds a listener to the load balancer in non-default region', query(`
+  it(
+    'adds a listener to the load balancer in non-default region',
+    query(`
       INSERT INTO listener (load_balancer_id, port, protocol, target_group_id)
       VALUES ((SELECT id FROM load_balancer WHERE load_balancer_name = '${lbName}'),
               ${port},
               '${protocol}',
               (SELECT id FROM target_group WHERE target_group_name = '${tgName}'));
-  `));
+  `),
+  );
 
   it('applies creation of the listener in non-default region', apply());
 
-  it('verifies the listener in non-default region is created', query(`
+  it(
+    'verifies the listener in non-default region is created',
+    query(
+      `
       SELECT listener_arn
       FROM listener;
-  `, (res: any) => {
-    expect(res.length).toBe(1);
-    expect(res[0].listener_arn).not.toBeNull();
-  }));
+  `,
+      (res: any) => {
+        expect(res.length).toBe(1);
+        expect(res[0].listener_arn).not.toBeNull();
+      },
+    ),
+  );
 
-  it('deletes multi-region resources', query(`
+  it(
+    'deletes multi-region resources',
+    query(`
     BEGIN;
         DELETE
         FROM listener
@@ -556,7 +612,8 @@ describe('ELB Integration Testing', () => {
         FROM load_balancer
         WHERE load_balancer_name = '${lbName}';
     COMMIT;
-  `));
+  `),
+  );
 
   it('applies deletion of multi-region resources', apply());
 

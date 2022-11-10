@@ -15,38 +15,20 @@ SELECT * FROM iasql_install('aws_ecr');
 
 Create a private repository and `apply` it. View the `repository` table schema [here](https://dbdocs.io/iasql/iasql?table=repository&schema=public&view=table_structure). 
 
-```sql
+```sql TheButton
 INSERT INTO repository (repository_name, scan_on_push, image_tag_mutability)
 VALUES ('iasqlsample', false, 'MUTABLE');
 
 SELECT * FROM iasql_apply();
 ```
 
-<!--- https://www.urlencoder.org/ -->
-<a href='https://app.iasql.com/#/button/INSERT%20INTO%20repository%20%28repository_name%2C%20scan_on_push%2C%20image_tag_mutability%29%0AVALUES%20%28%27iasqlsample%27%2C%20false%2C%20%27MUTABLE%27%29%3B%0A%0ASELECT%20%2A%20FROM%20iasql_apply%28%29%3B'>
-<button
-  className={"button button--primary button--lg margin-bottom--lg"}
->
-Run SQL
-</button>
-</a>
-
 ## Create a public repository
 
 Create a public repository and `apply` it. View the `public_repository` table schema [here](https://dbdocs.io/iasql/iasql?table=public_repository&schema=public&view=table_structure)
 
-```sql
+```sql TheButton
 INSERT INTO public_repository (repository_name)
 VALUES ('iasqlsample');
 
 SELECT * FROM iasql_apply();
 ```
-
-<!--- https://www.urlencoder.org/ -->
-<a href='https://app.iasql.com/#/button/INSERT%20INTO%20public_repository%20%28repository_name%29%0AVALUES%20%28%27iasqlsample%27%29%3B%0A%0ASELECT%20%2A%20FROM%20iasql_apply%28%29%3B'>
-<button
-  className={"button button--primary button--lg margin-bottom--lg"}
->
-Run SQL
-</button>
-</a>

@@ -208,6 +208,9 @@ export class BucketMapper extends MapperBase<Bucket> {
     delete: async (es: Bucket[], ctx: Context) => {
       for (const e of es) {
         const client = (await ctx.getAwsClient(e.region)) as AWS;
+        const remainingObjects = await this.module.bucketObject.getBucketObjects(client.s3Client, e.name);
+        if (remainingObjects.length > 0)
+          throw new Error(`Waiting for deletion of ${remainingObjects.map(o => o.Key).join(', ')}`);
         await this.deleteBucket(client.s3Client, e.name);
       }
     },
