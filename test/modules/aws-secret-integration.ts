@@ -158,8 +158,19 @@ describe("Secrets Manager Integration Testing", () => {
     expect(res[0].region).toBe('us-east-1');
   }));
 
+  it('creates the same secret back in the original region at the same time', query(`
+    INSERT INTO secret (name, description, value)
+    VALUES ('${secretName}', 'description', '${secretValue}');
+  `));
+
+  it('confirms that the secret was created', query(`
+    SELECT * FROM secret WHERE name = '${secretName}';
+  `, (res: any[]) => {
+    expect(res.length).toBe(2);
+  }));
+
   it(
-    "deletes the secret",
+    "deletes the secrets",
     query(`
     DELETE FROM secret
     WHERE name = '${secretName}';
