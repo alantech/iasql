@@ -394,15 +394,10 @@ class SecurityGroupRuleMapper extends MapperBase<SecurityGroupRule> {
   async sgrMapper(sgr: AwsSecurityGroupRule, ctx: Context, region: string) {
     const out = new SecurityGroupRule();
     out.securityGroupRuleId = sgr?.SecurityGroupRuleId;
-    out.securityGroup =
-      (await this.module.securityGroup.db.read(
-        ctx,
-        this.module.securityGroup.generateId({ groupId: sgr?.GroupId ?? '', region }),
-      )) ??
-      (await this.module.securityGroup.cloud.read(
-        ctx,
-        this.module.securityGroup.generateId({ groupId: sgr?.GroupId ?? '', region }),
-      ));
+    out.securityGroup = await this.module.securityGroup.cloud.read(
+      ctx,
+      this.module.securityGroup.generateId({ groupId: sgr?.GroupId ?? '', region }),
+    );
     out.isEgress = sgr?.IsEgress ?? false;
 
     if (sgr.ReferencedGroupInfo && sgr.ReferencedGroupInfo.GroupId) {
