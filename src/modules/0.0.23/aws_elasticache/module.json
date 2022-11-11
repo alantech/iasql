@@ -1,0 +1,5 @@
+{
+    "name": "aws_elasticache",
+    "dependencies": ["iasql_platform", "aws_account"]
+  }
+  

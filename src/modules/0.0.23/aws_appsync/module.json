@@ -1,0 +1,5 @@
+{
+    "name": "aws_appsync",
+    "dependencies": ["iasql_platform", "aws_account"]
+  }
+  
