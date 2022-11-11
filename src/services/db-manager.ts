@@ -73,8 +73,14 @@ export function newPostgresRoleQuery(user: string, pass: string, dbId: string) {
 }
 
 export function createDbPostgreGroupRole(dbId: string) {
+  // Taken from https://stackoverflow.com/a/55954480
   return `
+    DO $$
+    BEGIN
     CREATE ROLE ${getGroupRole(dbId)};
+    EXCEPTION WHEN duplicate_object THEN RAISE NOTICE '%, skipping', SQLERRM USING ERRCODE = SQLSTATE;
+    END
+    $$;
   `;
 }
 
