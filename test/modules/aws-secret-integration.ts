@@ -223,10 +223,15 @@ describe('Secrets Manager Integration Testing', () => {
 
   it(
     'creates the same secret back in the original region at the same time',
-    query(`
+    query(
+      `
     INSERT INTO secret (name, description, value)
     VALUES ('${secretName}', 'description', '${secretValue}');
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the secret re-creation', commit());
