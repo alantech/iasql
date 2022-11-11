@@ -1332,6 +1332,8 @@ async function commitSync(
   toDelete: Crupde,
   dryRun: boolean,
 ): Promise<{ iasqlPlanVersion: number; rows: any[] }> {
+  const oldOrm = context.orm;
+  context.orm = await TypeormWrapper.createConn(dbId);
   const t1 = Date.now();
   const mappers = relevantModules
     .map(mod => Object.values(mod))
@@ -1385,6 +1387,8 @@ async function commitSync(
       const t4 = Date.now();
       logger.info(`AWS Mapping time: ${t4 - t3}ms`);
       if (!records.length) {
+        await context.orm.dropConn();
+        context.orm = oldOrm;
         // Only possible on just-created databases
         return {
           iasqlPlanVersion: 3,
@@ -1430,7 +1434,11 @@ async function commitSync(
           if (updates.length > 0) updatePlan(toUpdate, r.table, r.mapper, updates);
         }
       });
-      if (dryRun) return iasqlPlanV3(toCreate, toUpdate, toReplace, toDelete);
+      if (dryRun) {
+        await context.orm.dropConn();
+        context.orm = oldOrm;
+        return iasqlPlanV3(toCreate, toUpdate, toReplace, toDelete);
+      }
       const [nextDbCount, nextCloudCount, nextBothCount] = recordCount(records);
       if (dbCount === nextDbCount && cloudCount === nextCloudCount && bothCount === nextBothCount) {
         spinCount++;
@@ -1526,6 +1534,8 @@ async function commitSync(
   } while (ranFullUpdate);
   const t7 = Date.now();
   logger.info(`${dbId} synced, total time: ${t7 - t1}ms`);
+  await context.orm.dropConn();
+  context.orm = oldOrm;
   return iasqlPlanV3(toCreate, toUpdate, toReplace, toDelete);
 }
 
@@ -1540,6 +1550,8 @@ async function commitApply(
   dryRun: boolean,
   changesByEntity?: { [key: string]: any[] },
 ): Promise<{ iasqlPlanVersion: number; rows: any[] }> {
+  const oldOrm = context.orm;
+  context.orm = await TypeormWrapper.createConn(dbId);
   const t1 = Date.now();
   const mappers = relevantModules
     .map(mod => Object.values(mod))
@@ -1596,6 +1608,8 @@ async function commitApply(
       const t4 = Date.now();
       logger.info(`AWS Mapping time: ${t4 - t3}ms`);
       if (!records.length) {
+        await context.orm.dropConn();
+        context.orm = oldOrm;
         // Only possible on just-created databases
         return {
           iasqlPlanVersion: 3,
@@ -1666,7 +1680,11 @@ async function commitApply(
           if (replaces.length > 0) updatePlan(toReplace, r.table, r.mapper, replaces);
         }
       });
-      if (dryRun) return iasqlPlanV3(toCreate, toUpdate, toReplace, toDelete);
+      if (dryRun) {
+        await context.orm.dropConn();
+        context.orm = oldOrm;
+        return iasqlPlanV3(toCreate, toUpdate, toReplace, toDelete);
+      }
       const [nextDbCount, nextCloudCount, nextBothCount] = recordCount(records);
       if (dbCount === nextDbCount && cloudCount === nextCloudCount && bothCount === nextBothCount) {
         spinCount++;
@@ -1761,6 +1779,8 @@ async function commitApply(
   } while (ranFullUpdate);
   const t7 = Date.now();
   logger.info(`${dbId} applied and synced, total time: ${t7 - t1}ms`);
+  await context.orm.dropConn();
+  context.orm = oldOrm;
   return iasqlPlanV3(toCreate, toUpdate, toReplace, toDelete);
 }
 
