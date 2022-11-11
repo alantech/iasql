@@ -1241,6 +1241,7 @@ async function getChangesByEntity(
       const entity = entityMapper[e].entity;
       const entityName = entity.name;
       let changedE: any;
+      let changedE2: any;
       const metadata = await orm.getEntityMetadata(entity);
       if (metadata.tableName === c.tableName) {
         if ([AuditLogChangeType.INSERT, AuditLogChangeType.UPDATE].includes(c.changeType)) {
@@ -1252,6 +1253,10 @@ async function getChangesByEntity(
               Object.entries(c.change.change).filter(([k, _]: [string, any]) => primaryCols.includes(k)).map(([k, v]: [string, any]) => [camelCase(k), v]),
             ),
           });
+          if (c.change.original) {  // Update case. We cannot query the entity since it is not in the DB, but we can do our best recreating it.
+            changedE2 = {};
+            Object.entries(c.change.original).forEach(([k, v]: [string, any]) => (changedE2[camelCase(k)] = v));
+          }
         } else if (c.changeType === AuditLogChangeType.DELETE) {
           changedE = {};
           // we cannot get the exact entity because does not exists in the db anymore, but we recreate the object with the information we have for it
@@ -1288,6 +1293,11 @@ async function getChangesByEntity(
       if (changedE) {
         changesByEntity[entityName] = changesByEntity[entityName] ?? [];
         changesByEntity[entityName].push(changedE);
+      }
+      // TODO: we can definetely do better here but it is just to test an hypothesis.
+      if (changedE2) {
+        changesByEntity[entityName] = changesByEntity[entityName] ?? [];
+        changesByEntity[entityName].push(changedE2);
       }
     }
   }
