@@ -1,4 +1,4 @@
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryColumn } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 
 import { cloudId } from '../../../../services/cloud-id';
 import { AwsRegions } from '../../aws_account/entity';
@@ -18,7 +18,10 @@ export enum DefaultAction {
 
 @Entity()
 export class GraphqlApi {
-  @PrimaryColumn({
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Column({
     nullable: false,
     type: 'varchar',
   })
