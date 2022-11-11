@@ -1094,17 +1094,6 @@ export async function commit(
       versionString,
     );
 
-    const tablesIndexed = indexTables(modulesWithChanges);
-    const changesByEntity: { [key: string]: any[] } = await getChangesByEntity(
-      orm,
-      changesToCommit,
-      tablesIndexed,
-    );
-
-    // todo: remove this logger
-    // tslint:disable-next-line:no-console
-    console.log(`+-+ changes by entity = ${JSON.stringify(changesByEntity)}`);
-
     const t2 = Date.now();
     logger.info(`Setup took ${t2 - t1}ms`);
 
@@ -1129,7 +1118,7 @@ export async function commit(
           toReplace,
           toDelete,
           dryRun,
-          changesByEntity,
+          changesToCommit,
         );
         if (dryRun) return applyRes;
       }
@@ -1563,7 +1552,7 @@ async function commitApply(
   toReplace: Crupde,
   toDelete: Crupde,
   dryRun: boolean,
-  changesByEntity?: { [key: string]: any[] },
+  changesToCommit?: IasqlAuditLog[],
 ): Promise<{ iasqlPlanVersion: number; rows: any[] }> {
   const oldOrm = context.orm;
   context.orm = await TypeormWrapper.createConn(dbId);
@@ -1644,6 +1633,16 @@ async function commitApply(
             crupde[entityName].push(r);
         });
       };
+
+      let changesByEntity: { [key: string]: any[] };
+      if (changesToCommit?.length) {
+        const tablesIndexed = indexTables(relevantModules);
+        changesByEntity = await getChangesByEntity(context.orm, changesToCommit, tablesIndexed);
+        // todo: remove this logger
+        // tslint:disable-next-line:no-console
+        console.log(`+-+ changes by entity = ${JSON.stringify(changesByEntity)}`);
+      }
+
       records.forEach(r => {
         r.diff = findDiff(r.dbEntity, r.cloudEntity, r.idGen, r.comparator);
         // If we have changes to apply only filter those, if not, filter chnages done after this commit started
