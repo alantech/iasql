@@ -1250,11 +1250,85 @@ async function getChangesByEntity(
             Object.entries(c.change.original).forEach(
               ([k, v]: [string, any]) => (changedE2[camelCase(k)] = v),
             );
+            // We try to reconstruct relations if possible
+            const oneToManyRelations = metadata.ownRelations
+              .filter(or => or.isEager && or.isOneToMany)
+              .map(or => ({
+                targetEntity: or.inverseEntityMetadata.target,
+                propertyName: or.propertyName,
+                colsWithReferences: or.joinColumns.map(jc => [
+                  jc.databaseName,
+                  jc.referencedColumn?.databaseName,
+                ]),
+              }));
+            for (const rel of oneToManyRelations) {
+              const relEs = await orm.find(rel.targetEntity, {
+                where: Object.fromEntries(
+                  Object.entries(rel.colsWithReferences).map(e => [e[1], changedE2[e[0]]]),
+                ),
+              });
+              changedE2[rel.propertyName] = relEs;
+            }
+            const manyToOneRelations = metadata.ownRelations
+              .filter(or => or.isEager && or.isManyToOne)
+              .map(or => ({
+                targetEntity: or.inverseEntityMetadata.target,
+                propertyName: or.propertyName,
+                colsWithReferences: or.joinColumns.map(jc => [
+                  jc.databaseName,
+                  jc.referencedColumn?.databaseName,
+                ]),
+              }));
+            for (const rel of manyToOneRelations) {
+              const relE = await orm.findOne(rel.targetEntity, {
+                where: Object.fromEntries(
+                  Object.entries(rel.colsWithReferences).map(e => [e[1], changedE2[e[0]]]),
+                ),
+              });
+              changedE2[rel.propertyName] = relE;
+            }
           }
         } else if (c.changeType === AuditLogChangeType.DELETE) {
           changedE = {};
           // we cannot get the exact entity because does not exists in the db anymore, but we recreate the object with the information we have for it
           Object.entries(c.change.original).forEach(([k, v]: [string, any]) => (changedE[camelCase(k)] = v));
+          // We try to reconstruct relations if possible
+          const oneToManyRelations = metadata.ownRelations
+            .filter(or => or.isEager && or.isOneToMany)
+            .map(or => ({
+              targetEntity: or.inverseEntityMetadata.target,
+              propertyName: or.propertyName,
+              colsWithReferences: or.joinColumns.map(jc => [
+                jc.databaseName,
+                jc.referencedColumn?.databaseName,
+              ]),
+            }));
+          for (const rel of oneToManyRelations) {
+            const relEs = await orm.find(rel.targetEntity, {
+              where: Object.fromEntries(
+                Object.entries(rel.colsWithReferences).map(e => [e[1], changedE[e[0]]]),
+              ),
+            });
+            changedE[rel.propertyName] = relEs;
+          }
+          const manyToOneRelations = metadata.ownRelations
+            .filter(or => or.isEager && or.isManyToOne)
+            .map(or => ({
+              targetEntity: or.inverseEntityMetadata.target,
+              propertyName: or.propertyName,
+              colsWithReferences: or.joinColumns.map(jc => [
+                jc.databaseName,
+                jc.referencedColumn?.databaseName,
+              ]),
+            }));
+          for (const rel of manyToOneRelations) {
+            const relE = await orm.findOne(rel.targetEntity, {
+              where: Object.fromEntries(
+                Object.entries(rel.colsWithReferences).map(e => [e[1], changedE[e[0]]]),
+              ),
+            });
+            changedE[rel.propertyName] = relE;
+          }
         }
       } else {
         // It might be a join table from this entity
