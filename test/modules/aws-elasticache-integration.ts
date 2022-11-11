@@ -282,12 +282,17 @@ describe('Elasticache Integration Testing', () => {
   );
 
   it('makes two more cache clusters with the same cluster_id in different regions', done => {
-    query(`
+    query(
+      `
       INSERT INTO cache_cluster (cluster_id, node_type, engine, num_nodes, region)
       VALUES
         ('${anotherClusterId}', '${nodeType}', '${cacheType}', 1, '${region}'),
         ('${anotherClusterId}', '${nodeType}', '${cacheType}', 1, 'us-east-1');
-    `)((e?: any) => {
+    `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    )((e?: any) => {
       if (!!e) return done(e);
       done();
     });
