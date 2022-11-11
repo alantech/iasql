@@ -1250,12 +1250,17 @@ async function getChangesByEntity(
           const primaryCols = metadata.primaryColumns.map(pc => pc.databaseName); // databaseName should return in snake_case
           changedE = await orm.findOne(entity, {
             where: Object.fromEntries(
-              Object.entries(c.change.change).filter(([k, _]: [string, any]) => primaryCols.includes(k)).map(([k, v]: [string, any]) => [camelCase(k), v]),
+              Object.entries(c.change.change)
+                .filter(([k, _]: [string, any]) => primaryCols.includes(k))
+                .map(([k, v]: [string, any]) => [camelCase(k), v]),
             ),
           });
-          if (c.change.original) {  // Update case. We cannot query the entity since it is not in the DB, but we can do our best recreating it.
+          if (c.change.original) {
+            // Update case. We cannot query the entity since it is not in the DB, but we can do our best recreating it.
             changedE2 = {};
-            Object.entries(c.change.original).forEach(([k, v]: [string, any]) => (changedE2[camelCase(k)] = v));
+            Object.entries(c.change.original).forEach(
+              ([k, v]: [string, any]) => (changedE2[camelCase(k)] = v),
+            );
           }
         } else if (c.changeType === AuditLogChangeType.DELETE) {
           changedE = {};
