@@ -9,7 +9,8 @@ const sha = execSync('git rev-parse HEAD', { encoding: 'utf8' }).trim();
 
 beforeAll(() => {
   // Build the docker containers
-  execSync('IASQL_ENV=ci docker-compose up --build --detach');
+  execSync('docker build -t iasql:latest .');
+  execSync('docker run -p 5432:5432 -p 8088:8088 -e IASQL_ENV=ci --name iasql -d iasql');
   // Wait for them to be usable
   execSync(
     'while ! curl --output /dev/null --silent --head --fail http://localhost:8088/health; do sleep 1 && echo -n .; done;',
@@ -19,9 +20,7 @@ beforeAll(() => {
 afterAll(() => {
   // Dump the logs for potential debugging
   logger.info('Engine logs');
-  logger.info(execSync('docker logs iasql-engine_change_engine_1', { encoding: 'utf8' }));
-  logger.info('Postgres logs');
-  logger.info(execSync('docker logs iasql-engine_postgresql_1', { encoding: 'utf8' }));
+  logger.info(execSync('docker logs iasql', { encoding: 'utf8' }));
   // Terminate the docker container
   execSync('docker stop $(docker ps -q)');
 });
