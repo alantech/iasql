@@ -101,7 +101,9 @@ class SecurityGroupMapper extends MapperBase<SecurityGroup> {
       }
       try {
         await this.deleteDefaultSecurityGroupRule(client.ec2client, result.GroupId!);
-      } catch (e) { /** Do nothing */ }
+      } catch (e) {
+        /** Do nothing */
+      }
       // Re-get the inserted security group to get all of the relevant records we care about
       const newGroup = await this.getSecurityGroup(client.ec2client, result.GroupId ?? '');
       if (!newGroup) continue;
@@ -163,20 +165,24 @@ class SecurityGroupMapper extends MapperBase<SecurityGroup> {
 
   async deleteDefaultSecurityGroupRule(client: EC2, groupId: string) {
     const rules = await this.getSecurityGroupRuleByGroupId(client, groupId);
-    const ingressRules = rules?.filter(r => !r.IsEgress) ?? [];
-    await this.module.securityGroupRule.deleteSecurityGroupIngressRules(client, [
-      {
-        GroupId: groupId,
-        SecurityGroupRuleIds: ingressRules.map(r => r.SecurityGroupRuleId ?? ''),
-      },
-    ]);
-    const egressRules = rules?.filter(r => r.IsEgress) ?? [];
-    await this.module.securityGroupRule.deleteSecurityGroupEgressRules(client, [
-      {
-        GroupId: groupId,
-        SecurityGroupRuleIds: egressRules.map(r => r.SecurityGroupRuleId ?? ''),
-      },
-    ]);
+    const ingressRules = rules?.filter(r => !r.IsEgress);
+    if (ingressRules?.length) {
+      await this.module.securityGroupRule.deleteSecurityGroupIngressRules(client, [
+        {
+          GroupId: groupId,
+          SecurityGroupRuleIds: ingressRules.map(r => r.SecurityGroupRuleId ?? ''),
+        },
+      ]);
+    }
+    const egressRules = rules?.filter(r => r.IsEgress);
+    if (egressRules?.length) {
+      await this.module.securityGroupRule.deleteSecurityGroupEgressRules(client, [
+        {
+          GroupId: groupId,
+          SecurityGroupRuleIds: egressRules.map(r => r.SecurityGroupRuleId ?? ''),
+        },
+      ]);
+    }
   }
 
   getSecurityGroupRuleByGroupId = crudBuilderFormat<
