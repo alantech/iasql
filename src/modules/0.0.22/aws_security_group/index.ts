@@ -99,6 +99,9 @@ class SecurityGroupMapper extends MapperBase<SecurityGroup> {
         // Failure
         throw new Error('what should we do here?');
       }
+      try {
+        await this.deleteDefaultSecurityGroupRule(client.ec2client, result.GroupId!);
+      } catch (e) { /** Do nothing */ }
       // Re-get the inserted security group to get all of the relevant records we care about
       const newGroup = await this.getSecurityGroup(client.ec2client, result.GroupId ?? '');
       if (!newGroup) continue;
@@ -157,6 +160,34 @@ class SecurityGroupMapper extends MapperBase<SecurityGroup> {
       throw e;
     }
   }
+
+  async deleteDefaultSecurityGroupRule(client: EC2, groupId: string) {
+    const rules = await this.getSecurityGroupRuleByGroupId(client, groupId);
+    const ingressRules = rules?.filter(r => !r.IsEgress) ?? [];
+    await this.module.securityGroupRule.deleteSecurityGroupIngressRules(client, [
+      {
+        GroupId: groupId,
+        SecurityGroupRuleIds: ingressRules.map(r => r.SecurityGroupRuleId ?? ''),
+      },
+    ]);
+    const egressRules = rules?.filter(r => r.IsEgress) ?? [];
+    await this.module.securityGroupRule.deleteSecurityGroupEgressRules(client, [
+      {
+        GroupId: groupId,
+        SecurityGroupRuleIds: egressRules.map(r => r.SecurityGroupRuleId ?? ''),
+      },
+    ]);
+  }
+
+  getSecurityGroupRuleByGroupId = crudBuilderFormat<
+    EC2,
+    'describeSecurityGroupRules',
+    AwsSecurityGroupRule[] | undefined
+  >(
+    'describeSecurityGroupRules',
+    groupId => ({ Filters: [{ Name: 'group-id', Values: [groupId] }] }),
+    res => res?.SecurityGroupRules,
+  );
 
   db = new Crud2({
     create: async (e: SecurityGroup[], ctx: Context) => {
