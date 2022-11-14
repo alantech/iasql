@@ -237,7 +237,11 @@ jobs:
           psql postgres://postgres:test@localhost:5432/iasql -c "select * from delete_all_records();"
 
           echo "\nApply..."
-          psql postgres://postgres:test@localhost:5432/iasql -c "select * from iasql_commit();" || docker logs $(docker ps -a --filter "name=change" --format "{{.Names}}") && exit 1
+          if psql postgres://postgres:test@localhost:5432/iasql -c "select * from iasql_commit();" ; then
+            echo "Delete succeeded"
+          else
+            docker logs $(docker ps -a --filter "name=change" --format "{{.Names}}") && exit 1
+          fi
 
           # Shut down the engine
           docker-compose down
