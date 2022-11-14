@@ -292,6 +292,9 @@ describe('ELB Integration Testing', () => {
     'tries to update a load balancer attribute (update)',
     query(
       `UPDATE load_balancer SET attributes='${loadBalancerAttributes}' WHERE load_balancer_name='${lbName}'`,
+      undefined,
+      true,
+      () => ({ username, password }),
     ),
   );
   it('applies the change', commit());
