@@ -220,7 +220,7 @@ describe('Lambda Integration Testing', () => {
       `
     SELECT cardinality(subnets) as total_subnets, (select count(*) from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true and vpc.region = '${region}' limit 3) as computed_subnets
     FROM lambda_function 
-    WHERE name = '${lambdaFunctionName}' AND total_subnets=computed_subnets;
+    WHERE name = '${lambdaFunctionName}' AND cardinality(subnets)=computed_subnets;
   `,
       (res: any[]) => expect(res.length).toBe(1),
     ),
