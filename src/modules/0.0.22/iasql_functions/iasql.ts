@@ -1264,7 +1264,9 @@ async function getChangesByEntity(
             for (const rel of oneToManyRelations) {
               const relEs = await orm.find(rel.targetEntity, {
                 where: Object.fromEntries(
-                  Object.entries(rel.colsWithReferences).map(e => [e[1], changedE2[e[0]]]),
+                  rel.colsWithReferences.map(cwr => {
+                    return [cwr[1], changedE2[cwr[0] ?? '']];
+                  }),
                 ),
               });
               changedE2[rel.propertyName] = relEs;
@@ -1282,7 +1284,9 @@ async function getChangesByEntity(
             for (const rel of manyToOneRelations) {
               const relE = await orm.findOne(rel.targetEntity, {
                 where: Object.fromEntries(
-                  Object.entries(rel.colsWithReferences).map(e => [e[1], changedE2[e[0]]]),
+                  rel.colsWithReferences.map(cwr => {
+                    return [cwr[1], changedE2[cwr[0] ?? '']];
+                  }),
                 ),
               });
               changedE2[rel.propertyName] = relE;
@@ -1306,7 +1310,9 @@ async function getChangesByEntity(
           for (const rel of oneToManyRelations) {
             const relEs = await orm.find(rel.targetEntity, {
               where: Object.fromEntries(
-                Object.entries(rel.colsWithReferences).map(e => [e[1], changedE[e[0]]]),
+                rel.colsWithReferences.map(cwr => {
+                  return [cwr[1], changedE[cwr[0] ?? '']];
+                }),
               ),
             });
             changedE[rel.propertyName] = relEs;
@@ -1324,7 +1330,9 @@ async function getChangesByEntity(
           for (const rel of manyToOneRelations) {
             const relE = await orm.findOne(rel.targetEntity, {
               where: Object.fromEntries(
-                Object.entries(rel.colsWithReferences).map(e => [e[1], changedE[e[0]]]),
+                rel.colsWithReferences.map(cwr => {
+                  return [cwr[1], changedE[cwr[0] ?? '']];
+                }),
               ),
             });
             changedE[rel.propertyName] = relE;
