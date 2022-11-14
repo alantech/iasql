@@ -21,7 +21,7 @@ In this post, we're going to discover an IaSQL module that's built to make deplo
 
 ## ** An Example Usage of the `aws_ecs_simplified` Module **
 
-Let's say we are going to deploy [this simple Express.js app](https://github.com/iasql/iasql-engine/tree/v0.0.22/examples/ecs-fargate/prisma/app) to ECS. It has a `Dockerfile` ready which `npm install`s the `express` package and then starts the Express server which listens on the port `8088`.
+Let's say we are going to deploy [this simple Express.js app](https://github.com/iasql/iasql-engine/tree/main/examples/ecs-fargate/prisma/app) to the ECS. It has a `Dockerfile` and `package.json` that installs `express` on `npm install`. `npm start` then starts the Express server which listens on port `8088`.
 
 :::note
 `aws_ecs_simplified` is a high-level module we have created to make scalable ECS deployments easier. For more info on high-level vs low-level modules, you can check [this guide](https://iasql.com/docs/high-level-vs-low-level/).
@@ -52,7 +52,7 @@ That's it! Now wait for some time and your app is deployed! While your app is be
 ```sql
 SELECT iasql_install('aws_ecs_simplified');
 ```
-- This command installs the `aws_ecs_simplified` high-level module. We– at IaSQL– have created that module to make it easy to deploy containerized apps to ECS. The code for it is [here](https://github.com/iasql/iasql-engine/blob/main/src/modules/0.0.23/aws_ecs_simplified/sql/after_install.sql). But IaSQL is so flexible that anyone can create their own high-level (and of course, low-level) modules and add it to IaSQL.
+- This command installs the `aws_ecs_simplified` high-level module. We– at IaSQL– have created that module to make it easy to deploy containerized apps to ECS. The code for it is [here](https://github.com/iasql/iasql-engine/blob/v0.0.22/src/modules/0.0.23/aws_ecs_simplified/sql/after_install.sql). But IaSQL is so flexible that anyone can create their own high-level (and of course, low-level) modules and add it to IaSQL.
 ```sql
 INSERT INTO ecs_simplified(app_name, app_port, image_tag, public_ip) VALUES(
   'simple-express',
@@ -70,7 +70,7 @@ SELECT iasql_apply();
   - For more info on the `iasql_apply()` command, check [this guide](https://iasql.com/docs/apply-and-sync/#apply-and-preview_apply) on how it works.
 - After running the `iasql_apply()` function to completion all the necessary resources are now created on the cloud, so their ARNs are populated. You can verify this by looking at different tables, eg. `iam_role`.
 - To get your load balancer address, you can easily run `SELECT load_balancer_dns FROM ecs_simplified WHERE app_name = 'simple-express'` query and get the URL to access your app.
-- Now the ECS is waiting for an image to be pushed to your ECR repository to run it. You can get the URI for the ECR repository by running the `SELECT repository_uri FROM ecs_simplified WHERE app_name = 'simple-express'` query.  You *could* build your docker image locally and then follow [Steps 2 and 4 from this guide](https://docs.aws.amazon.com/AmazonECR/latest/userguide/getting-started-cli.html) to connect your local docker CLI to your ECR repository and push that docker image into your ECR repository, but we have a simpler solution next.
+- Now ECS is waiting for an image to be pushed to your ECR repository to run it. You can get the URI for the ECR repository by running the `SELECT repository_uri FROM ecs_simplified WHERE app_name = 'simple-express'` query.  You *could* build your docker image locally and then follow [Steps 2 and 4 from this guide](https://docs.aws.amazon.com/AmazonECR/latest/userguide/getting-started-cli.html) to connect your local docker CLI to your ECR repository and push that docker image into your ECR repository, but we have a simpler solution next.
   - In the next step, we'll automatically build an image for the code in Github repo and then push it to this URI (all through SQL and using another high-level function named `ecr_build`).
 ```sql
 SELECT ecr_build(
