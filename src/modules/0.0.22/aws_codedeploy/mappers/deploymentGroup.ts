@@ -50,7 +50,15 @@ export class CodedeployDeploymentGroupMapper extends MapperBase<CodedeployDeploy
     const out = new CodedeployDeploymentGroup();
     if (!group.applicationName || !group.deploymentGroupName) return undefined;
 
-    out.application = await this.module.application.cloud.read(ctx, `${group.applicationName}|${region}`);
+    out.application =
+      (await this.module.application.db.read(
+        ctx,
+        this.module.application.generateId({ name: group.applicationName, region }),
+      )) ??
+      (await this.module.application.cloud.read(
+        ctx,
+        this.module.application.generateId({ name: group.applicationName, region }),
+      ));
     out.deploymentConfigName =
       (group.deploymentConfigName as DeploymentConfigType) ?? DeploymentConfigType.ONE_AT_A_TIME;
 
