@@ -7,6 +7,7 @@ import {
   NatGatewayMapper,
   SubnetMapper,
   VpcMapper,
+  PeeringConnectionMapper,
 } from './mappers';
 
 export class AwsVpcModule extends ModuleBase {
@@ -17,6 +18,7 @@ export class AwsVpcModule extends ModuleBase {
   endpointGateway: EndpointGatewayMapper;
   endpointInterface: EndpointInterfaceMapper;
   availabilityZone: AvailabilityZoneMapper;
+  peeringConnection: PeeringConnectionMapper;
 
   constructor() {
     super();
@@ -27,7 +29,9 @@ export class AwsVpcModule extends ModuleBase {
     this.endpointGateway = new EndpointGatewayMapper(this);
     this.endpointInterface = new EndpointInterfaceMapper(this);
     this.availabilityZone = new AvailabilityZoneMapper(this);
+    this.peeringConnection = new PeeringConnectionMapper(this);
     super.init();
   }
 }
+
 export const awsVpcModule = new AwsVpcModule();
