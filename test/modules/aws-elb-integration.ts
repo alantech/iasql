@@ -58,7 +58,7 @@ const lbIPAddressType = IpAddressType.IPV4;
 const sg1 = `${prefix}${dbAlias}lbsg1`;
 const sg2 = `${prefix}${dbAlias}lbsg2`;
 
-jest.setTimeout(360000);
+jest.setTimeout(420000);
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown());
 

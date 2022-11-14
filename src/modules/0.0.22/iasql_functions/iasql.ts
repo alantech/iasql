@@ -800,7 +800,10 @@ async function getChangesByEntity(
             where: Object.fromEntries(
               Object.entries(c.change.change)
                 .filter(([k, _]: [string, any]) => primaryCols.includes(k))
-                .map(([k, v]: [string, any]) => [camelCase(k), v]),
+                .map(([k, v]: [string, any]) => {
+                  console.log(`+-+ table equals - insert update - ${c.tableName} - cold ${camelCase(k)}`)
+                  return [camelCase(k), v]
+                }),
             ),
           });
           if (c.change.original) {
@@ -919,6 +922,7 @@ async function getChangesByEntity(
                 .filter(([k, _]: [string, any]) => !!joinTableCols[c.tableName].find(jc => jc[0] === k))
                 .map(([k, v]: [string, any]) => {
                   const joinColWithReference = joinTableCols[c.tableName].find(jc => jc[0] === k);
+                  console.log(`+-+ join - ${c.tableName} - cold ${JSON.stringify(joinColWithReference)} - ${camelCase(joinColWithReference?.[1] ?? '')}`)
                   return [camelCase(joinColWithReference?.[1] ?? ''), v];
                 }),
             ),
