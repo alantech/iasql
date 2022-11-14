@@ -258,6 +258,7 @@ export class CodedeployDeploymentGroupMapper extends MapperBase<CodedeployDeploy
       const opts =
         deploymentGroupName && applicationName && region
           ? {
+              relations: ['application'],
               where: {
                 name: deploymentGroupName,
                 application: {
