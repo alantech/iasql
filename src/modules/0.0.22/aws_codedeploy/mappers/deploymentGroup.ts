@@ -255,6 +255,8 @@ export class CodedeployDeploymentGroupMapper extends MapperBase<CodedeployDeploy
       const { deploymentGroupName, applicationName, region } = id
         ? this.idFields(id)
         : { deploymentGroupName: undefined, applicationName: undefined, region: undefined };
+      console.log(`+-+ reading form db a new deployment group with id ${id}`)
+      console.log(`+-+ deploymentGroupName = ${deploymentGroupName}, applicationName = ${applicationName}, region=${region}`)
       const opts =
         deploymentGroupName && applicationName && region
           ? {
@@ -269,6 +271,7 @@ export class CodedeployDeploymentGroupMapper extends MapperBase<CodedeployDeploy
               },
             }
           : {};
+      console.log(`+-+ options ${JSON.stringify(opts)}`)
       return await ctx.orm.find(CodedeployDeploymentGroup, opts);
     },
   });
