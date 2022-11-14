@@ -614,18 +614,9 @@ describe('Security Group Integration Testing', () => {
     'deletes the vpc',
     query(
       `
-        WITH vpc as (
-          SELECT id
-          FROM vpc
-          WHERE cidr_block = '192.${randIPBlock}.0.0/24'
-        ), sg as (
-          SELECT id
-          FROM security_group
-          WHERE vpc_id = vpc.id
-        )
         DELETE FROM security_group_rule
-        USING sg
-        WHERE security_group_id = sg.id;
+        USING security_group, vpc
+        WHERE security_group_id = security_group.id AND cidr_block = '192.${randIPBlock}.0.0/24' AND security_group.vpc_id = vpc.id;
 
         WITH vpc as (
           SELECT id
