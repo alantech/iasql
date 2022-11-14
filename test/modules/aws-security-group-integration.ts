@@ -911,6 +911,7 @@ describe('Security Group install/uninstall', () => {
       'aws_acm',
       'aws_codedeploy',
       'aws_codepipeline',
+      'aws_lambda',
     ]),
   );
 

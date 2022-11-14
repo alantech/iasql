@@ -11,7 +11,6 @@ import { AwsLambdaModule } from '..';
 import { throwError } from '../../../../config/config';
 import { Context, Crud2, MapperBase } from '../../../interfaces';
 import { awsIamModule } from '../../aws_iam';
-import { awsSecurityGroupModule } from '../../aws_security_group';
 import {
   addFunctionTags,
   AWS,
@@ -34,8 +33,7 @@ export class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
     this.updateableFunctionFieldsEq(a, b) &&
     this.updateableTagsEq(a, b) &&
     this.restorableFunctionFieldsEq(a, b) &&
-    this.updateableCodeFieldsEq(a, b) &&
-    this.updateableConfigFieldsEq(a, b);
+    this.updateableCodeFieldsEq(a, b);
 
   updateableFunctionFieldsEq(a: LambdaFunction, b: LambdaFunction) {
     return (
@@ -83,40 +81,11 @@ export class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
     out.version = fn.Configuration?.Version;
     out.arn = fn.Configuration?.FunctionArn;
     out.region = region;
-    out.subnets = fn.Configuration.VpcConfig?.SubnetIds;
-
-    const securityGroups = [];
-    const cloudSecurityGroups = fn.Configuration.VpcConfig?.SecurityGroupIds ?? [];
-    for (const sg of cloudSecurityGroups) {
-      securityGroups.push(
-        (await awsSecurityGroupModule.securityGroup.db.read(
-          ctx,
-          awsSecurityGroupModule.securityGroup.generateId({ groupId: sg, region }),
-        )) ??
-          (await awsSecurityGroupModule.securityGroup.cloud.read(
-            ctx,
-            awsSecurityGroupModule.securityGroup.generateId({ groupId: sg, region }),
-          )),
-      );
-    }
-    if (securityGroups.filter(sg => !!sg).length !== cloudSecurityGroups.length)
-      throw new Error('Security groups need to be loaded first');
-    out.securityGroups = securityGroups;
     return out;
   }
 
   updateableTagsEq(a: LambdaFunction, b: LambdaFunction) {
     return isEqual(a.tags, b.tags);
-  }
-
-  updateableConfigFieldsEq(a: LambdaFunction, b: LambdaFunction) {
-    return (
-      Object.is(a.securityGroups?.length, b.securityGroups?.length) &&
-      (a.securityGroups?.every(asg => !!b.securityGroups?.find(bsg => Object.is(asg.groupId, bsg.groupId))) ??
-        false) &&
-      Object.is(a.subnets?.length, b.subnets?.length) &&
-      (a.subnets?.every(asn => !!b.subnets?.find(bsn => Object.is(asn, bsn))) ?? false)
-    );
   }
 
   restorableFunctionFieldsEq(a: LambdaFunction, b: LambdaFunction) {
@@ -157,13 +126,7 @@ export class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
                 Variables: e.environment,
               }
             : undefined,
-
-          VpcConfig: {
-            SubnetIds: e.subnets ?? [],
-            SecurityGroupIds: e.securityGroups.map(s => s.groupId ?? '') ?? [],
-          },
         };
-
         const newFunction = await createFunction(client.lambdaClient, input);
         if (!newFunction?.FunctionArn) {
           // then who?
@@ -177,7 +140,6 @@ export class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
         const rawFn = await getFunction(client.lambdaClient, newFunction.FunctionName);
         if (!rawFn) throw new Error('Newly created function could not be found.'); // Should be impossible
         const newEntity = await this.lambdaFunctionMapper(rawFn, ctx, e.region);
-
         if (newEntity) {
           newEntity.id = e.id;
           // Set zipB64 as null to avoid infinite loop trying to update it.
@@ -218,10 +180,7 @@ export class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
       for (const e of es) {
         const client = (await ctx.getAwsClient(e.region)) as AWS;
         const cloudRecord = ctx?.memo?.cloud?.LambdaFunction?.[this.entityId(e)];
-        if (
-          !this.updateableFunctionFieldsEq(cloudRecord, e) ||
-          !this.updateableConfigFieldsEq(cloudRecord, e)
-        ) {
+        if (!this.updateableFunctionFieldsEq(cloudRecord, e)) {
           // Update function configuration
           const input: UpdateFunctionConfigurationCommandInput = {
             FunctionName: e.name,
@@ -233,10 +192,6 @@ export class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
               Variables: e.environment,
             },
             Runtime: e.runtime,
-            VpcConfig: {
-              SubnetIds: e.subnets ?? [],
-              SecurityGroupIds: e.securityGroups.map(s => s.groupId ?? '') ?? [],
-            },
           };
           await updateFunctionConfiguration(client.lambdaClient, input);
           await waitUntilFunctionUpdated(client.lambdaClient, e.name);

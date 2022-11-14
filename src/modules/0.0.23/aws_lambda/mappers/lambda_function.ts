@@ -1,5 +1,6 @@
 import isEqual from 'lodash.isequal';
 
+import { EC2, NetworkInterface } from '@aws-sdk/client-ec2';
 import {
   CreateFunctionCommandInput,
   GetFunctionResponse,
@@ -9,9 +10,12 @@ import {
 
 import { AwsLambdaModule } from '..';
 import { throwError } from '../../../../config/config';
+import { crudBuilderFormat } from '../../../../services/aws_macros';
 import { Context, Crud2, MapperBase } from '../../../interfaces';
 import { awsIamModule } from '../../aws_iam';
 import { awsSecurityGroupModule } from '../../aws_security_group';
+import { awsVpcModule } from '../../aws_vpc';
+import { Subnet } from '../../aws_vpc/entity';
 import {
   addFunctionTags,
   AWS,
@@ -132,6 +136,27 @@ export class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
     return Object.is(a.zipB64, b.zipB64);
   }
 
+  getNetworkInterfaces = crudBuilderFormat<EC2, 'describeNetworkInterfaces', NetworkInterface[] | undefined>(
+    'describeNetworkInterfaces',
+    subnetId => ({
+      Filters: [
+        {
+          Name: 'subnet-id',
+          Values: [subnetId],
+        },
+        {
+          Name: 'interface-type',
+          Values: ['lambda'],
+        },
+      ],
+    }),
+    res => res?.NetworkInterfaces,
+  );
+
+  async deleteNetworkInterface(client: EC2, id: string) {
+    await client.deleteNetworkInterface({ NetworkInterfaceId: id });
+  }
+
   cloud = new Crud2({
     create: async (es: LambdaFunction[], ctx: Context) => {
       const out = [];
@@ -139,6 +164,7 @@ export class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
         const client = (await ctx.getAwsClient(e.region)) as AWS;
         // TODO: handle properly once more lambda sources are added (ecr, s3)
         if (!e.zipB64) throw new Error('Missing base64 encoded zip file');
+
         const input: CreateFunctionCommandInput = {
           FunctionName: e.name,
           Description: e.description,
@@ -275,7 +301,23 @@ export class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
     delete: async (es: LambdaFunction[], ctx: Context) => {
       for (const e of es) {
         const client = (await ctx.getAwsClient(e.region)) as AWS;
+        const region = e.region;
         await deleteFunction(client.lambdaClient, e.name);
+
+        // check all associated subnets and get the vpc id, to get associated endpoint interfaces
+        if (e.subnets) {
+          for (const s of e.subnets) {
+            const interfaces = await this.getNetworkInterfaces(client.ec2client, s);
+
+            if (interfaces) {
+              for (const i of interfaces) {
+                // iterate and check if description matches lambda function name
+                if (i.Description && i.Description.includes(e.name) && i.NetworkInterfaceId)
+                  await this.deleteNetworkInterface(client.ec2client, i.NetworkInterfaceId);
+              }
+            }
+          }
+        }
       }
     },
   });
