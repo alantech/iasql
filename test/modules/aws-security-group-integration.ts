@@ -621,7 +621,7 @@ describe('Security Group Integration Testing', () => {
         ), sg as (
           SELECT id
           FROM security_group
-          WHERE vpc_id = vpc.id;
+          WHERE vpc_id = vpc.id
         )
         DELETE FROM security_group_rule
         USING sg
