@@ -75,6 +75,11 @@ class SecurityGroupMapper extends MapperBase<SecurityGroup> {
         out.push(e);
         continue;
       }
+      // If vpc is assigned but it does not have vpcId yet it means it will be created in the same iteration. We have to wait for it
+      if (e.vpc && !e.vpc.vpcId) {
+        throw new Error('Vpc need to be created first');
+      }
+      // If theres no vpc assigned we set the default one
       if (!e.vpc) {
         const vpcs: Vpc[] = await awsVpcModule.vpc.cloud.read(ctx);
         if (!vpcs.length) {
