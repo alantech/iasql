@@ -212,6 +212,7 @@ describe('AwsCloudwatch Integration Testing', () => {
     FROM log_group;
   `,
       (res: any) => {
+        console.log(`+-+ LOG GROUPS ARE ${JSON.stringify(res)}`)
         // two log groups
         expect(res.length).toBe(2);
         // have non-empty ARNs (came from the cloud)
