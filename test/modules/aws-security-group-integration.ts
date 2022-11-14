@@ -611,33 +611,34 @@ describe('Security Group Integration Testing', () => {
   it('applies the deletion of source security group rule', commit());
 
   it(
-    'check no security group for source remain',
-    query(
-      `
-    SELECT *
-    FROM security_group
-    WHERE group_name = '${prefix}sgsourcetest' OR group_name='${prefix}sgforsource';
-  `,
-      (res: any[]) => expect(res.length).toBe(0),
-    ),
-  );
-
-  it(
     'deletes the vpc',
     query(
       `
-    WITH vpc as (
-      SELECT id
-      FROM vpc
-      WHERE cidr_block = '192.${randIPBlock}.0.0/24'
-    )
-    DELETE FROM security_group
-    USING vpc
-    WHERE vpc_id = vpc.id;
+        WITH vpc as (
+          SELECT id
+          FROM vpc
+          WHERE cidr_block = '192.${randIPBlock}.0.0/24'
+        ), sg as (
+          SELECT id
+          FROM security_group
+          WHERE vpc_id = vpc.id;
+        )
+        DELETE FROM security_group_rule
+        USING sg
+        WHERE security_group_id = sg.id;
 
-    DELETE FROM vpc
-    WHERE cidr_block = '192.${randIPBlock}.0.0/24';
-  `,
+        WITH vpc as (
+          SELECT id
+          FROM vpc
+          WHERE cidr_block = '192.${randIPBlock}.0.0/24'
+        )
+        DELETE FROM security_group
+        USING vpc
+        WHERE vpc_id = vpc.id;
+
+        DELETE FROM vpc
+        WHERE cidr_block = '192.${randIPBlock}.0.0/24';
+      `,
       undefined,
       true,
       () => ({ username, password }),
