@@ -10,7 +10,7 @@ import {
 
 import { AwsCodedeployModule } from '..';
 import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../../services/aws_macros';
-import { Context, Crud2, MapperBase } from '../../../interfaces';
+import { Context, Crud2, IdFields, MapperBase } from '../../../interfaces';
 import { awsIamModule } from '../../aws_iam';
 import {
   CodedeployApplication,
@@ -27,6 +27,16 @@ export class CodedeployDeploymentGroupMapper extends MapperBase<CodedeployDeploy
   idFields = (id: string) => {
     const [deploymentGroupName, applicationName, region] = id.split('|');
     return { deploymentGroupName, applicationName, region };
+  };
+  generateId = (fields: IdFields) => {
+    const requiredFields = ['deploymentGroupName', 'applicationName', 'region'];
+    if (
+      Object.keys(fields).length !== requiredFields.length &&
+      !Object.keys(fields).every(fk => requiredFields.includes(fk))
+    ) {
+      throw new Error(`Id generation error. Valid fields to generate id are: ${requiredFields.join(', ')}`);
+    }
+    return `${fields.deploymentGroupName}|${fields.applicationName}|${fields.region}`;
   };
   equals = (a: CodedeployDeploymentGroup, b: CodedeployDeploymentGroup) =>
     isEqual(a.application.applicationId, b.application.applicationId) &&

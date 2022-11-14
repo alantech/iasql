@@ -40,16 +40,30 @@ export class CodedeployDeploymentMapper extends MapperBase<CodedeployDeployment>
     if (!deployment.applicationName || !deployment.deploymentGroupName || !deployment.revision)
       return undefined;
     out.application =
-      (await this.module.application.db.read(ctx, `${deployment.applicationName}|${region}`)) ??
-      (await this.module.application.cloud.read(ctx, `${deployment.applicationName}|${region}`));
+      (await this.module.application.db.read(
+        ctx,
+        this.module.application.generateId({ region, name: deployment.applicationName }),
+      )) ??
+      (await this.module.application.cloud.read(
+        ctx,
+        this.module.application.generateId({ region, name: deployment.applicationName }),
+      ));
     out.deploymentGroup =
       (await this.module.deploymentGroup.db.read(
         ctx,
-        `${deployment.deploymentGroupName}|${deployment.applicationName}|${region}`,
+        this.module.deploymentGroup.generateId({
+          deploymentGroupName: deployment.deploymentGroupName,
+          applicationName: deployment.applicationName,
+          region,
+        }),
       )) ??
       (await this.module.deploymentGroup.cloud.read(
         ctx,
-        `${deployment.deploymentGroupName}|${deployment.applicationName}|${region}`,
+        this.module.deploymentGroup.generateId({
+          deploymentGroupName: deployment.deploymentGroupName,
+          applicationName: deployment.applicationName,
+          region,
+        }),
       ));
     out.deploymentId = deployment.deploymentId;
     out.description = deployment.description;
