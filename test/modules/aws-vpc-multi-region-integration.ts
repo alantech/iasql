@@ -162,6 +162,7 @@ describe('VPC Multiregion Integration Testing', () => {
     'updates vpc region',
     query(
       `
+    DELETE FROM security_group_rule WHERE security_group_id = (SELECT id FROM security_group WHERE vpc_id = (SELECT id FROM vpc WHERE tags ->> 'name' = '${prefix}-1'));
     DELETE FROM security_group WHERE vpc_id = (SELECT id FROM vpc WHERE tags ->> 'name' = '${prefix}-1');
     WITH updated_subnet AS (
       UPDATE subnet
