@@ -39,14 +39,18 @@ export class CodedeployDeploymentMapper extends MapperBase<CodedeployDeployment>
     // needs to have application, deployment group and revision
     if (!deployment.applicationName || !deployment.deploymentGroupName || !deployment.revision)
       return undefined;
-    out.application = await this.module.application.cloud.read(
-      ctx,
-      `${deployment.applicationName}|${region}`,
-    );
-    out.deploymentGroup = await this.module.deploymentGroup.cloud.read(
-      ctx,
-      `${deployment.deploymentGroupName}|${deployment.applicationName}|${region}`,
-    );
+    out.application =
+      (await this.module.application.db.read(ctx, `${deployment.applicationName}|${region}`)) ??
+      (await this.module.application.cloud.read(ctx, `${deployment.applicationName}|${region}`));
+    out.deploymentGroup =
+      (await this.module.deploymentGroup.db.read(
+        ctx,
+        `${deployment.deploymentGroupName}|${deployment.applicationName}|${region}`,
+      )) ??
+      (await this.module.deploymentGroup.cloud.read(
+        ctx,
+        `${deployment.deploymentGroupName}|${deployment.applicationName}|${region}`,
+      ));
     out.deploymentId = deployment.deploymentId;
     out.description = deployment.description;
     out.externalId = deployment.externalId;
