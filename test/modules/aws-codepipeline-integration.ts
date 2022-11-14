@@ -410,7 +410,7 @@ describe('AwsCodepipeline Integration Testing', () => {
     VALUES ('${prefix}-${dbAlias}', '${codePipelineRoleName}', '${stages}', '${artifactStore}');
   `,
       undefined,
-      false,
+      true,
       () => ({ username, password }),
     ),
   );
