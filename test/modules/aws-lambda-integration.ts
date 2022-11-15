@@ -239,7 +239,7 @@ describe('Lambda Integration Testing', () => {
   );
 
   // Invoke Lambda function
-  /*it(
+  it(
     'invoke lambda',
     query(
       `
@@ -321,7 +321,7 @@ describe('Lambda Integration Testing', () => {
   `,
       (res: any[]) => expect(res.length).toBe(1),
     ),
-  );*/
+  );
 
   // Check subnet modification
   it(
@@ -396,7 +396,7 @@ describe('Lambda Integration Testing', () => {
   );
 
   // Check configuration update path
-  /*it(
+  it(
     'updates the function',
     query(
       `
@@ -514,7 +514,7 @@ describe('Lambda Integration Testing', () => {
 
   it('uninstalls the lambda module', uninstall(modules));
 
-  it('installs the lambda module', install(modules));*/
+  it('installs the lambda module', install(modules));
 
   it(
     'deletes the lambda function',
@@ -711,4 +711,4 @@ describe('Lambda install/uninstall', () => {
   it('installs the lambda module', install(modules));
 
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
-});*/
+});
