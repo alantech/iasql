@@ -1,0 +1,4 @@
+{
+  "name": "iasql_functions",
+  "dependencies": ["iasql_platform"]
+}

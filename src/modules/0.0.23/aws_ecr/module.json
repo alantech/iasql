@@ -1,0 +1,4 @@
+{
+  "name": "aws_ecr",
+  "dependencies": ["iasql_platform", "aws_account"]
+}

@@ -1,0 +1,13 @@
+{
+  "name": "aws_ecs_fargate",
+  "dependencies": [
+    "iasql_platform",
+    "aws_account",
+    "aws_ecr",
+    "aws_elb",
+    "aws_security_group",
+    "aws_cloudwatch",
+    "aws_vpc",
+    "aws_iam"
+  ]
+}
