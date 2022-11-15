@@ -1113,6 +1113,7 @@ export async function commit(
           dbId,
           modulesWithChangesSorted,
           context,
+          force,
           toCreate,
           toUpdate,
           toReplace,
@@ -1128,6 +1129,7 @@ export async function commit(
         dbId,
         installedModulesSorted,
         context,
+        force,
         toCreate,
         toUpdate,
         toReplace,
@@ -1140,6 +1142,7 @@ export async function commit(
       dbId,
       installedModulesSorted,
       context,
+      force,
       toCreate,
       toUpdate,
       toReplace,
@@ -1412,6 +1415,7 @@ async function commitSync(
   dbId: string,
   relevantModules: ModuleInterface[],
   context: Context,
+  force: boolean,
   toCreate: Crupde,
   toUpdate: Crupde,
   toReplace: Crupde,
@@ -1458,7 +1462,7 @@ async function commitSync(
         context.orm,
         context,
         dbId,
-        false,
+        force,
       );
       const t3 = Date.now();
       logger.info(`Record acquisition time: ${t3 - t2}ms`);
@@ -1629,6 +1633,7 @@ async function commitApply(
   dbId: string,
   relevantModules: ModuleInterface[],
   context: Context,
+  force: boolean,
   toCreate: Crupde,
   toUpdate: Crupde,
   toReplace: Crupde,
@@ -1667,7 +1672,7 @@ async function commitApply(
       context.orm,
       context,
       dbId,
-      false,
+      force,
     );
     const comparators = mappers.map(mapper => mapper.equals);
     const idGens = mappers.map(mapper => mapper.entityId);
