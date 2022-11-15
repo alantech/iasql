@@ -65,9 +65,9 @@ Have you found missing endpoints? No problem, IaSQL can generate them for you. Y
 types of endpoints: gateway and interface. We're going to describe their main features and you could create
 the desired type in an automated way.
 
-## Endpoint interfaces
+## Interface endpoints
 
-An endpoint interface is an elastic network interface with a private IP address that serves as an entry
+An interface endpoint is an elastic network interface with a private IP address that serves as an entry
 point for traffic destined to a supported AWS service. As they use ENIs, they can benefit of security groups
 to control traffic. Policies can also be added to control access to those endpoints.
 
@@ -78,11 +78,11 @@ TCP traffic.
 An interface endpoint (except S3 interface endpoint) has corresponding private DNS hostnames, that can be
 used to access the resources.
 
-Endpoint interfaces cover a wide range of services such as S3, Lambda, API Gateway, etc...
+Interface endpoints cover a wide range of services such as S3, Lambda, API Gateway, etc...
 
 <p>
   <a href="https://app.iasql.com/#/button/Add S3 interface endpoints/--%20Inserts%20the%20missing%20endpoints%0Ainsert%20into%20endpoint_interface%28region%2C%20vpc_id%2C%20service%29%20select%20bucket.region%2C%20vpc.id%2C%20%27s3%27%20from%20bucket%20inner%20join%20vpc%0Aon%20bucket.region%3Dvpc.region%20where%20not%20exists%20%28select%20id%20from%20endpoint_interface%20where%20endpoint_interface.region%3Dbucket.region%20and%20endpoint_interface.vpc_id%3Dvpc.id%29%3B%0A--%20Preview%20the%20changes%0Aselect%20%2A%20from%20iasql_preview_apply%28%29%3B%0A--%20Apply%20the%20changes%0A--select%20%2A%20from%20iasql_apply%28%29%3B">
-    <button class="button button--lg button--primary">Add missing endpoint interfaces</button>
+    <button class="button button--lg button--primary">Add missing interface endpoint</button>
   </a>
 </p>
 
@@ -107,7 +107,7 @@ use the endpoint to access the service.
 
 Gateway endpoints only support S3 and DynamoDB services.
 
-<a href="https://app.iasql.com/#/button/Add S3 endpoint interfaces/--%20Inserts%20the%20missing%20endpoints%0Ainsert%20into%20endpoint_gateway%28region%2C%20vpc_id%2C%20service%29%20select%20bucket.region%2C%20vpc.id%2C%20%27s3%27%20from%20bucket%20inner%20join%20vpc%20on%20bucket.region%3Dvpc.region%20where%20not%20exists%20%28select%20id%20from%20endpoint_gateway%20where%20endpoint_gateway.region%3Dbucket.region%20and%20endpoint_gateway.vpc_id%3Dvpc.id%29%0A--%20Preview%20the%20changes%0Aselect%20%2A%20from%20iasql_preview_apply%28%29%3B%0A--%20Apply%20the%20changes%0A--select%20%2A%20from%20iasql_apply%28%29%3B">
+<a href="https://app.iasql.com/#/button/Add S3 interface endpoints/--%20Inserts%20the%20missing%20endpoints%0Ainsert%20into%20endpoint_gateway%28region%2C%20vpc_id%2C%20service%29%20select%20bucket.region%2C%20vpc.id%2C%20%27s3%27%20from%20bucket%20inner%20join%20vpc%20on%20bucket.region%3Dvpc.region%20where%20not%20exists%20%28select%20id%20from%20endpoint_gateway%20where%20endpoint_gateway.region%3Dbucket.region%20and%20endpoint_gateway.vpc_id%3Dvpc.id%29%0A--%20Preview%20the%20changes%0Aselect%20%2A%20from%20iasql_preview_apply%28%29%3B%0A--%20Apply%20the%20changes%0A--select%20%2A%20from%20iasql_apply%28%29%3B">
   <button class="button button--lg button--primary">Add missing endpoints gateways</button>
 </a>
 
@@ -121,6 +121,6 @@ other resources - please use a VM on the same region as the endpoint you want to
 
 <img src="/img/ec2_using_vpc.png" style={{ maxWidth: 500 }} />
 
-For endpoint interfaces, access also can be tested using the named endpoint:
+For interface endpoints, access also can be tested using the named endpoint:
 
 <img src="/img/s3_via_interface.png" style={{ maxWidth: 1200 }} />
