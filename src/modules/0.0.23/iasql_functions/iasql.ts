@@ -1088,7 +1088,7 @@ export async function commit(
     const t2 = Date.now();
     logger.info(`Setup took ${t2 - t1}ms`);
 
-    const crupde: { toCreate: Crupde; toUpdate: Crupde; toReplace: Crupde; toDelete: Crupde } = {
+    const crupdes: { toCreate: Crupde; toUpdate: Crupde; toReplace: Crupde; toDelete: Crupde } = {
       toCreate: {},
       toUpdate: {},
       toReplace: {},
@@ -1103,7 +1103,7 @@ export async function commit(
           modulesWithChangesSorted,
           context,
           force,
-          crupde,
+          crupdes,
           dryRun,
           changesToCommit,
         );
@@ -1111,10 +1111,10 @@ export async function commit(
       }
     } catch (e) {
       logger.info('Something failed. Starting commit apply phase for all modules');
-      return await commitApply(dbId, installedModulesSorted, context, force, crupde, dryRun);
+      return await commitApply(dbId, installedModulesSorted, context, force, crupdes, dryRun);
     }
     logger.info('Starting commit sync phase for all modules');
-    return await commitSync(dbId, installedModulesSorted, context, force, crupde, dryRun);
+    return await commitSync(dbId, installedModulesSorted, context, force, crupdes, dryRun);
   } catch (e: any) {
     debugObj(e);
     throw e;
@@ -1152,13 +1152,13 @@ export async function rollback(dbId: string, context: Context, force = false, or
     const t2 = Date.now();
     logger.info(`Setup took ${t2 - t1}ms`);
 
-    const crupde: { toCreate: Crupde; toUpdate: Crupde; toReplace: Crupde; toDelete: Crupde } = {
+    const crupdes: { toCreate: Crupde; toUpdate: Crupde; toReplace: Crupde; toDelete: Crupde } = {
       toCreate: {},
       toUpdate: {},
       toReplace: {},
       toDelete: {},
     };
-    return await commitSync(dbId, installedModulesSorted, context, force, crupde, false);
+    return await commitSync(dbId, installedModulesSorted, context, force, crupdes, false);
   } catch (e: any) {
     debugObj(e);
     throw e;
@@ -1286,7 +1286,7 @@ async function commitApply(
   relevantModules: ModuleInterface[],
   context: Context,
   force: boolean,
-  crupde: { toCreate: Crupde; toUpdate: Crupde; toReplace: Crupde; toDelete: Crupde },
+  crupdes: { toCreate: Crupde; toUpdate: Crupde; toReplace: Crupde; toDelete: Crupde },
   dryRun: boolean,
   changesToCommit?: IasqlAuditLog[],
 ): Promise<{ iasqlPlanVersion: number; rows: any[] }> {
@@ -1305,7 +1305,7 @@ async function commitApply(
   let cloudCount = -1;
   let bothCount = -1;
   let spinCount = 0;
-  const { toCreate, toUpdate, toReplace, toDelete } = crupde;
+  const { toCreate, toUpdate, toReplace, toDelete } = crupdes;
   do {
     const t2 = Date.now();
     logger.info('Starting outer loop');
@@ -1522,7 +1522,7 @@ async function commitSync(
   relevantModules: ModuleInterface[],
   context: Context,
   force: boolean,
-  crupde: { toCreate: Crupde; toUpdate: Crupde; toReplace: Crupde; toDelete: Crupde },
+  crupdes: { toCreate: Crupde; toUpdate: Crupde; toReplace: Crupde; toDelete: Crupde },
   dryRun: boolean,
 ): Promise<{ iasqlPlanVersion: number; rows: any[] }> {
   const oldOrm = context.orm;
@@ -1539,7 +1539,7 @@ async function commitSync(
   let cloudCount = -1;
   let bothCount = -1;
   let spinCount = 0;
-  const { toCreate, toUpdate, toReplace, toDelete } = crupde;
+  const { toCreate, toUpdate, toReplace, toDelete } = crupdes;
   do {
     const t2 = Date.now();
     ranFullUpdate = false;
