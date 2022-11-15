@@ -1,6 +1,7 @@
 import {
   Column,
   Entity,
+  Index,
   JoinColumn,
   JoinTable,
   ManyToMany,
@@ -52,6 +53,10 @@ export enum AuditLogChangeType {
   INSERT = 'INSERT',
   UPDATE = 'UPDATE',
   DELETE = 'DELETE',
+  START_COMMIT = 'START_COMMIT',
+  PREVIEW_START_COMMIT = 'PREVIEW_START_COMMIT',
+  END_COMMIT = 'END_COMMIT',
+  PREVIEW_END_COMMIT = 'PREVIEW_END_COMMIT',
 }
 
 @Entity()
@@ -59,8 +64,9 @@ export class IasqlAuditLog {
   @PrimaryGeneratedColumn()
   id: number;
 
+  @Index()
   @Column({
-    type: 'timestamp without time zone',
+    type: 'timestamp with time zone',
   })
   ts: Date;
 
