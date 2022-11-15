@@ -299,6 +299,8 @@ export class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
               SecurityGroupIds: e.securityGroups.map(s => s.groupId ?? '') ?? [],
             },
           };
+          console.log('i update vpc');
+          console.log(input);
           await updateFunctionConfiguration(client.lambdaClient, input);
           await waitUntilFunctionUpdated(client.lambdaClient, e.name);
 

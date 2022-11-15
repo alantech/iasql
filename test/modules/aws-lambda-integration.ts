@@ -347,7 +347,7 @@ describe('Lambda Integration Testing', () => {
     'adds a new security group with non-default vpc',
     query(`  
     INSERT INTO security_group (description, group_name, vpc_id)
-    VALUES ('Lambda security group for non-default vpc', '${prefix}lambdanotdefault', (SELECT id FROM vpc WHERE cidr_block='192.${randIPBlock}.0.0/24' AND region='${region}' limit 1));
+    VALUES ('Lambda security group for non-default vpc', '${prefix}lambdanotdefault', (SELECT id FROM vpc WHERE cidr_block='192.${randIPBlock}.0.0/16' AND region='${region}' limit 1));
   `),
   );
 
