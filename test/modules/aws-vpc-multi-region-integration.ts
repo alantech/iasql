@@ -548,6 +548,16 @@ describe('VPC Multiregion Integration Testing', () => {
     'deletes the vpcs',
     query(
       `
+    DELETE FROM security_group_rule
+    WHERE security_group_id = (
+      SELECT id
+      FROM security_group
+      WHERE vpc_id = (
+        SELECT id
+        FROM vpc
+        WHERE cidr_block='192.${randIPBlock}.0.0/16' AND tags ->> 'name' = '${prefix}-1' AND region = '${region}'
+      )
+    );
     WITH vpc as (
       SELECT id
       FROM vpc
@@ -563,6 +573,16 @@ describe('VPC Multiregion Integration Testing', () => {
     DELETE FROM vpc
     WHERE cidr_block='192.${randIPBlock}.0.0/16' AND tags ->> 'name' = '${prefix}-1' AND region = '${region}';
 
+    DELETE FROM security_group_rule
+    WHERE security_group_id = (
+      SELECT id
+      FROM security_group
+      WHERE vpc_id = (
+        SELECT id
+        FROM vpc
+        WHERE cidr_block='191.${randIPBlock}.0.0/16' AND region = 'us-east-1'
+      )
+    );
     WITH vpc as (
       SELECT id
       FROM vpc
