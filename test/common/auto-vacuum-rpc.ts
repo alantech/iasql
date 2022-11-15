@@ -11,8 +11,6 @@ jest.setTimeout(360000);
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown());
 
-let username: string, password: string;
-
 describe('Testing auto vacuum rpcs', () => {
   it('creates a new test db', done => void iasql.connect(dbAlias, uid, email).then(...finish(done)));
 
