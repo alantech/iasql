@@ -1357,19 +1357,6 @@ async function commitApply(
           rows: [],
         };
       }
-      const updatePlan = (crupde: Crupde, entityName: string, mapper: MapperInterface<any>, es: any[]) => {
-        crupde[entityName] = crupde[entityName] ?? [];
-        const rs = es.map((e: any) => ({
-          id: e?.id?.toString() ?? '',
-          description: mapper.entityId(e),
-        }));
-        rs.forEach(r => {
-          if (
-            !crupde[entityName].some(r2 => Object.is(r2.id, r.id) && Object.is(r2.description, r.description))
-          )
-            crupde[entityName].push(r);
-        });
-      };
 
       let changesByEntity: { [key: string]: any[] };
       if (changesToCommit?.length) {
@@ -1406,10 +1393,10 @@ async function commitApply(
           );
         }
         if (r.diff.entitiesInDbOnly.length > 0) {
-          updatePlan(toCreate, r.table, r.mapper, r.diff.entitiesInDbOnly);
+          updateCommitPlan(toCreate, r.table, r.mapper, r.diff.entitiesInDbOnly);
         }
         if (r.diff.entitiesInAwsOnly.length > 0) {
-          updatePlan(toDelete, r.table, r.mapper, r.diff.entitiesInAwsOnly);
+          updateCommitPlan(toDelete, r.table, r.mapper, r.diff.entitiesInAwsOnly);
         }
         if (r.diff.entitiesChanged.length > 0) {
           const updates: any[] = [];
@@ -1422,8 +1409,8 @@ async function commitApply(
               replaces.push(e.db);
             }
           });
-          if (updates.length > 0) updatePlan(toUpdate, r.table, r.mapper, updates);
-          if (replaces.length > 0) updatePlan(toReplace, r.table, r.mapper, replaces);
+          if (updates.length > 0) updateCommitPlan(toUpdate, r.table, r.mapper, updates);
+          if (replaces.length > 0) updateCommitPlan(toReplace, r.table, r.mapper, replaces);
         }
       });
       if (dryRun) {
@@ -1602,19 +1589,6 @@ async function commitSync(
           rows: [],
         };
       }
-      const updatePlan = (crupde: Crupde, entityName: string, mapper: MapperInterface<any>, es: any[]) => {
-        crupde[entityName] = crupde[entityName] ?? [];
-        const rs = es.map((e: any) => ({
-          id: e?.id?.toString() ?? '',
-          description: mapper.entityId(e),
-        }));
-        rs.forEach(r => {
-          if (
-            !crupde[entityName].some(r2 => Object.is(r2.id, r.id) && Object.is(r2.description, r.description))
-          )
-            crupde[entityName].push(r);
-        });
-      };
       records.forEach(r => {
         r.diff = findDiff(r.dbEntity, r.cloudEntity, r.idGen, r.comparator);
         // Only filter changes done after this commit started to avoid overrides.
@@ -1628,17 +1602,17 @@ async function commitSync(
           (o: any) => !changesAfterCommitByEntity[r.table]?.find(re => r.idGen(o.db) === r.idGen(re)),
         );
         if (r.diff.entitiesInDbOnly.length > 0) {
-          updatePlan(toDelete, r.table, r.mapper, r.diff.entitiesInDbOnly);
+          updateCommitPlan(toDelete, r.table, r.mapper, r.diff.entitiesInDbOnly);
         }
         if (r.diff.entitiesInAwsOnly.length > 0) {
-          updatePlan(toCreate, r.table, r.mapper, r.diff.entitiesInAwsOnly);
+          updateCommitPlan(toCreate, r.table, r.mapper, r.diff.entitiesInAwsOnly);
         }
         if (r.diff.entitiesChanged.length > 0) {
           const updates: any[] = [];
           r.diff.entitiesChanged.forEach((e: any) => {
             updates.push(e.cloud);
           });
-          if (updates.length > 0) updatePlan(toUpdate, r.table, r.mapper, updates);
+          if (updates.length > 0) updateCommitPlan(toUpdate, r.table, r.mapper, updates);
         }
       });
       if (dryRun) {
@@ -1744,6 +1718,18 @@ async function commitSync(
   await context.orm.dropConn();
   context.orm = oldOrm;
   return iasqlPlanV3(toCreate, toUpdate, toReplace, toDelete);
+}
+
+function updateCommitPlan(crupde: Crupde, entityName: string, mapper: MapperInterface<any>, es: any[]) {
+  crupde[entityName] = crupde[entityName] ?? [];
+  const rs = es.map((e: any) => ({
+    id: e?.id?.toString() ?? '',
+    description: mapper.entityId(e),
+  }));
+  rs.forEach(r => {
+    if (!crupde[entityName].some(r2 => Object.is(r2.id, r.id) && Object.is(r2.description, r.description)))
+      crupde[entityName].push(r);
+  });
 }
 
 async function getChangesByEntity(
