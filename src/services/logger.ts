@@ -16,7 +16,7 @@ const logFactory: LogFunctionFactory = scope => {
     const logfn = createLogger(config.logger.logDnaKey, {
       levels,
     });
-    logfn.on('error', (event) => {
+    logfn.on('error', event => {
       if (event.retrying) return;
       console.log('Fatal error in LogDNA', event);
     });
