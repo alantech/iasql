@@ -6,7 +6,7 @@ name: CI
 # events but only for the main branch.
 on:
   push:
-    branches: [main, test-suite-update]
+    branches: [main]
     paths: ['.github/workflows/ci.yml', 'src/**', 'test/**', 'package.json', 'yarn.lock']
   pull_request:
     branches: [main, iasql-commit]
@@ -244,21 +244,21 @@ jobs:
           # Shut down the engine
           docker-compose down
 
-      # - name: Run modules tests
-      #   timeout-minutes: 65
-      #   env:
-      #     IASQL_ENV: test
-      #     MODULES: ${{ needs.setup-module-test.outputs['test-modules'] }}
-      #     ACCOUNT_INDEX: ${{ steps['determine-test-account'].outputs['account_index'] }}
-      #     ACCESS_KEY_IDS: ${{ secrets.ACCESS_KEY_IDS }}
-      #     SECRET_ACCESS_KEYS: ${{ secrets.SECRET_ACCESS_KEYS }}
-      #     STAGING_ACCESS_KEY_ID: ${{ secrets.STAGING_ACCESS_KEY_ID }}
-      #     STAGING_SECRET_ACCESS_KEY: ${{ secrets.STAGING_SECRET_ACCESS_KEY }}
-      #     GH_PAT: ${{ secrets.GH_PAT }}
-      #   run: |
-      #     export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
-      #     export AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
-      #     yarn test $(echo $MODULES | jq -r '."${{matrix.module}}"')
+      - name: Run modules tests
+        timeout-minutes: 65
+        env:
+          IASQL_ENV: test
+          MODULES: ${{ needs.setup-module-test.outputs['test-modules'] }}
+          ACCOUNT_INDEX: ${{ steps['determine-test-account'].outputs['account_index'] }}
+          ACCESS_KEY_IDS: ${{ secrets.ACCESS_KEY_IDS }}
+          SECRET_ACCESS_KEYS: ${{ secrets.SECRET_ACCESS_KEYS }}
+          STAGING_ACCESS_KEY_ID: ${{ secrets.STAGING_ACCESS_KEY_ID }}
+          STAGING_SECRET_ACCESS_KEY: ${{ secrets.STAGING_SECRET_ACCESS_KEY }}
+          GH_PAT: ${{ secrets.GH_PAT }}
+        run: |
+          export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
+          export AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
+          yarn test $(echo $MODULES | jq -r '."${{matrix.module}}"')
 
       - name: Return test account
         if: always()
