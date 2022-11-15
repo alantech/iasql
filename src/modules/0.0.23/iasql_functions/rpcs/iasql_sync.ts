@@ -1,6 +1,5 @@
 import { IasqlFunctions } from '..';
 import { Context, RpcBase, RpcResponseObject } from '../../../interfaces';
-import * as iasql from '../iasql';
 
 export class IasqlSync extends RpcBase {
   module: IasqlFunctions;
@@ -11,12 +10,11 @@ export class IasqlSync extends RpcBase {
     description: 'varchar',
   } as const;
   call = async (
-    dbId: string,
+    _dbId: string,
     _dbUser: string,
-    ctx: Context,
+    _ctx: Context,
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
-    const res = (await iasql.sync(dbId, false, false, ctx)).rows;
-    return res.map(rec => super.formatObjKeysToSnakeCase(rec) as RpcResponseObject<typeof this.outputTable>);
+    throw new Error(`iasql_sync() has been deprecated in favor of iasql_commit()`);
   };
 
   constructor(module: IasqlFunctions) {
