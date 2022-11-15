@@ -601,14 +601,14 @@ describe('Lambda Integration Testing', () => {
   it(
     'deletes security group rules',
     query(`
-      DELETE FROM security_group_rule WHERE description='${prefix}lambda_rule_http' or description='${prefix}lambda_rule_egress';
+      DELETE FROM security_group_rule WHERE description='${prefix}lambda_rule_http' or description='${prefix}lambda_rule_egress' AND region='${region}';
     `),
   );
 
   it(
     'deletes security group',
     query(`
-      DELETE FROM security_group WHERE group_name = '${sgGroupName}' or group_name='${prefix}lambdanotdefault';
+      DELETE FROM security_group WHERE group_name = '${sgGroupName}' or group_name='${prefix}lambdanotdefault' AND region='${region}';
     `),
   );
 
@@ -620,13 +620,13 @@ describe('Lambda Integration Testing', () => {
     WITH vpc as (
       SELECT id
       FROM vpc
-      WHERE cidr_block = '192.${randIPBlock}.0.0/16'
+      WHERE cidr_block = '192.${randIPBlock}.0.0/16' AND region='${region}'
     )
     DELETE FROM subnet
     USING vpc
     WHERE vpc_id = vpc.id;
 
-    DELETE FROM vpc WHERE cidr_block='192.${randIPBlock}.0.0/16'
+    DELETE FROM vpc WHERE cidr_block='192.${randIPBlock}.0.0/16' AND region='${region}';
   `),
   );
 
