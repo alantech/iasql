@@ -8,6 +8,7 @@ import {
   SubnetMapper,
   VpcMapper,
 } from './mappers';
+import { RouteTableMapper } from './mappers/route_table';
 
 export class AwsVpcModule extends ModuleBase {
   subnet: SubnetMapper;
@@ -17,6 +18,7 @@ export class AwsVpcModule extends ModuleBase {
   endpointGateway: EndpointGatewayMapper;
   endpointInterface: EndpointInterfaceMapper;
   availabilityZone: AvailabilityZoneMapper;
+  routeTable: RouteTableMapper;
 
   constructor() {
     super();
@@ -27,7 +29,9 @@ export class AwsVpcModule extends ModuleBase {
     this.endpointGateway = new EndpointGatewayMapper(this);
     this.endpointInterface = new EndpointInterfaceMapper(this);
     this.availabilityZone = new AvailabilityZoneMapper(this);
+    this.routeTable = new RouteTableMapper(this);
     super.init();
   }
 }
+
 export const awsVpcModule = new AwsVpcModule();

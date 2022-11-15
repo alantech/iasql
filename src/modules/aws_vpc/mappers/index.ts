@@ -5,3 +5,4 @@ export * from './endpoint_interface';
 export * from './nat_gateway';
 export * from './subnet';
 export * from './vpc';
+export * from './route_table';
