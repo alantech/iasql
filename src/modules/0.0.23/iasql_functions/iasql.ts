@@ -1760,26 +1760,27 @@ async function getChangesByEntity(
     for (const e of Object.keys(entityMapper)) {
       const entity = entityMapper[e].entity;
       const entityName = entity.name;
-      let changedE: any;
-      let changedE2: any;
+      const changedEntities: any[] = [];
       const metadata = await orm.getEntityMetadata(entity);
       if (metadata.tableName === c.tableName) {
         if ([AuditLogChangeType.INSERT, AuditLogChangeType.UPDATE].includes(c.changeType)) {
           // When we are inserting or updating we are sure that the value exists in the database.
           // We need to look for the primary database columns and then get the object.
           const primaryCols = metadata.primaryColumns.map(pc => pc.databaseName); // databaseName should return in snake_case
-          changedE = await orm.findOne(entity, {
+          const changedE = await orm.findOne(entity, {
             where: Object.fromEntries(
               Object.entries(c.change.change)
                 .filter(([k, _]: [string, any]) => primaryCols.includes(k))
                 .map(([k, v]: [string, any]) => [camelCase(k), v]),
             ),
           });
+          if (changedE) changedEntities.push(changedE);
+          // Update case. We cannot query the entity since it is not in the DB, but we can do our best recreating it.
           if (c.change.original) {
-            // Update case. We cannot query the entity since it is not in the DB, but we can do our best recreating it.
-            changedE2 = {};
+            // TODO: dry this
+            const originalE: any = {};
             Object.entries(c.change.original).forEach(
-              ([k, v]: [string, any]) => (changedE2[camelCase(k)] = v),
+              ([k, v]: [string, any]) => (originalE[camelCase(k)] = v),
             );
             // We try to reconstruct relations if possible
             const oneToManyRelations = metadata.ownRelations
@@ -1796,11 +1797,11 @@ async function getChangesByEntity(
               const relEs = await orm.find(rel.targetEntity, {
                 where: Object.fromEntries(
                   rel.colsWithReferences.map(cwr => {
-                    return [cwr[1], changedE2[cwr[0] ?? '']];
+                    return [cwr[1], originalE[cwr[0] ?? '']];
                   }),
                 ),
               });
-              changedE2[rel.propertyName] = relEs;
+              originalE[rel.propertyName] = relEs;
             }
             const manyToOneRelations = metadata.ownRelations
               .filter(or => or.isEager && or.isManyToOne)
@@ -1816,16 +1817,18 @@ async function getChangesByEntity(
               const relE = await orm.findOne(rel.targetEntity, {
                 where: Object.fromEntries(
                   rel.colsWithReferences.map(cwr => {
-                    return [cwr[1], changedE2[cwr[0] ?? '']];
+                    return [cwr[1], originalE[cwr[0] ?? '']];
                   }),
                 ),
               });
-              changedE2[rel.propertyName] = relE;
+              originalE[rel.propertyName] = relE;
             }
+
+            if (Object.keys(originalE).length) changedEntities.push(originalE);
           }
         } else if (c.changeType === AuditLogChangeType.DELETE) {
-          changedE = {};
-          // we cannot get the exact entity because does not exists in the db anymore, but we recreate the object with the information we have for it
+          const changedE: any = {};
+          // we cannot get the exact entity because does not exists in the db anymore, but we recreate the object with the information we have
           Object.entries(c.change.original).forEach(([k, v]: [string, any]) => (changedE[camelCase(k)] = v));
           // We try to reconstruct relations if possible
           const oneToManyRelations = metadata.ownRelations
@@ -1868,6 +1871,7 @@ async function getChangesByEntity(
             });
             changedE[rel.propertyName] = relE;
           }
+          if (Object.keys(changedE).length) changedEntities.push(changedE);
         }
       } else {
         // It might be a join table from this entity
@@ -1885,7 +1889,7 @@ async function getChangesByEntity(
         if (Object.keys(joinTableCols).includes(c.tableName)) {
           // Here in any case we know that the parent entity should exists, because is not possible to be in a join table and relate to something that is not in the db.
           const changeObj = c.changeType === AuditLogChangeType.DELETE ? c.change.original : c.change.change;
-          changedE = await orm.findOne(entity, {
+          const changedE = await orm.findOne(entity, {
             where: Object.fromEntries(
               Object.entries(changeObj)
                 .filter(([k, _]: [string, any]) => !!joinTableCols[c.tableName].find(jc => jc[0] === k))
@@ -1895,16 +1899,12 @@ async function getChangesByEntity(
                 }),
             ),
           });
+          if (changedE) changedEntities.push(changedE);
         }
       }
-      if (changedE) {
+      if (changedEntities.length) {
         changesByEntity[entityName] = changesByEntity[entityName] ?? [];
-        changesByEntity[entityName].push(changedE);
-      }
-      // TODO: we can definetely do better here but it is just to test an hypothesis.
-      if (changedE2) {
-        changesByEntity[entityName] = changesByEntity[entityName] ?? [];
-        changesByEntity[entityName].push(changedE2);
+        changesByEntity[entityName].push(...changedEntities);
       }
     }
   }
