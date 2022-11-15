@@ -16,6 +16,10 @@ const logFactory: LogFunctionFactory = scope => {
     const logfn = createLogger(config.logger.logDnaKey, {
       levels,
     });
+    logfn.on('error', (event) => {
+      if (event.retrying) return;
+      console.log('Fatal error in LogDNA', event);
+    });
     if (config.logger.forceLocal) {
       return (level, message, meta) => {
         console.log(`${level}: ${message}`, meta);
