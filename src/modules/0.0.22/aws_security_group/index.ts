@@ -545,6 +545,13 @@ class SecurityGroupRuleMapper extends MapperBase<SecurityGroupRule> {
           );
         }
 
+        // if the source security group is not from the same vpc, fail
+        if (en.sourceSecurityGroup?.vpc?.id !== en.securityGroup.vpc?.id) {
+          throw new Error(
+            'Cannot create a security group rule with a source security group from another vpc',
+          );
+        }
+
         // get details for security group if we have
         let groupName: string | undefined;
         let groupId: string | undefined;
