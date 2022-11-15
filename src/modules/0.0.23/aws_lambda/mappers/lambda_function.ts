@@ -37,7 +37,7 @@ export class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
     this.updateableTagsEq(a, b) &&
     this.restorableFunctionFieldsEq(a, b) &&
     this.updateableCodeFieldsEq(a, b) &&
-    this.updateableConfigFieldsEq(a, b);
+    this.updateableVpcConfigFieldsEq(a, b);
 
   updateableFunctionFieldsEq(a: LambdaFunction, b: LambdaFunction) {
     return (
@@ -111,13 +111,20 @@ export class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
     return isEqual(a.tags, b.tags);
   }
 
-  updateableConfigFieldsEq(a: LambdaFunction, b: LambdaFunction) {
+  updateableVpcConfigFieldsEq(a: LambdaFunction, b: LambdaFunction) {
     const result =
       Object.is(a.securityGroups?.length, b.securityGroups?.length) &&
-      (a.securityGroups?.every(asg => !!b.securityGroups?.find(bsg => Object.is(asg.groupId, bsg.groupId))) ??
-        false) &&
-      Object.is(a.subnets?.length, b.subnets?.length) &&
-      (a.subnets?.every(asn => !!b.subnets?.find(bsn => Object.is(asn, bsn))) ?? false);
+      (((a.securityGroups ?? []).length == 0 && (b.securityGroups ?? []).length == 0) ||
+        ((a.securityGroups ?? []).every(
+          asg => !!(b.securityGroups ?? []).find(bsg => Object.is(asg.groupId, bsg.groupId)),
+        ) ??
+          false)) &&
+      Object.is((a.subnets ?? []).length, (b.subnets ?? []).length) &&
+      (((a.subnets ?? []).length == 0 && (b.subnets ?? []).length == 0) ||
+        ((a.subnets ?? []).every(asn => !!(b.subnets ?? []).find(bsn => Object.is(asn, bsn))) ?? false));
+
+    console.log('vpc updateable');
+    console.log(result);
     return result;
   }
 
@@ -252,14 +259,36 @@ export class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
       }
     },
     update: async (es: LambdaFunction[], ctx: Context) => {
+      console.log('in update');
       const out = [];
       for (const e of es) {
         const client = (await ctx.getAwsClient(e.region)) as AWS;
         const cloudRecord = ctx?.memo?.cloud?.LambdaFunction?.[this.entityId(e)];
-        if (
-          !this.updateableFunctionFieldsEq(cloudRecord, e) ||
-          !this.updateableConfigFieldsEq(cloudRecord, e)
-        ) {
+        if (!this.updateableFunctionFieldsEq(cloudRecord, e)) {
+          console.log('in function');
+          // Update function configuration
+          const input: UpdateFunctionConfigurationCommandInput = {
+            FunctionName: e.name,
+            Role: e.role.arn,
+            Handler: e.handler,
+            Description: e.description,
+            MemorySize: e.memorySize,
+            Environment: {
+              Variables: e.environment,
+            },
+            Runtime: e.runtime,
+            VpcConfig: {
+              SubnetIds: e.subnets ?? [],
+              SecurityGroupIds: e.securityGroups.map(s => s.groupId ?? '') ?? [],
+            },
+          };
+          await updateFunctionConfiguration(client.lambdaClient, input);
+          await waitUntilFunctionUpdated(client.lambdaClient, e.name);
+        }
+
+        if (!this.updateableVpcConfigFieldsEq(cloudRecord, e)) {
+          console.log('in vpc');
+
           // Update function configuration
           const input: UpdateFunctionConfigurationCommandInput = {
             FunctionName: e.name,
@@ -287,6 +316,8 @@ export class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
         }
 
         if (!this.updateableCodeFieldsEq(cloudRecord, e)) {
+          console.log('in code');
+
           // Update function code
           const input: UpdateFunctionCodeCommandInput = {
             FunctionName: e.name,
@@ -297,6 +328,8 @@ export class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
           await waitUntilFunctionUpdated(client.lambdaClient, e.name);
         }
         if (!this.updateableTagsEq(cloudRecord, e)) {
+          console.log('in tags');
+
           // Update tags
           const tagKeys = Object.keys(cloudRecord.tags ?? {});
           if (tagKeys && tagKeys.length) await removeFunctionTags(client.lambdaClient, e.arn, tagKeys);
