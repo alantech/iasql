@@ -1,6 +1,6 @@
 import * as levenshtein from 'fastest-levenshtein';
 import { default as cloneDeep } from 'lodash.clonedeep';
-import { Not, In, Between, LessThan, MoreThan } from 'typeorm';
+import { Not, In, Between, LessThan, MoreThan, EntityMetadata } from 'typeorm';
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
 import { camelCase, snakeCase } from 'typeorm/util/StringUtils';
 
@@ -1775,103 +1775,16 @@ async function getChangesByEntity(
             ),
           });
           if (changedE) changedEntities.push(changedE);
-          // Update case. We cannot query the entity since it is not in the DB, but we can do our best recreating it.
+          // If it is an UPDATE case we need to save as a change the original entity in case a `cloudId` property changed.
+          // We cannot query the original entity since it is not in the DB, but we can do our best recreating it.
           if (c.change.original) {
-            // TODO: dry this
-            const originalE: any = {};
-            Object.entries(c.change.original).forEach(
-              ([k, v]: [string, any]) => (originalE[camelCase(k)] = v),
-            );
-            // We try to reconstruct relations if possible
-            const oneToManyRelations = metadata.ownRelations
-              .filter(or => or.isEager && or.isOneToMany)
-              .map(or => ({
-                targetEntity: or.inverseEntityMetadata.target,
-                propertyName: or.propertyName,
-                colsWithReferences: or.joinColumns.map(jc => [
-                  jc.databaseName,
-                  jc.referencedColumn?.databaseName,
-                ]),
-              }));
-            for (const rel of oneToManyRelations) {
-              const relEs = await orm.find(rel.targetEntity, {
-                where: Object.fromEntries(
-                  rel.colsWithReferences.map(cwr => {
-                    return [cwr[1], originalE[cwr[0] ?? '']];
-                  }),
-                ),
-              });
-              originalE[rel.propertyName] = relEs;
-            }
-            const manyToOneRelations = metadata.ownRelations
-              .filter(or => or.isEager && or.isManyToOne)
-              .map(or => ({
-                targetEntity: or.inverseEntityMetadata.target,
-                propertyName: or.propertyName,
-                colsWithReferences: or.joinColumns.map(jc => [
-                  jc.databaseName,
-                  jc.referencedColumn?.databaseName,
-                ]),
-              }));
-            for (const rel of manyToOneRelations) {
-              const relE = await orm.findOne(rel.targetEntity, {
-                where: Object.fromEntries(
-                  rel.colsWithReferences.map(cwr => {
-                    return [cwr[1], originalE[cwr[0] ?? '']];
-                  }),
-                ),
-              });
-              originalE[rel.propertyName] = relE;
-            }
-
-            if (Object.keys(originalE).length) changedEntities.push(originalE);
+            const originalE = await recreateEntity(c.change.original, metadata, orm);
+            if (originalE) changedEntities.push(originalE);
           }
         } else if (c.changeType === AuditLogChangeType.DELETE) {
-          const changedE: any = {};
-          // we cannot get the exact entity because does not exists in the db anymore, but we recreate the object with the information we have
-          Object.entries(c.change.original).forEach(([k, v]: [string, any]) => (changedE[camelCase(k)] = v));
-          // We try to reconstruct relations if possible
-          const oneToManyRelations = metadata.ownRelations
-            .filter(or => or.isEager && or.isOneToMany)
-            .map(or => ({
-              targetEntity: or.inverseEntityMetadata.target,
-              propertyName: or.propertyName,
-              colsWithReferences: or.joinColumns.map(jc => [
-                jc.databaseName,
-                jc.referencedColumn?.databaseName,
-              ]),
-            }));
-          for (const rel of oneToManyRelations) {
-            const relEs = await orm.find(rel.targetEntity, {
-              where: Object.fromEntries(
-                rel.colsWithReferences.map(cwr => {
-                  return [cwr[1], changedE[cwr[0] ?? '']];
-                }),
-              ),
-            });
-            changedE[rel.propertyName] = relEs;
-          }
-          const manyToOneRelations = metadata.ownRelations
-            .filter(or => or.isEager && or.isManyToOne)
-            .map(or => ({
-              targetEntity: or.inverseEntityMetadata.target,
-              propertyName: or.propertyName,
-              colsWithReferences: or.joinColumns.map(jc => [
-                jc.databaseName,
-                jc.referencedColumn?.databaseName,
-              ]),
-            }));
-          for (const rel of manyToOneRelations) {
-            const relE = await orm.findOne(rel.targetEntity, {
-              where: Object.fromEntries(
-                rel.colsWithReferences.map(cwr => {
-                  return [cwr[1], changedE[cwr[0] ?? '']];
-                }),
-              ),
-            });
-            changedE[rel.propertyName] = relE;
-          }
-          if (Object.keys(changedE).length) changedEntities.push(changedE);
+          // We cannot get the exact entity because does not exists in the db anymore, but we recreate the object with the information we have
+          const originalE = await recreateEntity(c.change.original, metadata, orm);
+          if (originalE) changedEntities.push(originalE);
         }
       } else {
         // It might be a join table from this entity
@@ -1887,7 +1800,7 @@ async function getChangesByEntity(
               ])),
           ); // databaseName should return in snake_case
         if (Object.keys(joinTableCols).includes(c.tableName)) {
-          // Here in any case we know that the parent entity should exists, because is not possible to be in a join table and relate to something that is not in the db.
+          // Here we know for a fact that the parent entity exists, because it is not possible to be in a join table and relate to something that is not in the db.
           const changeObj = c.changeType === AuditLogChangeType.DELETE ? c.change.original : c.change.change;
           const changedE = await orm.findOne(entity, {
             where: Object.fromEntries(
@@ -1909,6 +1822,57 @@ async function getChangesByEntity(
     }
   }
   return changesByEntity;
+}
+
+async function recreateEntity(
+  originalChange: any,
+  entityMetadata: EntityMetadata,
+  orm: TypeormWrapper,
+): Promise<any | undefined> {
+  const originalE: any = {};
+  // Recreate object with original properties
+  Object.entries(originalChange).forEach(([k, v]: [string, any]) => (originalE[camelCase(k)] = v));
+  await recreateRelation('OneToMany', originalE, entityMetadata, orm);
+  await recreateRelation('ManyToOne', originalE, entityMetadata, orm);
+  await recreateRelation('OneToOne', originalE, entityMetadata, orm);
+  return Object.keys(originalE).length ? originalE : undefined;
+}
+
+async function recreateRelation(
+  rel: 'OneToMany' | 'ManyToOne' | 'OneToOne',
+  mutE: any,
+  entityMetadata: EntityMetadata,
+  orm: TypeormWrapper,
+) {
+  const isSingleResult = rel !== 'OneToMany';
+  const relations = entityMetadata.ownRelations
+    .filter(or => or.isEager && or[`is${rel}`])
+    .map(or => ({
+      targetEntity: or.inverseEntityMetadata.target,
+      propertyName: or.propertyName,
+      colsWithReferences: or.joinColumns.map(jc => [jc.databaseName, jc.referencedColumn?.databaseName]),
+    }));
+  for (const r of relations) {
+    if (isSingleResult) {
+      const relE = await orm.findOne(r.targetEntity, {
+        where: Object.fromEntries(
+          r.colsWithReferences.map(cwr => {
+            return [cwr[1], mutE[cwr[0] ?? '']];
+          }),
+        ),
+      });
+      mutE[r.propertyName] = relE;
+    } else {
+      const relEs = await orm.find(r.targetEntity, {
+        where: Object.fromEntries(
+          r.colsWithReferences.map(cwr => {
+            return [cwr[1], mutE[cwr[0] ?? '']];
+          }),
+        ),
+      });
+      mutE[r.propertyName] = relEs;
+    }
+  }
 }
 
 function indexTables(mods: ModuleInterface[]): { [key: string]: ModuleInterface } {
