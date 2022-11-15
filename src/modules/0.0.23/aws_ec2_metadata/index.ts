@@ -34,6 +34,7 @@ class InstanceMetadataMapper extends MapperBase<InstanceMetadata> {
       ctx,
       awsEc2Module.instance.generateId({ instanceId: out.instanceId, region }),
     );
+    if (!ins?.id) return undefined;
     out.id = ins.id;
     out.architecture = instance.Architecture as Architecture;
     if (!instance.PrivateIpAddress) return undefined;
