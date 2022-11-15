@@ -1051,32 +1051,19 @@ export async function commit(
   await throwIfUpgrading(dbId, force);
   const versionString = await TypeormWrapper.getVersionString(dbId);
   const importedModules = await getImportedModules(dbId, versionString, force);
+  // We save the incoming orm from context if any and re-assign it before exiting
   const parentOrm = context?.orm;
   let orm: TypeormWrapper | null = null;
   try {
     orm = ormOpt ? ormOpt : await TypeormWrapper.createConn(dbId);
     context.orm = orm;
-    const newStartCommit = await insertCommit(orm, dryRun ? 'preview_start' : 'start');
+
+    const newStartCommit: IasqlAuditLog = await insertCommit(orm, dryRun ? 'preview_start' : 'start');
     if (dryRun) context.previewStartCommit = newStartCommit;
     else context.startCommit = newStartCommit;
     const previousStartCommit = await getPreviousStartCommit(orm, newStartCommit.ts);
-    const changesToCommit: IasqlAuditLog[] = await orm.find(IasqlAuditLog, {
-      order: { ts: 'DESC' },
-      where: {
-        changeType: Not(
-          In([
-            AuditLogChangeType.START_COMMIT,
-            AuditLogChangeType.PREVIEW_START_COMMIT,
-            AuditLogChangeType.END_COMMIT,
-            AuditLogChangeType.PREVIEW_END_COMMIT,
-          ]),
-        ),
-        ts: previousStartCommit
-          ? Between(previousStartCommit.ts, newStartCommit.ts)
-          : LessThan(newStartCommit.ts),
-        user: Not(config.db.user),
-      },
-    });
+
+    const changesToCommit = await getChangesToCommit(orm, newStartCommit, previousStartCommit);
     const tablesWithChanges = [...new Set(changesToCommit.map(c => c.tableName))];
 
     const installedModulesNames = (await orm.find(IasqlModule)).map((m: any) => m.name);
@@ -1092,18 +1079,22 @@ export async function commit(
       versionString,
     );
 
-    const t2 = Date.now();
-    logger.info(`Setup took ${t2 - t1}ms`);
-
-    const toCreate: Crupde = {};
-    const toUpdate: Crupde = {};
-    const toReplace: Crupde = {}; // Not actually used in sync mode, at least right now
-    const toDelete: Crupde = {};
     const modulesWithChangesSorted: ModuleInterface[] = sortModules(
       modulesWithChanges,
       installedModulesNames,
     );
     const installedModulesSorted: ModuleInterface[] = sortModules(installedModules, installedModulesNames);
+
+    const t2 = Date.now();
+    logger.info(`Setup took ${t2 - t1}ms`);
+
+    const crupde: { toCreate: Crupde; toUpdate: Crupde; toReplace: Crupde; toDelete: Crupde } = {
+      toCreate: {},
+      toUpdate: {},
+      toReplace: {},
+      toDelete: {},
+    };
+
     try {
       if (modulesWithChanges.length) {
         logger.info('Starting commit apply phase for modules with changes');
@@ -1112,10 +1103,7 @@ export async function commit(
           modulesWithChangesSorted,
           context,
           force,
-          toCreate,
-          toUpdate,
-          toReplace,
-          toDelete,
+          crupde,
           dryRun,
           changesToCommit,
         );
@@ -1123,36 +1111,60 @@ export async function commit(
       }
     } catch (e) {
       logger.info('Something failed. Starting commit apply phase for all modules');
-      return await commitApply(
-        dbId,
-        installedModulesSorted,
-        context,
-        force,
-        toCreate,
-        toUpdate,
-        toReplace,
-        toDelete,
-        dryRun,
-      );
+      return await commitApply(dbId, installedModulesSorted, context, force, crupde, dryRun);
     }
     logger.info('Starting commit sync phase for all modules');
-    return await commitSync(
-      dbId,
-      installedModulesSorted,
-      context,
-      force,
-      toCreate,
-      toUpdate,
-      toReplace,
-      toDelete,
-      dryRun,
-    );
+    return await commitSync(dbId, installedModulesSorted, context, force, crupde, dryRun);
   } catch (e: any) {
     debugObj(e);
     throw e;
   } finally {
     // Create end commit object
     await insertCommit(orm, dryRun ? 'preview_end' : 'end');
+    // do not drop the conn if it was provided
+    if (orm !== ormOpt) orm?.dropConn();
+    if (parentOrm) context.orm = parentOrm;
+  }
+}
+
+export async function rollback(dbId: string, context: Context, force = false, ormOpt?: TypeormWrapper) {
+  const t1 = Date.now();
+  logger.info(`Sync to ${dbId}`);
+  await throwIfUpgrading(dbId, force);
+  const versionString = await TypeormWrapper.getVersionString(dbId);
+  const importedModules = await getImportedModules(dbId, versionString, force);
+  // We save the incoming orm from context if any and re-assign it before exiting
+  const parentOrm = context?.orm;
+  let orm: TypeormWrapper | null = null;
+  try {
+    orm = ormOpt ? ormOpt : await TypeormWrapper.createConn(dbId);
+    context.orm = orm;
+
+    const newStartCommit = await insertCommit(orm, 'start');
+    context.startCommit = newStartCommit;
+
+    const installedModulesNames = (await orm.find(IasqlModule)).map((m: any) => m.name);
+    const installedModules: ModuleInterface[] = (Object.values(importedModules) as ModuleInterface[]).filter(
+      mod => installedModulesNames.includes(`${mod.name}@${mod.version}`),
+    );
+    const installedModulesSorted: ModuleInterface[] = sortModules(installedModules, installedModulesNames);
+
+    const t2 = Date.now();
+    logger.info(`Setup took ${t2 - t1}ms`);
+
+    const crupde: { toCreate: Crupde; toUpdate: Crupde; toReplace: Crupde; toDelete: Crupde } = {
+      toCreate: {},
+      toUpdate: {},
+      toReplace: {},
+      toDelete: {},
+    };
+    return await commitSync(dbId, installedModulesSorted, context, force, crupde, false);
+  } catch (e: any) {
+    debugObj(e);
+    throw e;
+  } finally {
+    // Create end commit object
+    await insertCommit(orm, 'end');
     // do not drop the conn if it was provided
     if (orm !== ormOpt) orm?.dropConn();
     if (parentOrm) context.orm = parentOrm;
@@ -1177,7 +1189,7 @@ async function getImportedModules(dbId: string, versionString: string, force: bo
 async function insertCommit(
   orm: TypeormWrapper | null,
   type: 'start' | 'preview_start' | 'end' | 'preview_end',
-) {
+): Promise<IasqlAuditLog> {
   const commitLog = new IasqlAuditLog();
   commitLog.user = config.db.user;
   commitLog.change = {};
@@ -1205,7 +1217,7 @@ async function insertCommit(
 
 async function getPreviousStartCommit(orm: TypeormWrapper, currentTs: Date): Promise<IasqlAuditLog | null> {
   // Find 'START_COMMIT's and pick the first element since it should be the previous one to the ts we have just inserted
-  const startCommits = await orm.find(IasqlAuditLog, {
+  const startCommits: IasqlAuditLog[] = await orm.find(IasqlAuditLog, {
     order: { ts: 'DESC' },
     skip: 0,
     take: 2,
@@ -1215,6 +1227,523 @@ async function getPreviousStartCommit(orm: TypeormWrapper, currentTs: Date): Pro
     },
   });
   return startCommits.length > 0 ? startCommits[0] : null;
+}
+
+function getChangesToCommit(
+  orm: TypeormWrapper,
+  newStartCommit: IasqlAuditLog,
+  previousStartCommit: IasqlAuditLog | null,
+): Promise<IasqlAuditLog[]> {
+  return orm.find(IasqlAuditLog, {
+    order: { ts: 'DESC' },
+    where: {
+      changeType: Not(
+        In([
+          AuditLogChangeType.START_COMMIT,
+          AuditLogChangeType.PREVIEW_START_COMMIT,
+          AuditLogChangeType.END_COMMIT,
+          AuditLogChangeType.PREVIEW_END_COMMIT,
+        ]),
+      ),
+      ts: previousStartCommit
+        ? Between(previousStartCommit.ts, newStartCommit.ts)
+        : LessThan(newStartCommit.ts),
+      user: Not(config.db.user),
+    },
+  });
+}
+
+function getModulesWithChanges(
+  importedModules: any,
+  installedModules: ModuleInterface[],
+  installedModulesNames: string[],
+  tablesWithChanges: string[],
+  versionString: string,
+) {
+  const modulesDirectlyAffected: ModuleInterface[] = installedModules.filter(mod =>
+    mod.provides?.tables?.some((t: string) => tablesWithChanges.includes(t)),
+  );
+  const modulesDirectlyAffectedDepsNames = [
+    ...new Set(
+      modulesDirectlyAffected
+        .flatMap((m: ModuleInterface) => m.dependencies.filter(d => !installedModulesNames.includes(d)))
+        .filter(
+          (m: any) =>
+            ![`iasql_platform@${versionString}`, `iasql_functions@${versionString}`].includes(m) &&
+            m !== undefined,
+        ),
+    ),
+  ];
+  const modulesIndirectlyAffected = modulesDirectlyAffectedDepsNames.map((n: string) =>
+    (Object.values(importedModules) as ModuleInterface[]).find(m => `${m.name}@${m.version}` === n),
+  ) as ModuleInterface[];
+
+  return [...modulesDirectlyAffected, ...modulesIndirectlyAffected];
+}
+
+async function commitApply(
+  dbId: string,
+  relevantModules: ModuleInterface[],
+  context: Context,
+  force: boolean,
+  crupde: { toCreate: Crupde; toUpdate: Crupde; toReplace: Crupde; toDelete: Crupde },
+  dryRun: boolean,
+  changesToCommit?: IasqlAuditLog[],
+): Promise<{ iasqlPlanVersion: number; rows: any[] }> {
+  const oldOrm = context.orm;
+  context.orm = await TypeormWrapper.createConn(dbId);
+  const t1 = Date.now();
+  const mappers = relevantModules
+    .map(mod => Object.values(mod))
+    .flat()
+    .filter(val => val instanceof MapperBase)
+    .flat()
+    .filter(mapper => mapper.source === 'db');
+  let ranFullUpdate = false;
+  let failureCount = -1;
+  let dbCount = -1;
+  let cloudCount = -1;
+  let bothCount = -1;
+  let spinCount = 0;
+  const { toCreate, toUpdate, toReplace, toDelete } = crupde;
+  do {
+    const t2 = Date.now();
+    logger.info('Starting outer loop');
+    ranFullUpdate = false;
+    const tables = mappers.map(mapper => mapper.entity.name);
+    context.memo.db = {}; // Flush the DB entities on the outer loop to restore the actual intended state
+    await lazyLoader(
+      mappers.map(mapper => async () => {
+        await mapper.db.read(context);
+      }),
+    );
+    // Every time we read from db we get possible changes that occured after this commit started
+    const changesAfterCommitByEntity = await getChangesAfterCommitStartedByEntity(
+      context.orm,
+      context,
+      dbId,
+      force,
+    );
+    const comparators = mappers.map(mapper => mapper.equals);
+    const idGens = mappers.map(mapper => mapper.entityId);
+    let ranUpdate = false;
+    do {
+      logger.info('Starting inner loop');
+      ranUpdate = false;
+      context.memo.cloud = {}; // Flush the Cloud entities on the inner loop to track changes to the state
+      await lazyLoader(
+        mappers.map(mapper => async () => {
+          await mapper.cloud.read(context);
+        }),
+      );
+      const t3 = Date.now();
+      logger.info(`Record acquisition time: ${t3 - t2}ms`);
+      const records = colToRow({
+        table: tables,
+        mapper: mappers,
+        dbEntity: tables.map(t => (context.memo.db[t] ? Object.values(context.memo.db[t]) : [])),
+        cloudEntity: tables.map(t => (context.memo.cloud[t] ? Object.values(context.memo.cloud[t]) : [])),
+        comparator: comparators,
+        idGen: idGens,
+      });
+      const t4 = Date.now();
+      logger.info(`AWS Mapping time: ${t4 - t3}ms`);
+      if (!records.length) {
+        await context.orm.dropConn();
+        context.orm = oldOrm;
+        // Only possible on just-created databases
+        return {
+          iasqlPlanVersion: 3,
+          rows: [],
+        };
+      }
+      const updatePlan = (crupde: Crupde, entityName: string, mapper: MapperInterface<any>, es: any[]) => {
+        crupde[entityName] = crupde[entityName] ?? [];
+        const rs = es.map((e: any) => ({
+          id: e?.id?.toString() ?? '',
+          description: mapper.entityId(e),
+        }));
+        rs.forEach(r => {
+          if (
+            !crupde[entityName].some(r2 => Object.is(r2.id, r.id) && Object.is(r2.description, r.description))
+          )
+            crupde[entityName].push(r);
+        });
+      };
+
+      let changesByEntity: { [key: string]: any[] };
+      if (changesToCommit?.length) {
+        const tablesIndexed = indexTables(relevantModules);
+        changesByEntity = await getChangesByEntity(context.orm, changesToCommit, tablesIndexed);
+        // todo: remove this logger on a follow up PR with tests passing
+        // tslint:disable-next-line:no-console
+        console.log(`+-+ changes by entity = ${JSON.stringify(changesByEntity)}`);
+      }
+
+      records.forEach(r => {
+        r.diff = findDiff(r.dbEntity, r.cloudEntity, r.idGen, r.comparator);
+        // If we have changes done by the user to be applied, then filter them.
+        // Else, only filter changes done after this commit started to avoid overrides.
+        if (changesByEntity) {
+          r.diff.entitiesInDbOnly = r.diff.entitiesInDbOnly.filter((e: any) =>
+            changesByEntity[r.table]?.find(re => r.idGen(e) === r.idGen(re)),
+          );
+          r.diff.entitiesInAwsOnly = r.diff.entitiesInAwsOnly.filter((e: any) =>
+            changesByEntity[r.table]?.find(re => r.idGen(e) === r.idGen(re)),
+          );
+          r.diff.entitiesChanged = r.diff.entitiesChanged.filter((o: any) =>
+            changesByEntity[r.table]?.find(re => r.idGen(o.db) === r.idGen(re)),
+          );
+        } else {
+          r.diff.entitiesInAwsOnly = r.diff.entitiesInAwsOnly.filter(
+            (e: any) => !changesAfterCommitByEntity[r.table]?.find(re => r.idGen(e) === r.idGen(re)),
+          );
+          r.diff.entitiesInDbOnly = r.diff.entitiesInDbOnly.filter(
+            (e: any) => !changesAfterCommitByEntity[r.table]?.find(re => r.idGen(e) === r.idGen(re)),
+          );
+          r.diff.entitiesChanged = r.diff.entitiesChanged.filter(
+            (o: any) => !changesAfterCommitByEntity[r.table]?.find(re => r.idGen(o.db) === r.idGen(re)),
+          );
+        }
+        if (r.diff.entitiesInDbOnly.length > 0) {
+          updatePlan(toCreate, r.table, r.mapper, r.diff.entitiesInDbOnly);
+        }
+        if (r.diff.entitiesInAwsOnly.length > 0) {
+          updatePlan(toDelete, r.table, r.mapper, r.diff.entitiesInAwsOnly);
+        }
+        if (r.diff.entitiesChanged.length > 0) {
+          const updates: any[] = [];
+          const replaces: any[] = [];
+          r.diff.entitiesChanged.forEach((e: any) => {
+            const isUpdate = r.mapper.cloud.updateOrReplace(e.cloud, e.db) === 'update';
+            if (isUpdate) {
+              updates.push(e.db);
+            } else {
+              replaces.push(e.db);
+            }
+          });
+          if (updates.length > 0) updatePlan(toUpdate, r.table, r.mapper, updates);
+          if (replaces.length > 0) updatePlan(toReplace, r.table, r.mapper, replaces);
+        }
+      });
+      if (dryRun) {
+        await context.orm.dropConn();
+        context.orm = oldOrm;
+        return iasqlPlanV3(toCreate, toUpdate, toReplace, toDelete);
+      }
+      const [nextDbCount, nextCloudCount, nextBothCount] = recordCount(records);
+      if (dbCount === nextDbCount && cloudCount === nextCloudCount && bothCount === nextBothCount) {
+        spinCount++;
+      } else {
+        dbCount = nextDbCount;
+        cloudCount = nextCloudCount;
+        bothCount = nextBothCount;
+        spinCount = 0;
+      }
+      if (spinCount === 4) {
+        throw new DepError('Forward progress halted. All remaining DB changes failing to apply.', {
+          toCreate,
+          toUpdate,
+          toReplace,
+          toDelete,
+        });
+      }
+      const t5 = Date.now();
+      logger.info(`Diff time: ${t5 - t4}ms`);
+      const promiseGenerators = records
+        .map(r => {
+          const name = r.table;
+          logger.info(`Checking ${name}`);
+          const outArr = [];
+          if (r.diff.entitiesInDbOnly.length > 0) {
+            logger.info(`${name} has records to create`, { records: r.diff.entitiesInDbOnly });
+            outArr.push(
+              r.diff.entitiesInDbOnly.map((e: any) => async () => {
+                const out = await r.mapper.cloud.create(e, context);
+                if (out) {
+                  const es = Array.isArray(out) ? out : [out];
+                  es.forEach(e2 => {
+                    // Mutate the original entity with the returned entity's properties so the actual
+                    // record created is what is compared the next loop through
+                    Object.keys(e2).forEach(k => (e[k] = e2[k]));
+                  });
+                }
+              }),
+            );
+          }
+          if (r.diff.entitiesChanged.length > 0) {
+            logger.info(`${name} has records to update`, { records: r.diff.entitiesChanged });
+            outArr.push(
+              r.diff.entitiesChanged.map((ec: any) => async () => {
+                const out = await r.mapper.cloud.update(ec.db, context); // Assuming SoT is the DB
+                if (out) {
+                  const es = Array.isArray(out) ? out : [out];
+                  es.forEach(e2 => {
+                    // Mutate the original entity with the returned entity's properties so the actual
+                    // record created is what is compared the next loop through
+                    Object.keys(e2).forEach(k => (ec.db[k] = e2[k]));
+                  });
+                }
+              }),
+            );
+          }
+          return outArr;
+        })
+        .flat(9001);
+      const reversePromiseGenerators = records
+        .reverse()
+        .map(r => {
+          const name = r.table;
+          logger.info(`Checking ${name}`);
+          const outArr = [];
+          if (r.diff.entitiesInAwsOnly.length > 0) {
+            logger.info(`${name} has records to delete`, { records: r.diff.entitiesInAwsOnly });
+            outArr.push(
+              r.diff.entitiesInAwsOnly.map((e: any) => async () => {
+                await r.mapper.cloud.delete(e, context);
+              }),
+            );
+          }
+          return outArr;
+        })
+        .flat(9001);
+      const generators = [...promiseGenerators, ...reversePromiseGenerators];
+      if (generators.length > 0) {
+        ranUpdate = true;
+        ranFullUpdate = true;
+        try {
+          await lazyLoader(generators);
+        } catch (e: any) {
+          if (failureCount === e.metadata?.generatorsToRun?.length) throw e;
+          failureCount = e.metadata?.generatorsToRun?.length;
+          ranUpdate = false;
+        }
+        const t6 = Date.now();
+        logger.info(`AWS update time: ${t6 - t5}ms`);
+      }
+    } while (ranUpdate);
+  } while (ranFullUpdate);
+  const t7 = Date.now();
+  logger.info(`${dbId} applied and synced, total time: ${t7 - t1}ms`);
+  await context.orm.dropConn();
+  context.orm = oldOrm;
+  return iasqlPlanV3(toCreate, toUpdate, toReplace, toDelete);
+}
+
+async function commitSync(
+  dbId: string,
+  relevantModules: ModuleInterface[],
+  context: Context,
+  force: boolean,
+  crupde: { toCreate: Crupde; toUpdate: Crupde; toReplace: Crupde; toDelete: Crupde },
+  dryRun: boolean,
+): Promise<{ iasqlPlanVersion: number; rows: any[] }> {
+  const oldOrm = context.orm;
+  context.orm = await TypeormWrapper.createConn(dbId);
+  const t1 = Date.now();
+  const mappers = relevantModules
+    .map(mod => Object.values(mod))
+    .flat()
+    .filter(val => val instanceof MapperBase)
+    .flat();
+  let ranFullUpdate = false;
+  let failureCount = -1;
+  let dbCount = -1;
+  let cloudCount = -1;
+  let bothCount = -1;
+  let spinCount = 0;
+  const { toCreate, toUpdate, toReplace, toDelete } = crupde;
+  do {
+    const t2 = Date.now();
+    ranFullUpdate = false;
+    const tables = mappers.map(mapper => mapper.entity.name);
+    context.memo.cloud = {}; // Flush the cloud entities on the outer loop to restore the actual intended state
+    await lazyLoader(
+      mappers.map(mapper => async () => {
+        await mapper.cloud.read(context);
+      }),
+    );
+    const comparators = mappers.map(mapper => mapper.equals);
+    const idGens = mappers.map(mapper => mapper.entityId);
+    let ranUpdate = false;
+    do {
+      ranUpdate = false;
+      context.memo.db = {}; // Flush the DB entities on the inner loop to track changes to the state
+      await lazyLoader(
+        mappers.map(mapper => async () => {
+          await mapper.db.read(context);
+        }),
+      );
+      // Every time we read from db we get possible changes that occured after this commit started
+      const changesAfterCommitByEntity = await getChangesAfterCommitStartedByEntity(
+        context.orm,
+        context,
+        dbId,
+        force,
+      );
+      const t3 = Date.now();
+      logger.info(`Record acquisition time: ${t3 - t2}ms`);
+      const records = colToRow({
+        table: tables,
+        mapper: mappers,
+        dbEntity: tables.map(t => (context.memo.db[t] ? Object.values(context.memo.db[t]) : [])),
+        cloudEntity: tables.map(t => (context.memo.cloud[t] ? Object.values(context.memo.cloud[t]) : [])),
+        comparator: comparators,
+        idGen: idGens,
+      });
+      const t4 = Date.now();
+      logger.info(`AWS Mapping time: ${t4 - t3}ms`);
+      if (!records.length) {
+        await context.orm.dropConn();
+        context.orm = oldOrm;
+        // Only possible on just-created databases
+        return {
+          iasqlPlanVersion: 3,
+          rows: [],
+        };
+      }
+      const updatePlan = (crupde: Crupde, entityName: string, mapper: MapperInterface<any>, es: any[]) => {
+        crupde[entityName] = crupde[entityName] ?? [];
+        const rs = es.map((e: any) => ({
+          id: e?.id?.toString() ?? '',
+          description: mapper.entityId(e),
+        }));
+        rs.forEach(r => {
+          if (
+            !crupde[entityName].some(r2 => Object.is(r2.id, r.id) && Object.is(r2.description, r.description))
+          )
+            crupde[entityName].push(r);
+        });
+      };
+      records.forEach(r => {
+        r.diff = findDiff(r.dbEntity, r.cloudEntity, r.idGen, r.comparator);
+        // Only filter changes done after this commit started to avoid overrides.
+        r.diff.entitiesInAwsOnly = r.diff.entitiesInAwsOnly.filter(
+          (e: any) => !changesAfterCommitByEntity[r.table]?.find(re => r.idGen(e) === r.idGen(re)),
+        );
+        r.diff.entitiesInDbOnly = r.diff.entitiesInDbOnly.filter(
+          (e: any) => !changesAfterCommitByEntity[r.table]?.find(re => r.idGen(e) === r.idGen(re)),
+        );
+        r.diff.entitiesChanged = r.diff.entitiesChanged.filter(
+          (o: any) => !changesAfterCommitByEntity[r.table]?.find(re => r.idGen(o.db) === r.idGen(re)),
+        );
+        if (r.diff.entitiesInDbOnly.length > 0) {
+          updatePlan(toDelete, r.table, r.mapper, r.diff.entitiesInDbOnly);
+        }
+        if (r.diff.entitiesInAwsOnly.length > 0) {
+          updatePlan(toCreate, r.table, r.mapper, r.diff.entitiesInAwsOnly);
+        }
+        if (r.diff.entitiesChanged.length > 0) {
+          const updates: any[] = [];
+          r.diff.entitiesChanged.forEach((e: any) => {
+            updates.push(e.cloud);
+          });
+          if (updates.length > 0) updatePlan(toUpdate, r.table, r.mapper, updates);
+        }
+      });
+      if (dryRun) {
+        await context.orm.dropConn();
+        context.orm = oldOrm;
+        return iasqlPlanV3(toCreate, toUpdate, toReplace, toDelete);
+      }
+      const [nextDbCount, nextCloudCount, nextBothCount] = recordCount(records);
+      if (dbCount === nextDbCount && cloudCount === nextCloudCount && bothCount === nextBothCount) {
+        spinCount++;
+      } else {
+        dbCount = nextDbCount;
+        cloudCount = nextCloudCount;
+        bothCount = nextBothCount;
+        spinCount = 0;
+      }
+      if (spinCount === 4) {
+        throw new DepError('Forward progress halted. All remaining Cloud changes failing to apply.', {
+          toCreate,
+          toUpdate,
+          toReplace,
+          toDelete,
+        });
+      }
+      const t5 = Date.now();
+      logger.info(`Diff time: ${t5 - t4}ms`);
+      const promiseGenerators = records
+        .map(r => {
+          const name = r.table;
+          logger.info(`Checking ${name}`);
+          const outArr = [];
+          if (r.diff.entitiesInAwsOnly.length > 0) {
+            logger.info(`${name} has records to create`, { records: r.diff.entitiesInAwsOnly });
+            outArr.push(
+              r.diff.entitiesInAwsOnly.map((e: any) => async () => {
+                const out = await r.mapper.db.create(e, context);
+                if (out) {
+                  const es = Array.isArray(out) ? out : [out];
+                  es.forEach(e2 => {
+                    // Mutate the original entity with the returned entity's properties so the actual
+                    // record created is what is compared the next loop through
+                    Object.keys(e2).forEach(k => (e[k] = e2[k]));
+                  });
+                }
+              }),
+            );
+          }
+          if (r.diff.entitiesChanged.length > 0) {
+            logger.info(`${name} has records to update`, { records: r.diff.entitiesChanged });
+            outArr.push(
+              r.diff.entitiesChanged.map((ec: any) => async () => {
+                if (ec.db.id) ec.cloud.id = ec.db.id;
+                const out = await r.mapper.db.update(ec.cloud, context); // When `sync`ing we assume SoT is the Cloud
+                if (out) {
+                  const es = Array.isArray(out) ? out : [out];
+                  es.forEach(e2 => {
+                    // Mutate the original entity with the returned entity's properties so the actual
+                    // record created is what is compared the next loop through
+                    Object.keys(e2).forEach(k => (ec.cloud[k] = e2[k]));
+                  });
+                }
+              }),
+            );
+          }
+          return outArr;
+        })
+        .flat(9001);
+      const reversePromiseGenerators = records
+        .reverse()
+        .map(r => {
+          const name = r.table;
+          logger.info(`Checking ${name}`);
+          const outArr = [];
+          if (r.diff.entitiesInDbOnly.length > 0) {
+            logger.info(`${name} has records to delete`, { records: r.diff.entitiesInDbOnly });
+            outArr.push(
+              r.diff.entitiesInDbOnly.map((e: any) => async () => {
+                await r.mapper.db.delete(e, context);
+              }),
+            );
+          }
+          return outArr;
+        })
+        .flat(9001);
+      const generators = [...promiseGenerators, ...reversePromiseGenerators];
+      if (generators.length > 0) {
+        ranUpdate = true;
+        ranFullUpdate = true;
+        try {
+          await lazyLoader(generators);
+        } catch (e: any) {
+          if (failureCount === e.metadata?.generatorsToRun?.length) throw e;
+          failureCount = e.metadata?.generatorsToRun?.length;
+          ranUpdate = false;
+        }
+        const t6 = Date.now();
+        logger.info(`AWS update time: ${t6 - t5}ms`);
+      }
+    } while (ranUpdate);
+  } while (ranFullUpdate);
+  const t7 = Date.now();
+  logger.info(`${dbId} synced, total time: ${t7 - t1}ms`);
+  await context.orm.dropConn();
+  context.orm = oldOrm;
+  return iasqlPlanV3(toCreate, toUpdate, toReplace, toDelete);
 }
 
 async function getChangesByEntity(
@@ -1382,506 +1911,12 @@ async function getChangesByEntity(
   return changesByEntity;
 }
 
-function getModulesWithChanges(
-  importedModules: any,
-  installedModules: ModuleInterface[],
-  installedModulesNames: string[],
-  tablesWithChanges: string[],
-  versionString: string,
-) {
-  const modulesDirectlyAffected: ModuleInterface[] = installedModules.filter(mod =>
-    mod.provides?.tables?.some((t: string) => tablesWithChanges.includes(t)),
-  );
-  const modulesDirectlyAffectedDepsNames = [
-    ...new Set(
-      modulesDirectlyAffected
-        .flatMap((m: ModuleInterface) => m.dependencies.filter(d => !installedModulesNames.includes(d)))
-        .filter(
-          (m: any) =>
-            ![`iasql_platform@${versionString}`, `iasql_functions@${versionString}`].includes(m) &&
-            m !== undefined,
-        ),
-    ),
-  ];
-  const modulesIndirectlyAffected = modulesDirectlyAffectedDepsNames.map((n: string) =>
-    (Object.values(importedModules) as ModuleInterface[]).find(m => `${m.name}@${m.version}` === n),
-  ) as ModuleInterface[];
-
-  return [...modulesDirectlyAffected, ...modulesIndirectlyAffected];
-}
-
-async function commitSync(
-  dbId: string,
-  relevantModules: ModuleInterface[],
-  context: Context,
-  force: boolean,
-  toCreate: Crupde,
-  toUpdate: Crupde,
-  toReplace: Crupde,
-  toDelete: Crupde,
-  dryRun: boolean,
-): Promise<{ iasqlPlanVersion: number; rows: any[] }> {
-  const oldOrm = context.orm;
-  context.orm = await TypeormWrapper.createConn(dbId);
-  const t1 = Date.now();
-  const mappers = relevantModules
-    .map(mod => Object.values(mod))
-    .flat()
-    .filter(val => val instanceof MapperBase)
-    .flat();
-  let ranFullUpdate = false;
-  let failureCount = -1;
-  let dbCount = -1;
-  let cloudCount = -1;
-  let bothCount = -1;
-  let spinCount = 0;
-  do {
-    const t2 = Date.now();
-    ranFullUpdate = false;
-    const tables = mappers.map(mapper => mapper.entity.name);
-    context.memo.cloud = {}; // Flush the cloud entities on the outer loop to restore the actual intended state
-    await lazyLoader(
-      mappers.map(mapper => async () => {
-        await mapper.cloud.read(context);
-      }),
-    );
-    const comparators = mappers.map(mapper => mapper.equals);
-    const idGens = mappers.map(mapper => mapper.entityId);
-    let ranUpdate = false;
-    do {
-      ranUpdate = false;
-      context.memo.db = {}; // Flush the DB entities on the inner loop to track changes to the state
-      await lazyLoader(
-        mappers.map(mapper => async () => {
-          await mapper.db.read(context);
-        }),
-      );
-      // Every time we read from db we get possible changes that occured after this commit started
-      const changesAfterCommitByEntity = await getChangesAfterCommitStartedByEntity(
-        context.orm,
-        context,
-        dbId,
-        force,
-      );
-      const t3 = Date.now();
-      logger.info(`Record acquisition time: ${t3 - t2}ms`);
-      const records = colToRow({
-        table: tables,
-        mapper: mappers,
-        dbEntity: tables.map(t => (context.memo.db[t] ? Object.values(context.memo.db[t]) : [])),
-        cloudEntity: tables.map(t => (context.memo.cloud[t] ? Object.values(context.memo.cloud[t]) : [])),
-        comparator: comparators,
-        idGen: idGens,
-      });
-      const t4 = Date.now();
-      logger.info(`AWS Mapping time: ${t4 - t3}ms`);
-      if (!records.length) {
-        await context.orm.dropConn();
-        context.orm = oldOrm;
-        // Only possible on just-created databases
-        return {
-          iasqlPlanVersion: 3,
-          rows: [],
-        };
-      }
-      const updatePlan = (crupde: Crupde, entityName: string, mapper: MapperInterface<any>, es: any[]) => {
-        crupde[entityName] = crupde[entityName] ?? [];
-        const rs = es.map((e: any) => ({
-          id: e?.id?.toString() ?? '',
-          description: mapper.entityId(e),
-        }));
-        rs.forEach(r => {
-          if (
-            !crupde[entityName].some(r2 => Object.is(r2.id, r.id) && Object.is(r2.description, r.description))
-          )
-            crupde[entityName].push(r);
-        });
-      };
-      records.forEach(r => {
-        r.diff = findDiff(r.dbEntity, r.cloudEntity, r.idGen, r.comparator);
-        // Only filter changes that might have occured after this commit started
-        r.diff.entitiesInAwsOnly = r.diff.entitiesInAwsOnly.filter(
-          (e: any) => !changesAfterCommitByEntity[r.table]?.find(re => r.idGen(e) === r.idGen(re)),
-        );
-        r.diff.entitiesInDbOnly = r.diff.entitiesInDbOnly.filter(
-          (e: any) => !changesAfterCommitByEntity[r.table]?.find(re => r.idGen(e) === r.idGen(re)),
-        );
-        r.diff.entitiesChanged = r.diff.entitiesChanged.filter(
-          (o: any) => !changesAfterCommitByEntity[r.table]?.find(re => r.idGen(o.db) === r.idGen(re)),
-        );
-        if (r.diff.entitiesInDbOnly.length > 0) {
-          updatePlan(toDelete, r.table, r.mapper, r.diff.entitiesInDbOnly);
-        }
-        if (r.diff.entitiesInAwsOnly.length > 0) {
-          updatePlan(toCreate, r.table, r.mapper, r.diff.entitiesInAwsOnly);
-        }
-        if (r.diff.entitiesChanged.length > 0) {
-          const updates: any[] = [];
-          r.diff.entitiesChanged.forEach((e: any) => {
-            updates.push(e.cloud);
-          });
-          if (updates.length > 0) updatePlan(toUpdate, r.table, r.mapper, updates);
-        }
-      });
-      if (dryRun) {
-        await context.orm.dropConn();
-        context.orm = oldOrm;
-        return iasqlPlanV3(toCreate, toUpdate, toReplace, toDelete);
-      }
-      const [nextDbCount, nextCloudCount, nextBothCount] = recordCount(records);
-      if (dbCount === nextDbCount && cloudCount === nextCloudCount && bothCount === nextBothCount) {
-        spinCount++;
-      } else {
-        dbCount = nextDbCount;
-        cloudCount = nextCloudCount;
-        bothCount = nextBothCount;
-        spinCount = 0;
-      }
-      if (spinCount === 4) {
-        throw new DepError('Forward progress halted. All remaining Cloud changes failing to apply.', {
-          toCreate,
-          toUpdate,
-          toReplace,
-          toDelete,
-        });
-      }
-      const t5 = Date.now();
-      logger.info(`Diff time: ${t5 - t4}ms`);
-      const promiseGenerators = records
-        .map(r => {
-          const name = r.table;
-          logger.info(`Checking ${name}`);
-          const outArr = [];
-          if (r.diff.entitiesInAwsOnly.length > 0) {
-            logger.info(`${name} has records to create`, { records: r.diff.entitiesInAwsOnly });
-            outArr.push(
-              r.diff.entitiesInAwsOnly.map((e: any) => async () => {
-                const out = await r.mapper.db.create(e, context);
-                if (out) {
-                  const es = Array.isArray(out) ? out : [out];
-                  es.forEach(e2 => {
-                    // Mutate the original entity with the returned entity's properties so the actual
-                    // record created is what is compared the next loop through
-                    Object.keys(e2).forEach(k => (e[k] = e2[k]));
-                  });
-                }
-              }),
-            );
-          }
-          if (r.diff.entitiesChanged.length > 0) {
-            logger.info(`${name} has records to update`, { records: r.diff.entitiesChanged });
-            outArr.push(
-              r.diff.entitiesChanged.map((ec: any) => async () => {
-                if (ec.db.id) ec.cloud.id = ec.db.id;
-                const out = await r.mapper.db.update(ec.cloud, context); // When `sync`ing we assume SoT is the Cloud
-                if (out) {
-                  const es = Array.isArray(out) ? out : [out];
-                  es.forEach(e2 => {
-                    // Mutate the original entity with the returned entity's properties so the actual
-                    // record created is what is compared the next loop through
-                    Object.keys(e2).forEach(k => (ec.cloud[k] = e2[k]));
-                  });
-                }
-              }),
-            );
-          }
-          return outArr;
-        })
-        .flat(9001);
-      const reversePromiseGenerators = records
-        .reverse()
-        .map(r => {
-          const name = r.table;
-          logger.info(`Checking ${name}`);
-          const outArr = [];
-          if (r.diff.entitiesInDbOnly.length > 0) {
-            logger.info(`${name} has records to delete`, { records: r.diff.entitiesInDbOnly });
-            outArr.push(
-              r.diff.entitiesInDbOnly.map((e: any) => async () => {
-                await r.mapper.db.delete(e, context);
-              }),
-            );
-          }
-          return outArr;
-        })
-        .flat(9001);
-      const generators = [...promiseGenerators, ...reversePromiseGenerators];
-      if (generators.length > 0) {
-        ranUpdate = true;
-        ranFullUpdate = true;
-        try {
-          await lazyLoader(generators);
-        } catch (e: any) {
-          if (failureCount === e.metadata?.generatorsToRun?.length) throw e;
-          failureCount = e.metadata?.generatorsToRun?.length;
-          ranUpdate = false;
-        }
-        const t6 = Date.now();
-        logger.info(`AWS update time: ${t6 - t5}ms`);
-      }
-    } while (ranUpdate);
-  } while (ranFullUpdate);
-  const t7 = Date.now();
-  logger.info(`${dbId} synced, total time: ${t7 - t1}ms`);
-  await context.orm.dropConn();
-  context.orm = oldOrm;
-  return iasqlPlanV3(toCreate, toUpdate, toReplace, toDelete);
-}
-
-async function commitApply(
-  dbId: string,
-  relevantModules: ModuleInterface[],
-  context: Context,
-  force: boolean,
-  toCreate: Crupde,
-  toUpdate: Crupde,
-  toReplace: Crupde,
-  toDelete: Crupde,
-  dryRun: boolean,
-  changesToCommit?: IasqlAuditLog[],
-): Promise<{ iasqlPlanVersion: number; rows: any[] }> {
-  const oldOrm = context.orm;
-  context.orm = await TypeormWrapper.createConn(dbId);
-  const t1 = Date.now();
-  const mappers = relevantModules
-    .map(mod => Object.values(mod))
-    .flat()
-    .filter(val => val instanceof MapperBase)
-    .flat()
-    .filter(mapper => mapper.source === 'db');
-  let ranFullUpdate = false;
-  let failureCount = -1;
-  let dbCount = -1;
-  let cloudCount = -1;
-  let bothCount = -1;
-  let spinCount = 0;
-  do {
-    const t2 = Date.now();
-    logger.info('Starting outer loop');
-    ranFullUpdate = false;
-    const tables = mappers.map(mapper => mapper.entity.name);
-    context.memo.db = {}; // Flush the DB entities on the outer loop to restore the actual intended state
-    await lazyLoader(
-      mappers.map(mapper => async () => {
-        await mapper.db.read(context);
-      }),
-    );
-    // Every time we read from db we get possible changes that occured after this commit started
-    const changesAfterCommitByEntity = await getChangesAfterCommitStartedByEntity(
-      context.orm,
-      context,
-      dbId,
-      force,
-    );
-    const comparators = mappers.map(mapper => mapper.equals);
-    const idGens = mappers.map(mapper => mapper.entityId);
-    let ranUpdate = false;
-    do {
-      logger.info('Starting inner loop');
-      ranUpdate = false;
-      context.memo.cloud = {}; // Flush the Cloud entities on the inner loop to track changes to the state
-      await lazyLoader(
-        mappers.map(mapper => async () => {
-          await mapper.cloud.read(context);
-        }),
-      );
-      const t3 = Date.now();
-      logger.info(`Record acquisition time: ${t3 - t2}ms`);
-      const records = colToRow({
-        table: tables,
-        mapper: mappers,
-        dbEntity: tables.map(t => (context.memo.db[t] ? Object.values(context.memo.db[t]) : [])),
-        cloudEntity: tables.map(t => (context.memo.cloud[t] ? Object.values(context.memo.cloud[t]) : [])),
-        comparator: comparators,
-        idGen: idGens,
-      });
-      const t4 = Date.now();
-      logger.info(`AWS Mapping time: ${t4 - t3}ms`);
-      if (!records.length) {
-        await context.orm.dropConn();
-        context.orm = oldOrm;
-        // Only possible on just-created databases
-        return {
-          iasqlPlanVersion: 3,
-          rows: [],
-        };
-      }
-      const updatePlan = (crupde: Crupde, entityName: string, mapper: MapperInterface<any>, es: any[]) => {
-        crupde[entityName] = crupde[entityName] ?? [];
-        const rs = es.map((e: any) => ({
-          id: e?.id?.toString() ?? '',
-          description: mapper.entityId(e),
-        }));
-        rs.forEach(r => {
-          if (
-            !crupde[entityName].some(r2 => Object.is(r2.id, r.id) && Object.is(r2.description, r.description))
-          )
-            crupde[entityName].push(r);
-        });
-      };
-
-      let changesByEntity: { [key: string]: any[] };
-      if (changesToCommit?.length) {
-        const tablesIndexed = indexTables(relevantModules);
-        changesByEntity = await getChangesByEntity(context.orm, changesToCommit, tablesIndexed);
-        // todo: remove this logger
-        // tslint:disable-next-line:no-console
-        console.log(`+-+ changes by entity = ${JSON.stringify(changesByEntity)}`);
-      }
-
-      records.forEach(r => {
-        r.diff = findDiff(r.dbEntity, r.cloudEntity, r.idGen, r.comparator);
-        // If we have changes to apply only filter those, if not, filter chnages done after this commit started
-        if (changesByEntity) {
-          // Case entities in DB only: we want to create in the cloud.
-          // We need to filter which of those are the changes we are taking into account. Otherwise we could be applying changes from other cycle.
-          r.diff.entitiesInDbOnly = r.diff.entitiesInDbOnly.filter((e: any) =>
-            changesByEntity[r.table]?.find(re => r.idGen(e) === r.idGen(re)),
-          );
-          // Case entities in AWS only: we want to delete from the cloud.
-          // We need to filter which of those are the changes we are taking into account. Otherwise we could be applying changes from other cycle.
-          r.diff.entitiesInAwsOnly = r.diff.entitiesInAwsOnly.filter((e: any) =>
-            changesByEntity[r.table]?.find(re => r.idGen(e) === r.idGen(re)),
-          );
-          // Case entities changed: we want to update/restore/replace to/from the cloud.
-          // We need to filter which of those are the changes we are taking into account. Otherwise we could be applying changes from other cycle.
-          r.diff.entitiesChanged = r.diff.entitiesChanged.filter((o: any) =>
-            changesByEntity[r.table]?.find(re => r.idGen(o.db) === r.idGen(re)),
-          );
-        } else {
-          r.diff.entitiesInAwsOnly = r.diff.entitiesInAwsOnly.filter(
-            (e: any) => !changesAfterCommitByEntity[r.table]?.find(re => r.idGen(e) === r.idGen(re)),
-          );
-          r.diff.entitiesInDbOnly = r.diff.entitiesInDbOnly.filter(
-            (e: any) => !changesAfterCommitByEntity[r.table]?.find(re => r.idGen(e) === r.idGen(re)),
-          );
-          r.diff.entitiesChanged = r.diff.entitiesChanged.filter(
-            (o: any) => !changesAfterCommitByEntity[r.table]?.find(re => r.idGen(o.db) === r.idGen(re)),
-          );
-        }
-        if (r.diff.entitiesInDbOnly.length > 0) {
-          updatePlan(toCreate, r.table, r.mapper, r.diff.entitiesInDbOnly);
-        }
-        if (r.diff.entitiesInAwsOnly.length > 0) {
-          updatePlan(toDelete, r.table, r.mapper, r.diff.entitiesInAwsOnly);
-        }
-        if (r.diff.entitiesChanged.length > 0) {
-          const updates: any[] = [];
-          const replaces: any[] = [];
-          r.diff.entitiesChanged.forEach((e: any) => {
-            const isUpdate = r.mapper.cloud.updateOrReplace(e.cloud, e.db) === 'update';
-            if (isUpdate) {
-              updates.push(e.db);
-            } else {
-              replaces.push(e.db);
-            }
-          });
-          if (updates.length > 0) updatePlan(toUpdate, r.table, r.mapper, updates);
-          if (replaces.length > 0) updatePlan(toReplace, r.table, r.mapper, replaces);
-        }
-      });
-      if (dryRun) {
-        await context.orm.dropConn();
-        context.orm = oldOrm;
-        return iasqlPlanV3(toCreate, toUpdate, toReplace, toDelete);
-      }
-      const [nextDbCount, nextCloudCount, nextBothCount] = recordCount(records);
-      if (dbCount === nextDbCount && cloudCount === nextCloudCount && bothCount === nextBothCount) {
-        spinCount++;
-      } else {
-        dbCount = nextDbCount;
-        cloudCount = nextCloudCount;
-        bothCount = nextBothCount;
-        spinCount = 0;
-      }
-      if (spinCount === 4) {
-        throw new DepError('Forward progress halted. All remaining DB changes failing to apply.', {
-          toCreate,
-          toUpdate,
-          toReplace,
-          toDelete,
-        });
-      }
-      const t5 = Date.now();
-      logger.info(`Diff time: ${t5 - t4}ms`);
-      const promiseGenerators = records
-        .map(r => {
-          const name = r.table;
-          logger.info(`Checking ${name}`);
-          const outArr = [];
-          if (r.diff.entitiesInDbOnly.length > 0) {
-            logger.info(`${name} has records to create`, { records: r.diff.entitiesInDbOnly });
-            outArr.push(
-              r.diff.entitiesInDbOnly.map((e: any) => async () => {
-                const out = await r.mapper.cloud.create(e, context);
-                if (out) {
-                  const es = Array.isArray(out) ? out : [out];
-                  es.forEach(e2 => {
-                    // Mutate the original entity with the returned entity's properties so the actual
-                    // record created is what is compared the next loop through
-                    Object.keys(e2).forEach(k => (e[k] = e2[k]));
-                  });
-                }
-              }),
-            );
-          }
-          if (r.diff.entitiesChanged.length > 0) {
-            logger.info(`${name} has records to update`, { records: r.diff.entitiesChanged });
-            outArr.push(
-              r.diff.entitiesChanged.map((ec: any) => async () => {
-                const out = await r.mapper.cloud.update(ec.db, context); // Assuming SoT is the DB
-                if (out) {
-                  const es = Array.isArray(out) ? out : [out];
-                  es.forEach(e2 => {
-                    // Mutate the original entity with the returned entity's properties so the actual
-                    // record created is what is compared the next loop through
-                    Object.keys(e2).forEach(k => (ec.db[k] = e2[k]));
-                  });
-                }
-              }),
-            );
-          }
-          return outArr;
-        })
-        .flat(9001);
-      const reversePromiseGenerators = records
-        .reverse()
-        .map(r => {
-          const name = r.table;
-          logger.info(`Checking ${name}`);
-          const outArr = [];
-          if (r.diff.entitiesInAwsOnly.length > 0) {
-            logger.info(`${name} has records to delete`, { records: r.diff.entitiesInAwsOnly });
-            outArr.push(
-              r.diff.entitiesInAwsOnly.map((e: any) => async () => {
-                await r.mapper.cloud.delete(e, context);
-              }),
-            );
-          }
-          return outArr;
-        })
-        .flat(9001);
-      const generators = [...promiseGenerators, ...reversePromiseGenerators];
-      if (generators.length > 0) {
-        ranUpdate = true;
-        ranFullUpdate = true;
-        try {
-          await lazyLoader(generators);
-        } catch (e: any) {
-          if (failureCount === e.metadata?.generatorsToRun?.length) throw e;
-          failureCount = e.metadata?.generatorsToRun?.length;
-          ranUpdate = false;
-        }
-        const t6 = Date.now();
-        logger.info(`AWS update time: ${t6 - t5}ms`);
-      }
-    } while (ranUpdate);
-  } while (ranFullUpdate);
-  const t7 = Date.now();
-  logger.info(`${dbId} applied and synced, total time: ${t7 - t1}ms`);
-  await context.orm.dropConn();
-  context.orm = oldOrm;
-  return iasqlPlanV3(toCreate, toUpdate, toReplace, toDelete);
+function indexTables(mods: ModuleInterface[]): { [key: string]: ModuleInterface } {
+  const tablesIndexed: { [key: string]: ModuleInterface } = {};
+  mods.forEach(mod => {
+    mod.provides?.tables?.forEach((t: string) => (tablesIndexed[t] = mod));
+  });
+  return tablesIndexed;
 }
 
 async function getChangesAfterCommitStartedByEntity(
@@ -1928,60 +1963,4 @@ async function getChangesAfterCommitStartedByEntity(
   const tablesIndexed = indexTables(modulesWithChanges);
 
   return await getChangesByEntity(orm, changesAfterCommit, tablesIndexed);
-}
-
-export async function rollback(dbId: string, context: Context, force = false, ormOpt?: TypeormWrapper) {
-  const t1 = Date.now();
-  logger.info(`Sync to ${dbId}`);
-  await throwIfUpgrading(dbId, force);
-  const versionString = await TypeormWrapper.getVersionString(dbId);
-  const importedModules = await getImportedModules(dbId, versionString, force);
-  let orm: TypeormWrapper | null = null;
-  try {
-    orm = ormOpt ? ormOpt : await TypeormWrapper.createConn(dbId);
-    context.orm = orm;
-    const newStartCommit = await insertCommit(orm, 'start');
-    context.startCommit = newStartCommit;
-
-    const installedModulesNames = (await orm.find(IasqlModule)).map((m: any) => m.name);
-    const installedModules: ModuleInterface[] = (Object.values(importedModules) as ModuleInterface[]).filter(
-      mod => installedModulesNames.includes(`${mod.name}@${mod.version}`),
-    );
-
-    const t2 = Date.now();
-    logger.info(`Setup took ${t2 - t1}ms`);
-
-    const toCreate: Crupde = {};
-    const toUpdate: Crupde = {};
-    const toReplace: Crupde = {}; // Not actually used in sync mode, at least right now
-    const toDelete: Crupde = {};
-    const installedModulesSorted: ModuleInterface[] = sortModules(installedModules, installedModulesNames);
-    return await commitSync(
-      dbId,
-      installedModulesSorted,
-      context,
-      force,
-      toCreate,
-      toUpdate,
-      toReplace,
-      toDelete,
-      false,
-    );
-  } catch (e: any) {
-    debugObj(e);
-    throw e;
-  } finally {
-    // Create end commit object
-    await insertCommit(orm, 'end');
-    // do not drop the conn if it was provided
-    if (orm !== ormOpt) orm?.dropConn();
-  }
-}
-
-function indexTables(mods: ModuleInterface[]): { [key: string]: ModuleInterface } {
-  const tablesIndexed: { [key: string]: ModuleInterface } = {};
-  mods.forEach(mod => {
-    mod.provides?.tables?.forEach((t: string) => (tablesIndexed[t] = mod));
-  });
-  return tablesIndexed;
 }
