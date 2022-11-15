@@ -10,7 +10,7 @@ import {
 
 import { AwsCodedeployModule } from '..';
 import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../../services/aws_macros';
-import { Context, Crud2, MapperBase } from '../../../interfaces';
+import { Context, Crud2, IdFields, MapperBase } from '../../../interfaces';
 import { awsIamModule } from '../../aws_iam';
 import {
   CodedeployApplication,
@@ -28,6 +28,16 @@ export class CodedeployDeploymentGroupMapper extends MapperBase<CodedeployDeploy
     const [deploymentGroupName, applicationName, region] = id.split('|');
     return { deploymentGroupName, applicationName, region };
   };
+  generateId = (fields: IdFields) => {
+    const requiredFields = ['deploymentGroupName', 'applicationName', 'region'];
+    if (
+      Object.keys(fields).length !== requiredFields.length &&
+      !Object.keys(fields).every(fk => requiredFields.includes(fk))
+    ) {
+      throw new Error(`Id generation error. Valid fields to generate id are: ${requiredFields.join(', ')}`);
+    }
+    return `${fields.deploymentGroupName}|${fields.applicationName}|${fields.region}`;
+  };
   equals = (a: CodedeployDeploymentGroup, b: CodedeployDeploymentGroup) =>
     isEqual(a.application.applicationId, b.application.applicationId) &&
     Object.is(a.deploymentConfigName, b.deploymentConfigName) &&
@@ -40,7 +50,15 @@ export class CodedeployDeploymentGroupMapper extends MapperBase<CodedeployDeploy
     const out = new CodedeployDeploymentGroup();
     if (!group.applicationName || !group.deploymentGroupName) return undefined;
 
-    out.application = await this.module.application.cloud.read(ctx, `${group.applicationName}|${region}`);
+    out.application =
+      (await this.module.application.db.read(
+        ctx,
+        this.module.application.generateId({ name: group.applicationName, region }),
+      )) ??
+      (await this.module.application.cloud.read(
+        ctx,
+        this.module.application.generateId({ name: group.applicationName, region }),
+      ));
     out.deploymentConfigName =
       (group.deploymentConfigName as DeploymentConfigType) ?? DeploymentConfigType.ONE_AT_A_TIME;
 
@@ -240,6 +258,7 @@ export class CodedeployDeploymentGroupMapper extends MapperBase<CodedeployDeploy
       const opts =
         deploymentGroupName && applicationName && region
           ? {
+              relations: ['application'],
               where: {
                 name: deploymentGroupName,
                 application: {
