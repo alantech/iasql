@@ -1,11 +1,11 @@
 DROP TRIGGER
-  block_s3_object_primary_key_update;
+  IF EXISTS block_s3_object_primary_key_update ON bucket_object;
 
 DROP FUNCTION
-  block_s3_object_primary_key_update;
+  "block_s3_object_primary_key_update";
 
 DROP TRIGGER
-  block_s3_primary_key_update;
+  IF EXISTS block_s3_primary_key_update ON bucket;
 
 DROP FUNCTION
-  block_s3_primary_key_update;
+  "block_s3_primary_key_update";
