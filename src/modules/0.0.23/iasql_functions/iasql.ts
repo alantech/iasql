@@ -1360,8 +1360,8 @@ async function commitApply(
 
       let changesByEntity: { [key: string]: any[] };
       if (changesToCommit?.length) {
-        const tablesIndexed = indexTables(relevantModules);
-        changesByEntity = await getChangesByEntity(context.orm, changesToCommit, tablesIndexed);
+        const modsIndexedByTable = indexModsByTable(relevantModules);
+        changesByEntity = await getChangesByEntity(context.orm, changesToCommit, modsIndexedByTable);
         // todo: remove this logger on a follow up PR with tests passing
         // tslint:disable-next-line:no-console
         console.log(`+-+ changes by entity = ${JSON.stringify(changesByEntity)}`);
@@ -1735,11 +1735,11 @@ function updateCommitPlan(crupde: Crupde, entityName: string, mapper: MapperInte
 async function getChangesByEntity(
   orm: TypeormWrapper,
   changesToCommit: IasqlAuditLog[],
-  tablesIndexed: { [key: string]: ModuleInterface },
+  modsIndexedByTable: { [key: string]: ModuleInterface },
 ): Promise<{ [key: string]: any[] }> {
   const changesByEntity: { [key: string]: any[] } = {};
   for (const c of changesToCommit) {
-    const mod = tablesIndexed[c.tableName];
+    const mod = modsIndexedByTable[c.tableName];
     const mappers = Object.values(mod).filter(val => val instanceof MapperBase);
     const entityMapper: { [key: string]: MapperBase<any> } = {};
     mappers.forEach(m => (entityMapper[m.entity.name] = m));
@@ -1861,12 +1861,12 @@ async function recreateRelation(
   }
 }
 
-function indexTables(mods: ModuleInterface[]): { [key: string]: ModuleInterface } {
-  const tablesIndexed: { [key: string]: ModuleInterface } = {};
+function indexModsByTable(mods: ModuleInterface[]): { [key: string]: ModuleInterface } {
+  const modsIndexedByTable: { [key: string]: ModuleInterface } = {};
   mods.forEach(mod => {
-    mod.provides?.tables?.forEach((t: string) => (tablesIndexed[t] = mod));
+    mod.provides?.tables?.forEach((t: string) => (modsIndexedByTable[t] = mod));
   });
-  return tablesIndexed;
+  return modsIndexedByTable;
 }
 
 async function getChangesAfterCommitStartedByEntity(
@@ -1909,7 +1909,7 @@ async function getChangesAfterCommitStartedByEntity(
     versionString,
   );
 
-  const tablesIndexed = indexTables(modulesWithChanges);
+  const modsIndexedByTable = indexModsByTable(modulesWithChanges);
 
-  return await getChangesByEntity(orm, changesAfterCommit, tablesIndexed);
+  return await getChangesByEntity(orm, changesAfterCommit, modsIndexedByTable);
 }
