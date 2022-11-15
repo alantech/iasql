@@ -53,7 +53,7 @@ while [ $i -lt $(($len - 1)) ]; do
         VALUES ('${AWS_ACCESS_KEY_ID}', '${AWS_SECRET_ACCESS_KEY}');
       "
     psql $CONNSTR -c "
-        SELECT * FROM iasql_sync();
+        SELECT * FROM iasql_commit();
       "
     psql $CONNSTR -c "
         SELECT * FROM default_aws_region('us-east-1');

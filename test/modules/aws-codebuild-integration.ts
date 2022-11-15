@@ -4,19 +4,17 @@ import {
   execComposeDown,
   execComposeUp,
   finish,
-  runApply,
+  runCommit,
   runInstall,
   runQuery,
-  runSync,
   runUninstall,
 } from '../helpers';
 
 const dbAlias = 'codebuildtest';
-const apply = runApply.bind(null, dbAlias);
+const commit = runCommit.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
-const sync = runSync.bind(null, dbAlias);
 const region = defaultRegion();
 const modules = ['aws_codebuild', 'aws_ecr'];
 
@@ -41,9 +39,22 @@ jest.setTimeout(360000);
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown());
 
+let username: string, password: string;
+
 describe('AwsCodebuild Integration Testing', () => {
-  it('creates a new test db with the same name', done =>
-    void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
+  it('creates a new test db with the same name', done => {
+    (async () => {
+      try {
+        const { user, password: pgPassword } = await iasql.connect(dbAlias, 'not-needed', 'not-needed');
+        username = user;
+        password = pgPassword;
+        if (!username || !password) throw new Error('Did not fetch pg credentials');
+        done();
+      } catch (e) {
+        done(e);
+      }
+    })();
+  });
 
   it('installs the aws_account module', install(['aws_account']));
 
@@ -56,16 +67,22 @@ describe('AwsCodebuild Integration Testing', () => {
   `,
       undefined,
       false,
+      () => ({ username, password }),
     ),
   );
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it(
     'sets the default region',
-    query(`
+    query(
+      `
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('installs the codebuild module', install(modules));
@@ -137,10 +154,11 @@ phases:
   `,
       undefined,
       false,
+      () => ({ username, password }),
     ),
   );
 
-  it('apply import', apply());
+  it('apply import', commit());
 
   it(
     'check source_credentials_import is empty',
@@ -168,13 +186,18 @@ phases:
 
   it(
     'delete source_credentials_list',
-    query(`
+    query(
+      `
     DELETE FROM source_credentials_list
     WHERE source_type = 'GITHUB';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('apply delete', apply());
+  it('apply delete', commit());
 
   it(
     'check source_credentials_list is empty',
@@ -190,29 +213,44 @@ phases:
 
   it(
     'adds a new repository',
-    query(`
+    query(
+      `
     INSERT INTO repository (repository_name)
     VALUES ('${dbAlias}');
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(
     'adds a new role',
-    query(`
+    query(
+      `
     INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
     VALUES ('${dbAlias}', '${assumeServicePolicy}', array['${codebuildPolicyArn}', '${cloudwatchLogsArn}', '${pushEcrPolicyArn}']);
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(
     'adds a new codebuild_project with codepipeline type',
-    query(`
+    query(
+      `
     INSERT INTO codebuild_project (project_name, source_type, service_role_name)
     VALUES ('${dbAlias}-codepipeline', 'CODEPIPELINE', '${dbAlias}');
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('apply codebuild_project codepipeline creation', apply());
+  it('apply codebuild_project codepipeline creation', commit());
 
   it(
     'check new project exists',
@@ -228,30 +266,45 @@ phases:
 
   it(
     'deletes codebuild codepipeline project',
-    query(`
+    query(
+      `
     DELETE FROM codebuild_project WHERE project_name='${dbAlias}-codepipeline';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(
     'adds a new codebuild_project',
-    query(`
+    query(
+      `
     INSERT INTO codebuild_project (project_name, source_type, service_role_name, source_location)
     VALUES ('${dbAlias}', 'GITHUB', '${dbAlias}', '${ghUrl}');
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('apply codebuild_project creation', apply());
+  it('apply codebuild_project creation', commit());
 
   it(
     'start and wait for build',
-    query(`
+    query(
+      `
     INSERT INTO codebuild_build_import (project_name)
     VALUES ('${dbAlias}');
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('apply build start', apply());
+  it('apply build start', commit());
 
   it(
     'check build imports is empty',
@@ -292,37 +345,57 @@ phases:
 
   it(
     'delete build',
-    query(`
+    query(
+      `
     DELETE FROM codebuild_build_list
     WHERE project_name = '${dbAlias}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(
     'delete project',
-    query(`
+    query(
+      `
     DELETE FROM codebuild_project
     WHERE project_name = '${dbAlias}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(
     'delete repository',
-    query(`
+    query(
+      `
     DELETE FROM repository
     WHERE repository_name = '${dbAlias}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(
     'delete role',
-    query(`
+    query(
+      `
     DELETE FROM iam_role
     WHERE role_name = '${dbAlias}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('apply deletions', apply());
+  it('apply deletions', commit());
 
   it(
     'check build list is empty',
@@ -375,8 +448,19 @@ phases:
 });
 
 describe('AwsCodebuild install/uninstall', () => {
-  it('creates a new test db', done =>
-    void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
+  it('creates a new test db', done => {
+    (async () => {
+      try {
+        const { user, password: pgPassword } = await iasql.connect(dbAlias, 'not-needed', 'not-needed');
+        username = user;
+        password = pgPassword;
+        if (!username || !password) throw new Error('Did not fetch pg credentials');
+        done();
+      } catch (e) {
+        done(e);
+      }
+    })();
+  });
 
   it('installs the aws_account module', install(['aws_account']));
 
@@ -389,16 +473,22 @@ describe('AwsCodebuild install/uninstall', () => {
   `,
       undefined,
       false,
+      () => ({ username, password }),
     ),
   );
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it(
     'sets the default region',
-    query(`
+    query(
+      `
     UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('installs the codebuild module', install(modules));

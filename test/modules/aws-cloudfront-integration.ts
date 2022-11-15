@@ -6,10 +6,10 @@ import {
   execComposeUp,
   finish,
   getPrefix,
-  runApply,
+  runCommit,
   runInstall,
   runQuery,
-  runSync,
+  runRollback,
   runUninstall,
 } from '../helpers';
 
@@ -52,8 +52,8 @@ const s3behavior = {
 };
 const s3behaviorString = JSON.stringify(s3behavior);
 
-const apply = runApply.bind(null, dbAlias);
-const sync = runSync.bind(null, dbAlias);
+const commit = runCommit.bind(null, dbAlias);
+const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
@@ -72,53 +72,97 @@ afterAll(async () => {
   await execComposeDown();
 });
 
+let username: string, password: string;
+
 describe('Cloudfront Integration Testing', () => {
-  it('creates a new test db', done =>
-    void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
+  it('creates a new test db', done => {
+    (async () => {
+      try {
+        const { user, password: pgPassword } = await iasql.connect(dbAlias, 'not-needed', 'not-needed');
+        username = user;
+        password = pgPassword;
+        if (!username || !password) throw new Error('Did not fetch pg credentials');
+        done();
+      } catch (e) {
+        done(e);
+      }
+    })();
+  });
 
   it('installs the aws_account module', install(['aws_account']));
-  
-  it('inserts aws credentials', query(`
+
+  it(
+    'inserts aws credentials',
+    query(
+      `
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
-  `, undefined, false));
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
+  );
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
-  it('sets the default region', query(`
+  it(
+    'sets the default region',
+    query(
+      `
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
-  `));
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
 
-  it("installs the cloudfront module", install(modules));
+  it('installs the cloudfront module', install(modules));
 
   it(
     'creates a dummy s3 resource',
-    query(`
-    INSERT INTO bucket (name) VALUES ('${bucket}')`),
+    query(
+      `
+    INSERT INTO bucket (name) VALUES ('${bucket}')`,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
-  it('applies the s3 creation', apply());
+  it('applies the s3 creation', commit());
 
   it(
     'adds a new distribution',
-    query(`  
+    query(
+      `  
     INSERT INTO distribution (caller_reference, default_cache_behavior, origins)
     VALUES ('${callerReference}', '${behaviorString}', '${originsString}');
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('undo changes', sync());
+  it('undo changes', rollback());
 
   it('adds a new s3 distribution', done => {
-    query(`  
+    query(
+      `  
     INSERT INTO distribution (caller_reference, comment, enabled, is_ipv6_enabled, default_cache_behavior, origins )
     VALUES ('${s3CallerReference}', 'a comment', true, false, '${s3behaviorString}', '${s3OriginsString}');
-  `)((e?: any) => {
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    )((e?: any) => {
       if (!!e) return done(e);
       done();
     });
   });
 
-  it('applies the distribution change', apply());
+  it('applies the distribution change', commit());
 
   it(
     'check distribution is available',
@@ -132,13 +176,18 @@ describe('Cloudfront Integration Testing', () => {
 
   it(
     'adds a new distribution',
-    query(`  
+    query(
+      `  
     INSERT INTO distribution (caller_reference, comment, enabled, is_ipv6_enabled, default_cache_behavior, origins )
     VALUES ('${callerReference}', 'a comment', true, false, '${behaviorString}', '${originsString}');
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies the distribution change', apply());
+  it('applies the distribution change', commit());
 
   it(
     'check distribution is available',
@@ -152,12 +201,17 @@ describe('Cloudfront Integration Testing', () => {
 
   it(
     'tries to update distribution comment',
-    query(`
+    query(
+      `
   UPDATE distribution SET comment='new comment' WHERE caller_reference='${callerReference}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies the distribution comment update', apply());
+  it('applies the distribution comment update', commit());
 
   it(
     'checks that distribution have been modified',
@@ -171,12 +225,17 @@ describe('Cloudfront Integration Testing', () => {
 
   it(
     'tries to update distribution id',
-    query(`
+    query(
+      `
   UPDATE distribution SET distribution_id='fake' WHERE caller_reference='${callerReference}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies the distribution id update', apply());
+  it('applies the distribution id update', commit());
 
   it(
     'checks that distribution id has not been modified',
@@ -190,12 +249,17 @@ describe('Cloudfront Integration Testing', () => {
 
   it(
     'tries to update status',
-    query(`
+    query(
+      `
   UPDATE distribution SET status='fake' WHERE caller_reference='${callerReference}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies the status update', apply());
+  it('applies the status update', commit());
 
   it(
     'checks that status has not been modified',
@@ -223,44 +287,81 @@ describe('Cloudfront Integration Testing', () => {
 
   it(
     'deletes the distribution',
-    query(`
+    query(
+      `
     DELETE FROM distribution
     WHERE caller_reference = '${callerReference}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies the distribution removal', apply());
+  it('applies the distribution removal', commit());
 
   it(
     'deletes the s3 bucket',
-    query(`
+    query(
+      `
     DELETE FROM bucket WHERE name = '${bucket}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies the s3 removal', apply());
+  it('applies the s3 removal', commit());
 
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 });
 
 describe('Cloudfront install/uninstall', () => {
-  it('creates a new test db', done =>
-    void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
+  it('creates a new test db', done => {
+    (async () => {
+      try {
+        const { user, password: pgPassword } = await iasql.connect(dbAlias, 'not-needed', 'not-needed');
+        username = user;
+        password = pgPassword;
+        if (!username || !password) throw new Error('Did not fetch pg credentials');
+        done();
+      } catch (e) {
+        done(e);
+      }
+    })();
+  });
 
   it('installs the aws_account module', install(['aws_account']));
 
-  it('inserts aws credentials', query(`
+  it(
+    'inserts aws credentials',
+    query(
+      `
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
-  `, undefined, false));
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
+  );
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
-  it('sets the default region', query(`
+  it(
+    'sets the default region',
+    query(
+      `
     UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
-  `));
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
 
-  it("installs the Cloudfront module", install(modules));
+  it('installs the Cloudfront module', install(modules));
 
   it('uninstalls the Cloudfront module', uninstall(modules));
 

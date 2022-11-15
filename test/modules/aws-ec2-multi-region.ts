@@ -8,10 +8,9 @@ import {
   execComposeUp,
   finish,
   getPrefix,
-  runApply,
+  runCommit,
   runInstall,
   runQuery,
-  runSync,
 } from '../helpers';
 
 const dbAlias = 'ec2multi';
@@ -58,8 +57,7 @@ const ubuntuAmiId =
   'resolve:ssm:/aws/service/canonical/ubuntu/server/20.04/stable/current/amd64/hvm/ebs-gp2/ami-id';
 
 const prefix = getPrefix();
-const apply = runApply.bind(null, dbAlias);
-const sync = runSync.bind(null, dbAlias);
+const commit = runCommit.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const modules = ['aws_ec2', 'aws_ec2_metadata', 'aws_security_group', 'aws_vpc', 'aws_elb', 'aws_iam'];
@@ -100,9 +98,22 @@ beforeAll(async () => {
 });
 afterAll(async () => await execComposeDown());
 
+let username: string, password: string;
+
 describe('EC2 Integration Testing', () => {
-  it('creates a new test db', done =>
-    void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
+  it('creates a new test db', done => {
+    (async () => {
+      try {
+        const { user, password: pgPassword } = await iasql.connect(dbAlias, 'not-needed', 'not-needed');
+        username = user;
+        password = pgPassword;
+        if (!username || !password) throw new Error('Did not fetch pg credentials');
+        done();
+      } catch (e) {
+        done(e);
+      }
+    })();
+  });
 
   it('installs the aws_account module', install(['aws_account']));
 
@@ -115,22 +126,29 @@ describe('EC2 Integration Testing', () => {
   `,
       undefined,
       false,
+      () => ({ username, password }),
     ),
   );
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it(
     'sets the default region',
-    query(`
+    query(
+      `
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('installs the ec2 module', install(modules));
 
   it('adds an ec2 instance', done => {
-    query(`
+    query(
+      `
       INSERT INTO instance (ami, instance_type, tags, subnet_id)
         SELECT '${ubuntuAmiId}', '${instanceType1}', '{"name":"${prefix}-1"}', id
         FROM subnet
@@ -139,7 +157,11 @@ describe('EC2 Integration Testing', () => {
       INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
         (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'),
         (SELECT id FROM security_group WHERE group_name='default' AND region = '${region}');
-    `)((e?: any) => {
+    `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    )((e?: any) => {
       if (!!e) return done(e);
       done();
     });
@@ -157,7 +179,7 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
-  it('applies the created instances', apply());
+  it('applies the created instances', commit());
 
   it(
     'check number of instances',
@@ -184,7 +206,7 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
-  it('syncs the cloud state to update the metadata', sync());
+  it('syncs the cloud state to update the metadata', commit());
 
   it(
     'check instance metadata',
@@ -209,10 +231,15 @@ describe('EC2 Integration Testing', () => {
   describe('create IAM role', () => {
     it(
       'creates ec2 instance role',
-      query(`
+      query(
+        `
       INSERT INTO iam_role (role_name, assume_role_policy_document)
       VALUES ('${roleName}', '${ec2RolePolicy}');
-    `),
+    `,
+        undefined,
+        true,
+        () => ({ username, password }),
+      ),
     );
 
     it(
@@ -227,7 +254,7 @@ describe('EC2 Integration Testing', () => {
       ),
     );
 
-    it('applies the role creation', apply());
+    it('applies the role creation', commit());
 
     it(
       'checks role count',
@@ -244,7 +271,8 @@ describe('EC2 Integration Testing', () => {
 
   it(
     'create target group and register instance to it',
-    query(`
+    query(
+      `
     BEGIN;
       INSERT INTO target_group (target_group_name, target_type, protocol, port, health_check_path)
       VALUES ('${tgName}', '${tgType}', '${protocol}', ${tgPort}, '/health');
@@ -252,7 +280,11 @@ describe('EC2 Integration Testing', () => {
       INSERT INTO registered_instance (instance, target_group_id)
       SELECT (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'), (SELECT id FROM target_group WHERE target_group_name = '${tgName}');
     COMMIT;
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(
@@ -279,7 +311,7 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
-  it('applies the instance registration', apply());
+  it('applies the instance registration', commit());
 
   it(
     'check registered instance count',
@@ -311,7 +343,10 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
-  it('moves the instance to another region', query(`
+  it(
+    'moves the instance to another region',
+    query(
+      `
     -- You can't move a registered instance at all, so unregister it
     DELETE FROM registered_instance WHERE instance = (
       SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'
@@ -356,9 +391,14 @@ describe('EC2 Integration Testing', () => {
     DELETE FROM instance_security_groups WHERE instance_id = (
       SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'
     );
-  `));
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
 
-  it('applies the move', apply());
+  it('applies the move', commit());
 
   it(
     'check number of instances',
@@ -372,7 +412,7 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
-  it('syncs the cloud state to update the metadata', sync());
+  it('syncs the cloud state to update the metadata', commit());
 
   it(
     'check instance metadata again',
@@ -409,7 +449,8 @@ describe('EC2 Integration Testing', () => {
 
   it(
     'deletes the instance',
-    query(`
+    query(
+      `
       DELETE FROM general_purpose_volume
       USING instance
       WHERE instance.id = general_purpose_volume.attached_instance_id AND 
@@ -417,10 +458,14 @@ describe('EC2 Integration Testing', () => {
 
       DELETE FROM instance
       WHERE tags ->> 'name' = '${prefix}-1';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies the instances deletion', apply());
+  it('applies the instances deletion', commit());
 
   it(
     'check number of instances',
@@ -464,13 +509,18 @@ describe('EC2 Integration Testing', () => {
 
   it(
     'deletes the target group',
-    query(`
+    query(
+      `
     DELETE FROM target_group
     WHERE target_group_name = '${tgName}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies target group deletion', apply());
+  it('applies target group deletion', commit());
 
   it(
     'check target group count',
@@ -487,9 +537,14 @@ describe('EC2 Integration Testing', () => {
   describe('delete role', () => {
     it(
       'deletes role',
-      query(`
+      query(
+        `
       DELETE FROM iam_role WHERE role_name = '${roleName}';
-    `),
+    `,
+        undefined,
+        true,
+        () => ({ username, password }),
+      ),
     );
 
     it(
@@ -504,7 +559,7 @@ describe('EC2 Integration Testing', () => {
       ),
     );
 
-    it('applies the role deletion', apply());
+    it('applies the role deletion', commit());
 
     it(
       'checks role count',

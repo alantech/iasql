@@ -4,17 +4,15 @@ import {
   execComposeDown,
   execComposeUp,
   finish,
-  runApply,
+  runCommit,
   runInstall,
   runQuery,
-  runSync,
 } from '../helpers';
 
 const dbAlias = 'codebuildtest';
-const apply = runApply.bind(null, dbAlias);
+const commit = runCommit.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
-const sync = runSync.bind(null, dbAlias);
 const region = defaultRegion();
 const modules = ['aws_codebuild', 'aws_ecr'];
 const nonDefaultRegion = 'us-east-1';
@@ -40,9 +38,22 @@ jest.setTimeout(360000);
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown());
 
+let username: string, password: string;
+
 describe('AwsCodebuild Multi-region Integration Testing', () => {
-  it('creates a new test db with the same name', done =>
-    void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
+  it('creates a new test db with the same name', done => {
+    (async () => {
+      try {
+        const { user, password: pgPassword } = await iasql.connect(dbAlias, 'not-needed', 'not-needed');
+        username = user;
+        password = pgPassword;
+        if (!username || !password) throw new Error('Did not fetch pg credentials');
+        done();
+      } catch (e) {
+        done(e);
+      }
+    })();
+  });
 
   it('installs the aws_account module', install(['aws_account']));
 
@@ -55,16 +66,22 @@ describe('AwsCodebuild Multi-region Integration Testing', () => {
   `,
       undefined,
       false,
+      () => ({ username, password }),
     ),
   );
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it(
     'sets the default region',
-    query(`
+    query(
+      `
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('installs the codebuild module', install(modules));
@@ -78,10 +95,11 @@ describe('AwsCodebuild Multi-region Integration Testing', () => {
   `,
       undefined,
       false,
+      () => ({ username, password }),
     ),
   );
 
-  it('apply import', apply());
+  it('apply import', commit());
 
   it(
     'check source_credentials_import is empty',
@@ -109,13 +127,18 @@ describe('AwsCodebuild Multi-region Integration Testing', () => {
 
   it(
     'delete source_credentials_list',
-    query(`
+    query(
+      `
     DELETE FROM source_credentials_list
     WHERE source_type = 'GITHUB' and region = '${nonDefaultRegion}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('apply delete', apply());
+  it('apply delete', commit());
 
   it(
     'check source_credentials_list is empty',
@@ -131,31 +154,46 @@ describe('AwsCodebuild Multi-region Integration Testing', () => {
 
   it(
     'adds a new role',
-    query(`
+    query(
+      `
     INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
     VALUES ('${dbAlias}', '${assumeServicePolicy}', array['${codebuildPolicyArn}', '${cloudwatchLogsArn}', '${pushEcrPolicyArn}']);
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(
     'adds a new codebuild_project',
-    query(`
+    query(
+      `
     INSERT INTO codebuild_project (project_name, source_type, service_role_name, source_location, region)
     VALUES ('${dbAlias}', 'GITHUB', '${dbAlias}', '${ghUrl}', '${nonDefaultRegion}');
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('apply codebuild_project creation', apply());
+  it('apply codebuild_project creation', commit());
 
   it(
     'start build',
-    query(`
+    query(
+      `
     INSERT INTO codebuild_build_import (project_name, region)
     VALUES ('${dbAlias}', '${nonDefaultRegion}');
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('apply build start', apply());
+  it('apply build start', commit());
 
   it(
     'check build imports is empty',
@@ -181,29 +219,44 @@ describe('AwsCodebuild Multi-region Integration Testing', () => {
 
   it(
     'delete build',
-    query(`
+    query(
+      `
     DELETE FROM codebuild_build_list
     WHERE project_name = '${dbAlias}' and region = '${nonDefaultRegion}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(
     'delete project',
-    query(`
+    query(
+      `
     DELETE FROM codebuild_project
     WHERE project_name = '${dbAlias}' and region = '${nonDefaultRegion}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(
     'delete role',
-    query(`
+    query(
+      `
     DELETE FROM iam_role
     WHERE role_name = '${dbAlias}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('apply deletions', apply());
+  it('apply deletions', commit());
 
   it(
     'check build list is empty',

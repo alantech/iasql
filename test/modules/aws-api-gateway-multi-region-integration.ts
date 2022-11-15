@@ -5,10 +5,10 @@ import {
   execComposeUp,
   finish,
   getPrefix,
-  runApply,
+  runCommit,
   runInstall,
   runQuery,
-  runSync,
+  runRollback,
 } from '../helpers';
 
 const prefix = getPrefix();
@@ -17,8 +17,8 @@ const dbAlias = `${prefix}apigatewaytest`;
 const nonDefaultRegion = 'us-east-1';
 const apiName = `${dbAlias}testApiRegion`;
 
-const apply = runApply.bind(null, dbAlias);
-const sync = runSync.bind(null, dbAlias);
+const commit = runCommit.bind(null, dbAlias);
+const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 // the AWS website lied, API gateway also has restricted regions
@@ -44,9 +44,22 @@ jest.setTimeout(3600000);
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown());
 
+let username: string, password: string;
+
 describe('Api Gateway Multi-region Integration Testing', () => {
-  it('creates a new test db', done =>
-    void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
+  it('creates a new test db', done => {
+    (async () => {
+      try {
+        const { user, password: pgPassword } = await iasql.connect(dbAlias, 'not-needed', 'not-needed');
+        username = user;
+        password = pgPassword;
+        if (!username || !password) throw new Error('Did not fetch pg credentials');
+        done();
+      } catch (e) {
+        done(e);
+      }
+    })();
+  });
 
   it('installs the aws_account module', install(['aws_account']));
 
@@ -59,29 +72,40 @@ describe('Api Gateway Multi-region Integration Testing', () => {
   `,
       undefined,
       false,
+      () => ({ username, password }),
     ),
   );
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it(
     'sets the default region',
-    query(`
+    query(
+      `
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('installs the api gateway module', install(modules));
 
   it(
     'adds a new API Gateway',
-    query(`  
+    query(
+      `  
     INSERT INTO api (name, description, region)
     VALUES ('${apiName}', 'description', '${nonDefaultRegion}');
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('undo changes', sync());
+  it('undo changes', rollback());
 
   it(
     'checks it has been removed',
@@ -97,13 +121,18 @@ describe('Api Gateway Multi-region Integration Testing', () => {
 
   it(
     'adds a new API Gateway',
-    query(`  
+    query(
+      `  
     INSERT INTO api (name, description, region)
     VALUES ('${apiName}', 'description', '${nonDefaultRegion}');
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies the change', apply());
+  it('applies the change', commit());
 
   it(
     'checks the API Gateway was added',
@@ -119,14 +148,19 @@ describe('Api Gateway Multi-region Integration Testing', () => {
 
   it(
     'changes the region the API Gateway is located in',
-    query(`
+    query(
+      `
       UPDATE api
       SET region = '${region}'
       WHERE name = '${apiName}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies the replacement', apply());
+  it('applies the replacement', commit());
 
   it(
     'checks the API Gateway was moved',
@@ -142,13 +176,18 @@ describe('Api Gateway Multi-region Integration Testing', () => {
 
   it(
     'removes the API Gateway',
-    query(`
+    query(
+      `
     DELETE FROM api
     WHERE name = '${apiName}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies the removal', apply());
+  it('applies the removal', commit());
 
   it(
     'checks the remaining table count for the last time',
