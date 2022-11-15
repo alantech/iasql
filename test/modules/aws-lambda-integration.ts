@@ -608,14 +608,14 @@ describe('Lambda Integration Testing', () => {
   it(
     'deletes security group',
     query(`
-      DELETE FROM security_group WHERE group_name = '${sgGroupName}' or group_name='${prefix}lambdanotdefault' AND region='${region}';
+      DELETE FROM security_group WHERE group_name = '${sgGroupName}' AND region='${region}';
     `),
   );
 
   it('applies the security group deletion', apply());
 
   it(
-    'deletes the subnet',
+    'deletes the subnet and security groups',
     query(`
     WITH vpc as (
       SELECT id
@@ -623,6 +623,10 @@ describe('Lambda Integration Testing', () => {
       WHERE cidr_block = '192.${randIPBlock}.0.0/16' AND region='${region}'
     )
     DELETE FROM subnet
+    USING vpc
+    WHERE vpc_id = vpc.id;
+
+    DELETE FROM security_group
     USING vpc
     WHERE vpc_id = vpc.id;
 
