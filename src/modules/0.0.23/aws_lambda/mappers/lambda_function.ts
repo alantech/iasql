@@ -14,8 +14,6 @@ import { crudBuilderFormat } from '../../../../services/aws_macros';
 import { Context, Crud2, MapperBase } from '../../../interfaces';
 import { awsIamModule } from '../../aws_iam';
 import { awsSecurityGroupModule } from '../../aws_security_group';
-import { awsVpcModule } from '../../aws_vpc';
-import { Subnet } from '../../aws_vpc/entity';
 import {
   addFunctionTags,
   AWS,
@@ -114,13 +112,13 @@ export class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
   }
 
   updateableConfigFieldsEq(a: LambdaFunction, b: LambdaFunction) {
-    return (
+    const result =
       Object.is(a.securityGroups?.length, b.securityGroups?.length) &&
       (a.securityGroups?.every(asg => !!b.securityGroups?.find(bsg => Object.is(asg.groupId, bsg.groupId))) ??
         false) &&
       Object.is(a.subnets?.length, b.subnets?.length) &&
-      (a.subnets?.every(asn => !!b.subnets?.find(bsn => Object.is(asn, bsn))) ?? false)
-    );
+      (a.subnets?.every(asn => !!b.subnets?.find(bsn => Object.is(asn, bsn))) ?? false);
+    return result;
   }
 
   restorableFunctionFieldsEq(a: LambdaFunction, b: LambdaFunction) {
@@ -153,8 +151,17 @@ export class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
     res => res?.NetworkInterfaces,
   );
 
-  async deleteNetworkInterface(client: EC2, id: string) {
-    await client.deleteNetworkInterface({ NetworkInterfaceId: id });
+  async deleteNetworkInterface(client: EC2, subnet: string, name: string) {
+    // first get all interfaces for that subnet
+    const interfaces = await this.getNetworkInterfaces(client, subnet);
+
+    if (interfaces) {
+      for (const i of interfaces) {
+        // iterate and check if description matches lambda function name
+        if (i.Description && i.Description.includes(name) && i.NetworkInterfaceId)
+          await client.deleteNetworkInterface({ NetworkInterfaceId: i.NetworkInterfaceId });
+      }
+    }
   }
 
   cloud = new Crud2({
@@ -162,6 +169,11 @@ export class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
       const out = [];
       for (const e of es) {
         const client = (await ctx.getAwsClient(e.region)) as AWS;
+
+        // if role does not exist in the cloud, continue, should be created later
+        const role = await awsIamModule.role.cloud.read(ctx, e.role.roleName);
+        if (!role) continue;
+
         // TODO: handle properly once more lambda sources are added (ecr, s3)
         if (!e.zipB64) throw new Error('Missing base64 encoded zip file');
 
@@ -266,7 +278,14 @@ export class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
           };
           await updateFunctionConfiguration(client.lambdaClient, input);
           await waitUntilFunctionUpdated(client.lambdaClient, e.name);
+
+          // check the network interfaces that are not applying and remove those
+          const remaining = (cloudRecord.subnets ?? []).filter((x: string) => !(e.subnets ?? []).includes(x));
+          for (const s of remaining) {
+            await this.deleteNetworkInterface(client.ec2client, s, e.name);
+          }
         }
+
         if (!this.updateableCodeFieldsEq(cloudRecord, e)) {
           // Update function code
           const input: UpdateFunctionCodeCommandInput = {
@@ -307,15 +326,7 @@ export class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
         // check all associated subnets and get the vpc id, to get associated endpoint interfaces
         if (e.subnets) {
           for (const s of e.subnets) {
-            const interfaces = await this.getNetworkInterfaces(client.ec2client, s);
-
-            if (interfaces) {
-              for (const i of interfaces) {
-                // iterate and check if description matches lambda function name
-                if (i.Description && i.Description.includes(e.name) && i.NetworkInterfaceId)
-                  await this.deleteNetworkInterface(client.ec2client, i.NetworkInterfaceId);
-              }
-            }
+            await this.deleteNetworkInterface(client.ec2client, s, e.name);
           }
         }
       }
