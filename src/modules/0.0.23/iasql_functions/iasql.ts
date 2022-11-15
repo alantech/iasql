@@ -1960,6 +1960,7 @@ export async function rollback(dbId: string, context: Context, force = false, or
       dbId,
       installedModulesSorted,
       context,
+      force,
       toCreate,
       toUpdate,
       toReplace,
