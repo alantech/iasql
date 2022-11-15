@@ -24,8 +24,8 @@
     "version": "./.version.sh",
     "drop": "./.drop.sh",
     "develop": "./.develop.sh",
-    "style": "npx prettier --config .prettierrc 'src/**/*[.ts, .sql]' --check",
-    "format": "npx prettier --config .prettierrc 'src/**/*[.ts, .sql]' --write"
+    "style": "npx prettier --config .prettierrc 'src/**/*[.ts, .sql]' 'test/**/*.ts' --check",
+    "format": "npx prettier --config .prettierrc 'src/**/*[.ts, .sql]' 'test/**/*.ts' --write"
   },
   "repository": {
     "type": "git",
