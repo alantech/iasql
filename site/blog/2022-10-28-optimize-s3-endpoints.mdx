@@ -21,7 +21,10 @@ NAT gateway.
 
 ### Why use VPC Interface Endpoints
 
-The two main reasons are **security** and **performance**.
+AWS VPC Interface Endpoints are a component of <a href="https://aws.amazon.com/privatelink">PrivateLink</a> infrastructure. AWS PrivateLink provides private connectivity between virtual private clouds (VPCs),
+supported AWS services, and your on-premises networks withoutexposing your traffic to the public internet.
+
+Relying on PrivateLink offers a set of advantages in terms of **security** and **performance**.
 
 **Security: no internet traversal**
 
@@ -56,6 +59,8 @@ PrivateLink consistently lowers the amount of errors and timeouts on high loads
   </a>
 </p>
 
+This query will find your active S3 buckets for all regions, associated with the existing endpoint gateways or interfaces - if they exist.
+
 Have you found missing endpoints? No problem, IaSQL can generate them for you. You can create two different
 types of endpoints: gateway and interface. We're going to describe their main features and you could create
 the desired type in an automated way.
@@ -76,13 +81,13 @@ used to access the resources.
 Endpoint interfaces cover a wide range of services such as S3, Lambda, API Gateway, etc...
 
 <p>
-  <a href="https://app.iasql.com/#/button/Add S3 endpoint interfaces/--%20Inserts%20the%20missing%20endpoints%0Ainsert%20into%20endpoint_interface%28region%2C%20vpc_id%2C%20service%29%20select%20bucket.region%2C%20vpc.id%2C%20%27s3%27%20from%20bucket%20inner%20join%20vpc%0Aon%20bucket.region%3Dvpc.region%20where%20not%20exists%20%28select%20id%20from%20endpoint_interface%20where%20endpoint_interface.region%3Dbucket.region%20and%20endpoint_interface.vpc_id%3Dvpc.id%29%3B%0A--%20Preview%20the%20changes%0Aselect%20%2A%20from%20iasql_preview_apply%28%29%3B%0A--%20Apply%20the%20changes%0A--select%20%2A%20from%20iasql_apply%28%29%3B">
+  <a href="https://app.iasql.com/#/button/Add S3 interface endpoints/--%20Inserts%20the%20missing%20endpoints%0Ainsert%20into%20endpoint_interface%28region%2C%20vpc_id%2C%20service%29%20select%20bucket.region%2C%20vpc.id%2C%20%27s3%27%20from%20bucket%20inner%20join%20vpc%0Aon%20bucket.region%3Dvpc.region%20where%20not%20exists%20%28select%20id%20from%20endpoint_interface%20where%20endpoint_interface.region%3Dbucket.region%20and%20endpoint_interface.vpc_id%3Dvpc.id%29%3B%0A--%20Preview%20the%20changes%0Aselect%20%2A%20from%20iasql_preview_apply%28%29%3B%0A--%20Apply%20the%20changes%0A--select%20%2A%20from%20iasql_apply%28%29%3B">
     <button class="button button--lg button--primary">Add missing endpoint interfaces</button>
   </a>
 </p>
 
-By clicking on the button, our engine will auto-generate the missing endpoint interfaces and will allow you
-to preview the changes to be applied on your cloud.
+By clicking on the button, our engine will auto-generate the missing interface endpoints and will allow you
+to preview the changes to be applied on your cloud. <a href="https://docs.aws.amazon.com/vpc/latest/privatelink/create-interface-endpoint.html">Get more detail about interface endpoints.</a>
 
 ## Endpoint gateways
 
@@ -107,7 +112,7 @@ Gateway endpoints only support S3 and DynamoDB services.
 </a>
 
 By clicking on the button, our engine will auto-generate the missing endpoint gateways and will allow you to
-preview the changes to be applied on your cloud.
+preview the changes to be applied on your cloud. <a href="https://docs.aws.amazon.com/vpc/latest/privatelink/gateway-endpoints.html">Get more detail about gateway endpoints.</a>
 
 ## Testing the result
 
