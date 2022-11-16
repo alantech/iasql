@@ -24,7 +24,7 @@ async function main() {
   });
 
   const apply = await prisma.$queryRaw`SELECT *
-                                       from iasql_apply();`;
+                                       from iasql_commit();`;
   console.dir(apply);
 
   console.log('Using ecr_build to build the docker image and push it to ECR...');
