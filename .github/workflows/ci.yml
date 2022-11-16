@@ -13,27 +13,27 @@ on:
     paths: ['.github/workflows/ci.yml', 'src/**', 'test/**', 'package.json', 'yarn.lock']
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
-# jobs:
-#   lint:
-#     # The type of runner that the job will run on
-#     runs-on: ubuntu-latest
+jobs:
+  lint:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
 
-#     # Steps represent a sequence of tasks that will be executed as part of the job
-#     steps:
-#       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-#       - uses: actions/checkout@v2
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
 
-#       # Set up Node.js
-#       - name: Use Node.js 16.x
-#         uses: actions/setup-node@v1
-#         with:
-#           node-version: 16.x
+      # Set up Node.js
+      - name: Use Node.js 16.x
+        uses: actions/setup-node@v1
+        with:
+          node-version: 16.x
 
-#       - name: Install dependencies
-#         run: yarn
+      - name: Install dependencies
+        run: yarn
 
-#       - name: Run linter check
-#         run: yarn lint
+      - name: Run linter check
+        run: yarn lint
 
 #   style:
 #     # The type of runner that the job will run on
