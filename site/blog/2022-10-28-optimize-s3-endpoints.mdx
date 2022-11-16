@@ -71,8 +71,7 @@ An interface endpoint is an elastic network interface with a private IP address 
 point for traffic destined to a supported AWS service. As they use ENIs, they can benefit from security groups
 to control traffic. Policies can also be added to control access to those endpoints.
 
-They are regional, meaning they can only be accessed by the same region they are created. Multi-region is
-possible using VPC peering, so resources in one region can be accessed from others. They only support IPv4
+They are regional, meaning they can only be accessed by the same region they are created. However, Multi-region is possible by also using VPC peering, so resources in one region can be accessed from others, though this only supports IPv4
 TCP traffic.
 
 An interface endpoint (except S3 interface endpoint) has corresponding private DNS hostnames, that can be
