@@ -105,13 +105,14 @@ const theButton = require('./src/rehype/thebutton');
             label: 'Schema',
           },
           {
-            to: 'https://discord.com/invite/machGGczea',
-            target: '_self',
-            label: 'Discord',
-          },
-          {
             type: 'docsVersionDropdown',
             position: 'right',
+          },
+          {
+            href: 'https://discord.com/invite/machGGczea',
+            position: 'right',
+            className: 'header-discord-link',
+            'aria-label': 'Community',
           },
           {
             href: 'https://github.com/iasql/iasql-engine',
