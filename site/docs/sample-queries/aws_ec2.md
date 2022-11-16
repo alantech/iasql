@@ -28,7 +28,7 @@ INSERT INTO instance (ami, instance_type, tags)
 
 INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
   (SELECT id FROM instance WHERE tags ->> 'name' = 'i-1'),
-  (SELECT id FROM security_group WHERE group_name='default' AND vpc_id = (SELECT id FROM vpc WHERE is_default = true));
+  (SELECT id FROM security_group WHERE group_name='default' AND vpc_id = (SELECT id FROM vpc WHERE is_default = true LIMIT 1));
 
 INSERT INTO instance (ami, instance_type, tags)
   VALUES ('resolve:ssm:/aws/service/canonical/ubuntu/server/20.04/stable/current/amd64/hvm/ebs-gp2/ami-id', 't2.micro', '{"name":"i-2"}');

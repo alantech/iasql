@@ -1,0 +1,55 @@
+---
+slug: stable-diffusion
+title: Deploy Stable Diffusion to your AWS account with one click
+date: 2022-11-15
+authors: [depombo]
+---
+
+# Deploy Stable Diffusion to an EC2 instance in your AWS account with one click
+
+:::caution
+
+The on-demand pricing for the `p3.2xlarge` EC2 instance used is around $3 per hour. For exact pricing check https://aws.amazon.com/ec2/pricing/on-demand/
+
+:::caution
+
+
+```sql TheButton[Deploy Stable Diffusion]="Deploy Stable Diffusion"
+
+-- Manage AWS EC2 service with IaSQL
+SELECT * FROM iasql_install('aws_ec2');
+
+-- how to provide hugging face credentials programmatically
+INSERT INTO instance (region, ami, instance_type, tags, user_data)
+  VALUES ('us-east-2', 'ami-077454f43efd38e42', 'p3.2xlarge', '{"name":"iasql-stable-diffusion"}', 'sudo yum install ec2-instance-connect;
+pip3 install anaconda;
+git lfs install;
+git clone https://huggingface.co/CompVis/stable-diffusion-v1-4;
+git lfs pull;
+');
+
+INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
+  (SELECT id FROM instance WHERE tags ->> 'name' = 'iasql-stable-diffusion'),
+  (SELECT id FROM security_group WHERE group_name='default' AND vpc_id = (SELECT id FROM vpc WHERE is_default = true LIMIT 1));
+
+-- enable ssh access to vm
+INSERT INTO security_group (description, group_name)
+VALUES ('Security Group from IaSQL sample', 'iasql-ssh');
+
+INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
+SELECT false, 'tcp', 22, 22, '0.0.0.0/0', 'iasqlsshrule', id
+FROM security_group
+WHERE group_name = 'iasql-ssh';
+
+INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
+  (SELECT id FROM instance WHERE tags ->> 'name' = 'iasql-stable-diffusion'),
+  (SELECT id FROM security_group WHERE group_name='iasql-ssh');
+
+-- Previewing changes in your account
+SELECT * FROM iasql_preview_apply();
+-- Applying delete changes, please uncomment it to perform the cleanup
+--SELECT * FROM iasql_apply();
+```
+
+After the initial module install, IaSQL will propose the creation of a new virtual machine.
+If you agree with the proposed changes uncomment the apply statement and execute it to let IaSQL spin up the EC2 instance.

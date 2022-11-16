@@ -28,8 +28,8 @@ SELECT true, 'tcp', 443, 443, '0.0.0.0/8', 'iasqlsamplerule', id
 FROM security_group
 WHERE group_name = 'iasql-sample-sg';
 
-INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv6, description, security_group_id)
-SELECT false, 'tcp', 22, 22, '::/8', 'iasqlsamplerule2', id
+INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
+SELECT false, 'tcp', 22, 22, '0.0.0.0/0', 'iasqlsamplerule2', id
 FROM security_group
 WHERE group_name = 'iasql-sample-sg';
 ```
