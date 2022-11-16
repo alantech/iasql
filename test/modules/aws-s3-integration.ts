@@ -6,18 +6,18 @@ import {
   execComposeUp,
   finish,
   getPrefix,
-  runApply,
+  runCommit,
   runInstall,
   runQuery,
-  runSync,
+  runRollback,
   runUninstall,
 } from '../helpers';
 
 const prefix = getPrefix();
 const dbAlias = 's3test';
 const s3Name = `${prefix}${dbAlias}`;
-const apply = runApply.bind(null, dbAlias);
-const sync = runSync.bind(null, dbAlias);
+const commit = runCommit.bind(null, dbAlias);
+const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
@@ -67,9 +67,22 @@ jest.setTimeout(360000);
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown());
 
+let username: string, password: string;
+
 describe('S3 Integration Testing', () => {
-  it('creates a new test db', done =>
-    void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
+  it('creates a new test db', done => {
+    (async () => {
+      try {
+        const { user, password: pgPassword } = await iasql.connect(dbAlias, 'not-needed', 'not-needed');
+        username = user;
+        password = pgPassword;
+        if (!username || !password) throw new Error('Did not fetch pg credentials');
+        done();
+      } catch (e) {
+        done(e);
+      }
+    })();
+  });
 
   it('installs the aws_account module', install(['aws_account']));
 
@@ -82,29 +95,40 @@ describe('S3 Integration Testing', () => {
   `,
       undefined,
       false,
+      () => ({ username, password }),
     ),
   );
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it(
     'sets the default region',
-    query(`
+    query(
+      `
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('installs the s3 module', install(modules));
 
   it(
     'adds a new s3 bucket',
-    query(`  
+    query(
+      `  
     INSERT INTO bucket (name)
     VALUES ('${s3Name}');
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('undo changes', sync());
+  it('undo changes', rollback());
 
   it(
     'check bucket insertion',
@@ -120,13 +144,18 @@ describe('S3 Integration Testing', () => {
 
   it(
     'adds a new s3 bucket',
-    query(`  
+    query(
+      `  
     INSERT INTO bucket (name, policy_document)
     VALUES ('${s3Name}', '${policyDocument}');
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies the s3 bucket change', apply());
+  it('applies the s3 bucket change', commit());
 
   it(
     'check s3 insertion',
@@ -144,9 +173,12 @@ describe('S3 Integration Testing', () => {
     'inserts content into bucket object',
     query(
       `INSERT INTO bucket_object (bucket_name, key, region) VALUES ('${s3Name}', 'fake_bucket', '${region}')`,
+      undefined,
+      true,
+      () => ({ username, password }),
     ),
   );
-  it('applies the s3 object removal', apply());
+  it('applies the s3 object removal', commit());
 
   it(
     'check fake object deletion',
@@ -189,12 +221,17 @@ describe('S3 Integration Testing', () => {
 
   it(
     'deletes one object of the bucket',
-    query(`
+    query(
+      `
     DELETE FROM bucket_object WHERE bucket_name = '${s3Name}' AND key='iasql_message';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies the s3 object removal', apply());
+  it('applies the s3 object removal', commit());
 
   it(
     'check object deletion',
@@ -231,12 +268,17 @@ describe('S3 Integration Testing', () => {
 
   it(
     'updates the bucket timestamp',
-    query(`
+    query(
+      `
     UPDATE bucket SET created_at = '1984-01-01T00:00:00' WHERE name = '${s3Name}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies the s3 bucket update', apply());
+  it('applies the s3 bucket update', commit());
 
   it(
     'check s3 bucket timestamp is reverted',
@@ -262,7 +304,13 @@ describe('S3 Integration Testing', () => {
     ),
   );
 
-  it('cleans the bucket', query(`DELETE FROM bucket_object WHERE bucket_name='${s3Name}'`));
+  it(
+    'cleans the bucket',
+    query(`DELETE FROM bucket_object WHERE bucket_name='${s3Name}'`, undefined, true, () => ({
+      username,
+      password,
+    })),
+  );
 
   it(
     'check no s3 objects still exist',
@@ -293,11 +341,16 @@ describe('S3 Integration Testing', () => {
 
     it(
       'updates the bucket policy',
-      query(`
+      query(
+        `
     UPDATE bucket SET policy_document='${newPolicyDocument}' WHERE name = '${s3Name}';
-    `),
+    `,
+        undefined,
+        true,
+        () => ({ username, password }),
+      ),
     );
-    it('applies the s3 bucket policy update', apply());
+    it('applies the s3 bucket policy update', commit());
 
     it(
       'gets current bucket policy with updated document',
@@ -312,9 +365,14 @@ describe('S3 Integration Testing', () => {
 
   it('should fail when changing the region', () => {
     try {
-      query(`
+      query(
+        `
       UPDATE bucket SET region='${nonDefaultRegion}' WHERE name = '${s3Name}';
-      `);
+      `,
+        undefined,
+        true,
+        () => ({ username, password }),
+      );
     } catch (e) {
       expect(e).toBeTruthy;
     }
@@ -322,9 +380,14 @@ describe('S3 Integration Testing', () => {
 
   it('should fail when changing the name', () => {
     try {
-      query(`
+      query(
+        `
       UPDATE bucket SET name='${nonDefaultRegion}' WHERE name = '${s3Name}';
-      `);
+      `,
+        undefined,
+        true,
+        () => ({ username, password }),
+      );
     } catch (e) {
       expect(e).toBeTruthy;
     }
@@ -334,33 +397,62 @@ describe('S3 Integration Testing', () => {
 
   it('installs the s3 module', install(modules));
 
-  it('re-adds content to bucket', query(
-    `SELECT * FROM s3_upload_object('${s3Name}', 'iasql_message', '${bucketContent}', 'application/json')`,
-    (res: any[]) => expect(res[0].status).toStrictEqual('OK'),
-  ));
+  it(
+    're-adds content to bucket',
+    query(
+      `SELECT * FROM s3_upload_object('${s3Name}', 'iasql_message', '${bucketContent}', 'application/json')`,
+      (res: any[]) => expect(res[0].status).toStrictEqual('OK'),
+    ),
+  );
 
-  it('checks object re-creation', query(`
+  it(
+    'checks object re-creation',
+    query(
+      `
     SELECT *
     FROM bucket_object 
     WHERE bucket_name = '${s3Name}';
-  `, (res: any[]) => {
-    expect(res.length).toBe(1);
-    console.log(res);
-  }));
+  `,
+      (res: any[]) => {
+        expect(res.length).toBe(1);
+        console.log(res);
+      },
+    ),
+  );
 
-  it('cleans the bucket again', query(`DELETE FROM bucket_object WHERE bucket_name='${s3Name}'`));
+  it(
+    'cleans the bucket again',
+    query(`DELETE FROM bucket_object WHERE bucket_name='${s3Name}'`, undefined, false, () => ({
+      username,
+      password,
+    })),
+  );
 
-  it('checks object re-deletion', query(`
+  it(
+    'checks object re-deletion',
+    query(
+      `
     SELECT *
     FROM bucket_object 
     WHERE bucket_name = '${s3Name}';
-  `, (res: any[]) => expect(res.length).toBe(0)));
+  `,
+      (res: any[]) => expect(res.length).toBe(0),
+    ),
+  );
 
-  it('deletes the s3 bucket', query(`
+  it(
+    'deletes the s3 bucket',
+    query(
+      `
     DELETE FROM bucket WHERE name = '${s3Name}';
-  `));
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
 
-  it('applies the s3 bucket removal', apply());
+  it('applies the s3 bucket removal', commit());
 
   it(
     'check s3 removal',
@@ -378,8 +470,19 @@ describe('S3 Integration Testing', () => {
 });
 
 describe('S3 install/uninstall', () => {
-  it('creates a new test db', done =>
-    void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
+  it('creates a new test db', done => {
+    (async () => {
+      try {
+        const { user, password: pgPassword } = await iasql.connect(dbAlias, 'not-needed', 'not-needed');
+        username = user;
+        password = pgPassword;
+        if (!username || !password) throw new Error('Did not fetch pg credentials');
+        done();
+      } catch (e) {
+        done(e);
+      }
+    })();
+  });
 
   it('installs the aws_account module', install(['aws_account']));
 
@@ -392,16 +495,22 @@ describe('S3 install/uninstall', () => {
   `,
       undefined,
       false,
+      () => ({ username, password }),
     ),
   );
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it(
     'sets the default region',
-    query(`
+    query(
+      `
     UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(

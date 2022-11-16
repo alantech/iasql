@@ -15,7 +15,7 @@ pip install -r requirements.txt
 echo "\nRun Django migrations"
 python manage.py migrate --database infra infra
 
-psql postgres://postgres:test@localhost:5432/iasql -c "
+psql postgres://$IASQL_USERNAME:$IASQL_PASSWORD@localhost:5432/iasql -c "
   SELECT ecr_build(
     '$GITHUB_SERVER_URL/$GITHUB_REPOSITORY',
     (SELECT id FROM repository WHERE repository_name = 'quickstart-repository')::varchar(255),

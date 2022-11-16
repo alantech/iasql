@@ -9,10 +9,10 @@ import {
   finish,
   getKeyCertPair,
   getPrefix,
-  runApply,
+  runCommit,
   runInstall,
   runQuery,
-  runSync,
+  runRollback,
   runUninstall,
 } from '../helpers';
 
@@ -30,8 +30,8 @@ const dbAlias = 'elbtest';
 const domainName = `${prefix}${dbAlias}.com`;
 const [key, cert] = getKeyCertPair(domainName);
 
-const apply = runApply.bind(null, dbAlias);
-const sync = runSync.bind(null, dbAlias);
+const commit = runCommit.bind(null, dbAlias);
+const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
@@ -58,13 +58,26 @@ const lbIPAddressType = IpAddressType.IPV4;
 const sg1 = `${prefix}${dbAlias}lbsg1`;
 const sg2 = `${prefix}${dbAlias}lbsg2`;
 
-jest.setTimeout(360000);
+jest.setTimeout(420000);
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown());
 
+let username: string, password: string;
+
 describe('ELB Integration Testing', () => {
-  it('creates a new test db elb', done =>
-    void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
+  it('creates a new test db elb', done => {
+    (async () => {
+      try {
+        const { user, password: pgPassword } = await iasql.connect(dbAlias, 'not-needed', 'not-needed');
+        username = user;
+        password = pgPassword;
+        if (!username || !password) throw new Error('Did not fetch pg credentials');
+        done();
+      } catch (e) {
+        done(e);
+      }
+    })();
+  });
 
   it('installs the aws_account module', install(['aws_account']));
 
@@ -77,18 +90,24 @@ describe('ELB Integration Testing', () => {
       `,
       undefined,
       false,
+      () => ({ username, password }),
     ),
   );
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it(
     'sets the default region',
-    query(`
+    query(
+      `
         UPDATE aws_regions
         SET is_default = TRUE
         WHERE region = '${region}';
-    `),
+    `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('installs the elb module', install(modules));
@@ -96,13 +115,18 @@ describe('ELB Integration Testing', () => {
   // Target group
   it(
     'adds a new targetGroup',
-    query(`
+    query(
+      `
         INSERT INTO target_group (target_group_name, target_type, protocol, port, vpc, health_check_path)
         VALUES ('${tgName}', '${tgType}', '${protocol}', ${port}, null, '/health');
-    `),
+    `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('undo changes', sync());
+  it('undo changes', rollback());
 
   it(
     'check target_group insertion',
@@ -118,10 +142,15 @@ describe('ELB Integration Testing', () => {
 
   it(
     'adds a new targetGroup',
-    query(`
+    query(
+      `
         INSERT INTO target_group (target_group_name, target_type, protocol, port, vpc, health_check_path)
         VALUES ('${tgName}', '${tgType}', '${protocol}', ${port}, null, '/health');
-    `),
+    `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(
@@ -136,40 +165,55 @@ describe('ELB Integration Testing', () => {
     ),
   );
 
-  it('applies the change', apply());
+  it('applies the change', commit());
 
   it(
     'tries to update a target group field',
-    query(`
+    query(
+      `
         UPDATE target_group
         SET health_check_path = '/fake-health'
         WHERE target_group_name = '${tgName}';
-    `),
+    `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies the change', apply());
+  it('applies the change', commit());
 
   it(
     'tries to update a target group field (replace)',
-    query(`
+    query(
+      `
         UPDATE target_group
         SET port = 5677
         WHERE target_group_name = '${tgName}';
-    `),
+    `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies the change', apply());
+  it('applies the change', commit());
 
   // Load balancer
   it(
     'adds a new load balancer',
-    query(`
+    query(
+      `
         INSERT INTO load_balancer (load_balancer_name, scheme, vpc, load_balancer_type, ip_address_type)
         VALUES ('${lbName}', '${lbScheme}', null, '${lbType}', '${lbIPAddressType}');
-    `),
+    `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('undo changes', sync());
+  it('undo changes', rollback());
 
   it(
     'check load_balancer insertion',
@@ -184,19 +228,25 @@ describe('ELB Integration Testing', () => {
 
   it(
     'adds new security groups',
-    query(`
+    query(
+      `
               INSERT INTO security_group (description, group_name)
               VALUES ('Security Group Test 1', '${sg1}');
               INSERT INTO security_group (description, group_name)
               VALUES ('Security Group Test 2', '${sg2}');
-    `),
+    `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies the change', apply());
+  it('applies the change', commit());
 
   it(
     'adds a new load balancer',
-    query(`
+    query(
+      `
     BEGIN;
       INSERT INTO load_balancer (load_balancer_name, scheme, vpc, load_balancer_type, ip_address_type)
       VALUES ('${lbName}', '${lbScheme}', null, '${lbType}', '${lbIPAddressType}');
@@ -205,7 +255,11 @@ describe('ELB Integration Testing', () => {
       SELECT (SELECT id FROM load_balancer WHERE load_balancer_name = '${lbName}'),
              (SELECT id FROM security_group WHERE group_name = '${sg1}');
     COMMIT;
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(
@@ -232,15 +286,18 @@ describe('ELB Integration Testing', () => {
     ),
   );
 
-  it('applies the change', apply());
+  it('applies the change', commit());
 
   it(
     'tries to update a load balancer attribute (update)',
     query(
       `UPDATE load_balancer SET attributes='${loadBalancerAttributes}' WHERE load_balancer_name='${lbName}'`,
+      undefined,
+      true,
+      () => ({ username, password }),
     ),
   );
-  it('applies the change', apply());
+  it('applies the change', commit());
   it(
     'check load balancer attributes modification',
     query(
@@ -260,46 +317,66 @@ describe('ELB Integration Testing', () => {
 
   it(
     'tries to update a load balancer field',
-    query(`
+    query(
+      `
         UPDATE load_balancer
         SET state = '${LoadBalancerStateEnum.FAILED}'
         WHERE load_balancer_name = '${lbName}';
-    `),
+    `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies the change and restore it', apply());
+  it('applies the change and restore it', commit());
 
   it(
     'tries to update a load balancer security group (replace)',
-    query(`
+    query(
+      `
         UPDATE load_balancer_security_groups
         SET security_group_id = (SELECT id FROM security_group WHERE group_name = '${sg2}')
         WHERE load_balancer_id = (SELECT id FROM load_balancer WHERE load_balancer_name = '${lbName}');
-    `),
+    `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies the change', apply());
+  it('applies the change', commit());
 
   it(
     'tries to update a load balancer scheme (replace)',
-    query(`
+    query(
+      `
         UPDATE load_balancer
         SET scheme = '${LoadBalancerSchemeEnum.INTERNAL}'
         WHERE load_balancer_name = '${lbName}';
-    `),
+    `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies the change', apply());
+  it('applies the change', commit());
 
   it(
     'adds a new listener',
-    query(`
+    query(
+      `
         INSERT INTO listener (load_balancer_id, port, protocol, target_group_id)
         VALUES ((SELECT id FROM load_balancer WHERE load_balancer_name = '${lbName}'),
                 ${port},
                 '${protocol}',
                 (SELECT id FROM target_group WHERE target_group_name = '${tgName}'));
-    `),
+    `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(
@@ -314,18 +391,23 @@ describe('ELB Integration Testing', () => {
     ),
   );
 
-  it('applies the change', apply());
+  it('applies the change', commit());
 
   it(
     'tries to update a listener field',
-    query(`
+    query(
+      `
         UPDATE listener
         SET port = ${port + 1}
         WHERE load_balancer_id = (SELECT id FROM load_balancer WHERE load_balancer_name = '${lbName}');
-    `),
+    `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies the change', apply());
+  it('applies the change', commit());
 
   it(
     'adds a new certificate to import',
@@ -348,14 +430,19 @@ describe('ELB Integration Testing', () => {
 
   it(
     'adds a new HTTPS listener',
-    query(`
+    query(
+      `
         INSERT INTO listener (load_balancer_id, port, protocol, target_group_id, certificate_id)
         VALUES ((SELECT id FROM load_balancer WHERE load_balancer_name = '${lbName}'),
                 ${portHTTPS},
                 '${protocolHTTPS}',
                 (SELECT id FROM target_group WHERE target_group_name = '${tgName}'),
                 (SELECT id FROM certificate WHERE domain_name = '${domainName}'));
-    `),
+    `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(
@@ -370,7 +457,7 @@ describe('ELB Integration Testing', () => {
     ),
   );
 
-  it('applies the https listener change', apply());
+  it('applies the https listener change', commit());
 
   it(
     'check https listener insertion',
@@ -390,11 +477,16 @@ describe('ELB Integration Testing', () => {
 
   it(
     'deletes the listener',
-    query(`
+    query(
+      `
         DELETE
         FROM listener
         WHERE load_balancer_id = (SELECT id FROM load_balancer WHERE load_balancer_name = '${lbName}');
-    `),
+    `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(
@@ -409,15 +501,20 @@ describe('ELB Integration Testing', () => {
     ),
   );
 
-  it('applies the change', apply());
+  it('applies the change', commit());
 
   it(
     'deletes the load balancer',
-    query(`
+    query(
+      `
         DELETE
         FROM load_balancer
         WHERE load_balancer_name = '${lbName}';
-    `),
+    `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(
@@ -434,11 +531,16 @@ describe('ELB Integration Testing', () => {
 
   it(
     'deletes the security groups',
-    query(`
+    query(
+      `
         DELETE
         FROM security_group
         WHERE group_name IN ('${sg1}', '${sg2}');
-    `),
+    `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(
@@ -453,15 +555,20 @@ describe('ELB Integration Testing', () => {
     ),
   );
 
-  it('applies the change', apply());
+  it('applies the change', commit());
 
   it(
     'deletes the target group',
-    query(`
+    query(
+      `
         DELETE
         FROM target_group
         WHERE target_group_name = '${tgName}';
-    `),
+    `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(
@@ -476,15 +583,20 @@ describe('ELB Integration Testing', () => {
     ),
   );
 
-  it('applies the change (last time)', apply());
+  it('applies the change (last time)', commit());
 
   it(
     'deletes the certificate',
-    query(`
+    query(
+      `
         DELETE
         FROM certificate
         WHERE domain_name = '${domainName}';
-    `),
+    `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(
@@ -499,17 +611,22 @@ describe('ELB Integration Testing', () => {
     ),
   );
 
-  it('applies the cert delete change', apply());
+  it('applies the cert delete change', commit());
 
   it(
     'creates a target group in non-default region',
-    query(`
+    query(
+      `
         INSERT INTO target_group (target_group_name, target_type, protocol, port, vpc, health_check_path, region)
         VALUES ('${tgName}', '${tgType}', '${protocol}', ${port}, null, '/health', 'us-east-1');
-    `),
+    `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies creation of the target group in non-default region', apply());
+  it('applies creation of the target group in non-default region', commit());
 
   it(
     'verifies the target group is created',
@@ -528,15 +645,21 @@ describe('ELB Integration Testing', () => {
 
   it(
     'creates a security group in non-default region',
-    query(`
+    query(
+      `
       INSERT INTO security_group (description, group_name, region)
       VALUES ('Security Group Multi-region Test 1', '${sg1}', 'us-east-1');
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(
     'creates a load balancer in non-default region',
-    query(`
+    query(
+      `
     BEGIN;
       INSERT INTO load_balancer (load_balancer_name, scheme, vpc, load_balancer_type, ip_address_type, region)
       VALUES ('${lbName}', '${lbScheme}', null, '${lbType}', '${lbIPAddressType}', 'us-east-1');
@@ -545,10 +668,14 @@ describe('ELB Integration Testing', () => {
       SELECT (SELECT id FROM load_balancer WHERE load_balancer_name = '${lbName}'),
              (SELECT id FROM security_group WHERE group_name = '${sg1}');
     COMMIT;
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies the creation of load balancer and security group in non-default region', apply());
+  it('applies the creation of load balancer and security group in non-default region', commit());
 
   it(
     'verifies that load balancer in non-default region is created',
@@ -567,16 +694,21 @@ describe('ELB Integration Testing', () => {
 
   it(
     'adds a listener to the load balancer in non-default region',
-    query(`
+    query(
+      `
       INSERT INTO listener (load_balancer_id, port, protocol, target_group_id)
       VALUES ((SELECT id FROM load_balancer WHERE load_balancer_name = '${lbName}'),
               ${port},
               '${protocol}',
               (SELECT id FROM target_group WHERE target_group_name = '${tgName}'));
-  `),
+    `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies creation of the listener in non-default region', apply());
+  it('applies creation of the listener in non-default region', commit());
 
   it(
     'verifies the listener in non-default region is created',
@@ -594,7 +726,8 @@ describe('ELB Integration Testing', () => {
 
   it(
     'deletes multi-region resources',
-    query(`
+    query(
+      `
     BEGIN;
         DELETE
         FROM listener
@@ -612,17 +745,32 @@ describe('ELB Integration Testing', () => {
         FROM load_balancer
         WHERE load_balancer_name = '${lbName}';
     COMMIT;
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies deletion of multi-region resources', apply());
+  it('applies deletion of multi-region resources', commit());
 
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 });
 
 describe('ELB install/uninstall', () => {
-  it('creates a new test db', done =>
-    void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
+  it('creates a new test db', done => {
+    (async () => {
+      try {
+        const { user, password: pgPassword } = await iasql.connect(dbAlias, 'not-needed', 'not-needed');
+        username = user;
+        password = pgPassword;
+        if (!username || !password) throw new Error('Did not fetch pg credentials');
+        done();
+      } catch (e) {
+        done(e);
+      }
+    })();
+  });
 
   it('installs the aws_account module', install(['aws_account']));
 
@@ -635,18 +783,24 @@ describe('ELB install/uninstall', () => {
       `,
       undefined,
       false,
+      () => ({ username, password }),
     ),
   );
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it(
     'sets the default region',
-    query(`
+    query(
+      `
         UPDATE aws_regions
         SET is_default = TRUE
         WHERE region = 'us-east-1';
-    `),
+    `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('installs the ELB module', install(modules));

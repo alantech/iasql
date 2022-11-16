@@ -75,6 +75,11 @@ class SecurityGroupMapper extends MapperBase<SecurityGroup> {
         out.push(e);
         continue;
       }
+      // If vpc is assigned but it does not have vpcId yet it means it will be created in the same iteration. We have to wait for it
+      if (e.vpc && !e.vpc.vpcId) {
+        throw new Error('Vpc need to be created first');
+      }
+      // If theres no vpc assigned we set the default one
       if (!e.vpc) {
         const vpcs: Vpc[] = await awsVpcModule.vpc.cloud.read(ctx);
         if (!vpcs.length) {
@@ -98,6 +103,11 @@ class SecurityGroupMapper extends MapperBase<SecurityGroup> {
       if (!result?.hasOwnProperty('GroupId')) {
         // Failure
         throw new Error('what should we do here?');
+      }
+      try {
+        await this.deleteDefaultSecurityGroupRule(client.ec2client, result.GroupId!);
+      } catch (e) {
+        /** Do nothing */
       }
       // Re-get the inserted security group to get all of the relevant records we care about
       const newGroup = await this.getSecurityGroup(client.ec2client, result.GroupId ?? '');
@@ -157,6 +167,38 @@ class SecurityGroupMapper extends MapperBase<SecurityGroup> {
       throw e;
     }
   }
+
+  async deleteDefaultSecurityGroupRule(client: EC2, groupId: string) {
+    const rules = await this.getSecurityGroupRuleByGroupId(client, groupId);
+    const ingressRules = rules?.filter(r => !r.IsEgress);
+    if (ingressRules?.length) {
+      await this.module.securityGroupRule.deleteSecurityGroupIngressRules(client, [
+        {
+          GroupId: groupId,
+          SecurityGroupRuleIds: ingressRules.map(r => r.SecurityGroupRuleId ?? ''),
+        },
+      ]);
+    }
+    const egressRules = rules?.filter(r => r.IsEgress);
+    if (egressRules?.length) {
+      await this.module.securityGroupRule.deleteSecurityGroupEgressRules(client, [
+        {
+          GroupId: groupId,
+          SecurityGroupRuleIds: egressRules.map(r => r.SecurityGroupRuleId ?? ''),
+        },
+      ]);
+    }
+  }
+
+  getSecurityGroupRuleByGroupId = crudBuilderFormat<
+    EC2,
+    'describeSecurityGroupRules',
+    AwsSecurityGroupRule[] | undefined
+  >(
+    'describeSecurityGroupRules',
+    groupId => ({ Filters: [{ Name: 'group-id', Values: [groupId] }] }),
+    res => res?.SecurityGroupRules,
+  );
 
   db = new Crud2({
     create: async (e: SecurityGroup[], ctx: Context) => {
@@ -394,10 +436,15 @@ class SecurityGroupRuleMapper extends MapperBase<SecurityGroupRule> {
   async sgrMapper(sgr: AwsSecurityGroupRule, ctx: Context, region: string) {
     const out = new SecurityGroupRule();
     out.securityGroupRuleId = sgr?.SecurityGroupRuleId;
-    out.securityGroup = await this.module.securityGroup.cloud.read(
-      ctx,
-      this.module.securityGroup.generateId({ groupId: sgr?.GroupId ?? '', region }),
-    );
+    out.securityGroup =
+      (await this.module.securityGroup.db.read(
+        ctx,
+        this.module.securityGroup.generateId({ groupId: sgr?.GroupId ?? '', region }),
+      )) ??
+      (await this.module.securityGroup.cloud.read(
+        ctx,
+        this.module.securityGroup.generateId({ groupId: sgr?.GroupId ?? '', region }),
+      ));
     out.isEgress = sgr?.IsEgress ?? false;
 
     if (sgr.ReferencedGroupInfo && sgr.ReferencedGroupInfo.GroupId) {
@@ -495,6 +542,13 @@ class SecurityGroupRuleMapper extends MapperBase<SecurityGroupRule> {
         if (!en.ipProtocol && !en.sourceSecurityGroup) {
           throw new Error(
             'Cannot create a security group rule without either ip protocol or source security group',
+          );
+        }
+
+        // if the source security group is not from the same vpc, fail
+        if (en.sourceSecurityGroup && en.sourceSecurityGroup?.vpc?.id !== en.securityGroup.vpc?.id) {
+          throw new Error(
+            'Cannot create a security group rule with a source security group from another vpc',
           );
         }
 

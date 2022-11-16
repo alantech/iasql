@@ -52,9 +52,16 @@ while [ $i -lt $(($len - 1)) ]; do
         INSERT INTO aws_credentials (access_key_id, secret_access_key)
         VALUES ('${AWS_ACCESS_KEY_ID}', '${AWS_SECRET_ACCESS_KEY}');
       "
-    psql $CONNSTR -c "
-        SELECT * FROM iasql_sync();
-      "
+    # Delete when 0.0.23 is the oldest
+    if [[ "${availableVersions[$i]}" < "0.0.23" ]]; then
+      psql $CONNSTR -c "
+          SELECT * FROM iasql_sync();
+        "
+    else
+      psql $CONNSTR -c "
+          SELECT * FROM iasql_commit();
+        "
+    fi
     psql $CONNSTR -c "
         SELECT * FROM default_aws_region('us-east-1');
       "

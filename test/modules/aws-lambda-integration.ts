@@ -6,10 +6,10 @@ import {
   execComposeUp,
   finish,
   getPrefix,
-  runApply,
+  runCommit,
   runInstall,
   runQuery,
-  runSync,
+  runRollback,
   runUninstall,
 } from '../helpers';
 
@@ -48,8 +48,8 @@ const attachAssumeLambdaPolicy = JSON.stringify({
   ],
 });
 
-const apply = runApply.bind(null, dbAlias);
-const sync = runSync.bind(null, dbAlias);
+const commit = runCommit.bind(null, dbAlias);
+const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
@@ -60,9 +60,22 @@ jest.setTimeout(480000);
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown());
 
+let username: string, password: string;
+
 describe('Lambda Integration Testing', () => {
-  it('creates a new test db', done =>
-    void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
+  it('creates a new test db', done => {
+    (async () => {
+      try {
+        const { user, password: pgPassword } = await iasql.connect(dbAlias, 'not-needed', 'not-needed');
+        username = user;
+        password = pgPassword;
+        if (!username || !password) throw new Error('Did not fetch pg credentials');
+        done();
+      } catch (e) {
+        done(e);
+      }
+    })();
+  });
 
   it('installs the aws_account module', install(['aws_account']));
 
@@ -75,23 +88,30 @@ describe('Lambda Integration Testing', () => {
   `,
       undefined,
       false,
+      () => ({ username, password }),
     ),
   );
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it(
     'sets the default region',
-    query(`
+    query(
+      `
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('installs the lambda module', install(modules));
 
   it(
     'adds a new lambda function and role',
-    query(`
+    query(
+      `
     BEGIN;
       INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
       VALUES ('${lambdaFunctionRoleName}', '${attachAssumeLambdaPolicy}', array['${lambdaFunctionRoleTaskPolicyArn}']);
@@ -99,10 +119,14 @@ describe('Lambda Integration Testing', () => {
       INSERT INTO lambda_function (name, zip_b64, handler, runtime, role_name)
       VALUES ('${lambdaFunctionName}', '${lambdaFunctionCode}', '${lambdaFunctionHandler}', '${lambdaFunctionRuntime14}', '${lambdaFunctionRoleName}');
     COMMIT;
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('undo changes', sync());
+  it('undo changes', rollback());
 
   it(
     'check function insertion',
@@ -118,7 +142,8 @@ describe('Lambda Integration Testing', () => {
 
   it(
     'adds a new lambda function and role',
-    query(`
+    query(
+      `
     BEGIN;
       INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
       VALUES ('${lambdaFunctionRoleName}', '${attachAssumeLambdaPolicy}', array['${lambdaFunctionRoleTaskPolicyArn}']);
@@ -126,10 +151,14 @@ describe('Lambda Integration Testing', () => {
       INSERT INTO lambda_function (name, zip_b64, handler, runtime, role_name)
       VALUES ('${lambdaFunctionName}', '${lambdaFunctionCode}', '${lambdaFunctionHandler}', '${lambdaFunctionRuntime14}', '${lambdaFunctionRoleName}');
     COMMIT;
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies the lambda function change', apply());
+  it('applies the lambda function change', commit());
 
   it(
     'check function insertion',
@@ -154,7 +183,7 @@ describe('Lambda Integration Testing', () => {
       (res: any[]) => {
         console.log(res[0]);
         expect(res[0]['status']).toBe('200');
-        return expect(res.length).toBe(1)
+        return expect(res.length).toBe(1);
       },
     ),
   );
@@ -172,7 +201,7 @@ describe('Lambda Integration Testing', () => {
       }
       done();
       return {};
-  }));
+    }));
 
   it('should fail invoking with wrong payload', done =>
     void query(`
@@ -187,17 +216,22 @@ describe('Lambda Integration Testing', () => {
       }
       done();
       return {};
-  }));
+    }));
 
   // Check restore path
   it(
     'updates the function arn',
-    query(`
+    query(
+      `
     UPDATE lambda_function SET arn = 'fake' WHERE name = '${lambdaFunctionName}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies the lambda function update', apply());
+  it('applies the lambda function update', commit());
 
   it(
     'check lambda function is restored',
@@ -226,12 +260,17 @@ describe('Lambda Integration Testing', () => {
   // Check configuration update path
   it(
     'updates the function',
-    query(`
+    query(
+      `
     UPDATE lambda_function SET runtime = '${lambdaFunctionRuntime16}' WHERE name = '${lambdaFunctionName}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies the lambda function update', apply());
+  it('applies the lambda function update', commit());
 
   it(
     'check lambda function is updated',
@@ -260,12 +299,17 @@ describe('Lambda Integration Testing', () => {
   // Check code update path
   it(
     'updates the function',
-    query(`
+    query(
+      `
     UPDATE lambda_function SET zip_b64 = '${lambdaFunctionCodeUpdate}' WHERE name = '${lambdaFunctionName}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies the lambda function update', apply());
+  it('applies the lambda function update', commit());
 
   it(
     'check lambda function is updated',
@@ -294,12 +338,17 @@ describe('Lambda Integration Testing', () => {
   // Check tags update path
   it(
     'updates the function',
-    query(`
+    query(
+      `
     UPDATE lambda_function SET tags = '{"updated": "true"}' WHERE name = '${lambdaFunctionName}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies the lambda function update', apply());
+  it('applies the lambda function update', commit());
 
   it(
     'check lambda function is updated',
@@ -331,9 +380,14 @@ describe('Lambda Integration Testing', () => {
 
   it(
     'deletes the lambda function',
-    query(`
+    query(
+      `
     DELETE FROM lambda_function WHERE name = '${lambdaFunctionName}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(
@@ -348,7 +402,7 @@ describe('Lambda Integration Testing', () => {
     ),
   );
 
-  it('applies the lambda function removal', apply());
+  it('applies the lambda function removal', commit());
 
   it(
     'check lambda function does not exist',
@@ -364,9 +418,14 @@ describe('Lambda Integration Testing', () => {
 
   it(
     'deletes the lambda function role',
-    query(`
+    query(
+      `
     DELETE FROM iam_role WHERE role_name = '${lambdaFunctionRoleName}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(
@@ -381,7 +440,7 @@ describe('Lambda Integration Testing', () => {
     ),
   );
 
-  it('applies the lambda function role removal', apply());
+  it('applies the lambda function role removal', commit());
 
   it(
     'check lambda function role does not exist',
@@ -399,8 +458,19 @@ describe('Lambda Integration Testing', () => {
 });
 
 describe('Lambda install/uninstall', () => {
-  it('creates a new test db', done =>
-    void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
+  it('creates a new test db', done => {
+    (async () => {
+      try {
+        const { user, password: pgPassword } = await iasql.connect(dbAlias, 'not-needed', 'not-needed');
+        username = user;
+        password = pgPassword;
+        if (!username || !password) throw new Error('Did not fetch pg credentials');
+        done();
+      } catch (e) {
+        done(e);
+      }
+    })();
+  });
 
   it('installs the aws_account module', install(['aws_account']));
 
@@ -413,16 +483,22 @@ describe('Lambda install/uninstall', () => {
   `,
       undefined,
       false,
+      () => ({ username, password }),
     ),
   );
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it(
     'sets the default region',
-    query(`
+    query(
+      `
     UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(

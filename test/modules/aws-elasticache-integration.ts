@@ -8,10 +8,10 @@ import {
   execComposeUp,
   finish,
   getPrefix,
-  runApply,
+  runCommit,
   runInstall,
   runQuery,
-  runSync,
+  runRollback,
   runUninstall,
 } from '../helpers';
 
@@ -21,8 +21,8 @@ const clusterId = `${prefix}${dbAlias}`;
 const newClusterId = `new-${prefix}${dbAlias}`;
 const anotherClusterId = `${prefix}${dbAlias}2`;
 
-const apply = runApply.bind(null, dbAlias);
-const sync = runSync.bind(null, dbAlias);
+const commit = runCommit.bind(null, dbAlias);
+const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
@@ -68,46 +68,85 @@ beforeAll(async () => {
 });
 afterAll(async () => await execComposeDown());
 
+let username: string, password: string;
+
 describe('Elasticache Integration Testing', () => {
-  it('creates a new test db', done =>
-    void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
+  it('creates a new test db', done => {
+    (async () => {
+      try {
+        const { user, password: pgPassword } = await iasql.connect(dbAlias, 'not-needed', 'not-needed');
+        username = user;
+        password = pgPassword;
+        if (!username || !password) throw new Error('Did not fetch pg credentials');
+        done();
+      } catch (e) {
+        done(e);
+      }
+    })();
+  });
 
   it('installs the aws_account module', install(['aws_account']));
 
-  it('inserts aws credentials', query(`
+  it(
+    'inserts aws credentials',
+    query(
+      `
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
-  `, undefined, false));
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
+  );
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
-  it('sets the default region', query(`
+  it(
+    'sets the default region',
+    query(
+      `
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
-  `));
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
 
   it('installs the elasticache module', install(modules));
 
   it(
     'adds a new cacheCluster',
-    query(`  
+    query(
+      `  
     INSERT INTO cache_cluster (cluster_id)
     VALUES ('${clusterId}');
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('undo changes', sync());
+  it('undo changes', rollback());
 
   it('adds a new cacheCluster', done => {
-    query(`  
+    query(
+      `  
       INSERT INTO cache_cluster (cluster_id, node_type, engine, num_nodes)
       VALUES ('${clusterId}', '${nodeType}', '${cacheType}', 1);
-    `)((e?: any) => {
+    `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    )((e?: any) => {
       if (!!e) return done(e);
       done();
     });
   });
 
-  it('applies the cache_cluster change', apply());
+  it('applies the cache_cluster change', commit());
 
   it(
     'check cache_cluster is available',
@@ -120,15 +159,20 @@ describe('Elasticache Integration Testing', () => {
   );
 
   it('tries to update cache_cluster node type', done => {
-    query(`  
+    query(
+      `  
     UPDATE cache_cluster SET node_type='${updatedNodeType}' WHERE cluster_id='${clusterId}';
-    `)((e?: any) => {
+    `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    )((e?: any) => {
       if (!!e) return done(e);
       done();
     });
   });
 
-  it('applies the cache_cluster node_type update', apply());
+  it('applies the cache_cluster node_type update', commit());
 
   it('checks that cache_cluster have been modified', done => {
     query(
@@ -144,12 +188,17 @@ describe('Elasticache Integration Testing', () => {
 
   it(
     'tries to update cache_cluster engine',
-    query(`
+    query(
+      `
   UPDATE cache_cluster SET engine='memcached' WHERE cluster_id='${clusterId}'
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies the cache_cluster engine update', apply());
+  it('applies the cache_cluster engine update', commit());
 
   it(
     'checks that cache_cluster engine has not been modified',
@@ -173,12 +222,17 @@ describe('Elasticache Integration Testing', () => {
 
   it(
     'tries to update cache_cluster id',
-    query(`
+    query(
+      `
   UPDATE cache_cluster SET cluster_id='${newClusterId}' WHERE cluster_id='${clusterId}'
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies the cache_cluster cluster_id update', apply());
+  it('applies the cache_cluster cluster_id update', commit());
 
   it(
     'checks that cache_cluster cluster_id have been modified',
@@ -200,74 +254,137 @@ describe('Elasticache Integration Testing', () => {
     ),
   );
 
-  it('changes the region the cache_cluster is in', query(`
+  it(
+    'changes the region the cache_cluster is in',
+    query(
+      `
     UPDATE cache_cluster SET region='us-east-1' WHERE cluster_id = '${newClusterId}';
-  `));
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
 
-  it('applies the change', apply());
+  it('applies the change', commit());
 
-  it('checks the region was updated', query(`
+  it(
+    'checks the region was updated',
+    query(
+      `
     SELECT * FROM cache_cluster WHERE cluster_id = '${newClusterId}';
-  `, (res: any[]) => {
-    expect(res.length).toBe(1);
-    expect(res[0].region).toBe('us-east-1');
-  }));
+  `,
+      (res: any[]) => {
+        expect(res.length).toBe(1);
+        expect(res[0].region).toBe('us-east-1');
+      },
+    ),
+  );
 
   it('makes two more cache clusters with the same cluster_id in different regions', done => {
-    query(`
+    query(
+      `
       INSERT INTO cache_cluster (cluster_id, node_type, engine, num_nodes, region)
       VALUES
         ('${anotherClusterId}', '${nodeType}', '${cacheType}', 1, '${region}'),
         ('${anotherClusterId}', '${nodeType}', '${cacheType}', 1, 'us-east-1');
-    `)((e?: any) => {
+    `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    )((e?: any) => {
       if (!!e) return done(e);
       done();
     });
   });
 
-  it('makes the cache_cluster change', apply());
+  it('makes the cache_cluster change', commit());
 
   it('uninstalls the elasticache module', uninstall(modules));
 
   it('installs the elasticache module again (to make sure it reloads stuff)', install(modules));
 
-  it('checks cache_cluster count of one set', query(`
+  it(
+    'checks cache_cluster count of one set',
+    query(
+      `
     SELECT * FROM cache_cluster WHERE cluster_id='${newClusterId}';
-  `, (res: any) => expect(res.length).toBe(1)));
+  `,
+      (res: any) => expect(res.length).toBe(1),
+    ),
+  );
 
-  it('checks cache_cluster count of second set', query(`
+  it(
+    'checks cache_cluster count of second set',
+    query(
+      `
     SELECT * FROM cache_cluster WHERE cluster_id='${anotherClusterId}';
-  `, (res: any) => expect(res.length).toBe(2)));
+  `,
+      (res: any) => expect(res.length).toBe(2),
+    ),
+  );
 
   it(
     'deletes the cache_cluster',
-    query(`
+    query(
+      `
     DELETE FROM cache_cluster
     WHERE cluster_id = '${newClusterId}' OR cluster_id = '${anotherClusterId}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies the cache_cluster removal', apply());
+  it('applies the cache_cluster removal', commit());
 
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 });
 
 describe('Elasticache install/uninstall', () => {
-  it('creates a new test db', done =>
-    void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
+  it('creates a new test db', done => {
+    (async () => {
+      try {
+        const { user, password: pgPassword } = await iasql.connect(dbAlias, 'not-needed', 'not-needed');
+        username = user;
+        password = pgPassword;
+        if (!username || !password) throw new Error('Did not fetch pg credentials');
+        done();
+      } catch (e) {
+        done(e);
+      }
+    })();
+  });
 
   it('installs the aws_account module', install(['aws_account']));
 
-  it('inserts aws credentials', query(`
+  it(
+    'inserts aws credentials',
+    query(
+      `
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
-  `, undefined, false));
+  `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
+  );
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
-  it('sets the default region', query(`
+  it(
+    'sets the default region',
+    query(
+      `
     UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
-  `));
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
 
   it('installs the Elasticache module', install(modules));
 

@@ -5,10 +5,10 @@ import {
   execComposeUp,
   finish,
   getPrefix,
-  runApply,
+  runCommit,
   runInstall,
   runQuery,
-  runSync,
+  runRollback,
 } from '../helpers';
 
 const prefix = getPrefix();
@@ -39,8 +39,8 @@ const attachAssumeLambdaPolicy = JSON.stringify({
   ],
 });
 
-const apply = runApply.bind(null, dbAlias);
-const sync = runSync.bind(null, dbAlias);
+const commit = runCommit.bind(null, dbAlias);
+const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const region = defaultRegion();
@@ -50,9 +50,22 @@ jest.setTimeout(480000);
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown());
 
+let username: string, password: string;
+
 describe('Lambda Multi-region Integration Testing', () => {
-  it('creates a new test db', done =>
-    void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
+  it('creates a new test db', done => {
+    (async () => {
+      try {
+        const { user, password: pgPassword } = await iasql.connect(dbAlias, 'not-needed', 'not-needed');
+        username = user;
+        password = pgPassword;
+        if (!username || !password) throw new Error('Did not fetch pg credentials');
+        done();
+      } catch (e) {
+        done(e);
+      }
+    })();
+  });
 
   it('installs the aws_account module', install(['aws_account']));
 
@@ -65,23 +78,30 @@ describe('Lambda Multi-region Integration Testing', () => {
   `,
       undefined,
       false,
+      () => ({ username, password }),
     ),
   );
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it(
     'sets the default region',
-    query(`
+    query(
+      `
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('installs the lambda module', install(modules));
 
   it(
     'adds a new Lambda function',
-    query(`  
+    query(
+      `  
     BEGIN;
       INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
       VALUES ('${lambdaFunctionRoleName}', '${attachAssumeLambdaPolicy}', array['${lambdaFunctionRoleTaskPolicyArn}']);
@@ -89,10 +109,14 @@ describe('Lambda Multi-region Integration Testing', () => {
       INSERT INTO lambda_function (name, zip_b64, handler, runtime, role_name, region)
       VALUES ('${lambdaFunctionName}', '${lambdaFunctionCode}', '${lambdaFunctionHandler}', '${lambdaFunctionRuntime14}', '${lambdaFunctionRoleName}', '${nonDefaultRegion}');
     COMMIT;
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('undo changes', sync());
+  it('undo changes', rollback());
 
   it(
     'checks it has been removed',
@@ -108,7 +132,8 @@ describe('Lambda Multi-region Integration Testing', () => {
 
   it(
     'adds a new Lambda function',
-    query(`  
+    query(
+      `  
     BEGIN;
       INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
       VALUES ('${lambdaFunctionRoleName}', '${attachAssumeLambdaPolicy}', array['${lambdaFunctionRoleTaskPolicyArn}']);
@@ -116,10 +141,14 @@ describe('Lambda Multi-region Integration Testing', () => {
       INSERT INTO lambda_function (name, zip_b64, handler, runtime, role_name, region)
       VALUES ('${lambdaFunctionName}', '${lambdaFunctionCode}', '${lambdaFunctionHandler}', '${lambdaFunctionRuntime14}', '${lambdaFunctionRoleName}', '${nonDefaultRegion}');
     COMMIT;
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies the change', apply());
+  it('applies the change', commit());
 
   it(
     'checks the lambda function was added',
@@ -135,14 +164,19 @@ describe('Lambda Multi-region Integration Testing', () => {
 
   it(
     'changes the region the lambda function is located in',
-    query(`
+    query(
+      `
       UPDATE lambda_function
       SET region = '${region}', zip_b64 = '${lambdaFunctionCode}'
       WHERE name = '${lambdaFunctionName}' and region = '${nonDefaultRegion}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies the replacement', apply());
+  it('applies the replacement', commit());
 
   it(
     'checks the lambda function was moved',
@@ -158,13 +192,18 @@ describe('Lambda Multi-region Integration Testing', () => {
 
   it(
     'removes the lambda function',
-    query(`
+    query(
+      `
     DELETE FROM lambda_function
     WHERE name = '${lambdaFunctionName}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies the removal', apply());
+  it('applies the removal', commit());
 
   it(
     'checks the remaining table count for the last time',
