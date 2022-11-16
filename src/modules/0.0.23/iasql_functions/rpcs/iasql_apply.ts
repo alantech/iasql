@@ -1,6 +1,5 @@
 import { IasqlFunctions } from '..';
 import { Context, RpcBase, RpcResponseObject } from '../../../interfaces';
-import * as iasql from '../iasql';
 
 export class IasqlApply extends RpcBase {
   module: IasqlFunctions;
@@ -11,14 +10,11 @@ export class IasqlApply extends RpcBase {
     description: 'varchar',
   } as const;
   call = async (
-    dbId: string,
+    _dbId: string,
     _dbUser: string,
-    ctx: Context,
+    _ctx: Context,
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
-    const applyRes = (await iasql.apply(dbId, false, ctx)).rows;
-    return applyRes.map(
-      rec => super.formatObjKeysToSnakeCase(rec) as RpcResponseObject<typeof this.outputTable>,
-    );
+    throw new Error(`iasql_apply() has been deprecated in favor of iasql_commit()`);
   };
 
   constructor(module: IasqlFunctions) {
