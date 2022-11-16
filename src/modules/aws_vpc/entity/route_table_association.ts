@@ -1,25 +1,27 @@
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, Unique } from 'typeorm';
 
 import { cloudId } from '../../../services/cloud-id';
 import { RouteTable } from './route_table';
 import { Subnet } from './subnet';
 
+@Unique('uq_routetable_routetable_subnet_ismain', ['routeTable', 'subnet', 'isMain'])
 @Entity()
 export class RouteTableAssociation {
+  @PrimaryGeneratedColumn()
+  id: number;
+
   @Column({ nullable: true })
   @cloudId
   routeTableAssociationId?: string;
 
   @ManyToOne(() => RouteTable, {
     nullable: false,
-    primary: true,
   })
   @JoinColumn()
   routeTable: RouteTable;
 
   @ManyToOne(() => Subnet, {
     nullable: true,
-    primary: true,
     eager: true,
   })
   @JoinColumn()
