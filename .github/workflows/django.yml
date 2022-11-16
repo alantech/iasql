@@ -61,9 +61,10 @@ jobs:
           export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
           export AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
           ./src/scripts/setup-iasql-db.sh
+          echo "the username is"
           echo $IASQL_USERNAME
-          echo "::set-output name=username::$(echo $IASQL_USERNAME)"
-          echo "::set-output name=password::$(echo $IASQL_PASSWORD)"
+          echo "iasql_username=$IASQL_USERNAME" >> $GITHUB_ENV
+          echo "iasql_password=$IASQL_PASSWORD" >> $GITHUB_ENV
         env:
           ACCOUNT_INDEX: ${{ steps['determine-test-account'].outputs['account_index'] }}
           AWS_REGION: ${{ needs.setup.outputs['region'] }}
@@ -85,8 +86,8 @@ jobs:
           AWS_REGION: ${{ needs.setup.outputs['region'] }}
           ACCESS_KEY_IDS: ${{ secrets.ACCESS_KEY_IDS }}
           SECRET_ACCESS_KEYS: ${{ secrets.SECRET_ACCESS_KEYS }}
-          IASQL_USERNAME: ${{ steps['set-up-database'].outputs['username'] }}
-          IASQL_PASSWORD: ${{ steps['set-up-database'].outputs['password'] }}
+          IASQL_USERNAME: ${{ env.iasql_username }}
+          IASQL_PASSWORD: ${{ env.iasql_password }}
 
       - name: Run deploy script
         run: |
@@ -99,13 +100,13 @@ jobs:
           ACCESS_KEY_IDS: ${{ secrets.ACCESS_KEY_IDS }}
           SECRET_ACCESS_KEYS: ${{ secrets.SECRET_ACCESS_KEYS }}
           DB_NAME: iasql
-          DB_USER: ${{ steps['set-up-database'].outputs['username'] }}
-          DB_PASSWORD: ${{ steps['set-up-database'].outputs['password'] }}
+          DB_USER: ${{ env.iasql_username }}
+          DB_PASSWORD: ${{ env.iasql_password }}
           DB_HOST: '127.0.0.1'
           DB_PORT: 5432
           GH_PAT: ${{ secrets.GH_PAT }}
-          IASQL_USERNAME: ${{ steps['set-up-database'].outputs['username'] }}
-          IASQL_PASSWORD: ${{ steps['set-up-database'].outputs['password'] }}
+          IASQL_USERNAME: ${{ env.iasql_username }}
+          IASQL_PASSWORD: ${{ env.iasql_password }}
 
       - name: Run cleaning script
         if: always()
@@ -121,8 +122,8 @@ jobs:
           AWS_REGION: ${{ needs.setup.outputs['region'] }}
           ACCESS_KEY_IDS: ${{ secrets.ACCESS_KEY_IDS }}
           SECRET_ACCESS_KEYS: ${{ secrets.SECRET_ACCESS_KEYS }}
-          IASQL_USERNAME: ${{ steps['set-up-database'].outputs['username'] }}
-          IASQL_PASSWORD: ${{ steps['set-up-database'].outputs['password'] }}
+          IASQL_USERNAME: ${{ env.iasql_username }}
+          IASQL_PASSWORD: ${{ env.iasql_password }}
 
       - name: Return test account
         if: always()
