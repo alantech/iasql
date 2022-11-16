@@ -511,14 +511,24 @@ describe('ECS Simplified Integration Testing', () => {
   );
 
   it(
-    'tries to force update ecs_simplified',
+    'updates env vars',
     query(
-      `
-    UPDATE ecs_simplified SET force_new_deployment = true, env_variables = '${envVariables}' WHERE app_name = '${appName}';
+      `  
+    UPDATE ecs_simplified SET env_variables = '${envVariables}' WHERE app_name = '${appName}';
   `,
       undefined,
       true,
       () => ({ username, password }),
+    ),
+  );
+  it('applies env var update', commit());
+
+  it(
+    'tries to force update a service',
+    query(
+      `
+    SELECT * FROM deploy_service('${appName}-service', '${region}')`,
+      (res: any[]) => expect(res[0].status).toStrictEqual('OK'),
     ),
   );
 
@@ -532,7 +542,6 @@ describe('ECS Simplified Integration Testing', () => {
   `,
       (res: any[]) => {
         expect(res.length).toBe(1);
-        expect(res[0]['force_new_deployment']).toBe(true);
       },
     ),
   );
@@ -564,7 +573,6 @@ describe('ECS Simplified Integration Testing', () => {
   `,
       (res: any[]) => {
         expect(res.length).toBe(1);
-        expect(res[0]['force_new_deployment']).toBe(false);
         expect(res[0]['env_variables']).toBeDefined();
       },
     ),
@@ -595,7 +603,6 @@ describe('ECS Simplified Integration Testing', () => {
   `,
       (res: any[]) => {
         expect(res.length).toBe(1);
-        expect(res[0]['force_new_deployment']).toBe(false);
       },
     ),
   );

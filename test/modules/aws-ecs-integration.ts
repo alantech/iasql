@@ -660,15 +660,10 @@ describe('ECS Integration Testing', () => {
     'tries to force update a service',
     query(
       `
-    UPDATE service SET force_new_deployment = true WHERE name = '${newServiceName}';
-  `,
-      undefined,
-      true,
-      () => ({ username, password }),
+    SELECT * FROM deploy_service('${newServiceName}', '${region}')`,
+      (res: any[]) => expect(res[0].status).toStrictEqual('OK'),
     ),
   );
-
-  it('tries to force update a service', commit());
 
   it(
     'check service update',
@@ -679,18 +674,6 @@ describe('ECS Integration Testing', () => {
     WHERE name = '${newServiceName}';
   `,
       (res: any[]) => expect(res.length).toBe(1),
-    ),
-  );
-
-  it(
-    'check service new deployment',
-    query(
-      `
-    SELECT *
-    FROM service
-    WHERE name = '${newServiceName}';
-  `,
-      (res: any[]) => expect(res[0].force_new_deployment).toBe(false),
     ),
   );
 
