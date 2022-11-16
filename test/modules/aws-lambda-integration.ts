@@ -624,11 +624,11 @@ describe('Lambda Integration Testing', () => {
     )
     DELETE FROM subnet
     USING vpc
-    WHERE vpc_id = vpc.id;
+    WHERE subnet.vpc_id = vpc.id;
 
     DELETE FROM security_group
     USING vpc
-    WHERE vpc_id = vpc.id;
+    WHERE security_group.vpc_id = vpc.id;
 
     DELETE FROM vpc WHERE cidr_block='192.${randIPBlock}.0.0/16' AND region='${region}';
   `),

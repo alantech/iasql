@@ -3,7 +3,9 @@ import isEqual from 'lodash.isequal';
 import { EC2, NetworkInterface } from '@aws-sdk/client-ec2';
 import {
   CreateFunctionCommandInput,
+  FunctionConfiguration,
   GetFunctionResponse,
+  Lambda,
   UpdateFunctionCodeCommandInput,
   UpdateFunctionConfigurationCommandInput,
 } from '@aws-sdk/client-lambda';
@@ -156,18 +158,15 @@ export class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
     res => res?.NetworkInterfaces,
   );
 
-  async deleteNetworkInterface(client: EC2, subnet: string, name: string) {
-    // first get all interfaces for that subnet
-    const interfaces = await this.getNetworkInterfaces(client, subnet);
-
-    if (interfaces) {
-      for (const i of interfaces) {
-        // iterate and check if description matches lambda function name
-        if (i.Description && i.Description.includes(name) && i.NetworkInterfaceId)
-          await client.deleteNetworkInterface({ NetworkInterfaceId: i.NetworkInterfaceId });
-      }
-    }
-  }
+  getFunctionVersions = crudBuilderFormat<
+    Lambda,
+    'listVersionsByFunction',
+    FunctionConfiguration[] | undefined
+  >(
+    'listVersionsByFunction',
+    name => ({ FunctionName: name }),
+    res => res?.Versions,
+  );
 
   cloud = new Crud2({
     create: async (es: LambdaFunction[], ctx: Context) => {
@@ -301,12 +300,6 @@ export class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
           };
           await updateFunctionConfiguration(client.lambdaClient, input);
           await waitUntilFunctionUpdated(client.lambdaClient, e.name);
-
-          // check the network interfaces that are not applying and remove those
-          const remaining = (cloudRecord.subnets ?? []).filter((x: string) => !(e.subnets ?? []).includes(x));
-          for (const s of remaining) {
-            await this.deleteNetworkInterface(client.ec2client, s, e.name);
-          }
         }
 
         if (!this.updateableCodeFieldsEq(cloudRecord, e)) {
@@ -344,14 +337,27 @@ export class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
       for (const e of es) {
         const client = (await ctx.getAwsClient(e.region)) as AWS;
         const region = e.region;
-        await deleteFunction(client.lambdaClient, e.name);
 
-        // check all associated subnets and get the vpc id, to get associated endpoint interfaces
-        if (e.subnets) {
-          for (const s of e.subnets) {
-            await this.deleteNetworkInterface(client.ec2client, s, e.name);
-          }
-        }
+        // Update function configuration
+        const input: UpdateFunctionConfigurationCommandInput = {
+          FunctionName: e.name,
+          Role: e.role.arn,
+          Handler: e.handler,
+          Description: e.description,
+          MemorySize: e.memorySize,
+          Environment: {
+            Variables: e.environment,
+          },
+          Runtime: e.runtime,
+          VpcConfig: {
+            SubnetIds: [],
+            SecurityGroupIds: [],
+          },
+        };
+        await updateFunctionConfiguration(client.lambdaClient, input);
+        await waitUntilFunctionUpdated(client.lambdaClient, e.name);
+
+        await deleteFunction(client.lambdaClient, e.name);
       }
     },
   });
