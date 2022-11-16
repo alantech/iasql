@@ -5,7 +5,7 @@ import {
   RouteTableAssociation as AwsRouteTableAssociation,
 } from '@aws-sdk/client-ec2/dist-types/models/models_1';
 
-import { AWS, paginateBuilder } from '../../../services/aws_macros';
+import { AWS, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
 import { Context, Crud2, MapperBase } from '../../interfaces';
 import { Route, RouteTable, RouteTableAssociation } from '../entity';
 import { AwsVpcModule } from '../index';
@@ -49,6 +49,11 @@ export class RouteTableMapper extends MapperBase<RouteTable> {
   }
 
   getRouteTables = paginateBuilder<EC2>(paginateDescribeRouteTables, 'RouteTables');
+  getRouteTable = crudBuilderFormat<EC2, 'describeRouteTables', AwsRouteTable | undefined>(
+    'describeRouteTables',
+    routeTableId => ({ RouteTableIds: [routeTableId] }),
+    res => res?.RouteTables?.pop(),
+  );
 
   private async getSubnet(ctx: Context, id: string, region: string) {
     return (
@@ -63,9 +68,8 @@ export class RouteTableMapper extends MapperBase<RouteTable> {
     );
   }
 
-  routeMapper(route: AwsRoute, routeTable: RouteTable) {
+  routeMapper(route: AwsRoute) {
     const out = new Route();
-    out.routeTable = routeTable;
     out.DestinationCidrBlock = route.DestinationCidrBlock;
     out.DestinationIpv6CidrBlock = route.DestinationIpv6CidrBlock;
     out.DestinationPrefixListId = route.DestinationPrefixListId;
@@ -89,7 +93,9 @@ export class RouteTableMapper extends MapperBase<RouteTable> {
     ctx: Context,
   ) {
     const out: RouteTableAssociation = new RouteTableAssociation();
-    if (routeTableAssociation.Main) out.isMain = routeTableAssociation.Main;
+
+    out.routeTableAssociationId = routeTableAssociation.RouteTableAssociationId;
+    out.isMain = routeTableAssociation.Main ?? false;
     if (routeTableAssociation.SubnetId) {
       const subnet = await this.getSubnet(ctx, routeTableAssociation.SubnetId, region);
       if (subnet) out.subnet = subnet;
@@ -98,18 +104,25 @@ export class RouteTableMapper extends MapperBase<RouteTable> {
     return out;
   }
 
-  async routeTableMapper(routeTable: AwsRouteTable, ctx: Context) {
+  async routeTableMapper(routeTable: AwsRouteTable, region: string, ctx: Context) {
     const out = new RouteTable();
 
     out.routeTableId = routeTable.RouteTableId;
     out.vpc =
-      (await this.module.vpc.db.read(ctx, routeTable.VpcId)) ??
-      (await this.module.vpc.cloud.read(ctx, routeTable.VpcId));
+      (await this.module.vpc.db.read(
+        ctx,
+        this.module.vpc.generateId({ vpcId: routeTable.VpcId ?? '', region }),
+      )) ??
+      (await this.module.vpc.cloud.read(
+        ctx,
+        this.module.vpc.generateId({ vpcId: routeTable.VpcId ?? '', region }),
+      ));
+    if (!out.vpc) return undefined;
 
     out.explicitSubnetAssociations = [];
     if (routeTable.Associations) {
       for (const rawRta of routeTable.Associations) {
-        const routeTableAssociation = await this.routeTableAssociationMapper(rawRta, out.vpc.region, ctx);
+        const routeTableAssociation = await this.routeTableAssociationMapper(rawRta, region, ctx);
         out.explicitSubnetAssociations.push(routeTableAssociation);
       }
     }
@@ -117,11 +130,12 @@ export class RouteTableMapper extends MapperBase<RouteTable> {
     out.routes = [];
     if (routeTable.Routes)
       for (const rawRoute of routeTable.Routes) {
-        const route = await this.routeMapper(rawRoute, out);
+        const route = await this.routeMapper(rawRoute);
         out.routes.push(route);
       }
 
     out.tags = convertTagsFromAws(routeTable.Tags);
+    out.region = region;
     return out;
   }
 
@@ -131,26 +145,52 @@ export class RouteTableMapper extends MapperBase<RouteTable> {
     },
     read: async (ctx: Context, id?: string) => {
       const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
-      const out: RouteTable[] = [];
-      await Promise.all(
-        enabledRegions.map(async region => {
-          const client = (await ctx.getAwsClient(region)) as AWS;
-          for (const rawRouteTable of await this.getRouteTables(client.ec2client)) {
-            const routeTable = await this.routeTableMapper(rawRouteTable, ctx);
-            out.push(routeTable);
-          }
-        }),
-      );
-
-      if (!!id) return out.find(rt => rt.routeTableId === id);
-
-      return out;
+      if (!!id) {
+        const { routeTableId, region } = this.idFields(id);
+        const client = (await ctx.getAwsClient(region)) as AWS;
+        const rawRouteTable = await this.getRouteTable(client.ec2client, routeTableId);
+        if (!rawRouteTable) return;
+        return await this.routeTableMapper(rawRouteTable, region, ctx);
+      } else {
+        const out: RouteTable[] = [];
+        await Promise.all(
+          enabledRegions.map(async region => {
+            const client = (await ctx.getAwsClient(region)) as AWS;
+            for (const rawRouteTable of await this.getRouteTables(client.ec2client)) {
+              const routeTable = await this.routeTableMapper(rawRouteTable, region, ctx);
+              if (!routeTable) continue;
+              out.push(routeTable);
+            }
+          }),
+        );
+        return out;
+      }
     },
     update: async (es: RouteTable[], ctx: Context) => {
       return;
     },
     delete: async (es: RouteTable[], ctx: Context) => {
-      return;
+      for (const e of es) {
+        const client = (await ctx.getAwsClient(e.vpc.region)) as AWS;
+
+        if (e.explicitSubnetAssociations?.find(esa => esa.isMain)) {
+          // For delete, we have un-memoed the record, but the record passed in *is* the one
+          // we're interested in, which makes it a bit simpler here
+          await this.module.routeTable.db.update(e, ctx); // does it cascade to creation of Route/RouteTableAssociation
+          // Make absolutely sure it shows up in the memo
+          ctx.memo.db.RouteTable[this.entityId(e)] = e;
+        }
+        // first we need to remove the explicit subnet associations
+        if (e.explicitSubnetAssociations) {
+          await Promise.all(
+            e.explicitSubnetAssociations.map(async esa => {
+              await client.ec2client.disassociateRouteTable({ AssociationId: esa.routeTableAssociationId });
+            }),
+          );
+        }
+
+        await client.ec2client.deleteRouteTable({ RouteTableId: e.routeTableId });
+      }
     },
   });
 

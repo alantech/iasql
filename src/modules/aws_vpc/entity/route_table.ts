@@ -1,6 +1,7 @@
 import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 
 import { cloudId } from '../../../services/cloud-id';
+import { AwsRegions } from '../../aws_account/entity';
 import { Route } from './route';
 import { RouteTableAssociation } from './route_table_association';
 import { Vpc } from './vpc';
@@ -18,12 +19,22 @@ export class RouteTable {
     nullable: false,
     eager: true,
   })
-  @JoinColumn()
+  @JoinColumn([
+    {
+      name: 'vpc_id',
+      referencedColumnName: 'id',
+    },
+    {
+      name: 'region',
+      referencedColumnName: 'region',
+    },
+  ])
   vpc: Vpc;
 
   @OneToMany(() => RouteTableAssociation, rta => rta.routeTable, {
     eager: true,
     nullable: true,
+    cascade: true,
   })
   explicitSubnetAssociations?: RouteTableAssociation[];
 
@@ -39,4 +50,14 @@ export class RouteTable {
     nullable: true,
   })
   tags?: { [key: string]: string };
+
+  @Column({
+    type: 'character varying',
+    nullable: false,
+    default: () => 'default_aws_region()',
+  })
+  @ManyToOne(() => AwsRegions, { nullable: false })
+  @JoinColumn({ name: 'region' })
+  @cloudId
+  region: string;
 }
