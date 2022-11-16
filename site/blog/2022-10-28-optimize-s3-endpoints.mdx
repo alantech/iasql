@@ -28,13 +28,18 @@ Relying on PrivateLink offers a set of advantages in terms of **security** and *
 
 **Security: no internet traversal**
 
-When using endpoints, services will be accessed via Amazon's internal networks to route the traffic. This is
-essential for security services or when hosting any content with sensitive data.
+When deploying services in production, the concept of defense-in-depth is essential: have an information
+assurance strategy that provides multiple, redundant defensive measures in case a security control fails or
+a vulnerability is exploited.
+By using interface endpoints the services will be accessed via Amazon's internal networks. It is an essential
+security measure, that will prevent attackers to directly reach the services by keeping them in a private
+network, reducing the surface area of attack.
 
 **Security: policies**
 
-Many of the servcies are supporting the use of policies, that can be used to determine the traffic that can
-pass through the interface.
+AWS services can benefit of <a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/access_controlling.html">IAM policies</a>
+to perform a fine grained access control. When using interface endpoints, those policies can be applied to determine the traffic
+that can pass through the interface.
 
 **Performance: latency**
 
@@ -47,19 +52,60 @@ PrivateLink supports a sustained bandwidth of 10 Gbps per availability zone with
 
 **Performance: stability**
 
-PrivateLink consistently lowers the amount of errors and timeouts on high loads
+PrivateLink consistently lowers the amount of errors and timeouts on high loads. As the traffic over Private Link stays within
+Amazon’s networks, it means a reduction on distance travelled, number of hops, and the risk of traversing congested networks.
 
-**Do you want to know if you have it properly configured? The followign query will check for active S3 VPC interface endpoints:**
+In terms of speed, Private Link supports a sustained bandwidth of 10 Gbps per availability zone with bursts up to 40 Gbps.
+
+**Do you want to know if you have it properly configured? The following query will check for active S3 VPC interface endpoints:**
+
+This query will find your active S3 buckets for all regions, associated with the existing endpoint gateways or interfaces - if they exist.
+
+```sql
+ -- Installing the needed modules
+SELECT
+  iasql_install ('aws_s3');
+
+SELECT
+  iasql_install ('aws_vpc');
+
+-- Perform the query for endpoints
+SELECT
+  bucket.region,
+  vpc.is_default,
+  vpc.cidr_block,
+  (
+    SELECT
+      COUNT(*) > 0
+    FROM
+      endpoint_gateway
+    WHERE
+      endpoint_gateway.region = bucket.region
+      AND service = 's3'
+      AND endpoint_gateway.vpc_id = vpc.id
+  ) AS has_endpoint_gateway,
+  (
+    SELECT
+      COUNT(*) > 0
+    FROM
+      endpoint_interface
+    WHERE
+      endpoint_interface.region = bucket.region
+      AND service = 's3'
+      AND endpoint_interface.vpc_id = vpc.id
+  ) AS has_endpoint_interface
+FROM
+  bucket
+  LEFT OUTER JOIN vpc ON vpc.region = bucket.region;
+```
 
 <!--- https://www.urlencoder.org/ -->
 
 <p>
-  <a href="https://app.iasql.com/#/button/Check S3 endpoints/--%20Installing%20the%20needed%20modules%0ASELECT%20iasql_install%28%27aws_s3%27%29%3B%0ASELECT%20iasql_install%28%27aws_vpc%27%29%3B%0A--%20Sync%20the%20existing%20data%0Aselect%20%2A%20from%20iasql_sync%28%29%3B%0A--%20Perform%20the%20query%20for%20endpoints%0Aselect%20bucket.region%2C%20vpc.is_default%2C%20vpc.cidr_block%2C%0A%28select%20count%28%2A%29%3E0%20from%20endpoint_gateway%20where%20endpoint_gateway.region%3Dbucket.region%20and%20service%3D%27s3%27%20and%20endpoint_gateway.vpc_id%3Dvpc.id%29%20as%20has_endpoint_gateway%2C%0A%28select%20count%28%2A%29%3E0%20from%20endpoint_interface%20where%20endpoint_interface.region%3Dbucket.region%20and%20service%3D%27s3%27%20and%20endpoint_interface.vpc_id%3Dvpc.id%29%20as%20has_endpoint_interface%0Afrom%20bucket%20left%20outer%20join%20vpc%20on%20vpc.region%3Dbucket.region%3B">
+  <a href="https://app.iasql.com/#/button/Check S3 endpoints/https://app.iasql.com/#/button/CheckS3endpoints/--%20Installing%20the%20needed%20modules%0ASELECT%20iasql_install%28%27aws_s3%27%29%3B%0ASELECT%20iasql_install%28%27aws_vpc%27%29%3B%0A--%20Perform%20the%20query%20for%20endpoints%0Aselect%20bucket.region%2C%20vpc.is_default%2C%20vpc.cidr_block%2C%0A%28select%20count%28%2A%29%3E0%20from%20endpoint_gateway%20where%20endpoint_gateway.region%3Dbucket.region%20and%20service%3D%27s3%27%20and%20endpoint_gateway.vpc_id%3Dvpc.id%29%20as%20has_endpoint_gateway%2C%0A%28select%20count%28%2A%29%3E0%20from%20endpoint_interface%20where%20endpoint_interface.region%3Dbucket.region%20and%20service%3D%27s3%27%20and%20endpoint_interface.vpc_id%3Dvpc.id%29%20as%20has_endpoint_interface%0Afrom%20bucket%20left%20outer%20join%20vpc%20on%20vpc.region%3Dbucket.region%3B">
     <button class="button button--lg button--primary">Check your endpoints</button>
   </a>
 </p>
-
-This query will find your active S3 buckets for all regions, associated with the existing endpoint gateways or interfaces - if they exist.
 
 Have you found missing endpoints? No problem, IaSQL can generate them for you. You can create two different
 types of endpoints: gateway and interface. We're going to describe their main features and you can create
@@ -77,16 +123,48 @@ TCP traffic.
 An interface endpoint (except S3 interface endpoint) has a corresponding private DNS hostname, that can be
 used to access the resource.
 
-Interface endpoints cover a wide range of services such as S3, Lambda, API Gateway, etc...
+Interface endpoints cover a wide range of services such as S3, Lambda, API Gateway, etc... <a href="https://docs.aws.amazon.com/vpc/latest/privatelink/create-interface-endpoint.html">
+Get more detail about interface endpoints</a>
+
+This query will auto-generate the missing interface endpoints and will preview the changes to be applied on your cloud. Simply uncomment the final statement and run it to make the changes to your cloud account.
+
+```sql
+ -- Inserts the missing endpoints
+INSERT INTO
+  endpoint_interface (region, vpc_id, service)
+SELECT
+  bucket.region,
+  vpc.id,
+  's3'
+FROM
+  bucket
+  INNER JOIN vpc ON bucket.region = vpc.region
+WHERE
+  NOT EXISTS (
+    SELECT
+      id
+    FROM
+      endpoint_interface
+    WHERE
+      endpoint_interface.region = bucket.region
+      AND endpoint_interface.vpc_id = vpc.id
+  );
+
+-- Preview the changes
+SELECT
+  *
+FROM
+  iasql_preview_apply ();
+
+-- Apply the changes
+--select * from iasql_apply();
+```
 
 <p>
-  <a href="https://app.iasql.com/#/button/Add S3 interface endpoints/--%20Inserts%20the%20missing%20endpoints%0Ainsert%20into%20endpoint_interface%28region%2C%20vpc_id%2C%20service%29%20select%20bucket.region%2C%20vpc.id%2C%20%27s3%27%20from%20bucket%20inner%20join%20vpc%0Aon%20bucket.region%3Dvpc.region%20where%20not%20exists%20%28select%20id%20from%20endpoint_interface%20where%20endpoint_interface.region%3Dbucket.region%20and%20endpoint_interface.vpc_id%3Dvpc.id%29%3B%0A--%20Preview%20the%20changes%0Aselect%20%2A%20from%20iasql_preview_apply%28%29%3B%0A--%20Apply%20the%20changes%0A--select%20%2A%20from%20iasql_apply%28%29%3B">
-    <button class="button button--lg button--primary">Add missing interface endpoint</button>
+  <a href="https://app.iasql.com/#/button/AddS3InterfaceEndpoints/--%20Inserts%20the%20missing%20endpoints%0Ainsert%20into%20endpoint_interface%28region%2C%20vpc_id%2C%20service%29%20select%20bucket.region%2C%20vpc.id%2C%20%27s3%27%20from%20bucket%20inner%20join%20vpc%0Aon%20bucket.region%3Dvpc.region%20where%20not%20exists%20%28select%20id%20from%20endpoint_interface%20where%20endpoint_interface.region%3Dbucket.region%20and%20endpoint_interface.vpc_id%3Dvpc.id%29%3B%0A--%20Preview%20the%20changes%0Aselect%20%2A%20from%20iasql_preview_apply%28%29%3B%0A--%20Apply%20the%20changes%0A--select%20%2A%20from%20iasql_apply%28%29%3B">
+    <button class="button button--lg button--primary">Add missing interface endpoints</button>
   </a>
 </p>
-
-By clicking on the button, our engine will auto-generate the missing interface endpoints and will
-preview the changes to be applied on your cloud. Simply uncomment the final statement and run it to make the changes to your cloud account. <a href="https://docs.aws.amazon.com/vpc/latest/privatelink/create-interface-endpoint.html">Get more detail about interface endpoints.</a>
 
 ## Endpoint gateways
 
@@ -104,19 +182,48 @@ In order to use them, DNS resolution must be enabled in the VPC.
 When a route is added, all instances in the subnets associated with the route table will automatically
 use the endpoint to access the service.
 
-Gateway endpoints only support S3 and DynamoDB services.
+Gateway endpoints only support S3 and DynamoDB services. <a href="https://docs.aws.amazon.com/vpc/latest/privatelink/gateway-endpoints.html">Get more detail about gateway endpoints</a>.
+
+This query will auto-generate the missing endpoint gateways and will allow you to preview the changes to be applied on your cloud.
+
+```sql
+ -- Inserts the missing endpoints
+INSERT INTO
+  endpoint_gateway (region, vpc_id, service)
+SELECT
+  bucket.region,
+  vpc.id,
+  's3'
+FROM
+  bucket
+  INNER JOIN vpc ON bucket.region = vpc.region
+WHERE
+  NOT EXISTS (
+    SELECT
+      id
+    FROM
+      endpoint_gateway
+    WHERE
+      endpoint_gateway.region = bucket.region
+      AND endpoint_gateway.vpc_id = vpc.id
+  )
+  -- Preview the changes
+SELECT
+  *
+FROM
+  iasql_preview_apply ();
+
+-- Apply the changes
+--select * from iasql_apply();
+```
 
 <a href="https://app.iasql.com/#/button/Add S3 interface endpoints/--%20Inserts%20the%20missing%20endpoints%0Ainsert%20into%20endpoint_gateway%28region%2C%20vpc_id%2C%20service%29%20select%20bucket.region%2C%20vpc.id%2C%20%27s3%27%20from%20bucket%20inner%20join%20vpc%20on%20bucket.region%3Dvpc.region%20where%20not%20exists%20%28select%20id%20from%20endpoint_gateway%20where%20endpoint_gateway.region%3Dbucket.region%20and%20endpoint_gateway.vpc_id%3Dvpc.id%29%0A--%20Preview%20the%20changes%0Aselect%20%2A%20from%20iasql_preview_apply%28%29%3B%0A--%20Apply%20the%20changes%0A--select%20%2A%20from%20iasql_apply%28%29%3B">
-  <button class="button button--lg button--primary">Add missing endpoints gateways</button>
+  <button class="button button--lg button--primary">Add missing gateway endpoints</button>
 </a>
-
-By clicking on the button, our engine will auto-generate the missing endpoint gateways and will allow you to
-preview the changes to be applied on your cloud. <a href="https://docs.aws.amazon.com/vpc/latest/privatelink/gateway-endpoints.html">Get more detail about gateway endpoints.</a>
 
 ## Testing the result
 
-Once all the relevant endpoints have been created, please check your access from internal EC2 instances or
-other resources - please use a VM on the same region as the endpoint you want to test:
+Once all the relevant endpoints have been created, you can confirm your access to the gateway endpoints from an internal EC2 instance on the same region as the endpoint you want to test:
 
 <img src="/img/ec2_using_vpc.png" style={{ maxWidth: 500 }} />
 
