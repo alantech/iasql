@@ -6,9 +6,6 @@ set -e
 # connect `iasql` db to aws account for `apply`
 echo "\nCreating an iasql db..."
 connectres=$(curl http://localhost:8088/v1/db/connect/iasql)
-echo "\n seting up database with username and password"
-echo $(jq -r '.user' <<<"$connectres")
-echo $(jq -r '.password' <<<"$connectres")
 export IASQL_USERNAME=$(jq -r '.user' <<<"$connectres")
 export IASQL_PASSWORD=$(jq -r '.password' <<<"$connectres")
 
