@@ -1,17 +1,8 @@
-import {
-  Column,
-  Entity,
-  JoinColumn,
-  JoinTable,
-  ManyToMany,
-  ManyToOne,
-  OneToMany,
-  PrimaryGeneratedColumn,
-} from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 
 import { cloudId } from '../../../services/cloud-id';
 import { Route } from './route';
-import { Subnet } from './subnet';
+import { RouteTableAssociation } from './route_table_association';
 import { Vpc } from './vpc';
 
 @Entity()
@@ -30,14 +21,11 @@ export class RouteTable {
   @JoinColumn()
   vpc: Vpc;
 
-  @ManyToMany(() => Subnet, { eager: true, nullable: true })
-  @JoinTable({
-    name: 'endpoint_interface_subnets',
+  @OneToMany(() => RouteTableAssociation, rta => rta.routeTable, {
+    eager: true,
+    nullable: true,
   })
-  explicitlyAssociatedSubnets?: Subnet[];
-
-  @Column({ default: false })
-  isMain: boolean;
+  explicitSubnetAssociations?: RouteTableAssociation[];
 
   @OneToMany(() => Route, route => route.routeTable, {
     eager: true,

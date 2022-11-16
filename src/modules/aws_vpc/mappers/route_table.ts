@@ -2,12 +2,12 @@ import { EC2, paginateDescribeRouteTables } from '@aws-sdk/client-ec2';
 import {
   Route as AwsRoute,
   RouteTable as AwsRouteTable,
+  RouteTableAssociation as AwsRouteTableAssociation,
 } from '@aws-sdk/client-ec2/dist-types/models/models_1';
 
 import { AWS, paginateBuilder } from '../../../services/aws_macros';
 import { Context, Crud2, MapperBase } from '../../interfaces';
-import { Route } from '../entity';
-import { RouteTable } from '../entity';
+import { Route, RouteTable, RouteTableAssociation } from '../entity';
 import { AwsVpcModule } from '../index';
 import { convertTagsFromAws, eqTags } from './tags';
 
@@ -17,10 +17,13 @@ export class RouteTableMapper extends MapperBase<RouteTable> {
   equals = (a: RouteTable, b: RouteTable) => {
     return (
       a.vpc.vpcId === b.vpc.vpcId &&
-      !!a.explicitlyAssociatedSubnets?.every(
-        sa => !!b.explicitlyAssociatedSubnets?.find(sb => Object.is(sa.id, sb.id)),
+      !!a.explicitSubnetAssociations?.every(
+        esa1 =>
+          !!b.explicitSubnetAssociations?.find(
+            esa2 =>
+              Object.is(esa1.subnet?.subnetId, esa2.subnet?.subnetId) && Object.is(esa1.isMain, esa2.isMain),
+          ),
       ) &&
-      a.isMain === b.isMain &&
       !!a.routes?.every(ra => !!b.routes?.find(rb => this.eqRoute(ra, rb))) &&
       eqTags(a.tags, b.tags)
     );
@@ -60,7 +63,7 @@ export class RouteTableMapper extends MapperBase<RouteTable> {
     );
   }
 
-  routeMapper(route: AwsRoute, routeTable: RouteTable, ctx: Context) {
+  routeMapper(route: AwsRoute, routeTable: RouteTable) {
     const out = new Route();
     out.routeTable = routeTable;
     out.DestinationCidrBlock = route.DestinationCidrBlock;
@@ -80,6 +83,21 @@ export class RouteTableMapper extends MapperBase<RouteTable> {
     return out;
   }
 
+  async routeTableAssociationMapper(
+    routeTableAssociation: AwsRouteTableAssociation,
+    region: string,
+    ctx: Context,
+  ) {
+    const out: RouteTableAssociation = new RouteTableAssociation();
+    if (routeTableAssociation.Main) out.isMain = routeTableAssociation.Main;
+    if (routeTableAssociation.SubnetId) {
+      const subnet = await this.getSubnet(ctx, routeTableAssociation.SubnetId, region);
+      if (subnet) out.subnet = subnet;
+    }
+
+    return out;
+  }
+
   async routeTableMapper(routeTable: AwsRouteTable, ctx: Context) {
     const out = new RouteTable();
 
@@ -88,21 +106,18 @@ export class RouteTableMapper extends MapperBase<RouteTable> {
       (await this.module.vpc.db.read(ctx, routeTable.VpcId)) ??
       (await this.module.vpc.cloud.read(ctx, routeTable.VpcId));
 
-    out.explicitlyAssociatedSubnets = [];
+    out.explicitSubnetAssociations = [];
     if (routeTable.Associations) {
-      for (const rta of routeTable.Associations) {
-        if (rta.Main) out.isMain = true;
-        if (rta.SubnetId) {
-          const subnet = await this.getSubnet(ctx, rta.SubnetId, out.vpc.region);
-          if (subnet) out.explicitlyAssociatedSubnets.push(subnet);
-        }
+      for (const rawRta of routeTable.Associations) {
+        const routeTableAssociation = await this.routeTableAssociationMapper(rawRta, out.vpc.region, ctx);
+        out.explicitSubnetAssociations.push(routeTableAssociation);
       }
     }
 
     out.routes = [];
     if (routeTable.Routes)
       for (const rawRoute of routeTable.Routes) {
-        const route = await this.routeMapper(rawRoute, out, ctx);
+        const route = await this.routeMapper(rawRoute, out);
         out.routes.push(route);
       }
 
@@ -126,6 +141,9 @@ export class RouteTableMapper extends MapperBase<RouteTable> {
           }
         }),
       );
+
+      if (!!id) return out.find(rt => rt.routeTableId === id);
+
       return out;
     },
     update: async (es: RouteTable[], ctx: Context) => {
