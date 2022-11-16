@@ -227,17 +227,6 @@ describe('Lambda Integration Testing', () => {
     ),
   );
 
-  it(
-    'check subnets',
-    query(
-      `
-      SELECT * FROM lambda_function 
-      WHERE name = '${lambdaFunctionName}' AND cardinality(subnets)= (select count(*) from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true and vpc.region = '${region}' limit 3) ;      
-  `,
-      (res: any[]) => expect(res.length).toBe(1),
-    ),
-  );
-
   // Invoke Lambda function
   it(
     'invoke lambda',
@@ -355,11 +344,11 @@ describe('Lambda Integration Testing', () => {
     'adds security group rules for not default',
     query(`
     INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
-    SELECT false, 'tcp', 80, 80, '0.0.0.0/0', '${prefix}lambda_rule_http', id
+    SELECT false, 'tcp', 80, 80, '0.0.0.0/0', '${prefix}lambda_rule_http_not_default', id
     FROM security_group
     WHERE group_name = '${prefix}lambdanotdefault';
     INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
-    SELECT true, 'tcp', 1, 65335, '0.0.0.0/0', '${prefix}lambda_rule_egress', id
+    SELECT true, 'tcp', 1, 65335, '0.0.0.0/0', '${prefix}lambda_rule_egress_not_default', id
     FROM security_group
     WHERE group_name = '${prefix}lambdanotdefault';
   `),
@@ -626,9 +615,9 @@ describe('Lambda Integration Testing', () => {
     USING vpc
     WHERE subnet.vpc_id = vpc.id;
 
-    DELETE FROM security_group
-    USING vpc
-    WHERE security_group.vpc_id = vpc.id;
+    DELETE FROM security_group_rule WHERE description='${prefix}lambda_rule_http_not_default' or description='${prefix}lambda_rule_egress_not_default' AND region='${region}';
+
+    DELETE FROM security_group WHERE group_name = '${prefix}lambdanotdefault' AND region='${region}';
 
     DELETE FROM vpc WHERE cidr_block='192.${randIPBlock}.0.0/16' AND region='${region}';
   `),
