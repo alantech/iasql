@@ -1,6 +1,6 @@
 /* THIS MODULE IS A SPECIAL SNOWFLAKE. DON'T LOOK AT IT FOR HOW TO WRITE A REAL MODULE */
 import { ModuleBase } from '../../interfaces';
-import { IasqlModule, IasqlTables } from './entity';
+import { IasqlAuditLog, IasqlModule, IasqlTables } from './entity';
 
 class IasqlPlatform extends ModuleBase {
   constructor() {
@@ -9,5 +9,6 @@ class IasqlPlatform extends ModuleBase {
   }
   iasqlModule = IasqlModule;
   iasqlTables = IasqlTables;
+  iasqlAuditLog = IasqlAuditLog;
 }
 export const iasqlPlatform = new IasqlPlatform();

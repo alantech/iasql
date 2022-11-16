@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class iasqlPlatform1652392022919 implements MigrationInterface {
-  name = 'iasqlPlatform1652392022919';
+export class iasqlPlatform1667499043588 implements MigrationInterface {
+  name = 'iasqlPlatform1667499043588';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
@@ -11,11 +11,12 @@ export class iasqlPlatform1652392022919 implements MigrationInterface {
       `CREATE TABLE "iasql_tables" ("table" character varying NOT NULL, "module" character varying NOT NULL, CONSTRAINT "PK_2e2832f9cf90115571eb803a943" PRIMARY KEY ("table", "module"))`,
     );
     await queryRunner.query(
-      `CREATE TYPE "public"."iasql_audit_log_change_type_enum" AS ENUM('INSERT', 'UPDATE', 'DELETE')`,
+      `CREATE TYPE "public"."iasql_audit_log_change_type_enum" AS ENUM('INSERT', 'UPDATE', 'DELETE', 'START_COMMIT', 'PREVIEW_START_COMMIT', 'END_COMMIT', 'PREVIEW_END_COMMIT')`,
     );
     await queryRunner.query(
-      `CREATE TABLE "iasql_audit_log" ("id" SERIAL NOT NULL, "ts" TIMESTAMP NOT NULL, "user" character varying NOT NULL, "table_name" character varying NOT NULL, "change_type" "public"."iasql_audit_log_change_type_enum" NOT NULL, "change" json NOT NULL, CONSTRAINT "PK_96a7317761701ced55a158c195d" PRIMARY KEY ("id"))`,
+      `CREATE TABLE "iasql_audit_log" ("id" SERIAL NOT NULL, "ts" TIMESTAMP WITH TIME ZONE NOT NULL, "user" character varying NOT NULL, "table_name" character varying NOT NULL, "change_type" "public"."iasql_audit_log_change_type_enum" NOT NULL, "change" json NOT NULL, CONSTRAINT "PK_96a7317761701ced55a158c195d" PRIMARY KEY ("id"))`,
     );
+    await queryRunner.query(`CREATE INDEX "IDX_ff85981b261fe1c34027ed6f41" ON "iasql_audit_log" ("ts") `);
     await queryRunner.query(
       `CREATE TABLE "iasql_dependencies" ("module" character varying NOT NULL, "dependency" character varying NOT NULL, CONSTRAINT "PK_b07797cfc364fa84b6da165f89d" PRIMARY KEY ("module", "dependency"))`,
     );
@@ -47,6 +48,7 @@ export class iasqlPlatform1652392022919 implements MigrationInterface {
     await queryRunner.query(`DROP INDEX "public"."IDX_7dbdaef2c45fdd0d1d82cc9568"`);
     await queryRunner.query(`DROP INDEX "public"."IDX_9732df6d7dff34b6f6a1732033"`);
     await queryRunner.query(`DROP TABLE "iasql_dependencies"`);
+    await queryRunner.query(`DROP INDEX "public"."IDX_ff85981b261fe1c34027ed6f41"`);
     await queryRunner.query(`DROP TABLE "iasql_audit_log"`);
     await queryRunner.query(`DROP TYPE "public"."iasql_audit_log_change_type_enum"`);
     await queryRunner.query(`DROP TABLE "iasql_tables"`);
