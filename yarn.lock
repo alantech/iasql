@@ -8100,13 +8100,12 @@
   dependencies:
     "@types/ms" "*"
 
-"@types/express-jwt@^6.0.2":
-  version "6.0.4"
-  resolved "https://registry.yarnpkg.com/@types/express-jwt/-/express-jwt-6.0.4.tgz#ce617f65025959f24fba9ee34564a34eaf59e44b"
-  integrity sha512-I53KRQ9D0eTA6hVCN9S73iOeprKS3JNWK+Cp2mDPB6uOIkTVpkgSkX394kHQzb5cd0U02I0adRmsMxHk+zX8tA==
+"@types/express-jwt@^7.4.2":
+  version "7.4.2"
+  resolved "https://registry.yarnpkg.com/@types/express-jwt/-/express-jwt-7.4.2.tgz#3367f86c856437774a1f3d73acc2597aa0cc9ab9"
+  integrity sha512-wb3wbD/XaWdBu9366M07Ugb3fuIiW7B2oUdnXfvUchI892eLGZ5eQqgfnVw2oNfN0dF9L2Px859DpZKPDtxzlA==
   dependencies:
-    "@types/express" "*"
-    "@types/express-unless" "*"
+    express-jwt "*"
 
 "@types/express-serve-static-core@^4.17.18":
   version "4.17.29"
@@ -8117,14 +8116,7 @@
     "@types/qs" "*"
     "@types/range-parser" "*"
 
-"@types/express-unless@*":
-  version "0.5.3"
-  resolved "https://registry.yarnpkg.com/@types/express-unless/-/express-unless-0.5.3.tgz#271f8603617445568ed0d6efe25a7d2f338544c1"
-  integrity sha512-TyPLQaF6w8UlWdv4gj8i46B+INBVzURBNRahCozCSXfsK2VTlL1wNyTlMKw817VHygBtlcl5jfnPadlydr06Yw==
-  dependencies:
-    "@types/express" "*"
-
-"@types/express@*", "@types/express@^4.17.13", "@types/express@^4.17.14":
+"@types/express@^4.17.13", "@types/express@^4.17.14":
   version "4.17.14"
   resolved "https://registry.yarnpkg.com/@types/express/-/express-4.17.14.tgz#143ea0557249bc1b3b54f15db4c81c3d4eb3569c"
   integrity sha512-TEbt+vaPFQ+xpxFLFssxUDXj5cWCxZJjIcB7Yg0k0GMHGtgtQgpvx/MUQUeAkNbA9AAGrwkAsoeItdTgS7FMyg==
@@ -8523,7 +8515,7 @@ async@^1.5.2:
   resolved "https://registry.yarnpkg.com/async/-/async-1.5.2.tgz#ec6a61ae56480c0c3cb241c95618e20892f9672a"
   integrity sha512-nSVgobk4rv61R9PUSDtYt7mPVB2olxNR5RWJcAsH676/ef11bUZwvu7+RGYrYauVdDPcO519v68wRhXQtxsV9w==
 
-async@^3.2.2, async@^3.2.3:
+async@^3.2.3:
   version "3.2.4"
   resolved "https://registry.yarnpkg.com/async/-/async-3.2.4.tgz#2d22e00f8cddeb5fde5dd33522b56d1cf569a81c"
   integrity sha512-iAB+JbDEGXhyIUavoDl9WP/Jj106Kz9DEn1DPgYw5ruDn0e3Wgi3sKFm55sASdGBNOQB8F59d9qQ7deqrHA8wQ==
@@ -9678,20 +9670,19 @@ expect@^27.5.1:
     jest-matcher-utils "^27.5.1"
     jest-message-util "^27.5.1"
 
-express-jwt@^6.1.0:
-  version "6.1.2"
-  resolved "https://registry.yarnpkg.com/express-jwt/-/express-jwt-6.1.2.tgz#4a6cc11d1dcff6f23126dd79ec5b2b441333e78b"
-  integrity sha512-l5dlf5lNM/1EODMsJGfHn1VnrhhsUYEetzrKFStJZLjFQXtR+HGdBiW+jUNZ+ISsFe+h7Wl/hQKjLrY2TX0Qkg==
+express-jwt@*, express-jwt@^7.7.7:
+  version "7.7.7"
+  resolved "https://registry.yarnpkg.com/express-jwt/-/express-jwt-7.7.7.tgz#b0400a8c759aba0774d84459e1d2eea7e9869d40"
+  integrity sha512-7s04HZ7sAahx7lwKU5AInhVon1kWVitRFxd7cGUKQaLDOQJsAQjB/OEBXaN0GS22RBgX75TjOJXGY7myQmVz5A==
   dependencies:
-    async "^3.2.2"
-    express-unless "^1.0.0"
-    jsonwebtoken "^8.1.0"
-    lodash "^4.17.21"
+    "@types/jsonwebtoken" "^8.5.8"
+    express-unless "^2.1.3"
+    jsonwebtoken "^8.5.1"
 
-express-unless@^1.0.0:
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/express-unless/-/express-unless-1.0.0.tgz#ecd1c354c5ccf7709a8a17ece617934e037cccd8"
-  integrity sha512-zXSSClWBPfcSYjg0hcQNompkFN/MxQQ53eyrzm9BYgik2ut2I7PxAf2foVqBRMYCwWaZx/aWodi+uk76npdSAw==
+express-unless@^2.1.3:
+  version "2.1.3"
+  resolved "https://registry.yarnpkg.com/express-unless/-/express-unless-2.1.3.tgz#f951c6cca52a24da3de32d42cfd4db57bc0f9a2e"
+  integrity sha512-wj4tLMyCVYuIIKHGt0FhCtIViBcwzWejX0EjNxveAa6dG+0XBCQhMbx+PnkLkFCxLC69qoFrxds4pIyL88inaQ==
 
 express@^4.18.2:
   version "4.18.2"
@@ -11222,7 +11213,7 @@ json5@2.x, json5@^2.1.2, json5@^2.1.3, json5@^2.2.1:
   resolved "https://registry.yarnpkg.com/json5/-/json5-2.2.1.tgz#655d50ed1e6f95ad1a3caababd2b0efda10b395c"
   integrity sha512-1hqLFMSrGHRHxav9q9gNjJ5EXznIxGVO09xQRrwplcS8qs28pZ8s8hupZAmqDwZUmVZ2Qb2jnyPOWcDH8m8dlA==
 
-jsonwebtoken@^8.1.0:
+jsonwebtoken@^8.5.1:
   version "8.5.1"
   resolved "https://registry.yarnpkg.com/jsonwebtoken/-/jsonwebtoken-8.5.1.tgz#00e71e0b8df54c2121a1f26137df2280673bcc0d"
   integrity sha512-XjwVfRS6jTMsqYs0EsuJ4LGxXV14zQybNd4L2r0UvbVnSF9Af8x7p5MzbJ90Ioz/9TI41/hTCvznF/loiSzn8w==
