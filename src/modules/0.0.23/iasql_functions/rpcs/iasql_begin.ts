@@ -14,11 +14,11 @@ export class IasqlBegin extends RpcBase {
     _dbUser: string,
     _ctx: Context,
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
-    let conn;
+    let conn: any;
     let message: string;
     try {
       conn = await createConnection(dbMan.baseConnConfig);
-      await conn.query(dbMan.stopCron(dbId));
+      await conn.query(dbMan.pauseCron(dbId));
       message = 'Transaction started';
       // TODO: Find a way to set a timeout to init the cron again.
       // We can use the cron state job but we sould also need to look for the last time begin was called maybe?
