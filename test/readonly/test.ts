@@ -126,27 +126,11 @@ describe('Aws read only Integration Testing', () => {
   it('fails to apply and restore on sync phase', done => {
     query(`
       select * from iasql_commit();
-    `)((_e?: any) => done()); // Ignore failure
+    `)((e?: any) => {
+      expect(e.message).toContain('is not authorized to perform');
+      return done();
+    }); // Ignore failure
   });
-
-  it(
-    'check apply error',
-    query(
-      `
-    SELECT *
-    FROM iasql_rpc
-    ORDER BY end_date DESC
-    LIMIT 1;
-  `,
-      (row: any[]) => {
-        expect(row.length).toBe(1);
-        expect(row[0].module_name).toBe('iasql_functions');
-        expect(row[0].method_name).toBe('iasqlCommit');
-      },
-    ),
-  );
-
-  it('undo changes to close the transaction', rollback());
 
   it('uninstalls all modules', uninstallAll());
 

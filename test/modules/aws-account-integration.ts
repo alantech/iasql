@@ -1,6 +1,5 @@
 import config from '../../src/config';
 import * as iasql from '../../src/services/iasql';
-import * as scheduler from '../../src/services/scheduler';
 import {
   defaultRegion,
   execComposeDown,
@@ -269,10 +268,6 @@ describe('AwsAccount Integration Testing', () => {
     ),
   );
 
-  // tests that on startup subsequent iasql ops for existing dbs succeed
-  it('stops the worker for all dbs', done => void scheduler.stopAll().then(...finish(done)));
-  it('starts a worker for each db', done => void scheduler.init().then(...finish(done)));
-
   it('starts a transaction', begin());
 
   it('does absolutely nothing when you sync this', commit());
@@ -368,7 +363,7 @@ describe('AwsAccount Integration Testing', () => {
   `)((e?: any) => {
       console.log({ e });
       try {
-        expect(e?.detail).toContain('Unsupported version');
+        expect(e?.message).toContain('Unsupported version');
       } catch (err) {
         done(err);
         return {};
@@ -383,7 +378,7 @@ describe('AwsAccount Integration Testing', () => {
   `)((e?: any) => {
       console.log({ e });
       try {
-        expect(e?.detail).toContain('Unsupported version');
+        expect(e?.message).toContain('Unsupported version');
       } catch (err) {
         done(err);
         return {};

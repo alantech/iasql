@@ -33,49 +33,21 @@ describe('Testing failure path', () => {
   it('fails to install fake module', done => {
     query(`
       select * from iasql_install('aws_fake');
-    `)((_e?: any) => done()); // Ignore failure
+    `)((e?: any) => {
+      expect(e).toHaveProperty('message');
+      return done();
+    }); // Ignore failure
   });
-
-  it(
-    'check install error',
-    query(
-      `
-    SELECT *
-    FROM iasql_rpc
-    ORDER BY end_date DESC
-    LIMIT 1;
-  `,
-      (row: any[]) => {
-        expect(row.length).toBe(1);
-        expect(row[0].method_name).toBe('iasqlInstall');
-        expect(JSON.parse(row[0].err)).toHaveProperty('message');
-      },
-    ),
-  );
 
   // Fail on uninstall
   it('fails to uninstall fake module', done => {
     query(`
       select * from iasql_uninstall('aws_fake');
-    `)((_e?: any) => done()); // Ignore failure
+    `)((e?: any) => {
+      expect(e).toHaveProperty('message');
+      return done();
+    }); // Ignore failure
   });
-
-  it(
-    'check uninstall error',
-    query(
-      `
-    SELECT *
-    FROM iasql_rpc
-    ORDER BY end_date DESC
-    LIMIT 1;
-  `,
-      (row: any[]) => {
-        expect(row.length).toBe(1);
-        expect(row[0].method_name).toBe('iasqlUninstall');
-        expect(JSON.parse(row[0].err)).toHaveProperty('message');
-      },
-    ),
-  );
 
   it('installs the aws_account module', install(['aws_account']));
 
@@ -146,25 +118,11 @@ describe('Testing failure path', () => {
   it('fails to commit and restore', done => {
     query(`
       select * from iasql_commit();
-    `)((_e?: any) => done()); // Ignore failure
+    `)((e?: any) => {
+      expect(e).toHaveProperty('message');
+      return done();
+    }); // Ignore failure
   });
-
-  it(
-    'check apply error',
-    query(
-      `
-    SELECT *
-    FROM iasql_rpc
-    ORDER BY end_date DESC
-    LIMIT 1;
-  `,
-      (row: any[]) => {
-        expect(row.length).toBe(1);
-        expect(row[0].module_name).toBe('iasql_functions');
-        expect(row[0].method_name).toBe('iasqlCommit');
-      },
-    ),
-  );
 
   // Fail on upgrade
   /* it('fails to upgrade database (as it is up-to-date already)', done => {
