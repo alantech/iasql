@@ -1,4 +1,7 @@
+import { createConnection } from 'typeorm';
+
 import { IasqlFunctions } from '..';
+import * as dbMan from '../../../../services/db-manager';
 import { Context, RpcBase, RpcResponseObject } from '../../../interfaces';
 import * as iasql from '../iasql';
 
@@ -15,8 +18,20 @@ export class IasqlRollback extends RpcBase {
     _dbUser: string,
     ctx: Context,
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
-    const res = (await iasql.rollback(dbId, ctx)).rows;
-    return res.map(rec => super.formatObjKeysToSnakeCase(rec) as RpcResponseObject<typeof this.outputTable>);
+    let res;
+    let conn: any;
+    try {
+      res = (await iasql.rollback(dbId, ctx)).rows;
+      conn = await createConnection(dbMan.baseConnConfig);
+      await conn.query(dbMan.startCron(dbId));
+    } catch (e) {
+      throw e;
+    } finally {
+      conn?.close();
+    }
+    return (
+      res?.map(rec => super.formatObjKeysToSnakeCase(rec) as RpcResponseObject<typeof this.outputTable>) ?? []
+    );
   };
 
   constructor(module: IasqlFunctions) {
