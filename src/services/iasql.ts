@@ -171,7 +171,9 @@ export async function disconnect(dbAlias: string, uid: string) {
     const db: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
     await scheduler.stop(db.pgName);
     conn = await createConnection(dbMan.baseConnConfig);
-    await conn.query(dbMan.stopCron(db.pgName));
+    try {
+      await conn.query(dbMan.stopCron(db.pgName));
+    } catch (e) {/** Do nothing */}
     await conn.query(`
       DROP DATABASE IF EXISTS ${db.pgName} WITH (FORCE);
     `);
