@@ -8,8 +8,7 @@ export class Route {
   id: number;
 
   @ManyToOne(() => RouteTable, {
-    onDelete: 'CASCADE',
-    onUpdate: 'CASCADE',
+    nullable: true, // shouldn't be, but orphanedRowAction doesn't work properly
   })
   @JoinColumn()
   routeTable: RouteTable;

@@ -33,17 +33,17 @@ export class RouteTable {
 
   @OneToMany(() => RouteTableAssociation, rta => rta.routeTable, {
     eager: true,
-    nullable: true,
     cascade: true,
+    orphanedRowAction: 'delete',
   })
-  explicitSubnetAssociations?: RouteTableAssociation[];
+  associations: RouteTableAssociation[];
 
   @OneToMany(() => Route, route => route.routeTable, {
     eager: true,
     cascade: true,
-    nullable: true,
+    orphanedRowAction: 'delete',
   })
-  routes?: Route[];
+  routes: Route[];
 
   @Column({
     type: 'json',

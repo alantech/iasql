@@ -15,7 +15,7 @@ export class RouteTableAssociation {
   routeTableAssociationId?: string;
 
   @ManyToOne(() => RouteTable, {
-    nullable: false,
+    nullable: true, // shouldn't be, but orphanedRowAction doesn't work properly
   })
   @JoinColumn()
   routeTable: RouteTable;
