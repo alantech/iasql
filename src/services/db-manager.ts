@@ -204,3 +204,10 @@ export function getEmail(user: any): string {
 export function getUid(user: any): string {
   return config.auth ? user.sub : 'iasql';
 }
+
+export function initCron(dbId: string): string {
+  return `
+    SELECT
+      cron.schedule_in_database ('iasql_engine', '*/2 * * * *', $CRON$ SELECT iasql_commit(); $CRON$, '${dbId}');
+  `;
+}

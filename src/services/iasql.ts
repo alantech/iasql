@@ -130,6 +130,9 @@ export async function connect(dbAlias: string, uid: string, email: string, dbId 
       database: dbId,
     });
     await dbMan.migrate(conn2);
+    // We sync main conn to be aware of the new dbId database created
+    await conn1.synchronize();
+    await conn1.query(dbMan.initCron(dbId));
     await conn2.query(dbMan.createDbPostgreGroupRole(dbId));
     await conn2.query(dbMan.newPostgresRoleQuery(dbUser, dbPass, dbId));
     await conn2.query(dbMan.grantPostgresGroupRoleQuery(dbUser, dbId, config.modules.latestVersion));
