@@ -13,6 +13,7 @@ import {
   IasqlUninstall,
   IasqlUpgrade,
   IasqlRollback,
+  IasqlBegin,
 } from './rpcs';
 
 export class IasqlFunctions extends ModuleBase {
@@ -27,6 +28,7 @@ export class IasqlFunctions extends ModuleBase {
   iasqlCommit: IasqlCommit;
   iasqlPreview: IasqlPreview;
   iasqlRollback: IasqlRollback;
+  iasqlBegin: IasqlBegin;
 
   constructor() {
     super();
@@ -41,6 +43,7 @@ export class IasqlFunctions extends ModuleBase {
     this.iasqlCommit = new IasqlCommit(this);
     this.iasqlPreview = new IasqlPreview(this);
     this.iasqlRollback = new IasqlRollback(this);
+    this.iasqlBegin = new IasqlBegin(this);
     super.init();
   }
   // ! DEPRECATED

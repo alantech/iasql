@@ -208,6 +208,13 @@ export function getUid(user: any): string {
 export function initCron(dbId: string): string {
   return `
     SELECT
-      cron.schedule_in_database ('iasql_engine', '*/2 * * * *', $CRON$ SELECT iasql_commit(); $CRON$, '${dbId}');
+      cron.schedule_in_database ('iasql_engine_${dbId}', '*/2 * * * *', $CRON$ SELECT iasql_commit(); $CRON$, '${dbId}');
+  `;
+}
+
+export function stopCron(dbId: string): string {
+  return `
+    SELECT
+      cron.unschedule('iasql_engine_${dbId}');
   `;
 }
