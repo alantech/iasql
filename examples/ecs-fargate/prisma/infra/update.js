@@ -28,8 +28,13 @@ async function main() {
   console.log('nPushing image...')
   execSync(`docker push ${repo_uri}:latest`);
 
+  const serviceArn = (await prisma.service.findFirst({
+    where: { name: `${APP_NAME}-service`, region: `${REGION}` },
+    select: { arn: true },
+  })).arn.toString();
+
   console.log('Force new deployment')
-  await prisma.$queryRaw`SELECT * from deploy_service('${APP_NAME}-service', '${REGION}');`;
+  await prisma.$queryRaw`SELECT * from deploy_service('${arn}');`;
 
   const commit = await prisma.$queryRaw`SELECT * from iasql_commit();`
   console.dir(commit)

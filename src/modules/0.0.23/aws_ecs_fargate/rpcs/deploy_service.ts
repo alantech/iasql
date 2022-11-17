@@ -22,25 +22,18 @@ export class DeployServiceRPC extends RpcBase {
     _dbId: string,
     _dbUser: string,
     ctx: Context,
-    name: string,
-    region: string,
+    arn: string,
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
-    const client = (await ctx.getAwsClient(region)) as AWS;
-
     // given the service name, read the details
     const serviceObj: Service =
-      (await this.module.service.db.read(
-        ctx,
-        this.module.service.generateId({ name: name ?? '', region }),
-      )) ??
-      (await this.module.service.cloud.read(
-        ctx,
-        this.module.service.generateId({ name: name ?? '', region }),
-      ));
+      (await this.module.service.db.read(ctx, this.module.service.generateId({ arn: arn ?? '' }))) ??
+      (await this.module.service.cloud.read(ctx, this.module.service.generateId({ arn: arn ?? '' })));
 
     if (serviceObj) {
+      const client = (await ctx.getAwsClient(serviceObj.region)) as AWS;
+
       const service = await this.updateService(client.ecsClient, {
-        service: name,
+        service: serviceObj.arn,
         cluster: serviceObj.cluster?.clusterArn,
       });
 
@@ -48,7 +41,7 @@ export class DeployServiceRPC extends RpcBase {
         // return ok
         return [
           {
-            arn: service.serviceArn,
+            arn: arn,
             status: 'OK',
             message: 'Service updated successfully',
           },
