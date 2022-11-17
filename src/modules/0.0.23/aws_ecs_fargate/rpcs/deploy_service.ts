@@ -41,7 +41,7 @@ export class DeployServiceRPC extends RpcBase {
         // return ok
         return [
           {
-            arn: arn,
+            arn,
             status: 'OK',
             message: 'Service updated successfully',
           },
