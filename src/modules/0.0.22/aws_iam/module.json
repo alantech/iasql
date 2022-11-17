@@ -1,4 +1,0 @@
-{
-  "name": "aws_iam",
-  "dependencies": ["iasql_platform", "aws_account"]
-}

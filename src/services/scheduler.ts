@@ -7,26 +7,13 @@ import { v4 as uuidv4 } from 'uuid';
 import config from '../config';
 import { throwError } from '../config/config';
 import { IasqlDatabase } from '../entity';
-import { Context, ModuleBase, ModuleInterface, modules } from '../modules';
-import { isString } from './common';
+import { Context, ModuleBase, ModuleInterface } from '../modules';
+import * as Modules from '../modules';
 import * as iasql from './iasql';
 import logger, { logErrSentry } from './logger';
 import MetadataRepo from './repositories/metadata';
 import * as telemetry from './telemetry';
 import { TypeormWrapper } from './typeorm';
-
-// ! DEPRECATED
-// TODO: REMOVE BY THE TIME 0.0.20 BECOMES UNSUPPORTED
-enum IasqlOperationType {
-  APPLY = 'APPLY',
-  SYNC = 'SYNC',
-  INSTALL = 'INSTALL',
-  UNINSTALL = 'UNINSTALL',
-  PLAN_APPLY = 'PLAN_APPLY',
-  PLAN_SYNC = 'PLAN_SYNC',
-  LIST = 'LIST',
-  UPGRADE = 'UPGRADE',
-}
 
 const workerRunners: { [key: string]: { runner: any; conn: any } } = {}; // TODO: What is the runner type?
 
@@ -54,108 +41,6 @@ export async function start(dbId: string, dbUser: string) {
     noHandleSignals: false,
     pollInterval: 1000, // ms
     taskList: {
-      // ! DEPRECATED
-      // TODO: REMOVE BY THE TIME 0.0.20 BECOMES UNSUPPORTED
-      operation: async (payload: any) => {
-        const { params, opid, optype } = payload;
-        let promise;
-        switch (optype) {
-          case IasqlOperationType.APPLY: {
-            promise = iasql.apply(dbId, false);
-            break;
-          }
-          case IasqlOperationType.PLAN_APPLY: {
-            promise = iasql.apply(dbId, true);
-            break;
-          }
-          case IasqlOperationType.SYNC: {
-            promise = iasql.sync(dbId, false);
-            break;
-          }
-          case IasqlOperationType.PLAN_SYNC: {
-            promise = iasql.sync(dbId, true);
-            break;
-          }
-          case IasqlOperationType.INSTALL: {
-            promise = iasql.install(params, dbId, dbUser, false);
-            break;
-          }
-          case IasqlOperationType.UNINSTALL: {
-            promise = iasql.uninstall(params, dbId);
-            break;
-          }
-          case IasqlOperationType.LIST: {
-            promise = iasql.modules(true, false, dbId);
-            break;
-          }
-          case IasqlOperationType.UPGRADE: {
-            promise = iasql.upgrade(dbId, dbUser);
-            break;
-          }
-          default: {
-            break;
-          }
-        }
-        let output;
-        let error;
-        const user = await MetadataRepo.getUserFromDbId(dbId);
-        const uid = user?.id;
-        const email = user?.email;
-        const dbAlias = user?.iasqlDatabases?.[0]?.alias;
-        try {
-          output = await promise;
-          // once the operation completes updating the `end_date`
-          // will complete the polling
-          const query = `
-            update iasql_operation
-            set end_date = now(), output = '${output}'
-            where opid = uuid('${opid}');
-          `;
-          logger.debug(query);
-          output = isString(output) ? output : JSON.stringify(output);
-          await conn.query(query);
-        } catch (e) {
-          let errorMessage: string | string[] = logErrSentry(e, uid, email, dbAlias);
-          // split message if multiple lines in it
-          if (errorMessage.includes('\n')) errorMessage = errorMessage.split('\n');
-          // error must be valid JSON as a string
-          const errorStringify = JSON.stringify({ message: errorMessage });
-          // replace single quotes to make it valid
-          error = errorStringify.replace(/[\']/g, '\\"');
-          const query = `
-            update iasql_operation
-            set end_date = now(), err = '${error}'
-            where opid = uuid('${opid}');
-          `;
-          await conn.query(query);
-        } finally {
-          try {
-            const recordCount = await iasql.getDbRecCount(conn);
-            const operationCount = await iasql.getOpCount(conn);
-            await MetadataRepo.updateDbCounts(dbId, recordCount, operationCount);
-            // list is called by us and has no dbAlias so ignore
-            if (uid && optype !== IasqlOperationType.LIST)
-              telemetry.logOp(
-                optype,
-                {
-                  dbId,
-                  email,
-                  dbAlias,
-                  recordCount,
-                  operationCount,
-                },
-                {
-                  params,
-                  output,
-                  error,
-                },
-                uid,
-              );
-          } catch (e: any) {
-            logger.error('could not log op event', e);
-          }
-        }
-      },
       rpc: async (payload: any) => {
         const { params, opid, modulename, methodname } = payload;
         let output: string | undefined;
@@ -171,19 +56,16 @@ export async function start(dbId: string, dbUser: string) {
           throwError(`Database ${dbId} is upgrading.`);
         }
         try {
-          const Modules = (modules as any)[versionString];
-          if (!Modules) {
-            throwError(`Unsupported version ${versionString}. Please upgrade or replace this database.`);
-          }
           // Look for the Module's instance name with the RPC to be called
+          if (versionString !== config.version) throwError(`Unsupported version ${versionString}`);
           const [moduleInstanceName] = Object.entries(Modules ?? {})
             .filter(([_, m]: [string, any]) => m instanceof ModuleBase)
             .find(([_, m]: [string, any]) => m.name === modulename) ?? ['unknown', undefined];
-          if (!Modules[moduleInstanceName]) throwError(`Module ${modulename} not found`);
+          if (!(Modules as any)[moduleInstanceName]) throwError(`Module ${modulename} not found`);
           const context = await getContext(conn, Modules);
-          const rpcRes: any[] | undefined = await (Modules[moduleInstanceName] as ModuleInterface)?.rpc?.[
-            methodname
-          ].call(dbId, dbUser, context, ...params);
+          const rpcRes: any[] | undefined = await (
+            (Modules as any)[moduleInstanceName] as ModuleInterface
+          )?.rpc?.[methodname].call(dbId, dbUser, context, ...params);
           if (rpcRes) output = JSON.stringify(rpcRes);
           // once the rpc completes updating the `end_date`
           // will complete the polling
@@ -221,7 +103,7 @@ export async function start(dbId: string, dbUser: string) {
                 methodname,
                 {
                   dbId,
-                  email,
+                  email: email ?? '',
                   dbAlias,
                   recordCount,
                   rpcCount,
@@ -252,17 +134,17 @@ export async function start(dbId: string, dbUser: string) {
   }
 }
 
-async function getContext(conn: TypeormWrapper, Modules: any): Promise<Context> {
+async function getContext(conn: TypeormWrapper, AllModules: any): Promise<Context> {
   // Find all of the installed modules, and create the context object only for these
   const iasqlModule =
-    Modules?.IasqlPlatform?.utils?.IasqlModule ??
-    Modules?.iasqlPlatform?.iasqlModule ??
+    AllModules?.IasqlPlatform?.utils?.IasqlModule ??
+    AllModules?.iasqlPlatform?.iasqlModule ??
     throwError('Core IasqlModule not found');
   const moduleNames = (await conn.find(iasqlModule)).map((m: any) => m.name);
   const memo: any = {};
   const context: Context = { orm: conn, memo };
   for (const name of moduleNames) {
-    const mod = (Object.values(Modules) as ModuleInterface[]).find(
+    const mod = (Object.values(AllModules) as ModuleInterface[]).find(
       m => `${m.name}@${m.version}` === name,
     ) as ModuleInterface;
     if (!mod) throwError(`This should be impossible. Cannot find module ${name}`);
@@ -330,8 +212,7 @@ export async function init() {
         await MetadataRepo.getAllDbs()
       ).map(async db => {
         const versionString = await TypeormWrapper.getVersionString(db.pgName);
-        const Modules = (modules as any)[versionString];
-        return !!Modules ? db : undefined;
+        return versionString === config.version ? db : undefined;
       }),
     )
   ).filter((db: IasqlDatabase | undefined) => db !== undefined) as IasqlDatabase[]; // Typescript should know better
@@ -357,12 +238,12 @@ if (require.main === module) {
     process.exit(13);
   }
 
-  app.use((req: any, res: any, next: any) => {
+  app.use((req: any, _res: any, next: any) => {
     logger.info(`Scheduler called on ${req.url}`);
     next();
   });
 
-  app.get('/init/', (req: any, res: any) => {
+  app.get('/init/', (_req: any, res: any) => {
     init()
       .then(() => res.sendStatus(200))
       .catch(e => respondErrorAndDie(res, e.message));
@@ -382,13 +263,13 @@ if (require.main === module) {
       .catch(e => respondErrorAndDie(res, e.message));
   });
 
-  app.get('/stopAll/', (req: any, res: any) => {
+  app.get('/stopAll/', (_req: any, res: any) => {
     stopAll()
       .then(() => res.sendStatus(200))
       .catch(e => respondErrorAndDie(res, e.message));
   });
 
-  app.head('/health/', (req: any, res: any) => {
+  app.head('/health/', (_req: any, res: any) => {
     res.sendStatus(200);
   });
 

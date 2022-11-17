@@ -56,24 +56,6 @@ jobs:
       - name: Run code style check
         run: yarn style
 
-  changes-in-latest-version:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
-
-      - name: Use Node.js 16.x
-        uses: actions/setup-node@v1
-        with:
-          node-version: 16.x
-
-      - name: Install dependencies
-        run: yarn
-
-      - name: checks modified files
-        run: yarn changes-in-version
-
   common-test:
     runs-on: ubuntu-latest
     name: common tests

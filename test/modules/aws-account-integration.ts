@@ -11,8 +11,7 @@ import {
   runQuery,
 } from '../helpers';
 
-const latestVersion = config.modules.latestVersion;
-const oldestVersion = config.modules.oldestVersion;
+const latestVersion = config.version;
 
 const dbAlias = 'accounttest';
 const commit = runCommit.bind(null, dbAlias);
@@ -306,7 +305,7 @@ describe('AwsAccount Integration Testing', () => {
 
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 
-  it('creates a new test db using the oldest version via trickery', done => {
+  /* it('creates a new test db using the oldest version via trickery', done => {
     // This works because we don't actually `Object.freeze` the config and `const` in JS is dumb
     config.modules.latestVersion = oldestVersion;
     iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done));
@@ -328,7 +327,7 @@ describe('AwsAccount Integration Testing', () => {
   it('deletes the test db and restores the version', done => {
     iasql.disconnect(dbAlias, 'not-needed').then(...finish(done));
     config.modules.latestVersion = latestVersion;
-  });
+  }); */
 
   it('creates another test db', done => {
     (async () => {

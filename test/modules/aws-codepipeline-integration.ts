@@ -10,6 +10,7 @@ import {
   runBegin,
   runCommit,
   runInstall,
+  runInstallAll,
   runQuery,
   runUninstall,
 } from '../helpers';
@@ -21,6 +22,7 @@ const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
+const installAll = runInstallAll.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 // codepipeline has a more limited region list
 const region = defaultRegion([
@@ -673,7 +675,7 @@ describe('AwsCodepipeline install/uninstall', () => {
 
   it('uninstalls the codepipeline module', uninstall(modules));
 
-  it('installs all modules', done => void iasql.install([], dbAlias, 'postgres', true).then(...finish(done)));
+  it('installs all modules', installAll());
 
   it('uninstalls the codepipeline module', uninstall(['aws_codepipeline']));
 
