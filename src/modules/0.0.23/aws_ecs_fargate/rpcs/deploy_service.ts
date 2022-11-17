@@ -3,6 +3,7 @@ import { ECS, UpdateServiceCommandInput } from '@aws-sdk/client-ecs';
 import { AwsEcsFargateModule } from '..';
 import { AWS } from '../../../../services/aws_macros';
 import { Context, RpcBase, RpcResponseObject } from '../../../interfaces';
+import { Service } from '../entity';
 
 export class DeployServiceRPC extends RpcBase {
   module: AwsEcsFargateModule;
@@ -25,27 +26,51 @@ export class DeployServiceRPC extends RpcBase {
     region: string,
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
     const client = (await ctx.getAwsClient(region)) as AWS;
-    const service = await this.updateService(client.ecsClient, {
-      service: name,
-    });
 
-    if (service) {
-      // return ok
+    // given the service name, read the details
+    const serviceObj: Service =
+      (await this.module.service.db.read(
+        ctx,
+        this.module.service.generateId({ name: name ?? '', region }),
+      )) ??
+      (await this.module.service.cloud.read(
+        ctx,
+        this.module.service.generateId({ name: name ?? '', region }),
+      ));
+
+    if (serviceObj) {
+      const service = await this.updateService(client.ecsClient, {
+        service: name,
+        cluster: serviceObj.cluster?.clusterArn,
+      });
+
+      if (service) {
+        // return ok
+        return [
+          {
+            arn: service.serviceArn,
+            status: 'OK',
+            message: 'Service updated successfully',
+          },
+        ];
+      } else {
+        return [
+          {
+            arn: '',
+            status: 'ERROR',
+            message: 'Error updating service',
+          },
+        ];
+      }
+    } else {
       return [
         {
-          arn: service.serviceArn,
+          arn: '',
           status: 'OK',
-          message: 'Service updated successfully',
+          message: 'Service not found',
         },
       ];
     }
-    return [
-      {
-        arn: '',
-        status: 'ERROR',
-        message: 'Error updating service',
-      },
-    ];
   };
 
   constructor(module: AwsEcsFargateModule) {
