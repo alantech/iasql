@@ -15,6 +15,7 @@ services:
   postgresql:
     build:
       dockerfile: Dockerfile.pg
+    command: postgres -c shared_preload_libraries=pg_cron
     ports:
       - "5432:5432"
     environment:
