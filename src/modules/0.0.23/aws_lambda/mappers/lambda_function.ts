@@ -338,7 +338,8 @@ export class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
         const client = (await ctx.getAwsClient(e.region)) as AWS;
         const region = e.region;
 
-        // Update function configuration
+        // Update function configuration, decoupling the VPC to allow
+        // network interfaces to be released and removed automatically
         const input: UpdateFunctionConfigurationCommandInput = {
           FunctionName: e.name,
           Role: e.role.arn,

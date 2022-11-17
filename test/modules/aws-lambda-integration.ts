@@ -673,6 +673,12 @@ describe('Lambda Integration Testing', () => {
 
     DELETE FROM security_group WHERE group_name = '${prefix}lambdanotdefault' AND region='${region}';
 
+    DELETE FROM security_group_rule
+    WHERE security_group_id = (
+      SELECT id
+      FROM security_group
+      WHERE security_group.vpc_id=vpc.id);
+
     DELETE FROM security_group
     USING vpc
     WHERE security_group.vpc_id = vpc.id;
