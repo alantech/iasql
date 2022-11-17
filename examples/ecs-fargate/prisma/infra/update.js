@@ -29,10 +29,8 @@ async function main() {
   execSync(`docker push ${repo_uri}:latest`);
 
   console.log('Force new deployment')
-  await prisma.ecs_simplified.update({
-    where: { name: APP_NAME },
-    data: { force_new_deployment: true }
-  });
+  await prisma.$queryRaw`SELECT * from deploy_service('${APP_NAME}-service', '${REGION}');`;
+
   const commit = await prisma.$queryRaw`SELECT * from iasql_commit();`
   console.dir(commit)
 }
