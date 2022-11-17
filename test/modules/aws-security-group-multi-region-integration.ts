@@ -5,10 +5,10 @@ import {
   execComposeUp,
   finish,
   getPrefix,
-  runApply,
+  runCommit,
   runInstall,
   runQuery,
-  runSync,
+  runRollback,
 } from '../helpers';
 
 const prefix = getPrefix();
@@ -16,8 +16,8 @@ const dbAlias = 'sgtest';
 const sgName = `${prefix}${dbAlias}`;
 const nonDefaultRegion = 'us-east-1';
 const defaultRegion = dr();
-const apply = runApply.bind(null, dbAlias);
-const sync = runSync.bind(null, dbAlias);
+const commit = runCommit.bind(null, dbAlias);
+const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const modules = ['aws_security_group', 'aws_vpc'];
@@ -26,9 +26,22 @@ jest.setTimeout(360000);
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown());
 
+let username: string, password: string;
+
 describe('Security Group Multi region Integration Testing', () => {
-  it('creates a new test db', done =>
-    void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
+  it('creates a new test db', done => {
+    (async () => {
+      try {
+        const { user, password: pgPassword } = await iasql.connect(dbAlias, 'not-needed', 'not-needed');
+        username = user;
+        password = pgPassword;
+        if (!username || !password) throw new Error('Did not fetch pg credentials');
+        done();
+      } catch (e) {
+        done(e);
+      }
+    })();
+  });
 
   it('installs the aws_account module', install(['aws_account']));
 
@@ -41,29 +54,40 @@ describe('Security Group Multi region Integration Testing', () => {
   `,
       undefined,
       false,
+      () => ({ username, password }),
     ),
   );
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it(
     'sets the default region',
-    query(`
+    query(
+      `
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${defaultRegion}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('installs the security group module', install(modules));
 
   it(
     'adds a new security group',
-    query(`  
+    query(
+      `  
     INSERT INTO security_group (description, group_name, region)
     VALUES ('Security Group Test', '${prefix}sgtest', '${nonDefaultRegion}');
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('undo changes', sync());
+  it('undo changes', rollback());
 
   it(
     'check security_group insertion',
@@ -79,13 +103,18 @@ describe('Security Group Multi region Integration Testing', () => {
 
   it(
     'adds a new security group',
-    query(`  
+    query(
+      `  
     INSERT INTO security_group (description, group_name, region, vpc_id)
     VALUES ('Security Group Test', '${prefix}sgtest', '${nonDefaultRegion}', (select id from vpc where is_default = true and region = '${nonDefaultRegion}' limit 1));
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies the security group change', apply());
+  it('applies the security group change', commit());
 
   it(
     'check security_group insertion',
@@ -101,7 +130,8 @@ describe('Security Group Multi region Integration Testing', () => {
 
   it(
     'adds security group rules',
-    query(`
+    query(
+      `
     INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id, region)
     SELECT true, 'tcp', 443, 443, '0.0.0.0/8', '${prefix}testrule', id, '${nonDefaultRegion}'
     FROM security_group
@@ -110,17 +140,26 @@ describe('Security Group Multi region Integration Testing', () => {
     SELECT false, 'tcp', 22, 22, '::/8', '${prefix}testrule2', id, '${nonDefaultRegion}'
     FROM security_group
     WHERE group_name = '${sgName}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies the security group rule change', apply());
+  it('applies the security group rule change', commit());
 
   it(
     'updates the security group rule',
-    query(`
+    query(
+      `
     UPDATE security_group_rule SET to_port = 8443 WHERE description = '${prefix}testrule';
     UPDATE security_group_rule SET to_port = 8022 WHERE description = '${prefix}testrule2';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(
@@ -140,19 +179,24 @@ describe('Security Group Multi region Integration Testing', () => {
     ),
   );
 
-  it('applies the security group rule change (again)', apply());
+  it('applies the security group rule change (again)', commit());
 
   it(
     'updates the security group',
-    query(`
+    query(
+      `
     WITH updated_security_group_rules AS (
       UPDATE security_group_rule SET region = '${defaultRegion}' WHERE description = '${prefix}testrule' OR description = '${prefix}testrule2'
     )
     UPDATE security_group SET region = '${defaultRegion}', vpc_id = (select id from vpc where region = '${defaultRegion}' and is_default = true limit 1) WHERE group_name = '${sgName}' and region = '${nonDefaultRegion}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies the security group change (again)', apply());
+  it('applies the security group change (again)', commit());
 
   it(
     'check security_group insertion',
@@ -192,13 +236,18 @@ describe('Security Group Multi region Integration Testing', () => {
 
   it(
     'deletes these test records',
-    query(`
+    query(
+      `
     DELETE FROM security_group_rule WHERE description = '${prefix}testrule' OR description = '${prefix}testrule2' and region = '${defaultRegion}';
     DELETE FROM security_group WHERE group_name = '${sgName}' and region = '${defaultRegion}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('deletes the final test records', apply());
+  it('deletes the final test records', commit());
 
   it(
     'check security_group insertion',

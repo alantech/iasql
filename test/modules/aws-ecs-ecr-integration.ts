@@ -6,10 +6,10 @@ import {
   execComposeUp,
   finish,
   getPrefix,
-  runApply,
+  runCommit,
   runInstall,
   runQuery,
-  runSync,
+  runRollback,
   runUninstall,
 } from '../helpers';
 
@@ -20,16 +20,16 @@ const {
 const prefix = getPrefix();
 const dbAlias = 'ecstest';
 const dbAliasSidecar = `${dbAlias}sync`;
-const sidecarSync = runSync.bind(null, dbAliasSidecar);
+const sidecarCommit = runCommit.bind(null, dbAliasSidecar);
 const sidecarInstall = runInstall.bind(null, dbAliasSidecar);
 const region = defaultRegion();
-const apply = runApply.bind(null, dbAlias);
-const sync = runSync.bind(null, dbAlias);
+const commit = runCommit.bind(null, dbAlias);
+const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const querySync = runQuery.bind(null, dbAliasSidecar);
 const installSync = runInstall.bind(null, dbAliasSidecar);
-const syncSync = runSync.bind(null, dbAliasSidecar);
+const syncCommit = runCommit.bind(null, dbAliasSidecar);
 const uninstall = runUninstall.bind(null, dbAlias);
 const modules = [
   'aws_ecr',
@@ -82,9 +82,22 @@ jest.setTimeout(1800000); // 30min timeout
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown());
 
+let username: string, password: string;
+
 describe('ECS Integration Testing', () => {
-  it('creates a new test db ECS', done =>
-    void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
+  it('creates a new test db ECS', done => {
+    (async () => {
+      try {
+        const { user, password: pgPassword } = await iasql.connect(dbAlias, 'not-needed', 'not-needed');
+        username = user;
+        password = pgPassword;
+        if (!username || !password) throw new Error('Did not fetch pg credentials');
+        done();
+      } catch (e) {
+        done(e);
+      }
+    })();
+  });
 
   it('installs the aws_account module', install(['aws_account']));
 
@@ -97,21 +110,35 @@ describe('ECS Integration Testing', () => {
   `,
       undefined,
       false,
+      () => ({ username, password }),
     ),
   );
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it(
     'sets the default region',
-    query(`
+    query(
+      `
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('sets only 2 enabled regions to avoid long runs', query(`
+  it(
+    'sets only 2 enabled regions to avoid long runs',
+    query(
+      `
     UPDATE aws_regions SET is_enabled = FALSE WHERE region != '${region}' AND region != (SELECT region FROM aws_regions WHERE region != 'us-east-1' AND region != '${region}' ORDER BY region DESC LIMIT 1);
-  `));
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
 
   it('creates a new sidecar test db ECS', done =>
     void iasql.connect(dbAliasSidecar, 'not-needed', 'not-needed').then(...finish(done)));
@@ -130,7 +157,7 @@ describe('ECS Integration Testing', () => {
     ),
   );
 
-  it('syncs the regions', syncSync());
+  it('syncs the regions', syncCommit());
 
   it(
     'sets the default region',
@@ -139,9 +166,12 @@ describe('ECS Integration Testing', () => {
   `),
   );
 
-  it('sets only 2 enabled regions to avoid long runs', querySync(`
+  it(
+    'sets only 2 enabled regions to avoid long runs',
+    querySync(`
     UPDATE aws_regions SET is_enabled = FALSE WHERE region != '${region}' AND region != (SELECT region FROM aws_regions WHERE region != 'us-east-1' AND region != '${region}' ORDER BY region DESC LIMIT 1);
-  `));
+  `),
+  );
 
   it('installs the ecs module and its dependencies in sidecar db', sidecarInstall(modules));
 
@@ -150,13 +180,18 @@ describe('ECS Integration Testing', () => {
   // Cluster
   it(
     'adds a new cluster',
-    query(`
+    query(
+      `
     INSERT INTO cluster (cluster_name)
     VALUES('${clusterName}');
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('undo changes', sync());
+  it('undo changes', rollback());
 
   it(
     'check cluster insertion',
@@ -172,13 +207,18 @@ describe('ECS Integration Testing', () => {
 
   it(
     'adds a new cluster',
-    query(`
+    query(
+      `
     INSERT INTO cluster (cluster_name)
     VALUES('${clusterName}');
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies adds a new cluster', apply());
+  it('applies adds a new cluster', commit());
 
   it(
     'check cluster insertion',
@@ -195,7 +235,8 @@ describe('ECS Integration Testing', () => {
   // Service dependencies
   it(
     'adds service dependencies',
-    query(`
+    query(
+      `
     BEGIN;
       INSERT INTO security_group
         (description, group_name)
@@ -226,10 +267,14 @@ describe('ECS Integration Testing', () => {
             ${hostPort}, 'HTTP', 'forward',
            (SELECT id FROM target_group WHERE target_group_name = '${serviceTargetGroupName}'));
     COMMIT;
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies service dependencies', apply());
+  it('applies service dependencies', commit());
 
   it(
     'check target group insertion',
@@ -259,12 +304,17 @@ describe('ECS Integration Testing', () => {
   // ECR
   it(
     'adds a new ECR',
-    query(`
+    query(
+      `
     INSERT INTO repository
         (repository_name)
     VALUES
         ('${repositoryName}');
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(
@@ -282,10 +332,15 @@ describe('ECS Integration Testing', () => {
   // IAM
   it(
     'adds a new role',
-    query(`
+    query(
+      `
     INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
     VALUES ('${taskExecRoleName}', '${taskRolePolicyDoc}', array['${taskPolicyArn}']);
-`),
+`,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(
@@ -303,10 +358,15 @@ describe('ECS Integration Testing', () => {
   // Task definition
   it(
     'adds a new task definition',
-    query(`
+    query(
+      `
     INSERT INTO task_definition ("family", task_role_name, execution_role_name, cpu_memory)
     VALUES ('${tdRepositoryFamily}', '${taskExecRoleName}', '${taskExecRoleName}', '${tdCpuMem}');
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(
@@ -323,18 +383,23 @@ describe('ECS Integration Testing', () => {
 
   it(
     'adds a new container definition',
-    query(`
+    query(
+      `
     BEGIN;
       INSERT INTO container_definition ("name", repository_id, region, tag, essential, memory_reservation, host_port, container_port, protocol, env_variables, task_definition_id)
       VALUES('${containerNameRepository}', (select id from repository where repository_name = '${repositoryName}' and region = '${region}'), (select region from repository where repository_name = '${repositoryName}'), '${imageTag}', ${containerEssential}, ${containerMemoryReservation}, ${hostPort}, ${containerPort}, '${protocol}', '{ "test": 2}', (select id from task_definition where family = '${tdRepositoryFamily}' and status is null and region = '${region}' limit 1));
       INSERT INTO container_definition ("name", repository_id, region, essential, memory_reservation, host_port, container_port, protocol, env_variables, task_definition_id)
       VALUES('${containerNameRepository}dgst', (select id from repository where repository_name = '${repositoryName}' and region = '${region}'), (select region from repository where repository_name = '${repositoryName}'), false, ${containerMemoryReservation}, ${
-      hostPort + 2
-    }, ${
-      containerPort + 2
-    }, '${protocol}', '{ "test": 2}', (select id from task_definition where family = '${tdRepositoryFamily}' and status is null and region = '${region}' limit 1));
+        hostPort + 2
+      }, ${
+        containerPort + 2
+      }, '${protocol}', '{ "test": 2}', (select id from task_definition where family = '${tdRepositoryFamily}' and status is null and region = '${region}' limit 1));
     COMMIT;
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(
@@ -349,7 +414,7 @@ describe('ECS Integration Testing', () => {
     ),
   );
 
-  it('applies adds a new task definition with container definition', apply());
+  it('applies adds a new task definition with container definition', commit());
 
   it(
     'check task_definition insertion',
@@ -377,10 +442,15 @@ describe('ECS Integration Testing', () => {
 
   // Service
   it('fails adding a service', done => {
-    query(`
+    query(
+      `
     INSERT INTO service ("name", desired_count, subnets, assign_public_ip, cluster_id, task_definition_id, target_group_id)
     VALUES ('${serviceRepositoryName}', ${serviceDesiredCount}, '{"fake"}', 'ENABLED', (SELECT id FROM cluster WHERE cluster_name = '${clusterName}'), (select id from task_definition where family = '${tdRepositoryFamily}' and region = '${region}' order by revision desc limit 1), (SELECT id FROM target_group WHERE target_group_name = '${serviceTargetGroupName}' and region = '${region}'));
-    `)((e: any) => {
+    `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    )((e: any) => {
       try {
         expect(e.message).toContain('violates check constraint');
       } catch (err) {
@@ -392,7 +462,8 @@ describe('ECS Integration Testing', () => {
 
   it(
     'adds a new service',
-    query(`
+    query(
+      `
     BEGIN;
       INSERT INTO service ("name", desired_count, subnets, assign_public_ip, cluster_id, task_definition_id, target_group_id)
       VALUES ('${serviceRepositoryName}', ${serviceDesiredCount}, (select array(select subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true and vpc.region = '${region}' limit 3)), 'ENABLED', (SELECT id FROM cluster WHERE cluster_name = '${clusterName}'), (select id from task_definition where family = '${tdRepositoryFamily}' and region = '${region}' order by revision desc limit 1), (SELECT id FROM target_group WHERE target_group_name = '${serviceTargetGroupName}' and region = '${region}'));
@@ -400,11 +471,15 @@ describe('ECS Integration Testing', () => {
       INSERT INTO service_security_groups (service_id, security_group_id)
       VALUES ((SELECT id FROM service WHERE name = '${serviceRepositoryName}'), (select id from security_group where group_name = '${securityGroup}' and region = '${region}' limit 1));
     COMMIT;
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('fails deleting a subnet in use', done => {
-    query(`DELETE FROM subnet;`)((e: any) => {
+    query(`DELETE FROM subnet;`, undefined, true, () => ({ username, password }))((e: any) => {
       try {
         expect(e.message).toContain('is being used by');
       } catch (err) {
@@ -438,9 +513,9 @@ describe('ECS Integration Testing', () => {
     ),
   );
 
-  it('applies service insertion', apply());
+  it('applies service insertion', commit());
 
-  it('sync sidecar database', sidecarSync());
+  it('sync sidecar database', sidecarCommit());
 
   it(
     'check service insertion',
@@ -458,10 +533,15 @@ describe('ECS Integration Testing', () => {
 
   it(
     'delete role while ecs is uninstalled',
-    query(`
+    query(
+      `
     delete from iam_role
     where role_name = '${taskExecRoleName}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(
@@ -476,7 +556,7 @@ describe('ECS Integration Testing', () => {
     ),
   );
 
-  it('applies role deletion', apply());
+  it('applies role deletion', commit());
 
   it(
     'check role deletion',
@@ -494,7 +574,8 @@ describe('ECS Integration Testing', () => {
 
   it(
     'deletes service',
-    query(`
+    query(
+      `
     BEGIN;
       delete from service_security_groups
       using service
@@ -503,10 +584,14 @@ describe('ECS Integration Testing', () => {
       delete from service
       where name = '${serviceRepositoryName}';
     COMMIT;
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies deletes service', apply());
+  it('applies deletes service', commit());
 
   it(
     'check service deletion',
@@ -522,7 +607,8 @@ describe('ECS Integration Testing', () => {
 
   it(
     'deletes container definitons',
-    query(`
+    query(
+      `
     begin;
       delete from container_definition
       using task_definition
@@ -534,12 +620,16 @@ describe('ECS Integration Testing', () => {
       delete from repository
       where repository_name = '${repositoryName}';
     commit;
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies deletes tasks and container definitions', apply());
+  it('applies deletes tasks and container definitions', commit());
 
-  it('sync sidecar database', sidecarSync());
+  it('sync sidecar database', sidecarCommit());
 
   it(
     'check role deletion',
@@ -572,7 +662,8 @@ describe('ECS Integration Testing', () => {
   // deletes service dependencies
   it(
     'deletes service dependencies',
-    query(`
+    query(
+      `
     BEGIN;
       DELETE FROM listener
       WHERE load_balancer_id = (SELECT id FROM load_balancer WHERE load_balancer_name = '${serviceLoadBalancerName}')
@@ -595,38 +686,57 @@ describe('ECS Integration Testing', () => {
       DELETE FROM security_group
       WHERE group_name = '${securityGroup}';
     COMMIT;
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies deletes service dependencies', apply());
+  it('applies deletes service dependencies', commit());
 
   it(
     'tries to update a cluster field (restore)',
-    query(`
+    query(
+      `
     UPDATE cluster SET cluster_status = 'fake' WHERE cluster_name = '${clusterName}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies tries to update a cluster field (restore)', apply());
+  it('applies tries to update a cluster field (restore)', commit());
 
   it(
     'tries to update cluster (replace)',
-    query(`
+    query(
+      `
     UPDATE cluster SET cluster_name = '${newClusterName}' WHERE cluster_name = '${clusterName}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies tries to update cluster (replace)', apply());
+  it('applies tries to update cluster (replace)', commit());
 
   it(
     'deletes the cluster',
-    query(`
+    query(
+      `
     delete from cluster
     where cluster_name = '${newClusterName}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies deletes the cluster', apply());
+  it('applies deletes the cluster', commit());
 
   it('deletes the sidecar test db', done =>
     void iasql.disconnect(dbAliasSidecar, 'not-needed').then(...finish(done)));

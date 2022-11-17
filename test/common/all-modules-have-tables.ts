@@ -7,12 +7,12 @@ import {
   runInstall,
   runInstallAll,
   runQuery,
-  runSync,
+  runCommit,
 } from '../helpers';
 
 const dbAlias = 'allmodulestest';
 
-const sync = runSync.bind(null, dbAlias);
+const commit = runCommit.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const installAll = runInstallAll.bind(null, dbAlias);
@@ -22,9 +22,22 @@ jest.setTimeout(360000);
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown());
 
+let username: string, password: string;
+
 describe('Every module installed need to have at least a table', () => {
-  it('creates a new test db', done =>
-    void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
+  it('creates a new test db', done => {
+    (async () => {
+      try {
+        const { user, password: pgPassword } = await iasql.connect(dbAlias, 'not-needed', 'not-needed');
+        username = user;
+        password = pgPassword;
+        if (!username || !password) throw new Error('Did not fetch pg credentials');
+        done();
+      } catch (e) {
+        done(e);
+      }
+    })();
+  });
 
   it('installs the aws_account module', install(['aws_account']));
 
@@ -37,27 +50,39 @@ describe('Every module installed need to have at least a table', () => {
   `,
       undefined,
       false,
+      () => ({ username, password }),
     ),
   );
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it(
     'sets the default region',
-    query(`
+    query(
+      `
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('installs all modules', installAll());
 
-  it('compare iasql_tables with iasql_modules_installed', query(`
+  it(
+    'compare iasql_tables with iasql_modules_installed',
+    query(
+      `
     SELECT *
     FROM iasql_modules_installed()
     WHERE module_name NOT LIKE 'iasql_%' AND concat_ws ('@', module_name, module_version) NOT IN (
       SELECT module FROM iasql_tables
     )
-  `, (res: any[]) => expect(res?.length).toBe(0)));
+  `,
+      (res: any[]) => expect(res?.length).toBe(0),
+    ),
+  );
 
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 });

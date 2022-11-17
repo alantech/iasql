@@ -33,8 +33,8 @@ async function main() {
     where: { name: APP_NAME },
     data: { force_new_deployment: true }
   });
-  const apply = await prisma.$queryRaw`SELECT * from iasql_apply();`
-  console.dir(apply)
+  const commit = await prisma.$queryRaw`SELECT * from iasql_commit();`
+  console.dir(commit)
 }
 
 main()

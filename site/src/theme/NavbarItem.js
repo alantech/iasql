@@ -17,12 +17,17 @@ export default function NavbarItem(props) {
     if (label === 'Dashboard') return null;
     if (label === 'Blog') return null;
     if (type === 'docsVersionDropdown') return null;
-    if (type === 'search') return null;
   }
 
   if (pathname.includes('docs')) {
     if (label === 'Docs') return null;
     if (label === 'Blog') return null;
+  }
+
+  if (pathname.includes('schema')) {
+    if (label === 'Blog') return null;
+    if (label === 'Schema') return null;
+    if (type === 'docsVersionDropdown') return null;
   }
 
   return (

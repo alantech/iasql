@@ -6,10 +6,10 @@ import {
   execComposeUp,
   finish,
   getPrefix,
-  runApply,
+  runCommit,
   runInstall,
   runQuery,
-  runSync,
+  runRollback,
   runUninstall,
 } from '../helpers';
 
@@ -35,8 +35,8 @@ const testPolicy = JSON.stringify({
   ],
 });
 
-const apply = runApply.bind(null, dbAlias);
-const sync = runSync.bind(null, dbAlias);
+const commit = runCommit.bind(null, dbAlias);
+const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
@@ -52,9 +52,22 @@ jest.setTimeout(360000);
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown());
 
+let username: string, password: string;
+
 describe('VPC Integration Testing', () => {
-  it('creates a new test db', done =>
-    void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
+  it('creates a new test db', done => {
+    (async () => {
+      try {
+        const { user, password: pgPassword } = await iasql.connect(dbAlias, 'not-needed', 'not-needed');
+        username = user;
+        password = pgPassword;
+        if (!username || !password) throw new Error('Did not fetch pg credentials');
+        done();
+      } catch (e) {
+        done(e);
+      }
+    })();
+  });
 
   it('installs the aws_account module', install(['aws_account']));
 
@@ -67,16 +80,22 @@ describe('VPC Integration Testing', () => {
   `,
       undefined,
       false,
+      () => ({ username, password }),
     ),
   );
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it(
     'sets the default region',
-    query(`
+    query(
+      `
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('installs the vpc module', install(modules));
@@ -93,23 +112,33 @@ describe('VPC Integration Testing', () => {
 
   it(
     'adds a new vpc',
-    query(`  
+    query(
+      `  
     INSERT INTO vpc (cidr_block)
     VALUES ('192.${randIPBlock}.0.0/16');
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('undo changes', sync());
+  it('undo changes', rollback());
 
   it(
     'adds a new vpc',
-    query(`  
+    query(
+      `  
     INSERT INTO vpc (cidr_block, tags, enable_dns_hostnames, enable_dns_support)
     VALUES ('192.${randIPBlock}.0.0/16', '{"name":"${prefix}-1"}', true, true);
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies the vpc change', apply());
+  it('applies the vpc change', commit());
 
   it(
     'check no vpc is pending',
@@ -153,26 +182,36 @@ describe('VPC Integration Testing', () => {
 
   it(
     'adds a subnet',
-    query(`
+    query(
+      `
     INSERT INTO subnet (availability_zone, vpc_id, cidr_block)
     SELECT '${availabilityZone}', id, '192.${randIPBlock}.0.0/16'
     FROM vpc
     WHERE is_default = false
     AND cidr_block = '192.${randIPBlock}.0.0/16';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies the subnet change', apply());
+  it('applies the subnet change', commit());
 
   it(
     'updates vpc state',
-    query(`
+    query(
+      `
     UPDATE vpc
     SET state='pending' WHERE cidr_block='192.${randIPBlock}.0.0/16';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies the state change of the vpc', apply());
+  it('applies the state change of the vpc', commit());
 
   it(
     'checks that state has not been modified',
@@ -187,12 +226,17 @@ describe('VPC Integration Testing', () => {
 
   it(
     'tries to update vpc tags',
-    query(`
+    query(
+      `
   UPDATE vpc SET tags = '{"name": "${prefix}-2"}' WHERE cidr_block='192.${randIPBlock}.0.0/16';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies the vpc tags update', apply());
+  it('applies the vpc tags update', commit());
 
   it(
     'checks that tags have been modified',
@@ -206,13 +250,18 @@ describe('VPC Integration Testing', () => {
 
   it(
     'tries to update vpc cidr',
-    query(`
+    query(
+      `
     UPDATE subnet SET cidr_block='191.${randIPBlock}.0.0/16' WHERE cidr_block='192.${randIPBlock}.0.0/16';
     UPDATE vpc SET cidr_block='191.${randIPBlock}.0.0/16' WHERE cidr_block='192.${randIPBlock}.0.0/16';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies the vpc cidr update', apply());
+  it('applies the vpc cidr update', commit());
 
   it(
     'checks that cidr have been modified',
@@ -227,10 +276,15 @@ describe('VPC Integration Testing', () => {
   describe('Elastic IP and nat gateway creation', () => {
     it(
       'adds a new elastic ip',
-      query(`
+      query(
+        `
       INSERT INTO elastic_ip (tags)
       VALUES ('{"name": "${eip}"}');
-    `),
+    `,
+        undefined,
+        true,
+        () => ({ username, password }),
+      ),
     );
 
     it(
@@ -243,7 +297,7 @@ describe('VPC Integration Testing', () => {
       ),
     );
 
-    it('applies the elastic ip change', apply());
+    it('applies the elastic ip change', commit());
 
     it(
       'check elastic ip count',
@@ -257,15 +311,20 @@ describe('VPC Integration Testing', () => {
 
     it(
       'adds a private nat gateway',
-      query(`
+      query(
+        `
       INSERT INTO nat_gateway (connectivity_type, subnet_id, tags)
       SELECT 'private', id, '{"Name":"${ng}"}'
       FROM subnet
       WHERE cidr_block = '191.${randIPBlock}.0.0/16';
-    `),
+    `,
+        undefined,
+        true,
+        () => ({ username, password }),
+      ),
     );
 
-    it('applies the private nat gateway change', apply());
+    it('applies the private nat gateway change', commit());
 
     it(
       'checks private nat gateway count',
@@ -279,15 +338,20 @@ describe('VPC Integration Testing', () => {
 
     it(
       'adds a public nat gateway with existing elastic ip',
-      query(`
+      query(
+        `
       INSERT INTO nat_gateway (connectivity_type, subnet_id, tags, elastic_ip_id)
       SELECT 'public', subnet.id, '{"Name":"${pubNg1}"}', elastic_ip.id
       FROM subnet, elastic_ip
       WHERE cidr_block = '191.${randIPBlock}.0.0/16' AND elastic_ip.tags ->> 'name' = '${eip}';
-    `),
+    `,
+        undefined,
+        true,
+        () => ({ username, password }),
+      ),
     );
 
-    it('applies the public nat gateway with existing elastic ip change', apply());
+    it('applies the public nat gateway with existing elastic ip change', commit());
 
     it(
       'checks public nat gateway with existing elastic ip count',
@@ -301,15 +365,20 @@ describe('VPC Integration Testing', () => {
 
     it(
       'adds a public nat gateway with no existing elastic ip',
-      query(`
+      query(
+        `
       INSERT INTO nat_gateway (connectivity_type, subnet_id, tags)
       SELECT 'public', subnet.id, '{"Name":"${pubNg2}"}'
       FROM subnet
       WHERE cidr_block = '191.${randIPBlock}.0.0/16';
-    `),
+    `,
+        undefined,
+        true,
+        () => ({ username, password }),
+      ),
     );
 
-    it('applies the public nat gateway with no existing elastic ip change', apply());
+    it('applies the public nat gateway with no existing elastic ip change', commit());
 
     it(
       'checks public nat gateway with no existing elastic ip count',
@@ -336,13 +405,18 @@ describe('VPC Integration Testing', () => {
   describe('VPC endpoint gateway creation', () => {
     it(
       'adds a new s3 endpoint gateway',
-      query(`
+      query(
+        `
       INSERT INTO endpoint_gateway (service, vpc_id, tags)
       SELECT 's3', id, '{"Name": "${s3VpcEndpoint}"}'
       FROM vpc
       WHERE is_default = false
       AND cidr_block = '191.${randIPBlock}.0.0/16';
-    `),
+    `,
+        undefined,
+        true,
+        () => ({ username, password }),
+      ),
     );
 
     it(
@@ -355,7 +429,7 @@ describe('VPC Integration Testing', () => {
       ),
     );
 
-    it('applies the endpoint gateway change', apply());
+    it('applies the endpoint gateway change', commit());
 
     it(
       'checks endpoint gateway count',
@@ -371,13 +445,18 @@ describe('VPC Integration Testing', () => {
   describe('VPC endpoint interface creation', () => {
     it(
       'adds a new lambda endpoint interface',
-      query(`
+      query(
+        `
       INSERT INTO endpoint_interface (service, vpc_id, tags)
       SELECT 'lambda', id, '{"Name": "${lambdaVpcEndpoint}"}'
       FROM vpc
       WHERE is_default = false
       AND cidr_block = '191.${randIPBlock}.0.0/16';
-    `),
+    `,
+        undefined,
+        true,
+        () => ({ username, password }),
+      ),
     );
 
     it(
@@ -390,7 +469,7 @@ describe('VPC Integration Testing', () => {
       ),
     );
 
-    it('applies the endpoint interface creation', apply());
+    it('applies the endpoint interface creation', commit());
 
     it(
       'checks endpoint interface count',
@@ -479,14 +558,19 @@ describe('VPC Integration Testing', () => {
   describe('Elastic Ip and Nat gateway updates', () => {
     it(
       'updates a elastic ip',
-      query(`
+      query(
+        `
       UPDATE elastic_ip
       SET tags = '{"name": "${eip}", "updated": "true"}'
       WHERE tags ->> 'name' = '${eip}';
-    `),
+    `,
+        undefined,
+        true,
+        () => ({ username, password }),
+      ),
     );
 
-    it('applies the elastic ip change', apply());
+    it('applies the elastic ip change', commit());
 
     it(
       'check elastic ip count',
@@ -510,14 +594,19 @@ describe('VPC Integration Testing', () => {
 
     it(
       'updates a public nat gateway with existing elastic ip to be private',
-      query(`
+      query(
+        `
       UPDATE nat_gateway
       SET elastic_ip_id = NULL, connectivity_type = 'private'
       WHERE nat_gateway.tags ->> 'Name' = '${pubNg1}';
-    `),
+    `,
+        undefined,
+        true,
+        () => ({ username, password }),
+      ),
     );
 
-    it('applies the public nat gateway with existing elastic ip to be private change', apply());
+    it('applies the public nat gateway with existing elastic ip to be private change', commit());
 
     it(
       'checks public nat gateway with existing elastic ip to be private count',
@@ -541,15 +630,20 @@ describe('VPC Integration Testing', () => {
 
     it(
       'updates a public nat gateway with no existing elastic ip',
-      query(`
+      query(
+        `
       UPDATE nat_gateway
       SET elastic_ip_id = elastic_ip.id, tags = '{"Name": "${pubNg2}", "updated": "true"}'
       FROM elastic_ip
       WHERE nat_gateway.tags ->> 'Name' = '${pubNg2}' AND elastic_ip.tags ->> 'name' = '${eip}';
-    `),
+    `,
+        undefined,
+        true,
+        () => ({ username, password }),
+      ),
     );
 
-    it('applies the public nat gateway with no existing elastic ip change', apply());
+    it('applies the public nat gateway with no existing elastic ip change', commit());
 
     it(
       'checks public nat gateway with no existing elastic ip count',
@@ -575,14 +669,19 @@ describe('VPC Integration Testing', () => {
   describe('VPC endpoint gateway updates', () => {
     it(
       'updates a endpoint gateway to be restored',
-      query(`
+      query(
+        `
       UPDATE endpoint_gateway
       SET state = 'fake'
       WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
-    `),
+    `,
+        undefined,
+        true,
+        () => ({ username, password }),
+      ),
     );
 
-    it('applies the endpoint_gateway change', apply());
+    it('applies the endpoint_gateway change', commit());
 
     it(
       'checks endpoint_gateway count',
@@ -606,14 +705,19 @@ describe('VPC Integration Testing', () => {
 
     it(
       'updates a endpoint gateway policy',
-      query(`
+      query(
+        `
       UPDATE endpoint_gateway
       SET policy_document = '${testPolicy}'
       WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
-    `),
+    `,
+        undefined,
+        true,
+        () => ({ username, password }),
+      ),
     );
 
-    it('applies the endpoint_gateway change', apply());
+    it('applies the endpoint_gateway change', commit());
 
     it(
       'checks endpoint_gateway count',
@@ -637,14 +741,19 @@ describe('VPC Integration Testing', () => {
 
     it(
       'updates a endpoint gateway tags',
-      query(`
+      query(
+        `
       UPDATE endpoint_gateway
       SET tags = '{"Name": "${s3VpcEndpoint}", "updated": "true"}'
       WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
-    `),
+    `,
+        undefined,
+        true,
+        () => ({ username, password }),
+      ),
     );
 
-    it('applies the endpoint_gateway change', apply());
+    it('applies the endpoint_gateway change', commit());
 
     it(
       'checks endpoint_gateway count',
@@ -668,14 +777,19 @@ describe('VPC Integration Testing', () => {
 
     it(
       'updates a endpoint gateway to be replaced',
-      query(`
+      query(
+        `
       UPDATE endpoint_gateway
       SET service = 'dynamodb', tags = '{"Name": "${dynamodbVpcEndpoint}"}'
       WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
-    `),
+    `,
+        undefined,
+        true,
+        () => ({ username, password }),
+      ),
     );
 
-    it('applies the endpoint_gateway change', apply());
+    it('applies the endpoint_gateway change', commit());
 
     it(
       'checks endpoint_gateway count',
@@ -701,14 +815,19 @@ describe('VPC Integration Testing', () => {
   describe('VPC endpoint interface updates', () => {
     it(
       'updates a endpoint interface to be restored',
-      query(`
+      query(
+        `
       UPDATE endpoint_interface
       SET state = 'fake'
       WHERE tags ->> 'Name' = '${lambdaVpcEndpoint}';
-    `),
+    `,
+        undefined,
+        true,
+        () => ({ username, password }),
+      ),
     );
 
-    it('applies the endpoint_interface change', apply());
+    it('applies the endpoint_interface change', commit());
 
     it(
       'checks endpoint_interface count',
@@ -732,14 +851,19 @@ describe('VPC Integration Testing', () => {
 
     it(
       'updates a endpoint interface policy',
-      query(`
+      query(
+        `
       UPDATE endpoint_interface
       SET policy_document = '${testPolicy}'
       WHERE tags ->> 'Name' = '${lambdaVpcEndpoint}';
-    `),
+    `,
+        undefined,
+        true,
+        () => ({ username, password }),
+      ),
     );
 
-    it('applies the endpoint_interface change', apply());
+    it('applies the endpoint_interface change', commit());
 
     it(
       'checks endpoint_interface count',
@@ -763,14 +887,19 @@ describe('VPC Integration Testing', () => {
 
     it(
       'updates a endpoint interface tags',
-      query(`
+      query(
+        `
       UPDATE endpoint_interface
       SET tags = '{"Name": "${lambdaVpcEndpoint}", "updated": "true"}'
       WHERE tags ->> 'Name' = '${lambdaVpcEndpoint}';
-    `),
+    `,
+        undefined,
+        true,
+        () => ({ username, password }),
+      ),
     );
 
-    it('applies the endpoint_interface change', apply());
+    it('applies the endpoint_interface change', commit());
 
     it(
       'checks endpoint_interface count',
@@ -794,11 +923,30 @@ describe('VPC Integration Testing', () => {
 
     it(
       'removes the current endpoint subnets',
-      query(`
+      query(
+        `
       DELETE FROM endpoint_interface_subnets where endpoint_interface_id=(SELECT id FROM endpoint_interface WHERE tags ->> 'Name' = '${lambdaVpcEndpoint}')
-    `),
+    `,
+        undefined,
+        true,
+        () => ({ username, password }),
+      ),
     );
-    it('applies the endpoint_interface subnet removal', apply());
+
+    it(
+      'AUDIT',
+      query(
+        `
+      select * from iasql_audit_log order by ts desc limit 5;
+    `,
+        (res: any) => {
+          console.log(`+-+ audit logs = ${JSON.stringify(res)}`);
+          expect(res.length).toBe(5);
+        },
+      ),
+    );
+
+    it('applies the endpoint_interface subnet removal', commit());
 
     it(
       'checks endpoint_interface subnet count',
@@ -812,13 +960,18 @@ describe('VPC Integration Testing', () => {
 
     it(
       'adds new endpoint subnet',
-      query(`
+      query(
+        `
       INSERT INTO endpoint_interface_subnets (endpoint_interface_id, subnet_id) VALUES ((SELECT id FROM endpoint_interface WHERE tags ->> 'Name' = '${lambdaVpcEndpoint}' LIMIT 1),
       (SELECT subnet.id FROM subnet INNER JOIN vpc ON vpc.id=subnet.vpc_id WHERE subnet.cidr_block='191.${randIPBlock}.0.0/16' AND vpc.tags ->> 'name' = '${prefix}-2' LIMIT 1))
-    `),
+    `,
+        undefined,
+        true,
+        () => ({ username, password }),
+      ),
     );
 
-    it('applies the endpoint_interface subnet change', apply());
+    it('applies the endpoint_interface subnet change', commit());
 
     it(
       'checks endpoint_interface subnet count',
@@ -834,13 +987,18 @@ describe('VPC Integration Testing', () => {
   describe('Elastic Ip and Nat gateway deletion', () => {
     it(
       'deletes a public nat gateways',
-      query(`
+      query(
+        `
       DELETE FROM nat_gateway
       WHERE tags ->> 'Name' = '${pubNg1}' OR tags ->> 'Name' = '${pubNg2}';
-    `),
+    `,
+        undefined,
+        true,
+        () => ({ username, password }),
+      ),
     );
 
-    it('applies the public nat gateways change', apply());
+    it('applies the public nat gateways change', commit());
 
     it(
       'checks public nat gateways count',
@@ -854,13 +1012,18 @@ describe('VPC Integration Testing', () => {
 
     it(
       'deletes a elastic ip created by the nat gateway',
-      query(`
+      query(
+        `
       DELETE FROM elastic_ip
       WHERE tags ->> 'Name' = '${pubNg2}';
-    `),
+    `,
+        undefined,
+        true,
+        () => ({ username, password }),
+      ),
     );
 
-    it('applies the elastic ip created by the nat gateway change', apply());
+    it('applies the elastic ip created by the nat gateway change', commit());
 
     it(
       'check elastic ip created by the nat gateway count',
@@ -874,13 +1037,18 @@ describe('VPC Integration Testing', () => {
 
     it(
       'deletes a elastic ip',
-      query(`
+      query(
+        `
       DELETE FROM elastic_ip
       WHERE tags ->> 'name' = '${eip}';
-    `),
+    `,
+        undefined,
+        true,
+        () => ({ username, password }),
+      ),
     );
 
-    it('applies the elastic ip change', apply());
+    it('applies the elastic ip change', commit());
 
     it(
       'check elastic ip count',
@@ -894,14 +1062,19 @@ describe('VPC Integration Testing', () => {
 
     it(
       'updates a private nat gateway',
-      query(`
+      query(
+        `
       UPDATE nat_gateway
       SET state = 'failed'
       WHERE tags ->> 'Name' = '${ng}';
-    `),
+    `,
+        undefined,
+        true,
+        () => ({ username, password }),
+      ),
     );
 
-    it('applies the private nat gateway change', apply());
+    it('applies the private nat gateway change', commit());
 
     it(
       'checks private nat gateway count',
@@ -925,13 +1098,18 @@ describe('VPC Integration Testing', () => {
 
     it(
       'deletes a private nat gateway',
-      query(`
+      query(
+        `
       DELETE FROM nat_gateway
       WHERE tags ->> 'Name' = '${ng}';
-    `),
+    `,
+        undefined,
+        true,
+        () => ({ username, password }),
+      ),
     );
 
-    it('applies the private nat gateway change', apply());
+    it('applies the private nat gateway change', commit());
 
     it(
       'checks private nat gateway count',
@@ -947,13 +1125,18 @@ describe('VPC Integration Testing', () => {
   describe('VPC endpoint gateway deletion', () => {
     it(
       'deletes a endpoint_gateway',
-      query(`
+      query(
+        `
       DELETE FROM endpoint_gateway
       WHERE tags ->> 'Name' = '${dynamodbVpcEndpoint}';
-    `),
+    `,
+        undefined,
+        true,
+        () => ({ username, password }),
+      ),
     );
 
-    it('applies the endpoint_gateway change', apply());
+    it('applies the endpoint_gateway change', commit());
 
     it(
       'checks endpoint_gateway count',
@@ -969,13 +1152,18 @@ describe('VPC Integration Testing', () => {
   describe('VPC endpoint interface deletion', () => {
     it(
       'deletes a endpoint_interface',
-      query(`
+      query(
+        `
       DELETE FROM endpoint_interface
       WHERE tags ->> 'Name' = '${lambdaVpcEndpoint}';
-    `),
+    `,
+        undefined,
+        true,
+        () => ({ username, password }),
+      ),
     );
 
-    it('applies the endpoint_interface change', apply());
+    it('applies the endpoint_interface change', commit());
 
     it(
       'checks endpoint_interface count',
@@ -990,7 +1178,8 @@ describe('VPC Integration Testing', () => {
 
   it(
     'deletes the subnet',
-    query(`
+    query(
+      `
     WITH vpc as (
       SELECT id
       FROM vpc
@@ -1000,14 +1189,29 @@ describe('VPC Integration Testing', () => {
     DELETE FROM subnet
     USING vpc
     WHERE vpc_id = vpc.id;
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies the subnet removal', apply());
+  it('applies the subnet removal', commit());
 
   it(
     'deletes the vpc',
-    query(`
+    query(
+      `
+    DELETE FROM security_group_rule
+    WHERE security_group_id = (
+      SELECT id
+      FROM security_group
+      WHERE vpc_id = (
+        SELECT id
+        FROM vpc
+        WHERE cidr_block = '191.${randIPBlock}.0.0/16' AND tags ->> 'name' = '${prefix}-2'
+      )
+    );
     WITH vpc as (
       SELECT id
       FROM vpc
@@ -1019,17 +1223,32 @@ describe('VPC Integration Testing', () => {
 
     DELETE FROM vpc
     WHERE cidr_block = '191.${randIPBlock}.0.0/16';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies the vpc removal', apply());
+  it('applies the vpc removal', commit());
 
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 });
 
 describe('VPC install/uninstall', () => {
-  it('creates a new test db', done =>
-    void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
+  it('creates a new test db', done => {
+    (async () => {
+      try {
+        const { user, password: pgPassword } = await iasql.connect(dbAlias, 'not-needed', 'not-needed');
+        username = user;
+        password = pgPassword;
+        if (!username || !password) throw new Error('Did not fetch pg credentials');
+        done();
+      } catch (e) {
+        done(e);
+      }
+    })();
+  });
 
   it('installs the aws_account module', install(['aws_account']));
 
@@ -1042,16 +1261,22 @@ describe('VPC install/uninstall', () => {
   `,
       undefined,
       false,
+      () => ({ username, password }),
     ),
   );
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it(
     'sets the default region',
-    query(`
+    query(
+      `
     UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('installs the VPC module', install(modules));
@@ -1072,7 +1297,7 @@ describe('VPC install/uninstall', () => {
       'aws_elb',
       'aws_ec2',
       'aws_ec2_metadata',
-      'aws_route53_hosted_zones',
+      'aws_route53',
       'aws_memory_db',
       'aws_acm',
       'aws_codedeploy',

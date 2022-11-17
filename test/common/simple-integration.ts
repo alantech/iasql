@@ -1,25 +1,27 @@
-import { execSync, } from 'child_process'
+import { execSync } from 'child_process';
 
-import logger from '../../src/services/logger'
+import logger from '../../src/services/logger';
 
 jest.setTimeout(30000);
 
 // Could use $() but requires nasty escaping
-const sha = execSync('git rev-parse HEAD', { encoding: 'utf8', }).trim();
+const sha = execSync('git rev-parse HEAD', { encoding: 'utf8' }).trim();
 
 beforeAll(() => {
   // Build the docker containers
   execSync('IASQL_ENV=ci docker-compose up --build --detach');
   // Wait for them to be usable
-  execSync('while ! curl --output /dev/null --silent --head --fail http://localhost:8088/health; do sleep 1 && echo -n .; done;');
+  execSync(
+    'while ! curl --output /dev/null --silent --head --fail http://localhost:8088/health; do sleep 1 && echo -n .; done;',
+  );
 });
 
 afterAll(() => {
   // Dump the logs for potential debugging
   logger.info('Engine logs');
-  logger.info(execSync('docker logs iasql-engine_change_engine_1', { encoding: 'utf8', }));
+  logger.info(execSync('docker logs iasql-engine_change_engine_1', { encoding: 'utf8' }));
   logger.info('Postgres logs');
-  logger.info(execSync('docker logs iasql-engine_postgresql_1', { encoding: 'utf8', }));
+  logger.info(execSync('docker logs iasql-engine_postgresql_1', { encoding: 'utf8' }));
   // Terminate the docker container
   execSync('docker stop $(docker ps -q)');
 });

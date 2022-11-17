@@ -10,6 +10,7 @@ const localConfig = {
   phKey: 'phc_xvAQWfpHug7G0SuU5P9wwAbvP9ZawgAfIEZ9FUsiarS',
 };
 const config = process.env.IASQL_ENV === 'local' ? localConfig : prodConfig;
+const theButton = require('./src/rehype/thebutton');
 
 // With JSDoc @type annotations, IDEs can provide config autocompletion
 /** @type {import('@docusaurus/types').DocusaurusConfig} */
@@ -34,10 +35,12 @@ const config = process.env.IASQL_ENV === 'local' ? localConfig : prodConfig;
         docs: {
           sidebarPath: require.resolve('./sidebars.js'),
           routeBasePath: '/docs',
+          remarkPlugins: [theButton]
         },
         blog: {
           showReadingTime: true,
           routeBasePath: '/blog',
+          remarkPlugins: [theButton]
         },
         theme: {
           customCss: require.resolve('./src/css/custom.css'),
@@ -97,18 +100,19 @@ const config = process.env.IASQL_ENV === 'local' ? localConfig : prodConfig;
             label: 'Blog',
           },
           {
-            to: 'https://dbdocs.io/iasql/iasql',
+            to: 'schema',
             target: '_self',
             label: 'Schema',
           },
           {
-            to: 'https://discord.com/invite/machGGczea',
-            target: '_self',
-            label: 'Discord',
-          },
-          {
             type: 'docsVersionDropdown',
             position: 'right',
+          },
+          {
+            href: 'https://discord.com/invite/machGGczea',
+            position: 'right',
+            className: 'header-discord-link',
+            'aria-label': 'Community',
           },
           {
             href: 'https://github.com/iasql/iasql-engine',

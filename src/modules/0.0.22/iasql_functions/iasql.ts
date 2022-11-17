@@ -1032,6 +1032,8 @@ export async function continueUpgrade(
     if (['aws_acm_list', 'aws_acm_import', 'aws_acm_request'].includes(m)) {
       return modsToInstall.add('aws_acm');
     }
+    // Renamed `aws_route53_hosted_zones` to just `aws_route53`
+    if (m === 'aws_route53_hosted_zones') return modsToInstall.add('aws_route53');
     modsToInstall.add(m);
   });
   await install([...modsToInstall.values()], dbId, dbUser, false, true);

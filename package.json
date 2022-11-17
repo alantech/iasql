@@ -1,6 +1,6 @@
 {
   "name": "iasql",
-  "version": "0.0.21",
+  "version": "0.0.22",
   "description": "Infrastructure as SQL",
   "main": "dist/index.js",
   "scripts": {
@@ -24,8 +24,8 @@
     "version": "./.version.sh",
     "drop": "./.drop.sh",
     "develop": "./.develop.sh",
-    "style": "npx prettier --config .prettierrc 'src/**/*[.ts, .sql]' --check",
-    "format": "npx prettier --config .prettierrc 'src/**/*[.ts, .sql]' --write"
+    "style": "npx prettier --config .prettierrc 'src/**/*[.ts, .sql]' 'test/**/*.ts' --check",
+    "format": "npx prettier --config .prettierrc 'src/**/*[.ts, .sql]' 'test/**/*.ts' --write"
   },
   "repository": {
     "type": "git",
@@ -68,13 +68,13 @@
     "@aws-sdk/client-cloudwatch-logs": "^3.204.0",
     "@aws-sdk/client-codebuild": "^3.170.0",
     "@aws-sdk/client-codedeploy": "^3.188.0",
-    "@aws-sdk/client-codepipeline": "^3.190.0",
+    "@aws-sdk/client-codepipeline": "^3.209.0",
     "@aws-sdk/client-dynamodb": "^3.154.0",
     "@aws-sdk/client-ec2": "^3.188.0",
     "@aws-sdk/client-ecr": "^3.181.0",
     "@aws-sdk/client-ecr-public": "^3.168.0",
     "@aws-sdk/client-ecs": "^3.204.0",
-    "@aws-sdk/client-elastic-load-balancing-v2": "^3.181.0",
+    "@aws-sdk/client-elastic-load-balancing-v2": "^3.209.0",
     "@aws-sdk/client-elasticache": "^3.188.0",
     "@aws-sdk/client-iam": "^3.199.0",
     "@aws-sdk/client-lambda": "^3.199.0",
@@ -89,7 +89,7 @@
     "@logdna/logger": "^2.6.6",
     "@sentry/node": "^7.12.1",
     "@types/express": "^4.17.14",
-    "@types/express-jwt": "^6.0.2",
+    "@types/express-jwt": "^7.4.2",
     "@types/lodash.clonedeep": "^4.5.7",
     "@types/lodash.pick": "^4.4.7",
     "@types/node-fetch": "^2.6.2",
@@ -97,7 +97,7 @@
     "callsite": "^1.0.0",
     "cors": "^2.8.5",
     "express": "^4.18.2",
-    "express-jwt": "^6.1.0",
+    "express-jwt": "^7.7.7",
     "fastest-levenshtein": "^1.0.14",
     "forever": "^4.0.3",
     "graphile-worker": "^0.13.0",

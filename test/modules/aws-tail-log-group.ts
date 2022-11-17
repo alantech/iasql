@@ -5,10 +5,9 @@ import {
   execComposeUp,
   finish,
   getPrefix,
-  runApply,
+  runCommit,
   runInstall,
   runQuery,
-  runSync,
 } from '../helpers';
 
 const prefix = getPrefix();
@@ -38,8 +37,7 @@ const attachAssumeLambdaPolicy = JSON.stringify({
   ],
 });
 
-const apply = runApply.bind(null, dbAlias);
-const sync = runSync.bind(null, dbAlias);
+const commit = runCommit.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const region = defaultRegion();
@@ -49,9 +47,22 @@ jest.setTimeout(240000);
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown());
 
+let username: string, password: string;
+
 describe('AwsCloudwatch and AwsLambda Integration Testing', () => {
-  it('creates a new test db', done =>
-    void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
+  it('creates a new test db', done => {
+    (async () => {
+      try {
+        const { user, password: pgPassword } = await iasql.connect(dbAlias, 'not-needed', 'not-needed');
+        username = user;
+        password = pgPassword;
+        if (!username || !password) throw new Error('Did not fetch pg credentials');
+        done();
+      } catch (e) {
+        done(e);
+      }
+    })();
+  });
 
   it('installs the aws_account module', install(['aws_account']));
 
@@ -64,23 +75,30 @@ describe('AwsCloudwatch and AwsLambda Integration Testing', () => {
   `,
       undefined,
       false,
+      () => ({ username, password }),
     ),
   );
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it(
     'sets the default region',
-    query(`
+    query(
+      `
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('installs modules', install(modules));
 
   it(
     'adds a new lambda function and role',
-    query(`
+    query(
+      `
     BEGIN;
       INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
       VALUES ('${resourceName}', '${attachAssumeLambdaPolicy}', array['${lambdaFunctionRoleTaskPolicyArn}']);
@@ -88,10 +106,14 @@ describe('AwsCloudwatch and AwsLambda Integration Testing', () => {
       INSERT INTO lambda_function (name, zip_b64, handler, runtime, role_name)
       VALUES ('${resourceName}', '${lambdaFunctionCode}', '${lambdaFunctionHandler}', '${lambdaFunctionRuntime14}', '${resourceName}');
     COMMIT;
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies the lambda function change', apply());
+  it('applies the lambda function change', commit());
 
   it(
     'check function insertion',
@@ -119,16 +141,21 @@ describe('AwsCloudwatch and AwsLambda Integration Testing', () => {
 
   it(
     'delete resources',
-    query(`
+    query(
+      `
     BEGIN;
       DELETE FROM lambda_function WHERE name = '${resourceName}';
       DELETE FROM iam_role WHERE role_name = '${resourceName}';
       DELETE FROM log_group WHERE log_group_name = '${lambdaLogGroupName}';
     COMMIT;
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('apply deletion', apply());
+  it('apply deletion', commit());
 
   it(
     'check function deletion',

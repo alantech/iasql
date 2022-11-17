@@ -1,4 +1,6 @@
 import * as express from 'express';
+import { Response } from 'express';
+import { Request } from 'express-jwt';
 
 import config from '../config';
 import { IasqlDatabase } from '../entity';
@@ -10,7 +12,7 @@ import * as telemetry from '../services/telemetry';
 
 export const db = express.Router();
 
-async function connectHandler(req: any, res: any) {
+async function connectHandler(req: Request, res: Response) {
   logger.info('Calling /connect');
   const dbAlias = req.params?.dbAlias ?? req.body?.dbAlias;
   if (!dbAlias)
@@ -19,8 +21,8 @@ async function connectHandler(req: any, res: any) {
       .json(
         `Required key(s) not provided: ${['dbAlias'].filter(k => !req.params.hasOwnProperty(k)).join(', ')}`,
       );
-  const uid = dbMan.getUid(req.user);
-  const email = dbMan.getEmail(req.user);
+  const uid = dbMan.getUid(req.auth);
+  const email = dbMan.getEmail(req.auth);
   const dbId = dbMan.genDbId(dbAlias);
   try {
     const database = await iasql.connect(dbAlias, uid, email, dbId);
@@ -49,7 +51,7 @@ db.get('/connect/:dbAlias', connectHandler);
 db.post('/connect', connectHandler);
 
 // TODO revive and test
-/*db.post('/import', async (req, res) => {
+/*db.post('/import', async (req: Request, res: Response) => {
   logger.info('Calling /import');
   const {dump, dbAlias, awsRegion, awsAccessKeyId, awsSecretAccessKey} = req.body;
   if (!dump || !dbAlias || !awsRegion || !awsAccessKeyId || !awsSecretAccessKey) return res.status(400).json(
@@ -59,19 +61,19 @@ db.post('/connect', connectHandler);
   );
   try {
     res.json(
-      await iasql.load(dump, dbAlias, awsRegion, awsAccessKeyId, awsSecretAccessKey, req.user)
+      await iasql.load(dump, dbAlias, awsRegion, awsAccessKeyId, awsSecretAccessKey, req.auth)
     );
   } catch (e) {
     res.status(500).end(logger.error(e));
   }
 });*/
 
-db.post('/export', async (req, res) => {
+db.post('/export', async (req: Request, res: Response) => {
   logger.info('Calling /export');
   const { dbAlias, dataOnly } = req.body;
   if (!dbAlias) return res.status(400).json("Required key 'dbAlias' not provided");
-  const uid = dbMan.getUid(req.user);
-  const email = dbMan.getEmail(req.user);
+  const uid = dbMan.getUid(req.auth);
+  const email = dbMan.getEmail(req.auth);
   try {
     const database: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
     const dbId = database.pgName;
@@ -92,10 +94,10 @@ db.post('/export', async (req, res) => {
   }
 });
 
-db.get('/list', async (req, res) => {
+db.get('/list', async (req: Request, res: Response) => {
   logger.info('Calling /list');
-  const uid = dbMan.getUid(req.user);
-  const email = dbMan.getEmail(req.user);
+  const uid = dbMan.getUid(req.auth);
+  const email = dbMan.getEmail(req.auth);
   try {
     const dbs = await MetadataRepo.getDbs(uid, email);
     res.json(dbs);
@@ -104,12 +106,12 @@ db.get('/list', async (req, res) => {
   }
 });
 
-db.get('/disconnect/:dbAlias', async (req, res) => {
+db.get('/disconnect/:dbAlias', async (req: Request, res: Response) => {
   logger.info('Calling /disconnect');
   const { dbAlias } = req.params;
   if (!dbAlias) return res.status(400).json("Required key 'dbAlias' not provided");
-  const uid = dbMan.getUid(req.user);
-  const email = dbMan.getEmail(req.user);
+  const uid = dbMan.getUid(req.auth);
+  const email = dbMan.getEmail(req.auth);
   let dbId;
   try {
     dbId = await iasql.disconnect(dbAlias, uid);
@@ -153,19 +155,19 @@ function until(p: Promise<any>, timeout: number) {
   });
 }
 
-db.post('/run/:dbAlias', async (req, res) => {
+db.post('/run/:dbAlias', async (req: Request, res: Response) => {
   logger.info('Calling /run');
   if (!config.db.sqlViaRest) return res.status(400).end('SQL Querying via REST disabled');
   const { dbAlias } = req.params;
   if (!dbAlias) return res.status(400).json("Required key 'dbAlias' not provided");
   const { sql, byStatement, byUser } = req.body;
-  const uid = dbMan.getUid(req.user);
-  const email = dbMan.getEmail(req.user);
+  const uid = dbMan.getUid(req.auth);
+  const email = dbMan.getEmail(req.auth);
   let dbId;
   try {
     const database: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
     dbId = database.pgName;
-    const output = await until(iasql.runSql(dbAlias, uid, sql, byStatement ?? false), 30000);
+    const output = await until(iasql.runSql(dbAlias, uid, sql, byStatement ?? false), 5 * 60 * 1000);
     // ignore queries done by the dashboard itself
     if (byUser) {
       telemetry.logRunSql(
@@ -200,11 +202,11 @@ db.post('/run/:dbAlias', async (req, res) => {
   }
 });
 
-db.post('/event', async (req, res) => {
+db.post('/event', async (req: Request, res: Response) => {
   logger.info('Calling /event');
   const { dbAlias, eventName, buttonAlias, sql } = req.body;
-  const uid = dbMan.getUid(req.user);
-  const email = dbMan.getEmail(req.user);
+  const uid = dbMan.getUid(req.auth);
+  const email = dbMan.getEmail(req.auth);
   if (dbAlias) {
     const database: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
     const dbId = database.pgName;

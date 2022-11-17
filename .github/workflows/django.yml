@@ -55,11 +55,14 @@ jobs:
           echo "::set-output name=account_index::$(echo ${ACCOUNT_INDEX})"
 
       - name: Setup IaSQL database
+        id: set-up-database
         if: always()
         run: |
           export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
           export AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
-          ./src/scripts/setup-iasql-db.sh
+          source ./src/scripts/setup-iasql-db.sh
+          echo "iasql_username=$IASQL_USERNAME" >> $GITHUB_ENV
+          echo "iasql_password=$IASQL_PASSWORD" >> $GITHUB_ENV
         env:
           ACCOUNT_INDEX: ${{ steps['determine-test-account'].outputs['account_index'] }}
           AWS_REGION: ${{ needs.setup.outputs['region'] }}
@@ -72,14 +75,16 @@ jobs:
           export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
           export AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
           echo "\nDelete all records..."
-          psql postgres://postgres:test@localhost:5432/iasql -c "select * from delete_all_records();"
+          psql postgres://$IASQL_USERNAME:$IASQL_PASSWORD@localhost:5432/iasql -c "select * from delete_all_records();"
           echo "\nApply..."
-          psql postgres://postgres:test@localhost:5432/iasql -c "select * from iasql_apply();"
+          psql postgres://postgres:test@localhost:5432/iasql -c "select * from iasql_commit();"
         env:
           ACCOUNT_INDEX: ${{ steps['determine-test-account'].outputs['account_index'] }}
           AWS_REGION: ${{ needs.setup.outputs['region'] }}
           ACCESS_KEY_IDS: ${{ secrets.ACCESS_KEY_IDS }}
           SECRET_ACCESS_KEYS: ${{ secrets.SECRET_ACCESS_KEYS }}
+          IASQL_USERNAME: ${{ env.iasql_username }}
+          IASQL_PASSWORD: ${{ env.iasql_password }}
 
       - name: Run deploy script
         run: |
@@ -92,11 +97,13 @@ jobs:
           ACCESS_KEY_IDS: ${{ secrets.ACCESS_KEY_IDS }}
           SECRET_ACCESS_KEYS: ${{ secrets.SECRET_ACCESS_KEYS }}
           DB_NAME: iasql
-          DB_USER: postgres
-          DB_PASSWORD: test
+          DB_USER: ${{ env.iasql_username }}
+          DB_PASSWORD: ${{ env.iasql_password }}
           DB_HOST: '127.0.0.1'
           DB_PORT: 5432
           GH_PAT: ${{ secrets.GH_PAT }}
+          IASQL_USERNAME: ${{ env.iasql_username }}
+          IASQL_PASSWORD: ${{ env.iasql_password }}
 
       - name: Run cleaning script
         if: always()
@@ -104,14 +111,16 @@ jobs:
           export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
           export AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
           echo "\nDelete all records..."
-          psql postgres://postgres:test@localhost:5432/iasql -c "select * from delete_all_records();"
+          psql postgres://$IASQL_USERNAME:$IASQL_PASSWORD@localhost:5432/iasql -c "select * from delete_all_records();"
           echo "\nApply..."
-          psql postgres://postgres:test@localhost:5432/iasql -c "select * from iasql_apply();"
+          psql postgres://postgres:test@localhost:5432/iasql -c "select * from iasql_commit();"
         env:
           ACCOUNT_INDEX: ${{ steps['determine-test-account'].outputs['account_index'] }}
           AWS_REGION: ${{ needs.setup.outputs['region'] }}
           ACCESS_KEY_IDS: ${{ secrets.ACCESS_KEY_IDS }}
           SECRET_ACCESS_KEYS: ${{ secrets.SECRET_ACCESS_KEYS }}
+          IASQL_USERNAME: ${{ env.iasql_username }}
+          IASQL_PASSWORD: ${{ env.iasql_password }}
 
       - name: Return test account
         if: always()

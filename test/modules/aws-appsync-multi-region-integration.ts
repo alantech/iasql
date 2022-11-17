@@ -6,10 +6,10 @@ import {
   execComposeUp,
   finish,
   getPrefix,
-  runApply,
+  runCommit,
   runInstall,
   runQuery,
-  runSync,
+  runRollback,
 } from '../helpers';
 
 const prefix = getPrefix();
@@ -22,8 +22,8 @@ const {
 } = require(`../../src/modules/${config.modules.latestVersion}/aws_appsync/entity`);
 const authType = AuthenticationType.API_KEY;
 
-const apply = runApply.bind(null, dbAlias);
-const sync = runSync.bind(null, dbAlias);
+const commit = runCommit.bind(null, dbAlias);
+const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const region = defaultRegion();
@@ -33,9 +33,22 @@ jest.setTimeout(3600000);
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown());
 
+let username: string, password: string;
+
 describe('App Sync Multi-region Integration Testing', () => {
-  it('creates a new test db', done =>
-    void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
+  it('creates a new test db', done => {
+    (async () => {
+      try {
+        const { user, password: pgPassword } = await iasql.connect(dbAlias, 'not-needed', 'not-needed');
+        username = user;
+        password = pgPassword;
+        if (!username || !password) throw new Error('Did not fetch pg credentials');
+        done();
+      } catch (e) {
+        done(e);
+      }
+    })();
+  });
 
   it('installs the aws_account module', install(['aws_account']));
 
@@ -48,29 +61,40 @@ describe('App Sync Multi-region Integration Testing', () => {
   `,
       undefined,
       false,
+      () => ({ username, password }),
     ),
   );
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it(
     'sets the default region',
-    query(`
+    query(
+      `
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('installs the app sync module', install(modules));
 
   it(
     'adds a new Graphql API',
-    query(`  
+    query(
+      `  
     INSERT INTO graphql_api (name, authentication_type, region)
     VALUES ('${apiName}', '${authType}', '${nonDefaultRegion}');
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('undo changes', sync());
+  it('undo changes', rollback());
 
   it(
     'checks it has been removed',
@@ -86,13 +110,18 @@ describe('App Sync Multi-region Integration Testing', () => {
 
   it(
     'adds a new Graphql API',
-    query(`  
+    query(
+      `  
     INSERT INTO graphql_api (name, authentication_type, region)
     VALUES ('${apiName}', '${authType}', '${nonDefaultRegion}');
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies the change', apply());
+  it('applies the change', commit());
 
   it(
     'checks the graphql api was added',
@@ -108,14 +137,19 @@ describe('App Sync Multi-region Integration Testing', () => {
 
   it(
     'changes the region the graphql api is located in',
-    query(`
+    query(
+      `
       UPDATE graphql_api
       SET region = '${region}'
       WHERE name = '${apiName}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies the replacement', apply());
+  it('applies the replacement', commit());
 
   it(
     'checks the graphql api was moved',
@@ -130,14 +164,29 @@ describe('App Sync Multi-region Integration Testing', () => {
   );
 
   it(
-    'removes the graphql api',
+    'creates a graphql api in the original region',
     query(`
-    DELETE FROM graphql_api
-    WHERE name = '${apiName}';
+    INSERT INTO graphql_api (name, authentication_type, region)
+    VALUES ('${apiName}', '${authType}', '${nonDefaultRegion}');
   `),
   );
 
-  it('applies the removal', apply());
+  it('applies the addition', commit());
+
+  it(
+    'removes the graphql api',
+    query(
+      `
+    DELETE FROM graphql_api
+    WHERE name = '${apiName}';
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it('applies the removal', commit());
 
   it(
     'checks the remaining table count for the last time',

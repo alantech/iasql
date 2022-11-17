@@ -6,18 +6,18 @@ import {
   execComposeUp,
   finish,
   getPrefix,
-  runApply,
+  runCommit,
   runInstall,
   runQuery,
-  runSync,
+  runRollback,
   runUninstall,
 } from '../helpers';
 
 const prefix = getPrefix();
 const dbAlias = `${prefix}appsynctest`;
 
-const apply = runApply.bind(null, dbAlias);
-const sync = runSync.bind(null, dbAlias);
+const commit = runCommit.bind(null, dbAlias);
+const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
@@ -35,9 +35,22 @@ jest.setTimeout(3600000);
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown());
 
+let username: string, password: string;
+
 describe('App Sync Integration Testing', () => {
-  it('creates a new test db', done =>
-    void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
+  it('creates a new test db', done => {
+    (async () => {
+      try {
+        const { user, password: pgPassword } = await iasql.connect(dbAlias, 'not-needed', 'not-needed');
+        username = user;
+        password = pgPassword;
+        if (!username || !password) throw new Error('Did not fetch pg credentials');
+        done();
+      } catch (e) {
+        done(e);
+      }
+    })();
+  });
 
   it('installs the aws_account module', install(['aws_account']));
 
@@ -50,39 +63,55 @@ describe('App Sync Integration Testing', () => {
   `,
       undefined,
       false,
+      () => ({ username, password }),
     ),
   );
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it(
     'sets the default region',
-    query(`
+    query(
+      `
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('installs the App Sync module', install(modules));
 
   it(
     'adds a new Graphql API',
-    query(`  
+    query(
+      `  
     INSERT INTO graphql_api (name, authentication_type)
     VALUES ('${apiName}', '${authType}');
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('undo changes', sync());
+  it('undo changes', rollback());
 
   it(
     'adds a new GraphQL API entry',
-    query(`  
+    query(
+      `  
     INSERT INTO graphql_api (name, authentication_type)
     VALUES ('${apiName}', '${authType}');
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies the Graphql API change', apply());
+  it('applies the Graphql API change', commit());
 
   it(
     'check Graphql API is available',
@@ -96,12 +125,17 @@ describe('App Sync Integration Testing', () => {
 
   it(
     'tries to update Graphql API auth type',
-    query(`
+    query(
+      `
   UPDATE graphql_api SET authentication_type='${newAuthType}' WHERE name='${apiName}'
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies the Graphql API auth type update', apply());
+  it('applies the Graphql API auth type update', commit());
 
   it(
     'checks that Graphql API has been been modified',
@@ -115,12 +149,17 @@ describe('App Sync Integration Testing', () => {
 
   it(
     'tries to update Graphql API ID',
-    query(`
+    query(
+      `
   UPDATE graphql_api SET api_id='fake' WHERE name='${apiName}'
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies the Graphql API ID update', apply());
+  it('applies the Graphql API ID update', commit());
 
   it(
     'checks that Graphql API ID has not been been modified',
@@ -148,20 +187,36 @@ describe('App Sync Integration Testing', () => {
 
   it(
     'deletes the Graphql API',
-    query(`
+    query(
+      `
     DELETE FROM graphql_api
     WHERE name = '${apiName}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies the Graphql API removal', apply());
+  it('applies the Graphql API removal', commit());
 
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 });
 
 describe('API install/uninstall', () => {
-  it('creates a new test db', done =>
-    void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
+  it('creates a new test db', done => {
+    (async () => {
+      try {
+        const { user, password: pgPassword } = await iasql.connect(dbAlias, 'not-needed', 'not-needed');
+        username = user;
+        password = pgPassword;
+        if (!username || !password) throw new Error('Did not fetch pg credentials');
+        done();
+      } catch (e) {
+        done(e);
+      }
+    })();
+  });
 
   it('installs the aws_account module', install(['aws_account']));
 
@@ -174,16 +229,22 @@ describe('API install/uninstall', () => {
   `,
       undefined,
       false,
+      () => ({ username, password }),
     ),
   );
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it(
     'sets the default region',
-    query(`
+    query(
+      `
     UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('installs the API module', install(modules));

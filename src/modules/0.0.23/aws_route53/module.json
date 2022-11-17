@@ -1,0 +1,4 @@
+{
+  "name": "aws_route53",
+  "dependencies": ["iasql_platform", "aws_account", "aws_elb"]
+}

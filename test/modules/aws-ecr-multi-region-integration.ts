@@ -7,10 +7,10 @@ import {
   execComposeUp,
   finish,
   getPrefix,
-  runApply,
+  runCommit,
   runInstall,
   runQuery,
-  runSync,
+  runRollback,
 } from '../helpers';
 
 const prefix = getPrefix();
@@ -21,8 +21,8 @@ const nonDefaultRegion = 'us-east-1';
 const policyMock =
   '{ "Version": "2012-10-17", "Statement": [ { "Sid": "DenyPull", "Effect": "Deny", "Principal": "*", "Action": [ "ecr:BatchGetImage", "ecr:GetDownloadUrlForLayer" ] } ]}';
 
-const apply = runApply.bind(null, dbAlias);
-const sync = runSync.bind(null, dbAlias);
+const commit = runCommit.bind(null, dbAlias);
+const rollback = runRollback.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const modules = ['aws_ecr'];
@@ -40,9 +40,22 @@ beforeAll(async () => {
 });
 afterAll(async () => await execComposeDown());
 
+let username: string, password: string;
+
 describe('ECR Multi-region Integration Testing', () => {
-  it('creates a new test db', done =>
-    void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
+  it('creates a new test db', done => {
+    (async () => {
+      try {
+        const { user, password: pgPassword } = await iasql.connect(dbAlias, 'not-needed', 'not-needed');
+        username = user;
+        password = pgPassword;
+        if (!username || !password) throw new Error('Did not fetch pg credentials');
+        done();
+      } catch (e) {
+        done(e);
+      }
+    })();
+  });
 
   it('installs the aws_account module', install(['aws_account']));
 
@@ -55,29 +68,40 @@ describe('ECR Multi-region Integration Testing', () => {
   `,
       undefined,
       false,
+      () => ({ username, password }),
     ),
   );
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
   it(
     'sets the default region',
-    query(`
+    query(
+      `
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('installs the ECR module', install(modules));
 
   it(
     'adds a new repository',
-    query(`  
+    query(
+      `  
     INSERT INTO repository (repository_name, scan_on_push, image_tag_mutability, region)
       VALUES ('${repositoryName}', false, 'MUTABLE', '${nonDefaultRegion}');
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('undo changes', sync());
+  it('undo changes', rollback());
 
   it(
     'checks it has been removed',
@@ -93,13 +117,18 @@ describe('ECR Multi-region Integration Testing', () => {
 
   it(
     'adds a new repository',
-    query(`  
+    query(
+      `  
       INSERT INTO repository (repository_name, scan_on_push, image_tag_mutability, region)
       VALUES ('${repositoryName}', false, 'MUTABLE', '${nonDefaultRegion}');
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies the change', apply());
+  it('applies the change', commit());
 
   it(
     'checks the repository was added',
@@ -129,7 +158,7 @@ describe('ECR Multi-region Integration Testing', () => {
     ),
   );
 
-  it('syncs the images', sync());
+  it('syncs the images', commit());
 
   it(
     'check that new images has been created under a private repo',
@@ -149,13 +178,18 @@ describe('ECR Multi-region Integration Testing', () => {
 
   it(
     'adds a new repository policy',
-    query(`
+    query(
+      `
     INSERT INTO repository_policy (repository_id, policy_text, region)
     VALUES ((select id from repository where repository_name = '${repositoryName}'), '${policyMock}', '${nonDefaultRegion}');
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies the change', apply());
+  it('applies the change', commit());
 
   it(
     'check adds a new repository policy',
@@ -171,7 +205,8 @@ describe('ECR Multi-region Integration Testing', () => {
 
   it('should fail trying to move a repository with its images to a different region', () => {
     try {
-      query(`
+      query(
+        `
       with updated_repository_policy as (
         UPDATE repository_policy
         SET region = '${region}'
@@ -185,7 +220,11 @@ describe('ECR Multi-region Integration Testing', () => {
       UPDATE repository
       SET region = '${region}'
       WHERE repository_name = '${repositoryName}' and region = '${nonDefaultRegion}';
-  `);
+  `,
+        undefined,
+        true,
+        () => ({ username, password }),
+      );
     } catch (e: any) {
       expect(e.message).toContain('Region cannot be modified');
     }
@@ -193,17 +232,23 @@ describe('ECR Multi-region Integration Testing', () => {
 
   it(
     'removes the repository images',
-    query(`
+    query(
+      `
       DELETE FROM repository_image
       WHERE private_repository_id = (select id from repository where repository_name = '${repositoryName}');
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies the deletion', apply());
+  it('applies the deletion', commit());
 
   it(
     'changes the region the repository is located in',
-    query(`
+    query(
+      `
       with updated_repository_policy as (
         UPDATE repository_policy
         SET region = '${region}'
@@ -212,7 +257,11 @@ describe('ECR Multi-region Integration Testing', () => {
       UPDATE repository
       SET region = '${region}'
       WHERE repository_name = '${repositoryName}' and region = '${nonDefaultRegion}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it(
@@ -263,7 +312,7 @@ describe('ECR Multi-region Integration Testing', () => {
     ),
   );
 
-  it('applies the replacement', apply());
+  it('applies the replacement', commit());
 
   it(
     'checks the repository was moved',
@@ -291,7 +340,8 @@ describe('ECR Multi-region Integration Testing', () => {
 
   it(
     'removes the repository',
-    query(`
+    query(
+      `
       BEGIN;
         DELETE FROM repository_policy
         WHERE repository_id = (select id from repository where repository_name = '${repositoryName}' and region = '${region}');
@@ -299,10 +349,14 @@ describe('ECR Multi-region Integration Testing', () => {
         DELETE FROM repository
         WHERE repository_name = '${repositoryName}' and region = '${region}';
       COMMIT;
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
-  it('applies the removal', apply());
+  it('applies the removal', commit());
 
   it(
     'checks the remaining table count for the last time',
