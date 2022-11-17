@@ -214,7 +214,11 @@ export function initCron(dbId: string): string {
 
 export function stopCron(dbId: string): string {
   return `
-    SELECT
-      cron.unschedule('iasql_engine_${dbId}');
+    DO $$
+      BEGIN
+        SELECT cron.unschedule('iasql_engine_${dbId}');
+        EXCEPTION RAISE NOTICE '%, skipping', SQLERRM USING ERRCODE = SQLSTATE;
+      END
+    $$;
   `;
 }
