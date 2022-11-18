@@ -15,7 +15,8 @@ export class RouteTableAssociation {
   routeTableAssociationId?: string;
 
   @ManyToOne(() => RouteTable, {
-    nullable: true, // shouldn't be, but orphanedRowAction doesn't work properly
+    nullable: false,
+    eager: true,
   })
   @JoinColumn()
   routeTable: RouteTable;
@@ -29,6 +30,8 @@ export class RouteTableAssociation {
 
   @Column({ default: false })
   isMain: boolean;
+
+  // TODO: add the check so that if isMain = true, then the subnet should not be set
 
   // @Column()
   // associationState: string;

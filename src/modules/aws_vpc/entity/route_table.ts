@@ -31,11 +31,7 @@ export class RouteTable {
   ])
   vpc: Vpc;
 
-  @OneToMany(() => RouteTableAssociation, rta => rta.routeTable, {
-    eager: true,
-    cascade: true,
-    orphanedRowAction: 'delete',
-  })
+  @OneToMany(() => RouteTableAssociation, rta => rta.routeTable, {})
   associations: RouteTableAssociation[];
 
   @OneToMany(() => Route, route => route.routeTable, {
