@@ -39,7 +39,7 @@ const region = defaultRegion([
 ]);
 const modules = ['aws_codepipeline', 'aws_s3', 'aws_codedeploy'];
 
-const codepipelinePolicyArn = 'arn:aws:iam::aws:policy/AWSCodePipelineFullAccess';
+const codepipelinePolicyArn = 'arn:aws:iam::aws:policy/AWSCodePipeline_FullAccess';
 const s3PolicyArn = 'arn:aws:iam::aws:policy/AmazonS3FullAccess';
 
 const bucket = `${prefix}-bucket`;
