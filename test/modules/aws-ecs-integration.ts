@@ -660,7 +660,7 @@ describe('ECS Integration Testing', () => {
     'tries to force update a service',
     query(
       `
-      SELECT deploy_service(arn) FROM service WHERE service_name='${serviceName}'`,
+      SELECT deploy_service(arn) FROM service WHERE name='${newServiceName}'`,
       (res: any[]) => expect(res[0].status).toStrictEqual('OK'),
     ),
   );

@@ -24,6 +24,15 @@ export class DeployServiceRPC extends RpcBase {
     ctx: Context,
     arn: string,
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
+    if (arn) {
+      return [
+        {
+          arn: '',
+          status: 'ERROR',
+          message: 'Please provide the ARN of the service to redeploy',
+        },
+      ];
+    }
     // given the service name, read the details
     const serviceObj: Service =
       (await this.module.service.db.read(ctx, this.module.service.generateId({ arn: arn ?? '' }))) ??
