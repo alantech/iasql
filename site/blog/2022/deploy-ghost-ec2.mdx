@@ -5,6 +5,9 @@ date: 2022-10-27
 authors: [yrobla]
 ---
 
+SELECT _ FROM iasql_install('aws_ec2');
+SELECT _ FROM iasql_install('aws_ec2_metadata');
+
 # Deploy Ghost on EC2 with one click
 
 INSERT INTO security_group (description, group_name) VALUES ('Ghost security group', 'ghost_sg_group');
@@ -17,28 +20,32 @@ SELECT false, 'tcp', 443, 443, '0.0.0.0/0', 'ghost_sg_group_rule_https', id FROM
 INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
 SELECT true, 'tcp', 1, 65335, '0.0.0.0/0', 'ghost_sg_group_rule_egress', id FROM security_group WHERE group_name = 'ghost_sg_group';
 
-INSERT INTO instance (id, ami, instance_type, user_data, subnet_id, tags, user_data, region)
-SELECT 2, 'resolve:ssm:/aws/service/canonical/ubuntu/server/22.04/stable/current/amd64/hvm/ebs-gp2/ami-id', 't2.small', subnet.id, '{"name":"ghost-blog"}', '
-#!/bin/bash
-export DEBIAN_FRONTEND=noninteractive
+INSERT INTO instance (id, ami, instance_type, subnet_id, tags, user_data, region)
+SELECT 2, 'resolve:ssm:/aws/service/canonical/ubuntu/server/22.04/stable/current/amd64/hvm/ebs-gp2/ami-id', 't2.small', subnet.id, '{"name":"ghost-blog"}', '#!/bin/bash
+useradd -m ghostuser
+usermod -a -G sudo ghostuser
+echo "ghostuser ALL=(ALL:ALL) NOPASSWD: ALL" | sudo tee /etc/sudoers.d/ghostuser
 sudo -E apt-get update -y
 sudo -E apt-get upgrade -y
 sudo -E apt-get -y install nginx
-sudo -E ufw allow 'Nginx Full'
+sudo -E ufw allow "Nginx Full"
 sudo -E apt-get -y install mysql-server
+sudo -E mysql -u root -e "ALTER USER "root"@"localhost" IDENTIFIED WITH mysql_native_password BY "ghost";"
 curl -sL https://deb.nodesource.com/setup_16.x | sudo -E bash
 sudo -E apt-get -y install nodejs
 sudo npm install ghost-cli@latest -g
 sudo -E mkdir -p /var/www/ghost
-sudo -E chown ubuntu /var/www/ghost
+sudo -E chown ghostuser /var/www/ghost
 sudo chmod 775 /var/www/ghost
 cd /var/www/ghost/
-ghost install --url http://$(curl http://169.254.169.254/latest/meta-data/local-ipv4) --db mysql --dbpass ghost --no-prompt --start --enable
+sudo -u ghostuser ghost install --url http://$(curl http://169.254.169.254/latest/meta-data/public-ipv4) --db mysql --dbpass ghost --no-prompt --start --enable
 ', 'us-east-2' FROM subnet INNER JOIN vpc ON vpc.id=subnet.vpc_id AND vpc.is_default='Y' WHERE vpc.region='us-east-2' AND subnet.availability_zone='us-east-2a' LIMIT 1;
 
 INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
-(SELECT id FROM instance WHERE tags ->> 'name' = 'ghost-blog'),
-(SELECT id FROM security_group WHERE group_name='ghost_sg_group' AND region = 'us-east-2');
+(SELECT id FROM instance WHERE tags ->> 'name' = 'ghost-blog' LIMIT 1),
+(SELECT id FROM security_group WHERE group_name='ghost_sg_group' AND region = 'us-east-2' limit 1);
+
+select \* from iasql_apply();
 
 One of the main complexities of working with AWS is the amount of resources that can be created, either by manual or automated workflows. The chained resources and their dependencies can quickly get out of control,
 and it could be a nightmare to clean up then.
