@@ -1,0 +1,91 @@
+---
+slug: deploy-ghost-ec2
+title: Deploy Ghost in EC2 with one click
+date: 2022-10-27
+authors: [yrobla]
+---
+
+# Deploy Ghost on EC2 with one click
+
+INSERT INTO security_group (description, group_name) VALUES ('Ghost security group', 'ghost_sg_group');
+INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
+SELECT false, 'tcp', 22, 22, '0.0.0.0/0', 'ghost_sg_group_rule_ssh', id FROM security_group WHERE group_name = 'ghost_sg_group';
+INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
+SELECT false, 'tcp', 80, 80, '0.0.0.0/0', 'ghost_sg_group_rule_http', id FROM security_group WHERE group_name = 'ghost_sg_group';
+INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
+SELECT false, 'tcp', 443, 443, '0.0.0.0/0', 'ghost_sg_group_rule_https', id FROM security_group WHERE group_name = 'ghost_sg_group';
+INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
+SELECT true, 'tcp', 1, 65335, '0.0.0.0/0', 'ghost_sg_group_rule_egress', id FROM security_group WHERE group_name = 'ghost_sg_group';
+
+INSERT INTO instance (id, ami, instance_type, user_data, subnet_id, tags, user_data, region)
+SELECT 2, 'resolve:ssm:/aws/service/canonical/ubuntu/server/22.04/stable/current/amd64/hvm/ebs-gp2/ami-id', 't2.small', subnet.id, '{"name":"ghost-blog"}', '
+#!/bin/bash
+export DEBIAN_FRONTEND=noninteractive
+sudo -E apt-get update -y
+sudo -E apt-get upgrade -y
+sudo -E apt-get -y install nginx
+sudo -E ufw allow 'Nginx Full'
+sudo -E apt-get -y install mysql-server
+curl -sL https://deb.nodesource.com/setup_16.x | sudo -E bash
+sudo -E apt-get -y install nodejs
+sudo npm install ghost-cli@latest -g
+sudo -E mkdir -p /var/www/ghost
+sudo -E chown ubuntu /var/www/ghost
+sudo chmod 775 /var/www/ghost
+cd /var/www/ghost/
+ghost install --url http://$(curl http://169.254.169.254/latest/meta-data/local-ipv4) --db mysql --dbpass ghost --no-prompt --start --enable
+', 'us-east-2' FROM subnet INNER JOIN vpc ON vpc.id=subnet.vpc_id AND vpc.is_default='Y' WHERE vpc.region='us-east-2' AND subnet.availability_zone='us-east-2a' LIMIT 1;
+
+INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
+(SELECT id FROM instance WHERE tags ->> 'name' = 'ghost-blog'),
+(SELECT id FROM security_group WHERE group_name='ghost_sg_group' AND region = 'us-east-2');
+
+One of the main complexities of working with AWS is the amount of resources that can be created, either by manual or automated workflows. The chained resources and their dependencies can quickly get out of control,
+and it could be a nightmare to clean up then.
+
+This is a common problem when using tests accounts, either for developing or testing some integrations. Often these accounts have resources out of control, causing you to incur on extra costs, or causing unexpected conflicts.
+Cleaning those manually can be a hard task... manually visiting each resource, investigating the dependencies, manually cleaning... it is a time-consuming, error-prone task. If we consider that those resources may be created in
+multiple regions, the manual procedure can become a very difficult task.
+
+To solve this problem you can use our IaSQL engine. By simply clicking a button, our engine will get an snapshot of the status of your cloud, and will schedule deletion of the existing resources and its dependencies until your account is completely cleaned.
+
+**Want to try? Connect your AWS account to IaSQL for free using the [dashboard](https://iasql.com). Read more about AWS account management in this part of our [docs](https://iasql.com/docs/aws/).**
+
+:::info
+
+Please note that our engine can offer this cleanup only for the resources covered by our system. You can get a full coverage list <a href="https://github.com/iasql/iasql-engine#aws-services-with-significant-api-coverage">here</a>.
+
+:::info
+
+```sql TheButton[AWS account cleanup]="Clean your AWS Account"
+ -- Installing all IaSQL modules
+SELECT
+  iasql_install (
+    VARIADIC ARRAY (
+      SELECT
+        module_name
+      FROM
+        iasql_modules_list ()
+    )
+  );
+
+-- Deleting all resources from the db
+SELECT
+  *
+FROM
+  delete_all_records ();
+
+-- Previewing changes in your account
+SELECT
+  *
+FROM
+  iasql_preview_apply ();
+
+-- Applying delete changes, please uncomment it to perform the cleanup
+--SELECT * FROM iasql_apply();
+```
+
+After the initial module install, IaSQL will inspect your cloud and propose the resources to delete.
+If you agree with the proposed changes, please uncomment the apply statement and execute it, to let IaSQL completely cleans up your account.
+
+<img src="/img/clean_all_screenshot.png" style={{ maxWidth: 800 }} />
