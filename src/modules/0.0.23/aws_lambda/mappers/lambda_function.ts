@@ -1,16 +1,21 @@
 import isEqual from 'lodash.isequal';
 
+import { EC2, NetworkInterface } from '@aws-sdk/client-ec2';
 import {
   CreateFunctionCommandInput,
+  FunctionConfiguration,
   GetFunctionResponse,
+  Lambda,
   UpdateFunctionCodeCommandInput,
   UpdateFunctionConfigurationCommandInput,
 } from '@aws-sdk/client-lambda';
 
 import { AwsLambdaModule } from '..';
 import { throwError } from '../../../../config/config';
+import { crudBuilderFormat } from '../../../../services/aws_macros';
 import { Context, Crud2, MapperBase } from '../../../interfaces';
 import { awsIamModule } from '../../aws_iam';
+import { awsSecurityGroupModule } from '../../aws_security_group';
 import {
   addFunctionTags,
   AWS,
@@ -33,7 +38,8 @@ export class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
     this.updateableFunctionFieldsEq(a, b) &&
     this.updateableTagsEq(a, b) &&
     this.restorableFunctionFieldsEq(a, b) &&
-    this.updateableCodeFieldsEq(a, b);
+    this.updateableCodeFieldsEq(a, b) &&
+    this.updateableVpcConfigFieldsEq(a, b);
 
   updateableFunctionFieldsEq(a: LambdaFunction, b: LambdaFunction) {
     return (
@@ -81,11 +87,45 @@ export class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
     out.version = fn.Configuration?.Version;
     out.arn = fn.Configuration?.FunctionArn;
     out.region = region;
+    out.subnets = fn.Configuration.VpcConfig?.SubnetIds;
+
+    const securityGroups = [];
+    const cloudSecurityGroups = fn.Configuration.VpcConfig?.SecurityGroupIds ?? [];
+    for (const sg of cloudSecurityGroups) {
+      securityGroups.push(
+        (await awsSecurityGroupModule.securityGroup.db.read(
+          ctx,
+          awsSecurityGroupModule.securityGroup.generateId({ groupId: sg, region }),
+        )) ??
+          (await awsSecurityGroupModule.securityGroup.cloud.read(
+            ctx,
+            awsSecurityGroupModule.securityGroup.generateId({ groupId: sg, region }),
+          )),
+      );
+    }
+    if (securityGroups.filter(sg => !!sg).length !== cloudSecurityGroups.length)
+      throw new Error('Security groups need to be loaded first');
+    out.securityGroups = securityGroups;
     return out;
   }
 
   updateableTagsEq(a: LambdaFunction, b: LambdaFunction) {
     return isEqual(a.tags, b.tags);
+  }
+
+  updateableVpcConfigFieldsEq(a: LambdaFunction, b: LambdaFunction) {
+    const result =
+      Object.is(a.securityGroups?.length, b.securityGroups?.length) &&
+      (((a.securityGroups ?? []).length === 0 && (b.securityGroups ?? []).length === 0) ||
+        ((a.securityGroups ?? []).every(
+          asg => !!(b.securityGroups ?? []).find(bsg => Object.is(asg.groupId, bsg.groupId)),
+        ) ??
+          false)) &&
+      Object.is((a.subnets ?? []).length, (b.subnets ?? []).length) &&
+      (((a.subnets ?? []).length === 0 && (b.subnets ?? []).length === 0) ||
+        ((a.subnets ?? []).every(asn => !!(b.subnets ?? []).find(bsn => Object.is(asn, bsn))) ?? false));
+
+    return result;
   }
 
   restorableFunctionFieldsEq(a: LambdaFunction, b: LambdaFunction) {
@@ -101,13 +141,46 @@ export class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
     return Object.is(a.zipB64, b.zipB64);
   }
 
+  getNetworkInterfaces = crudBuilderFormat<EC2, 'describeNetworkInterfaces', NetworkInterface[] | undefined>(
+    'describeNetworkInterfaces',
+    subnetId => ({
+      Filters: [
+        {
+          Name: 'subnet-id',
+          Values: [subnetId],
+        },
+        {
+          Name: 'interface-type',
+          Values: ['lambda'],
+        },
+      ],
+    }),
+    res => res?.NetworkInterfaces,
+  );
+
+  getFunctionVersions = crudBuilderFormat<
+    Lambda,
+    'listVersionsByFunction',
+    FunctionConfiguration[] | undefined
+  >(
+    'listVersionsByFunction',
+    name => ({ FunctionName: name }),
+    res => res?.Versions,
+  );
+
   cloud = new Crud2({
     create: async (es: LambdaFunction[], ctx: Context) => {
       const out = [];
       for (const e of es) {
         const client = (await ctx.getAwsClient(e.region)) as AWS;
+
+        // if role does not exist in the cloud, continue, should be created later
+        const role = await awsIamModule.role.cloud.read(ctx, e.role.roleName);
+        if (!role) continue;
+
         // TODO: handle properly once more lambda sources are added (ecr, s3)
         if (!e.zipB64) throw new Error('Missing base64 encoded zip file');
+
         const input: CreateFunctionCommandInput = {
           FunctionName: e.name,
           Description: e.description,
@@ -126,7 +199,13 @@ export class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
                 Variables: e.environment,
               }
             : undefined,
+
+          VpcConfig: {
+            SubnetIds: e.subnets ?? [],
+            SecurityGroupIds: e.securityGroups.map(s => s.groupId ?? '') ?? [],
+          },
         };
+
         const newFunction = await createFunction(client.lambdaClient, input);
         if (!newFunction?.FunctionArn) {
           // then who?
@@ -140,6 +219,7 @@ export class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
         const rawFn = await getFunction(client.lambdaClient, newFunction.FunctionName);
         if (!rawFn) throw new Error('Newly created function could not be found.'); // Should be impossible
         const newEntity = await this.lambdaFunctionMapper(rawFn, ctx, e.region);
+
         if (newEntity) {
           newEntity.id = e.id;
           // Set zipB64 as null to avoid infinite loop trying to update it.
@@ -192,10 +272,36 @@ export class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
               Variables: e.environment,
             },
             Runtime: e.runtime,
+            VpcConfig: {
+              SubnetIds: e.subnets ?? [],
+              SecurityGroupIds: e.securityGroups.map(s => s.groupId ?? '') ?? [],
+            },
           };
           await updateFunctionConfiguration(client.lambdaClient, input);
           await waitUntilFunctionUpdated(client.lambdaClient, e.name);
         }
+
+        if (!this.updateableVpcConfigFieldsEq(cloudRecord, e)) {
+          // Update function configuration
+          const input: UpdateFunctionConfigurationCommandInput = {
+            FunctionName: e.name,
+            Role: e.role.arn,
+            Handler: e.handler,
+            Description: e.description,
+            MemorySize: e.memorySize,
+            Environment: {
+              Variables: e.environment,
+            },
+            Runtime: e.runtime,
+            VpcConfig: {
+              SubnetIds: e.subnets ?? [],
+              SecurityGroupIds: e.securityGroups.map(s => s.groupId ?? '') ?? [],
+            },
+          };
+          await updateFunctionConfiguration(client.lambdaClient, input);
+          await waitUntilFunctionUpdated(client.lambdaClient, e.name);
+        }
+
         if (!this.updateableCodeFieldsEq(cloudRecord, e)) {
           // Update function code
           const input: UpdateFunctionCodeCommandInput = {
@@ -230,6 +336,28 @@ export class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
     delete: async (es: LambdaFunction[], ctx: Context) => {
       for (const e of es) {
         const client = (await ctx.getAwsClient(e.region)) as AWS;
+        const region = e.region;
+
+        // Update function configuration, decoupling the VPC to allow
+        // network interfaces to be released and removed automatically
+        const input: UpdateFunctionConfigurationCommandInput = {
+          FunctionName: e.name,
+          Role: e.role.arn,
+          Handler: e.handler,
+          Description: e.description,
+          MemorySize: e.memorySize,
+          Environment: {
+            Variables: e.environment,
+          },
+          Runtime: e.runtime,
+          VpcConfig: {
+            SubnetIds: [],
+            SecurityGroupIds: [],
+          },
+        };
+        await updateFunctionConfiguration(client.lambdaClient, input);
+        await waitUntilFunctionUpdated(client.lambdaClient, e.name);
+
         await deleteFunction(client.lambdaClient, e.name);
       }
     },
