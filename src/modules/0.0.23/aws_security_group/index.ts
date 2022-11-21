@@ -265,7 +265,6 @@ class SecurityGroupMapper extends MapperBase<SecurityGroup> {
             const client = (await ctx.getAwsClient(region)) as AWS;
             const sgs = await this.getSecurityGroups(client.ec2client);
             for (const sg of sgs) {
-              console.log(sg);
               if (sg) out.push(await this.sgMapper(sg, ctx, region));
             }
           }),
