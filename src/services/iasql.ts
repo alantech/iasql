@@ -130,9 +130,8 @@ export async function connect(dbAlias: string, uid: string, email: string, dbId 
       database: dbId,
     });
     await dbMan.migrate(conn2);
-    // We sync main conn to be aware of the new dbId database created
-    await conn1.synchronize();
-    await conn1.query(dbMan.initCron(dbId));
+    await conn2.query(dbMan.setUpDblink(dbId));
+    await conn2.query(`SELECT * FROM schedule_cron_job();`);
     await conn2.query(dbMan.createDbPostgreGroupRole(dbId));
     await conn2.query(dbMan.newPostgresRoleQuery(dbUser, dbPass, dbId));
     await conn2.query(dbMan.grantPostgresGroupRoleQuery(dbUser, dbId, config.modules.latestVersion));
@@ -166,13 +165,18 @@ export async function connect(dbAlias: string, uid: string, email: string, dbId 
 }
 
 export async function disconnect(dbAlias: string, uid: string) {
-  let conn;
+  let conn, conn2;
   try {
     const db: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
     await scheduler.stop(db.pgName);
     conn = await createConnection(dbMan.baseConnConfig);
+    conn2 = await createConnection({
+      ...dbMan.baseConnConfig,
+      name: db.pgName,
+      database: db.pgName,
+    });
     try {
-      await conn.query(dbMan.stopCron(db.pgName));
+      await conn2.query(`SELECT * FROM unschedule_cron_job();`);
     } catch (e) {/** Do nothing */}
     await conn.query(`
       DROP DATABASE IF EXISTS ${db.pgName} WITH (FORCE);
@@ -185,6 +189,7 @@ export async function disconnect(dbAlias: string, uid: string) {
     throw e;
   } finally {
     conn?.close();
+    conn2?.close();
   }
 }
 

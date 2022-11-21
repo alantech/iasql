@@ -205,31 +205,10 @@ export function getUid(user: any): string {
   return config.auth ? user.sub : 'iasql';
 }
 
-export function initCron(dbId: string): string {
+export function setUpDblink(dbId: string) { 
   return `
-    SELECT
-      cron.schedule_in_database ('iasql_engine_${dbId}', '*/2 * * * *', $CRON$ SELECT iasql_commit(); $CRON$, '${dbId}');
-  `;
-}
-
-export function stopCron(dbId: string): string {
-  return `
-    SELECT cron.unschedule('iasql_engine_${dbId}');
-  `;
-}
-
-export function pauseCron(dbId: string): string {
-  return `
-    UPDATE cron.job
-    SET active = FALSE
-    WHERE jobname = 'iasql_engine_${dbId}';
-  `;
-}
-
-export function startCron(dbId: string): string {
-  return `
-    UPDATE cron.job
-    SET active = TRUE
-    WHERE jobname = 'iasql_engine_${dbId}';
+    CREATE EXTENSION IF NOT EXISTS dblink;
+    CREATE SERVER IF NOT EXISTS cron_dblink_${dbId} FOREIGN DATA WRAPPER dblink_fdw OPTIONS (host '${config.db.host}', dbname 'iasql_metadata', port '${config.db.port}');
+    CREATE USER MAPPING IF NOT EXISTS FOR ${config.db.user} SERVER cron_dblink_${dbId} OPTIONS (user '${config.db.user}', password '${config.db.password}');
   `;
 }

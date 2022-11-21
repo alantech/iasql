@@ -165,3 +165,80 @@ begin
   ]') as x(name text, signature text, description text, sample_usage text);
 end;
 $$;
+
+CREATE
+OR REPLACE FUNCTION query_cron (_sql TEXT) RETURNS TEXT LANGUAGE plpgsql SECURITY DEFINER AS $$
+declare
+    _db_id text;
+    _dblink_conn_count int;
+begin
+    SELECT current_database() INTO _db_id;
+    SELECT count(1) INTO _dblink_conn_count
+    FROM dblink_get_connections()
+    WHERE dblink_get_connections@>'{iasqlcronconn}';
+    IF _dblink_conn_count = 0 THEN
+        PERFORM dblink_connect('iasqlcronconn', 'cron_dblink_' || _db_id);
+    END IF;
+    -- allow statement that returns results in dblink https://stackoverflow.com/a/28299993
+    PERFORM * FROM dblink('iasqlcronconn', _sql) alias(col text);
+    -- give it some time to execute
+    PERFORM pg_sleep(1);
+    RETURN 'Executed';
+end;
+$$;
+
+CREATE
+OR REPLACE FUNCTION schedule_cron_job () RETURNS text LANGUAGE plpgsql SECURITY DEFINER AS $$
+declare
+    _dblink_sql text;
+    _db_id text;
+    _output text;
+begin
+    SELECT current_database() INTO _db_id;
+    _dblink_sql := format('SELECT cron.schedule_in_database (%L, %L, $CRON$ SELECT iasql_commit(); $CRON$, %L);', 'iasql_engine_' || _db_id, '*/2 * * * *', _db_id);
+    SELECT * FROM query_cron(_dblink_sql) INTO _output;
+    RETURN 'Job scheduled';
+end;
+$$;
+
+CREATE
+OR REPLACE FUNCTION unschedule_cron_job () RETURNS text LANGUAGE plpgsql SECURITY DEFINER AS $$
+declare
+    _dblink_sql text;
+    _db_id text;
+    _output text;
+begin
+    SELECT current_database() INTO _db_id;
+    _dblink_sql := format('SELECT cron.unschedule(%L);', 'iasql_engine_' || _db_id);
+    SELECT * FROM query_cron(_dblink_sql) INTO _output;
+    RETURN 'Job unscheduled';
+end;
+$$;
+
+CREATE
+OR REPLACE FUNCTION enable_cron_job () RETURNS text LANGUAGE plpgsql SECURITY DEFINER AS $$
+declare
+    _dblink_sql text;
+    _db_id text;
+    _output text;
+begin
+    SELECT current_database() INTO _db_id;
+    _dblink_sql := format('SELECT cron.alter_job(job_id := %s, active := TRUE);', '(SELECT cron.job.jobid FROM cron.job WHERE cron.job.jobname = ''' || 'iasql_engine_' || _db_id || ''')');
+    SELECT * FROM query_cron(_dblink_sql) INTO _output;
+    RETURN 'Job enabled';
+end;
+$$;
+
+CREATE
+OR REPLACE FUNCTION disable_cron_job () RETURNS text LANGUAGE plpgsql SECURITY DEFINER AS $$
+declare
+    _dblink_sql text;
+    _db_id text;
+    _output text;
+begin
+    SELECT current_database() INTO _db_id;
+    _dblink_sql := format('SELECT cron.alter_job(job_id := %s, active := FALSE);', '(SELECT cron.job.jobid FROM cron.job WHERE cron.job.jobname = ''' || 'iasql_engine_' || _db_id || ''')');
+    SELECT * FROM query_cron(_dblink_sql) INTO _output;
+    RETURN 'Job disabled';
+end;
+$$;

@@ -1,7 +1,4 @@
-import { createConnection } from 'typeorm';
-
 import { IasqlFunctions } from '..';
-import * as dbMan from '../../../../services/db-manager';
 import { Context, RpcBase, RpcResponseObject } from '../../../interfaces';
 
 export class IasqlBegin extends RpcBase {
@@ -10,15 +7,14 @@ export class IasqlBegin extends RpcBase {
     message: 'varchar',
   } as const;
   call = async (
-    dbId: string,
+    _dbId: string,
     _dbUser: string,
-    _ctx: Context,
+    ctx: Context,
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
     let conn: any;
     let message: string;
     try {
-      conn = await createConnection(dbMan.baseConnConfig);
-      await conn.query(dbMan.pauseCron(dbId));
+      await ctx.orm.query(`SELECT * FROM disable_cron_job();`);
       message = 'Transaction started';
       // TODO: Find a way to set a timeout to init the cron again.
       // We can use the cron state job but we sould also need to look for the last time begin was called maybe?
