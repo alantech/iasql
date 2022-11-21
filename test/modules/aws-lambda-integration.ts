@@ -692,7 +692,7 @@ describe('Lambda Integration Testing', () => {
     )      
     DELETE FROM security_group
     USING vpc
-    WHERE security_group.vpc_id = vpc.id;    
+    WHERE security_group.vpc_id = vpc.id;
 
     DELETE FROM vpc WHERE cidr_block='192.${randIPBlock}.0.0/16' AND region='${region}';
   `,
