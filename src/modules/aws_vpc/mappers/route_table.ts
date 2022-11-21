@@ -9,7 +9,7 @@ import { AWS, crudBuilderFormat, paginateBuilder } from '../../../services/aws_m
 import { getCloudId } from '../../../services/cloud-id';
 import { findDiff } from '../../../services/diff';
 import { Context, Crud2, MapperBase } from '../../interfaces';
-import { Route, RouteTable } from '../entity';
+import { Route, RouteTable, RouteTableAssociation } from '../entity';
 import { AwsVpcModule } from '../index';
 import { convertTagsForAws, convertTagsFromAws, eqTags } from './tags';
 
@@ -197,29 +197,45 @@ export class RouteTableMapper extends MapperBase<RouteTable> {
         if (!this.eqListItems<Route>(this.eqRoute, e.routes, cloudRecord.routes)) {
           // delete and create routes
           const { entitiesInDbOnly, entitiesInAwsOnly } = this.findRoutesDiff(e.routes, cloudRecord.routes);
-          await Promise.all([
-            ...entitiesInAwsOnly.map(async r => await RouteTableMapper.deleteRoute(client.ec2client, e, r)),
-            ...entitiesInDbOnly.map(async r => await RouteTableMapper.createRoute(client.ec2client, e, r)),
-          ]);
+          for (const r of entitiesInAwsOnly) {
+            if (r.GatewayId === 'local') {
+              // default route, can't be deleted by the user
+              await ctx.orm.save(Route, r);
+              ctx.memo.db.RouteTable[this.entityId(e)] = await ctx.orm.find(RouteTable, {
+                where: { id: e.id },
+              });
+              continue;
+            }
+            await RouteTableMapper.deleteRoute(client.ec2client, e, r);
+          }
+          for (const r of entitiesInDbOnly) {
+            await RouteTableMapper.createRoute(client.ec2client, e, r);
+          }
         }
 
         return out;
       }
     },
     delete: async (es: RouteTable[], ctx: Context) => {
-      for (const e of es) {
-        const client = (await ctx.getAwsClient(e.region)) as AWS;
-        await client.ec2client.deleteRouteTable({ RouteTableId: e.routeTableId });
-      }
+      const associations: RouteTableAssociation[] = ctx.memo?.cloud?.RouteTableAssociation
+        ? Object.values(ctx.memo?.cloud?.RouteTableAssociation)
+        : await this.module.routeTableAssociation.cloud.read(ctx);
+
+      await Promise.all(
+        es.map(async e => {
+          if (associations.find(a => a.routeTable.routeTableId === e.routeTableId && a.isMain)) {
+            // it's the main route table, can't be deleted so return it to the db
+            await this.module.routeTable.db.update(e, ctx);
+            return;
+          }
+          const client = (await ctx.getAwsClient(e.region)) as AWS;
+          await client.ec2client.deleteRouteTable({ RouteTableId: e.routeTableId });
+        }),
+      );
     },
   });
 
   private static async deleteRoute(client: EC2, routeTable: RouteTable, r: Route) {
-    if (r.GatewayId === 'local') {
-      // default route, can't be deleted by the user TODO: restore the value to DB
-      return;
-    }
-
     return await client.deleteRoute({
       DestinationCidrBlock: r.DestinationCidrBlock,
       DestinationIpv6CidrBlock: r.DestinationIpv6CidrBlock,

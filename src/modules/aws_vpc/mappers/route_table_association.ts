@@ -70,6 +70,11 @@ export class RouteTableAssociationMapper extends MapperBase<RouteTableAssociatio
     delete: async (es: RouteTableAssociation[], ctx: Context) => {
       await Promise.all(
         es.map(async a => {
+          if (a.isMain) {
+            // main route table can't be disassociated, return it to the db
+            await this.module.routeTableAssociation.db.update(a, ctx);
+            return;
+          }
           const client = (await ctx.getAwsClient(a.routeTable.region)) as AWS;
           await client.ec2client.disassociateRouteTable({ AssociationId: a.routeTableAssociationId });
         }),
