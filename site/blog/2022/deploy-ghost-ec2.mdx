@@ -30,7 +30,7 @@ sudo -E apt-get upgrade -y
 sudo -E apt-get -y install nginx
 sudo -E ufw allow "Nginx Full"
 sudo -E apt-get -y install mysql-server
-sudo -E mysql -u root -e "ALTER USER "root"@"localhost" IDENTIFIED WITH mysql_native_password BY "ghost";"
+sudo -E mysql -u root -e "ALTER USER "root"@"localhost" IDENTIFIED WITH mysql_native_password BY \"ghost\";"
 curl -sL https://deb.nodesource.com/setup_16.x | sudo -E bash
 sudo -E apt-get -y install nodejs
 sudo npm install ghost-cli@latest -g
