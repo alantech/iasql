@@ -187,9 +187,9 @@ export class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
     }
 
     // read them again, should be detached
-    const interfaces = await this.getNetworkInterfaces(client, subnet);
-    if (interfaces) {
-      for (const i of interfaces) {
+    const remainingInterfaces = await this.getNetworkInterfaces(client, subnet);
+    if (remainingInterfaces) {
+      for (const i of remainingInterfaces) {
         // iterate and check if description matches lambda function name
         if (
           i.Description &&
@@ -199,7 +199,9 @@ export class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
         ) {
           try {
             await client.deleteNetworkInterface({ NetworkInterfaceId: i.NetworkInterfaceId });
-          } catch (e) {}
+          } catch (e) {
+            throw new Error('Error deleting network interface');
+          }
         }
       }
     }
