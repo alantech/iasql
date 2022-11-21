@@ -24,7 +24,7 @@ export class DeployServiceRPC extends RpcBase {
     ctx: Context,
     arn: string,
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
-    if (arn) {
+    if (!arn) {
       return [
         {
           arn: '',
