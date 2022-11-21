@@ -528,7 +528,7 @@ describe('ECS Simplified Integration Testing', () => {
     query(
       `
     SELECT deploy_service(arn) FROM service WHERE name='${appName}-service'`,
-      (res: any[]) => expect(res[0].status).toStrictEqual('OK'),
+      (res: any[]) => expect(res[0].deploy_service[1].toStrictEqual('OK')),
     ),
   );
 

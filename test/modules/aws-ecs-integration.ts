@@ -662,9 +662,8 @@ describe('ECS Integration Testing', () => {
       `
       SELECT deploy_service(arn) FROM service WHERE name='${newServiceName}'`,
       (res: any[]) => {
-        console.log(res);
-        expect(res.length).toBe(1);
-        expect(res[0].status).toStrictEqual('OK');
+        console.log(res[0].deploy_service);
+        expect(res[0].deploy_service[1].toStrictEqual('OK'));
       },
     ),
   );
