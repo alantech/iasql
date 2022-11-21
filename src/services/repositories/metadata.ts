@@ -32,6 +32,7 @@ class MetadataRepo {
       migrations: [`${__dirname}/../../migration/*.js`, `${__dirname}/../../migration/*.ts`],
       migrationsTableName: '__migrations__',
     });
+    await this.conn.query(`CREATE EXTENSION IF NOT EXISTS pg_cron;`)
     await this.conn.runMigrations();
     this.userRepo = this.conn.getRepository(IasqlUser);
     this.dbRepo = this.conn.getRepository(IasqlDatabase);
