@@ -131,7 +131,7 @@ export async function connect(dbAlias: string, uid: string, email: string, dbId 
     });
     await dbMan.migrate(conn2);
     await conn2.query(dbMan.setUpDblink(dbId));
-    await conn2.query(`SELECT * FROM schedule_cron_job();`);
+    await conn2.query(`SELECT * FROM query_cron('schedule');`);
     await conn2.query(dbMan.createDbPostgreGroupRole(dbId));
     await conn2.query(dbMan.newPostgresRoleQuery(dbUser, dbPass, dbId));
     await conn2.query(dbMan.grantPostgresGroupRoleQuery(dbUser, dbId, config.modules.latestVersion));
@@ -176,7 +176,7 @@ export async function disconnect(dbAlias: string, uid: string) {
       database: db.pgName,
     });
     try {
-      await conn2.query(`SELECT * FROM unschedule_cron_job();`);
+      await conn2.query(`SELECT * FROM query_cron('unschedule');`);
     } catch (e) {/** Do nothing */}
     await conn.query(`
       DROP DATABASE IF EXISTS ${db.pgName} WITH (FORCE);

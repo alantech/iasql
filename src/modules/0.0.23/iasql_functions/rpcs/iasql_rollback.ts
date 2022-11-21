@@ -17,7 +17,7 @@ export class IasqlRollback extends RpcBase {
     ctx: Context,
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
     const res = (await iasql.rollback(dbId, ctx)).rows;
-    await ctx.orm.query(`SELECT * FROM enable_cron_job();`);
+    await ctx.orm.query(`SELECT * FROM query_cron('enable');`);
     return (
       res?.map(rec => super.formatObjKeysToSnakeCase(rec) as RpcResponseObject<typeof this.outputTable>) ?? []
     );
