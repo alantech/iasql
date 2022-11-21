@@ -72,7 +72,7 @@ export class RouteTableAssociationMapper extends MapperBase<RouteTableAssociatio
         es.map(async a => {
           if (a.isMain) {
             // main route table can't be disassociated, return it to the db
-            await this.module.routeTableAssociation.db.update(a, ctx);
+            if (a.routeTable) await this.module.routeTableAssociation.db.update(a, ctx);
             return;
           }
           const client = (await ctx.getAwsClient(a.routeTable.region)) as AWS;
