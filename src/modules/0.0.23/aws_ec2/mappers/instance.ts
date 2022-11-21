@@ -309,6 +309,17 @@ export class InstanceMapper extends MapperBase<Instance> {
             });
           }
           const sgIds = instance.securityGroups.map(sg => sg.groupId).filter(id => !!id) as string[];
+          const region = instance.region;
+
+          // check if the groups exist on the cloud, trigger an error if not
+          for (const sgId of sgIds) {
+            const sg = await awsSecurityGroupModule.securityGroup.cloud.read(
+              ctx,
+              awsSecurityGroupModule.securityGroup.generateId({ groupId: sgId ?? '', region }),
+            );
+            if (!sg) continue; // let the group to be created by the engine and retry
+          }
+
           const userData = instance.userData ? Buffer.from(instance.userData).toString('base64') : undefined;
           const iamInstanceProfile = instance.role?.arn
             ? { Arn: instance.role.arn.replace(':role/', ':instance-profile/') }
