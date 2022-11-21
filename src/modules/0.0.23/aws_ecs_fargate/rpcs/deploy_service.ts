@@ -55,8 +55,6 @@ export class DeployServiceRPC extends RpcBase {
             message: 'Service updated successfully',
           },
         ];
-        console.log('i return');
-        console.log(result);
         return result;
       } else {
         return [
