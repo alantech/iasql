@@ -177,7 +177,9 @@ export async function disconnect(dbAlias: string, uid: string) {
     });
     try {
       await conn2.query(`SELECT * FROM query_cron('unschedule');`);
-    } catch (e) {/** Do nothing */}
+    } catch (e) {
+      /** Do nothing */
+    }
     await conn.query(`
       DROP DATABASE IF EXISTS ${db.pgName} WITH (FORCE);
     `);

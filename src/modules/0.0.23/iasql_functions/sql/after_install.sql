@@ -1,4 +1,4 @@
--- TODO: Does this belong here or in a similar file in the iasql_platform module?
+ -- TODO: Does this belong here or in a similar file in the iasql_platform module?
 CREATE
 OR REPLACE FUNCTION iasql_audit () RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER AS $$
 begin

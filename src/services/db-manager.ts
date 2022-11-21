@@ -205,7 +205,7 @@ export function getUid(user: any): string {
   return config.auth ? user.sub : 'iasql';
 }
 
-export function setUpDblink(dbId: string) { 
+export function setUpDblink(dbId: string) {
   return `
     CREATE EXTENSION IF NOT EXISTS dblink;
     CREATE SERVER IF NOT EXISTS cron_dblink_${dbId} FOREIGN DATA WRAPPER dblink_fdw OPTIONS (host '${config.db.host}', dbname 'iasql_metadata', port '${config.db.port}');

@@ -1,4 +1,3 @@
-
 import { IasqlFunctions } from '..';
 import { Context, RpcBase, RpcResponseObject } from '../../../interfaces';
 import * as iasql from '../iasql';
