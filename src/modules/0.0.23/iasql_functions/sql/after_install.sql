@@ -172,6 +172,7 @@ declare
     _db_id text;
     _dblink_conn_count int;
     _dblink_sql text;
+    _out text;
 begin
     SELECT current_database() INTO _db_id;
     SELECT count(1) INTO _dblink_conn_count
@@ -182,21 +183,26 @@ begin
     END IF;
     CASE
       WHEN _action = 'schedule' THEN
-        _dblink_sql := format('SELECT cron.schedule_in_database (%L, %L, $CRON$ SELECT iasql_commit(); $CRON$, %L);', 'iasql_engine_' || _db_id, '*/2 * * * *', _db_id);
+        _dblink_sql := format('SELECT schedule_in_database AS cron_res FROM cron.schedule_in_database (%L, %L, $CRON$ SELECT iasql_commit(); $CRON$, %L);', 'iasql_engine_' || _db_id, '*/2 * * * *', _db_id);
       WHEN _action = 'unschedule' THEN
-        _dblink_sql := format('SELECT cron.unschedule(%L);', 'iasql_engine_' || _db_id);
+        _dblink_sql := format('SELECT unschedule AS cron_res FROM cron.unschedule(%L);', 'iasql_engine_' || _db_id);
       WHEN _action = 'enable' THEN
-        _dblink_sql := format('SELECT cron.alter_job(job_id := %s, active := TRUE);', '(SELECT cron.job.jobid FROM cron.job WHERE cron.job.jobname = ''' || 'iasql_engine_' || _db_id || ''')');
+        _dblink_sql := format('SELECT alter_job AS cron_res FROM cron.alter_job(job_id := %s, active := TRUE);', '(SELECT cron.job.jobid FROM cron.job WHERE cron.job.jobname = ''' || 'iasql_engine_' || _db_id || ''')');
       WHEN _action = 'disable' THEN
-        _dblink_sql := format('SELECT cron.alter_job(job_id := %s, active := FALSE);', '(SELECT cron.job.jobid FROM cron.job WHERE cron.job.jobname = ''' || 'iasql_engine_' || _db_id || ''')');
+        _dblink_sql := format('SELECT alter_job AS cron_res FROM cron.alter_job(job_id := %s, active := FALSE);', '(SELECT cron.job.jobid FROM cron.job WHERE cron.job.jobname = ''' || 'iasql_engine_' || _db_id || ''')');
+      WHEN _action = 'status' THEN
+        _dblink_sql := format('SELECT active AS cron_res FROM cron.job WHERE cron.job.jobname = ''' || 'iasql_engine_' || _db_id || ''';');
       ELSE
         RAISE EXCEPTION 'Invalid action';
         RETURN 'Execution error';
     END CASE;
     -- allow statement that returns results in dblink https://stackoverflow.com/a/28299993
-    PERFORM * FROM dblink('iasqlcronconn', _dblink_sql) alias(col text);
+    WITH dblink_res as (
+      SELECT * FROM dblink('iasqlcronconn', _dblink_sql) AS dblink_res(cron_res text)
+    )
+    SELECT dblink_res.cron_res INTO _out FROM dblink_res;
     -- give it some time to execute
     PERFORM pg_sleep(1);
-    RETURN 'Executed';
+    RETURN _out;
 end;
 $$;
