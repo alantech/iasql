@@ -148,13 +148,28 @@ class SecurityGroupMapper extends MapperBase<SecurityGroup> {
             },
           ],
         });
-        const eniMessage = `Network interfaces associated with security group ${
-          instanceParams.GroupId
-        }: ${JSON.stringify(sgEniInfo.NetworkInterfaces)}`;
-        e.message = `${e.message} | ${eniMessage}`;
-        throw e;
-      }
-      throw e;
+
+        // if the network interface is in detached state, we can remove it
+        if (sgEniInfo.NetworkInterfaces) {
+          for (const sg of sgEniInfo.NetworkInterfaces) {
+            if (sg.Attachment?.Status === 'detached') {
+              // we can just delete it
+              try {
+                await client.deleteNetworkInterface({ NetworkInterfaceId: sg.NetworkInterfaceId });
+                continue;
+              } catch (e) {
+                throw new Error('Error deleting network interface');
+              }
+            } else {
+              const eniMessage = `Network interfaces associated with security group ${
+                instanceParams.GroupId
+              }: ${JSON.stringify(sgEniInfo.NetworkInterfaces)}`;
+              e.message = `${e.message} | ${eniMessage}`;
+              throw e;
+            }
+          }
+        } else throw e;
+      } else throw e;
     }
   }
 
