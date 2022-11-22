@@ -662,7 +662,7 @@ describe('ECS Integration Testing', () => {
       `
       SELECT deploy_service(arn) FROM service WHERE name='${newServiceName}'`,
       (res: any[]) => {
-        expect(res[0].deploy_service[1].toStrictEqual('OK'));
+        expect((res[0].deploy_service[1]).toStrictEqual('OK'));
       },
     ),
   );
