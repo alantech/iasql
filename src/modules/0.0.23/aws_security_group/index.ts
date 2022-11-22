@@ -150,15 +150,15 @@ class SecurityGroupMapper extends MapperBase<SecurityGroup> {
         });
         // if the network interface is in detached state, we can remove it
         if (sgEniInfo.NetworkInterfaces) {
-          for (const sg of sgEniInfo.NetworkInterfaces) {
-            if (sg.Status === 'available' || sg.Attachment?.Status === 'detached') {
+          for (const eni of sgEniInfo.NetworkInterfaces) {
+            if (eni.Status === 'available' || eni.Attachment?.Status === 'detached') {
               // we can just delete it
               try {
-                await client.deleteNetworkInterface({ NetworkInterfaceId: sg.NetworkInterfaceId });
+                await client.deleteNetworkInterface({ NetworkInterfaceId: eni.NetworkInterfaceId });
                 continue;
               } catch (e) {
                 throw new Error(
-                  'Error deleting network interface ${sg.NetworkInterfaceId} for group ${instanceParams.GroupId}',
+                  'Error deleting network interface ${eni.NetworkInterfaceId} for group ${instanceParams.GroupId}',
                 );
               }
             } else {
