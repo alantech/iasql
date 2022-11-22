@@ -140,31 +140,37 @@ class SecurityGroupMapper extends MapperBase<SecurityGroup> {
       return await client.deleteSecurityGroup(instanceParams);
     } catch (e: any) {
       if (e.Code === 'DependencyViolation') {
-        // Just wait for 5 min on every dependency violation and retry
-        await new Promise(resolve => setTimeout(resolve, 5 * 60 * 1000));
-        try {
-          return await client.deleteSecurityGroup(instanceParams);
-        } catch (e2: any) {
-          // If the dependency continues we add the dependency to the error message in order to
-          // debug what is happening
-          if (e2.Code === 'DependencyViolation') {
-            const sgEniInfo = await client.describeNetworkInterfaces({
-              Filters: [
-                {
-                  Name: 'group-id',
-                  Values: [`${instanceParams.GroupId}`],
-                },
-              ],
-            });
-            const eniMessage = `Network interfaces associated with security group ${
-              instanceParams.GroupId
-            }: ${JSON.stringify(sgEniInfo.NetworkInterfaces)}`;
-            e2.message = `${e2.message} | ${eniMessage}`;
+        const sgEniInfo = await client.describeNetworkInterfaces({
+          Filters: [
+            {
+              Name: 'group-id',
+              Values: [`${instanceParams.GroupId}`],
+            },
+          ],
+        });
+        // if the network interface is in detached state, we can remove it
+        if (sgEniInfo.NetworkInterfaces) {
+          for (const eni of sgEniInfo.NetworkInterfaces) {
+            if (eni.Status === 'available' || eni.Attachment?.Status === 'detached') {
+              // we can just delete it
+              try {
+                await client.deleteNetworkInterface({ NetworkInterfaceId: eni.NetworkInterfaceId });
+                continue;
+              } catch (e) {
+                throw new Error(
+                  'Error deleting network interface ${eni.NetworkInterfaceId} for group ${instanceParams.GroupId}',
+                );
+              }
+            } else {
+              const eniMessage = `Network interfaces associated with security group ${
+                instanceParams.GroupId
+              }: ${JSON.stringify(sgEniInfo.NetworkInterfaces)}`;
+              e.message = `${e.message} | ${eniMessage}`;
+              throw e;
+            }
           }
-          throw e2;
-        }
-      }
-      throw e;
+        } else throw e;
+      } else throw e;
     }
   }
 
