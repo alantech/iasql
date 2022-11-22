@@ -165,19 +165,19 @@ export class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
       await new Promise(r => setTimeout(r, 10000)); // Sleep for 10s
 
       const interfaces = await this.getNetworkInterfaces(client, subnet);
-      let hasDetached = false;
+      let hasAttached = false;
       if (interfaces) {
         for (const i of interfaces) {
           if (i.Description && i.Description.includes(name) && i.NetworkInterfaceId) {
             if (i.Attachment?.Status !== 'detached') {
               // need to wait a bit more
-              hasDetached = true;
+              hasAttached = true;
               j++;
             }
           }
         }
       }
-      if (hasDetached) j++;
+      if (hasAttached) j++;
       else break;
     } while (j < 30);
 
