@@ -157,7 +157,9 @@ class SecurityGroupMapper extends MapperBase<SecurityGroup> {
                 await client.deleteNetworkInterface({ NetworkInterfaceId: sg.NetworkInterfaceId });
                 continue;
               } catch (e) {
-                throw new Error('Error deleting network interface');
+                throw new Error(
+                  'Error deleting network interface ${sg.NetworkInterfaceId} for group ${instanceParams.GroupId}',
+                );
               }
             } else {
               const eniMessage = `Network interfaces associated with security group ${
