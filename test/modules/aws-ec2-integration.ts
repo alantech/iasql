@@ -239,6 +239,68 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
+  it('adds an instance without security groups', done => {
+    query(
+      `
+      BEGIN;
+        INSERT INTO security_group (description, group_name)
+        VALUES ('Fake security group', 'fake-security-group');
+  
+        INSERT INTO instance (ami, instance_type, tags, subnet_id)
+          SELECT '${amznAmiId}', '${instanceType2}', '{"name":"${prefix}-2"}', id
+          FROM subnet
+          WHERE availability_zone = '${availabilityZone2}'
+          LIMIT 1;
+        INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
+          (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-2'),
+          (SELECT id FROM security_group WHERE group_name='fake-security-group' AND region = '${region}');
+      COMMIT;
+    `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    )((e?: any) => {
+      if (!!e) return done(e);
+      done();
+    });
+  });
+
+  it('applies the created instances', commit());
+
+  it(
+    'check number of instances',
+    query(
+      `
+    SELECT *
+    FROM instance
+    WHERE tags ->> 'name' = '${prefix}-2';
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it(
+    'deletes security group and instance',
+    query(
+      `
+      BEGIN;
+        DELETE FROM general_purpose_volume
+        USING instance
+        WHERE instance.id = general_purpose_volume.attached_instance_id AND
+          (instance.tags ->> 'name' = '${prefix}-2');
+
+        DELETE FROM instance  WHERE tags ->> 'name' = '${prefix}-2';
+        DELETE FROM security_group WHERE group_name = 'fake-security-group';
+      COMMIT;
+    `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it('applies the security group and instance deletion', commit());
+
   it('adds two ec2 instance', done => {
     query(
       `
