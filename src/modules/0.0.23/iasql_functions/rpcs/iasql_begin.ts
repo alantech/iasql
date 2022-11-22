@@ -17,7 +17,7 @@ export class IasqlBegin extends RpcBase {
       ctx.orm.query(`SELECT * FROM query_cron('status');`),
     ]);
     // if there's a commit/rollback running or the cron is inactive we do not continue
-    if (isRunning || (statusRes?.length && statusRes[0]['query_cron'] === 'f')) {
+    if (isRunning || (statusRes?.length && statusRes[0].query_cron === 'f')) {
       throw new Error('Another transaction is open. Close it before opening a new one.');
     }
     await ctx.orm.query(`SELECT * FROM query_cron('disable');`);
