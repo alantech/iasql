@@ -663,7 +663,7 @@ describe('Lambda Integration Testing', () => {
     WITH vpc as (
       SELECT id
       FROM vpc
-      WHERE cidr_block = '192.${randIPBlock}.0.0/16' AND region='${region}'
+      WHERE cidr_block = '192.${randIPBlock}.0.0/16' AND region='${region}' LIMIT 1
     )
     DELETE FROM subnet
     USING vpc
@@ -673,6 +673,11 @@ describe('Lambda Integration Testing', () => {
 
     DELETE FROM security_group WHERE group_name = '${prefix}lambdanotdefault' AND region='${region}';
 
+    WITH vpc as (
+      SELECT id
+      FROM vpc
+      WHERE cidr_block = '192.${randIPBlock}.0.0/16' AND region='${region}' LIMIT 1
+    )    
     DELETE FROM security_group_rule
     USING vpc
     WHERE security_group_id = (
@@ -680,6 +685,11 @@ describe('Lambda Integration Testing', () => {
       FROM security_group
       WHERE security_group.vpc_id=vpc.id);
 
+    WITH vpc as (
+      SELECT id
+      FROM vpc
+      WHERE cidr_block = '192.${randIPBlock}.0.0/16' AND region='${region}' LIMIT 1
+    )      
     DELETE FROM security_group
     USING vpc
     WHERE security_group.vpc_id = vpc.id;
@@ -693,6 +703,26 @@ describe('Lambda Integration Testing', () => {
   );
 
   it('applies the subnet removal', commit());
+
+  it(
+    'check no vpc is pending',
+    query(
+      `
+  SELECT * FROM vpc WHERE cidr_block='192.${randIPBlock}.0.0/16' AND region='${region}';
+  `,
+      (res: any) => expect(res.length).toBe(0),
+    ),
+  );
+
+  it(
+    'check no security_group is pending',
+    query(
+      `
+  SELECT * FROM security_group WHERE group_name = '${prefix}lambdanotdefault' AND region='${region}';
+  `,
+      (res: any) => expect(res.length).toBe(0),
+    ),
+  );
 
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 });

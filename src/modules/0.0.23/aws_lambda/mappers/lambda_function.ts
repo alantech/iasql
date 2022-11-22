@@ -12,7 +12,7 @@ import {
 
 import { AwsLambdaModule } from '..';
 import { throwError } from '../../../../config/config';
-import { crudBuilderFormat } from '../../../../services/aws_macros';
+import { crudBuilder2, crudBuilderFormat } from '../../../../services/aws_macros';
 import { Context, Crud2, MapperBase } from '../../../interfaces';
 import { awsIamModule } from '../../aws_iam';
 import { awsSecurityGroupModule } from '../../aws_security_group';
@@ -158,6 +158,55 @@ export class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
     res => res?.NetworkInterfaces,
   );
 
+  async deleteNetworkInterface(client: EC2, subnet: string, name: string) {
+    // iterate until there are no remaining network interfaces
+    let j = 0;
+    do {
+      await new Promise(r => setTimeout(r, 10000)); // Sleep for 10s
+
+      const interfaces = await this.getNetworkInterfaces(client, subnet);
+      let hasAttached = false;
+      if (interfaces) {
+        for (const i of interfaces) {
+          if (i.Description && i.Description.includes(name) && i.NetworkInterfaceId) {
+            if (i.Attachment?.Status !== 'detached') {
+              // need to wait a bit more
+              hasAttached = true;
+              j++;
+            }
+          }
+        }
+      }
+      if (hasAttached) j++;
+      else break;
+    } while (j < 30);
+
+    if (j >= 30) {
+      // error, cannot delete
+      throw new Error('Lambda still has pending interfaces, cannot detach VPC');
+    }
+
+    // read them again, should be detached
+    const remainingInterfaces = await this.getNetworkInterfaces(client, subnet);
+    if (remainingInterfaces) {
+      for (const i of remainingInterfaces) {
+        // iterate and check if description matches lambda function name
+        if (
+          i.Description &&
+          i.Description.includes(name) &&
+          i.NetworkInterfaceId &&
+          i.Attachment?.Status === 'detached'
+        ) {
+          try {
+            await client.deleteNetworkInterface({ NetworkInterfaceId: i.NetworkInterfaceId });
+          } catch (e) {
+            throw new Error('Error deleting network interface');
+          }
+        }
+      }
+    }
+  }
+
   getFunctionVersions = crudBuilderFormat<
     Lambda,
     'listVersionsByFunction',
@@ -300,6 +349,12 @@ export class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
           };
           await updateFunctionConfiguration(client.lambdaClient, input);
           await waitUntilFunctionUpdated(client.lambdaClient, e.name);
+
+          // check the network interfaces that are not applying and remove those
+          const remaining = (cloudRecord.subnets ?? []).filter((x: string) => !(e.subnets ?? []).includes(x));
+          for (const s of remaining) {
+            await this.deleteNetworkInterface(client.ec2client, s, e.name);
+          }
         }
 
         if (!this.updateableCodeFieldsEq(cloudRecord, e)) {
@@ -359,6 +414,12 @@ export class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
         await waitUntilFunctionUpdated(client.lambdaClient, e.name);
 
         await deleteFunction(client.lambdaClient, e.name);
+
+        if (e.subnets) {
+          for (const s of e.subnets) {
+            await this.deleteNetworkInterface(client.ec2client, s, e.name);
+          }
+        }
       }
     },
   });
