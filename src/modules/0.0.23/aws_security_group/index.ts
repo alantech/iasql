@@ -151,7 +151,7 @@ class SecurityGroupMapper extends MapperBase<SecurityGroup> {
         // if the network interface is in detached state, we can remove it
         if (sgEniInfo.NetworkInterfaces) {
           for (const sg of sgEniInfo.NetworkInterfaces) {
-            if (sg.Attachment?.Status === 'detached') {
+            if (sg.Status === 'available' || sg.Attachment?.Status === 'detached') {
               // we can just delete it
               try {
                 await client.deleteNetworkInterface({ NetworkInterfaceId: sg.NetworkInterfaceId });
