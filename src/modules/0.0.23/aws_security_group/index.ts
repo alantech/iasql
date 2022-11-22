@@ -148,15 +148,10 @@ class SecurityGroupMapper extends MapperBase<SecurityGroup> {
             },
           ],
         });
-        console.log('after getting network interfaces');
-
         // if the network interface is in detached state, we can remove it
         if (sgEniInfo.NetworkInterfaces) {
-          console.log('interfaces are');
-          console.log(sgEniInfo);
           for (const sg of sgEniInfo.NetworkInterfaces) {
             if (sg.Attachment?.Status === 'detached') {
-              console.log('i am detached');
               // we can just delete it
               try {
                 await client.deleteNetworkInterface({ NetworkInterfaceId: sg.NetworkInterfaceId });
