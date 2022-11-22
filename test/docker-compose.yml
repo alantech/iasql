@@ -3,6 +3,7 @@ services:
   postgresql:
     build:
       dockerfile: ../Dockerfile.pg
+      context: .
     command: postgres -c shared_preload_libraries=pg_cron -c cron.database_name=iasql_metadata
     ports:
       - "5432:5432"
