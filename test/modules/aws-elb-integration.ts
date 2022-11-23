@@ -826,6 +826,7 @@ describe('ELB install/uninstall', () => {
       'aws_codedeploy',
       'aws_codepipeline',
       'aws_elb',
+      'aws_lambda',
     ]),
   );
 

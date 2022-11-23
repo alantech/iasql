@@ -35,6 +35,9 @@ const lambdaFunctionRuntime14 = 'nodejs14.x';
 const lambdaFunctionRuntime16 = 'nodejs16.x';
 const lambdaFunctionRoleName = `${prefix}${dbAlias}-role`;
 const lambdaFunctionRoleTaskPolicyArn = 'arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole';
+const lambdaVpcFunctionRoleTaskPolicyArn =
+  'arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole';
+
 const attachAssumeLambdaPolicy = JSON.stringify({
   Version: '2012-10-17',
   Statement: [
@@ -47,6 +50,7 @@ const attachAssumeLambdaPolicy = JSON.stringify({
     },
   ],
 });
+const sgGroupName = `${prefix}sglambda`;
 
 const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
@@ -55,6 +59,9 @@ const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const region = defaultRegion();
 const modules = ['aws_lambda'];
+
+const availabilityZone = `${region}a`;
+const randIPBlock = Math.floor(Math.random() * 254) + 1; // 0 collides with the default CIDR block
 
 jest.setTimeout(480000);
 beforeAll(async () => await execComposeUp());
@@ -109,12 +116,45 @@ describe('Lambda Integration Testing', () => {
   it('installs the lambda module', install(modules));
 
   it(
+    'adds a new security group',
+    query(
+      `  
+    INSERT INTO security_group (description, group_name)
+    VALUES ('Lambda Security Group', '${sgGroupName}');
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it(
+    'adds security group rules',
+    query(
+      `
+    INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
+    SELECT false, 'tcp', 80, 80, '0.0.0.0/0', '${prefix}lambda_rule_http', id
+    FROM security_group
+    WHERE group_name = '${sgGroupName}';
+    INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
+    SELECT true, 'tcp', 1, 65335, '0.0.0.0/0', '${prefix}lambda_rule_egress', id
+    FROM security_group
+    WHERE group_name = '${sgGroupName}';
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+  it('applies the security group and rules creation', commit());
+
+  it(
     'adds a new lambda function and role',
     query(
       `
     BEGIN;
       INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
-      VALUES ('${lambdaFunctionRoleName}', '${attachAssumeLambdaPolicy}', array['${lambdaFunctionRoleTaskPolicyArn}']);
+      VALUES ('${lambdaFunctionRoleName}', '${attachAssumeLambdaPolicy}', array['${lambdaFunctionRoleTaskPolicyArn}', '${lambdaVpcFunctionRoleTaskPolicyArn}']);
 
       INSERT INTO lambda_function (name, zip_b64, handler, runtime, role_name)
       VALUES ('${lambdaFunctionName}', '${lambdaFunctionCode}', '${lambdaFunctionHandler}', '${lambdaFunctionRuntime14}', '${lambdaFunctionRoleName}');
@@ -133,7 +173,7 @@ describe('Lambda Integration Testing', () => {
     query(
       `
     SELECT *
-    FROM lambda_function 
+    FROM lambda_function
     WHERE name = '${lambdaFunctionName}';
   `,
       (res: any[]) => expect(res.length).toBe(0),
@@ -141,15 +181,31 @@ describe('Lambda Integration Testing', () => {
   );
 
   it(
-    'adds a new lambda function and role',
+    'adds a new lambda role',
+    query(
+      `
+      INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
+      VALUES ('${lambdaFunctionRoleName}', '${attachAssumeLambdaPolicy}', array['${lambdaFunctionRoleTaskPolicyArn}', '${lambdaVpcFunctionRoleTaskPolicyArn}']);
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it('applies the iam role creation', commit());
+
+  it(
+    'adds a new lambda function',
     query(
       `
     BEGIN;
-      INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
-      VALUES ('${lambdaFunctionRoleName}', '${attachAssumeLambdaPolicy}', array['${lambdaFunctionRoleTaskPolicyArn}']);
+      INSERT INTO lambda_function (name, zip_b64, handler, runtime, subnets, role_name)
+      VALUES ('${lambdaFunctionName}', '${lambdaFunctionCode}', '${lambdaFunctionHandler}', '${lambdaFunctionRuntime14}', (select array(select subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true and vpc.region = '${region}' limit 3)), '${lambdaFunctionRoleName}');
 
-      INSERT INTO lambda_function (name, zip_b64, handler, runtime, role_name)
-      VALUES ('${lambdaFunctionName}', '${lambdaFunctionCode}', '${lambdaFunctionHandler}', '${lambdaFunctionRuntime14}', '${lambdaFunctionRoleName}');
+      INSERT INTO lambda_function_security_groups (lambda_function_id, security_group_id)
+      VALUES ((SELECT id FROM lambda_function WHERE name = '${lambdaFunctionName}'), (select id from security_group where group_name = '${sgGroupName}' and region = '${region}' limit 1));
+
     COMMIT;
   `,
       undefined,
@@ -167,6 +223,17 @@ describe('Lambda Integration Testing', () => {
     SELECT *
     FROM lambda_function 
     WHERE name = '${lambdaFunctionName}';
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+  it(
+    'check security group insertion',
+    query(
+      `
+    SELECT *
+    FROM lambda_function_security_groups
+    WHERE lambda_function_id=(SELECT id FROM lambda_function WHERE name = '${lambdaFunctionName}');
   `,
       (res: any[]) => expect(res.length).toBe(1),
     ),
@@ -252,6 +319,109 @@ describe('Lambda Integration Testing', () => {
     SELECT *
     FROM lambda_function 
     WHERE name = '${lambdaFunctionName}';
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
+  // Check subnet modification
+  it(
+    'adds a new vpc',
+    query(
+      `  
+    INSERT INTO vpc (cidr_block, tags, enable_dns_hostnames, enable_dns_support, region)
+    VALUES ('192.${randIPBlock}.0.0/16', '{"name":"${prefix}-1"}', true, true, '${region}');
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it(
+    'adds a subnet',
+    query(
+      `
+    INSERT INTO subnet (availability_zone, vpc_id, cidr_block, region)
+    SELECT '${availabilityZone}', id, '192.${randIPBlock}.0.0/16', '${region}'
+    FROM vpc
+    WHERE cidr_block = '192.${randIPBlock}.0.0/16' and region='${region}' limit 1;
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it('applies the vpc and subnet creation', commit());
+
+  it(
+    'adds a new security group with non-default vpc',
+    query(
+      `  
+    INSERT INTO security_group (description, group_name, vpc_id)
+    VALUES ('Lambda security group for non-default vpc', '${prefix}lambdanotdefault', (SELECT id FROM vpc WHERE cidr_block='192.${randIPBlock}.0.0/16' AND region='${region}' limit 1));
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it(
+    'adds security group rules for not default',
+    query(
+      `
+    INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
+    SELECT false, 'tcp', 80, 80, '0.0.0.0/0', '${prefix}lambda_rule_http_not_default', id
+    FROM security_group
+    WHERE group_name = '${prefix}lambdanotdefault';
+    INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
+    SELECT true, 'tcp', 1, 65335, '0.0.0.0/0', '${prefix}lambda_rule_egress_not_default', id
+    FROM security_group
+    WHERE group_name = '${prefix}lambdanotdefault';
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+  it('applies the not default security group and rules creation', commit());
+
+  it(
+    'updates the function subnets',
+    query(
+      `
+    UPDATE lambda_function SET subnets = (select array(select subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where vpc.region = '${region}' and subnet.cidr_block='192.${randIPBlock}.0.0/16'))
+    WHERE name = '${lambdaFunctionName}';
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it(
+    'updates the security groups',
+    query(
+      `
+    UPDATE lambda_function_security_groups SET security_group_id=(select id from security_group where group_name='${prefix}lambdanotdefault' and region='${region}' limit 1) where lambda_function_id=
+    (select id from lambda_function where name='${lambdaFunctionName}' AND region='${region}');
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it('applies the lambda subnet and security group function update', commit());
+
+  it(
+    'check subnets after modification',
+    query(
+      `
+      SELECT * FROM lambda_function 
+      WHERE name = '${lambdaFunctionName}' AND cardinality(subnets)=1;      
   `,
       (res: any[]) => expect(res.length).toBe(1),
     ),
@@ -382,7 +552,13 @@ describe('Lambda Integration Testing', () => {
     'deletes the lambda function',
     query(
       `
+      BEGIN;
+      DELETE FROM lambda_function_security_groups
+      WHERE lambda_function_id = (SELECT id FROM lambda_function WHERE name = '${lambdaFunctionName}');
+  
     DELETE FROM lambda_function WHERE name = '${lambdaFunctionName}';
+    COMMIT;
+
   `,
       undefined,
       true,
@@ -454,6 +630,100 @@ describe('Lambda Integration Testing', () => {
     ),
   );
 
+  it(
+    'deletes security group rules',
+    query(
+      `
+      DELETE FROM security_group_rule WHERE description='${prefix}lambda_rule_http' or description='${prefix}lambda_rule_egress' AND region='${region}';
+    `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it(
+    'deletes security group',
+    query(
+      `
+      DELETE FROM security_group WHERE group_name = '${sgGroupName}' AND region='${region}';
+    `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it('applies the security group deletion', commit());
+
+  it(
+    'deletes the subnet and security groups',
+    query(
+      `
+    WITH vpc as (
+      SELECT id
+      FROM vpc
+      WHERE cidr_block = '192.${randIPBlock}.0.0/16' AND region='${region}' LIMIT 1
+    )
+    DELETE FROM subnet
+    USING vpc
+    WHERE subnet.vpc_id = vpc.id;
+
+    DELETE FROM security_group_rule WHERE description='${prefix}lambda_rule_http_not_default' or description='${prefix}lambda_rule_egress_not_default' AND region='${region}';
+
+    DELETE FROM security_group WHERE group_name = '${prefix}lambdanotdefault' AND region='${region}';
+
+    WITH vpc as (
+      SELECT id
+      FROM vpc
+      WHERE cidr_block = '192.${randIPBlock}.0.0/16' AND region='${region}' LIMIT 1
+    )    
+    DELETE FROM security_group_rule
+    USING vpc
+    WHERE security_group_id = (
+      SELECT id
+      FROM security_group
+      WHERE security_group.vpc_id=vpc.id);
+
+    WITH vpc as (
+      SELECT id
+      FROM vpc
+      WHERE cidr_block = '192.${randIPBlock}.0.0/16' AND region='${region}' LIMIT 1
+    )      
+    DELETE FROM security_group
+    USING vpc
+    WHERE security_group.vpc_id = vpc.id;
+
+    DELETE FROM vpc WHERE cidr_block='192.${randIPBlock}.0.0/16' AND region='${region}';
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it('applies the subnet removal', commit());
+
+  it(
+    'check no vpc is pending',
+    query(
+      `
+  SELECT * FROM vpc WHERE cidr_block='192.${randIPBlock}.0.0/16' AND region='${region}';
+  `,
+      (res: any) => expect(res.length).toBe(0),
+    ),
+  );
+
+  it(
+    'check no security_group is pending',
+    query(
+      `
+  SELECT * FROM security_group WHERE group_name = '${prefix}lambdanotdefault' AND region='${region}';
+  `,
+      (res: any) => expect(res.length).toBe(0),
+    ),
+  );
+
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 });
 
@@ -502,25 +772,25 @@ describe('Lambda install/uninstall', () => {
   );
 
   it(
-    'installs the Lambda module and confirms one table is created',
+    'installs the Lambda module and confirms two tables are created',
     query(
       `
     select * from iasql_install('aws_lambda');
   `,
       (res: any[]) => {
-        expect(res.length).toBe(1);
+        expect(res.length).toBe(2);
       },
     ),
   );
 
   it(
-    'uninstalls the Lambda module and confirms one table is removed',
+    'uninstalls the Lambda module and confirms two tables are removed',
     query(
       `
     select * from iasql_uninstall('aws_lambda');
   `,
       (res: any[]) => {
-        expect(res.length).toBe(1);
+        expect(res.length).toBe(2);
       },
     ),
   );

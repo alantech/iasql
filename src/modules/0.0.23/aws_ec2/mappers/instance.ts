@@ -308,7 +308,14 @@ export class InstanceMapper extends MapperBase<Instance> {
               };
             });
           }
+
+          // check if we have some entry without security group id
+          const without = instance.securityGroups.filter(sg => !sg.groupId);
+          if (without.length > 0) continue;
+
           const sgIds = instance.securityGroups.map(sg => sg.groupId).filter(id => !!id) as string[];
+          const region = instance.region;
+
           const userData = instance.userData ? Buffer.from(instance.userData).toString('base64') : undefined;
           const iamInstanceProfile = instance.role?.arn
             ? { Arn: instance.role.arn.replace(':role/', ':instance-profile/') }

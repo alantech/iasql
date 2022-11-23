@@ -245,7 +245,7 @@ jobs:
           docker-compose down
 
       - name: Run modules tests
-        timeout-minutes: 65
+        timeout-minutes: 90
         env:
           IASQL_ENV: test
           MODULES: ${{ needs.setup-module-test.outputs['test-modules'] }}
