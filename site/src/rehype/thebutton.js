@@ -27,7 +27,7 @@ const plugin = options => {
             children: [
               {
                 type: 'jsx',
-                value: `<button className={"button button--primary button--lg margin-bottom--lg"} onClick={() => { Cookies.set("${id}", "${encodedQuery}", {expires:1, domain: window.location.hostname == 'localhost' ? 'localhost' : 'iasql.com'}); window.open('${buttonUrl}', '_blank');}}>${buttonText}</button>`,
+                value: `<button className={"button button--primary button--lg margin-bottom--lg"} onClick={() => { Cookies.set("${id}", LZString.compressToBase64("${encodedQuery}"), {expires:1, domain: window.location.hostname == 'localhost' ? 'localhost' : 'iasql.com'}); window.open('${buttonUrl}', '_blank');}}>${buttonText}</button>`,
               },
             ],
           });
