@@ -5,7 +5,7 @@ slug: '/low-level-vs-high-level'
 
 # Low-Level vs High-Level Modules
 
-[Modules in IaSQL](./module) allow one to manipulate tables and call database functions that impact the state of their cloud infrastructure. Some of these modules may be described as "low level" and others as "high level", but rather than (just) referring to the features available and the difficulty of using them, these terms have a specific meaning within the IaSQL context.
+[Modules in IaSQL](../module) allow one to manipulate tables and call database functions that impact the state of their cloud infrastructure. Some of these modules may be described as "low level" and others as "high level", but rather than (just) referring to the features available and the difficulty of using them, these terms have a specific meaning within the IaSQL context.
 
 Consider the following stack diagram:
 
