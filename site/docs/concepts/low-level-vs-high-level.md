@@ -1,6 +1,6 @@
 ---
 sidebar_position: 4
-slug: '/high-level-vs-low-level'
+slug: '/low-level-vs-high-level'
 ---
 
 # Low-Level vs High-Level Modules
