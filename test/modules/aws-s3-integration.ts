@@ -314,11 +314,18 @@ INSERT INTO bucket_object (bucket_name, key, region) VALUES ('${s3Name}', 'fake_
 
   it(
     'cleans the bucket',
-    query(`SELECT * FROM iasql_begin();
-DELETE FROM bucket_object WHERE bucket_name='${s3Name}'`, undefined, true, () => ({
-      username,
-      password,
-    })),
+    query(
+      `
+        SELECT * FROM iasql_begin();
+        DELETE FROM bucket_object WHERE bucket_name='${s3Name}'
+      `,
+      undefined,
+      true,
+      () => ({
+        username,
+        password,
+      }),
+    ),
   );
 
   it(
@@ -434,11 +441,18 @@ DELETE FROM bucket_object WHERE bucket_name='${s3Name}'`, undefined, true, () =>
 
   it(
     'cleans the bucket again',
-    query(`SELECT * FROM iasql_begin();
-DELETE FROM bucket_object WHERE bucket_name='${s3Name}'`, undefined, false, () => ({
-      username,
-      password,
-    })),
+    query(
+      `
+        SELECT * FROM iasql_begin();
+        DELETE FROM bucket_object WHERE bucket_name='${s3Name}'
+      `,
+      undefined,
+      false,
+      () => ({
+        username,
+        password,
+      }),
+    ),
   );
 
   it(

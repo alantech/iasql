@@ -491,11 +491,18 @@ DELETE FROM security_group_rule WHERE source_security_group = (SELECT id FROM se
 
   it(
     'deletes the original security group to test source',
-    query(`SELECT * FROM iasql_begin();
-DELETE FROM security_group WHERE group_name = '${prefix}sgforsource'`, undefined, true, () => ({
-      username,
-      password,
-    })),
+    query(
+      `
+        SELECT * FROM iasql_begin();
+        DELETE FROM security_group WHERE group_name = '${prefix}sgforsource'
+      `,
+      undefined,
+      true,
+      () => ({
+        username,
+        password,
+      }),
+    ),
   );
 
   it('applies the deletion of source security group rule', commit());
@@ -598,19 +605,33 @@ DELETE FROM security_group_rule WHERE source_security_group = (SELECT id FROM se
   );
   it(
     'deletes the source security group for A',
-    query(`SELECT * FROM iasql_begin();
-DELETE FROM security_group WHERE group_name = '${prefix}sgtestA'`, undefined, true, () => ({
-      username,
-      password,
-    })),
+    query(
+      `
+        SELECT * FROM iasql_begin();
+        DELETE FROM security_group WHERE group_name = '${prefix}sgtestA'
+      `,
+      undefined,
+      true,
+      () => ({
+        username,
+        password,
+      }),
+    ),
   );
   it(
     'deletes the source security group for B',
-    query(`SELECT * FROM iasql_begin();
-DELETE FROM security_group WHERE group_name = '${prefix}sgtestB'`, undefined, true, () => ({
-      username,
-      password,
-    })),
+    query(
+      `
+      SELECT * FROM iasql_begin();
+      DELETE FROM security_group WHERE group_name = '${prefix}sgtestB'
+    `,
+      undefined,
+      true,
+      () => ({
+        username,
+        password,
+      }),
+    ),
   );
 
   it('deletes rules and groups', commit());

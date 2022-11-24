@@ -543,11 +543,18 @@ describe('AwsCodepipeline Integration Testing', () => {
 
   it(
     'cleans up the bucket',
-    query(`SELECT * FROM iasql_begin();
-DELETE FROM bucket_object WHERE bucket_name='${bucket}'`, undefined, true, () => ({
-      username,
-      password,
-    })),
+    query(
+      `
+        SELECT * FROM iasql_begin();
+        DELETE FROM bucket_object WHERE bucket_name='${bucket}'
+      `,
+      undefined,
+      true,
+      () => ({
+        username,
+        password,
+      }),
+    ),
   );
 
   it(

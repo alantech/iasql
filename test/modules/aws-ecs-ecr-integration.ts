@@ -490,8 +490,15 @@ describe('ECS Integration Testing', () => {
   );
 
   it('fails deleting a subnet in use', done => {
-    query(`SELECT * FROM iasql_begin();
-DELETE FROM subnet;`, undefined, true, () => ({ username, password }))((e: any) => {
+    query(
+      `
+        SELECT * FROM iasql_begin();
+        DELETE FROM subnet;
+      `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    )((e: any) => {
       try {
         expect(e.message).toContain('is being used by');
       } catch (err) {
