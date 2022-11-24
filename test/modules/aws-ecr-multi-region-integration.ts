@@ -211,8 +211,6 @@ describe('ECR Multi-region Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
-
   it('should fail trying to move a repository with its images to a different region', () => {
     try {
       query(
