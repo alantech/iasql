@@ -240,7 +240,6 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 ("assign_public_ip", models.TextField()),
-                ("force_new_deployment", models.BooleanField(default=False)),
             ],
             options={"db_table": "service", "managed": False, },
         ),

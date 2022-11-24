@@ -25,6 +25,7 @@ $ cat ~/.aws/credentials
 aws_access_key_id = <YOUR_ACCESS_KEY_ID>
 aws_secret_access_key = <YOUR_SECRET_ACCESS_KEY>
 ```
+
 You will be able to see your PostgreSQL connection information when you press Connect.
 
 <img width={440} src={require('@site/static/screenshots/credentials.png').default} />
@@ -38,9 +39,10 @@ Make sure to copy the PostgreSQL connection string as you will not see it again.
 2. The first migration calls the `iasql_install` SQL function to install the ECS simplified [module](../concepts/module.md) into the hosted database.
 
 ```sql title="psql postgres://d0va6ywg:nfdDh#EP4CyzveFr@db.iasql.com/_4b2bb09a59a411e4 -c"
-SELECT * from iasql_install(
-   'aws_ecs_simplified'
-);
+SELECT
+  *
+FROM
+  iasql_install ('aws_ecs_simplified');
 ```
 
 If the function call is successful, it will return a virtual table with a record for each new table in your database under `created_table_name` and the number of existing resources or records imported from the account under `record_count`.
@@ -65,7 +67,6 @@ If the function call is successful, it will return a virtual table with a record
  aws_ecs_fargate          | task_definition               |            0
  aws_ecs_fargate          | container_definition          |            0
  aws_ecs_fargate          | service_security_groups       |            0
-(17 rows)
 ```
 
 ## Connect to the hosted db and provision cloud resources in your AWS account
@@ -74,49 +75,49 @@ If the function call is successful, it will return a virtual table with a record
 
 2. (Optional) Create and activate a virtual environment to install python dependencies
 
-    ```bash
-    python -m venv <env-name>
-    source <env-name>/bin/activate
-    ```
+   ```bash
+   python -m venv <env-name>
+   source <env-name>/bin/activate
+   ```
 
 3. Install the project dependencies under the `django/app` folder
 
-    ```bash
-    pip install -r requirements.txt
-    ```
+   ```bash
+   pip install -r requirements.txt
+   ```
 
 4. Create a `.env` file with the connection parameters provided on db creation. In this case:
 
-    ``` title="django/app/.env"
-    AWS_REGION=eu-west-2
-    DB_NAME=_3ba201e349a11daf
-    DB_USER=qpp3pzqb
-    DB_PASSWORD=LN6jnHfhRJTBD6ia
-    ```
+   ```title="django/app/.env"
+   AWS_REGION=eu-west-2
+   DB_NAME=_3ba201e349a11daf
+   DB_USER=qpp3pzqb
+   DB_PASSWORD=LN6jnHfhRJTBD6ia
+   ```
 
 5. (Optional) Set the desired project name that your resources will be named after by changing the `IASQL_PROJECT_NAME` in the `my_project/app/app/settings.py`. If the name is not changed, `quickstart` will be used.
 
-    :::note
+   :::note
 
-    The `project-name` can only contain alphanumeric characters and hyphens(-) because it will be used to name the load balancer
+   The `project-name` can only contain alphanumeric characters and hyphens(-) because it will be used to name the load balancer
 
-    :::
+   :::
 
 6. Per the [Django database documentation](https://docs.djangoproject.com/en/4.0/ref/databases/#postgresql-connection-settings-1), to connect to a new database you have to update the `DATABASES` in the `my_project/app/app/settings.py` file. This is already configure in the example project.
 
-    ```python title="django/app/app/settings.py"
-    DATABASES = {
-        ...
-        'infra': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': env('DB_NAME'),
-            'USER': env('DB_USER'),
-            'PASSWORD': env('DB_PASSWORD'),
-            'HOST': 'db.iasql.com',
-            'PORT': '5432',
-        }
-    }
-    ```
+   ```python title="django/app/app/settings.py"
+   DATABASES = {
+       ...
+       'infra': {
+           'ENGINE': 'django.db.backends.postgresql',
+           'NAME': env('DB_NAME'),
+           'USER': env('DB_USER'),
+           'PASSWORD': env('DB_PASSWORD'),
+           'HOST': 'db.iasql.com',
+           'PORT': '5432',
+       }
+   }
+   ```
 
 ### If you are using the template example go to step 9. The following steps explains how to instrospect an existing DB in Django.
 
@@ -128,35 +129,34 @@ python manage.py inspectdb --database=infra > infra/models.py
 
 :::note
 
-After running the `inspectdb` command you will need to tweak the models Django generated until they work the way you’d like. 
+After running the `inspectdb` command you will need to tweak the models Django generated until they work the way you’d like.
 In our case you will have to modify the `my_project/app/infra/models.py` file as follow:
 
 1. Replace `CharField` with `TextField`
 2. Remove all `max_length=-1`. Helpful regex for a replacement: `[\s,]*max_length=-1[,\s]*`
 3. Add the following import `from django.contrib.postgres.fields import ArrayField`
 4. Replace in the `Service` class the `subnets` property with `subnets = ArrayField(models.TextField())`
-5. Add a default `False` value for the `Service` class `force_new_deployment` property (`force_new_deployment = models.BooleanField(default=False)`).
-6. Replace in the `Role` class the `attached_policies_arns` property with `attached_policies_arns = ArrayField(models.TextField())`
-7. Add `related_name` argument to the definition for `IasqlDependencies.dependency`. (`dependency = models.ForeignKey('IasqlModule', models.DO_NOTHING, db_column='dependency', related_name='module')`)
-8. Add `related_name` argument to the definition for `TaskDefinition.execution_role_name`. (`execution_role_name = models.ForeignKey(Role, models.DO_NOTHING, db_column='execution_role_name', blank=True, null=True, related_name='execution_role_name')`)
-9. Add `related_name` argument to the definition for `TaskDefinition.task_role_name`. (`task_role_name = models.ForeignKey(Role, models.DO_NOTHING, db_column='task_role_name', blank=True, null=True, related_name='task_role_name')`)
+5. Replace in the `Role` class the `attached_policies_arns` property with `attached_policies_arns = ArrayField(models.TextField())`
+6. Add `related_name` argument to the definition for `IasqlDependencies.dependency`. (`dependency = models.ForeignKey('IasqlModule', models.DO_NOTHING, db_column='dependency', related_name='module')`)
+7. Add `related_name` argument to the definition for `TaskDefinition.execution_role_name`. (`execution_role_name = models.ForeignKey(Role, models.DO_NOTHING, db_column='execution_role_name', blank=True, null=True, related_name='execution_role_name')`)
+8. Add `related_name` argument to the definition for `TaskDefinition.task_role_name`. (`task_role_name = models.ForeignKey(Role, models.DO_NOTHING, db_column='task_role_name', blank=True, null=True, related_name='task_role_name')`)
 
 :::
 
-8. After instrospecting the db you will need to generate the migration so you can have the `my_project/app/infra/migrations/0002_inspectdb.py` file.
+9. After instrospecting the db you will need to generate the migration so you can have the `my_project/app/infra/migrations/0002_inspectdb.py` file.
 
-    ```bash
-    python manage.py makemigrations --name inspectdb infra
-    ```
+   ```bash
+   python manage.py makemigrations --name inspectdb infra
+   ```
 
-    :::caution
+   :::caution
 
-    If you install or uninstall IaSQL [modules](../concepts/module.md) the database schema will change and you will need to run steps 7 and 8 to
-    introspect the correct schema once again.
+   If you install or uninstall IaSQL [modules](../concepts/module.md) the database schema will change and you will need to run steps 7 and 8 to
+   introspect the correct schema once again.
 
-    :::
+   :::
 
-9. Now you can use IaSQL models to create your resources. Run the existing migrations with:
+10. Now you can use IaSQL models to create your resources. Run the existing migrations with:
 
     ```bash
     python manage.py migrate --database infra infra
@@ -181,30 +181,40 @@ If the function call is successful, it will return a list of dicts with each clo
 ## Login, build and push your code to the container registry
 
 Previously, you needed to manually build and push your image to the ECR. But recently we've added the high-level `ecr_build` SQL function which does all those steps automatically. It will do the following:
+
 - Pull the code from your Github repository
 - Build the Docker image in the directory you've specified
 - Push the image to the ECR repository you've provided
 
 All of these steps will be done in a CodeBuild project in your AWS account. To use the `ecr_build` function, you can run:
+
 ```sql
-SELECT ecr_build(
-   'https://github.com/iasql/iasql-engine/', -- replace with your own Github repo if you want to use your own codebase
-   (SELECT id
-    FROM repository
-    WHERE repository_name = 'quickstart-repository')::varchar(255), -- replace quickstart if you've changed the project name
-   './examples/ecs-fargate/django/app', -- the sub directory in the Github repo that the image should be built in
-   'main', -- the Github repo branch name
-   '' -- replace your github personal access token here if the repo is private
-);
+SELECT
+  ecr_build (
+    'https://github.com/iasql/iasql-engine/', -- replace with your own Github repo if you want to use your own codebase
+    (
+      SELECT
+        id
+      FROM
+        repository
+      WHERE
+        repository_name = 'quickstart-repository'
+    )::VARCHAR(255), -- replace quickstart if you've changed the project name
+    './examples/ecs-fargate/django/app', -- the sub directory in the Github repo that the image should be built in
+    'main', -- the Github repo branch name
+    '' -- replace your github personal access token here if the repo is private
+  );
 ```
 
 After running the above SQL command to completion, you can check the running app using the load balancer DNS name. To grab the name, run:
+
 ```bash
 QUICKSTART_LB_DNS=$(psql -At 'postgres://d0va6ywg:nfdDh#EP4CyzveFr@db.iasql.com/_4b2bb09a59a411e4' -c "
 SELECT dns_name
 FROM load_balancer
 WHERE load_balancer_name = '<project-name>-load-balancer';")
 ```
+
 And then connect to your service!
 
 ```
@@ -216,20 +226,37 @@ curl ${QUICKSTART_LB_DNS}:8088/health
 Delete the resources created by this tutorial using the following SQL code:
 
 ```sql title="psql postgres://qpp3pzqb:LN6jnHfhRJTBD6ia@db.iasql.com/_3ba201e349a11daf -c"
-DELETE FROM repository_image WHERE private_repository_id = (SELECT id FROM repository WHERE repository_name = 'quickstart-repository');
-DELETE FROM ecs_simplified WHERE app_name = 'quickstart';
+DELETE FROM
+  repository_image
+WHERE
+  private_repository_id = (
+    SELECT
+      id
+    FROM
+      repository
+    WHERE
+      repository_name = 'quickstart-repository'
+  );
+
+DELETE FROM
+  ecs_simplified
+WHERE
+  app_name = 'quickstart';
 ```
 
 Apply the changes described in the hosted db to your cloud account
 
 ```sql title="psql postgres://qpp3pzqb:LN6jnHfhRJTBD6ia@db.iasql.com/_3ba201e349a11daf -c"
- SELECT * from iasql_apply();
+SELECT
+  *
+FROM
+  iasql_apply ();
 ```
 
 If the function call is successful, it will return a virtual table with a record for each cloud resource that has been created, deleted or updated.
 
 ```text
- action |     table_name      |   id   |                                                         description                                                         
+ action |     table_name      |   id   |                                                         description
 --------+---------------------+--------+-----------------------------------------------------------------------------------------------------------------------------
  delete | cluster             | [NULL] | arn:aws:ecs:sa-east-1:658401754851:cluster/quickstart-cluster
  delete | task_definition     | [NULL] | arn:aws:ecs:sa-east-1:658401754851:task-definition/quickstart-td:1

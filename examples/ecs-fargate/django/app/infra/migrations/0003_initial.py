@@ -19,8 +19,7 @@ def quickstart_up(_apps, schema_editor):
         app_port=PORT,
         image_tag='latest',
         cpu_mem='vCPU2-8GB',
-        desired_count=1,
-        force_new_deployment=False,
+        desired_count=1
     )
 
 
