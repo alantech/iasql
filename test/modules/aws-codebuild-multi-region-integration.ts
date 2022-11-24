@@ -239,7 +239,6 @@ describe('AwsCodebuild Multi-region Integration Testing', () => {
     'delete project',
     query(
       `
-    SELECT * FROM iasql_begin();
     DELETE FROM codebuild_project
     WHERE project_name = '${dbAlias}' and region = '${nonDefaultRegion}';
   `,
