@@ -168,7 +168,6 @@ describe('ECS Simplified Integration Testing', () => {
     'updates a row',
     query(
       `
-    SELECT * FROM iasql_begin();
     UPDATE ecs_simplified
     SET app_port = ${appPort + 1}
     WHERE app_name = '${appName}';
@@ -198,7 +197,6 @@ describe('ECS Simplified Integration Testing', () => {
     'update target group directly',
     query(
       `
-    SELECT * FROM iasql_begin();
     UPDATE target_group
     SET health_check_path = '/'
     WHERE target_group_name = '${appName}-target';
@@ -225,7 +223,6 @@ describe('ECS Simplified Integration Testing', () => {
     'update target_group directly to correct value',
     query(
       `
-    SELECT * FROM iasql_begin();
     UPDATE target_group
     SET health_check_path = '/health'
     WHERE target_group_name = '${appName}-target';
@@ -252,7 +249,6 @@ describe('ECS Simplified Integration Testing', () => {
     'deletes the app',
     query(
       `
-    SELECT * FROM iasql_begin();
     delete from ecs_simplified
     where app_name = '${appName}';
   `,
@@ -292,7 +288,6 @@ describe('ECS Simplified Integration Testing', () => {
     'adds a new row',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO ecs_simplified (app_name, desired_count, app_port, cpu_mem, image_tag, public_ip)
     VALUES ('${appName}', ${desiredCount}, ${appPort}, '${cpuMem}', '${imageTag}', ${publicIp});
   `,

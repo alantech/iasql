@@ -231,7 +231,6 @@ phases:
     'adds a new role',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
     VALUES ('${dbAlias}', '${assumeServicePolicy}', array['${codebuildPolicyArn}', '${cloudwatchLogsArn}', '${pushEcrPolicyArn}']);
   `,
@@ -245,7 +244,6 @@ phases:
     'adds a new codebuild_project with codepipeline type',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO codebuild_project (project_name, source_type, service_role_name)
     VALUES ('${dbAlias}-codepipeline', 'CODEPIPELINE', '${dbAlias}');
   `,
@@ -286,7 +284,6 @@ phases:
     'adds a new codebuild_project',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO codebuild_project (project_name, source_type, service_role_name, source_location)
     VALUES ('${dbAlias}', 'GITHUB', '${dbAlias}', '${ghUrl}');
   `,

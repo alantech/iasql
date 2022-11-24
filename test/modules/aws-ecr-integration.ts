@@ -543,7 +543,6 @@ DELETE FROM repository_image WHERE private_repository_id = (select id from repos
       'deletes the public repository',
       query(
         `
-      SELECT * FROM iasql_begin();
       DELETE FROM public_repository
       WHERE repository_name = '${pubRepositoryName}';
     `,
