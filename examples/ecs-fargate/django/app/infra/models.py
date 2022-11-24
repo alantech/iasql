@@ -95,7 +95,6 @@ class EcsSimplified(models.Model):
     image_digest = models.TextField(blank=True, null=True)
     public_ip = models.BooleanField()
     load_balancer_dns = models.TextField(blank=True, null=True)
-    force_new_deployment = models.BooleanField()
     env_variables = models.TextField(blank=True, null=True)
 
     class Meta:
@@ -352,7 +351,6 @@ class Service(models.Model):
     desired_count = models.IntegerField()
     subnets = ArrayField(models.TextField())  # This field type is a guess.
     assign_public_ip = models.TextField()  # This field type is a guess.
-    force_new_deployment = models.BooleanField(default=False)
     cluster_name = models.ForeignKey(Cluster, models.DO_NOTHING, db_column='cluster_name', blank=True, null=True)
     task_definition = models.ForeignKey('TaskDefinition', models.DO_NOTHING, blank=True, null=True)
     target_group_name = models.ForeignKey('TargetGroup', models.DO_NOTHING, db_column='target_group_name', blank=True,

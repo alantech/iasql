@@ -33,8 +33,7 @@ export class ServiceMapper extends MapperBase<Service> {
     (a?.securityGroups?.every(asg => !!b?.securityGroups?.find(bsg => Object.is(asg.groupId, bsg.groupId))) ??
       false) &&
     Object.is(a?.subnets?.length, b?.subnets?.length) &&
-    (a?.subnets?.every(asn => !!b?.subnets?.find(bsn => Object.is(asn, bsn))) ?? false) &&
-    Object.is(a.forceNewDeployment, b.forceNewDeployment);
+    (a?.subnets?.every(asn => !!b?.subnets?.find(bsn => Object.is(asn, bsn))) ?? false);
 
   updateService = crudBuilderFormat<ECS, 'updateService', AwsService | undefined>(
     'updateService',
@@ -265,7 +264,6 @@ export class ServiceMapper extends MapperBase<Service> {
       out.subnets = networkConf.subnets ?? [];
     }
     out.status = s.status;
-    out.forceNewDeployment = false;
     out.region = region;
     return out;
   }
@@ -391,8 +389,7 @@ export class ServiceMapper extends MapperBase<Service> {
           if (
             !(
               Object.is(e.desiredCount, cloudRecord.desiredCount) &&
-              Object.is(e.task?.taskDefinitionArn, cloudRecord.task?.taskDefinitionArn) &&
-              Object.is(e.forceNewDeployment, cloudRecord.forceNewDeployment)
+              Object.is(e.task?.taskDefinitionArn, cloudRecord.task?.taskDefinitionArn)
             )
           ) {
             const updatedService = await this.updateService(client.ecsClient, {
@@ -400,7 +397,6 @@ export class ServiceMapper extends MapperBase<Service> {
               cluster: e.cluster?.clusterName,
               taskDefinition: e.task?.taskDefinitionArn,
               desiredCount: e.desiredCount,
-              forceNewDeployment: e.forceNewDeployment,
             });
             const s = await this.serviceMapper(updatedService, e.region, ctx);
             if (!s) continue;
