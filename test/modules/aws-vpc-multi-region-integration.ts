@@ -5,6 +5,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  runBegin,
   runCommit,
   runInstall,
   runQuery,
@@ -22,6 +23,7 @@ const pubNg = `${prefix}${dbAlias}-pub-ng1`;
 const eip = `${prefix}${dbAlias}-eip`;
 const s3VpcEndpoint = `${prefix}${dbAlias}-s3-vpce`;
 
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
@@ -85,12 +87,12 @@ describe('VPC Multiregion Integration Testing', () => {
 
   it('installs the vpc module', install(modules));
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new vpc',
     query(
       `  
-    SELECT * FROM iasql_begin();
-  
     INSERT INTO vpc (cidr_block, region)
     VALUES ('192.${randIPBlock}.0.0/16', '${nonDefaultRegion}');
   `,
@@ -118,11 +120,12 @@ describe('VPC Multiregion Integration Testing', () => {
 
   it('undo changes', rollback());
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new vpc',
     query(
       `  
-    SELECT * FROM iasql_begin();
     INSERT INTO vpc (cidr_block, tags, region)
     VALUES ('192.${randIPBlock}.0.0/16', '{"name":"${prefix}-1"}', '${nonDefaultRegion}');
   `,
@@ -161,11 +164,12 @@ describe('VPC Multiregion Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'updates vpc region',
     query(
       `
-    SELECT * FROM iasql_begin();
     DELETE FROM security_group_rule WHERE security_group_id = (SELECT id FROM security_group WHERE vpc_id = (SELECT id FROM vpc WHERE tags ->> 'name' = '${prefix}-1'));
     DELETE FROM security_group WHERE vpc_id = (SELECT id FROM vpc WHERE tags ->> 'name' = '${prefix}-1');
     WITH updated_subnet AS (
@@ -234,11 +238,12 @@ describe('VPC Multiregion Integration Testing', () => {
   );
 
   describe('Elastic IP and nat gateway multi-region', () => {
+    it('starts a transaction', begin());
+
     it(
       'adds a new elastic ip',
       query(
         `
-      SELECT * FROM iasql_begin();
       INSERT INTO elastic_ip (tags)
       VALUES ('{"name": "${eip}"}');
     `,
@@ -260,11 +265,12 @@ describe('VPC Multiregion Integration Testing', () => {
       ),
     );
 
+    it('starts a transaction', begin());
+
     it(
       'adds a private nat gateway',
       query(
         `
-      SELECT * FROM iasql_begin();
       INSERT INTO nat_gateway (connectivity_type, subnet_id, tags)
       SELECT 'private', id, '{"Name":"${ng}"}'
       FROM subnet
@@ -288,11 +294,12 @@ describe('VPC Multiregion Integration Testing', () => {
       ),
     );
 
+    it('starts a transaction', begin());
+
     it(
       'updates the private nat gateway to another region',
       query(
         `
-      SELECT * FROM iasql_begin();
       INSERT INTO vpc (cidr_block, region)
       VALUES ('191.${randIPBlock}.0.0/16', 'us-east-1');
       INSERT INTO subnet (availability_zone, vpc_id, cidr_block, region)
@@ -323,11 +330,12 @@ describe('VPC Multiregion Integration Testing', () => {
       ),
     );
 
+    it('starts a transaction', begin());
+
     it(
       'adds a public nat gateway with existing elastic ip',
       query(
         `
-      SELECT * FROM iasql_begin();
       INSERT INTO nat_gateway (connectivity_type, subnet_id, tags, elastic_ip_id)
       SELECT 'public', subnet.id, '{"Name":"${pubNg}"}', elastic_ip.id
       FROM subnet, elastic_ip
@@ -386,11 +394,12 @@ describe('VPC Multiregion Integration Testing', () => {
       ),
     );
 
+    it('starts a transaction', begin());
+
     it(
       'deletes a public nat gateway',
       query(
         `
-      SELECT * FROM iasql_begin();
       DELETE FROM nat_gateway
       WHERE tags ->> 'Name' = '${pubNg}';
     `,
@@ -460,11 +469,12 @@ describe('VPC Multiregion Integration Testing', () => {
   });
 
   describe('VPC endpoint gateway multi-region', () => {
+    it('starts a transaction', begin());
+
     it(
       'adds a new s3 endpoint gateway',
       query(
         `
-      SELECT * FROM iasql_begin();
       INSERT INTO endpoint_gateway (service, vpc_id, tags)
       SELECT 's3', id, '{"Name": "${s3VpcEndpoint}"}'
       FROM vpc
@@ -499,11 +509,12 @@ describe('VPC Multiregion Integration Testing', () => {
       ),
     );
 
+    it('starts a transaction', begin());
+
     it(
       'moves the endpoint gateway to another region',
       query(
         `
-      SELECT * FROM iasql_begin();
       UPDATE endpoint_gateway
       SET
         region = 'us-east-1',
@@ -529,11 +540,12 @@ describe('VPC Multiregion Integration Testing', () => {
       ),
     );
 
+    it('starts a transaction', begin());
+
     it(
       'deletes a endpoint_gateway',
       query(
         `
-      SELECT * FROM iasql_begin();
       DELETE FROM endpoint_gateway
       WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
     `,
@@ -556,11 +568,12 @@ describe('VPC Multiregion Integration Testing', () => {
     );
   });
 
+  it('starts a transaction', begin());
+
   it(
     'deletes the vpcs',
     query(
       `
-    SELECT * FROM iasql_begin();
     DELETE FROM security_group_rule
     WHERE security_group_id = (
       SELECT id

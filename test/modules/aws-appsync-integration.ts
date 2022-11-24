@@ -6,6 +6,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  runBegin,
   runCommit,
   runInstall,
   runQuery,
@@ -16,6 +17,7 @@ import {
 const prefix = getPrefix();
 const dbAlias = `${prefix}appsynctest`;
 
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
@@ -83,12 +85,12 @@ describe('App Sync Integration Testing', () => {
 
   it('installs the App Sync module', install(modules));
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new Graphql API',
     query(
-      `  
-    SELECT * FROM iasql_begin();
-  
+      `
     INSERT INTO graphql_api (name, authentication_type)
     VALUES ('${apiName}', '${authType}');
   `,
@@ -100,12 +102,12 @@ describe('App Sync Integration Testing', () => {
 
   it('undo changes', rollback());
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new GraphQL API entry',
     query(
-      `  
-    SELECT * FROM iasql_begin();
-  
+      `
     INSERT INTO graphql_api (name, authentication_type)
     VALUES ('${apiName}', '${authType}');
   `,
@@ -127,11 +129,12 @@ describe('App Sync Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'tries to update Graphql API auth type',
     query(
       `
-  SELECT * FROM iasql_begin();
   UPDATE graphql_api SET authentication_type='${newAuthType}' WHERE name='${apiName}'
   `,
       undefined,
@@ -152,11 +155,12 @@ describe('App Sync Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'tries to update Graphql API ID',
     query(
       `
-  SELECT * FROM iasql_begin();
   UPDATE graphql_api SET api_id='fake' WHERE name='${apiName}'
   `,
       undefined,
@@ -191,11 +195,12 @@ describe('App Sync Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'deletes the Graphql API',
     query(
       `
-    SELECT * FROM iasql_begin();
     DELETE FROM graphql_api
     WHERE name = '${apiName}';
   `,

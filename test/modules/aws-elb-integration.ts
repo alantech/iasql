@@ -9,6 +9,7 @@ import {
   finish,
   getKeyCertPair,
   getPrefix,
+  runBegin,
   runCommit,
   runInstall,
   runQuery,
@@ -30,6 +31,7 @@ const dbAlias = 'elbtest';
 const domainName = `${prefix}${dbAlias}.com`;
 const [key, cert] = getKeyCertPair(domainName);
 
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
@@ -113,11 +115,12 @@ describe('ELB Integration Testing', () => {
   it('installs the elb module', install(modules));
 
   // Target group
+  it('starts a transaction', begin());
+
   it(
     'adds a new targetGroup',
     query(
       `
-        SELECT * FROM iasql_begin();
         INSERT INTO target_group (target_group_name, target_type, protocol, port, vpc, health_check_path)
         VALUES ('${tgName}', '${tgType}', '${protocol}', ${port}, null, '/health');
     `,
@@ -141,11 +144,12 @@ describe('ELB Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new targetGroup',
     query(
       `
-        SELECT * FROM iasql_begin();
         INSERT INTO target_group (target_group_name, target_type, protocol, port, vpc, health_check_path)
         VALUES ('${tgName}', '${tgType}', '${protocol}', ${port}, null, '/health');
     `,
@@ -169,11 +173,12 @@ describe('ELB Integration Testing', () => {
 
   it('applies the change', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'tries to update a target group field',
     query(
       `
-        SELECT * FROM iasql_begin();
         UPDATE target_group
         SET health_check_path = '/fake-health'
         WHERE target_group_name = '${tgName}';
@@ -186,11 +191,12 @@ describe('ELB Integration Testing', () => {
 
   it('applies the change', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'tries to update a target group field (replace)',
     query(
       `
-        SELECT * FROM iasql_begin();
         UPDATE target_group
         SET port = 5677
         WHERE target_group_name = '${tgName}';
@@ -204,11 +210,12 @@ describe('ELB Integration Testing', () => {
   it('applies the change', commit());
 
   // Load balancer
+  it('starts a transaction', begin());
+
   it(
     'adds a new load balancer',
     query(
       `
-        SELECT * FROM iasql_begin();
         INSERT INTO load_balancer (load_balancer_name, scheme, vpc, load_balancer_type, ip_address_type)
         VALUES ('${lbName}', '${lbScheme}', null, '${lbType}', '${lbIPAddressType}');
     `,
@@ -231,11 +238,12 @@ describe('ELB Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'adds new security groups',
     query(
       `
-              SELECT * FROM iasql_begin();
               INSERT INTO security_group (description, group_name)
               VALUES ('Security Group Test 1', '${sg1}');
               INSERT INTO security_group (description, group_name)
@@ -249,11 +257,12 @@ describe('ELB Integration Testing', () => {
 
   it('applies the change', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new load balancer',
     query(
       `
-    SELECT * FROM iasql_begin();
     BEGIN;
       INSERT INTO load_balancer (load_balancer_name, scheme, vpc, load_balancer_type, ip_address_type)
       VALUES ('${lbName}', '${lbScheme}', null, '${lbType}', '${lbIPAddressType}');
@@ -295,11 +304,14 @@ describe('ELB Integration Testing', () => {
 
   it('applies the change', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'tries to update a load balancer attribute (update)',
     query(
-      `SELECT * FROM iasql_begin();
-UPDATE load_balancer SET attributes='${loadBalancerAttributes}' WHERE load_balancer_name='${lbName}'`,
+      `
+        UPDATE load_balancer SET attributes='${loadBalancerAttributes}' WHERE load_balancer_name='${lbName}'
+      `,
       undefined,
       true,
       () => ({ username, password }),
@@ -323,11 +335,12 @@ UPDATE load_balancer SET attributes='${loadBalancerAttributes}' WHERE load_balan
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'tries to update a load balancer field',
     query(
       `
-        SELECT * FROM iasql_begin();
         UPDATE load_balancer
         SET state = '${LoadBalancerStateEnum.FAILED}'
         WHERE load_balancer_name = '${lbName}';
@@ -340,11 +353,12 @@ UPDATE load_balancer SET attributes='${loadBalancerAttributes}' WHERE load_balan
 
   it('applies the change and restore it', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'tries to update a load balancer security group (replace)',
     query(
       `
-        SELECT * FROM iasql_begin();
         UPDATE load_balancer_security_groups
         SET security_group_id = (SELECT id FROM security_group WHERE group_name = '${sg2}')
         WHERE load_balancer_id = (SELECT id FROM load_balancer WHERE load_balancer_name = '${lbName}');
@@ -357,11 +371,12 @@ UPDATE load_balancer SET attributes='${loadBalancerAttributes}' WHERE load_balan
 
   it('applies the change', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'tries to update a load balancer scheme (replace)',
     query(
       `
-        SELECT * FROM iasql_begin();
         UPDATE load_balancer
         SET scheme = '${LoadBalancerSchemeEnum.INTERNAL}'
         WHERE load_balancer_name = '${lbName}';
@@ -374,11 +389,12 @@ UPDATE load_balancer SET attributes='${loadBalancerAttributes}' WHERE load_balan
 
   it('applies the change', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new listener',
     query(
       `
-        SELECT * FROM iasql_begin();
         INSERT INTO listener (load_balancer_id, port, protocol, target_group_id)
         VALUES ((SELECT id FROM load_balancer WHERE load_balancer_name = '${lbName}'),
                 ${port},
@@ -405,11 +421,12 @@ UPDATE load_balancer SET attributes='${loadBalancerAttributes}' WHERE load_balan
 
   it('applies the change', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'tries to update a listener field',
     query(
       `
-        SELECT * FROM iasql_begin();
         UPDATE listener
         SET port = ${port + 1}
         WHERE load_balancer_id = (SELECT id FROM load_balancer WHERE load_balancer_name = '${lbName}');
@@ -441,11 +458,12 @@ UPDATE load_balancer SET attributes='${loadBalancerAttributes}' WHERE load_balan
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new HTTPS listener',
     query(
       `
-        SELECT * FROM iasql_begin();
         INSERT INTO listener (load_balancer_id, port, protocol, target_group_id, certificate_id)
         VALUES ((SELECT id FROM load_balancer WHERE load_balancer_name = '${lbName}'),
                 ${portHTTPS},
@@ -489,11 +507,12 @@ UPDATE load_balancer SET attributes='${loadBalancerAttributes}' WHERE load_balan
 
   it('installs the elb module', install(['aws_elb']));
 
+  it('starts a transaction', begin());
+
   it(
     'deletes the listener',
     query(
       `
-        SELECT * FROM iasql_begin();
         DELETE
         FROM listener
         WHERE load_balancer_id = (SELECT id FROM load_balancer WHERE load_balancer_name = '${lbName}');
@@ -518,11 +537,12 @@ UPDATE load_balancer SET attributes='${loadBalancerAttributes}' WHERE load_balan
 
   it('applies the change', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'deletes the load balancer',
     query(
       `
-        SELECT * FROM iasql_begin();
         DELETE
         FROM load_balancer
         WHERE load_balancer_name = '${lbName}';
@@ -573,11 +593,12 @@ UPDATE load_balancer SET attributes='${loadBalancerAttributes}' WHERE load_balan
 
   it('applies the change', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'deletes the target group',
     query(
       `
-        SELECT * FROM iasql_begin();
         DELETE
         FROM target_group
         WHERE target_group_name = '${tgName}';
@@ -602,11 +623,12 @@ UPDATE load_balancer SET attributes='${loadBalancerAttributes}' WHERE load_balan
 
   it('applies the change (last time)', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'deletes the certificate',
     query(
       `
-        SELECT * FROM iasql_begin();
         DELETE
         FROM certificate
         WHERE domain_name = '${domainName}';
@@ -631,11 +653,12 @@ UPDATE load_balancer SET attributes='${loadBalancerAttributes}' WHERE load_balan
 
   it('applies the cert delete change', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'creates a target group in non-default region',
     query(
       `
-        SELECT * FROM iasql_begin();
         INSERT INTO target_group (target_group_name, target_type, protocol, port, vpc, health_check_path, region)
         VALUES ('${tgName}', '${tgType}', '${protocol}', ${port}, null, '/health', 'us-east-1');
     `,
@@ -662,11 +685,12 @@ UPDATE load_balancer SET attributes='${loadBalancerAttributes}' WHERE load_balan
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'creates a security group in non-default region',
     query(
       `
-      SELECT * FROM iasql_begin();
       INSERT INTO security_group (description, group_name, region)
       VALUES ('Security Group Multi-region Test 1', '${sg1}', 'us-east-1');
   `,
@@ -712,11 +736,12 @@ UPDATE load_balancer SET attributes='${loadBalancerAttributes}' WHERE load_balan
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'adds a listener to the load balancer in non-default region',
     query(
       `
-      SELECT * FROM iasql_begin();
       INSERT INTO listener (load_balancer_id, port, protocol, target_group_id)
       VALUES ((SELECT id FROM load_balancer WHERE load_balancer_name = '${lbName}'),
               ${port},
@@ -745,11 +770,12 @@ UPDATE load_balancer SET attributes='${loadBalancerAttributes}' WHERE load_balan
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'deletes multi-region resources',
     query(
       `
-    SELECT * FROM iasql_begin();
     BEGIN;
         DELETE
         FROM listener

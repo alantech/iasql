@@ -5,6 +5,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  runBegin,
   runCommit,
   runInstall,
   runQuery,
@@ -15,6 +16,7 @@ const dbAlias = 'rdstest';
 const parameterGroupName = `${prefix}${dbAlias}pg`;
 const engineFamily = `postgres13`;
 
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
@@ -73,11 +75,12 @@ describe('RDS Multi-Region Testing', () => {
 
   it('installs the rds module', install(modules));
 
+  it('starts a transaction', begin());
+
   it(
     'creates an RDS instance',
     query(
       `
-    SELECT * FROM iasql_begin();
     BEGIN;
       INSERT INTO rds (db_instance_identifier, allocated_storage, db_instance_class, master_username, master_user_password, availability_zone, engine, backup_retention_period)
         VALUES ('${prefix}test', 20, 'db.t3.micro', 'test', 'testpass', (SELECT name FROM availability_zone WHERE region = '${region}' LIMIT 1), 'postgres:13.4', 0);
@@ -94,11 +97,12 @@ describe('RDS Multi-Region Testing', () => {
 
   it('applies the change', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'creates an RDS parameter group',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO parameter_group (name, family, description)
     VALUES ('${parameterGroupName}', '${engineFamily}', '${parameterGroupName} desc');
   `,
@@ -110,11 +114,12 @@ describe('RDS Multi-Region Testing', () => {
 
   it('applies the change', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'moves the parameter group to another region',
     query(
       `
-    SELECT * FROM iasql_begin();
     UPDATE parameter_group SET region = 'us-east-1' WHERE name = '${parameterGroupName}';
   `,
       undefined,
@@ -147,11 +152,12 @@ describe('RDS Multi-Region Testing', () => {
 
   it('applies the region move and parameter group usage', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'removes the RDS instance',
     query(
       `
-    SELECT * FROM iasql_begin();
     DELETE FROM rds
     WHERE db_instance_identifier = '${prefix}test';
   `,
@@ -163,11 +169,12 @@ describe('RDS Multi-Region Testing', () => {
 
   it('applies the change', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'removes the parameter group and it parameters',
     query(
       `
-    SELECT * FROM iasql_begin();
     DELETE FROM parameter_group
     WHERE name = '${parameterGroupName}';
   `,

@@ -1,8 +1,9 @@
 import * as iasql from '../../src/services/iasql';
-import { runQuery, finish, execComposeUp, execComposeDown, runInstall } from '../helpers';
+import { runQuery, finish, execComposeUp, execComposeDown, runInstall, runBegin } from '../helpers';
 
 const dbAlias = 'automatictest';
 
+const begin = runBegin.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uid = '12345';
@@ -88,11 +89,12 @@ describe('Automatic mode', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'deletes the log group',
     query(
       `
-        select * from iasql_begin();
         delete from log_group where log_group_name = '${logGroupName}';
       `,
       undefined,

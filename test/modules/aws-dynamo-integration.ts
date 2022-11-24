@@ -6,6 +6,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  runBegin,
   runCommit,
   runInstall,
   runQuery,
@@ -16,6 +17,7 @@ import {
 const prefix = getPrefix();
 const dbAlias = 'dynamotest';
 
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
@@ -76,11 +78,12 @@ describe('Dynamo Integration Testing', () => {
 
   it('installs the dynamo module', install(modules));
 
+  it('starts a transaction', begin());
+
   it(
     'creates a Dynamo table',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO dynamo_table (table_name, table_class, throughput, primary_key)
     VALUES (
       '${prefix}test',
@@ -109,11 +112,12 @@ describe('Dynamo Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'creates a Dynamo table',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO dynamo_table (table_name, table_class, throughput, primary_key)
     VALUES (
       '${prefix}test',
@@ -142,11 +146,12 @@ describe('Dynamo Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'changes the column definition',
     query(
       `
-    SELECT * FROM iasql_begin();
     UPDATE dynamo_table
     SET primary_key = '{"key": "S", "val": "N"}'
     WHERE table_name = '${prefix}test';
@@ -175,11 +180,12 @@ describe('Dynamo Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'removes the dynamo table',
     query(
       `
-    SELECT * FROM iasql_begin();
     DELETE FROM dynamo_table
     WHERE table_name = '${prefix}test';
   `,
@@ -215,11 +221,12 @@ describe('Dynamo Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'creates a table in a non-default region',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO dynamo_table (table_name, table_class, throughput, primary_key, region)
     VALUES (
       '${prefix}regiontest',
@@ -252,11 +259,12 @@ describe('Dynamo Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'changes the region the table is located in',
     query(
       `
-    SELECT * FROM iasql_begin();
     UPDATE dynamo_table
     SET region = '${region}'
     WHERE table_name = '${prefix}regiontest';
@@ -284,11 +292,12 @@ describe('Dynamo Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'removes the dynamo table',
     query(
       `
-    SELECT * FROM iasql_begin();
     DELETE FROM dynamo_table
     WHERE table_name = '${prefix}regiontest';
   `,

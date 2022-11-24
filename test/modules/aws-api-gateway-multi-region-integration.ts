@@ -5,6 +5,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  runBegin,
   runCommit,
   runInstall,
   runQuery,
@@ -17,6 +18,7 @@ const dbAlias = `${prefix}apigatewaytest`;
 const nonDefaultRegion = 'us-east-1';
 const apiName = `${dbAlias}testApiRegion`;
 
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
@@ -92,12 +94,12 @@ describe('Api Gateway Multi-region Integration Testing', () => {
 
   it('installs the api gateway module', install(modules));
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new API Gateway',
     query(
-      `  
-    SELECT * FROM iasql_begin();
-  
+      `
     INSERT INTO api (name, description, region)
     VALUES ('${apiName}', 'description', '${nonDefaultRegion}');
   `,
@@ -121,12 +123,12 @@ describe('Api Gateway Multi-region Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new API Gateway',
     query(
-      `  
-    SELECT * FROM iasql_begin();
-  
+      `
     INSERT INTO api (name, description, region)
     VALUES ('${apiName}', 'description', '${nonDefaultRegion}');
   `,
@@ -150,11 +152,12 @@ describe('Api Gateway Multi-region Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'changes the region the API Gateway is located in',
     query(
       `
-      SELECT * FROM iasql_begin();
       UPDATE api
       SET region = '${region}'
       WHERE name = '${apiName}';
@@ -179,11 +182,12 @@ describe('Api Gateway Multi-region Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'removes the API Gateway',
     query(
       `
-    SELECT * FROM iasql_begin();
     DELETE FROM api
     WHERE name = '${apiName}';
   `,

@@ -5,6 +5,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  runBegin,
   runCommit,
   runInstall,
   runQuery,
@@ -37,6 +38,7 @@ const attachAssumeLambdaPolicy = JSON.stringify({
   ],
 });
 
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
@@ -95,11 +97,12 @@ describe('AwsCloudwatch and AwsLambda Integration Testing', () => {
 
   it('installs modules', install(modules));
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new lambda function and role',
     query(
       `
-    SELECT * FROM iasql_begin();
     BEGIN;
       INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
       VALUES ('${resourceName}', '${attachAssumeLambdaPolicy}', array['${lambdaFunctionRoleTaskPolicyArn}']);
@@ -140,11 +143,12 @@ describe('AwsCloudwatch and AwsLambda Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'delete resources',
     query(
       `
-    SELECT * FROM iasql_begin();
     BEGIN;
       DELETE FROM lambda_function WHERE name = '${resourceName}';
       DELETE FROM iam_role WHERE role_name = '${resourceName}';

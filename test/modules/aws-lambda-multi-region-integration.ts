@@ -5,6 +5,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  runBegin,
   runCommit,
   runInstall,
   runQuery,
@@ -39,6 +40,7 @@ const attachAssumeLambdaPolicy = JSON.stringify({
   ],
 });
 
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
@@ -98,12 +100,12 @@ describe('Lambda Multi-region Integration Testing', () => {
 
   it('installs the lambda module', install(modules));
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new Lambda function',
     query(
       `  
-    SELECT * FROM iasql_begin();
-  
     BEGIN;
       INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
       VALUES ('${lambdaFunctionRoleName}', '${attachAssumeLambdaPolicy}', array['${lambdaFunctionRoleTaskPolicyArn}']);
@@ -132,12 +134,12 @@ describe('Lambda Multi-region Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new Lambda function',
     query(
       `  
-    SELECT * FROM iasql_begin();
-  
     BEGIN;
       INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
       VALUES ('${lambdaFunctionRoleName}', '${attachAssumeLambdaPolicy}', array['${lambdaFunctionRoleTaskPolicyArn}']);
@@ -166,11 +168,12 @@ describe('Lambda Multi-region Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'changes the region the lambda function is located in',
     query(
       `
-      SELECT * FROM iasql_begin();
       UPDATE lambda_function
       SET region = '${region}', zip_b64 = '${lambdaFunctionCode}'
       WHERE name = '${lambdaFunctionName}' and region = '${nonDefaultRegion}';
@@ -195,11 +198,12 @@ describe('Lambda Multi-region Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'removes the lambda function',
     query(
       `
-    SELECT * FROM iasql_begin();
     DELETE FROM lambda_function
     WHERE name = '${lambdaFunctionName}';
   `,

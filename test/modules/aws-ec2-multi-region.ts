@@ -8,6 +8,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  runBegin,
   runCommit,
   runInstall,
   runQuery,
@@ -57,6 +58,7 @@ const ubuntuAmiId =
   'resolve:ssm:/aws/service/canonical/ubuntu/server/20.04/stable/current/amd64/hvm/ebs-gp2/ami-id';
 
 const prefix = getPrefix();
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
@@ -146,10 +148,11 @@ describe('EC2 Integration Testing', () => {
 
   it('installs the ec2 module', install(modules));
 
+  it('starts a transaction', begin());
+
   it('adds an ec2 instance', done => {
     query(
       `
-      SELECT * FROM iasql_begin();
       INSERT INTO instance (ami, instance_type, tags, subnet_id)
         SELECT '${ubuntuAmiId}', '${instanceType1}', '{"name":"${prefix}-1"}', id
         FROM subnet
@@ -230,11 +233,12 @@ describe('EC2 Integration Testing', () => {
   );
 
   describe('create IAM role', () => {
+    it('starts a transaction', begin());
+
     it(
       'creates ec2 instance role',
       query(
         `
-      SELECT * FROM iasql_begin();
       INSERT INTO iam_role (role_name, assume_role_policy_document)
       VALUES ('${roleName}', '${ec2RolePolicy}');
     `,
@@ -271,11 +275,12 @@ describe('EC2 Integration Testing', () => {
     );
   });
 
+  it('starts a transaction', begin());
+
   it(
     'create target group and register instance to it',
     query(
       `
-    SELECT * FROM iasql_begin();
     BEGIN;
       INSERT INTO target_group (target_group_name, target_type, protocol, port, health_check_path)
       VALUES ('${tgName}', '${tgType}', '${protocol}', ${tgPort}, '/health');
@@ -450,11 +455,12 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'deletes the instance',
     query(
       `
-      SELECT * FROM iasql_begin();
       DELETE FROM general_purpose_volume
       USING instance
       WHERE instance.id = general_purpose_volume.attached_instance_id AND 
@@ -511,11 +517,12 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'deletes the target group',
     query(
       `
-    SELECT * FROM iasql_begin();
     DELETE FROM target_group
     WHERE target_group_name = '${tgName}';
   `,
@@ -540,11 +547,12 @@ describe('EC2 Integration Testing', () => {
   );
 
   describe('delete role', () => {
+    it('starts a transaction', begin());
+
     it(
       'deletes role',
       query(
         `
-      SELECT * FROM iasql_begin();
       DELETE FROM iam_role WHERE role_name = '${roleName}';
     `,
         undefined,

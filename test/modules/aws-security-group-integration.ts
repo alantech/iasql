@@ -6,6 +6,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  runBegin,
   runCommit,
   runInstall,
   runQuery,
@@ -16,6 +17,8 @@ import {
 const prefix = getPrefix();
 const dbAlias = 'sgtest';
 const sgName = `${prefix}${dbAlias}`;
+
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
@@ -78,12 +81,12 @@ describe('Security Group Integration Testing', () => {
 
   it('installs the security group module', install(modules));
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new security group',
     query(
       `  
-    SELECT * FROM iasql_begin();
-  
     INSERT INTO security_group (description, group_name)
     VALUES ('Security Group Test', '${prefix}sgtest');
   `,
@@ -107,12 +110,12 @@ describe('Security Group Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new security group',
     query(
       `  
-    SELECT * FROM iasql_begin();
-  
     INSERT INTO security_group (description, group_name)
     VALUES ('Security Group Test', '${prefix}sgtest');
   `,
@@ -136,11 +139,12 @@ describe('Security Group Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'adds security group rules',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
     SELECT true, 'tcp', 443, 443, '0.0.0.0/8', '${prefix}testrule', id
     FROM security_group
@@ -158,11 +162,12 @@ describe('Security Group Integration Testing', () => {
 
   it('applies the security group rule change', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'updates the security group rule',
     query(
       `
-    SELECT * FROM iasql_begin();
     UPDATE security_group_rule SET to_port = 8443 WHERE description = '${prefix}testrule';
     UPDATE security_group_rule SET to_port = 8022 WHERE description = '${prefix}testrule2';
   `,
@@ -191,11 +196,12 @@ describe('Security Group Integration Testing', () => {
 
   it('applies the security group rule change (again)', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'updates the security group',
     query(
       `
-    SELECT * FROM iasql_begin();
     UPDATE security_group SET group_name = '${prefix}sgtest2' WHERE group_name = '${prefix}sgtest';
   `,
       undefined,
@@ -233,10 +239,11 @@ describe('Security Group Integration Testing', () => {
   // Testing potential race condition with security group with very large ruleset, particularly
   // during install
 
+  it('starts a transaction', begin());
+
   it(
     'inserts a security group with a large ruleset and more',
     query(`
-    SELECT * FROM iasql_begin();
     INSERT INTO vpc (cidr_block)
     VALUES ('192.${randIPBlock}.0.0/16'), ('192.${randIPBlock2}.0.0/16');
 
@@ -283,12 +290,12 @@ describe('Security Group Integration Testing', () => {
   it('should successfully create this mess', commit());
 
   // create rule targetting to another security group
+  it('starts a transaction', begin());
+
   it(
     'adds a new security group',
     query(
       `  
-    SELECT * FROM iasql_begin();
-  
     INSERT INTO security_group (description, group_name)
     VALUES ('Security Group to test source', '${prefix}sgforsource');
   `,
@@ -330,11 +337,12 @@ describe('Security Group Integration Testing', () => {
     }
   });
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new security group rule',
     query(
       `
-  SELECT * FROM iasql_begin();
   INSERT INTO security_group_rule(description, security_group_id, source_security_group, is_egress) 
   VALUES ('${prefix}sgsourcetestrule', (SELECT id FROM security_group WHERE group_name='${prefix}sgforsource'),
   (SELECT id FROM security_group WHERE group_name='${prefix}sgsourcetest'), false);
@@ -382,11 +390,12 @@ describe('Security Group Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'deletes the source security group rule',
     query(
-      `SELECT * FROM iasql_begin();
-DELETE FROM security_group_rule WHERE source_security_group = (SELECT id FROM security_group WHERE group_name='${prefix}sgsourcetest')`,
+      `DELETE FROM security_group_rule WHERE source_security_group = (SELECT id FROM security_group WHERE group_name='${prefix}sgsourcetest')`,
       undefined,
       true,
       () => ({ username, password }),
@@ -408,11 +417,12 @@ DELETE FROM security_group_rule WHERE source_security_group = (SELECT id FROM se
   );
 
   // tests self referencing security group
+  it('starts a transaction', begin());
+
   it(
     'adds a new security group rule pointing to itself',
     query(
       `
-  SELECT * FROM iasql_begin();
   INSERT INTO security_group_rule(description, security_group_id, source_security_group, is_egress) 
   VALUES ('${prefix}sgsourcetestrule', (SELECT id FROM security_group WHERE group_name='${prefix}sgforsource'),
   (SELECT id FROM security_group WHERE group_name='${prefix}sgforsource'), false);
@@ -460,11 +470,12 @@ DELETE FROM security_group_rule WHERE source_security_group = (SELECT id FROM se
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'deletes the source security group rule pointing to itself',
     query(
-      `SELECT * FROM iasql_begin();
-DELETE FROM security_group_rule WHERE source_security_group = (SELECT id FROM security_group WHERE group_name='${prefix}sgforsource')`,
+      `DELETE FROM security_group_rule WHERE source_security_group = (SELECT id FROM security_group WHERE group_name='${prefix}sgforsource')`,
       undefined,
       true,
       () => ({ username, password }),
@@ -485,11 +496,12 @@ DELETE FROM security_group_rule WHERE source_security_group = (SELECT id FROM se
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'deletes the original security group to test source',
     query(
       `
-        SELECT * FROM iasql_begin();
         DELETE FROM security_group WHERE group_name = '${prefix}sgforsource'
       `,
       undefined,
@@ -503,11 +515,12 @@ DELETE FROM security_group_rule WHERE source_security_group = (SELECT id FROM se
 
   it('applies the deletion of source security group rule', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'deletes the vpc',
     query(
       `
-        SELECT * FROM iasql_begin();
         DELETE FROM security_group_rule
         USING security_group, vpc
         WHERE security_group_id = security_group.id AND cidr_block = '192.${randIPBlock}.0.0/24' AND security_group.vpc_id = vpc.id;
@@ -533,12 +546,12 @@ DELETE FROM security_group_rule WHERE source_security_group = (SELECT id FROM se
   it('applies the vpc removal', commit());
 
   // tests cycle in security rules
+  it('starts a transaction', begin());
+
   it(
     'adds self-referential security groups A and B',
     query(
       `  
-    SELECT * FROM iasql_begin();
-  
     INSERT INTO security_group (description, group_name)
     VALUES ('Security Group Test A', '${prefix}sgtestA'), ('Security Group Test B', '${prefix}sgtestB');
     
@@ -579,11 +592,12 @@ DELETE FROM security_group_rule WHERE source_security_group = (SELECT id FROM se
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'deletes the source security group rule for A',
     query(
-      `SELECT * FROM iasql_begin();
-DELETE FROM security_group_rule WHERE source_security_group = (SELECT id FROM security_group WHERE group_name='${prefix}sgtestA')`,
+      `DELETE FROM security_group_rule WHERE source_security_group = (SELECT id FROM security_group WHERE group_name='${prefix}sgtestA')`,
       undefined,
       true,
       () => ({ username, password }),
@@ -659,11 +673,12 @@ DELETE FROM security_group_rule WHERE source_security_group = (SELECT id FROM se
 
   it('installs the security group module', install(modules));
 
+  it('starts a transaction', begin());
+
   it(
     'deletes the security group rules',
     query(
       `
-    SELECT * FROM iasql_begin();
     DELETE FROM security_group_rule WHERE description = '${prefix}testrule';
     DELETE FROM security_group_rule WHERE description = '${prefix}testrule2';
 
@@ -685,11 +700,12 @@ DELETE FROM security_group_rule WHERE source_security_group = (SELECT id FROM se
 
   it('applies the security group rule change (last time)', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'deletes the security groups',
     query(
       `
-    SELECT * FROM iasql_begin();
     DELETE FROM security_group
     WHERE group_name in (
       '${prefix}sgtest2', '${prefix}beegbeegsg', '${prefix}teenysg',
@@ -738,11 +754,12 @@ DELETE FROM security_group_rule WHERE source_security_group = (SELECT id FROM se
 
   // Special testing involving the default security group you can't edit or delete
 
+  it('starts a transaction', begin());
+
   it(
     'clears out any default security group rules if they exist',
     query(
       `
-    SELECT * FROM iasql_begin();
     DELETE FROM security_group_rule
     USING security_group
     WHERE security_group_rule.security_group_id = security_group.id
@@ -756,11 +773,12 @@ DELETE FROM security_group_rule WHERE source_security_group = (SELECT id FROM se
 
   it('applies this change', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'tries to delete the default security group',
     query(
       `
-    SELECT * FROM iasql_begin();
     DELETE FROM security_group WHERE group_name = 'default';
   `,
       undefined,
@@ -771,11 +789,12 @@ DELETE FROM security_group_rule WHERE source_security_group = (SELECT id FROM se
 
   it('applies the security group change which will restore the record', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'tries to change the default security group description',
     query(
       `
-    SELECT * FROM iasql_begin();
     UPDATE security_group SET description = 'Not the default' where group_name = 'default';
   `,
       undefined,
@@ -786,11 +805,12 @@ DELETE FROM security_group_rule WHERE source_security_group = (SELECT id FROM se
 
   it('applies the security group change which will undo this change', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'tries to change the default security group id which triggers simultaneous create/delete',
     query(
       `
-    SELECT * FROM iasql_begin();
     UPDATE security_group SET group_id = 'remakethis' where group_name = 'default';
   `,
       undefined,
@@ -801,11 +821,12 @@ DELETE FROM security_group_rule WHERE source_security_group = (SELECT id FROM se
 
   it('applies the security group change which will recreate the record', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'adds another two security groups for a more complex test',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO security_group (description, group_name)
     VALUES
       ('Security Group Test 3', '${prefix}sgtest3'),
@@ -819,11 +840,12 @@ DELETE FROM security_group_rule WHERE source_security_group = (SELECT id FROM se
 
   it('creates these security groups', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'creates a new security group, deletes another security group, and modifies a third',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO security_group (description, group_name)
     VALUES ('Security Group Test 5', '${prefix}sgtest5');
 
@@ -857,11 +879,12 @@ DELETE FROM security_group_rule WHERE source_security_group = (SELECT id FROM se
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'deletes these test records',
     query(
       `
-    SELECT * FROM iasql_begin();
     DELETE FROM security_group WHERE group_name in ('${prefix}sgtest4', '${prefix}sgtest5');
   `,
       undefined,
@@ -965,11 +988,12 @@ describe('Security Group install/uninstall', () => {
     ]),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'inserts a new VPC (that creates a new default SG automatically)',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO vpc (cidr_block)
     VALUES ('192.${randIPBlock}.0.0/16');
   `,
@@ -999,11 +1023,12 @@ describe('Security Group install/uninstall', () => {
 
   it('uninstalls the Security Group module again (to be easier)', uninstall(['aws_security_group']));
 
+  it('starts a transaction', begin());
+
   it(
     'deletes the vpc',
     query(
       `
-    SELECT * FROM iasql_begin();
     DELETE FROM vpc
     WHERE cidr_block = '192.${randIPBlock}.0.0/16';
   `,

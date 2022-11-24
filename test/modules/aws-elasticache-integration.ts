@@ -8,6 +8,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  runBegin,
   runCommit,
   runInstall,
   runQuery,
@@ -21,6 +22,7 @@ const clusterId = `${prefix}${dbAlias}`;
 const newClusterId = `new-${prefix}${dbAlias}`;
 const anotherClusterId = `${prefix}${dbAlias}2`;
 
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
@@ -116,12 +118,12 @@ describe('Elasticache Integration Testing', () => {
 
   it('installs the elasticache module', install(modules));
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new cacheCluster',
     query(
       `  
-    SELECT * FROM iasql_begin();
-  
     INSERT INTO cache_cluster (cluster_id)
     VALUES ('${clusterId}');
   `,
@@ -133,11 +135,11 @@ describe('Elasticache Integration Testing', () => {
 
   it('undo changes', rollback());
 
+  it('starts a transaction', begin());
+
   it('adds a new cacheCluster', done => {
     query(
-      `  
-      SELECT * FROM iasql_begin();
-  
+      `
       INSERT INTO cache_cluster (cluster_id, node_type, engine, num_nodes)
       VALUES ('${clusterId}', '${nodeType}', '${cacheType}', 1);
     `,
@@ -162,11 +164,11 @@ describe('Elasticache Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it('tries to update cache_cluster node type', done => {
     query(
-      `  
-    SELECT * FROM iasql_begin();
-  
+      `
     UPDATE cache_cluster SET node_type='${updatedNodeType}' WHERE cluster_id='${clusterId}';
     `,
       undefined,
@@ -192,11 +194,12 @@ describe('Elasticache Integration Testing', () => {
     });
   });
 
+  it('starts a transaction', begin());
+
   it(
     'tries to update cache_cluster engine',
     query(
       `
-  SELECT * FROM iasql_begin();
   UPDATE cache_cluster SET engine='memcached' WHERE cluster_id='${clusterId}'
   `,
       undefined,
@@ -227,11 +230,12 @@ describe('Elasticache Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'tries to update cache_cluster id',
     query(
       `
-  SELECT * FROM iasql_begin();
   UPDATE cache_cluster SET cluster_id='${newClusterId}' WHERE cluster_id='${clusterId}'
   `,
       undefined,
@@ -262,11 +266,12 @@ describe('Elasticache Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'changes the region the cache_cluster is in',
     query(
       `
-    SELECT * FROM iasql_begin();
     UPDATE cache_cluster SET region='us-east-1' WHERE cluster_id = '${newClusterId}';
   `,
       undefined,
@@ -290,10 +295,11 @@ describe('Elasticache Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it('makes two more cache clusters with the same cluster_id in different regions', done => {
     query(
       `
-      SELECT * FROM iasql_begin();
       INSERT INTO cache_cluster (cluster_id, node_type, engine, num_nodes, region)
       VALUES
         ('${anotherClusterId}', '${nodeType}', '${cacheType}', 1, '${region}'),
@@ -334,11 +340,12 @@ describe('Elasticache Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'deletes the cache_cluster',
     query(
       `
-    SELECT * FROM iasql_begin();
     DELETE FROM cache_cluster
     WHERE cluster_id = '${newClusterId}' OR cluster_id = '${anotherClusterId}';
   `,

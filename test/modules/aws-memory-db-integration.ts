@@ -6,6 +6,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  runBegin,
   runCommit,
   runInstall,
   runQuery,
@@ -19,6 +20,7 @@ const dbAlias = 'memorydbtest';
 const subnetGroupName = `${prefix}${dbAlias}sng`;
 const clusterName = `${prefix}${dbAlias}cl`;
 
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
@@ -95,11 +97,12 @@ describe('MemoryDB Integration Testing', () => {
 
   it('installs the memory db module', install(modules));
 
+  it('starts a transaction', begin());
+
   it(
     'creates a subnet group',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO subnet_group (subnet_group_name)
     VALUES ('${subnetGroupName}');
   `,
@@ -123,11 +126,12 @@ describe('MemoryDB Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'creates a subnet group',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO subnet_group (subnet_group_name)
     VALUES ('${subnetGroupName}');
   `,
@@ -151,11 +155,12 @@ describe('MemoryDB Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'changes the subnet group description',
     query(
       `
-    SELECT * FROM iasql_begin();
     UPDATE subnet_group
     SET description = 'Short desc'
     WHERE subnet_group_name = '${subnetGroupName}';
@@ -168,11 +173,12 @@ describe('MemoryDB Integration Testing', () => {
 
   it('applies the change', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'creates a memory db cluster',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO memory_db_cluster (cluster_name, subnet_group_id)
     VALUES ('${clusterName}', (select id from subnet_group where subnet_group_name = '${subnetGroupName}'));
 
@@ -199,11 +205,12 @@ describe('MemoryDB Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'creates a memory db cluster',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO memory_db_cluster (cluster_name, subnet_group_id)
     VALUES ('${clusterName}', (select id from subnet_group where subnet_group_name = '${subnetGroupName}'));
 
@@ -230,11 +237,12 @@ describe('MemoryDB Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'changes the cluster description',
     query(
       `
-    SELECT * FROM iasql_begin();
     UPDATE memory_db_cluster
     SET description = 'Short desc'
     WHERE cluster_name = '${clusterName}';
@@ -247,11 +255,12 @@ describe('MemoryDB Integration Testing', () => {
 
   it('applies the change', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'changes the cluster arn',
     query(
       `
-    SELECT * FROM iasql_begin();
     UPDATE memory_db_cluster
     SET arn = 'fake-arn'
     WHERE cluster_name = '${clusterName}';
@@ -280,11 +289,12 @@ describe('MemoryDB Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'removes the memory db cluster',
     query(
       `
-    SELECT * FROM iasql_begin();
     DELETE FROM memory_db_cluster
     WHERE cluster_name = '${clusterName}';
   `,
@@ -332,11 +342,12 @@ describe('MemoryDB Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'removes the subnet group',
     query(
       `
-    SELECT * FROM iasql_begin();
     DELETE FROM subnet_group
     WHERE subnet_group_name = '${subnetGroupName}';
   `,

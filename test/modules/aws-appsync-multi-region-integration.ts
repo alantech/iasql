@@ -6,6 +6,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  runBegin,
   runCommit,
   runInstall,
   runQuery,
@@ -22,6 +23,7 @@ const {
 } = require(`../../src/modules/${config.modules.latestVersion}/aws_appsync/entity`);
 const authType = AuthenticationType.API_KEY;
 
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
@@ -81,12 +83,12 @@ describe('App Sync Multi-region Integration Testing', () => {
 
   it('installs the app sync module', install(modules));
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new Graphql API',
     query(
-      `  
-    SELECT * FROM iasql_begin();
-  
+      `
     INSERT INTO graphql_api (name, authentication_type, region)
     VALUES ('${apiName}', '${authType}', '${nonDefaultRegion}');
   `,
@@ -110,12 +112,12 @@ describe('App Sync Multi-region Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new Graphql API',
     query(
-      `  
-    SELECT * FROM iasql_begin();
-  
+      `
     INSERT INTO graphql_api (name, authentication_type, region)
     VALUES ('${apiName}', '${authType}', '${nonDefaultRegion}');
   `,
@@ -139,11 +141,12 @@ describe('App Sync Multi-region Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'changes the region the graphql api is located in',
     query(
       `
-      SELECT * FROM iasql_begin();
       UPDATE graphql_api
       SET region = '${region}'
       WHERE name = '${apiName}';
@@ -168,10 +171,11 @@ describe('App Sync Multi-region Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'creates a graphql api in the original region',
     query(`
-    SELECT * FROM iasql_begin();
     INSERT INTO graphql_api (name, authentication_type, region)
     VALUES ('${apiName}', '${authType}', '${nonDefaultRegion}');
   `),
@@ -179,11 +183,12 @@ describe('App Sync Multi-region Integration Testing', () => {
 
   it('applies the addition', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'removes the graphql api',
     query(
       `
-    SELECT * FROM iasql_begin();
     DELETE FROM graphql_api
     WHERE name = '${apiName}';
   `,

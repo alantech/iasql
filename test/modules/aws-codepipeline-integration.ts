@@ -7,6 +7,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  runBegin,
   runCommit,
   runInstall,
   runQuery,
@@ -15,6 +16,8 @@ import {
 
 const prefix = getPrefix();
 const dbAlias = 'codepipelinetest';
+
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
@@ -260,11 +263,12 @@ describe('AwsCodepipeline Integration Testing', () => {
 
   it('installs the codepipeline module', install(modules));
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new role',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
     VALUES ('${codePipelineRoleName}', '${assumeServicePolicy}', array['${codepipelinePolicyArn}', '${s3PolicyArn}', '${codedeployPolicyArn}']);
   `,
@@ -350,10 +354,11 @@ describe('AwsCodepipeline Integration Testing', () => {
   it('applies the security group and rules creation', commit());
 
   // create sample ec2 instance
+  it('starts a transaction', begin());
+
   it('adds an ec2 instance', done => {
     query(
       `
-      SELECT * FROM iasql_begin();
       BEGIN;
         INSERT INTO instance (ami, instance_type, tags, subnet_id, role_name, user_data)
           SELECT '${ubuntuAmiId}', '${instanceType}', '{"name":"${instanceTag}"}', id, '${ec2RoleName}', (SELECT generate_codedeploy_agent_install_script('${region}', 'ubuntu'))
@@ -376,11 +381,12 @@ describe('AwsCodepipeline Integration Testing', () => {
 
   it('applies the created instance', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new codedeploy_application for deployment',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO codedeploy_application (name, compute_platform)
     VALUES ('${applicationNameForDeployment}', 'Server');
   `,
@@ -405,11 +411,12 @@ describe('AwsCodepipeline Integration Testing', () => {
 
   it('applies the deployment group creation', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new pipeline',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO pipeline_declaration (name, service_role_name, stages, artifact_store)
     VALUES ('${prefix}-${dbAlias}', '${codePipelineRoleName}', '${stages}', '${artifactStore}');
   `,
@@ -451,11 +458,12 @@ describe('AwsCodepipeline Integration Testing', () => {
 
   it('installs the codepipeline module', install(modules));
 
+  it('starts a transaction', begin());
+
   it(
     'delete pipeline',
     query(
       `
-    SELECT * FROM iasql_begin();
     DELETE FROM pipeline_declaration
     WHERE name = '${prefix}-${dbAlias}';
   `,
@@ -515,11 +523,12 @@ describe('AwsCodepipeline Integration Testing', () => {
     it('applies the instance deletion', commit());
   });
 
+  it('starts a transaction', begin());
+
   it(
     'delete role',
     query(
       `
-    SELECT * FROM iasql_begin();
     DELETE FROM iam_role
     WHERE role_name = '${codePipelineRoleName}' OR role_name='${codeDeployRoleName}' OR role_name='${ec2RoleName}';
   `,
@@ -560,11 +569,12 @@ describe('AwsCodepipeline Integration Testing', () => {
   it('apply deletions', commit());
 
   describe('delete security groups and rules', () => {
+    it('starts a transaction', begin());
+
     it(
       'deletes security group rules',
       query(
         `
-        SELECT * FROM iasql_begin();
         DELETE FROM security_group_rule WHERE description='${prefix}codedeploy_rule_ssh' or description='${prefix}codedeploy_rule_http' or description='${prefix}codedeploy_rule_egress';
       `,
         undefined,

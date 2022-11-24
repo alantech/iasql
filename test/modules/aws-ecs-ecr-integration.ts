@@ -6,6 +6,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  runBegin,
   runCommit,
   runInstall,
   runQuery,
@@ -23,6 +24,7 @@ const dbAliasSidecar = `${dbAlias}sync`;
 const sidecarCommit = runCommit.bind(null, dbAliasSidecar);
 const sidecarInstall = runInstall.bind(null, dbAliasSidecar);
 const region = defaultRegion();
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
@@ -178,11 +180,12 @@ describe('ECS Integration Testing', () => {
   it('installs the ecs module and its dependencies', install(modules));
 
   // Cluster
+  it('starts a transaction', begin());
+
   it(
     'adds a new cluster',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO cluster (cluster_name)
     VALUES('${clusterName}');
   `,
@@ -206,11 +209,12 @@ describe('ECS Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new cluster',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO cluster (cluster_name)
     VALUES('${clusterName}');
   `,
@@ -235,11 +239,12 @@ describe('ECS Integration Testing', () => {
   );
 
   // Service dependencies
+  it('starts a transaction', begin());
+
   it(
     'adds service dependencies',
     query(
       `
-    SELECT * FROM iasql_begin();
     BEGIN;
       INSERT INTO security_group
         (description, group_name)
@@ -305,11 +310,12 @@ describe('ECS Integration Testing', () => {
 
   // Service spinning up a task definition with container using a private ecr
   // ECR
+  it('starts a transaction', begin());
+
   it(
     'adds a new ECR',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO repository
         (repository_name)
     VALUES
@@ -444,11 +450,12 @@ describe('ECS Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   // Service
   it('fails adding a service', done => {
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO service ("name", desired_count, subnets, assign_public_ip, cluster_id, task_definition_id, target_group_id)
     VALUES ('${serviceRepositoryName}', ${serviceDesiredCount}, '{"fake"}', 'ENABLED', (SELECT id FROM cluster WHERE cluster_name = '${clusterName}'), (select id from task_definition where family = '${tdRepositoryFamily}' and region = '${region}' order by revision desc limit 1), (SELECT id FROM target_group WHERE target_group_name = '${serviceTargetGroupName}' and region = '${region}'));
     `,
@@ -543,11 +550,12 @@ describe('ECS Integration Testing', () => {
 
   it('uninstalls the ecs module', uninstall(['aws_ecs_fargate']));
 
+  it('starts a transaction', begin());
+
   it(
     'delete role while ecs is uninstalled',
     query(
       `
-    SELECT * FROM iasql_begin();
     delete from iam_role
     where role_name = '${taskExecRoleName}';
   `,
@@ -585,11 +593,12 @@ describe('ECS Integration Testing', () => {
 
   it('installs the ecs module with missing role', install(['aws_ecs_fargate']));
 
+  it('starts a transaction', begin());
+
   it(
     'deletes service',
     query(
       `
-    SELECT * FROM iasql_begin();
     BEGIN;
       delete from service_security_groups
       using service
@@ -619,11 +628,12 @@ describe('ECS Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'deletes container definitons',
     query(
       `
-    SELECT * FROM iasql_begin();
     begin;
       delete from container_definition
       using task_definition
@@ -675,11 +685,12 @@ describe('ECS Integration Testing', () => {
   it('installs the ecs module', install(['aws_ecs_fargate']));
 
   // deletes service dependencies
+  it('starts a transaction', begin());
+
   it(
     'deletes service dependencies',
     query(
       `
-    SELECT * FROM iasql_begin();
     BEGIN;
       DELETE FROM listener
       WHERE load_balancer_id = (SELECT id FROM load_balancer WHERE load_balancer_name = '${serviceLoadBalancerName}')
@@ -711,11 +722,12 @@ describe('ECS Integration Testing', () => {
 
   it('applies deletes service dependencies', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'tries to update a cluster field (restore)',
     query(
       `
-    SELECT * FROM iasql_begin();
     UPDATE cluster SET cluster_status = 'fake' WHERE cluster_name = '${clusterName}';
   `,
       undefined,
@@ -726,11 +738,12 @@ describe('ECS Integration Testing', () => {
 
   it('applies tries to update a cluster field (restore)', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'tries to update cluster (replace)',
     query(
       `
-    SELECT * FROM iasql_begin();
     UPDATE cluster SET cluster_name = '${newClusterName}' WHERE cluster_name = '${clusterName}';
   `,
       undefined,
@@ -741,11 +754,12 @@ describe('ECS Integration Testing', () => {
 
   it('applies tries to update cluster (replace)', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'deletes the cluster',
     query(
       `
-    SELECT * FROM iasql_begin();
     delete from cluster
     where cluster_name = '${newClusterName}';
   `,

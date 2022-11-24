@@ -6,6 +6,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  runBegin,
   runCommit,
   runInstall,
   runQuery,
@@ -52,6 +53,7 @@ const attachAssumeLambdaPolicy = JSON.stringify({
 });
 const sgGroupName = `${prefix}sglambda`;
 
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
@@ -115,12 +117,12 @@ describe('Lambda Integration Testing', () => {
 
   it('installs the lambda module', install(modules));
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new security group',
     query(
       `  
-    SELECT * FROM iasql_begin();
-  
     INSERT INTO security_group (description, group_name)
     VALUES ('Lambda Security Group', '${sgGroupName}');
   `,
@@ -150,11 +152,12 @@ describe('Lambda Integration Testing', () => {
   );
   it('applies the security group and rules creation', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new lambda function and role',
     query(
       `
-    SELECT * FROM iasql_begin();
     BEGIN;
       INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
       VALUES ('${lambdaFunctionRoleName}', '${attachAssumeLambdaPolicy}', array['${lambdaFunctionRoleTaskPolicyArn}', '${lambdaVpcFunctionRoleTaskPolicyArn}']);
@@ -183,11 +186,12 @@ describe('Lambda Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new lambda role',
     query(
       `
-      SELECT * FROM iasql_begin();
       INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
       VALUES ('${lambdaFunctionRoleName}', '${attachAssumeLambdaPolicy}', array['${lambdaFunctionRoleTaskPolicyArn}', '${lambdaVpcFunctionRoleTaskPolicyArn}']);
   `,
@@ -199,11 +203,12 @@ describe('Lambda Integration Testing', () => {
 
   it('applies the iam role creation', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new lambda function',
     query(
       `
-    SELECT * FROM iasql_begin();
     BEGIN;
       INSERT INTO lambda_function (name, zip_b64, handler, runtime, subnets, role_name)
       VALUES ('${lambdaFunctionName}', '${lambdaFunctionCode}', '${lambdaFunctionHandler}', '${lambdaFunctionRuntime14}', (select array(select subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true and vpc.region = '${region}' limit 3)), '${lambdaFunctionRoleName}');
@@ -291,11 +296,12 @@ describe('Lambda Integration Testing', () => {
     }));
 
   // Check restore path
+  it('starts a transaction', begin());
+
   it(
     'updates the function arn',
     query(
       `
-    SELECT * FROM iasql_begin();
     UPDATE lambda_function SET arn = 'fake' WHERE name = '${lambdaFunctionName}';
   `,
       undefined,
@@ -331,12 +337,12 @@ describe('Lambda Integration Testing', () => {
   );
 
   // Check subnet modification
+  it('starts a transaction', begin());
+
   it(
     'adds a new vpc',
     query(
       `  
-    SELECT * FROM iasql_begin();
-  
     INSERT INTO vpc (cidr_block, tags, enable_dns_hostnames, enable_dns_support, region)
     VALUES ('192.${randIPBlock}.0.0/16', '{"name":"${prefix}-1"}', true, true, '${region}');
   `,
@@ -363,12 +369,12 @@ describe('Lambda Integration Testing', () => {
 
   it('applies the vpc and subnet creation', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new security group with non-default vpc',
     query(
       `  
-    SELECT * FROM iasql_begin();
-  
     INSERT INTO security_group (description, group_name, vpc_id)
     VALUES ('Lambda security group for non-default vpc', '${prefix}lambdanotdefault', (SELECT id FROM vpc WHERE cidr_block='192.${randIPBlock}.0.0/16' AND region='${region}' limit 1));
   `,
@@ -398,11 +404,12 @@ describe('Lambda Integration Testing', () => {
   );
   it('applies the not default security group and rules creation', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'updates the function subnets',
     query(
       `
-    SELECT * FROM iasql_begin();
     UPDATE lambda_function SET subnets = (select array(select subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where vpc.region = '${region}' and subnet.cidr_block='192.${randIPBlock}.0.0/16'))
     WHERE name = '${lambdaFunctionName}';
   `,
@@ -439,11 +446,12 @@ describe('Lambda Integration Testing', () => {
   );
 
   // Check configuration update path
+  it('starts a transaction', begin());
+
   it(
     'updates the function',
     query(
       `
-    SELECT * FROM iasql_begin();
     UPDATE lambda_function SET runtime = '${lambdaFunctionRuntime16}' WHERE name = '${lambdaFunctionName}';
   `,
       undefined,
@@ -479,11 +487,12 @@ describe('Lambda Integration Testing', () => {
   );
 
   // Check code update path
+  it('starts a transaction', begin());
+
   it(
     'updates the function',
     query(
       `
-    SELECT * FROM iasql_begin();
     UPDATE lambda_function SET zip_b64 = '${lambdaFunctionCodeUpdate}' WHERE name = '${lambdaFunctionName}';
   `,
       undefined,
@@ -519,11 +528,12 @@ describe('Lambda Integration Testing', () => {
   );
 
   // Check tags update path
+  it('starts a transaction', begin());
+
   it(
     'updates the function',
     query(
       `
-    SELECT * FROM iasql_begin();
     UPDATE lambda_function SET tags = '{"updated": "true"}' WHERE name = '${lambdaFunctionName}';
   `,
       undefined,
@@ -562,11 +572,12 @@ describe('Lambda Integration Testing', () => {
 
   it('installs the lambda module', install(modules));
 
+  it('starts a transaction', begin());
+
   it(
     'deletes the lambda function',
     query(
       `
-      SELECT * FROM iasql_begin();
       BEGIN;
       DELETE FROM lambda_function_security_groups
       WHERE lambda_function_id = (SELECT id FROM lambda_function WHERE name = '${lambdaFunctionName}');
@@ -607,11 +618,12 @@ describe('Lambda Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'deletes the lambda function role',
     query(
       `
-    SELECT * FROM iasql_begin();
     DELETE FROM iam_role WHERE role_name = '${lambdaFunctionRoleName}';
   `,
       undefined,
@@ -646,11 +658,12 @@ describe('Lambda Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'deletes security group rules',
     query(
       `
-      SELECT * FROM iasql_begin();
       DELETE FROM security_group_rule WHERE description='${prefix}lambda_rule_http' or description='${prefix}lambda_rule_egress' AND region='${region}';
     `,
       undefined,
@@ -673,11 +686,12 @@ describe('Lambda Integration Testing', () => {
 
   it('applies the security group deletion', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'deletes the subnet and security groups',
     query(
       `
-    SELECT * FROM iasql_begin();
     WITH vpc as (
       SELECT id
       FROM vpc

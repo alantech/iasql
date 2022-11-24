@@ -6,6 +6,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  runBegin,
   runCommit,
   runInstall,
   runQuery,
@@ -35,6 +36,7 @@ const testPolicy = JSON.stringify({
   ],
 });
 
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
@@ -110,12 +112,12 @@ describe('VPC Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new vpc',
     query(
       `  
-    SELECT * FROM iasql_begin();
-  
     INSERT INTO vpc (cidr_block)
     VALUES ('192.${randIPBlock}.0.0/16');
   `,
@@ -127,12 +129,12 @@ describe('VPC Integration Testing', () => {
 
   it('undo changes', rollback());
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new vpc',
     query(
       `  
-    SELECT * FROM iasql_begin();
-  
     INSERT INTO vpc (cidr_block, tags, enable_dns_hostnames, enable_dns_support)
     VALUES ('192.${randIPBlock}.0.0/16', '{"name":"${prefix}-1"}', true, true);
   `,
@@ -184,11 +186,12 @@ describe('VPC Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'adds a subnet',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO subnet (availability_zone, vpc_id, cidr_block)
     SELECT '${availabilityZone}', id, '192.${randIPBlock}.0.0/16'
     FROM vpc
@@ -203,11 +206,12 @@ describe('VPC Integration Testing', () => {
 
   it('applies the subnet change', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'updates vpc state',
     query(
       `
-    SELECT * FROM iasql_begin();
     UPDATE vpc
     SET state='pending' WHERE cidr_block='192.${randIPBlock}.0.0/16';
   `,
@@ -230,11 +234,12 @@ describe('VPC Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'tries to update vpc tags',
     query(
       `
-  SELECT * FROM iasql_begin();
   UPDATE vpc SET tags = '{"name": "${prefix}-2"}' WHERE cidr_block='192.${randIPBlock}.0.0/16';
   `,
       undefined,
@@ -255,11 +260,12 @@ describe('VPC Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'tries to update vpc cidr',
     query(
       `
-    SELECT * FROM iasql_begin();
     UPDATE subnet SET cidr_block='191.${randIPBlock}.0.0/16' WHERE cidr_block='192.${randIPBlock}.0.0/16';
     UPDATE vpc SET cidr_block='191.${randIPBlock}.0.0/16' WHERE cidr_block='192.${randIPBlock}.0.0/16';
   `,
@@ -282,11 +288,12 @@ describe('VPC Integration Testing', () => {
   );
 
   describe('Elastic IP and nat gateway creation', () => {
+    it('starts a transaction', begin());
+
     it(
       'adds a new elastic ip',
       query(
         `
-      SELECT * FROM iasql_begin();
       INSERT INTO elastic_ip (tags)
       VALUES ('{"name": "${eip}"}');
     `,
@@ -318,11 +325,12 @@ describe('VPC Integration Testing', () => {
       ),
     );
 
+    it('starts a transaction', begin());
+
     it(
       'adds a private nat gateway',
       query(
         `
-      SELECT * FROM iasql_begin();
       INSERT INTO nat_gateway (connectivity_type, subnet_id, tags)
       SELECT 'private', id, '{"Name":"${ng}"}'
       FROM subnet
@@ -346,11 +354,12 @@ describe('VPC Integration Testing', () => {
       ),
     );
 
+    it('starts a transaction', begin());
+
     it(
       'adds a public nat gateway with existing elastic ip',
       query(
         `
-      SELECT * FROM iasql_begin();
       INSERT INTO nat_gateway (connectivity_type, subnet_id, tags, elastic_ip_id)
       SELECT 'public', subnet.id, '{"Name":"${pubNg1}"}', elastic_ip.id
       FROM subnet, elastic_ip
@@ -374,11 +383,12 @@ describe('VPC Integration Testing', () => {
       ),
     );
 
+    it('starts a transaction', begin());
+
     it(
       'adds a public nat gateway with no existing elastic ip',
       query(
         `
-      SELECT * FROM iasql_begin();
       INSERT INTO nat_gateway (connectivity_type, subnet_id, tags)
       SELECT 'public', subnet.id, '{"Name":"${pubNg2}"}'
       FROM subnet
@@ -415,11 +425,12 @@ describe('VPC Integration Testing', () => {
   });
 
   describe('VPC endpoint gateway creation', () => {
+    it('starts a transaction', begin());
+
     it(
       'adds a new s3 endpoint gateway',
       query(
         `
-      SELECT * FROM iasql_begin();
       INSERT INTO endpoint_gateway (service, vpc_id, tags)
       SELECT 's3', id, '{"Name": "${s3VpcEndpoint}"}'
       FROM vpc
@@ -456,11 +467,12 @@ describe('VPC Integration Testing', () => {
   });
 
   describe('VPC endpoint interface creation', () => {
+    it('starts a transaction', begin());
+
     it(
       'adds a new lambda endpoint interface',
       query(
         `
-      SELECT * FROM iasql_begin();
       INSERT INTO endpoint_interface (service, vpc_id, tags)
       SELECT 'lambda', id, '{"Name": "${lambdaVpcEndpoint}"}'
       FROM vpc
@@ -570,11 +582,12 @@ describe('VPC Integration Testing', () => {
   );
 
   describe('Elastic Ip and Nat gateway updates', () => {
+    it('starts a transaction', begin());
+
     it(
       'updates a elastic ip',
       query(
         `
-      SELECT * FROM iasql_begin();
       UPDATE elastic_ip
       SET tags = '{"name": "${eip}", "updated": "true"}'
       WHERE tags ->> 'name' = '${eip}';
@@ -607,11 +620,12 @@ describe('VPC Integration Testing', () => {
       ),
     );
 
+    it('starts a transaction', begin());
+
     it(
       'updates a public nat gateway with existing elastic ip to be private',
       query(
         `
-      SELECT * FROM iasql_begin();
       UPDATE nat_gateway
       SET elastic_ip_id = NULL, connectivity_type = 'private'
       WHERE nat_gateway.tags ->> 'Name' = '${pubNg1}';
@@ -644,11 +658,12 @@ describe('VPC Integration Testing', () => {
       ),
     );
 
+    it('starts a transaction', begin());
+
     it(
       'updates a public nat gateway with no existing elastic ip',
       query(
         `
-      SELECT * FROM iasql_begin();
       UPDATE nat_gateway
       SET elastic_ip_id = elastic_ip.id, tags = '{"Name": "${pubNg2}", "updated": "true"}'
       FROM elastic_ip
@@ -684,11 +699,12 @@ describe('VPC Integration Testing', () => {
   });
 
   describe('VPC endpoint gateway updates', () => {
+    it('starts a transaction', begin());
+
     it(
       'updates a endpoint gateway to be restored',
       query(
         `
-      SELECT * FROM iasql_begin();
       UPDATE endpoint_gateway
       SET state = 'fake'
       WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
@@ -721,11 +737,12 @@ describe('VPC Integration Testing', () => {
       ),
     );
 
+    it('starts a transaction', begin());
+
     it(
       'updates a endpoint gateway policy',
       query(
         `
-      SELECT * FROM iasql_begin();
       UPDATE endpoint_gateway
       SET policy_document = '${testPolicy}'
       WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
@@ -758,11 +775,12 @@ describe('VPC Integration Testing', () => {
       ),
     );
 
+    it('starts a transaction', begin());
+
     it(
       'updates a endpoint gateway tags',
       query(
         `
-      SELECT * FROM iasql_begin();
       UPDATE endpoint_gateway
       SET tags = '{"Name": "${s3VpcEndpoint}", "updated": "true"}'
       WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
@@ -795,11 +813,12 @@ describe('VPC Integration Testing', () => {
       ),
     );
 
+    it('starts a transaction', begin());
+
     it(
       'updates a endpoint gateway to be replaced',
       query(
         `
-      SELECT * FROM iasql_begin();
       UPDATE endpoint_gateway
       SET service = 'dynamodb', tags = '{"Name": "${dynamodbVpcEndpoint}"}'
       WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
@@ -834,11 +853,12 @@ describe('VPC Integration Testing', () => {
   });
 
   describe('VPC endpoint interface updates', () => {
+    it('starts a transaction', begin());
+
     it(
       'updates a endpoint interface to be restored',
       query(
         `
-      SELECT * FROM iasql_begin();
       UPDATE endpoint_interface
       SET state = 'fake'
       WHERE tags ->> 'Name' = '${lambdaVpcEndpoint}';
@@ -871,11 +891,12 @@ describe('VPC Integration Testing', () => {
       ),
     );
 
+    it('starts a transaction', begin());
+
     it(
       'updates a endpoint interface policy',
       query(
         `
-      SELECT * FROM iasql_begin();
       UPDATE endpoint_interface
       SET policy_document = '${testPolicy}'
       WHERE tags ->> 'Name' = '${lambdaVpcEndpoint}';
@@ -908,11 +929,12 @@ describe('VPC Integration Testing', () => {
       ),
     );
 
+    it('starts a transaction', begin());
+
     it(
       'updates a endpoint interface tags',
       query(
         `
-      SELECT * FROM iasql_begin();
       UPDATE endpoint_interface
       SET tags = '{"Name": "${lambdaVpcEndpoint}", "updated": "true"}'
       WHERE tags ->> 'Name' = '${lambdaVpcEndpoint}';
@@ -945,11 +967,12 @@ describe('VPC Integration Testing', () => {
       ),
     );
 
+    it('starts a transaction', begin());
+
     it(
       'removes the current endpoint subnets',
       query(
         `
-      SELECT * FROM iasql_begin();
       DELETE FROM endpoint_interface_subnets where endpoint_interface_id=(SELECT id FROM endpoint_interface WHERE tags ->> 'Name' = '${lambdaVpcEndpoint}')
     `,
         undefined,
@@ -983,11 +1006,12 @@ describe('VPC Integration Testing', () => {
       ),
     );
 
+    it('starts a transaction', begin());
+
     it(
       'adds new endpoint subnet',
       query(
         `
-      SELECT * FROM iasql_begin();
       INSERT INTO endpoint_interface_subnets (endpoint_interface_id, subnet_id) VALUES ((SELECT id FROM endpoint_interface WHERE tags ->> 'Name' = '${lambdaVpcEndpoint}' LIMIT 1),
       (SELECT subnet.id FROM subnet INNER JOIN vpc ON vpc.id=subnet.vpc_id WHERE subnet.cidr_block='191.${randIPBlock}.0.0/16' AND vpc.tags ->> 'name' = '${prefix}-2' LIMIT 1))
     `,
@@ -1011,11 +1035,12 @@ describe('VPC Integration Testing', () => {
   });
 
   describe('Elastic Ip and Nat gateway deletion', () => {
+    it('starts a transaction', begin());
+
     it(
       'deletes a public nat gateways',
       query(
         `
-      SELECT * FROM iasql_begin();
       DELETE FROM nat_gateway
       WHERE tags ->> 'Name' = '${pubNg1}' OR tags ->> 'Name' = '${pubNg2}';
     `,
@@ -1037,11 +1062,12 @@ describe('VPC Integration Testing', () => {
       ),
     );
 
+    it('starts a transaction', begin());
+
     it(
       'deletes a elastic ip created by the nat gateway',
       query(
         `
-      SELECT * FROM iasql_begin();
       DELETE FROM elastic_ip
       WHERE tags ->> 'Name' = '${pubNg2}';
     `,
@@ -1063,11 +1089,12 @@ describe('VPC Integration Testing', () => {
       ),
     );
 
+    it('starts a transaction', begin());
+
     it(
       'deletes a elastic ip',
       query(
         `
-      SELECT * FROM iasql_begin();
       DELETE FROM elastic_ip
       WHERE tags ->> 'name' = '${eip}';
     `,
@@ -1089,11 +1116,12 @@ describe('VPC Integration Testing', () => {
       ),
     );
 
+    it('starts a transaction', begin());
+
     it(
       'updates a private nat gateway',
       query(
         `
-      SELECT * FROM iasql_begin();
       UPDATE nat_gateway
       SET state = 'failed'
       WHERE tags ->> 'Name' = '${ng}';
@@ -1126,11 +1154,12 @@ describe('VPC Integration Testing', () => {
       ),
     );
 
+    it('starts a transaction', begin());
+
     it(
       'deletes a private nat gateway',
       query(
         `
-      SELECT * FROM iasql_begin();
       DELETE FROM nat_gateway
       WHERE tags ->> 'Name' = '${ng}';
     `,
@@ -1154,11 +1183,12 @@ describe('VPC Integration Testing', () => {
   });
 
   describe('VPC endpoint gateway deletion', () => {
+    it('starts a transaction', begin());
+
     it(
       'deletes a endpoint_gateway',
       query(
         `
-      SELECT * FROM iasql_begin();
       DELETE FROM endpoint_gateway
       WHERE tags ->> 'Name' = '${dynamodbVpcEndpoint}';
     `,
@@ -1182,11 +1212,12 @@ describe('VPC Integration Testing', () => {
   });
 
   describe('VPC endpoint interface deletion', () => {
+    it('starts a transaction', begin());
+
     it(
       'deletes a endpoint_interface',
       query(
         `
-      SELECT * FROM iasql_begin();
       DELETE FROM endpoint_interface
       WHERE tags ->> 'Name' = '${lambdaVpcEndpoint}';
     `,
@@ -1209,11 +1240,12 @@ describe('VPC Integration Testing', () => {
     );
   });
 
+  it('starts a transaction', begin());
+
   it(
     'deletes the subnet',
     query(
       `
-    SELECT * FROM iasql_begin();
     WITH vpc as (
       SELECT id
       FROM vpc
@@ -1232,11 +1264,12 @@ describe('VPC Integration Testing', () => {
 
   it('applies the subnet removal', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'deletes the vpc',
     query(
       `
-    SELECT * FROM iasql_begin();
     DELETE FROM security_group_rule
     WHERE security_group_id = (
       SELECT id

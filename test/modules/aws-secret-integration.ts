@@ -6,6 +6,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  runBegin,
   runCommit,
   runInstall,
   runQuery,
@@ -18,6 +19,7 @@ const dbAlias = 'secrettest';
 const secretName = `${prefix}${dbAlias}`;
 const secretValue = 'value';
 
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
@@ -78,12 +80,12 @@ describe('Secrets Manager Integration Testing', () => {
 
   it('installs the secret module', install(modules));
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new secret',
     query(
       `  
-    SELECT * FROM iasql_begin();
-  
     INSERT INTO secret (name, value)
     VALUES ('${secretName}', '${secretValue}');
   `,
@@ -95,12 +97,12 @@ describe('Secrets Manager Integration Testing', () => {
 
   it('undo changes', rollback());
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new secret',
     query(
       `  
-    SELECT * FROM iasql_begin();
-  
     INSERT INTO secret (name, description, value)
     VALUES ('${secretName}', 'description', '${secretValue}');
   `,
@@ -122,11 +124,12 @@ describe('Secrets Manager Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'tries to update secret description',
     query(
       `
-  SELECT * FROM iasql_begin();
   UPDATE secret SET description='new description' WHERE name='${secretName}'
   `,
       undefined,
@@ -147,11 +150,12 @@ describe('Secrets Manager Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'tries to update secret value',
     query(
       `
-  SELECT * FROM iasql_begin();
   UPDATE secret SET value='newvalue' WHERE name='${secretName}'
   `,
       undefined,
@@ -162,11 +166,12 @@ describe('Secrets Manager Integration Testing', () => {
 
   it('applies the secret value update', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'tries to update version',
     query(
       `
-  SELECT * FROM iasql_begin();
   UPDATE secret SET version_id='fakeVersion' WHERE name='${secretName}'
   `,
       undefined,
@@ -201,11 +206,12 @@ describe('Secrets Manager Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'moves the secret to another region with a new value',
     query(
       `
-    SELECT * FROM iasql_begin();
     UPDATE secret SET region='us-east-1', value='new_secret' WHERE name='${secretName}';
   `,
       undefined,
@@ -229,11 +235,12 @@ describe('Secrets Manager Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'creates the same secret back in the original region at the same time',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO secret (name, description, value)
     VALUES ('${secretName}', 'description', '${secretValue}');
   `,
@@ -257,11 +264,12 @@ describe('Secrets Manager Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'deletes the secret',
     query(
       `
-    SELECT * FROM iasql_begin();
     DELETE FROM secret
     WHERE name = '${secretName}';
   `,

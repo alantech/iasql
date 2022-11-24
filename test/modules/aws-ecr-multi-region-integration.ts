@@ -7,6 +7,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  runBegin,
   runCommit,
   runInstall,
   runQuery,
@@ -21,6 +22,7 @@ const nonDefaultRegion = 'us-east-1';
 const policyMock =
   '{ "Version": "2012-10-17", "Statement": [ { "Sid": "DenyPull", "Effect": "Deny", "Principal": "*", "Action": [ "ecr:BatchGetImage", "ecr:GetDownloadUrlForLayer" ] } ]}';
 
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
@@ -88,12 +90,12 @@ describe('ECR Multi-region Integration Testing', () => {
 
   it('installs the ECR module', install(modules));
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new repository',
     query(
       `  
-    SELECT * FROM iasql_begin();
-  
     INSERT INTO repository (repository_name, scan_on_push, image_tag_mutability, region)
       VALUES ('${repositoryName}', false, 'MUTABLE', '${nonDefaultRegion}');
   `,
@@ -117,12 +119,12 @@ describe('ECR Multi-region Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new repository',
     query(
       `  
-      SELECT * FROM iasql_begin();
-  
       INSERT INTO repository (repository_name, scan_on_push, image_tag_mutability, region)
       VALUES ('${repositoryName}', false, 'MUTABLE', '${nonDefaultRegion}');
   `,
@@ -180,11 +182,12 @@ describe('ECR Multi-region Integration Testing', () => {
 
   // todo: force error and the delete image
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new repository policy',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO repository_policy (repository_id, policy_text, region)
     VALUES ((select id from repository where repository_name = '${repositoryName}'), '${policyMock}', '${nonDefaultRegion}');
   `,
@@ -208,11 +211,12 @@ describe('ECR Multi-region Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it('should fail trying to move a repository with its images to a different region', () => {
     try {
       query(
         `
-      SELECT * FROM iasql_begin();
       with updated_repository_policy as (
         UPDATE repository_policy
         SET region = '${region}'
@@ -236,11 +240,12 @@ describe('ECR Multi-region Integration Testing', () => {
     }
   });
 
+  it('starts a transaction', begin());
+
   it(
     'removes the repository images',
     query(
       `
-      SELECT * FROM iasql_begin();
       DELETE FROM repository_image
       WHERE private_repository_id = (select id from repository where repository_name = '${repositoryName}');
   `,
@@ -252,11 +257,12 @@ describe('ECR Multi-region Integration Testing', () => {
 
   it('applies the deletion', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'changes the region the repository is located in',
     query(
       `
-      SELECT * FROM iasql_begin();
       with updated_repository_policy as (
         UPDATE repository_policy
         SET region = '${region}'
@@ -346,11 +352,12 @@ describe('ECR Multi-region Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'removes the repository',
     query(
       `
-      SELECT * FROM iasql_begin();
       BEGIN;
         DELETE FROM repository_policy
         WHERE repository_id = (select id from repository where repository_name = '${repositoryName}' and region = '${region}');

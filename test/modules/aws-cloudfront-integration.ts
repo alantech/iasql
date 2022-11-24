@@ -6,6 +6,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  runBegin,
   runCommit,
   runInstall,
   runQuery,
@@ -52,6 +53,7 @@ const s3behavior = {
 };
 const s3behaviorString = JSON.stringify(s3behavior);
 
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
@@ -120,11 +122,12 @@ describe('Cloudfront Integration Testing', () => {
 
   it('installs the cloudfront module', install(modules));
 
+  it('starts a transaction', begin());
+
   it(
     'creates a dummy s3 resource',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO bucket (name) VALUES ('${bucket}')`,
       undefined,
       true,
@@ -133,12 +136,12 @@ describe('Cloudfront Integration Testing', () => {
   );
   it('applies the s3 creation', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new distribution',
     query(
-      `  
-    SELECT * FROM iasql_begin();
-  
+      `
     INSERT INTO distribution (caller_reference, default_cache_behavior, origins)
     VALUES ('${callerReference}', '${behaviorString}', '${originsString}');
   `,
@@ -150,11 +153,11 @@ describe('Cloudfront Integration Testing', () => {
 
   it('undo changes', rollback());
 
+  it('starts a transaction', begin());
+
   it('adds a new s3 distribution', done => {
     query(
-      `  
-    SELECT * FROM iasql_begin();
-  
+      `
     INSERT INTO distribution (caller_reference, comment, enabled, is_ipv6_enabled, default_cache_behavior, origins )
     VALUES ('${s3CallerReference}', 'a comment', true, false, '${s3behaviorString}', '${s3OriginsString}');
   `,
@@ -179,12 +182,12 @@ describe('Cloudfront Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new distribution',
     query(
-      `  
-    SELECT * FROM iasql_begin();
-  
+      `
     INSERT INTO distribution (caller_reference, comment, enabled, is_ipv6_enabled, default_cache_behavior, origins )
     VALUES ('${callerReference}', 'a comment', true, false, '${behaviorString}', '${originsString}');
   `,
@@ -206,11 +209,12 @@ describe('Cloudfront Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'tries to update distribution comment',
     query(
       `
-  SELECT * FROM iasql_begin();
   UPDATE distribution SET comment='new comment' WHERE caller_reference='${callerReference}';
   `,
       undefined,
@@ -231,11 +235,12 @@ describe('Cloudfront Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'tries to update distribution id',
     query(
       `
-  SELECT * FROM iasql_begin();
   UPDATE distribution SET distribution_id='fake' WHERE caller_reference='${callerReference}';
   `,
       undefined,
@@ -256,11 +261,12 @@ describe('Cloudfront Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'tries to update status',
     query(
       `
-  SELECT * FROM iasql_begin();
   UPDATE distribution SET status='fake' WHERE caller_reference='${callerReference}';
   `,
       undefined,
@@ -295,11 +301,12 @@ describe('Cloudfront Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'deletes the distribution',
     query(
       `
-    SELECT * FROM iasql_begin();
     DELETE FROM distribution
     WHERE caller_reference = '${callerReference}';
   `,
@@ -311,11 +318,12 @@ describe('Cloudfront Integration Testing', () => {
 
   it('applies the distribution removal', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'deletes the s3 bucket',
     query(
       `
-    SELECT * FROM iasql_begin();
     DELETE FROM bucket WHERE name = '${bucket}';
   `,
       undefined,

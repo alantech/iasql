@@ -9,6 +9,7 @@ import {
   runQuery,
   runCommit,
   runRollback,
+  runBegin,
 } from '../helpers';
 
 const dbAlias = 'readonlytest';
@@ -18,6 +19,7 @@ const uninstallAll = runUninstallAll.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
+const begin = runBegin.bind(null, dbAlias);
 
 jest.setTimeout(420000);
 beforeAll(async () => await execComposeUp());
@@ -73,11 +75,12 @@ describe('Aws read only Integration Testing', () => {
 
   it('sync no-op', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new repository',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO repository (repository_name, scan_on_push, image_tag_mutability)
     VALUES ('test', false, 'MUTABLE');
   `,
@@ -101,11 +104,12 @@ describe('Aws read only Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new repository',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO repository (repository_name, scan_on_push, image_tag_mutability)
     VALUES ('test', false, 'MUTABLE');
   `,

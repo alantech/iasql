@@ -6,6 +6,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  runBegin,
   runCommit,
   runInstall,
   runQuery,
@@ -20,6 +21,7 @@ const {
 const prefix = getPrefix();
 const dbAlias = 'ecssmptest';
 const region = defaultRegion();
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
@@ -98,11 +100,12 @@ describe('ECS Simplified Integration Testing', () => {
 
   it('installs the ecs simplified module and its dependencies', install(modules));
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new row',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO ecs_simplified (app_name, desired_count, app_port, cpu_mem, image_tag, public_ip)
     VALUES ('${appName}', ${desiredCount}, ${appPort}, '${cpuMem}', '${imageTag}', ${publicIp});
   `,
@@ -150,11 +153,12 @@ describe('ECS Simplified Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new row',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO ecs_simplified (app_name, desired_count, app_port, cpu_mem, image_tag, public_ip)
     VALUES ('${appName}', ${desiredCount}, ${appPort}, '${cpuMem}', '${imageTag}', ${publicIp});
   `,
@@ -371,11 +375,12 @@ describe('ECS Simplified Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'updates a row',
     query(
       `
-    SELECT * FROM iasql_begin();
     UPDATE ecs_simplified
     SET load_balancer_dns = 'invalid'
     WHERE app_name = '${appName}';
@@ -403,11 +408,12 @@ describe('ECS Simplified Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'updates a row',
     query(
       `
-    SELECT * FROM iasql_begin();
     UPDATE ecs_simplified
     SET app_port = ${appPort + 1}
     WHERE app_name = '${appName}';
@@ -451,11 +457,12 @@ describe('ECS Simplified Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'updates a row',
     query(
       `
-    SELECT * FROM iasql_begin();
     UPDATE ecs_simplified
     SET repository_uri = NULL
     WHERE app_name = '${appName}';
@@ -483,11 +490,12 @@ describe('ECS Simplified Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'updates a row',
     query(
       `
-    SELECT * FROM iasql_begin();
     UPDATE ecs_simplified
     SET cpu_mem = '${updateCpuMem}', image_tag = '${updateImageTag}'
     WHERE app_name = '${appName}';
@@ -516,11 +524,12 @@ describe('ECS Simplified Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'updates env vars',
     query(
       `
-        SELECT * FROM iasql_begin();
         UPDATE ecs_simplified SET env_variables = '${envVariables}' WHERE app_name = '${appName}';
       `,
       undefined,
@@ -617,11 +626,12 @@ describe('ECS Simplified Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'deletes the app',
     query(
       `
-    SELECT * FROM iasql_begin();
     delete from ecs_simplified
     where app_name = '${appName}';
   `,

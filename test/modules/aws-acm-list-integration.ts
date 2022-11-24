@@ -5,6 +5,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  runBegin,
   runCommit,
   runInstall,
   runQuery,
@@ -16,6 +17,7 @@ const prefix = getPrefix();
 const dbAlias = 'acmlisttest';
 const domainName = `${prefix}${dbAlias}.com`;
 
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
@@ -76,11 +78,12 @@ describe('AwsAcm List Integration Testing', () => {
 
   it('installs the acm module', install(modules));
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new certificate',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO certificate (domain_name)
     VALUES ('${domainName}');
   `,
@@ -104,11 +107,12 @@ describe('AwsAcm List Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new certificate',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO certificate (domain_name)
     VALUES ('${domainName}');
   `,

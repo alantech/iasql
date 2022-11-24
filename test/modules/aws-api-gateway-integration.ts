@@ -6,6 +6,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  runBegin,
   runCommit,
   runInstall,
   runQuery,
@@ -16,6 +17,7 @@ import {
 const prefix = getPrefix();
 const dbAlias = `${prefix}apigatewaytest`;
 
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
@@ -93,12 +95,12 @@ describe('API Gateway Integration Testing', () => {
 
   it('installs the API gateway module', install(modules));
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new API gateway',
     query(
-      `  
-    SELECT * FROM iasql_begin();
-  
+      `
     INSERT INTO api (name, description)
     VALUES ('${apiName}', 'description');
   `,
@@ -110,12 +112,12 @@ describe('API Gateway Integration Testing', () => {
 
   it('undo changes', rollback());
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new API gateway',
     query(
-      `  
-    SELECT * FROM iasql_begin();
-  
+      `
     INSERT INTO api (name, description, disable_execute_api_endpoint, version)
     VALUES ('${apiName}', 'description', false, '1.0');
   `,
@@ -137,11 +139,12 @@ describe('API Gateway Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'tries to update API description',
     query(
       `
-  SELECT * FROM iasql_begin();
   UPDATE api SET description='new description' WHERE name='${apiName}'
   `,
       undefined,
@@ -162,11 +165,12 @@ describe('API Gateway Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'tries to update API ID',
     query(
       `
-  SELECT * FROM iasql_begin();
   UPDATE api SET api_id='fake' WHERE name='${apiName}'
   `,
       undefined,
@@ -187,11 +191,12 @@ describe('API Gateway Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'tries to update the API protocol',
     query(
       `
-  SELECT * FROM iasql_begin();
   UPDATE api SET protocol_type='WEBSOCKET' WHERE name='${apiName}'
   `,
       undefined,
@@ -235,11 +240,12 @@ describe('API Gateway Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'deletes the API',
     query(
       `
-    SELECT * FROM iasql_begin();
     DELETE FROM api
     WHERE name = '${apiName}';
   `,

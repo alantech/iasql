@@ -5,6 +5,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  runBegin,
   runCommit,
   runInstall,
   runQuery,
@@ -16,6 +17,8 @@ const dbAlias = 'sgtest';
 const sgName = `${prefix}${dbAlias}`;
 const nonDefaultRegion = 'us-east-1';
 const defaultRegion = dr();
+
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
@@ -74,12 +77,12 @@ describe('Security Group Multi region Integration Testing', () => {
 
   it('installs the security group module', install(modules));
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new security group',
     query(
       `  
-    SELECT * FROM iasql_begin();
-  
     INSERT INTO security_group (description, group_name, region)
     VALUES ('Security Group Test', '${prefix}sgtest', '${nonDefaultRegion}');
   `,
@@ -103,12 +106,12 @@ describe('Security Group Multi region Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new security group',
     query(
       `  
-    SELECT * FROM iasql_begin();
-  
     INSERT INTO security_group (description, group_name, region, vpc_id)
     VALUES ('Security Group Test', '${prefix}sgtest', '${nonDefaultRegion}', (select id from vpc where is_default = true and region = '${nonDefaultRegion}' limit 1));
   `,
@@ -132,11 +135,12 @@ describe('Security Group Multi region Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'adds security group rules',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id, region)
     SELECT true, 'tcp', 443, 443, '0.0.0.0/8', '${prefix}testrule', id, '${nonDefaultRegion}'
     FROM security_group
@@ -154,11 +158,12 @@ describe('Security Group Multi region Integration Testing', () => {
 
   it('applies the security group rule change', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'updates the security group rule',
     query(
       `
-    SELECT * FROM iasql_begin();
     UPDATE security_group_rule SET to_port = 8443 WHERE description = '${prefix}testrule';
     UPDATE security_group_rule SET to_port = 8022 WHERE description = '${prefix}testrule2';
   `,
@@ -187,11 +192,12 @@ describe('Security Group Multi region Integration Testing', () => {
 
   it('applies the security group rule change (again)', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'updates the security group',
     query(
       `
-    SELECT * FROM iasql_begin();
     WITH updated_security_group_rules AS (
       UPDATE security_group_rule SET region = '${defaultRegion}' WHERE description = '${prefix}testrule' OR description = '${prefix}testrule2'
     )
@@ -241,11 +247,12 @@ describe('Security Group Multi region Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'deletes these test records',
     query(
       `
-    SELECT * FROM iasql_begin();
     DELETE FROM security_group_rule WHERE description = '${prefix}testrule' OR description = '${prefix}testrule2' and region = '${defaultRegion}';
     DELETE FROM security_group WHERE group_name = '${sgName}' and region = '${defaultRegion}';
   `,

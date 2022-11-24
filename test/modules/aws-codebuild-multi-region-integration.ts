@@ -4,12 +4,15 @@ import {
   execComposeDown,
   execComposeUp,
   finish,
+  runBegin,
   runCommit,
   runInstall,
   runQuery,
 } from '../helpers';
 
 const dbAlias = 'codebuildtest';
+
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
@@ -86,11 +89,12 @@ describe('AwsCodebuild Multi-region Integration Testing', () => {
 
   it('installs the codebuild module', install(modules));
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new source_credentials_import',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO source_credentials_import (token, source_type, auth_type, region)
     VALUES ('${process.env.GH_PAT}', 'GITHUB', 'PERSONAL_ACCESS_TOKEN', '${nonDefaultRegion}')
   `,
@@ -126,11 +130,12 @@ describe('AwsCodebuild Multi-region Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'delete source_credentials_list',
     query(
       `
-    SELECT * FROM iasql_begin();
     DELETE FROM source_credentials_list
     WHERE source_type = 'GITHUB' and region = '${nonDefaultRegion}';
   `,
@@ -154,11 +159,12 @@ describe('AwsCodebuild Multi-region Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new role',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
     VALUES ('${dbAlias}', '${assumeServicePolicy}', array['${codebuildPolicyArn}', '${cloudwatchLogsArn}', '${pushEcrPolicyArn}']);
   `,
@@ -183,11 +189,12 @@ describe('AwsCodebuild Multi-region Integration Testing', () => {
 
   it('apply codebuild_project creation', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'start build',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO codebuild_build_import (project_name, region)
     VALUES ('${dbAlias}', '${nonDefaultRegion}');
   `,
@@ -221,11 +228,12 @@ describe('AwsCodebuild Multi-region Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'delete build',
     query(
       `
-    SELECT * FROM iasql_begin();
     DELETE FROM codebuild_build_list
     WHERE project_name = '${dbAlias}' and region = '${nonDefaultRegion}';
   `,

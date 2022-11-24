@@ -5,6 +5,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  runBegin,
   runCommit,
   runInstall,
   runQuery,
@@ -35,6 +36,7 @@ const nonDefaultRegion = 'us-east-1';
 const subnetGroupName = `${prefix}${dbAlias}sng`;
 const clusterName = `${prefix}${dbAlias}cl`;
 
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
@@ -92,11 +94,12 @@ describe('MemoryDB Multi-region Integration Testing', () => {
 
   it('installs the memory db module', install(modules));
 
+  it('starts a transaction', begin());
+
   it(
     'creates a subnet group',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO subnet_group (subnet_group_name)
     VALUES ('${subnetGroupName}');
   `,
@@ -120,11 +123,12 @@ describe('MemoryDB Multi-region Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'creates a memory db cluster',
     query(
       `
-      SELECT * FROM iasql_begin();
       INSERT INTO memory_db_cluster (cluster_name, subnet_group_id)
       VALUES ('${clusterName}', (select id from subnet_group where subnet_group_name = '${subnetGroupName}'));
   `,
@@ -226,11 +230,12 @@ describe('MemoryDB Multi-region Integration Testing', () => {
       return {};
     }));
 
+  it('starts a transaction', begin());
+
   it(
     'changes the region',
     query(
       `
-    SELECT * FROM iasql_begin();
     WITH updated_subnet_group AS (
       UPDATE subnet_group
       SET region = '${nonDefaultRegion}', subnets = ARRAY(SELECT subnet_id FROM subnet INNER JOIN vpc ON vpc.id = subnet.vpc_id WHERE subnet.region = '${nonDefaultRegion}' AND vpc.is_default = TRUE LIMIT 2)
@@ -300,11 +305,12 @@ describe('MemoryDB Multi-region Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'removes the memory db cluster',
     query(
       `
-    SELECT * FROM iasql_begin();
     DELETE FROM memory_db_cluster
     WHERE cluster_name = '${clusterName}';
   `,
@@ -352,11 +358,12 @@ describe('MemoryDB Multi-region Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'removes the subnet group',
     query(
       `
-    SELECT * FROM iasql_begin();
     DELETE FROM subnet_group
     WHERE subnet_group_name = '${subnetGroupName}';
   `,

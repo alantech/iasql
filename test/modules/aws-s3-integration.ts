@@ -6,6 +6,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  runBegin,
   runCommit,
   runInstall,
   runQuery,
@@ -16,6 +17,7 @@ import {
 const prefix = getPrefix();
 const dbAlias = 's3test';
 const s3Name = `${prefix}${dbAlias}`;
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
@@ -115,12 +117,12 @@ describe('S3 Integration Testing', () => {
 
   it('installs the s3 module', install(modules));
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new s3 bucket',
     query(
       `  
-    SELECT * FROM iasql_begin();
-  
     INSERT INTO bucket (name)
     VALUES ('${s3Name}');
   `,
@@ -144,12 +146,12 @@ describe('S3 Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new s3 bucket',
     query(
       `  
-    SELECT * FROM iasql_begin();
-  
     INSERT INTO bucket (name, policy_document)
     VALUES ('${s3Name}', '${policyDocument}');
   `,
@@ -173,11 +175,12 @@ describe('S3 Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'inserts content into bucket object',
     query(
-      `SELECT * FROM iasql_begin();
-INSERT INTO bucket_object (bucket_name, key, region) VALUES ('${s3Name}', 'fake_bucket', '${region}')`,
+      `INSERT INTO bucket_object (bucket_name, key, region) VALUES ('${s3Name}', 'fake_bucket', '${region}')`,
       undefined,
       true,
       () => ({ username, password }),
@@ -224,11 +227,12 @@ INSERT INTO bucket_object (bucket_name, key, region) VALUES ('${s3Name}', 'fake_
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'deletes one object of the bucket',
     query(
       `
-    SELECT * FROM iasql_begin();
     DELETE FROM bucket_object WHERE bucket_name = '${s3Name}' AND key='iasql_message';
   `,
       undefined,
@@ -272,11 +276,12 @@ INSERT INTO bucket_object (bucket_name, key, region) VALUES ('${s3Name}', 'fake_
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'updates the bucket timestamp',
     query(
       `
-    SELECT * FROM iasql_begin();
     UPDATE bucket SET created_at = '1984-01-01T00:00:00' WHERE name = '${s3Name}';
   `,
       undefined,
@@ -311,11 +316,12 @@ INSERT INTO bucket_object (bucket_name, key, region) VALUES ('${s3Name}', 'fake_
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'cleans the bucket',
     query(
       `
-        SELECT * FROM iasql_begin();
         DELETE FROM bucket_object WHERE bucket_name='${s3Name}'
       `,
       undefined,
@@ -435,11 +441,12 @@ INSERT INTO bucket_object (bucket_name, key, region) VALUES ('${s3Name}', 'fake_
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'cleans the bucket again',
     query(
       `
-        SELECT * FROM iasql_begin();
         DELETE FROM bucket_object WHERE bucket_name='${s3Name}'
       `,
       undefined,

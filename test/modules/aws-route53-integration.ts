@@ -7,6 +7,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  runBegin,
   runCommit,
   runInstall,
   runQuery,
@@ -41,6 +42,7 @@ const lbScheme = LoadBalancerSchemeEnum.INTERNET_FACING;
 const lbType = LoadBalancerTypeEnum.APPLICATION;
 const lbIPAddressType = IpAddressType.IPV4;
 
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
@@ -105,11 +107,12 @@ describe('Route53 Integration Testing', () => {
 
   it('installs module', install(modules));
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new hosted zone',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO hosted_zone (domain_name)
     VALUES ('${domainName}');
   `,
@@ -145,11 +148,12 @@ describe('Route53 Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new hosted zone',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO hosted_zone (domain_name)
     VALUES ('${domainName}');
   `,
@@ -274,11 +278,12 @@ describe('Route53 Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new record to hosted zone',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO resource_record_set (name, record_type, record, ttl, parent_hosted_zone_id)
     SELECT '${resourceRecordSetName}', '${resourceRecordSetTypeCNAME}', '${resourceRecordSetRecord}', ${resourceRecordSetTtl}, id
     FROM hosted_zone
@@ -318,11 +323,12 @@ describe('Route53 Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new A record to hosted zone',
     query(
       `
-    SELECT * FROM iasql_begin();
     BEGIN;
       INSERT INTO load_balancer (load_balancer_name, scheme, load_balancer_type, ip_address_type)
       VALUES ('${lbName}', '${lbScheme}', '${lbType}', '${lbIPAddressType}');
@@ -371,11 +377,12 @@ describe('Route53 Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'tries to update a hosted zone domain name field (replace)',
     query(
       `
-    SELECT * FROM iasql_begin();
     UPDATE hosted_zone SET domain_name = '${replaceDomainName}' WHERE domain_name = '${domainName}';
   `,
       undefined,
@@ -424,11 +431,12 @@ describe('Route53 Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new record to hosted zone',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO resource_record_set (name, record_type, record, ttl, parent_hosted_zone_id)
     SELECT '${resourceRecordSetMultilineName}', '${resourceRecordSetTypeA}', '${resourceRecordSetRecordMultiline}', ${resourceRecordSetTtl}, id
     FROM hosted_zone
@@ -477,11 +485,12 @@ describe('Route53 Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'updates a record name',
     query(
       `
-    SELECT * FROM iasql_begin();
     UPDATE resource_record_set 
     SET name = '${resourceRecordSetMultilineNameReplace}'
     FROM hosted_zone
@@ -516,11 +525,12 @@ describe('Route53 Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'creates hosted zone with the same name',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO hosted_zone (domain_name) VALUES ('${replaceDomainName}');
   `,
       undefined,
@@ -554,11 +564,12 @@ describe('Route53 Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'deletes the hosted zone with the same name',
     query(
       `
-    SELECT * FROM iasql_begin();
     BEGIN;
       DELETE FROM resource_record_set
       USING hosted_zone
@@ -575,11 +586,12 @@ describe('Route53 Integration Testing', () => {
 
   it('applies the removal of hosted zone with the same name', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'deletes records',
     query(
       `
-    SELECT * FROM iasql_begin();
     DELETE FROM resource_record_set
     USING hosted_zone
     WHERE hosted_zone.id = parent_hosted_zone_id AND domain_name = '${replaceDomainName}';
@@ -618,11 +630,12 @@ describe('Route53 Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'deletes mandatory records and hosted zone',
     query(
       `
-    SELECT * FROM iasql_begin();
     BEGIN;
       DELETE FROM resource_record_set
       USING hosted_zone
