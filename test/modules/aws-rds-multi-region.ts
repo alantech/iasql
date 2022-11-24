@@ -48,7 +48,6 @@ describe('RDS Multi-Region Testing', () => {
     'inserts aws credentials',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -128,7 +127,6 @@ describe('RDS Multi-Region Testing', () => {
     'updates the RDS instance to use the parameter group and moves it to another region',
     query(
       `
-    SELECT * FROM iasql_begin();
     UPDATE rds SET
       region = 'us-east-1',
       availability_zone = (SELECT name FROM availability_zone WHERE region = 'us-east-1' LIMIT 1),

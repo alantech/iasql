@@ -60,7 +60,6 @@ describe('VPC Multiregion Integration Testing', () => {
     'inserts aws credentials',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -105,7 +104,6 @@ describe('VPC Multiregion Integration Testing', () => {
     'adds a subnet',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO subnet (availability_zone, vpc_id, cidr_block, region)
     SELECT '${nonDefaultRegionAvailabilityZone}', id, '192.${randIPBlock}.0.0/16', '${nonDefaultRegion}'
     FROM vpc
@@ -125,7 +123,6 @@ describe('VPC Multiregion Integration Testing', () => {
     query(
       `  
     SELECT * FROM iasql_begin();
-  
     INSERT INTO vpc (cidr_block, tags, region)
     VALUES ('192.${randIPBlock}.0.0/16', '{"name":"${prefix}-1"}', '${nonDefaultRegion}');
   `,
@@ -139,7 +136,6 @@ describe('VPC Multiregion Integration Testing', () => {
     'adds a subnet',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO subnet (availability_zone, vpc_id, cidr_block, region)
     SELECT '${nonDefaultRegionAvailabilityZone}', id, '192.${randIPBlock}.0.0/16', '${nonDefaultRegion}'
     FROM vpc
@@ -408,7 +404,6 @@ describe('VPC Multiregion Integration Testing', () => {
       'deletes a elastic ip',
       query(
         `
-      SELECT * FROM iasql_begin();
       DELETE FROM elastic_ip
       WHERE tags ->> 'name' = '${eip}';
     `,
@@ -422,7 +417,6 @@ describe('VPC Multiregion Integration Testing', () => {
       'deletes a private nat gateway',
       query(
         `
-      SELECT * FROM iasql_begin();
       DELETE FROM nat_gateway
       WHERE tags ->> 'Name' = '${ng}';
     `,

@@ -89,7 +89,6 @@ describe('ECS Integration Testing', () => {
     'inserts aws credentials',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -129,7 +128,6 @@ describe('ECS Integration Testing', () => {
     'inserts aws credentials',
     querySync(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -319,7 +317,6 @@ describe('ECS Integration Testing', () => {
     'adds a new task definition',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO task_definition ("family", cpu_memory)
     VALUES ('${tdPublicRepositoryFamily}', '${tdCpuMem}');
   `,
@@ -345,7 +342,6 @@ describe('ECS Integration Testing', () => {
     'adds a new container definition',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO container_definition ("name", public_repository_name, tag, essential, memory_reservation, host_port, container_port, protocol, env_variables, task_definition_id)
     VALUES('${containerNamePublicRepository}', '${publicRepositoryName}', '${imageTag}', ${containerEssential}, ${containerMemoryReservation}, ${hostPort}, ${containerPort}, '${protocol}', '{ "test": 2}', (select id from task_definition where family = '${tdPublicRepositoryFamily}' and status is null and region = '${region}' limit 1));
   `,

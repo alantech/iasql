@@ -53,7 +53,6 @@ describe('Security Group Integration Testing', () => {
     'inserts aws credentials',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -303,8 +302,6 @@ describe('Security Group Integration Testing', () => {
     'adds a new security group',
     query(
       `  
-    SELECT * FROM iasql_begin();
-  
     INSERT INTO security_group (description, group_name)
     VALUES ('Source Security Group Test', '${prefix}sgsourcetest');
   `,
@@ -320,7 +317,6 @@ describe('Security Group Integration Testing', () => {
     try {
       query(
         `
-      SELECT * FROM iasql_begin();
       INSERT INTO security_group_rule(security_group_id, ip_protocol, source_security_group, is_egress) 
       VALUES ((SELECT id FROM security_group WHERE group_name='${prefix}sgforsource'), 'tcp',
       (SELECT id FROM security_group WHERE group_name='${prefix}sgforsourcetest'), false);
@@ -596,7 +592,7 @@ DELETE FROM security_group_rule WHERE source_security_group = (SELECT id FROM se
   it(
     'deletes the source security group rule for B',
     query(
-      `SELECT * FROM iasql_begin();
+      `
 DELETE FROM security_group_rule WHERE source_security_group = (SELECT id FROM security_group WHERE group_name='${prefix}sgtestB')`,
       undefined,
       true,
@@ -607,7 +603,6 @@ DELETE FROM security_group_rule WHERE source_security_group = (SELECT id FROM se
     'deletes the source security group for A',
     query(
       `
-        SELECT * FROM iasql_begin();
         DELETE FROM security_group WHERE group_name = '${prefix}sgtestA'
       `,
       undefined,
@@ -622,7 +617,6 @@ DELETE FROM security_group_rule WHERE source_security_group = (SELECT id FROM se
     'deletes the source security group for B',
     query(
       `
-      SELECT * FROM iasql_begin();
       DELETE FROM security_group WHERE group_name = '${prefix}sgtestB'
     `,
       undefined,
@@ -902,7 +896,6 @@ describe('Security Group install/uninstall', () => {
     'inserts aws credentials',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,

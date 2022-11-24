@@ -63,7 +63,6 @@ describe('ECR Multi-region Integration Testing', () => {
     'inserts aws credentials',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -213,6 +212,7 @@ describe('ECR Multi-region Integration Testing', () => {
     try {
       query(
         `
+      SELECT * FROM iasql_begin();
       with updated_repository_policy as (
         UPDATE repository_policy
         SET region = '${region}'
@@ -256,6 +256,7 @@ describe('ECR Multi-region Integration Testing', () => {
     'changes the region the repository is located in',
     query(
       `
+      SELECT * FROM iasql_begin();
       with updated_repository_policy as (
         UPDATE repository_policy
         SET region = '${region}'

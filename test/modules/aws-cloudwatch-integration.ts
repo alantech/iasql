@@ -50,7 +50,6 @@ describe('AwsCloudwatch Integration Testing', () => {
     'inserts aws credentials',
     query(
       `
-        SELECT * FROM iasql_begin();
         INSERT INTO aws_credentials (access_key_id, secret_access_key)
         VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
       `,
@@ -197,7 +196,6 @@ describe('AwsCloudwatch Integration Testing', () => {
     'also creates a log group in non-default region with the same name',
     query(
       `
-        SELECT * FROM iasql_begin();
         INSERT INTO log_group (log_group_name, region)
         VALUES (
             '${logGroupName}', (SELECT region FROM aws_regions WHERE is_default = false and is_enabled = true LIMIT 1)
@@ -414,7 +412,6 @@ describe('AwsCloudwatch install/uninstall', () => {
     'inserts aws credentials',
     query(
       `
-        SELECT * FROM iasql_begin();
         INSERT INTO aws_credentials (access_key_id, secret_access_key)
         VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
       `,

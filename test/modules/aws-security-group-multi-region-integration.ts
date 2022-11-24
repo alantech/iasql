@@ -49,7 +49,6 @@ describe('Security Group Multi region Integration Testing', () => {
     'inserts aws credentials',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -192,6 +191,7 @@ describe('Security Group Multi region Integration Testing', () => {
     'updates the security group',
     query(
       `
+    SELECT * FROM iasql_begin();
     WITH updated_security_group_rules AS (
       UPDATE security_group_rule SET region = '${defaultRegion}' WHERE description = '${prefix}testrule' OR description = '${prefix}testrule2'
     )

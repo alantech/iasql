@@ -53,7 +53,6 @@ describe('RDS Integration Testing', () => {
     'inserts aws credentials',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -230,6 +229,7 @@ describe('RDS Integration Testing', () => {
     'changes all boolean parameters for the new parameter group to be true',
     query(
       `
+    SELECT * FROM iasql_begin();
     WITH parameters AS (
       SELECT name, params
       FROM parameter_group,
@@ -398,7 +398,6 @@ describe('RDS install/uninstall', () => {
     'inserts aws credentials',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,

@@ -85,7 +85,6 @@ describe('ELB Integration Testing', () => {
     'inserts aws credentials',
     query(
       `
-          SELECT * FROM iasql_begin();
           INSERT INTO aws_credentials (access_key_id, secret_access_key)
           VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
       `,
@@ -550,7 +549,6 @@ UPDATE load_balancer SET attributes='${loadBalancerAttributes}' WHERE load_balan
     'deletes the security groups',
     query(
       `
-        SELECT * FROM iasql_begin();
         DELETE
         FROM security_group
         WHERE group_name IN ('${sg1}', '${sg2}');
@@ -682,7 +680,6 @@ UPDATE load_balancer SET attributes='${loadBalancerAttributes}' WHERE load_balan
     'creates a load balancer in non-default region',
     query(
       `
-    SELECT * FROM iasql_begin();
     BEGIN;
       INSERT INTO load_balancer (load_balancer_name, scheme, vpc, load_balancer_type, ip_address_type, region)
       VALUES ('${lbName}', '${lbScheme}', null, '${lbType}', '${lbIPAddressType}', 'us-east-1');
@@ -803,7 +800,6 @@ describe('ELB install/uninstall', () => {
     'inserts aws credentials',
     query(
       `
-          SELECT * FROM iasql_begin();
           INSERT INTO aws_credentials (access_key_id, secret_access_key)
           VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
       `,

@@ -144,7 +144,6 @@ describe('IAM Role Integration Testing', () => {
     'inserts aws credentials',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -216,7 +215,6 @@ describe('IAM Role Integration Testing', () => {
     'adds a new role',
     query(
       `
-    SELECT * FROM iasql_begin();
     BEGIN;
       INSERT INTO iam_role (role_name, assume_role_policy_document)
       VALUES ('${lambdaRoleName}', '${attachAssumeLambdaPolicy}');
@@ -484,7 +482,6 @@ describe('IAM Role Integration Testing', () => {
     'deletes the role',
     query(
       `
-    SELECT * FROM iasql_begin();
     DELETE FROM iam_role
     WHERE role_name = '${lambdaRoleName}';
   `,
@@ -498,7 +495,6 @@ describe('IAM Role Integration Testing', () => {
     'deletes the role',
     query(
       `
-    SELECT * FROM iasql_begin();
     DELETE FROM iam_role
     WHERE role_name = '${ec2RoleName}';
   `,
@@ -512,7 +508,6 @@ describe('IAM Role Integration Testing', () => {
     'deletes the role',
     query(
       `
-    SELECT * FROM iasql_begin();
     DELETE FROM iam_role
     WHERE role_name = '${ec2RoleNameArray}';
   `,
@@ -526,7 +521,6 @@ describe('IAM Role Integration Testing', () => {
     'deletes the role',
     query(
       `
-    SELECT * FROM iasql_begin();
     DELETE FROM iam_role
     WHERE role_name = '${anotherRoleName}';
   `,
@@ -540,7 +534,6 @@ describe('IAM Role Integration Testing', () => {
     'deletes the role',
     query(
       `
-    SELECT * FROM iasql_begin();
     DELETE FROM iam_role
     WHERE role_name = '${principalServArr}';
   `,
@@ -770,7 +763,6 @@ describe('IAM User Integration Testing', () => {
     'inserts aws credentials',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -987,7 +979,6 @@ describe('IAM install/uninstall', () => {
     'inserts aws credentials',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,

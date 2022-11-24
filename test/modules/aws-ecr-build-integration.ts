@@ -48,7 +48,6 @@ describe('AwsEcrBuild Integration Testing', () => {
     'inserts aws credentials',
     query(
       `
-      SELECT * FROM iasql_begin();
       INSERT INTO aws_credentials (access_key_id, secret_access_key)
       VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -209,7 +208,6 @@ describe('AwsEcrBuild Integration Testing', () => {
     'deletes the image',
     query(
       `
-      SELECT * FROM iasql_begin();
       DELETE
       FROM repository_image
       WHERE private_repository_id = (SELECT id FROM repository WHERE repository_name = '${repositoryName}');
@@ -224,7 +222,6 @@ describe('AwsEcrBuild Integration Testing', () => {
     'deletes the repository',
     query(
       `
-      SELECT * FROM iasql_begin();
       DELETE
       FROM repository
       WHERE repository_name = '${repositoryName}'

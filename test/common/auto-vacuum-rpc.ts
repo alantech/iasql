@@ -29,7 +29,6 @@ describe('Testing auto vacuum rpcs', () => {
   it(
     'generate dummy rpcs',
     dbQuery(`
-    SELECT * FROM iasql_begin();
     INSERT INTO
       iasql_rpc (opid, module_name, method_name, params)
     SELECT
@@ -53,7 +52,6 @@ describe('Testing auto vacuum rpcs', () => {
   it(
     'update rpc date for the first row. Set the start_date 7 months behind since 6 month is the max allowed',
     dbQuery(`
-    SELECT * FROM iasql_begin();
     UPDATE iasql_rpc
     SET start_date = CURRENT_DATE - INTERVAL '7 months', module_name = 'test2'
     WHERE opid = (SELECT opid FROM iasql_rpc ORDER BY start_date ASC LIMIT 1);

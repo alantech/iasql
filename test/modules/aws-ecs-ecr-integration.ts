@@ -105,7 +105,6 @@ describe('ECS Integration Testing', () => {
     'inserts aws credentials',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -150,7 +149,6 @@ describe('ECS Integration Testing', () => {
     'inserts aws credentials',
     querySync(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -340,7 +338,6 @@ describe('ECS Integration Testing', () => {
     'adds a new role',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
     VALUES ('${taskExecRoleName}', '${taskRolePolicyDoc}', array['${taskPolicyArn}']);
 `,
@@ -367,7 +364,6 @@ describe('ECS Integration Testing', () => {
     'adds a new task definition',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO task_definition ("family", task_role_name, execution_role_name, cpu_memory)
     VALUES ('${tdRepositoryFamily}', '${taskExecRoleName}', '${taskExecRoleName}', '${tdCpuMem}');
   `,
@@ -393,7 +389,6 @@ describe('ECS Integration Testing', () => {
     'adds a new container definition',
     query(
       `
-    SELECT * FROM iasql_begin();
     BEGIN;
       INSERT INTO container_definition ("name", repository_id, region, tag, essential, memory_reservation, host_port, container_port, protocol, env_variables, task_definition_id)
       VALUES('${containerNameRepository}', (select id from repository where repository_name = '${repositoryName}' and region = '${region}'), (select region from repository where repository_name = '${repositoryName}'), '${imageTag}', ${containerEssential}, ${containerMemoryReservation}, ${hostPort}, ${containerPort}, '${protocol}', '{ "test": 2}', (select id from task_definition where family = '${tdRepositoryFamily}' and status is null and region = '${region}' limit 1));
@@ -474,7 +469,6 @@ describe('ECS Integration Testing', () => {
     'adds a new service',
     query(
       `
-    SELECT * FROM iasql_begin();
     BEGIN;
       INSERT INTO service ("name", desired_count, subnets, assign_public_ip, cluster_id, task_definition_id, target_group_id)
       VALUES ('${serviceRepositoryName}', ${serviceDesiredCount}, (select array(select subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true and vpc.region = '${region}' limit 3)), 'ENABLED', (SELECT id FROM cluster WHERE cluster_name = '${clusterName}'), (select id from task_definition where family = '${tdRepositoryFamily}' and region = '${region}' order by revision desc limit 1), (SELECT id FROM target_group WHERE target_group_name = '${serviceTargetGroupName}' and region = '${region}'));
@@ -492,7 +486,6 @@ describe('ECS Integration Testing', () => {
   it('fails deleting a subnet in use', done => {
     query(
       `
-        SELECT * FROM iasql_begin();
         DELETE FROM subnet;
       `,
       undefined,

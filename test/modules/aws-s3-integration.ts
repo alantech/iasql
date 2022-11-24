@@ -90,7 +90,6 @@ describe('S3 Integration Testing', () => {
     'inserts aws credentials',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -359,9 +358,8 @@ INSERT INTO bucket_object (bucket_name, key, region) VALUES ('${s3Name}', 'fake_
       'updates the bucket policy',
       query(
         `
-    SELECT * FROM iasql_begin();
-    UPDATE bucket SET policy_document='${newPolicyDocument}' WHERE name = '${s3Name}';
-    `,
+          UPDATE bucket SET policy_document='${newPolicyDocument}' WHERE name = '${s3Name}';
+        `,
         undefined,
         true,
         () => ({ username, password }),
@@ -384,7 +382,6 @@ INSERT INTO bucket_object (bucket_name, key, region) VALUES ('${s3Name}', 'fake_
     try {
       query(
         `
-      SELECT * FROM iasql_begin();
       UPDATE bucket SET region='${nonDefaultRegion}' WHERE name = '${s3Name}';
       `,
         undefined,
@@ -400,7 +397,6 @@ INSERT INTO bucket_object (bucket_name, key, region) VALUES ('${s3Name}', 'fake_
     try {
       query(
         `
-      SELECT * FROM iasql_begin();
       UPDATE bucket SET name='${nonDefaultRegion}' WHERE name = '${s3Name}';
       `,
         undefined,
@@ -471,7 +467,6 @@ INSERT INTO bucket_object (bucket_name, key, region) VALUES ('${s3Name}', 'fake_
     'deletes the s3 bucket',
     query(
       `
-    SELECT * FROM iasql_begin();
     DELETE FROM bucket WHERE name = '${s3Name}';
   `,
       undefined,
@@ -518,7 +513,6 @@ describe('S3 install/uninstall', () => {
     'inserts aws credentials',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,

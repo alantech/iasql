@@ -62,7 +62,6 @@ describe('AwsCodebuild Integration Testing', () => {
     'inserts aws credentials',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -370,7 +369,6 @@ phases:
     'delete project',
     query(
       `
-    SELECT * FROM iasql_begin();
     DELETE FROM codebuild_project
     WHERE project_name = '${dbAlias}';
   `,
@@ -384,7 +382,6 @@ phases:
     'delete repository',
     query(
       `
-    SELECT * FROM iasql_begin();
     DELETE FROM repository
     WHERE repository_name = '${dbAlias}';
   `,
@@ -398,7 +395,6 @@ phases:
     'delete role',
     query(
       `
-    SELECT * FROM iasql_begin();
     DELETE FROM iam_role
     WHERE role_name = '${dbAlias}';
   `,
@@ -481,7 +477,6 @@ describe('AwsCodebuild install/uninstall', () => {
     'inserts aws credentials',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,

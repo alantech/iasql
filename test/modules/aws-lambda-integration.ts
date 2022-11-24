@@ -90,7 +90,6 @@ describe('Lambda Integration Testing', () => {
     'inserts aws credentials',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -135,7 +134,6 @@ describe('Lambda Integration Testing', () => {
     'adds security group rules',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
     SELECT false, 'tcp', 80, 80, '0.0.0.0/0', '${prefix}lambda_rule_http', id
     FROM security_group
@@ -352,7 +350,6 @@ describe('Lambda Integration Testing', () => {
     'adds a subnet',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO subnet (availability_zone, vpc_id, cidr_block, region)
     SELECT '${availabilityZone}', id, '192.${randIPBlock}.0.0/16', '${region}'
     FROM vpc
@@ -385,7 +382,6 @@ describe('Lambda Integration Testing', () => {
     'adds security group rules for not default',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
     SELECT false, 'tcp', 80, 80, '0.0.0.0/0', '${prefix}lambda_rule_http_not_default', id
     FROM security_group
@@ -420,7 +416,6 @@ describe('Lambda Integration Testing', () => {
     'updates the security groups',
     query(
       `
-    SELECT * FROM iasql_begin();
     UPDATE lambda_function_security_groups SET security_group_id=(select id from security_group where group_name='${prefix}lambdanotdefault' and region='${region}' limit 1) where lambda_function_id=
     (select id from lambda_function where name='${lambdaFunctionName}' AND region='${region}');
   `,
@@ -437,7 +432,7 @@ describe('Lambda Integration Testing', () => {
     query(
       `
       SELECT * FROM lambda_function 
-      WHERE name = '${lambdaFunctionName}' AND cardinality(subnets)=1;      
+      WHERE name = '${lambdaFunctionName}' AND cardinality(subnets)=1;
   `,
       (res: any[]) => expect(res.length).toBe(1),
     ),
@@ -668,7 +663,6 @@ describe('Lambda Integration Testing', () => {
     'deletes security group',
     query(
       `
-      SELECT * FROM iasql_begin();
       DELETE FROM security_group WHERE group_name = '${sgGroupName}' AND region='${region}';
     `,
       undefined,
@@ -683,6 +677,7 @@ describe('Lambda Integration Testing', () => {
     'deletes the subnet and security groups',
     query(
       `
+    SELECT * FROM iasql_begin();
     WITH vpc as (
       SELECT id
       FROM vpc
@@ -771,7 +766,6 @@ describe('Lambda install/uninstall', () => {
     'inserts aws credentials',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,

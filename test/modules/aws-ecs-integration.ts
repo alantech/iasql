@@ -111,7 +111,6 @@ describe('ECS Integration Testing', () => {
     'inserts aws credentials',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -156,7 +155,6 @@ describe('ECS Integration Testing', () => {
     'inserts aws credentials',
     querySync(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -317,7 +315,6 @@ describe('ECS Integration Testing', () => {
     'adds container dependencies',
     query(
       `
-    SELECT * FROM iasql_begin();
     BEGIN;
       INSERT INTO log_group (log_group_name)
       VALUES ('${logGroupName}');
@@ -388,7 +385,6 @@ describe('ECS Integration Testing', () => {
     'adds a new container definition',
     query(
       `
-    SELECT * FROM iasql_begin();
     BEGIN;
       INSERT INTO container_definition ("name", image, essential, memory_reservation, host_port, container_port, protocol, env_variables, task_definition_id, log_group_id)
       VALUES('${containerName}', '${image}', ${containerEssential}, ${containerMemoryReservation}, ${hostPort}, ${containerPort}, '${protocol}', '{ "test": 2}', (select id from task_definition where family = '${tdFamily}' and status is null and region = '${region}' limit 1), (select id from log_group where log_group_name = '${logGroupName}' and region = '${region}'));
@@ -696,7 +692,6 @@ describe('ECS Integration Testing', () => {
   it('should fail moving just the deployment group', done =>
     void query(
       `
-      SELECT * FROM iasql_begin();
       UPDATE service
       SET region = '${nonDefaultRegion}'
       WHERE name = '${newServiceName}';
@@ -937,7 +932,6 @@ describe('ECS install/uninstall', () => {
     'inserts aws credentials',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
