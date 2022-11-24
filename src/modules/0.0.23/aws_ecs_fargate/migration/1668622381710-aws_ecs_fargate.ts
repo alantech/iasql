@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class awsEcsFargate1666789593019 implements MigrationInterface {
-  name = 'awsEcsFargate1666789593019';
+export class awsEcsFargate1668622381710 implements MigrationInterface {
+  name = 'awsEcsFargate1668622381710';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
@@ -11,7 +11,7 @@ export class awsEcsFargate1666789593019 implements MigrationInterface {
       `CREATE TYPE "public"."service_assign_public_ip_enum" AS ENUM('DISABLED', 'ENABLED')`,
     );
     await queryRunner.query(
-      `CREATE TABLE "service" ("id" SERIAL NOT NULL, "name" character varying NOT NULL, "arn" character varying, "status" character varying, "desired_count" integer NOT NULL, "subnets" text array NOT NULL, "assign_public_ip" "public"."service_assign_public_ip_enum" NOT NULL DEFAULT 'DISABLED', "force_new_deployment" boolean NOT NULL DEFAULT false, "region" character varying NOT NULL DEFAULT default_aws_region(), "cluster_id" integer, "task_definition_id" integer, "target_group_id" integer, CONSTRAINT "uq_service_name_region" UNIQUE ("name", "region"), CONSTRAINT "check_service_subnets" CHECK (check_service_subnets(subnets)), CONSTRAINT "PK_85a21558c006647cd76fdce044b" PRIMARY KEY ("id"))`,
+      `CREATE TABLE "service" ("id" SERIAL NOT NULL, "name" character varying NOT NULL, "arn" character varying, "status" character varying, "desired_count" integer NOT NULL, "subnets" text array NOT NULL, "assign_public_ip" "public"."service_assign_public_ip_enum" NOT NULL DEFAULT 'DISABLED', "region" character varying NOT NULL DEFAULT default_aws_region(), "cluster_id" integer, "task_definition_id" integer, "target_group_id" integer, CONSTRAINT "uq_service_name_region" UNIQUE ("name", "region"), CONSTRAINT "check_service_subnets" CHECK (check_service_subnets(subnets)), CONSTRAINT "PK_85a21558c006647cd76fdce044b" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
       `CREATE TYPE "public"."task_definition_status_enum" AS ENUM('ACTIVE', 'INACTIVE')`,

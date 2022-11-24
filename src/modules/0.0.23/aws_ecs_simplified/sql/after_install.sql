@@ -12,7 +12,6 @@ CREATE TABLE
     image_digest CHARACTER VARYING,
     public_ip BOOLEAN NOT NULL DEFAULT FALSE,
     load_balancer_dns CHARACTER VARYING,
-    force_new_deployment BOOLEAN NOT NULL DEFAULT FALSE,
     env_variables TEXT,
     region CHARACTER VARYING NOT NULL DEFAULT default_aws_region (),
     CONSTRAINT valid_image_fields CHECK (
@@ -131,13 +130,12 @@ BEGIN
   END IF;
 
   -- create ECS service and associate it to security group
-  INSERT INTO service ("name", desired_count, subnets, assign_public_ip, cluster_id, task_definition_id, target_group_id, force_new_deployment, region)
+  INSERT INTO service ("name", desired_count, subnets, assign_public_ip, cluster_id, task_definition_id, target_group_id, region)
   VALUES (
     NEW.app_name || '-service', NEW.desired_count, (SELECT ARRAY(SELECT subnet_id FROM subnet WHERE vpc_id = (SELECT id FROM vpc WHERE is_default = true and vpc.region = (SELECT region FROM aws_regions WHERE is_default = TRUE) LIMIT 1) LIMIT 3)), (CASE WHEN NEW.public_ip THEN 'ENABLED' ELSE 'DISABLED' END)::service_assign_public_ip_enum,
     (SELECT id FROM cluster WHERE cluster_name = NEW.app_name || '-cluster' AND region = NEW.region),
     (SELECT id FROM task_definition WHERE family = NEW.app_name || '-td' AND region = NEW.region ORDER BY revision DESC LIMIT 1),
-    (SELECT id FROM target_group WHERE target_group_name = NEW.app_name || '-target' AND region = NEW.region),
-    NEW.force_new_deployment, NEW.region
+    (SELECT id FROM target_group WHERE target_group_name = NEW.app_name || '-target' AND region = NEW.region), NEW.region
   );
 
   INSERT INTO service_security_groups (service_id, security_group_id)
@@ -283,7 +281,6 @@ DECLARE
   _load_balancer_dns TEXT;
   _service_name TEXT;
   _env_variables TEXT;
-  _force_new_deployment BOOLEAN;
   _cpu_mem TEXT;
   _cpu INTEGER;
   _mem INTEGER;
@@ -292,8 +289,8 @@ DECLARE
 BEGIN
   -- clear out the ecs_simplified table and completely recreate it so there is no logic specific to the table / trigger input and so that deletes work since this is an AFTER UPDATE/INSERT/DELETE trigger
   DELETE FROM ecs_simplified;
-  FOR _service_name, _desired_count, _public_ip, _cluster_id, _target_group_id, _task_definition_id, _force_new_deployment, _region IN
-  SELECT name, desired_count, assign_public_ip = 'ENABLED', cluster_id, target_group_id, task_definition_id, force_new_deployment, region FROM service
+  FOR _service_name, _desired_count, _public_ip, _cluster_id, _target_group_id, _task_definition_id, _region IN
+  SELECT name, desired_count, assign_public_ip = 'ENABLED', cluster_id, target_group_id, task_definition_id, region FROM service
   LOOP
 
     _app_name = SPLIT_PART(_service_name, '-', 1);
@@ -346,8 +343,8 @@ BEGIN
     WHERE id = _load_balancer_id AND region = _region;
 
     IF is_valid THEN
-      INSERT INTO ecs_simplified (app_name, desired_count, app_port, cpu_mem, image_tag, public_ip, load_balancer_dns, repository_uri, env_variables, force_new_deployment, region)
-      VALUES (_app_name, _desired_count, _app_port, _cpu_mem::task_definition_cpu_memory_enum, _image_tag, _public_ip, _load_balancer_dns, _repository_uri, _env_variables, _force_new_deployment, _region);
+      INSERT INTO ecs_simplified (app_name, desired_count, app_port, cpu_mem, image_tag, public_ip, load_balancer_dns, repository_uri, env_variables, region)
+      VALUES (_app_name, _desired_count, _app_port, _cpu_mem::task_definition_cpu_memory_enum, _image_tag, _public_ip, _load_balancer_dns, _repository_uri, _env_variables, _region);
     END IF;
   END LOOP;
 

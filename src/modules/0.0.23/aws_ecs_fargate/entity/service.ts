@@ -88,11 +88,6 @@ export class Service {
   targetGroup?: TargetGroup;
 
   @Column({
-    default: false,
-  })
-  forceNewDeployment: boolean;
-
-  @Column({
     type: 'character varying',
     nullable: false,
     default: () => 'default_aws_region()',
