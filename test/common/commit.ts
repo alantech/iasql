@@ -15,7 +15,7 @@ afterAll(async () => await execComposeDown());
 
 let username: string, password: string;
 
-describe('basic commit and preview functionality', () => {
+describe('basic begin, commit and preview functionality', () => {
   it('creates a new test db', done => {
     (async () => {
       try {
@@ -36,9 +36,9 @@ describe('basic commit and preview functionality', () => {
     'inserts aws credentials',
     query(
       `
-    INSERT INTO aws_credentials (access_key_id, secret_access_key)
-    VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
-  `,
+        INSERT INTO aws_credentials (access_key_id, secret_access_key)
+        VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
+      `,
       undefined,
       false,
       () => ({ username, password }),
@@ -51,8 +51,9 @@ describe('basic commit and preview functionality', () => {
     'insert a log group',
     query(
       `
-    insert into log_group (log_group_name) values ('${logGroupName}');
-  `,
+        select * from iasql_begin();
+        insert into log_group (log_group_name) values ('${logGroupName}');
+      `,
       undefined,
       true,
       () => ({ username, password }),
@@ -63,20 +64,34 @@ describe('basic commit and preview functionality', () => {
     'calls iasql_preview should expect a creation',
     query(
       `
-    select * from iasql_preview();
-  `,
+        select * from iasql_preview();
+      `,
       (res: any) => {
         expect(res[0]['action']).toBe('create');
       },
     ),
   );
 
+  it('confirms that you cannot start another transaction in the middle of one', done =>
+    void query(`
+      SELECT * FROM iasql_begin();
+    `)((e?: any) => {
+      try {
+        expect(e?.detail).toContain('Another transaction is open');
+      } catch (err) {
+        done(err);
+        return {};
+      }
+      done();
+      return {};
+    }));
+
   it(
     'calls iasql_commit should create',
     query(
       `
-    select * from iasql_commit();
-  `,
+        select * from iasql_commit();
+      `,
       (res: any) => {
         expect(res[0]['action']).toBe('create');
       },
@@ -87,8 +102,8 @@ describe('basic commit and preview functionality', () => {
     'checks the log group',
     query(
       `
-    select * from log_group where log_group_name = '${logGroupName}';
-  `,
+        select * from log_group where log_group_name = '${logGroupName}';
+      `,
       (res: any) => {
         expect(res[0]['log_group_arn']).toBeDefined();
       },
@@ -99,8 +114,9 @@ describe('basic commit and preview functionality', () => {
     'deletes the log group',
     query(
       `
-      delete from log_group where log_group_name = '${logGroupName}';
-    `,
+        select * from iasql_begin();
+        delete from log_group where log_group_name = '${logGroupName}';
+      `,
       undefined,
       true,
       () => ({ username, password }),
@@ -111,8 +127,8 @@ describe('basic commit and preview functionality', () => {
     'calls iasql_commit should delete',
     query(
       `
-    select * from iasql_commit();
-  `,
+        select * from iasql_commit();
+      `,
       (res: any) => {
         expect(res[0]['action']).toBe('delete');
       },
@@ -123,8 +139,8 @@ describe('basic commit and preview functionality', () => {
     'checks the log group deletion',
     query(
       `
-    select * from log_group where log_group_name = '${logGroupName}';
-  `,
+        select * from log_group where log_group_name = '${logGroupName}';
+      `,
       (res: any) => {
         expect(res.length).toBe(0);
       },
