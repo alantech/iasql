@@ -65,7 +65,6 @@ describe('AwsAcm Request Integration Testing', () => {
     'sets the default region',
     query(
       `
-    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,

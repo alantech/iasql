@@ -170,7 +170,6 @@ describe('AwsAccount Integration Testing', () => {
     'selects a default region',
     query(
       `
-    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
@@ -194,7 +193,6 @@ describe('AwsAccount Integration Testing', () => {
       try {
         await runSql(
           `
-          SELECT * FROM iasql_begin();
           UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
         `,
           false,
@@ -236,7 +234,6 @@ describe('AwsAccount Integration Testing', () => {
     'clears out the default region',
     query(
       `
-    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = false;
   `,
       undefined,

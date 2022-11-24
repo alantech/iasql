@@ -61,7 +61,6 @@ describe('Every module installed need to have at least a table', () => {
     'sets the default region',
     query(
       `
-    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,

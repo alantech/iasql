@@ -127,7 +127,6 @@ describe('ECS Integration Testing', () => {
     'sets the default region',
     query(
       `
-    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
@@ -140,7 +139,6 @@ describe('ECS Integration Testing', () => {
     'sets only 2 enabled regions to avoid long runs',
     query(
       `
-    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_enabled = FALSE WHERE region != '${region}' AND region != (SELECT region FROM aws_regions WHERE region != 'us-east-1' AND region != '${region}' ORDER BY region DESC LIMIT 1);
   `,
       undefined,
@@ -172,7 +170,6 @@ describe('ECS Integration Testing', () => {
   it(
     'sets the default region',
     querySync(`
-    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `),
   );
@@ -180,7 +177,6 @@ describe('ECS Integration Testing', () => {
   it(
     'sets only 2 enabled regions to avoid long runs',
     querySync(`
-    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_enabled = FALSE WHERE region != '${region}' AND region != (SELECT region FROM aws_regions WHERE region != 'us-east-1' AND region != '${region}' ORDER BY region DESC LIMIT 1);
   `),
   );
@@ -971,7 +967,6 @@ describe('ECS install/uninstall', () => {
     'sets the default region',
     query(
       `
-    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
   `,
       undefined,
@@ -983,7 +978,6 @@ describe('ECS install/uninstall', () => {
   it(
     'sets only 2 enabled regions to avoid long runs',
     query(`
-    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_enabled = FALSE WHERE region != 'us-east-1' AND region != (SELECT region FROM aws_regions WHERE region != 'us-east-1' LIMIT 1);
   `),
   );

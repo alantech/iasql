@@ -67,7 +67,6 @@ describe('AwsAcm List Integration Testing', () => {
     'sets the default region',
     query(
       `
-    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
@@ -202,7 +201,6 @@ describe('AwsAcm List install/uninstall', () => {
     'sets the default region',
     query(
       `
-    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
   `,
       undefined,

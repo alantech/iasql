@@ -155,7 +155,6 @@ describe('EC2 Integration Testing', () => {
     'sets the default region',
     query(
       `
-    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
@@ -187,7 +186,6 @@ describe('EC2 Integration Testing', () => {
   it(
     'sets the default region',
     querySync(`
-    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
   `),
   );
@@ -1220,7 +1218,6 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
     'sets the default region',
     query(
       `
-    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
@@ -1524,7 +1521,6 @@ describe('EC2 install/uninstall', () => {
     'sets the default region',
     query(
       `
-    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
   `,
       undefined,
