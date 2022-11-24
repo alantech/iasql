@@ -173,7 +173,6 @@ describe('AwsCodebuild Multi-region Integration Testing', () => {
     'adds a new codebuild_project',
     query(
       `
-    SELECT * FROM iasql_begin();
     INSERT INTO codebuild_project (project_name, source_type, service_role_name, source_location, region)
     VALUES ('${dbAlias}', 'GITHUB', '${dbAlias}', '${ghUrl}', '${nonDefaultRegion}');
   `,
@@ -255,7 +254,6 @@ describe('AwsCodebuild Multi-region Integration Testing', () => {
     'delete role',
     query(
       `
-    SELECT * FROM iasql_begin();
     DELETE FROM iam_role
     WHERE role_name = '${dbAlias}';
   `,
