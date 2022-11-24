@@ -48,11 +48,25 @@ FROM
 If the function call is successful, it will return a virtual table with a record for each new table in your database under `created_table_name` and the number of existing resources or records imported from the account under `record_count`.
 
 ```sql
-module_name | created_table_name | record_count
+       module_name        |      created_table_name       | record_count
 --------------------------+-------------------------------+--------------
-aws_cloudwatch | log_group | 0 aws_ecr | public_repository | 0 aws_ecr | repository | 1 aws_ecr | repository_policy | 0 aws_security_group | security_group | 2 aws_security_group | security_group_rule | 0 aws_vpc | vpc | 1 aws_vpc | subnet | 3 aws_elb | load_balancer | 0 aws_elb | target_group | 0 aws_elb | listener | 0 aws_elb | load_balancer_security_groups | 0 aws_ecs_fargate |
-CLUSTER
-  | 0 aws_ecs_fargate | service | 0 aws_ecs_fargate | task_definition | 0 aws_ecs_fargate | container_definition | 0 aws_ecs_fargate | service_security_groups | 0 (17 ROWS)
+ aws_cloudwatch           | log_group                     |            0
+ aws_ecr                  | public_repository             |            0
+ aws_ecr                  | repository                    |            1
+ aws_ecr                  | repository_policy             |            0
+ aws_security_group       | security_group                |            2
+ aws_security_group       | security_group_rule           |            0
+ aws_vpc                  | vpc                           |            1
+ aws_vpc                  | subnet                        |            3
+ aws_elb                  | load_balancer                 |            0
+ aws_elb                  | target_group                  |            0
+ aws_elb                  | listener                      |            0
+ aws_elb                  | load_balancer_security_groups |            0
+ aws_ecs_fargate          | cluster                       |            0
+ aws_ecs_fargate          | service                       |            0
+ aws_ecs_fargate          | task_definition               |            0
+ aws_ecs_fargate          | container_definition          |            0
+ aws_ecs_fargate          | service_security_groups       |            0
 ```
 
 ## Connect to the hosted db and provision cloud resources in your AWS account

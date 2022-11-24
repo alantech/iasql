@@ -1,4 +1,4 @@
-const { execSync } = require('child_process')
+const { execSync } = require('child_process');
 const { PrismaClient } = require('@prisma/client');
 
 const pkg = require('./package.json');
@@ -8,42 +8,46 @@ const REGION = process.env.AWS_REGION ?? '';
 // TODO replace with your desired project name
 const APP_NAME = pkg.name;
 
-const prisma = new PrismaClient()
+const prisma = new PrismaClient();
 
 async function main() {
-  const repo_uri = (await prisma.ecs_simplified.findFirst({
-    where: { app_name: APP_NAME},
-    select: { repository_uri: true }
-  })).repository_uri;
+  const repo_uri = (
+    await prisma.ecs_simplified.findFirst({
+      where: { app_name: APP_NAME },
+      select: { repository_uri: true },
+    })
+  ).repository_uri;
 
-  console.log('Docker login...')
-  execSync(`aws ecr get-login-password --region ${REGION} | docker login --username AWS --password-stdin ${repo_uri}`)
+  console.log('Docker login...');
+  execSync(
+    `aws ecr get-login-password --region ${REGION} | docker login --username AWS --password-stdin ${repo_uri}`,
+  );
 
-  console.log('Building image...')
+  console.log('Building image...');
   execSync(`docker build -t ${APP_NAME}-repository ${__dirname}/../app`);
 
-  console.log('Tagging image...')
+  console.log('Tagging image...');
   execSync(`docker tag ${APP_NAME}-repository:latest ${repo_uri}:latest`);
 
-  console.log('nPushing image...')
+  console.log('nPushing image...');
   execSync(`docker push ${repo_uri}:latest`);
 
-  const serviceArn = (await prisma.service.findFirst({
-    where: { name: `${APP_NAME}-service`, region: `${REGION}` },
-    select: { arn: true },
-  })).arn.toString();
+  const serviceArn = (
+    await prisma.service.findFirst({
+      where: { name: `${APP_NAME}-service`, region: `${REGION}` },
+      select: { arn: true },
+    })
+  ).arn.toString();
 
-  console.log('Force new deployment')
-  await prisma.$queryRaw`SELECT * from deploy_service('${arn}');`;
-
-  const commit = await prisma.$queryRaw`SELECT * from iasql_commit();`
-  console.dir(commit)
+  console.log('Force new deployment');
+  const result = await prisma.$queryRaw`SELECT * from deploy_service('${arn}');`;
+  console.dir(result);
 }
 
 main()
-  .catch((e) => {
-    throw e
+  .catch(e => {
+    throw e;
   })
   .finally(async () => {
-    await prisma.$disconnect()
-  })
+    await prisma.$disconnect();
+  });

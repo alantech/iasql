@@ -44,6 +44,7 @@ export class DeployServiceRPC extends RpcBase {
       const service = await this.updateService(client.ecsClient, {
         service: serviceObj.arn,
         cluster: serviceObj.cluster?.clusterArn,
+        forceNewDeployment: true,
       });
 
       if (service) {
