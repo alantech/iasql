@@ -186,11 +186,11 @@ const theButton = require('./src/rehype/thebutton');
 
     scripts: [
       {
-        src: 'https://cdnjs.cloudflare.com/ajax/libs/js-cookie/3.0.1/js.cookie.js',
+        src: '/js/js.cookie.min.js',
         async: true,
       },
       {
-        src: 'https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.4.4/lz-string.min.js',
+        src: '/js/lz-string.min.js',
         async: true,
       },
     ],
