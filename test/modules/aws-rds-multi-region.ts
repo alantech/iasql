@@ -48,6 +48,7 @@ describe('RDS Multi-Region Testing', () => {
     'inserts aws credentials',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -63,6 +64,7 @@ describe('RDS Multi-Region Testing', () => {
     'sets the default region',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
@@ -77,6 +79,7 @@ describe('RDS Multi-Region Testing', () => {
     'creates an RDS instance',
     query(
       `
+    SELECT * FROM iasql_begin();
     BEGIN;
       INSERT INTO rds (db_instance_identifier, allocated_storage, db_instance_class, master_username, master_user_password, availability_zone, engine, backup_retention_period)
         VALUES ('${prefix}test', 20, 'db.t3.micro', 'test', 'testpass', (SELECT name FROM availability_zone WHERE region = '${region}' LIMIT 1), 'postgres:13.4', 0);
@@ -97,6 +100,7 @@ describe('RDS Multi-Region Testing', () => {
     'creates an RDS parameter group',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO parameter_group (name, family, description)
     VALUES ('${parameterGroupName}', '${engineFamily}', '${parameterGroupName} desc');
   `,
@@ -112,6 +116,7 @@ describe('RDS Multi-Region Testing', () => {
     'moves the parameter group to another region',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE parameter_group SET region = 'us-east-1' WHERE name = '${parameterGroupName}';
   `,
       undefined,
@@ -124,6 +129,7 @@ describe('RDS Multi-Region Testing', () => {
     'updates the RDS instance to use the parameter group and moves it to another region',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE rds SET
       region = 'us-east-1',
       availability_zone = (SELECT name FROM availability_zone WHERE region = 'us-east-1' LIMIT 1),
@@ -148,6 +154,7 @@ describe('RDS Multi-Region Testing', () => {
     'removes the RDS instance',
     query(
       `
+    SELECT * FROM iasql_begin();
     DELETE FROM rds
     WHERE db_instance_identifier = '${prefix}test';
   `,
@@ -163,6 +170,7 @@ describe('RDS Multi-Region Testing', () => {
     'removes the parameter group and it parameters',
     query(
       `
+    SELECT * FROM iasql_begin();
     DELETE FROM parameter_group
     WHERE name = '${parameterGroupName}';
   `,

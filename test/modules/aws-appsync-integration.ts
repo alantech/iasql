@@ -58,6 +58,7 @@ describe('App Sync Integration Testing', () => {
     'inserts aws credentials',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -73,6 +74,7 @@ describe('App Sync Integration Testing', () => {
     'sets the default region',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
@@ -87,6 +89,8 @@ describe('App Sync Integration Testing', () => {
     'adds a new Graphql API',
     query(
       `  
+    SELECT * FROM iasql_begin();
+  
     INSERT INTO graphql_api (name, authentication_type)
     VALUES ('${apiName}', '${authType}');
   `,
@@ -102,6 +106,8 @@ describe('App Sync Integration Testing', () => {
     'adds a new GraphQL API entry',
     query(
       `  
+    SELECT * FROM iasql_begin();
+  
     INSERT INTO graphql_api (name, authentication_type)
     VALUES ('${apiName}', '${authType}');
   `,
@@ -127,6 +133,7 @@ describe('App Sync Integration Testing', () => {
     'tries to update Graphql API auth type',
     query(
       `
+  SELECT * FROM iasql_begin();
   UPDATE graphql_api SET authentication_type='${newAuthType}' WHERE name='${apiName}'
   `,
       undefined,
@@ -151,6 +158,7 @@ describe('App Sync Integration Testing', () => {
     'tries to update Graphql API ID',
     query(
       `
+  SELECT * FROM iasql_begin();
   UPDATE graphql_api SET api_id='fake' WHERE name='${apiName}'
   `,
       undefined,
@@ -189,6 +197,7 @@ describe('App Sync Integration Testing', () => {
     'deletes the Graphql API',
     query(
       `
+    SELECT * FROM iasql_begin();
     DELETE FROM graphql_api
     WHERE name = '${apiName}';
   `,
@@ -224,6 +233,7 @@ describe('API install/uninstall', () => {
     'inserts aws credentials',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -239,6 +249,7 @@ describe('API install/uninstall', () => {
     'sets the default region',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
   `,
       undefined,

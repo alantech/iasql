@@ -53,6 +53,7 @@ describe('RDS Integration Testing', () => {
     'inserts aws credentials',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -68,6 +69,7 @@ describe('RDS Integration Testing', () => {
     'sets the default region',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
@@ -82,6 +84,7 @@ describe('RDS Integration Testing', () => {
     'creates an RDS instance',
     query(
       `
+    SELECT * FROM iasql_begin();
     BEGIN;
       INSERT INTO rds (db_instance_identifier, allocated_storage, db_instance_class, master_username, master_user_password, availability_zone, engine, backup_retention_period)
         VALUES ('${prefix}test', 20, 'db.t3.micro', 'test', 'testpass', (SELECT name FROM availability_zone WHERE region = '${region}' LIMIT 1), 'postgres:13.4', 0);
@@ -127,6 +130,7 @@ describe('RDS Integration Testing', () => {
     'creates an RDS instance',
     query(
       `
+    SELECT * FROM iasql_begin();
     BEGIN;
       INSERT INTO rds (db_instance_identifier, allocated_storage, db_instance_class, master_username, master_user_password, availability_zone, engine, backup_retention_period)
         VALUES ('${prefix}test', 20, 'db.t3.micro', 'test', 'testpass', (SELECT name FROM availability_zone WHERE region = '${region}' LIMIT 1), 'postgres:13.4', 0);
@@ -172,6 +176,7 @@ describe('RDS Integration Testing', () => {
     'changes the postgres version',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE rds SET engine = 'postgres:13.5' WHERE db_instance_identifier = '${prefix}test';
   `,
       undefined,
@@ -186,6 +191,7 @@ describe('RDS Integration Testing', () => {
     'creates an RDS parameter group',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO parameter_group (name, family, description)
     VALUES ('${parameterGroupName}', '${engineFamily}', '${parameterGroupName} desc');
   `,
@@ -293,6 +299,7 @@ describe('RDS Integration Testing', () => {
     'removes the RDS instance',
     query(
       `
+    SELECT * FROM iasql_begin();
     DELETE FROM rds
     WHERE db_instance_identifier = '${prefix}test';
   `,
@@ -332,6 +339,7 @@ describe('RDS Integration Testing', () => {
     'removes the parameter group and it parameters',
     query(
       `
+    SELECT * FROM iasql_begin();
     DELETE FROM parameter_group
     WHERE name = '${parameterGroupName}';
   `,
@@ -391,6 +399,7 @@ describe('RDS install/uninstall', () => {
     'inserts aws credentials',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -406,6 +415,7 @@ describe('RDS install/uninstall', () => {
     'sets the default region',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
   `,
       undefined,

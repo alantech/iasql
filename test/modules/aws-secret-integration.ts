@@ -53,6 +53,7 @@ describe('Secrets Manager Integration Testing', () => {
     'inserts aws credentials',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -68,6 +69,7 @@ describe('Secrets Manager Integration Testing', () => {
     'sets the default region',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
@@ -82,6 +84,8 @@ describe('Secrets Manager Integration Testing', () => {
     'adds a new secret',
     query(
       `  
+    SELECT * FROM iasql_begin();
+  
     INSERT INTO secret (name, value)
     VALUES ('${secretName}', '${secretValue}');
   `,
@@ -97,6 +101,8 @@ describe('Secrets Manager Integration Testing', () => {
     'adds a new secret',
     query(
       `  
+    SELECT * FROM iasql_begin();
+  
     INSERT INTO secret (name, description, value)
     VALUES ('${secretName}', 'description', '${secretValue}');
   `,
@@ -122,6 +128,7 @@ describe('Secrets Manager Integration Testing', () => {
     'tries to update secret description',
     query(
       `
+  SELECT * FROM iasql_begin();
   UPDATE secret SET description='new description' WHERE name='${secretName}'
   `,
       undefined,
@@ -146,6 +153,7 @@ describe('Secrets Manager Integration Testing', () => {
     'tries to update secret value',
     query(
       `
+  SELECT * FROM iasql_begin();
   UPDATE secret SET value='newvalue' WHERE name='${secretName}'
   `,
       undefined,
@@ -160,6 +168,7 @@ describe('Secrets Manager Integration Testing', () => {
     'tries to update version',
     query(
       `
+  SELECT * FROM iasql_begin();
   UPDATE secret SET version_id='fakeVersion' WHERE name='${secretName}'
   `,
       undefined,
@@ -198,6 +207,7 @@ describe('Secrets Manager Integration Testing', () => {
     'moves the secret to another region with a new value',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE secret SET region='us-east-1', value='new_secret' WHERE name='${secretName}';
   `,
       undefined,
@@ -225,6 +235,7 @@ describe('Secrets Manager Integration Testing', () => {
     'creates the same secret back in the original region at the same time',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO secret (name, description, value)
     VALUES ('${secretName}', 'description', '${secretValue}');
   `,
@@ -252,6 +263,7 @@ describe('Secrets Manager Integration Testing', () => {
     'deletes the secret',
     query(
       `
+    SELECT * FROM iasql_begin();
     DELETE FROM secret
     WHERE name = '${secretName}';
   `,
@@ -287,6 +299,7 @@ describe('Secret install/uninstall', () => {
     'inserts aws credentials',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -302,6 +315,7 @@ describe('Secret install/uninstall', () => {
     'sets the default region',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
   `,
       undefined,

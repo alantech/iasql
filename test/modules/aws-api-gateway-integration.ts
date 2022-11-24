@@ -68,6 +68,7 @@ describe('API Gateway Integration Testing', () => {
     'inserts aws credentials',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -83,6 +84,7 @@ describe('API Gateway Integration Testing', () => {
     'sets the default region',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
@@ -97,6 +99,8 @@ describe('API Gateway Integration Testing', () => {
     'adds a new API gateway',
     query(
       `  
+    SELECT * FROM iasql_begin();
+  
     INSERT INTO api (name, description)
     VALUES ('${apiName}', 'description');
   `,
@@ -112,6 +116,8 @@ describe('API Gateway Integration Testing', () => {
     'adds a new API gateway',
     query(
       `  
+    SELECT * FROM iasql_begin();
+  
     INSERT INTO api (name, description, disable_execute_api_endpoint, version)
     VALUES ('${apiName}', 'description', false, '1.0');
   `,
@@ -137,6 +143,7 @@ describe('API Gateway Integration Testing', () => {
     'tries to update API description',
     query(
       `
+  SELECT * FROM iasql_begin();
   UPDATE api SET description='new description' WHERE name='${apiName}'
   `,
       undefined,
@@ -161,6 +168,7 @@ describe('API Gateway Integration Testing', () => {
     'tries to update API ID',
     query(
       `
+  SELECT * FROM iasql_begin();
   UPDATE api SET api_id='fake' WHERE name='${apiName}'
   `,
       undefined,
@@ -185,6 +193,7 @@ describe('API Gateway Integration Testing', () => {
     'tries to update the API protocol',
     query(
       `
+  SELECT * FROM iasql_begin();
   UPDATE api SET protocol_type='WEBSOCKET' WHERE name='${apiName}'
   `,
       undefined,
@@ -232,6 +241,7 @@ describe('API Gateway Integration Testing', () => {
     'deletes the API',
     query(
       `
+    SELECT * FROM iasql_begin();
     DELETE FROM api
     WHERE name = '${apiName}';
   `,
@@ -267,6 +277,7 @@ describe('API install/uninstall', () => {
     'inserts aws credentials',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -282,6 +293,7 @@ describe('API install/uninstall', () => {
     'sets the default region',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
   `,
       undefined,

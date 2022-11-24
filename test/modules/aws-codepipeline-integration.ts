@@ -235,6 +235,7 @@ describe('AwsCodepipeline Integration Testing', () => {
     'inserts aws credentials',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -250,6 +251,7 @@ describe('AwsCodepipeline Integration Testing', () => {
     'sets the default region',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
@@ -264,6 +266,7 @@ describe('AwsCodepipeline Integration Testing', () => {
     'adds a new role',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
     VALUES ('${codePipelineRoleName}', '${assumeServicePolicy}', array['${codepipelinePolicyArn}', '${s3PolicyArn}', '${codedeployPolicyArn}']);
   `,
@@ -277,6 +280,7 @@ describe('AwsCodepipeline Integration Testing', () => {
     'adds a new ec2 role',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
     VALUES ('${ec2RoleName}', '${ec2RolePolicy}', array['${deployEC2PolicyArn}', '${ssmPolicyArn}', '${codedeployPolicyArn}', '${s3PolicyArn}']);
   `,
@@ -290,6 +294,7 @@ describe('AwsCodepipeline Integration Testing', () => {
     'adds a new codedeploy role',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
     VALUES ('${codeDeployRoleName}', '${codedeployRolePolicy}', array['${codedeployPolicyArn}', '${deployEC2PolicyArn}', '${s3PolicyArn}']);
   `,
@@ -303,6 +308,7 @@ describe('AwsCodepipeline Integration Testing', () => {
     'add storage s3 endpoint',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO bucket (name) VALUES ('${bucket}')`,
       undefined,
       true,
@@ -314,6 +320,8 @@ describe('AwsCodepipeline Integration Testing', () => {
     'adds a new security group',
     query(
       `  
+    SELECT * FROM iasql_begin();
+  
     INSERT INTO security_group (description, group_name)
     VALUES ('CodedeploySecurity Group', '${sgGroupName}');
   `,
@@ -327,6 +335,7 @@ describe('AwsCodepipeline Integration Testing', () => {
     'adds security group rules',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
     SELECT false, 'tcp', 22, 22, '0.0.0.0/0', '${prefix}codedeploy_rule_ssh', id
     FROM security_group
@@ -352,6 +361,7 @@ describe('AwsCodepipeline Integration Testing', () => {
   it('adds an ec2 instance', done => {
     query(
       `
+      SELECT * FROM iasql_begin();
       BEGIN;
         INSERT INTO instance (ami, instance_type, tags, subnet_id, role_name, user_data)
           SELECT '${ubuntuAmiId}', '${instanceType}', '{"name":"${instanceTag}"}', id, '${ec2RoleName}', (SELECT generate_codedeploy_agent_install_script('${region}', 'ubuntu'))
@@ -378,6 +388,7 @@ describe('AwsCodepipeline Integration Testing', () => {
     'adds a new codedeploy_application for deployment',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO codedeploy_application (name, compute_platform)
     VALUES ('${applicationNameForDeployment}', 'Server');
   `,
@@ -391,6 +402,7 @@ describe('AwsCodepipeline Integration Testing', () => {
     'adds a new deployment_group',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO codedeploy_deployment_group (application_id, name, role_name, ec2_tag_filters)
     VALUES ((SELECT id FROM codedeploy_application WHERE name = '${applicationNameForDeployment}'), '${deploymentGroupName}', '${codeDeployRoleName}', '${ec2FilterTags}');
   `,
@@ -406,6 +418,7 @@ describe('AwsCodepipeline Integration Testing', () => {
     'adds a new pipeline',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO pipeline_declaration (name, service_role_name, stages, artifact_store)
     VALUES ('${prefix}-${dbAlias}', '${codePipelineRoleName}', '${stages}', '${artifactStore}');
   `,
@@ -432,6 +445,7 @@ describe('AwsCodepipeline Integration Testing', () => {
     try {
       query(
         `
+      SELECT * FROM iasql_begin();
       UPDATE pipeline_declaration SET region='${nonDefaultRegion} WHERE name='${prefix}-${dbAlias}');
       `,
         undefined,
@@ -451,6 +465,7 @@ describe('AwsCodepipeline Integration Testing', () => {
     'delete pipeline',
     query(
       `
+    SELECT * FROM iasql_begin();
     DELETE FROM pipeline_declaration
     WHERE name = '${prefix}-${dbAlias}';
   `,
@@ -464,6 +479,7 @@ describe('AwsCodepipeline Integration Testing', () => {
     'delete deployment group',
     query(
       `
+      SELECT * FROM iasql_begin();
       DELETE FROM codedeploy_deployment_group
       WHERE name = '${deploymentGroupName}';
     `,
@@ -477,6 +493,7 @@ describe('AwsCodepipeline Integration Testing', () => {
     'delete application',
     query(
       `
+      SELECT * FROM iasql_begin();
       DELETE FROM codedeploy_application
       WHERE name = '${applicationNameForDeployment}';
     `,
@@ -491,6 +508,7 @@ describe('AwsCodepipeline Integration Testing', () => {
       'deletes all ec2 instances',
       query(
         `
+      SELECT * FROM iasql_begin();
       BEGIN;
         DELETE FROM general_purpose_volume
         USING instance
@@ -514,6 +532,7 @@ describe('AwsCodepipeline Integration Testing', () => {
     'delete role',
     query(
       `
+    SELECT * FROM iasql_begin();
     DELETE FROM iam_role
     WHERE role_name = '${codePipelineRoleName}' OR role_name='${codeDeployRoleName}' OR role_name='${ec2RoleName}';
   `,
@@ -525,7 +544,8 @@ describe('AwsCodepipeline Integration Testing', () => {
 
   it(
     'cleans up the bucket',
-    query(`DELETE FROM bucket_object WHERE bucket_name='${bucket}'`, undefined, true, () => ({
+    query(`SELECT * FROM iasql_begin();
+DELETE FROM bucket_object WHERE bucket_name='${bucket}'`, undefined, true, () => ({
       username,
       password,
     })),
@@ -535,6 +555,7 @@ describe('AwsCodepipeline Integration Testing', () => {
     'delete bucket',
     query(
       `
+    SELECT * FROM iasql_begin();
     DELETE FROM bucket
     WHERE name = '${bucket}';
   `,
@@ -551,6 +572,7 @@ describe('AwsCodepipeline Integration Testing', () => {
       'deletes security group rules',
       query(
         `
+        SELECT * FROM iasql_begin();
         DELETE FROM security_group_rule WHERE description='${prefix}codedeploy_rule_ssh' or description='${prefix}codedeploy_rule_http' or description='${prefix}codedeploy_rule_egress';
       `,
         undefined,
@@ -563,6 +585,7 @@ describe('AwsCodepipeline Integration Testing', () => {
       'deletes security group',
       query(
         `
+        SELECT * FROM iasql_begin();
         DELETE FROM security_group WHERE group_name = '${sgGroupName}';
       `,
         undefined,
@@ -622,6 +645,7 @@ describe('AwsCodepipeline install/uninstall', () => {
     'inserts aws credentials',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -637,6 +661,7 @@ describe('AwsCodepipeline install/uninstall', () => {
     'sets the default region',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,

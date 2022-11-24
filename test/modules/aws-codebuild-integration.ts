@@ -62,6 +62,7 @@ describe('AwsCodebuild Integration Testing', () => {
     'inserts aws credentials',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -77,6 +78,7 @@ describe('AwsCodebuild Integration Testing', () => {
     'sets the default region',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
@@ -149,6 +151,7 @@ phases:
     'adds a new source_credentials_import',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO source_credentials_import (token, source_type, auth_type)
     VALUES ('${process.env.GH_PAT}', 'GITHUB', 'PERSONAL_ACCESS_TOKEN')
   `,
@@ -188,6 +191,7 @@ phases:
     'delete source_credentials_list',
     query(
       `
+    SELECT * FROM iasql_begin();
     DELETE FROM source_credentials_list
     WHERE source_type = 'GITHUB';
   `,
@@ -215,6 +219,7 @@ phases:
     'adds a new repository',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO repository (repository_name)
     VALUES ('${dbAlias}');
   `,
@@ -228,6 +233,7 @@ phases:
     'adds a new role',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
     VALUES ('${dbAlias}', '${assumeServicePolicy}', array['${codebuildPolicyArn}', '${cloudwatchLogsArn}', '${pushEcrPolicyArn}']);
   `,
@@ -241,6 +247,7 @@ phases:
     'adds a new codebuild_project with codepipeline type',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO codebuild_project (project_name, source_type, service_role_name)
     VALUES ('${dbAlias}-codepipeline', 'CODEPIPELINE', '${dbAlias}');
   `,
@@ -268,6 +275,7 @@ phases:
     'deletes codebuild codepipeline project',
     query(
       `
+    SELECT * FROM iasql_begin();
     DELETE FROM codebuild_project WHERE project_name='${dbAlias}-codepipeline';
   `,
       undefined,
@@ -280,6 +288,7 @@ phases:
     'adds a new codebuild_project',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO codebuild_project (project_name, source_type, service_role_name, source_location)
     VALUES ('${dbAlias}', 'GITHUB', '${dbAlias}', '${ghUrl}');
   `,
@@ -295,6 +304,7 @@ phases:
     'start and wait for build',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO codebuild_build_import (project_name)
     VALUES ('${dbAlias}');
   `,
@@ -347,6 +357,7 @@ phases:
     'delete build',
     query(
       `
+    SELECT * FROM iasql_begin();
     DELETE FROM codebuild_build_list
     WHERE project_name = '${dbAlias}';
   `,
@@ -360,6 +371,7 @@ phases:
     'delete project',
     query(
       `
+    SELECT * FROM iasql_begin();
     DELETE FROM codebuild_project
     WHERE project_name = '${dbAlias}';
   `,
@@ -373,6 +385,7 @@ phases:
     'delete repository',
     query(
       `
+    SELECT * FROM iasql_begin();
     DELETE FROM repository
     WHERE repository_name = '${dbAlias}';
   `,
@@ -386,6 +399,7 @@ phases:
     'delete role',
     query(
       `
+    SELECT * FROM iasql_begin();
     DELETE FROM iam_role
     WHERE role_name = '${dbAlias}';
   `,
@@ -468,6 +482,7 @@ describe('AwsCodebuild install/uninstall', () => {
     'inserts aws credentials',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -483,6 +498,7 @@ describe('AwsCodebuild install/uninstall', () => {
     'sets the default region',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
   `,
       undefined,

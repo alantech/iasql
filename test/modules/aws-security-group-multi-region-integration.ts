@@ -49,6 +49,7 @@ describe('Security Group Multi region Integration Testing', () => {
     'inserts aws credentials',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -64,6 +65,7 @@ describe('Security Group Multi region Integration Testing', () => {
     'sets the default region',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${defaultRegion}';
   `,
       undefined,
@@ -78,6 +80,8 @@ describe('Security Group Multi region Integration Testing', () => {
     'adds a new security group',
     query(
       `  
+    SELECT * FROM iasql_begin();
+  
     INSERT INTO security_group (description, group_name, region)
     VALUES ('Security Group Test', '${prefix}sgtest', '${nonDefaultRegion}');
   `,
@@ -105,6 +109,8 @@ describe('Security Group Multi region Integration Testing', () => {
     'adds a new security group',
     query(
       `  
+    SELECT * FROM iasql_begin();
+  
     INSERT INTO security_group (description, group_name, region, vpc_id)
     VALUES ('Security Group Test', '${prefix}sgtest', '${nonDefaultRegion}', (select id from vpc where is_default = true and region = '${nonDefaultRegion}' limit 1));
   `,
@@ -132,6 +138,7 @@ describe('Security Group Multi region Integration Testing', () => {
     'adds security group rules',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id, region)
     SELECT true, 'tcp', 443, 443, '0.0.0.0/8', '${prefix}testrule', id, '${nonDefaultRegion}'
     FROM security_group
@@ -153,6 +160,7 @@ describe('Security Group Multi region Integration Testing', () => {
     'updates the security group rule',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE security_group_rule SET to_port = 8443 WHERE description = '${prefix}testrule';
     UPDATE security_group_rule SET to_port = 8022 WHERE description = '${prefix}testrule2';
   `,
@@ -238,6 +246,7 @@ describe('Security Group Multi region Integration Testing', () => {
     'deletes these test records',
     query(
       `
+    SELECT * FROM iasql_begin();
     DELETE FROM security_group_rule WHERE description = '${prefix}testrule' OR description = '${prefix}testrule2' and region = '${defaultRegion}';
     DELETE FROM security_group WHERE group_name = '${sgName}' and region = '${defaultRegion}';
   `,

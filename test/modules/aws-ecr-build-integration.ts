@@ -48,6 +48,7 @@ describe('AwsEcrBuild Integration Testing', () => {
     'inserts aws credentials',
     query(
       `
+      SELECT * FROM iasql_begin();
       INSERT INTO aws_credentials (access_key_id, secret_access_key)
       VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -63,6 +64,7 @@ describe('AwsEcrBuild Integration Testing', () => {
     'sets the default region',
     query(
       `
+      SELECT * FROM iasql_begin();
       UPDATE aws_regions
       SET is_default = TRUE
       WHERE region = '${region}';
@@ -79,6 +81,7 @@ describe('AwsEcrBuild Integration Testing', () => {
     'creates a new ecr repository',
     query(
       `
+      SELECT * FROM iasql_begin();
       INSERT INTO repository (repository_name, scan_on_push, image_tag_mutability)
       VALUES ('${repositoryName}', false, 'MUTABLE');
   `,
@@ -164,6 +167,7 @@ describe('AwsEcrBuild Integration Testing', () => {
     'deletes the image',
     query(
       `
+      SELECT * FROM iasql_begin();
       DELETE
       FROM repository_image
       WHERE private_repository_id = (SELECT id FROM repository WHERE repository_name = '${repositoryName}');
@@ -206,6 +210,7 @@ describe('AwsEcrBuild Integration Testing', () => {
     'deletes the image',
     query(
       `
+      SELECT * FROM iasql_begin();
       DELETE
       FROM repository_image
       WHERE private_repository_id = (SELECT id FROM repository WHERE repository_name = '${repositoryName}');
@@ -220,6 +225,7 @@ describe('AwsEcrBuild Integration Testing', () => {
     'deletes the repository',
     query(
       `
+      SELECT * FROM iasql_begin();
       DELETE
       FROM repository
       WHERE repository_name = '${repositoryName}'

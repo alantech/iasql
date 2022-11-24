@@ -151,6 +151,7 @@ describe('AwsCodedeploy Integration Testing', () => {
     'inserts aws credentials',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -166,6 +167,7 @@ describe('AwsCodedeploy Integration Testing', () => {
     'sets the default region',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
@@ -180,6 +182,7 @@ describe('AwsCodedeploy Integration Testing', () => {
     'adds a new codedeploy role',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
     VALUES ('${roleName}', '${codedeployRolePolicy}', array['${codedeployPolicyArn}', '${deployEC2PolicyArn}']);
   `,
@@ -193,6 +196,7 @@ describe('AwsCodedeploy Integration Testing', () => {
     'adds a new ec2 role',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
     VALUES ('${ec2RoleName}', '${ec2RolePolicy}', array['${deployEC2PolicyArn}', '${ssmPolicyArn}']);
   `,
@@ -208,6 +212,8 @@ describe('AwsCodedeploy Integration Testing', () => {
     'adds a new security group',
     query(
       `  
+    SELECT * FROM iasql_begin();
+  
     INSERT INTO security_group (description, group_name)
     VALUES ('CodedeploySecurity Group', '${sgGroupName}');
   `,
@@ -221,6 +227,7 @@ describe('AwsCodedeploy Integration Testing', () => {
     'adds security group rules',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
     SELECT false, 'tcp', 22, 22, '0.0.0.0/0', '${prefix}codedeploy_rule_ssh', id
     FROM security_group
@@ -246,6 +253,7 @@ describe('AwsCodedeploy Integration Testing', () => {
   it('adds an ec2 instance', done => {
     query(
       `
+      SELECT * FROM iasql_begin();
       BEGIN;
         INSERT INTO instance (ami, instance_type, tags, subnet_id, role_name, user_data)
           SELECT '${ubuntuAmiId}', '${instanceType}', '{"name":"${instanceTag}"}', id, '${ec2RoleName}', (SELECT generate_codedeploy_agent_install_script('${region}', 'ubuntu'))
@@ -272,6 +280,7 @@ describe('AwsCodedeploy Integration Testing', () => {
     'adds a new codedeploy_application',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO codedeploy_application (name, compute_platform)
     VALUES ('${applicationName}', 'Server');
   `,
@@ -287,6 +296,7 @@ describe('AwsCodedeploy Integration Testing', () => {
     'adds a new codedeploy_application',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO codedeploy_application (name, compute_platform)
     VALUES ('${applicationName}', 'Server');
   `,
@@ -312,6 +322,7 @@ describe('AwsCodedeploy Integration Testing', () => {
     'tries to update application ID',
     query(
       `
+  SELECT * FROM iasql_begin();
   UPDATE codedeploy_application SET application_id='fake' WHERE name='${applicationName}'
   `,
       undefined,
@@ -336,6 +347,7 @@ describe('AwsCodedeploy Integration Testing', () => {
     'tries to update the codedeploy_application compute_platform',
     query(
       `
+  SELECT * FROM iasql_begin();
   UPDATE codedeploy_application SET compute_platform='Lambda' WHERE name='${applicationName}'
   `,
       undefined,
@@ -364,6 +376,7 @@ describe('AwsCodedeploy Integration Testing', () => {
     'delete application',
     query(
       `
+    SELECT * FROM iasql_begin();
     DELETE FROM codedeploy_application
     WHERE name = '${applicationName}';
   `,
@@ -379,6 +392,7 @@ describe('AwsCodedeploy Integration Testing', () => {
     'adds a new codedeploy_application for deployment',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO codedeploy_application (name, compute_platform)
     VALUES ('${applicationNameForDeployment}', 'Server');
   `,
@@ -392,6 +406,7 @@ describe('AwsCodedeploy Integration Testing', () => {
     'adds a new deployment_group',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO codedeploy_deployment_group (application_id, name, role_name)
     VALUES ((SELECT id FROM codedeploy_application WHERE name = '${applicationNameForDeployment}'), '${deploymentGroupName}', '${roleName}');
   `,
@@ -417,6 +432,7 @@ describe('AwsCodedeploy Integration Testing', () => {
     'tries to update the codedeploy_deployment_group tags',
     query(
       `
+  SELECT * FROM iasql_begin();
   UPDATE codedeploy_deployment_group SET ec2_tag_filters='${ec2FilterTags}' WHERE name='${deploymentGroupName}'
   `,
       undefined,
@@ -446,6 +462,7 @@ describe('Move deployments to another region', () => {
   it('should fail moving just the deployment group', done =>
     void query(
       `
+      SELECT * FROM iasql_begin();
       UPDATE codedeploy_deployment_group
       SET region = '${nonDefaultRegion}'
       WHERE name = '${deploymentGroupName}';
@@ -467,6 +484,7 @@ describe('Move deployments to another region', () => {
   it('should fail moving just the application', done =>
     void query(
       `
+      SELECT * FROM iasql_begin();
       UPDATE codedeploy_application
       SET region = '${nonDefaultRegion}'
       WHERE name = '${applicationNameForDeployment}';
@@ -524,6 +542,7 @@ describe('deployment cleanup', () => {
     'delete deployment group',
     query(
       `
+      SELECT * FROM iasql_begin();
       DELETE FROM codedeploy_deployment_group
       WHERE name = '${deploymentGroupName}';
     `,
@@ -537,6 +556,7 @@ describe('deployment cleanup', () => {
     'delete application',
     query(
       `
+      SELECT * FROM iasql_begin();
       DELETE FROM codedeploy_application
       WHERE name = '${applicationNameForDeployment}';
     `,
@@ -573,6 +593,7 @@ SELECT * FROM codedeploy_deployment_group WHERE application_id = (SELECT id FROM
       'deletes all ec2 instances',
       query(
         `
+      SELECT * FROM iasql_begin();
       BEGIN;
         DELETE FROM general_purpose_volume
         USING instance
@@ -597,6 +618,7 @@ SELECT * FROM codedeploy_deployment_group WHERE application_id = (SELECT id FROM
       'deletes role',
       query(
         `
+        SELECT * FROM iasql_begin();
         DELETE FROM iam_role WHERE role_name = '${roleName}' OR role_name='${ec2RoleName}';
       `,
         undefined,
@@ -613,6 +635,7 @@ SELECT * FROM codedeploy_deployment_group WHERE application_id = (SELECT id FROM
       'deletes security group rules',
       query(
         `
+        SELECT * FROM iasql_begin();
         DELETE FROM security_group_rule WHERE description='${prefix}codedeploy_rule_ssh' or description='${prefix}codedeploy_rule_http' or description='${prefix}codedeploy_rule_egress';
       `,
         undefined,
@@ -625,6 +648,7 @@ SELECT * FROM codedeploy_deployment_group WHERE application_id = (SELECT id FROM
       'deletes security group',
       query(
         `
+        SELECT * FROM iasql_begin();
         DELETE FROM security_group WHERE group_name = '${sgGroupName}';
       `,
         undefined,
@@ -663,6 +687,7 @@ describe('AwsCodedeploy install/uninstall', () => {
     'inserts aws credentials',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -678,6 +703,7 @@ describe('AwsCodedeploy install/uninstall', () => {
     'sets the default region',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
   `,
       undefined,

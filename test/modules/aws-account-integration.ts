@@ -59,6 +59,7 @@ describe('AwsAccount Integration Testing', () => {
     'inserts aws credentials',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -154,7 +155,8 @@ describe('AwsAccount Integration Testing', () => {
     'inserts a second, useless row into the aws_credentials table',
     query(
       `
-    INSERT INTO aws_credentials (access_key_id, secret_access_key) VALUES ('fake', 'creds')
+      SELECT * FROM iasql_begin();
+      INSERT INTO aws_credentials (access_key_id, secret_access_key) VALUES ('fake', 'creds')
   `,
       undefined,
       false,
@@ -168,6 +170,7 @@ describe('AwsAccount Integration Testing', () => {
     'selects a default region',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
@@ -191,6 +194,7 @@ describe('AwsAccount Integration Testing', () => {
       try {
         await runSql(
           `
+          SELECT * FROM iasql_begin();
           UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
         `,
           false,
@@ -232,6 +236,7 @@ describe('AwsAccount Integration Testing', () => {
     'clears out the default region',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = false;
   `,
       undefined,
@@ -286,6 +291,7 @@ describe('AwsAccount Integration Testing', () => {
     'removes the useless row',
     query(
       `
+    SELECT * FROM iasql_begin();
     DELETE FROM aws_credentials WHERE access_key_id = 'fake'
   `,
       undefined,
@@ -348,6 +354,7 @@ describe('AwsAccount Integration Testing', () => {
     'updates the iasql_* modules to pretend to be an ancient version',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE iasql_module SET name = 'iasql_platform@0.0.2' WHERE name = 'iasql_platform@${latestVersion}';
     UPDATE iasql_module SET name = 'iasql_functions@0.0.2' WHERE name = 'iasql_functions@${latestVersion}';
   `,

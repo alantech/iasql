@@ -56,6 +56,7 @@ describe('App Sync Multi-region Integration Testing', () => {
     'inserts aws credentials',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -71,6 +72,7 @@ describe('App Sync Multi-region Integration Testing', () => {
     'sets the default region',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
@@ -85,6 +87,8 @@ describe('App Sync Multi-region Integration Testing', () => {
     'adds a new Graphql API',
     query(
       `  
+    SELECT * FROM iasql_begin();
+  
     INSERT INTO graphql_api (name, authentication_type, region)
     VALUES ('${apiName}', '${authType}', '${nonDefaultRegion}');
   `,
@@ -112,6 +116,8 @@ describe('App Sync Multi-region Integration Testing', () => {
     'adds a new Graphql API',
     query(
       `  
+    SELECT * FROM iasql_begin();
+  
     INSERT INTO graphql_api (name, authentication_type, region)
     VALUES ('${apiName}', '${authType}', '${nonDefaultRegion}');
   `,
@@ -139,6 +145,7 @@ describe('App Sync Multi-region Integration Testing', () => {
     'changes the region the graphql api is located in',
     query(
       `
+      SELECT * FROM iasql_begin();
       UPDATE graphql_api
       SET region = '${region}'
       WHERE name = '${apiName}';
@@ -166,6 +173,7 @@ describe('App Sync Multi-region Integration Testing', () => {
   it(
     'creates a graphql api in the original region',
     query(`
+    SELECT * FROM iasql_begin();
     INSERT INTO graphql_api (name, authentication_type, region)
     VALUES ('${apiName}', '${authType}', '${nonDefaultRegion}');
   `),
@@ -177,6 +185,7 @@ describe('App Sync Multi-region Integration Testing', () => {
     'removes the graphql api',
     query(
       `
+    SELECT * FROM iasql_begin();
     DELETE FROM graphql_api
     WHERE name = '${apiName}';
   `,

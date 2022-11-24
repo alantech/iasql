@@ -139,6 +139,7 @@ describe('EC2 Integration Testing', () => {
     'inserts aws credentials',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -154,6 +155,7 @@ describe('EC2 Integration Testing', () => {
     'sets the default region',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
@@ -171,6 +173,7 @@ describe('EC2 Integration Testing', () => {
     'inserts aws credentials',
     querySync(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -184,6 +187,7 @@ describe('EC2 Integration Testing', () => {
   it(
     'sets the default region',
     querySync(`
+    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
   `),
   );
@@ -193,6 +197,7 @@ describe('EC2 Integration Testing', () => {
   it('adds two ec2 instance', done => {
     query(
       `
+      SELECT * FROM iasql_begin();
       BEGIN;
         INSERT INTO instance (ami, instance_type, tags, subnet_id)
           SELECT '${ubuntuAmiId}', '${instanceType1}', '{"name":"${prefix}-1"}', id
@@ -242,6 +247,7 @@ describe('EC2 Integration Testing', () => {
   it('adds an instance without security groups', done => {
     query(
       `
+      SELECT * FROM iasql_begin();
       BEGIN;
         INSERT INTO security_group (description, group_name)
         VALUES ('Fake security group', 'fake-security-group');
@@ -283,6 +289,7 @@ describe('EC2 Integration Testing', () => {
     'deletes security group and instance',
     query(
       `
+      SELECT * FROM iasql_begin();
       BEGIN;
         DELETE FROM general_purpose_volume
         USING instance
@@ -304,6 +311,7 @@ describe('EC2 Integration Testing', () => {
   it('adds two ec2 instance', done => {
     query(
       `
+      SELECT * FROM iasql_begin();
       BEGIN;
         INSERT INTO instance (ami, instance_type, tags, user_data, subnet_id)
           SELECT '${ubuntuAmiId}', '${instanceType1}', '{"name":"${prefix}-1"}', 'ls;', id
@@ -415,6 +423,7 @@ describe('EC2 Integration Testing', () => {
     'set both ec2 instances to the same ami',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE instance SET ami = '${amznAmiId}' WHERE tags ->> 'name' = '${prefix}-1';
   `,
       undefined,
@@ -457,6 +466,7 @@ describe('EC2 Integration Testing', () => {
       'creates ec2 instance role',
       query(
         `
+      SELECT * FROM iasql_begin();
       INSERT INTO iam_role (role_name, assume_role_policy_document)
       VALUES ('${roleName}', '${ec2RolePolicy}');
     `,
@@ -497,6 +507,7 @@ describe('EC2 Integration Testing', () => {
     'create target group and register instance to it',
     query(
       `
+    SELECT * FROM iasql_begin();
     BEGIN;
       INSERT INTO target_group (target_group_name, target_type, protocol, port, health_check_path)
       VALUES ('${tgName}', '${tgType}', '${protocol}', ${tgPort}, '/health');
@@ -569,6 +580,7 @@ describe('EC2 Integration Testing', () => {
     'register instance with custom port to target group',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO registered_instance (instance, target_group_id, port)
     SELECT (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-2'), (SELECT id FROM target_group WHERE target_group_name = '${tgName}'), ${instancePort}
   `,
@@ -621,6 +633,7 @@ describe('EC2 Integration Testing', () => {
     'updates register instance with custom port to target group',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE registered_instance
     SET port = ${instancePort + 1}
     FROM instance
@@ -664,6 +677,7 @@ describe('EC2 Integration Testing', () => {
       'assigns role to instance',
       query(
         `
+      SELECT * FROM iasql_begin();
       UPDATE instance SET role_name = '${roleName}'
       WHERE tags ->> 'name' = '${prefix}-2';
     `,
@@ -704,6 +718,7 @@ describe('EC2 Integration Testing', () => {
     'stop instance',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE instance SET state = 'stopped'
     WHERE tags ->> 'name' = '${prefix}-2';
   `,
@@ -732,6 +747,7 @@ describe('EC2 Integration Testing', () => {
     'start instance',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE instance SET state = 'running' WHERE tags ->> 'name' = '${prefix}-2';
   `,
       undefined,
@@ -759,6 +775,7 @@ describe('EC2 Integration Testing', () => {
     'hibernates instance',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE instance SET state = 'hibernate'
     WHERE tags ->> 'name' = '${prefix}-2';
   `,
@@ -787,6 +804,7 @@ describe('EC2 Integration Testing', () => {
     'start instance',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE instance SET state = 'running' WHERE tags ->> 'name' = '${prefix}-2';
   `,
       undefined,
@@ -868,6 +886,7 @@ describe('EC2 Integration Testing', () => {
   it('adds an ec2 instance with no security group', done => {
     query(
       `
+      SELECT * FROM iasql_begin();
       INSERT INTO instance (ami, instance_type, tags, subnet_id)
         SELECT '${amznAmiId}', '${instanceType2}', '{"name":"${prefix}-nosg"}', id
         FROM subnet
@@ -926,6 +945,7 @@ describe('EC2 Integration Testing', () => {
     'deletes one of the registered instances',
     query(
       `
+    SELECT * FROM iasql_begin();
     DELETE FROM registered_instance
     USING instance
     WHERE instance.tags ->> 'name' = '${prefix}-1' AND instance.id = registered_instance.instance;
@@ -986,6 +1006,7 @@ describe('EC2 Integration Testing', () => {
     'update instance metadata',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE instance_metadata SET cpu_cores = 10
     WHERE instance_id = (
       SELECT instance_id
@@ -1024,6 +1045,7 @@ describe('EC2 Integration Testing', () => {
     'deletes all ec2 instances',
     query(
       `
+    SELECT * FROM iasql_begin();
     BEGIN;
       DELETE FROM general_purpose_volume
       USING instance
@@ -1090,6 +1112,7 @@ describe('EC2 Integration Testing', () => {
     'deletes the target group',
     query(
       `
+    SELECT * FROM iasql_begin();
     DELETE FROM target_group
     WHERE target_group_name = '${tgName}';
   `,
@@ -1118,6 +1141,7 @@ describe('EC2 Integration Testing', () => {
       'deletes role',
       query(
         `
+      SELECT * FROM iasql_begin();
       DELETE FROM iam_role WHERE role_name = '${roleName}';
     `,
         undefined,
@@ -1180,6 +1204,7 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
     'inserts aws credentials',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -1195,6 +1220,7 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
     'sets the default region',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
@@ -1208,6 +1234,7 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
   it('adds new volumes', done => {
     query(
       `
+      SELECT * FROM iasql_begin();
       BEGIN;
         INSERT INTO general_purpose_volume (volume_type, availability_zone, tags)
         VALUES ('gp2', '${availabilityZone2}', '{"Name": "${gp2VolumeName}"}');
@@ -1251,6 +1278,7 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
   it('adds new volumes', done => {
     query(
       `
+      SELECT * FROM iasql_begin();
       BEGIN;
         INSERT INTO general_purpose_volume (volume_type, availability_zone, tags)
         VALUES ('gp2', '${availabilityZone2}', '{"Name": "${gp2VolumeName}"}');
@@ -1311,6 +1339,7 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
     'tries to update a volume field to be restored',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE general_purpose_volume SET state = 'creating' WHERE tags ->> 'Name' = '${gp2VolumeName}';
   `,
       undefined,
@@ -1337,6 +1366,7 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
     'tries to update a volume size',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE general_purpose_volume SET size = 150 WHERE tags ->> 'Name' = '${gp3VolumeName}';
   `,
       undefined,
@@ -1362,6 +1392,7 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
   it('tries to update a volume availability zone', done => {
     query(
       `
+      SELECT * FROM iasql_begin();
       UPDATE general_purpose_volume
       SET availability_zone = '${availabilityZone2}'
       WHERE tags ->> 'Name' = '${gp3VolumeName}';
@@ -1402,6 +1433,7 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
     'tries to update a volume availability zone',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE general_purpose_volume SET tags = '{"Name": "${gp2VolumeName}", "updated": true}' WHERE tags ->> 'Name' = '${gp2VolumeName}';
   `,
       undefined,
@@ -1428,6 +1460,7 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
     'deletes the volumes',
     query(
       `
+    SELECT * FROM iasql_begin();
     DELETE FROM general_purpose_volume
     WHERE tags ->> 'Name' = '${gp2VolumeName}' OR tags ->> 'Name' = '${gp3VolumeName}';
   `,
@@ -1475,6 +1508,7 @@ describe('EC2 install/uninstall', () => {
     'inserts aws credentials',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -1490,6 +1524,7 @@ describe('EC2 install/uninstall', () => {
     'sets the default region',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
   `,
       undefined,

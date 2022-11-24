@@ -81,6 +81,7 @@ describe('Testing failure path', () => {
     'inserts aws credentials',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -107,6 +108,7 @@ describe('Testing failure path', () => {
     'insert a new instance with wrong values',
     query(
       `
+    SELECT * FROM iasql_begin();
     BEGIN;
       INSERT INTO instance (ami, instance_type, tags)
         VALUES ('fake', 't2.micro', '{"name":"i-1"}');

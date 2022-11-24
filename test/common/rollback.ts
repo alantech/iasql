@@ -36,6 +36,7 @@ describe('basic rollback functionality', () => {
     'inserts aws credentials',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -51,6 +52,7 @@ describe('basic rollback functionality', () => {
     'insert a log group',
     query(
       `
+    SELECT * FROM iasql_begin();
     insert into log_group (log_group_name) values ('${logGroupName}');
   `,
       undefined,

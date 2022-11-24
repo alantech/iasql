@@ -121,6 +121,7 @@ describe('EC2 Integration Testing', () => {
     'inserts aws credentials',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -136,6 +137,7 @@ describe('EC2 Integration Testing', () => {
     'sets the default region',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
@@ -149,6 +151,7 @@ describe('EC2 Integration Testing', () => {
   it('adds an ec2 instance', done => {
     query(
       `
+      SELECT * FROM iasql_begin();
       INSERT INTO instance (ami, instance_type, tags, subnet_id)
         SELECT '${ubuntuAmiId}', '${instanceType1}', '{"name":"${prefix}-1"}', id
         FROM subnet
@@ -233,6 +236,7 @@ describe('EC2 Integration Testing', () => {
       'creates ec2 instance role',
       query(
         `
+      SELECT * FROM iasql_begin();
       INSERT INTO iam_role (role_name, assume_role_policy_document)
       VALUES ('${roleName}', '${ec2RolePolicy}');
     `,
@@ -273,6 +277,7 @@ describe('EC2 Integration Testing', () => {
     'create target group and register instance to it',
     query(
       `
+    SELECT * FROM iasql_begin();
     BEGIN;
       INSERT INTO target_group (target_group_name, target_type, protocol, port, health_check_path)
       VALUES ('${tgName}', '${tgType}', '${protocol}', ${tgPort}, '/health');
@@ -451,6 +456,7 @@ describe('EC2 Integration Testing', () => {
     'deletes the instance',
     query(
       `
+      SELECT * FROM iasql_begin();
       DELETE FROM general_purpose_volume
       USING instance
       WHERE instance.id = general_purpose_volume.attached_instance_id AND 
@@ -511,6 +517,7 @@ describe('EC2 Integration Testing', () => {
     'deletes the target group',
     query(
       `
+    SELECT * FROM iasql_begin();
     DELETE FROM target_group
     WHERE target_group_name = '${tgName}';
   `,
@@ -539,6 +546,7 @@ describe('EC2 Integration Testing', () => {
       'deletes role',
       query(
         `
+      SELECT * FROM iasql_begin();
       DELETE FROM iam_role WHERE role_name = '${roleName}';
     `,
         undefined,

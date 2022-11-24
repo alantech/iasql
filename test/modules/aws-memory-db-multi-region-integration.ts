@@ -67,6 +67,7 @@ describe('MemoryDB Multi-region Integration Testing', () => {
     'inserts aws credentials',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -82,6 +83,7 @@ describe('MemoryDB Multi-region Integration Testing', () => {
     'sets the default region',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
@@ -96,6 +98,7 @@ describe('MemoryDB Multi-region Integration Testing', () => {
     'creates a subnet group',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO subnet_group (subnet_group_name)
     VALUES ('${subnetGroupName}');
   `,
@@ -123,6 +126,7 @@ describe('MemoryDB Multi-region Integration Testing', () => {
     'creates a memory db cluster',
     query(
       `
+      SELECT * FROM iasql_begin();
       INSERT INTO memory_db_cluster (cluster_name, subnet_group_id)
       VALUES ('${clusterName}', (select id from subnet_group where subnet_group_name = '${subnetGroupName}'));
   `,
@@ -135,6 +139,7 @@ describe('MemoryDB Multi-region Integration Testing', () => {
   it('should fail inserting the memory db cluster security group in the wrong region', done =>
     void query(
       `
+      SELECT * FROM iasql_begin();
       INSERT INTO memory_db_cluster_security_groups (security_group_id, memory_db_cluster_id, region)
       VALUES ((select id from security_group where group_name = 'default' and region = '${region}'), (select id from memory_db_cluster where cluster_name = '${clusterName}'), '${nonDefaultRegion}');
   `,
@@ -157,6 +162,7 @@ describe('MemoryDB Multi-region Integration Testing', () => {
     'inserts the memory db cluster security group',
     query(
       `
+      SELECT * FROM iasql_begin();
       INSERT INTO memory_db_cluster_security_groups (security_group_id, memory_db_cluster_id, region)
       VALUES ((select id from security_group where group_name = 'default' and region = '${region}'), (select id from memory_db_cluster where cluster_name = '${clusterName}'), '${region}');
     `,
@@ -183,6 +189,7 @@ describe('MemoryDB Multi-region Integration Testing', () => {
   it('should fail updating only the memory db cluster without updating the subnet group', done =>
     void query(
       `
+  SELECT * FROM iasql_begin();
   UPDATE memory_db_cluster
   SET region = '${nonDefaultRegion}'
   WHERE cluster_name = '${clusterName}';
@@ -205,6 +212,7 @@ describe('MemoryDB Multi-region Integration Testing', () => {
   it('should fail updating security group region being referenced by the memory db cluster', done =>
     void query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE security_group
     SET region = '${nonDefaultRegion}'
     WHERE group_name = 'default' and region = '${region}';
@@ -301,6 +309,7 @@ describe('MemoryDB Multi-region Integration Testing', () => {
     'removes the memory db cluster',
     query(
       `
+    SELECT * FROM iasql_begin();
     DELETE FROM memory_db_cluster
     WHERE cluster_name = '${clusterName}';
   `,
@@ -352,6 +361,7 @@ describe('MemoryDB Multi-region Integration Testing', () => {
     'removes the subnet group',
     query(
       `
+    SELECT * FROM iasql_begin();
     DELETE FROM subnet_group
     WHERE subnet_group_name = '${subnetGroupName}';
   `,

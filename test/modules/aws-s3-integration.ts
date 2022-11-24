@@ -90,6 +90,7 @@ describe('S3 Integration Testing', () => {
     'inserts aws credentials',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -105,6 +106,7 @@ describe('S3 Integration Testing', () => {
     'sets the default region',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
@@ -119,6 +121,8 @@ describe('S3 Integration Testing', () => {
     'adds a new s3 bucket',
     query(
       `  
+    SELECT * FROM iasql_begin();
+  
     INSERT INTO bucket (name)
     VALUES ('${s3Name}');
   `,
@@ -146,6 +150,8 @@ describe('S3 Integration Testing', () => {
     'adds a new s3 bucket',
     query(
       `  
+    SELECT * FROM iasql_begin();
+  
     INSERT INTO bucket (name, policy_document)
     VALUES ('${s3Name}', '${policyDocument}');
   `,
@@ -172,7 +178,8 @@ describe('S3 Integration Testing', () => {
   it(
     'inserts content into bucket object',
     query(
-      `INSERT INTO bucket_object (bucket_name, key, region) VALUES ('${s3Name}', 'fake_bucket', '${region}')`,
+      `SELECT * FROM iasql_begin();
+INSERT INTO bucket_object (bucket_name, key, region) VALUES ('${s3Name}', 'fake_bucket', '${region}')`,
       undefined,
       true,
       () => ({ username, password }),
@@ -223,6 +230,7 @@ describe('S3 Integration Testing', () => {
     'deletes one object of the bucket',
     query(
       `
+    SELECT * FROM iasql_begin();
     DELETE FROM bucket_object WHERE bucket_name = '${s3Name}' AND key='iasql_message';
   `,
       undefined,
@@ -270,6 +278,7 @@ describe('S3 Integration Testing', () => {
     'updates the bucket timestamp',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE bucket SET created_at = '1984-01-01T00:00:00' WHERE name = '${s3Name}';
   `,
       undefined,
@@ -306,7 +315,8 @@ describe('S3 Integration Testing', () => {
 
   it(
     'cleans the bucket',
-    query(`DELETE FROM bucket_object WHERE bucket_name='${s3Name}'`, undefined, true, () => ({
+    query(`SELECT * FROM iasql_begin();
+DELETE FROM bucket_object WHERE bucket_name='${s3Name}'`, undefined, true, () => ({
       username,
       password,
     })),
@@ -343,6 +353,7 @@ describe('S3 Integration Testing', () => {
       'updates the bucket policy',
       query(
         `
+    SELECT * FROM iasql_begin();
     UPDATE bucket SET policy_document='${newPolicyDocument}' WHERE name = '${s3Name}';
     `,
         undefined,
@@ -367,6 +378,7 @@ describe('S3 Integration Testing', () => {
     try {
       query(
         `
+      SELECT * FROM iasql_begin();
       UPDATE bucket SET region='${nonDefaultRegion}' WHERE name = '${s3Name}';
       `,
         undefined,
@@ -382,6 +394,7 @@ describe('S3 Integration Testing', () => {
     try {
       query(
         `
+      SELECT * FROM iasql_begin();
       UPDATE bucket SET name='${nonDefaultRegion}' WHERE name = '${s3Name}';
       `,
         undefined,
@@ -422,7 +435,8 @@ describe('S3 Integration Testing', () => {
 
   it(
     'cleans the bucket again',
-    query(`DELETE FROM bucket_object WHERE bucket_name='${s3Name}'`, undefined, false, () => ({
+    query(`SELECT * FROM iasql_begin();
+DELETE FROM bucket_object WHERE bucket_name='${s3Name}'`, undefined, false, () => ({
       username,
       password,
     })),
@@ -444,6 +458,7 @@ describe('S3 Integration Testing', () => {
     'deletes the s3 bucket',
     query(
       `
+    SELECT * FROM iasql_begin();
     DELETE FROM bucket WHERE name = '${s3Name}';
   `,
       undefined,
@@ -490,6 +505,7 @@ describe('S3 install/uninstall', () => {
     'inserts aws credentials',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -505,6 +521,7 @@ describe('S3 install/uninstall', () => {
     'sets the default region',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
   `,
       undefined,

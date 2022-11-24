@@ -70,6 +70,7 @@ describe('AwsCloudwatch and AwsLambda Integration Testing', () => {
     'inserts aws credentials',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -85,6 +86,7 @@ describe('AwsCloudwatch and AwsLambda Integration Testing', () => {
     'sets the default region',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
@@ -99,6 +101,7 @@ describe('AwsCloudwatch and AwsLambda Integration Testing', () => {
     'adds a new lambda function and role',
     query(
       `
+    SELECT * FROM iasql_begin();
     BEGIN;
       INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
       VALUES ('${resourceName}', '${attachAssumeLambdaPolicy}', array['${lambdaFunctionRoleTaskPolicyArn}']);
@@ -143,6 +146,7 @@ describe('AwsCloudwatch and AwsLambda Integration Testing', () => {
     'delete resources',
     query(
       `
+    SELECT * FROM iasql_begin();
     BEGIN;
       DELETE FROM lambda_function WHERE name = '${resourceName}';
       DELETE FROM iam_role WHERE role_name = '${resourceName}';

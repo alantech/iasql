@@ -89,6 +89,7 @@ describe('ECS Integration Testing', () => {
     'inserts aws credentials',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -104,6 +105,7 @@ describe('ECS Integration Testing', () => {
     'sets the default region',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
@@ -115,6 +117,7 @@ describe('ECS Integration Testing', () => {
   it(
     'sets only 2 enabled regions to avoid long runs',
     query(`
+    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_enabled = FALSE WHERE region != '${region}' AND region != (SELECT region FROM aws_regions WHERE region != 'us-east-1' AND region != '${region}' ORDER BY region DESC LIMIT 1);
   `),
   );
@@ -128,6 +131,7 @@ describe('ECS Integration Testing', () => {
     'inserts aws credentials',
     querySync(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -141,6 +145,7 @@ describe('ECS Integration Testing', () => {
   it(
     'sets the default region',
     querySync(`
+    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `),
   );
@@ -148,6 +153,7 @@ describe('ECS Integration Testing', () => {
   it(
     'sets only 2 enabled regions to avoid long runs',
     querySync(`
+    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_enabled = FALSE WHERE region != '${region}' AND region != (SELECT region FROM aws_regions WHERE region != 'us-east-1' AND region != '${region}' ORDER BY region DESC LIMIT 1);
   `),
   );
@@ -161,6 +167,7 @@ describe('ECS Integration Testing', () => {
     'adds a new cluster',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO cluster (cluster_name)
     VALUES('${clusterName}');
   `,
@@ -188,6 +195,7 @@ describe('ECS Integration Testing', () => {
     'adds a new cluster',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO cluster (cluster_name)
     VALUES('${clusterName}');
   `,
@@ -216,6 +224,7 @@ describe('ECS Integration Testing', () => {
     'adds service dependencies',
     query(
       `
+    SELECT * FROM iasql_begin();
     BEGIN;
       INSERT INTO security_group
         (description, group_name)
@@ -285,6 +294,7 @@ describe('ECS Integration Testing', () => {
     'adds a new public ECR',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO public_repository
         (repository_name)
     VALUES
@@ -313,6 +323,7 @@ describe('ECS Integration Testing', () => {
     'adds a new task definition',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO task_definition ("family", cpu_memory)
     VALUES ('${tdPublicRepositoryFamily}', '${tdCpuMem}');
   `,
@@ -338,6 +349,7 @@ describe('ECS Integration Testing', () => {
     'adds a new container definition',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO container_definition ("name", public_repository_name, tag, essential, memory_reservation, host_port, container_port, protocol, env_variables, task_definition_id)
     VALUES('${containerNamePublicRepository}', '${publicRepositoryName}', '${imageTag}', ${containerEssential}, ${containerMemoryReservation}, ${hostPort}, ${containerPort}, '${protocol}', '{ "test": 2}', (select id from task_definition where family = '${tdPublicRepositoryFamily}' and status is null and region = '${region}' limit 1));
   `,
@@ -404,6 +416,7 @@ describe('ECS Integration Testing', () => {
     'adds a new service',
     query(
       `
+    SELECT * FROM iasql_begin();
     BEGIN;
       INSERT INTO service ("name", desired_count, subnets, assign_public_ip, cluster_id, task_definition_id, target_group_id)
       VALUES ('${servicePublicRepositoryName}', ${serviceDesiredCount}, (select array(select subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true and vpc.region = '${region}' limit 3)), 'ENABLED', (SELECT id FROM cluster WHERE cluster_name = '${clusterName}'), (select id from task_definition where family = '${tdPublicRepositoryFamily}' order by revision desc limit 1), (SELECT id FROM target_group WHERE target_group_name = '${serviceTargetGroupName}' and region = '${region}'));
@@ -466,6 +479,7 @@ describe('ECS Integration Testing', () => {
     'deletes service',
     query(
       `
+    SELECT * FROM iasql_begin();
     BEGIN;
       delete from service_security_groups
       using service
@@ -499,6 +513,7 @@ describe('ECS Integration Testing', () => {
     'deletes container definitons',
     query(
       `
+    SELECT * FROM iasql_begin();
     begin;
       delete from container_definition
       using task_definition
@@ -566,6 +581,7 @@ describe('ECS Integration Testing', () => {
     'deletes service dependencies',
     query(
       `
+    SELECT * FROM iasql_begin();
     BEGIN;
       DELETE FROM listener
       WHERE load_balancer_id = (SELECT id FROM load_balancer WHERE load_balancer_name = '${serviceLoadBalancerName}')
@@ -601,6 +617,7 @@ describe('ECS Integration Testing', () => {
     'tries to update a cluster field (restore)',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE cluster SET cluster_status = 'fake' WHERE cluster_name = '${clusterName}';
   `,
       undefined,
@@ -615,6 +632,7 @@ describe('ECS Integration Testing', () => {
     'tries to update cluster (replace)',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE cluster SET cluster_name = '${newClusterName}' WHERE cluster_name = '${clusterName}';
   `,
       undefined,
@@ -629,6 +647,7 @@ describe('ECS Integration Testing', () => {
     'deletes the cluster',
     query(
       `
+    SELECT * FROM iasql_begin();
     delete from cluster
     where cluster_name = '${newClusterName}';
   `,

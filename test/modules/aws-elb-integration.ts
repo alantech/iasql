@@ -85,6 +85,7 @@ describe('ELB Integration Testing', () => {
     'inserts aws credentials',
     query(
       `
+          SELECT * FROM iasql_begin();
           INSERT INTO aws_credentials (access_key_id, secret_access_key)
           VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
       `,
@@ -100,6 +101,7 @@ describe('ELB Integration Testing', () => {
     'sets the default region',
     query(
       `
+        SELECT * FROM iasql_begin();
         UPDATE aws_regions
         SET is_default = TRUE
         WHERE region = '${region}';
@@ -117,6 +119,7 @@ describe('ELB Integration Testing', () => {
     'adds a new targetGroup',
     query(
       `
+        SELECT * FROM iasql_begin();
         INSERT INTO target_group (target_group_name, target_type, protocol, port, vpc, health_check_path)
         VALUES ('${tgName}', '${tgType}', '${protocol}', ${port}, null, '/health');
     `,
@@ -144,6 +147,7 @@ describe('ELB Integration Testing', () => {
     'adds a new targetGroup',
     query(
       `
+        SELECT * FROM iasql_begin();
         INSERT INTO target_group (target_group_name, target_type, protocol, port, vpc, health_check_path)
         VALUES ('${tgName}', '${tgType}', '${protocol}', ${port}, null, '/health');
     `,
@@ -171,6 +175,7 @@ describe('ELB Integration Testing', () => {
     'tries to update a target group field',
     query(
       `
+        SELECT * FROM iasql_begin();
         UPDATE target_group
         SET health_check_path = '/fake-health'
         WHERE target_group_name = '${tgName}';
@@ -187,6 +192,7 @@ describe('ELB Integration Testing', () => {
     'tries to update a target group field (replace)',
     query(
       `
+        SELECT * FROM iasql_begin();
         UPDATE target_group
         SET port = 5677
         WHERE target_group_name = '${tgName}';
@@ -204,6 +210,7 @@ describe('ELB Integration Testing', () => {
     'adds a new load balancer',
     query(
       `
+        SELECT * FROM iasql_begin();
         INSERT INTO load_balancer (load_balancer_name, scheme, vpc, load_balancer_type, ip_address_type)
         VALUES ('${lbName}', '${lbScheme}', null, '${lbType}', '${lbIPAddressType}');
     `,
@@ -230,6 +237,7 @@ describe('ELB Integration Testing', () => {
     'adds new security groups',
     query(
       `
+              SELECT * FROM iasql_begin();
               INSERT INTO security_group (description, group_name)
               VALUES ('Security Group Test 1', '${sg1}');
               INSERT INTO security_group (description, group_name)
@@ -247,6 +255,7 @@ describe('ELB Integration Testing', () => {
     'adds a new load balancer',
     query(
       `
+    SELECT * FROM iasql_begin();
     BEGIN;
       INSERT INTO load_balancer (load_balancer_name, scheme, vpc, load_balancer_type, ip_address_type)
       VALUES ('${lbName}', '${lbScheme}', null, '${lbType}', '${lbIPAddressType}');
@@ -291,7 +300,8 @@ describe('ELB Integration Testing', () => {
   it(
     'tries to update a load balancer attribute (update)',
     query(
-      `UPDATE load_balancer SET attributes='${loadBalancerAttributes}' WHERE load_balancer_name='${lbName}'`,
+      `SELECT * FROM iasql_begin();
+UPDATE load_balancer SET attributes='${loadBalancerAttributes}' WHERE load_balancer_name='${lbName}'`,
       undefined,
       true,
       () => ({ username, password }),
@@ -319,6 +329,7 @@ describe('ELB Integration Testing', () => {
     'tries to update a load balancer field',
     query(
       `
+        SELECT * FROM iasql_begin();
         UPDATE load_balancer
         SET state = '${LoadBalancerStateEnum.FAILED}'
         WHERE load_balancer_name = '${lbName}';
@@ -335,6 +346,7 @@ describe('ELB Integration Testing', () => {
     'tries to update a load balancer security group (replace)',
     query(
       `
+        SELECT * FROM iasql_begin();
         UPDATE load_balancer_security_groups
         SET security_group_id = (SELECT id FROM security_group WHERE group_name = '${sg2}')
         WHERE load_balancer_id = (SELECT id FROM load_balancer WHERE load_balancer_name = '${lbName}');
@@ -351,6 +363,7 @@ describe('ELB Integration Testing', () => {
     'tries to update a load balancer scheme (replace)',
     query(
       `
+        SELECT * FROM iasql_begin();
         UPDATE load_balancer
         SET scheme = '${LoadBalancerSchemeEnum.INTERNAL}'
         WHERE load_balancer_name = '${lbName}';
@@ -367,6 +380,7 @@ describe('ELB Integration Testing', () => {
     'adds a new listener',
     query(
       `
+        SELECT * FROM iasql_begin();
         INSERT INTO listener (load_balancer_id, port, protocol, target_group_id)
         VALUES ((SELECT id FROM load_balancer WHERE load_balancer_name = '${lbName}'),
                 ${port},
@@ -397,6 +411,7 @@ describe('ELB Integration Testing', () => {
     'tries to update a listener field',
     query(
       `
+        SELECT * FROM iasql_begin();
         UPDATE listener
         SET port = ${port + 1}
         WHERE load_balancer_id = (SELECT id FROM load_balancer WHERE load_balancer_name = '${lbName}');
@@ -432,6 +447,7 @@ describe('ELB Integration Testing', () => {
     'adds a new HTTPS listener',
     query(
       `
+        SELECT * FROM iasql_begin();
         INSERT INTO listener (load_balancer_id, port, protocol, target_group_id, certificate_id)
         VALUES ((SELECT id FROM load_balancer WHERE load_balancer_name = '${lbName}'),
                 ${portHTTPS},
@@ -479,6 +495,7 @@ describe('ELB Integration Testing', () => {
     'deletes the listener',
     query(
       `
+        SELECT * FROM iasql_begin();
         DELETE
         FROM listener
         WHERE load_balancer_id = (SELECT id FROM load_balancer WHERE load_balancer_name = '${lbName}');
@@ -507,6 +524,7 @@ describe('ELB Integration Testing', () => {
     'deletes the load balancer',
     query(
       `
+        SELECT * FROM iasql_begin();
         DELETE
         FROM load_balancer
         WHERE load_balancer_name = '${lbName}';
@@ -533,6 +551,7 @@ describe('ELB Integration Testing', () => {
     'deletes the security groups',
     query(
       `
+        SELECT * FROM iasql_begin();
         DELETE
         FROM security_group
         WHERE group_name IN ('${sg1}', '${sg2}');
@@ -561,6 +580,7 @@ describe('ELB Integration Testing', () => {
     'deletes the target group',
     query(
       `
+        SELECT * FROM iasql_begin();
         DELETE
         FROM target_group
         WHERE target_group_name = '${tgName}';
@@ -589,6 +609,7 @@ describe('ELB Integration Testing', () => {
     'deletes the certificate',
     query(
       `
+        SELECT * FROM iasql_begin();
         DELETE
         FROM certificate
         WHERE domain_name = '${domainName}';
@@ -617,6 +638,7 @@ describe('ELB Integration Testing', () => {
     'creates a target group in non-default region',
     query(
       `
+        SELECT * FROM iasql_begin();
         INSERT INTO target_group (target_group_name, target_type, protocol, port, vpc, health_check_path, region)
         VALUES ('${tgName}', '${tgType}', '${protocol}', ${port}, null, '/health', 'us-east-1');
     `,
@@ -647,6 +669,7 @@ describe('ELB Integration Testing', () => {
     'creates a security group in non-default region',
     query(
       `
+      SELECT * FROM iasql_begin();
       INSERT INTO security_group (description, group_name, region)
       VALUES ('Security Group Multi-region Test 1', '${sg1}', 'us-east-1');
   `,
@@ -660,6 +683,7 @@ describe('ELB Integration Testing', () => {
     'creates a load balancer in non-default region',
     query(
       `
+    SELECT * FROM iasql_begin();
     BEGIN;
       INSERT INTO load_balancer (load_balancer_name, scheme, vpc, load_balancer_type, ip_address_type, region)
       VALUES ('${lbName}', '${lbScheme}', null, '${lbType}', '${lbIPAddressType}', 'us-east-1');
@@ -696,6 +720,7 @@ describe('ELB Integration Testing', () => {
     'adds a listener to the load balancer in non-default region',
     query(
       `
+      SELECT * FROM iasql_begin();
       INSERT INTO listener (load_balancer_id, port, protocol, target_group_id)
       VALUES ((SELECT id FROM load_balancer WHERE load_balancer_name = '${lbName}'),
               ${port},
@@ -728,6 +753,7 @@ describe('ELB Integration Testing', () => {
     'deletes multi-region resources',
     query(
       `
+    SELECT * FROM iasql_begin();
     BEGIN;
         DELETE
         FROM listener
@@ -778,6 +804,7 @@ describe('ELB install/uninstall', () => {
     'inserts aws credentials',
     query(
       `
+          SELECT * FROM iasql_begin();
           INSERT INTO aws_credentials (access_key_id, secret_access_key)
           VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
       `,
@@ -793,6 +820,7 @@ describe('ELB install/uninstall', () => {
     'sets the default region',
     query(
       `
+        SELECT * FROM iasql_begin();
         UPDATE aws_regions
         SET is_default = TRUE
         WHERE region = 'us-east-1';

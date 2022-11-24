@@ -91,6 +91,7 @@ describe('Elasticache Integration Testing', () => {
     'inserts aws credentials',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -106,6 +107,7 @@ describe('Elasticache Integration Testing', () => {
     'sets the default region',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
@@ -120,6 +122,8 @@ describe('Elasticache Integration Testing', () => {
     'adds a new cacheCluster',
     query(
       `  
+    SELECT * FROM iasql_begin();
+  
     INSERT INTO cache_cluster (cluster_id)
     VALUES ('${clusterId}');
   `,
@@ -134,6 +138,8 @@ describe('Elasticache Integration Testing', () => {
   it('adds a new cacheCluster', done => {
     query(
       `  
+      SELECT * FROM iasql_begin();
+  
       INSERT INTO cache_cluster (cluster_id, node_type, engine, num_nodes)
       VALUES ('${clusterId}', '${nodeType}', '${cacheType}', 1);
     `,
@@ -161,6 +167,8 @@ describe('Elasticache Integration Testing', () => {
   it('tries to update cache_cluster node type', done => {
     query(
       `  
+    SELECT * FROM iasql_begin();
+  
     UPDATE cache_cluster SET node_type='${updatedNodeType}' WHERE cluster_id='${clusterId}';
     `,
       undefined,
@@ -190,6 +198,7 @@ describe('Elasticache Integration Testing', () => {
     'tries to update cache_cluster engine',
     query(
       `
+  SELECT * FROM iasql_begin();
   UPDATE cache_cluster SET engine='memcached' WHERE cluster_id='${clusterId}'
   `,
       undefined,
@@ -224,6 +233,7 @@ describe('Elasticache Integration Testing', () => {
     'tries to update cache_cluster id',
     query(
       `
+  SELECT * FROM iasql_begin();
   UPDATE cache_cluster SET cluster_id='${newClusterId}' WHERE cluster_id='${clusterId}'
   `,
       undefined,
@@ -258,6 +268,7 @@ describe('Elasticache Integration Testing', () => {
     'changes the region the cache_cluster is in',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE cache_cluster SET region='us-east-1' WHERE cluster_id = '${newClusterId}';
   `,
       undefined,
@@ -284,6 +295,7 @@ describe('Elasticache Integration Testing', () => {
   it('makes two more cache clusters with the same cluster_id in different regions', done => {
     query(
       `
+      SELECT * FROM iasql_begin();
       INSERT INTO cache_cluster (cluster_id, node_type, engine, num_nodes, region)
       VALUES
         ('${anotherClusterId}', '${nodeType}', '${cacheType}', 1, '${region}'),
@@ -328,6 +340,7 @@ describe('Elasticache Integration Testing', () => {
     'deletes the cache_cluster',
     query(
       `
+    SELECT * FROM iasql_begin();
     DELETE FROM cache_cluster
     WHERE cluster_id = '${newClusterId}' OR cluster_id = '${anotherClusterId}';
   `,
@@ -363,6 +376,7 @@ describe('Elasticache install/uninstall', () => {
     'inserts aws credentials',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -378,6 +392,7 @@ describe('Elasticache install/uninstall', () => {
     'sets the default region',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
   `,
       undefined,

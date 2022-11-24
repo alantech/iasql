@@ -95,6 +95,7 @@ describe('Cloudfront Integration Testing', () => {
     'inserts aws credentials',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -110,6 +111,7 @@ describe('Cloudfront Integration Testing', () => {
     'sets the default region',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
@@ -124,6 +126,7 @@ describe('Cloudfront Integration Testing', () => {
     'creates a dummy s3 resource',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO bucket (name) VALUES ('${bucket}')`,
       undefined,
       true,
@@ -136,6 +139,8 @@ describe('Cloudfront Integration Testing', () => {
     'adds a new distribution',
     query(
       `  
+    SELECT * FROM iasql_begin();
+  
     INSERT INTO distribution (caller_reference, default_cache_behavior, origins)
     VALUES ('${callerReference}', '${behaviorString}', '${originsString}');
   `,
@@ -150,6 +155,8 @@ describe('Cloudfront Integration Testing', () => {
   it('adds a new s3 distribution', done => {
     query(
       `  
+    SELECT * FROM iasql_begin();
+  
     INSERT INTO distribution (caller_reference, comment, enabled, is_ipv6_enabled, default_cache_behavior, origins )
     VALUES ('${s3CallerReference}', 'a comment', true, false, '${s3behaviorString}', '${s3OriginsString}');
   `,
@@ -178,6 +185,8 @@ describe('Cloudfront Integration Testing', () => {
     'adds a new distribution',
     query(
       `  
+    SELECT * FROM iasql_begin();
+  
     INSERT INTO distribution (caller_reference, comment, enabled, is_ipv6_enabled, default_cache_behavior, origins )
     VALUES ('${callerReference}', 'a comment', true, false, '${behaviorString}', '${originsString}');
   `,
@@ -203,6 +212,7 @@ describe('Cloudfront Integration Testing', () => {
     'tries to update distribution comment',
     query(
       `
+  SELECT * FROM iasql_begin();
   UPDATE distribution SET comment='new comment' WHERE caller_reference='${callerReference}';
   `,
       undefined,
@@ -227,6 +237,7 @@ describe('Cloudfront Integration Testing', () => {
     'tries to update distribution id',
     query(
       `
+  SELECT * FROM iasql_begin();
   UPDATE distribution SET distribution_id='fake' WHERE caller_reference='${callerReference}';
   `,
       undefined,
@@ -251,6 +262,7 @@ describe('Cloudfront Integration Testing', () => {
     'tries to update status',
     query(
       `
+  SELECT * FROM iasql_begin();
   UPDATE distribution SET status='fake' WHERE caller_reference='${callerReference}';
   `,
       undefined,
@@ -289,6 +301,7 @@ describe('Cloudfront Integration Testing', () => {
     'deletes the distribution',
     query(
       `
+    SELECT * FROM iasql_begin();
     DELETE FROM distribution
     WHERE caller_reference = '${callerReference}';
   `,
@@ -304,6 +317,7 @@ describe('Cloudfront Integration Testing', () => {
     'deletes the s3 bucket',
     query(
       `
+    SELECT * FROM iasql_begin();
     DELETE FROM bucket WHERE name = '${bucket}';
   `,
       undefined,
@@ -338,6 +352,7 @@ describe('Cloudfront install/uninstall', () => {
     'inserts aws credentials',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -353,6 +368,7 @@ describe('Cloudfront install/uninstall', () => {
     'sets the default region',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
   `,
       undefined,

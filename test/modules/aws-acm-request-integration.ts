@@ -49,6 +49,7 @@ describe('AwsAcm Request Integration Testing', () => {
     'inserts aws credentials',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.STAGING_ACCESS_KEY_ID}', '${process.env.STAGING_SECRET_ACCESS_KEY}')
   `,
@@ -64,6 +65,7 @@ describe('AwsAcm Request Integration Testing', () => {
     'sets the default region',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
@@ -145,6 +147,7 @@ describe('AwsAcm Request Integration Testing', () => {
     'deletes a certificate requested',
     query(
       `
+    SELECT * FROM iasql_begin();
     DELETE FROM certificate
     WHERE domain_name = '${domainName}';
   `,
@@ -193,6 +196,7 @@ describe('AwsAcm Request Integration Testing', () => {
     'deletes the certificate issued in the non-default region',
     query(
       `
+      SELECT * FROM iasql_begin();
       DELETE
       FROM certificate
       WHERE domain_name = '${domainName}';

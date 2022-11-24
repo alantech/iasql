@@ -66,6 +66,7 @@ describe('ECS Simplified Integration Testing', () => {
     'inserts aws credentials',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -81,6 +82,7 @@ describe('ECS Simplified Integration Testing', () => {
     'sets the default region',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
@@ -92,6 +94,7 @@ describe('ECS Simplified Integration Testing', () => {
   it(
     'sets only 2 enabled regions to avoid long runs',
     query(`
+    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_enabled = FALSE WHERE region != '${region}' AND region != (SELECT region FROM aws_regions WHERE region != 'us-east-1' AND region != '${region}' LIMIT 1);
   `),
   );
@@ -102,6 +105,7 @@ describe('ECS Simplified Integration Testing', () => {
     'adds a new row',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO ecs_simplified (app_name, desired_count, app_port, cpu_mem, image_tag, public_ip)
     VALUES ('${appName}', ${desiredCount}, ${appPort}, '${cpuMem}', '${imageTag}', ${publicIp});
   `,
@@ -153,6 +157,7 @@ describe('ECS Simplified Integration Testing', () => {
     'adds a new row',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO ecs_simplified (app_name, desired_count, app_port, cpu_mem, image_tag, public_ip)
     VALUES ('${appName}', ${desiredCount}, ${appPort}, '${cpuMem}', '${imageTag}', ${publicIp});
   `,
@@ -166,6 +171,7 @@ describe('ECS Simplified Integration Testing', () => {
     'updates a row',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE ecs_simplified
     SET app_port = ${appPort + 1}
     WHERE app_name = '${appName}';
@@ -195,6 +201,7 @@ describe('ECS Simplified Integration Testing', () => {
     'update target group directly',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE target_group
     SET health_check_path = '/'
     WHERE target_group_name = '${appName}-target';
@@ -221,6 +228,7 @@ describe('ECS Simplified Integration Testing', () => {
     'update target_group directly to correct value',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE target_group
     SET health_check_path = '/health'
     WHERE target_group_name = '${appName}-target';
@@ -247,6 +255,7 @@ describe('ECS Simplified Integration Testing', () => {
     'deletes the app',
     query(
       `
+    SELECT * FROM iasql_begin();
     delete from ecs_simplified
     where app_name = '${appName}';
   `,
@@ -286,6 +295,7 @@ describe('ECS Simplified Integration Testing', () => {
     'adds a new row',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO ecs_simplified (app_name, desired_count, app_port, cpu_mem, image_tag, public_ip)
     VALUES ('${appName}', ${desiredCount}, ${appPort}, '${cpuMem}', '${imageTag}', ${publicIp});
   `,
@@ -373,6 +383,7 @@ describe('ECS Simplified Integration Testing', () => {
     'updates a row',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE ecs_simplified
     SET load_balancer_dns = 'invalid'
     WHERE app_name = '${appName}';
@@ -404,6 +415,7 @@ describe('ECS Simplified Integration Testing', () => {
     'updates a row',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE ecs_simplified
     SET app_port = ${appPort + 1}
     WHERE app_name = '${appName}';
@@ -451,6 +463,7 @@ describe('ECS Simplified Integration Testing', () => {
     'updates a row',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE ecs_simplified
     SET repository_uri = NULL
     WHERE app_name = '${appName}';
@@ -482,6 +495,7 @@ describe('ECS Simplified Integration Testing', () => {
     'updates a row',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE ecs_simplified
     SET cpu_mem = '${updateCpuMem}', image_tag = '${updateImageTag}'
     WHERE app_name = '${appName}';
@@ -514,6 +528,7 @@ describe('ECS Simplified Integration Testing', () => {
     'tries to force update ecs_simplified',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE ecs_simplified SET force_new_deployment = true, env_variables = '${envVariables}' WHERE app_name = '${appName}';
   `,
       undefined,
@@ -604,6 +619,7 @@ describe('ECS Simplified Integration Testing', () => {
     'deletes the app',
     query(
       `
+    SELECT * FROM iasql_begin();
     delete from ecs_simplified
     where app_name = '${appName}';
   `,
@@ -651,6 +667,7 @@ describe('ECS Simplified install/uninstall', () => {
     'inserts aws credentials',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -666,6 +683,7 @@ describe('ECS Simplified install/uninstall', () => {
     'sets the default region',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
   `,
       undefined,
@@ -677,6 +695,7 @@ describe('ECS Simplified install/uninstall', () => {
   it(
     'sets only 2 enabled regions to avoid long runs',
     query(`
+    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_enabled = FALSE WHERE region != 'us-east-1' AND region != (SELECT region FROM aws_regions WHERE region != 'us-east-1' LIMIT 1);
   `),
   );

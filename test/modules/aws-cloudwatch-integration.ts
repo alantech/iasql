@@ -66,6 +66,7 @@ describe('AwsCloudwatch Integration Testing', () => {
     'sets the default region',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
@@ -80,6 +81,7 @@ describe('AwsCloudwatch Integration Testing', () => {
     'adds a new log group',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO log_group (log_group_name)
     VALUES ('${logGroupName}');
   `,
@@ -196,6 +198,7 @@ describe('AwsCloudwatch Integration Testing', () => {
     'also creates a log group in non-default region with the same name',
     query(
       `
+        SELECT * FROM iasql_begin();
         INSERT INTO log_group (log_group_name, region)
         VALUES (
             '${logGroupName}', (SELECT region FROM aws_regions WHERE is_default = false and is_enabled = true LIMIT 1)
@@ -428,6 +431,7 @@ describe('AwsCloudwatch install/uninstall', () => {
     'sets the default region',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
   `,
       undefined,

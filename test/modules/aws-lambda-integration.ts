@@ -90,6 +90,7 @@ describe('Lambda Integration Testing', () => {
     'inserts aws credentials',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -105,6 +106,7 @@ describe('Lambda Integration Testing', () => {
     'sets the default region',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
@@ -119,6 +121,8 @@ describe('Lambda Integration Testing', () => {
     'adds a new security group',
     query(
       `  
+    SELECT * FROM iasql_begin();
+  
     INSERT INTO security_group (description, group_name)
     VALUES ('Lambda Security Group', '${sgGroupName}');
   `,
@@ -132,6 +136,7 @@ describe('Lambda Integration Testing', () => {
     'adds security group rules',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
     SELECT false, 'tcp', 80, 80, '0.0.0.0/0', '${prefix}lambda_rule_http', id
     FROM security_group
@@ -152,6 +157,7 @@ describe('Lambda Integration Testing', () => {
     'adds a new lambda function and role',
     query(
       `
+    SELECT * FROM iasql_begin();
     BEGIN;
       INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
       VALUES ('${lambdaFunctionRoleName}', '${attachAssumeLambdaPolicy}', array['${lambdaFunctionRoleTaskPolicyArn}', '${lambdaVpcFunctionRoleTaskPolicyArn}']);
@@ -184,6 +190,7 @@ describe('Lambda Integration Testing', () => {
     'adds a new lambda role',
     query(
       `
+      SELECT * FROM iasql_begin();
       INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
       VALUES ('${lambdaFunctionRoleName}', '${attachAssumeLambdaPolicy}', array['${lambdaFunctionRoleTaskPolicyArn}', '${lambdaVpcFunctionRoleTaskPolicyArn}']);
   `,
@@ -199,6 +206,7 @@ describe('Lambda Integration Testing', () => {
     'adds a new lambda function',
     query(
       `
+    SELECT * FROM iasql_begin();
     BEGIN;
       INSERT INTO lambda_function (name, zip_b64, handler, runtime, subnets, role_name)
       VALUES ('${lambdaFunctionName}', '${lambdaFunctionCode}', '${lambdaFunctionHandler}', '${lambdaFunctionRuntime14}', (select array(select subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true and vpc.region = '${region}' limit 3)), '${lambdaFunctionRoleName}');
@@ -290,6 +298,7 @@ describe('Lambda Integration Testing', () => {
     'updates the function arn',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE lambda_function SET arn = 'fake' WHERE name = '${lambdaFunctionName}';
   `,
       undefined,
@@ -329,6 +338,8 @@ describe('Lambda Integration Testing', () => {
     'adds a new vpc',
     query(
       `  
+    SELECT * FROM iasql_begin();
+  
     INSERT INTO vpc (cidr_block, tags, enable_dns_hostnames, enable_dns_support, region)
     VALUES ('192.${randIPBlock}.0.0/16', '{"name":"${prefix}-1"}', true, true, '${region}');
   `,
@@ -342,6 +353,7 @@ describe('Lambda Integration Testing', () => {
     'adds a subnet',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO subnet (availability_zone, vpc_id, cidr_block, region)
     SELECT '${availabilityZone}', id, '192.${randIPBlock}.0.0/16', '${region}'
     FROM vpc
@@ -359,6 +371,8 @@ describe('Lambda Integration Testing', () => {
     'adds a new security group with non-default vpc',
     query(
       `  
+    SELECT * FROM iasql_begin();
+  
     INSERT INTO security_group (description, group_name, vpc_id)
     VALUES ('Lambda security group for non-default vpc', '${prefix}lambdanotdefault', (SELECT id FROM vpc WHERE cidr_block='192.${randIPBlock}.0.0/16' AND region='${region}' limit 1));
   `,
@@ -372,6 +386,7 @@ describe('Lambda Integration Testing', () => {
     'adds security group rules for not default',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
     SELECT false, 'tcp', 80, 80, '0.0.0.0/0', '${prefix}lambda_rule_http_not_default', id
     FROM security_group
@@ -392,6 +407,7 @@ describe('Lambda Integration Testing', () => {
     'updates the function subnets',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE lambda_function SET subnets = (select array(select subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where vpc.region = '${region}' and subnet.cidr_block='192.${randIPBlock}.0.0/16'))
     WHERE name = '${lambdaFunctionName}';
   `,
@@ -405,6 +421,7 @@ describe('Lambda Integration Testing', () => {
     'updates the security groups',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE lambda_function_security_groups SET security_group_id=(select id from security_group where group_name='${prefix}lambdanotdefault' and region='${region}' limit 1) where lambda_function_id=
     (select id from lambda_function where name='${lambdaFunctionName}' AND region='${region}');
   `,
@@ -432,6 +449,7 @@ describe('Lambda Integration Testing', () => {
     'updates the function',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE lambda_function SET runtime = '${lambdaFunctionRuntime16}' WHERE name = '${lambdaFunctionName}';
   `,
       undefined,
@@ -471,6 +489,7 @@ describe('Lambda Integration Testing', () => {
     'updates the function',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE lambda_function SET zip_b64 = '${lambdaFunctionCodeUpdate}' WHERE name = '${lambdaFunctionName}';
   `,
       undefined,
@@ -510,6 +529,7 @@ describe('Lambda Integration Testing', () => {
     'updates the function',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE lambda_function SET tags = '{"updated": "true"}' WHERE name = '${lambdaFunctionName}';
   `,
       undefined,
@@ -552,6 +572,7 @@ describe('Lambda Integration Testing', () => {
     'deletes the lambda function',
     query(
       `
+      SELECT * FROM iasql_begin();
       BEGIN;
       DELETE FROM lambda_function_security_groups
       WHERE lambda_function_id = (SELECT id FROM lambda_function WHERE name = '${lambdaFunctionName}');
@@ -596,6 +617,7 @@ describe('Lambda Integration Testing', () => {
     'deletes the lambda function role',
     query(
       `
+    SELECT * FROM iasql_begin();
     DELETE FROM iam_role WHERE role_name = '${lambdaFunctionRoleName}';
   `,
       undefined,
@@ -634,6 +656,7 @@ describe('Lambda Integration Testing', () => {
     'deletes security group rules',
     query(
       `
+      SELECT * FROM iasql_begin();
       DELETE FROM security_group_rule WHERE description='${prefix}lambda_rule_http' or description='${prefix}lambda_rule_egress' AND region='${region}';
     `,
       undefined,
@@ -646,6 +669,7 @@ describe('Lambda Integration Testing', () => {
     'deletes security group',
     query(
       `
+      SELECT * FROM iasql_begin();
       DELETE FROM security_group WHERE group_name = '${sgGroupName}' AND region='${region}';
     `,
       undefined,
@@ -748,6 +772,7 @@ describe('Lambda install/uninstall', () => {
     'inserts aws credentials',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -763,6 +788,7 @@ describe('Lambda install/uninstall', () => {
     'sets the default region',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
   `,
       undefined,

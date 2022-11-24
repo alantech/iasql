@@ -70,6 +70,7 @@ describe('MemoryDB Integration Testing', () => {
     'inserts aws credentials',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -85,6 +86,7 @@ describe('MemoryDB Integration Testing', () => {
     'sets the default region',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
@@ -99,6 +101,7 @@ describe('MemoryDB Integration Testing', () => {
     'creates a subnet group',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO subnet_group (subnet_group_name)
     VALUES ('${subnetGroupName}');
   `,
@@ -126,6 +129,7 @@ describe('MemoryDB Integration Testing', () => {
     'creates a subnet group',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO subnet_group (subnet_group_name)
     VALUES ('${subnetGroupName}');
   `,
@@ -153,6 +157,7 @@ describe('MemoryDB Integration Testing', () => {
     'changes the subnet group description',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE subnet_group
     SET description = 'Short desc'
     WHERE subnet_group_name = '${subnetGroupName}';
@@ -169,6 +174,7 @@ describe('MemoryDB Integration Testing', () => {
     'creates a memory db cluster',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO memory_db_cluster (cluster_name, subnet_group_id)
     VALUES ('${clusterName}', (select id from subnet_group where subnet_group_name = '${subnetGroupName}'));
 
@@ -199,6 +205,7 @@ describe('MemoryDB Integration Testing', () => {
     'creates a memory db cluster',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO memory_db_cluster (cluster_name, subnet_group_id)
     VALUES ('${clusterName}', (select id from subnet_group where subnet_group_name = '${subnetGroupName}'));
 
@@ -229,6 +236,7 @@ describe('MemoryDB Integration Testing', () => {
     'changes the cluster description',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE memory_db_cluster
     SET description = 'Short desc'
     WHERE cluster_name = '${clusterName}';
@@ -245,6 +253,7 @@ describe('MemoryDB Integration Testing', () => {
     'changes the cluster arn',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE memory_db_cluster
     SET arn = 'fake-arn'
     WHERE cluster_name = '${clusterName}';
@@ -277,6 +286,7 @@ describe('MemoryDB Integration Testing', () => {
     'removes the memory db cluster',
     query(
       `
+    SELECT * FROM iasql_begin();
     DELETE FROM memory_db_cluster
     WHERE cluster_name = '${clusterName}';
   `,
@@ -328,6 +338,7 @@ describe('MemoryDB Integration Testing', () => {
     'removes the subnet group',
     query(
       `
+    SELECT * FROM iasql_begin();
     DELETE FROM subnet_group
     WHERE subnet_group_name = '${subnetGroupName}';
   `,
@@ -387,6 +398,7 @@ describe('MemoryDB install/uninstall', () => {
     'inserts aws credentials',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -402,6 +414,7 @@ describe('MemoryDB install/uninstall', () => {
     'sets the default region',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
   `,
       undefined,

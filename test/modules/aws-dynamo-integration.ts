@@ -51,6 +51,7 @@ describe('Dynamo Integration Testing', () => {
     'inserts aws credentials',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -66,6 +67,7 @@ describe('Dynamo Integration Testing', () => {
     'sets the default region',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
@@ -80,6 +82,7 @@ describe('Dynamo Integration Testing', () => {
     'creates a Dynamo table',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO dynamo_table (table_name, table_class, throughput, primary_key)
     VALUES (
       '${prefix}test',
@@ -112,6 +115,7 @@ describe('Dynamo Integration Testing', () => {
     'creates a Dynamo table',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO dynamo_table (table_name, table_class, throughput, primary_key)
     VALUES (
       '${prefix}test',
@@ -144,6 +148,7 @@ describe('Dynamo Integration Testing', () => {
     'changes the column definition',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE dynamo_table
     SET primary_key = '{"key": "S", "val": "N"}'
     WHERE table_name = '${prefix}test';
@@ -176,6 +181,7 @@ describe('Dynamo Integration Testing', () => {
     'removes the dynamo table',
     query(
       `
+    SELECT * FROM iasql_begin();
     DELETE FROM dynamo_table
     WHERE table_name = '${prefix}test';
   `,
@@ -215,6 +221,7 @@ describe('Dynamo Integration Testing', () => {
     'creates a table in a non-default region',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO dynamo_table (table_name, table_class, throughput, primary_key, region)
     VALUES (
       '${prefix}regiontest',
@@ -251,6 +258,7 @@ describe('Dynamo Integration Testing', () => {
     'changes the region the table is located in',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE dynamo_table
     SET region = '${region}'
     WHERE table_name = '${prefix}regiontest';
@@ -282,6 +290,7 @@ describe('Dynamo Integration Testing', () => {
     'removes the dynamo table',
     query(
       `
+    SELECT * FROM iasql_begin();
     DELETE FROM dynamo_table
     WHERE table_name = '${prefix}regiontest';
   `,
@@ -329,6 +338,7 @@ describe('Dynamo install/uninstall', () => {
     'inserts aws credentials',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -344,6 +354,7 @@ describe('Dynamo install/uninstall', () => {
     'sets the default region',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
   `,
       undefined,

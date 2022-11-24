@@ -63,6 +63,7 @@ describe('ECR Multi-region Integration Testing', () => {
     'inserts aws credentials',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -78,6 +79,7 @@ describe('ECR Multi-region Integration Testing', () => {
     'sets the default region',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
@@ -92,6 +94,8 @@ describe('ECR Multi-region Integration Testing', () => {
     'adds a new repository',
     query(
       `  
+    SELECT * FROM iasql_begin();
+  
     INSERT INTO repository (repository_name, scan_on_push, image_tag_mutability, region)
       VALUES ('${repositoryName}', false, 'MUTABLE', '${nonDefaultRegion}');
   `,
@@ -119,6 +123,8 @@ describe('ECR Multi-region Integration Testing', () => {
     'adds a new repository',
     query(
       `  
+      SELECT * FROM iasql_begin();
+  
       INSERT INTO repository (repository_name, scan_on_push, image_tag_mutability, region)
       VALUES ('${repositoryName}', false, 'MUTABLE', '${nonDefaultRegion}');
   `,
@@ -180,6 +186,7 @@ describe('ECR Multi-region Integration Testing', () => {
     'adds a new repository policy',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO repository_policy (repository_id, policy_text, region)
     VALUES ((select id from repository where repository_name = '${repositoryName}'), '${policyMock}', '${nonDefaultRegion}');
   `,
@@ -234,6 +241,7 @@ describe('ECR Multi-region Integration Testing', () => {
     'removes the repository images',
     query(
       `
+      SELECT * FROM iasql_begin();
       DELETE FROM repository_image
       WHERE private_repository_id = (select id from repository where repository_name = '${repositoryName}');
   `,
@@ -342,6 +350,7 @@ describe('ECR Multi-region Integration Testing', () => {
     'removes the repository',
     query(
       `
+      SELECT * FROM iasql_begin();
       BEGIN;
         DELETE FROM repository_policy
         WHERE repository_id = (select id from repository where repository_name = '${repositoryName}' and region = '${region}');

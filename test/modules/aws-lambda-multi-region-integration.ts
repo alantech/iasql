@@ -73,6 +73,7 @@ describe('Lambda Multi-region Integration Testing', () => {
     'inserts aws credentials',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -88,6 +89,7 @@ describe('Lambda Multi-region Integration Testing', () => {
     'sets the default region',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
@@ -102,6 +104,8 @@ describe('Lambda Multi-region Integration Testing', () => {
     'adds a new Lambda function',
     query(
       `  
+    SELECT * FROM iasql_begin();
+  
     BEGIN;
       INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
       VALUES ('${lambdaFunctionRoleName}', '${attachAssumeLambdaPolicy}', array['${lambdaFunctionRoleTaskPolicyArn}']);
@@ -134,6 +138,8 @@ describe('Lambda Multi-region Integration Testing', () => {
     'adds a new Lambda function',
     query(
       `  
+    SELECT * FROM iasql_begin();
+  
     BEGIN;
       INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
       VALUES ('${lambdaFunctionRoleName}', '${attachAssumeLambdaPolicy}', array['${lambdaFunctionRoleTaskPolicyArn}']);
@@ -166,6 +172,7 @@ describe('Lambda Multi-region Integration Testing', () => {
     'changes the region the lambda function is located in',
     query(
       `
+      SELECT * FROM iasql_begin();
       UPDATE lambda_function
       SET region = '${region}', zip_b64 = '${lambdaFunctionCode}'
       WHERE name = '${lambdaFunctionName}' and region = '${nonDefaultRegion}';
@@ -194,6 +201,7 @@ describe('Lambda Multi-region Integration Testing', () => {
     'removes the lambda function',
     query(
       `
+    SELECT * FROM iasql_begin();
     DELETE FROM lambda_function
     WHERE name = '${lambdaFunctionName}';
   `,

@@ -51,6 +51,7 @@ describe('AwsAcm List Integration Testing', () => {
     'inserts aws credentials',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -66,6 +67,7 @@ describe('AwsAcm List Integration Testing', () => {
     'sets the default region',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
@@ -80,6 +82,7 @@ describe('AwsAcm List Integration Testing', () => {
     'adds a new certificate',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO certificate (domain_name)
     VALUES ('${domainName}');
   `,
@@ -107,6 +110,7 @@ describe('AwsAcm List Integration Testing', () => {
     'adds a new certificate',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO certificate (domain_name)
     VALUES ('${domainName}');
   `,
@@ -182,6 +186,7 @@ describe('AwsAcm List install/uninstall', () => {
     'inserts aws credentials',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -197,6 +202,7 @@ describe('AwsAcm List install/uninstall', () => {
     'sets the default region',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
   `,
       undefined,

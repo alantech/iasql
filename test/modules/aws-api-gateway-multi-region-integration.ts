@@ -67,6 +67,7 @@ describe('Api Gateway Multi-region Integration Testing', () => {
     'inserts aws credentials',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -82,6 +83,7 @@ describe('Api Gateway Multi-region Integration Testing', () => {
     'sets the default region',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
@@ -96,6 +98,8 @@ describe('Api Gateway Multi-region Integration Testing', () => {
     'adds a new API Gateway',
     query(
       `  
+    SELECT * FROM iasql_begin();
+  
     INSERT INTO api (name, description, region)
     VALUES ('${apiName}', 'description', '${nonDefaultRegion}');
   `,
@@ -123,6 +127,8 @@ describe('Api Gateway Multi-region Integration Testing', () => {
     'adds a new API Gateway',
     query(
       `  
+    SELECT * FROM iasql_begin();
+  
     INSERT INTO api (name, description, region)
     VALUES ('${apiName}', 'description', '${nonDefaultRegion}');
   `,
@@ -150,6 +156,7 @@ describe('Api Gateway Multi-region Integration Testing', () => {
     'changes the region the API Gateway is located in',
     query(
       `
+      SELECT * FROM iasql_begin();
       UPDATE api
       SET region = '${region}'
       WHERE name = '${apiName}';
@@ -178,6 +185,7 @@ describe('Api Gateway Multi-region Integration Testing', () => {
     'removes the API Gateway',
     query(
       `
+    SELECT * FROM iasql_begin();
     DELETE FROM api
     WHERE name = '${apiName}';
   `,

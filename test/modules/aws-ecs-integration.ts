@@ -111,6 +111,7 @@ describe('ECS Integration Testing', () => {
     'inserts aws credentials',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -126,6 +127,7 @@ describe('ECS Integration Testing', () => {
     'sets the default region',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
@@ -138,6 +140,7 @@ describe('ECS Integration Testing', () => {
     'sets only 2 enabled regions to avoid long runs',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_enabled = FALSE WHERE region != '${region}' AND region != (SELECT region FROM aws_regions WHERE region != 'us-east-1' AND region != '${region}' ORDER BY region DESC LIMIT 1);
   `,
       undefined,
@@ -155,6 +158,7 @@ describe('ECS Integration Testing', () => {
     'inserts aws credentials',
     querySync(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -168,6 +172,7 @@ describe('ECS Integration Testing', () => {
   it(
     'sets the default region',
     querySync(`
+    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `),
   );
@@ -175,6 +180,7 @@ describe('ECS Integration Testing', () => {
   it(
     'sets only 2 enabled regions to avoid long runs',
     querySync(`
+    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_enabled = FALSE WHERE region != '${region}' AND region != (SELECT region FROM aws_regions WHERE region != 'us-east-1' AND region != '${region}' ORDER BY region DESC LIMIT 1);
   `),
   );
@@ -188,6 +194,7 @@ describe('ECS Integration Testing', () => {
     'adds a new cluster',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO cluster (cluster_name)
     VALUES('${clusterName}');
   `,
@@ -215,6 +222,7 @@ describe('ECS Integration Testing', () => {
     'adds a new cluster',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO cluster (cluster_name)
     VALUES('${clusterName}');
   `,
@@ -245,6 +253,7 @@ describe('ECS Integration Testing', () => {
     'adds service dependencies',
     query(
       `
+    SELECT * FROM iasql_begin();
     BEGIN;
       INSERT INTO security_group
         (description, group_name)
@@ -312,6 +321,7 @@ describe('ECS Integration Testing', () => {
     'adds container dependencies',
     query(
       `
+    SELECT * FROM iasql_begin();
     BEGIN;
       INSERT INTO log_group (log_group_name)
       VALUES ('${logGroupName}');
@@ -356,6 +366,7 @@ describe('ECS Integration Testing', () => {
     'adds a new task definition',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO task_definition ("family", task_role_name, execution_role_name, cpu_memory)
     VALUES ('${tdFamily}', '${taskExecRoleName}', '${taskExecRoleName}', '${tdCpuMem}');
   `,
@@ -381,6 +392,7 @@ describe('ECS Integration Testing', () => {
     'adds a new container definition',
     query(
       `
+    SELECT * FROM iasql_begin();
     BEGIN;
       INSERT INTO container_definition ("name", image, essential, memory_reservation, host_port, container_port, protocol, env_variables, task_definition_id, log_group_id)
       VALUES('${containerName}', '${image}', ${containerEssential}, ${containerMemoryReservation}, ${hostPort}, ${containerPort}, '${protocol}', '{ "test": 2}', (select id from task_definition where family = '${tdFamily}' and status is null and region = '${region}' limit 1), (select id from log_group where log_group_name = '${logGroupName}' and region = '${region}'));
@@ -495,6 +507,7 @@ describe('ECS Integration Testing', () => {
     'adds a new service',
     query(
       `
+    SELECT * FROM iasql_begin();
     BEGIN;
       INSERT INTO service ("name", desired_count, subnets, assign_public_ip, cluster_id, task_definition_id, target_group_id)
       VALUES ('${serviceName}', ${serviceDesiredCount}, (select array(select subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true and vpc.region = '${region}' limit 3)), 'ENABLED', (SELECT id FROM cluster WHERE cluster_name = '${clusterName}'), (select id from task_definition where family = '${tdFamily}' and region = '${region}' order by revision desc limit 1), (SELECT id FROM target_group WHERE target_group_name = '${serviceTargetGroupName}' and region = '${region}'));
@@ -582,6 +595,7 @@ describe('ECS Integration Testing', () => {
     'tries to update a service (update)',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE service SET desired_count = ${serviceDesiredCount + 1} WHERE name = '${serviceName}';
   `,
       undefined,
@@ -608,6 +622,7 @@ describe('ECS Integration Testing', () => {
     'tries to update a service (restore)',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE service SET status = 'fake' WHERE name = '${serviceName}';
   `,
       undefined,
@@ -634,6 +649,7 @@ describe('ECS Integration Testing', () => {
     'tries to update a service (replace)',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE service SET name = '${newServiceName}' WHERE name = '${serviceName}';
   `,
       undefined,
@@ -660,6 +676,7 @@ describe('ECS Integration Testing', () => {
     'tries to force update a service',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE service SET force_new_deployment = true WHERE name = '${newServiceName}';
   `,
       undefined,
@@ -697,6 +714,7 @@ describe('ECS Integration Testing', () => {
   it('should fail moving just the deployment group', done =>
     void query(
       `
+      SELECT * FROM iasql_begin();
       UPDATE service
       SET region = '${nonDefaultRegion}'
       WHERE name = '${newServiceName}';
@@ -725,6 +743,7 @@ describe('ECS Integration Testing', () => {
     'deletes service',
     query(
       `
+    SELECT * FROM iasql_begin();
     BEGIN;
       delete from service_security_groups
       using service
@@ -760,6 +779,7 @@ describe('ECS Integration Testing', () => {
     'deletes container definitons',
     query(
       `
+    SELECT * FROM iasql_begin();
     begin;
       delete from container_definition
       using task_definition
@@ -830,6 +850,7 @@ describe('ECS Integration Testing', () => {
     'deletes service dependencies',
     query(
       `
+    SELECT * FROM iasql_begin();
     BEGIN;
       DELETE FROM listener
       WHERE load_balancer_id = (SELECT id FROM load_balancer WHERE load_balancer_name = '${serviceLoadBalancerName}')
@@ -865,6 +886,7 @@ describe('ECS Integration Testing', () => {
     'tries to update a cluster field (restore)',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE cluster SET cluster_status = 'fake' WHERE cluster_name = '${clusterName}';
   `,
       undefined,
@@ -879,6 +901,7 @@ describe('ECS Integration Testing', () => {
     'tries to update cluster (replace)',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE cluster SET cluster_name = '${newClusterName}' WHERE cluster_name = '${clusterName}';
   `,
       undefined,
@@ -893,6 +916,7 @@ describe('ECS Integration Testing', () => {
     'deletes the cluster',
     query(
       `
+    SELECT * FROM iasql_begin();
     delete from cluster
     where cluster_name = '${newClusterName}';
   `,
@@ -931,6 +955,7 @@ describe('ECS install/uninstall', () => {
     'inserts aws credentials',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -946,6 +971,7 @@ describe('ECS install/uninstall', () => {
     'sets the default region',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
   `,
       undefined,
@@ -957,6 +983,7 @@ describe('ECS install/uninstall', () => {
   it(
     'sets only 2 enabled regions to avoid long runs',
     query(`
+    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_enabled = FALSE WHERE region != 'us-east-1' AND region != (SELECT region FROM aws_regions WHERE region != 'us-east-1' LIMIT 1);
   `),
   );

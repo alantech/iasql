@@ -80,6 +80,7 @@ describe('Route53 Integration Testing', () => {
     'inserts aws credentials',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -95,6 +96,7 @@ describe('Route53 Integration Testing', () => {
     'sets the default region',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `,
       undefined,
@@ -109,6 +111,7 @@ describe('Route53 Integration Testing', () => {
     'adds a new hosted zone',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO hosted_zone (domain_name)
     VALUES ('${domainName}');
   `,
@@ -148,6 +151,7 @@ describe('Route53 Integration Testing', () => {
     'adds a new hosted zone',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO hosted_zone (domain_name)
     VALUES ('${domainName}');
   `,
@@ -206,6 +210,7 @@ describe('Route53 Integration Testing', () => {
     'inserts aws credentials',
     queryStaging(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.STAGING_ACCESS_KEY_ID}', '${process.env.STAGING_SECRET_ACCESS_KEY}')
   `,
@@ -219,6 +224,7 @@ describe('Route53 Integration Testing', () => {
   it(
     'sets the default region',
     queryStaging(`
+    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `),
   );
@@ -276,6 +282,7 @@ describe('Route53 Integration Testing', () => {
     'adds a new record to hosted zone',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO resource_record_set (name, record_type, record, ttl, parent_hosted_zone_id)
     SELECT '${resourceRecordSetName}', '${resourceRecordSetTypeCNAME}', '${resourceRecordSetRecord}', ${resourceRecordSetTtl}, id
     FROM hosted_zone
@@ -319,6 +326,7 @@ describe('Route53 Integration Testing', () => {
     'adds a new A record to hosted zone',
     query(
       `
+    SELECT * FROM iasql_begin();
     BEGIN;
       INSERT INTO load_balancer (load_balancer_name, scheme, load_balancer_type, ip_address_type)
       VALUES ('${lbName}', '${lbScheme}', '${lbType}', '${lbIPAddressType}');
@@ -371,6 +379,7 @@ describe('Route53 Integration Testing', () => {
     'tries to update a hosted zone domain name field (replace)',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE hosted_zone SET domain_name = '${replaceDomainName}' WHERE domain_name = '${domainName}';
   `,
       undefined,
@@ -423,6 +432,7 @@ describe('Route53 Integration Testing', () => {
     'adds a new record to hosted zone',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO resource_record_set (name, record_type, record, ttl, parent_hosted_zone_id)
     SELECT '${resourceRecordSetMultilineName}', '${resourceRecordSetTypeA}', '${resourceRecordSetRecordMultiline}', ${resourceRecordSetTtl}, id
     FROM hosted_zone
@@ -475,6 +485,7 @@ describe('Route53 Integration Testing', () => {
     'updates a record name',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE resource_record_set 
     SET name = '${resourceRecordSetMultilineNameReplace}'
     FROM hosted_zone
@@ -513,6 +524,7 @@ describe('Route53 Integration Testing', () => {
     'creates hosted zone with the same name',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO hosted_zone (domain_name) VALUES ('${replaceDomainName}');
   `,
       undefined,
@@ -550,6 +562,7 @@ describe('Route53 Integration Testing', () => {
     'deletes the hosted zone with the same name',
     query(
       `
+    SELECT * FROM iasql_begin();
     BEGIN;
       DELETE FROM resource_record_set
       USING hosted_zone
@@ -570,6 +583,7 @@ describe('Route53 Integration Testing', () => {
     'deletes records',
     query(
       `
+    SELECT * FROM iasql_begin();
     DELETE FROM resource_record_set
     USING hosted_zone
     WHERE hosted_zone.id = parent_hosted_zone_id AND domain_name = '${replaceDomainName}';
@@ -612,6 +626,7 @@ describe('Route53 Integration Testing', () => {
     'deletes mandatory records and hosted zone',
     query(
       `
+    SELECT * FROM iasql_begin();
     BEGIN;
       DELETE FROM resource_record_set
       USING hosted_zone
@@ -702,6 +717,7 @@ describe('Route53 install/uninstall', () => {
     'inserts aws credentials',
     query(
       `
+    SELECT * FROM iasql_begin();
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `,
@@ -717,6 +733,7 @@ describe('Route53 install/uninstall', () => {
     'sets the default region',
     query(
       `
+    SELECT * FROM iasql_begin();
     UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
   `,
       undefined,
