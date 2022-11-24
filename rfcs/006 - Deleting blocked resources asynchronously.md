@@ -39,6 +39,7 @@ check if the resource is in a situation to be deleted and perform it.
 This can be achieved by using a table to track the resources marked for asynchronously deletion, and a periodicaly process that iterates over this table and triggers the proper deletion. Records of this table will contain:
 
 - module and entity of the resource to be deleted
+- mapper for the resource to be deleted
 - cloudId for the resource
 - expected deletion date
 - number of deletion retries
@@ -58,11 +59,12 @@ The garbage collector procedure will be executed periodically and do the followi
 5. If the delete fails, schedule another deletion for the future. We could be using some increasing time (60 minutes, 1 day, etc...). We will also increase the number of deletions.
 6. If the resource failed and number of deletions arrived to maximum, delete from this table as well. Additionally we can throw some error/trigger some email to the user informing about this problem, asking to fix manually.
 
-This procedure will also affect the way we sync resources from the database to the cluster: if we have a resource in the db and not in the cloud, we will check if the resource is on the deletion table. If it is there, we won't trigger the creation in the cloud.
+This procedure will also affect the way we sync resources from the database to the cluster: if we have a resource that was removed from the database and failed from the cloud, when we do the sync up we will need to avoid
+creating the resources in the database again, by filtering by the deletion table.
 
 ### Alternatives Considered
 
-Perform retries with some wait period for the affected resources, as the current approach.
+1. Perform retries with some wait period for the affected resources, as the current approach.
 
 **_Pros:_**
 
@@ -71,9 +73,19 @@ We may be able to delete some resources with some specific per-service logic, be
 **_Cons:_**
 This is causing huge wait times for the users, eventually causing the engine to be locked, if the user retries the procedure so many times.
 
+2. Add a `soft delete` column in all entities. A record could be marked for soft deletion and perform the real one after a period of time.
+
+**_Pros:**
+
+This will be a similar approach as the proposed one, but having the field in the table, that could speed up the queries.
+
+**_Cons:_**
+
+Adding columns not relevant to the modules is a problem with user interface and can confuse users.
+
 ## Affected Components
 
-- New periodical procedure `garbage-collector` needs to be implemented
+- New periodical procedure `garbage-collector` needs to be implemented, potentially implemented with `pg_cron`
 - Engine needs to be modified to check entries in the deletion table before syncing to the cloud
 - Specific checks needs to be added at service level, to capture these exceptions and react as desired
 
