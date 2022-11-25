@@ -159,8 +159,8 @@ FROM
   iasql_commit ();
 ```
 
-After the process finishes, you will have your Ghost instance installed, publicly accessible through the public IP of the spinned instance. You can get the details of the public IP
-of your instance querying for the metadata:
+After the process finishes (it will take over 10-15 minutes), you will have your Ghost instance installed, publicly accessible through the public IP of the spinned instance.
+You can get the details of the public IP of your instance querying for the metadata:
 
 ```sql
 SELECT
@@ -185,4 +185,6 @@ WHERE
   );
 ```
 
-The initial Ghost installation will be available on the browser just query by http://<public_ip_address>:
+The initial Ghost installation will be available on the browser just query by `http://<public_ip_address>`:
+
+<img src="/img/configure_ghost.png" style={{ maxWidth: 600 }} />
