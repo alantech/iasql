@@ -43,9 +43,9 @@ export class IasqlBegin extends RpcBase {
             }
           }
         },
-        1000 * 60 * 30,
+        1000 * 60 * 30, // Execute this after 30 min
         new Date(),
-      ); // Execute this after 30 min
+      );
     }
     return [{ message }];
   };
