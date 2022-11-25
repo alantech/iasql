@@ -27,21 +27,25 @@ export class IasqlBegin extends RpcBase {
     } catch (e) {
       throw e;
     } finally {
-      setTimeout(async (currentDate: Date) => {
-        if (ctx.orm) {
-          const [isRunning, statusRes, lastBeginRes] = await Promise.all([
-            isCommitRunning(ctx.orm),
-            ctx.orm.query(`SELECT * FROM query_cron('status');`),
-            ctx.orm.query(`
+      setTimeout(
+        async (currentDate: Date) => {
+          if (ctx.orm) {
+            const [isRunning, statusRes, lastBeginRes] = await Promise.all([
+              isCommitRunning(ctx.orm),
+              ctx.orm.query(`SELECT * FROM query_cron('status');`),
+              ctx.orm.query(`
               SELECT * FROM iasql_rpc WHERE method_name = 'iasqlBegin' ORDER BY start_date DESC LIMIT 1;
-            `)
-          ]);
-          if (!isRunning && statusRes[0]?.query_cron === 'f' && lastBeginRes[0]?.start_date < currentDate) {
-            // If these conditions happen it means the transaction stayed open and we need to enable again the cron
-            await ctx.orm.query(`SELECT * FROM query_cron('enable');`);
+            `),
+            ]);
+            if (!isRunning && statusRes[0]?.query_cron === 'f' && lastBeginRes[0]?.start_date < currentDate) {
+              // If these conditions happen it means the transaction stayed open and we need to enable again the cron
+              await ctx.orm.query(`SELECT * FROM query_cron('enable');`);
+            }
           }
-        }
-      }, 1000 * 60 * 30, new Date());  // Execute this after 30 min
+        },
+        1000 * 60 * 30,
+        new Date(),
+      ); // Execute this after 30 min
     }
     return [{ message }];
   };
