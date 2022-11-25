@@ -24,8 +24,10 @@ const prefix = getPrefix();
 const dbAlias = 'route53test';
 const region = defaultRegion();
 const domainName = `${dbAlias}${prefix}.${region}.com.`;
+const newDomainName = `${dbAlias}${prefix}new.${region}.com.`;
 const replaceDomainName = `${dbAlias}${prefix}replace.${region}.com.`;
 const resourceRecordSetName = `test.${domainName}`;
+const resourceRecordSetNewName = `test.${newDomainName}`;
 const aliasResourceRecordSetName = `aliastest.${domainName}`;
 const resourceRecordSetMultilineName = `test.multiline.${replaceDomainName}`;
 const resourceRecordSetMultilineNameReplace = `replace.test.multiline.${replaceDomainName}`;
@@ -271,6 +273,58 @@ describe('Route53 Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(2),
     ),
   );
+
+  it(
+    'adds a new record to hosted zone in the same transaction for creating the hosted zone',
+    query(
+      `
+      INSERT INTO hosted_zone (domain_name)
+      VALUES ('${newDomainName}');
+  
+    INSERT INTO resource_record_set (name, record_type, record, ttl, parent_hosted_zone_id)
+    SELECT '${resourceRecordSetNewName}', '${resourceRecordSetTypeCNAME}', '${resourceRecordSetRecord}', ${resourceRecordSetTtl}, id
+    FROM hosted_zone
+    WHERE domain_name = '${newDomainName}';
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+  it('applies new resource record set', commit());
+
+  it(
+    'check cname record set have been added',
+    query(
+      `
+    SELECT *
+    FROM resource_record_set
+    INNER JOIN hosted_zone ON hosted_zone.id = parent_hosted_zone_id
+    WHERE domain_name = '${newDomainName}' AND record_type='${resourceRecordSetTypeCNAME}';
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it(
+    'deletes the hosted zone with the new name',
+    query(
+      `
+    BEGIN;
+      DELETE FROM resource_record_set
+      USING hosted_zone
+      WHERE hosted_zone.id IN (SELECT id FROM hosted_zone WHERE domain_name = '${newDomainName}' ORDER BY ID DESC LIMIT 1);
+      DELETE FROM hosted_zone
+      WHERE id IN (SELECT id FROM hosted_zone WHERE domain_name = '${newDomainName}' ORDER BY ID DESC LIMIT 1);
+    COMMIT;
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it('applies the removal of hosted zone with the same name', commit());
 
   it(
     'adds a new record to hosted zone',
