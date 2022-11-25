@@ -45,6 +45,18 @@ export class InstanceMetadata {
   privateIpAddress: string;
 
   @Column({
+    type: 'cidr',
+    nullable: true,
+  })
+  publicIpAddress?: string;
+
+  @Column({
+    type: 'character varying',
+    nullable: true,
+  })
+  publicDnsName?: string;
+
+  @Column({
     type: 'timestamptz',
   })
   launchTime: Date;
