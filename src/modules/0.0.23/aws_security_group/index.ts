@@ -271,7 +271,12 @@ class SecurityGroupMapper extends MapperBase<SecurityGroup> {
         const { groupId, region } = this.idFields(id);
         if (enabledRegions.includes(region)) {
           const client = (await ctx.getAwsClient(region)) as AWS;
-          const rawSecurityGroup = await this.getSecurityGroup(client.ec2client, groupId);
+          let rawSecurityGroup;
+          try {
+            rawSecurityGroup = await this.getSecurityGroup(client.ec2client, groupId);
+          } catch (_) {
+            /** Do nothing */
+          }
           if (rawSecurityGroup) return await this.sgMapper(rawSecurityGroup, ctx, region);
         }
       } else {
