@@ -21,12 +21,7 @@ It is also a time-consuming task, specially if you need to install several insta
 SELECT
   *
 FROM
-  iasql_install ('aws_ec2');
-
-SELECT
-  *
-FROM
-  iasql_install ('aws_ec2_metadata');
+  iasql_install ('aws_ec2', 'aws_ec2_metadata');
 
 -- insert security groups
 INSERT INTO
@@ -164,4 +159,30 @@ FROM
   iasql_commit ();
 ```
 
-After the process finishes, you will have your Ghost instance installed, publicly accessible through the public IP of the spinned instance:
+After the process finishes, you will have your Ghost instance installed, publicly accessible through the public IP of the spinned instance. You can get the details of the public IP
+of your instance querying for the metadata:
+
+```sql
+SELECT
+  *
+FROM
+  iasql_commit ();
+
+SELECT
+  public_ip_address
+FROM
+  instance_metadata
+WHERE
+  id = (
+    SELECT
+      id
+    FROM
+      instance
+    WHERE
+      tags ->> 'name' = 'ghost-blog'
+    LIMIT
+      1
+  );
+```
+
+The initial Ghost installation will be available on the browser just query by http://<public_ip_address>:
