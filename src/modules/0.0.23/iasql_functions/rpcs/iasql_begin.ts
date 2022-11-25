@@ -34,8 +34,8 @@ export class IasqlBegin extends RpcBase {
               isCommitRunning(ctx.orm),
               ctx.orm.query(`SELECT * FROM query_cron('status');`),
               ctx.orm.query(`
-              SELECT * FROM iasql_rpc WHERE method_name = 'iasqlBegin' ORDER BY start_date DESC LIMIT 1;
-            `),
+                SELECT * FROM iasql_rpc WHERE method_name = 'iasqlBegin' ORDER BY start_date DESC LIMIT 1;
+              `),
             ]);
             if (!isRunning && statusRes[0]?.query_cron === 'f' && lastBeginRes[0]?.start_date < currentDate) {
               // If these conditions happen it means the transaction stayed open and we need to enable again the cron
