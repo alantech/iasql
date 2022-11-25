@@ -15,7 +15,7 @@ on:
         'yarn.lock',
       ]
   pull_request:
-    branches: [main]
+    branches: [main, pg-cron]
     paths:
       [
         '.github/workflows/prisma.yml',
