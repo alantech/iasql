@@ -46,13 +46,15 @@ export class InstanceMetadata {
 
   @Column({
     type: 'cidr',
+    nullable: true,
   })
-  publicIpAddress: string;
+  publicIpAddress?: string;
 
   @Column({
     type: 'character varying',
+    nullable: true,
   })
-  publicDnsName: string;
+  publicDnsName?: string;
 
   @Column({
     type: 'timestamptz',
