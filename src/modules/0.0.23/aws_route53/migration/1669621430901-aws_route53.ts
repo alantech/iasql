@@ -1,14 +1,14 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class awsRoute531667844568145 implements MigrationInterface {
-  name = 'awsRoute531667844568145';
+export class awsRoute531669621430901 implements MigrationInterface {
+  name = 'awsRoute531669621430901';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
       `CREATE TABLE "alias_target" ("id" SERIAL NOT NULL, "evaluate_target_health" boolean NOT NULL DEFAULT true, "load_balancer_id" integer, CONSTRAINT "PK_4a417cb03bee1a157e40033cca7" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
-      `CREATE TABLE "hosted_zone" ("id" SERIAL NOT NULL, "hosted_zone_id" character varying, "domain_name" character varying NOT NULL, CONSTRAINT "UQ_5da101a3f94155dbe60f03ef090" UNIQUE ("hosted_zone_id"), CONSTRAINT "PK_6c259b4713ec9765d0977bb7af2" PRIMARY KEY ("id"))`,
+      `CREATE TABLE "hosted_zone" ("id" SERIAL NOT NULL, "hosted_zone_id" character varying, "domain_name" character varying NOT NULL, CONSTRAINT "UQ_5da101a3f94155dbe60f03ef090" UNIQUE ("hosted_zone_id"), CONSTRAINT "UQ_7ec3f527ad8ec5faf597b55b30e" UNIQUE ("domain_name"), CONSTRAINT "PK_6c259b4713ec9765d0977bb7af2" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
       `CREATE TYPE "public"."resource_record_set_record_type_enum" AS ENUM('A', 'AAAA', 'CAA', 'CNAME', 'DS', 'MX', 'NAPTR', 'NS', 'PTR', 'SOA', 'SPF', 'SRV', 'TXT')`,

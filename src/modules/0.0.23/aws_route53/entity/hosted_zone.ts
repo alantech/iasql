@@ -14,6 +14,8 @@ export class HostedZone {
   @cloudId
   hostedZoneId: string;
 
-  @Column()
+  @Column({
+    unique: true,
+  })
   domainName: string;
 }
