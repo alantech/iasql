@@ -36,7 +36,8 @@ class MetadataRepo {
     // TODO: remove conditional when 0.0.23 is the oldest
     // TODO: When bootstrap latestVersion is set to 0.0.23 we need to update the bootstrap db postgres config to add `iasql_metadata` as the pg_cron database (cron.database_name = 'iasql_metadata' in postgresql.conf)
     if (!['0.0.18', '0.0.20', '0.0.21', '0.0.22'].includes(config.modules.latestVersion)) {
-      await this.conn.query(`CREATE EXTENSION IF NOT EXISTS pg_cron;`);
+      console.log('===============================hello there================================');
+      console.log(await this.conn.query(`CREATE EXTENSION IF NOT EXISTS pg_cron;`));
     }
     await this.conn.runMigrations();
     this.userRepo = this.conn.getRepository(IasqlUser);
