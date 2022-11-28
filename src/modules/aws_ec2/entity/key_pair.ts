@@ -26,12 +26,6 @@ export class KeyPair {
   })
   type: KeyType;
 
-  @Column({
-    type: 'json',
-    nullable: true,
-  })
-  tags?: { [key: string]: string };
-
   @Column({ nullable: true })
   fingerprint?: string;
 

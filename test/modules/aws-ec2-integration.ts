@@ -17,6 +17,8 @@ import {
   runUninstall,
 } from '../helpers';
 
+const { generateKeyPairSync } = require('crypto');
+
 const dbAlias = 'ec2test';
 const region = defaultRegion();
 const accessKeyId = process.env.AWS_ACCESS_KEY_ID ?? '';
@@ -101,6 +103,11 @@ const ec2RolePolicy = JSON.stringify({
 // Ebs integration
 const gp2VolumeName = `${prefix}gp2volume`;
 const gp3VolumeName = `${prefix}gp3volume`;
+
+// Keypair integration
+const { publicKey, privateKey } = generateKeyPairSync('rsa', {
+  modulusLength: 2048,
+});
 
 jest.setTimeout(560000);
 beforeAll(async () => {
@@ -241,7 +248,33 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
+<<<<<<< HEAD
   it('starts a transaction', begin());
+=======
+  // generate keypairs
+  it(
+    'imports a new keypair',
+    query(
+      `
+    SELECT *
+    FROM key_pair_import ('${prefix}-key', '${publicKey}', '${region}');
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it(
+    'check new keypair added',
+    query(
+      `
+    SELECT *
+    FROM key_pair
+    WHERE name = '${prefix}-key';
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+>>>>>>> 9e46bd5f (add tests for keypair import)
 
   it('adds an instance without security groups', done => {
     query(
@@ -1192,6 +1225,22 @@ describe('EC2 Integration Testing', () => {
       ),
     );
   });
+
+  // delete keypair
+  it(
+    'deletes the keypair',
+    query(
+      `
+    DELETE FROM key_pair
+    WHERE name = '${prefix}-key';
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it('applies the keypair deletion', commit());
 
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 

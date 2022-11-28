@@ -5,12 +5,14 @@ import {
   KeyPairMapper,
   RegisteredInstanceMapper,
 } from './mappers';
+import { KeyPairImportRpc } from './rpcs';
 
 export class AwsEc2Module extends ModuleBase {
   instance: InstanceMapper;
   registeredInstance: RegisteredInstanceMapper;
   generalPurposeVolume: GeneralPurposeVolumeMapper;
   keypair: KeyPairMapper;
+  keyPairImport: KeyPairImportRpc;
 
   constructor() {
     super();
@@ -18,6 +20,7 @@ export class AwsEc2Module extends ModuleBase {
     this.registeredInstance = new RegisteredInstanceMapper(this);
     this.generalPurposeVolume = new GeneralPurposeVolumeMapper(this);
     this.keypair = new KeyPairMapper(this);
+    this.keyPairImport = new KeyPairImportRpc(this);
     super.init();
   }
 }

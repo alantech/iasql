@@ -4,7 +4,6 @@ import { AwsEc2Module } from '..';
 import { AWS } from '../../../services/aws_macros';
 import { Context, Crud2, MapperBase } from '../../interfaces';
 import { KeyPair } from '../entity/key_pair';
-import { eqTags, updateTags } from './tags';
 
 export class KeyPairMapper extends MapperBase<KeyPair> {
   module: AwsEc2Module;
@@ -13,12 +12,12 @@ export class KeyPairMapper extends MapperBase<KeyPair> {
     Object.is(a.fingerprint, b.fingerprint) &&
     Object.is(a.keyPairId, b.keyPairId) &&
     Object.is(a.publicKey, b.publicKey) &&
-    eqTags(a.tags, b.tags) &&
     Object.is(a.type, b.type);
 
   keyPairMapper(e: KeyPairInfo, region: string) {
     const out = new KeyPair();
     if (!e.KeyPairId) return undefined;
+    out.name = e.KeyName ?? e.KeyPairId;
     out.keyPairId = e.KeyPairId;
     out.fingerprint = e.KeyFingerprint;
     out.publicKey = e.PublicKey;
@@ -69,34 +68,25 @@ export class KeyPairMapper extends MapperBase<KeyPair> {
         return out;
       }
     },
-    updateOrReplace: (a: KeyPair, b: KeyPair) => {
-      if (!eqTags(a.tags, b.tags)) return 'update';
-      else return 'replace';
-    },
+    updateOrReplace: (a: KeyPair, b: KeyPair) => 'replace',
     update: async (es: KeyPair[], ctx: Context) => {
       const out = [];
       for (const e of es) {
         const client = (await ctx.getAwsClient(e.region)) as AWS;
         const cloudRecord = ctx?.memo?.cloud?.KeyPair?.[this.entityId(e)];
 
-        // check if update or replace
-        if (this.module.keypair.cloud.updateOrReplace(e, cloudRecord) == 'update') {
-          // update tags
-          if (e.keyPairId) await updateTags(client.ec2client, e.keyPairId, e.tags);
+        // if we have modified some of the values, we just restore them
+        if (
+          !Object.is(e.fingerprint, cloudRecord.fingerprint) ||
+          !Object.is(e.keyPairId, cloudRecord.keyPairId) ||
+          !Object.is(e.type, cloudRecord.type)
+        ) {
+          await this.module.keypair.db.update(e, ctx);
+          out.push(e);
         } else {
-          // if we have modified some of the values, we just restore them
-          if (
-            !Object.is(e.fingerprint, cloudRecord.fingerprint) ||
-            !Object.is(e.keyPairId, cloudRecord.keyPairId) ||
-            !Object.is(e.type, cloudRecord.type)
-          ) {
-            await this.module.keypair.db.update(e, ctx);
-            out.push(e);
-          } else {
-            await this.module.keypair.cloud.delete(cloudRecord, ctx);
-            await this.module.keypair.cloud.create(e, ctx);
-            out.push(e);
-          }
+          await this.module.keypair.cloud.delete(cloudRecord, ctx);
+          await this.module.keypair.cloud.create(e, ctx);
+          out.push(e);
         }
       }
       return out;
