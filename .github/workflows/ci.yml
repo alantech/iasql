@@ -234,7 +234,7 @@ jobs:
             );
           ";
 
-          # Delete all recods
+          # Delete all records
           echo "\nDelete all records..."
           psql postgres://$username:$password@localhost:5432/iasql -c "select * from delete_all_records();"
 

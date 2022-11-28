@@ -39,6 +39,9 @@ class InstanceMetadataMapper extends MapperBase<InstanceMetadata> {
     out.architecture = instance.Architecture as Architecture;
     if (!instance.PrivateIpAddress) return undefined;
     out.privateIpAddress = instance.PrivateIpAddress;
+
+    if (instance.PublicIpAddress) out.publicIpAddress = instance.PublicIpAddress;
+    if (instance.PublicDnsName) out.publicDnsName = instance.PublicDnsName;
     out.launchTime = instance.LaunchTime as Date;
     out.cpuCores = instance.CpuOptions?.CoreCount as number;
     if (!instance.InstanceType) return undefined;

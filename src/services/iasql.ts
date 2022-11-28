@@ -130,6 +130,13 @@ export async function connect(dbAlias: string, uid: string, email: string, dbId 
       database: dbId,
     });
     await dbMan.migrate(conn2);
+    // TODO: remove conditional when 0.0.23 is the oldest
+    if (!['0.0.18', '0.0.20', '0.0.21', '0.0.22'].includes(config.modules.latestVersion)) {
+      await conn2.query(dbMan.setUpDblink(dbId));
+      await conn2.query(`SELECT * FROM query_cron('schedule');`);
+      await conn2.query(`SELECT * FROM query_cron('schedule_purge');`);
+      await conn2.query(`SELECT * FROM query_cron('schedule_unlock');`);
+    }
     await conn2.query(dbMan.createDbPostgreGroupRole(dbId));
     await conn2.query(dbMan.newPostgresRoleQuery(dbUser, dbPass, dbId));
     await conn2.query(dbMan.grantPostgresGroupRoleQuery(dbUser, dbId, config.modules.latestVersion));
@@ -163,11 +170,26 @@ export async function connect(dbAlias: string, uid: string, email: string, dbId 
 }
 
 export async function disconnect(dbAlias: string, uid: string) {
-  let conn;
+  let conn, conn2;
   try {
     const db: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
     await scheduler.stop(db.pgName);
     conn = await createConnection(dbMan.baseConnConfig);
+    conn2 = await createConnection({
+      ...dbMan.baseConnConfig,
+      name: db.pgName,
+      database: db.pgName,
+    });
+    try {
+      // TODO: remove conditional when 0.0.23 is the oldest
+      if (!['0.0.18', '0.0.20', '0.0.21', '0.0.22'].includes(config.modules.latestVersion)) {
+        await conn2.query(`SELECT * FROM query_cron('unschedule');`);
+        await conn2.query(`SELECT * FROM query_cron('unschedule_purge');`);
+        await conn2.query(`SELECT * FROM query_cron('unschedule_unlock');`);
+      }
+    } catch (e) {
+      /** Do nothing */
+    }
     await conn.query(`
       DROP DATABASE IF EXISTS ${db.pgName} WITH (FORCE);
     `);
@@ -179,6 +201,7 @@ export async function disconnect(dbAlias: string, uid: string) {
     throw e;
   } finally {
     conn?.close();
+    conn2?.close();
   }
 }
 

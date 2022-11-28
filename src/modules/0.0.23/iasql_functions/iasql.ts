@@ -606,7 +606,7 @@ export async function commit(
   ormOpt?: TypeormWrapper,
 ) {
   const t1 = Date.now();
-  logger.info(`Commiting to ${dbId}`);
+  logger.info(`Committing to ${dbId}`);
   await throwIfUpgrading(dbId, force);
   const versionString = await TypeormWrapper.getVersionString(dbId);
   const importedModules = await getImportedModules(dbId, versionString, force);
@@ -616,6 +616,9 @@ export async function commit(
   try {
     orm = ormOpt ? ormOpt : await TypeormWrapper.createConn(dbId);
     context.orm = orm;
+
+    const isRunning = await isCommitRunning(orm);
+    if (isRunning) throw new Error('Another transaction is in process. Please try again later.');
 
     const newStartCommit: IasqlAuditLog = await insertCommit(orm, dryRun ? 'preview_start' : 'start');
     if (dryRun) context.previewStartCommit = newStartCommit;
@@ -699,6 +702,9 @@ export async function rollback(dbId: string, context: Context, force = false, or
     orm = ormOpt ? ormOpt : await TypeormWrapper.createConn(dbId);
     context.orm = orm;
 
+    const isRunning = await isCommitRunning(orm);
+    if (isRunning) throw new Error('Another transaction is in process. Please try again later.');
+
     const newStartCommit = await insertCommit(orm, 'start');
     context.startCommit = newStartCommit;
 
@@ -743,6 +749,25 @@ async function getImportedModules(dbId: string, versionString: string, force: bo
     throw new Error(`Unsupported version ${versionString}. Please upgrade or replace this database.`);
   }
   return importedModules;
+}
+
+export async function isCommitRunning(orm: TypeormWrapper): Promise<boolean> {
+  const logs: IasqlAuditLog[] = await orm.find(IasqlAuditLog, {
+    order: { ts: 'DESC' },
+    where: {
+      changeType: In([
+        AuditLogChangeType.START_COMMIT,
+        AuditLogChangeType.PREVIEW_START_COMMIT,
+        AuditLogChangeType.END_COMMIT,
+        AuditLogChangeType.PREVIEW_END_COMMIT,
+      ]),
+      user: Not(config.db.user),
+    },
+    take: 1,
+  });
+  return [AuditLogChangeType.START_COMMIT, AuditLogChangeType.PREVIEW_START_COMMIT].includes(
+    logs[0]?.changeType,
+  );
 }
 
 async function insertCommit(

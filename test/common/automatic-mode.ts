@@ -1,13 +1,13 @@
 import * as iasql from '../../src/services/iasql';
 import { runQuery, finish, execComposeUp, execComposeDown, runInstall } from '../helpers';
 
-const dbAlias = 'allmodulestest';
+const dbAlias = 'automatictest';
 
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uid = '12345';
 const email = 'test@example.com';
-const logGroupName = 'teslgcommit';
+const logGroupName = 'test-automatic';
 
 jest.setTimeout(360000);
 beforeAll(async () => await execComposeUp());
@@ -15,7 +15,7 @@ afterAll(async () => await execComposeDown());
 
 let username: string, password: string;
 
-describe('basic begin, commit and preview functionality', () => {
+describe('Automatic mode', () => {
   it('creates a new test db', done => {
     (async () => {
       try {
@@ -51,7 +51,6 @@ describe('basic begin, commit and preview functionality', () => {
     'insert a log group',
     query(
       `
-        select * from iasql_begin();
         insert into log_group (log_group_name) values ('${logGroupName}');
       `,
       undefined,
@@ -61,7 +60,7 @@ describe('basic begin, commit and preview functionality', () => {
   );
 
   it(
-    'calls iasql_preview should expect a creation',
+    'previews the change',
     query(
       `
         select * from iasql_preview();
@@ -72,31 +71,10 @@ describe('basic begin, commit and preview functionality', () => {
     ),
   );
 
-  it('confirms that you cannot start another transaction in the middle of one', done =>
-    void query(`
-      SELECT * FROM iasql_begin();
-    `)((e?: any) => {
-      try {
-        expect(e?.detail).toContain('Another transaction is open');
-      } catch (err) {
-        done(err);
-        return {};
-      }
-      done();
-      return {};
-    }));
-
-  it(
-    'calls iasql_commit should create',
-    query(
-      `
-        select * from iasql_commit();
-      `,
-      (res: any) => {
-        expect(res[0]['action']).toBe('create');
-      },
-    ),
-  );
+  it('wait for 2 min to let the cron be triggered', async () => {
+    await new Promise(r => setTimeout(r, 2 * 60 * 1000));
+    expect(true).toBeTruthy();
+  });
 
   it(
     'checks the log group',
