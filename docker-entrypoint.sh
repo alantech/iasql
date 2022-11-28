@@ -14,6 +14,8 @@ su - postgres -c "echo \"SELECT 'CREATE DATABASE iasql_metadata' WHERE NOT EXIST
 
 service postgresql restart
 
+su - postgres -c "psql iasql_metadata -c \"CREATE EXTENSION IF NOT EXISTS pg_cron;\""
+
 yarn forever -f dist/services/scheduler.js &
 yarn wait-on http://localhost:14527/health/
 yarn start
