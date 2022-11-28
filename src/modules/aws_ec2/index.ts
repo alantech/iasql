@@ -1,16 +1,23 @@
 import { ModuleBase } from '../interfaces';
-import { GeneralPurposeVolumeMapper, InstanceMapper, RegisteredInstanceMapper } from './mappers';
+import {
+  GeneralPurposeVolumeMapper,
+  InstanceMapper,
+  KeyPairMapper,
+  RegisteredInstanceMapper,
+} from './mappers';
 
 export class AwsEc2Module extends ModuleBase {
   instance: InstanceMapper;
   registeredInstance: RegisteredInstanceMapper;
   generalPurposeVolume: GeneralPurposeVolumeMapper;
+  keypair: KeyPairMapper;
 
   constructor() {
     super();
     this.instance = new InstanceMapper(this);
     this.registeredInstance = new RegisteredInstanceMapper(this);
     this.generalPurposeVolume = new GeneralPurposeVolumeMapper(this);
+    this.keypair = new KeyPairMapper(this);
     super.init();
   }
 }
