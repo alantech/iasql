@@ -7,6 +7,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  runBegin,
   runCommit,
   runInstall,
   runQuery,
@@ -21,6 +22,7 @@ const nonDefaultRegion = 'us-east-1';
 const policyMock =
   '{ "Version": "2012-10-17", "Statement": [ { "Sid": "DenyPull", "Effect": "Deny", "Principal": "*", "Action": [ "ecr:BatchGetImage", "ecr:GetDownloadUrlForLayer" ] } ]}';
 
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
@@ -88,6 +90,8 @@ describe('ECR Multi-region Integration Testing', () => {
 
   it('installs the ECR module', install(modules));
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new repository',
     query(
@@ -114,6 +118,8 @@ describe('ECR Multi-region Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(0),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'adds a new repository',
@@ -176,6 +182,8 @@ describe('ECR Multi-region Integration Testing', () => {
 
   // todo: force error and the delete image
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new repository policy',
     query(
@@ -230,6 +238,8 @@ describe('ECR Multi-region Integration Testing', () => {
     }
   });
 
+  it('starts a transaction', begin());
+
   it(
     'removes the repository images',
     query(
@@ -244,6 +254,8 @@ describe('ECR Multi-region Integration Testing', () => {
   );
 
   it('applies the deletion', commit());
+
+  it('starts a transaction', begin());
 
   it(
     'changes the region the repository is located in',
@@ -337,6 +349,8 @@ describe('ECR Multi-region Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(1),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'removes the repository',

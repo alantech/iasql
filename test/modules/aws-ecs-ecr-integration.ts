@@ -6,6 +6,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  runBegin,
   runCommit,
   runInstall,
   runQuery,
@@ -23,6 +24,7 @@ const dbAliasSidecar = `${dbAlias}sync`;
 const sidecarCommit = runCommit.bind(null, dbAliasSidecar);
 const sidecarInstall = runInstall.bind(null, dbAliasSidecar);
 const region = defaultRegion();
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
@@ -178,6 +180,8 @@ describe('ECS Integration Testing', () => {
   it('installs the ecs module and its dependencies', install(modules));
 
   // Cluster
+  it('starts a transaction', begin());
+
   it(
     'adds a new cluster',
     query(
@@ -204,6 +208,8 @@ describe('ECS Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(0),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'adds a new cluster',
@@ -233,6 +239,8 @@ describe('ECS Integration Testing', () => {
   );
 
   // Service dependencies
+  it('starts a transaction', begin());
+
   it(
     'adds service dependencies',
     query(
@@ -302,6 +310,8 @@ describe('ECS Integration Testing', () => {
 
   // Service spinning up a task definition with container using a private ecr
   // ECR
+  it('starts a transaction', begin());
+
   it(
     'adds a new ECR',
     query(
@@ -440,6 +450,8 @@ describe('ECS Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   // Service
   it('fails adding a service', done => {
     query(
@@ -479,7 +491,14 @@ describe('ECS Integration Testing', () => {
   );
 
   it('fails deleting a subnet in use', done => {
-    query(`DELETE FROM subnet;`, undefined, true, () => ({ username, password }))((e: any) => {
+    query(
+      `
+        DELETE FROM subnet;
+      `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    )((e: any) => {
       try {
         expect(e.message).toContain('is being used by');
       } catch (err) {
@@ -531,6 +550,8 @@ describe('ECS Integration Testing', () => {
 
   it('uninstalls the ecs module', uninstall(['aws_ecs_fargate']));
 
+  it('starts a transaction', begin());
+
   it(
     'delete role while ecs is uninstalled',
     query(
@@ -572,6 +593,8 @@ describe('ECS Integration Testing', () => {
 
   it('installs the ecs module with missing role', install(['aws_ecs_fargate']));
 
+  it('starts a transaction', begin());
+
   it(
     'deletes service',
     query(
@@ -604,6 +627,8 @@ describe('ECS Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(0),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'deletes container definitons',
@@ -660,6 +685,8 @@ describe('ECS Integration Testing', () => {
   it('installs the ecs module', install(['aws_ecs_fargate']));
 
   // deletes service dependencies
+  it('starts a transaction', begin());
+
   it(
     'deletes service dependencies',
     query(
@@ -695,6 +722,8 @@ describe('ECS Integration Testing', () => {
 
   it('applies deletes service dependencies', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'tries to update a cluster field (restore)',
     query(
@@ -709,6 +738,8 @@ describe('ECS Integration Testing', () => {
 
   it('applies tries to update a cluster field (restore)', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'tries to update cluster (replace)',
     query(
@@ -722,6 +753,8 @@ describe('ECS Integration Testing', () => {
   );
 
   it('applies tries to update cluster (replace)', commit());
+
+  it('starts a transaction', begin());
 
   it(
     'deletes the cluster',

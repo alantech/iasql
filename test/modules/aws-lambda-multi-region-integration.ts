@@ -5,6 +5,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  runBegin,
   runCommit,
   runInstall,
   runQuery,
@@ -39,6 +40,7 @@ const attachAssumeLambdaPolicy = JSON.stringify({
   ],
 });
 
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
@@ -98,6 +100,8 @@ describe('Lambda Multi-region Integration Testing', () => {
 
   it('installs the lambda module', install(modules));
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new Lambda function',
     query(
@@ -129,6 +133,8 @@ describe('Lambda Multi-region Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(0),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'adds a new Lambda function',
@@ -162,6 +168,8 @@ describe('Lambda Multi-region Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'changes the region the lambda function is located in',
     query(
@@ -189,6 +197,8 @@ describe('Lambda Multi-region Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(1),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'removes the lambda function',

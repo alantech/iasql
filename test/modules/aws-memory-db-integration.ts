@@ -6,6 +6,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  runBegin,
   runCommit,
   runInstall,
   runQuery,
@@ -19,6 +20,7 @@ const dbAlias = 'memorydbtest';
 const subnetGroupName = `${prefix}${dbAlias}sng`;
 const clusterName = `${prefix}${dbAlias}cl`;
 
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
@@ -95,6 +97,8 @@ describe('MemoryDB Integration Testing', () => {
 
   it('installs the memory db module', install(modules));
 
+  it('starts a transaction', begin());
+
   it(
     'creates a subnet group',
     query(
@@ -121,6 +125,8 @@ describe('MemoryDB Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(0),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'creates a subnet group',
@@ -149,6 +155,8 @@ describe('MemoryDB Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'changes the subnet group description',
     query(
@@ -164,6 +172,8 @@ describe('MemoryDB Integration Testing', () => {
   );
 
   it('applies the change', commit());
+
+  it('starts a transaction', begin());
 
   it(
     'creates a memory db cluster',
@@ -194,6 +204,8 @@ describe('MemoryDB Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(0),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'creates a memory db cluster',
@@ -225,6 +237,8 @@ describe('MemoryDB Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'changes the cluster description',
     query(
@@ -240,6 +254,8 @@ describe('MemoryDB Integration Testing', () => {
   );
 
   it('applies the change', commit());
+
+  it('starts a transaction', begin());
 
   it(
     'changes the cluster arn',
@@ -272,6 +288,8 @@ describe('MemoryDB Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(1),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'removes the memory db cluster',
@@ -323,6 +341,8 @@ describe('MemoryDB Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(1),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'removes the subnet group',

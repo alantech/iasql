@@ -7,6 +7,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  runBegin,
   runCommit,
   runInstall,
   runQuery,
@@ -41,6 +42,7 @@ const lbScheme = LoadBalancerSchemeEnum.INTERNET_FACING;
 const lbType = LoadBalancerTypeEnum.APPLICATION;
 const lbIPAddressType = IpAddressType.IPV4;
 
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
@@ -105,6 +107,8 @@ describe('Route53 Integration Testing', () => {
 
   it('installs module', install(modules));
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new hosted zone',
     query(
@@ -143,6 +147,8 @@ describe('Route53 Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(0),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'adds a new hosted zone',
@@ -272,6 +278,8 @@ describe('Route53 Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new record to hosted zone',
     query(
@@ -314,6 +322,8 @@ describe('Route53 Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(3),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'adds a new A record to hosted zone',
@@ -367,6 +377,8 @@ describe('Route53 Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'tries to update a hosted zone domain name field (replace)',
     query(
@@ -418,6 +430,8 @@ describe('Route53 Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(0),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'adds a new record to hosted zone',
@@ -471,6 +485,8 @@ describe('Route53 Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'updates a record name',
     query(
@@ -509,6 +525,8 @@ describe('Route53 Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'creates hosted zone with the same name',
     query(
@@ -546,6 +564,8 @@ describe('Route53 Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'deletes the hosted zone with the same name',
     query(
@@ -565,6 +585,8 @@ describe('Route53 Integration Testing', () => {
   );
 
   it('applies the removal of hosted zone with the same name', commit());
+
+  it('starts a transaction', begin());
 
   it(
     'deletes records',
@@ -607,6 +629,8 @@ describe('Route53 Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(2),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'deletes mandatory records and hosted zone',

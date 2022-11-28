@@ -6,6 +6,7 @@ import {
   finish,
   getKeyCertPair,
   getPrefix,
+  runBegin,
   runCommit,
   runInstall,
   runQuery,
@@ -17,6 +18,7 @@ const dbAlias = 'acmimporttest';
 const domainName = `${prefix}${dbAlias}.com`;
 const [key, cert] = getKeyCertPair(domainName);
 
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
@@ -111,6 +113,8 @@ describe('AwsAcm Import Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'deletes a certificate imported',
     query(
@@ -156,6 +160,8 @@ describe('AwsAcm Import Integration Testing', () => {
       (res: any) => expect(res.length).toBe(1),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'deletes the certificate in non-default region',

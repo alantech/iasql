@@ -9,6 +9,7 @@ import {
   execComposeDown,
   runInstall,
   defaultRegion,
+  runBegin,
 } from '../helpers';
 
 const prefix = getPrefix();
@@ -16,6 +17,7 @@ const dbAlias = 'ecrbuildertest';
 const repositoryName = prefix + dbAlias;
 const region = defaultRegion();
 
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
@@ -74,6 +76,8 @@ describe('AwsEcrBuild Integration Testing', () => {
   );
 
   it('installs the ecr module', install(modules));
+
+  it('starts a transaction', begin());
 
   it(
     'creates a new ecr repository',
@@ -159,6 +163,8 @@ describe('AwsEcrBuild Integration Testing', () => {
     const projects = (await client.cbClient.listProjects({})).projects;
     projects?.map(name => expect(name).not.toMatch(/-ecr-builder$/));
   });
+
+  it('starts a transaction', begin());
 
   it(
     'deletes the image',

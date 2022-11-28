@@ -5,6 +5,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  runBegin,
   runCommit,
   runInstall,
   runQuery,
@@ -15,6 +16,7 @@ const prefix = getPrefix();
 const dbAlias = 'acmrequesttest';
 const domainName = `${prefix}.skybase.dev`;
 
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
@@ -141,6 +143,8 @@ describe('AwsAcm Request Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'deletes a certificate requested',
     query(
@@ -188,6 +192,8 @@ describe('AwsAcm Request Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(1),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'deletes the certificate issued in the non-default region',

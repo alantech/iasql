@@ -5,6 +5,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  runBegin,
   runCommit,
   runInstall,
   runQuery,
@@ -22,6 +23,7 @@ const pubNg = `${prefix}${dbAlias}-pub-ng1`;
 const eip = `${prefix}${dbAlias}-eip`;
 const s3VpcEndpoint = `${prefix}${dbAlias}-s3-vpce`;
 
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
@@ -85,6 +87,8 @@ describe('VPC Multiregion Integration Testing', () => {
 
   it('installs the vpc module', install(modules));
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new vpc',
     query(
@@ -115,6 +119,8 @@ describe('VPC Multiregion Integration Testing', () => {
   );
 
   it('undo changes', rollback());
+
+  it('starts a transaction', begin());
 
   it(
     'adds a new vpc',
@@ -157,6 +163,8 @@ describe('VPC Multiregion Integration Testing', () => {
       (res: any) => expect(res.length).toBe(1),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'updates vpc region',
@@ -230,6 +238,8 @@ describe('VPC Multiregion Integration Testing', () => {
   );
 
   describe('Elastic IP and nat gateway multi-region', () => {
+    it('starts a transaction', begin());
+
     it(
       'adds a new elastic ip',
       query(
@@ -254,6 +264,8 @@ describe('VPC Multiregion Integration Testing', () => {
         (res: any) => expect(res.length).toBe(1),
       ),
     );
+
+    it('starts a transaction', begin());
 
     it(
       'adds a private nat gateway',
@@ -281,6 +293,8 @@ describe('VPC Multiregion Integration Testing', () => {
         (res: any) => expect(res.length).toBe(1),
       ),
     );
+
+    it('starts a transaction', begin());
 
     it(
       'updates the private nat gateway to another region',
@@ -315,6 +329,8 @@ describe('VPC Multiregion Integration Testing', () => {
         (res: any) => expect(res.length).toBe(1),
       ),
     );
+
+    it('starts a transaction', begin());
 
     it(
       'adds a public nat gateway with existing elastic ip',
@@ -377,6 +393,8 @@ describe('VPC Multiregion Integration Testing', () => {
         (res: any) => expect(res.length).toBe(1),
       ),
     );
+
+    it('starts a transaction', begin());
 
     it(
       'deletes a public nat gateway',
@@ -451,6 +469,8 @@ describe('VPC Multiregion Integration Testing', () => {
   });
 
   describe('VPC endpoint gateway multi-region', () => {
+    it('starts a transaction', begin());
+
     it(
       'adds a new s3 endpoint gateway',
       query(
@@ -489,6 +509,8 @@ describe('VPC Multiregion Integration Testing', () => {
       ),
     );
 
+    it('starts a transaction', begin());
+
     it(
       'moves the endpoint gateway to another region',
       query(
@@ -518,6 +540,8 @@ describe('VPC Multiregion Integration Testing', () => {
       ),
     );
 
+    it('starts a transaction', begin());
+
     it(
       'deletes a endpoint_gateway',
       query(
@@ -543,6 +567,8 @@ describe('VPC Multiregion Integration Testing', () => {
       ),
     );
   });
+
+  it('starts a transaction', begin());
 
   it(
     'deletes the vpcs',

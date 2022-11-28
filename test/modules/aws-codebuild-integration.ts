@@ -4,6 +4,7 @@ import {
   execComposeDown,
   execComposeUp,
   finish,
+  runBegin,
   runCommit,
   runInstall,
   runQuery,
@@ -11,6 +12,8 @@ import {
 } from '../helpers';
 
 const dbAlias = 'codebuildtest';
+
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
@@ -145,6 +148,8 @@ phases:
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new source_credentials_import',
     query(
@@ -184,6 +189,8 @@ phases:
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'delete source_credentials_list',
     query(
@@ -210,6 +217,8 @@ phases:
       (res: any[]) => expect(res.length).toBe(0),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'adds a new repository',
@@ -264,6 +273,8 @@ phases:
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'deletes codebuild codepipeline project',
     query(
@@ -290,6 +301,8 @@ phases:
   );
 
   it('apply codebuild_project creation', commit());
+
+  it('starts a transaction', begin());
 
   it(
     'start and wait for build',
@@ -342,6 +355,8 @@ phases:
       (res: any[]) => expect(res.length).toBe(1),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'delete build',

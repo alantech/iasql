@@ -43,6 +43,10 @@ export function finish(done: (e?: any) => {}) {
   ];
 }
 
+export function runBegin(dbAlias: string) {
+  return runQuery(dbAlias, 'select iasql_begin();');
+}
+
 export function runCommit(dbAlias: string) {
   return runQuery(dbAlias, 'select iasql_commit();');
 }

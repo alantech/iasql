@@ -6,6 +6,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  runBegin,
   runCommit,
   runInstall,
   runQuery,
@@ -16,6 +17,7 @@ import {
 const prefix = getPrefix();
 const dbAlias = `${prefix}apigatewaytest`;
 
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
@@ -93,10 +95,12 @@ describe('API Gateway Integration Testing', () => {
 
   it('installs the API gateway module', install(modules));
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new API gateway',
     query(
-      `  
+      `
     INSERT INTO api (name, description)
     VALUES ('${apiName}', 'description');
   `,
@@ -108,10 +112,12 @@ describe('API Gateway Integration Testing', () => {
 
   it('undo changes', rollback());
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new API gateway',
     query(
-      `  
+      `
     INSERT INTO api (name, description, disable_execute_api_endpoint, version)
     VALUES ('${apiName}', 'description', false, '1.0');
   `,
@@ -132,6 +138,8 @@ describe('API Gateway Integration Testing', () => {
       (res: any) => expect(res.length).toBe(1),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'tries to update API description',
@@ -157,6 +165,8 @@ describe('API Gateway Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'tries to update API ID',
     query(
@@ -180,6 +190,8 @@ describe('API Gateway Integration Testing', () => {
       (res: any) => expect(res.length).toBe(0),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'tries to update the API protocol',
@@ -227,6 +239,8 @@ describe('API Gateway Integration Testing', () => {
       (res: any) => expect(res.length).toBe(1),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'deletes the API',

@@ -154,7 +154,7 @@ describe('AwsAccount Integration Testing', () => {
     'inserts a second, useless row into the aws_credentials table',
     query(
       `
-    INSERT INTO aws_credentials (access_key_id, secret_access_key) VALUES ('fake', 'creds')
+      INSERT INTO aws_credentials (access_key_id, secret_access_key) VALUES ('fake', 'creds')
   `,
       undefined,
       false,

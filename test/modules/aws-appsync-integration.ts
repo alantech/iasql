@@ -6,6 +6,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  runBegin,
   runCommit,
   runInstall,
   runQuery,
@@ -16,6 +17,7 @@ import {
 const prefix = getPrefix();
 const dbAlias = `${prefix}appsynctest`;
 
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
@@ -83,10 +85,12 @@ describe('App Sync Integration Testing', () => {
 
   it('installs the App Sync module', install(modules));
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new Graphql API',
     query(
-      `  
+      `
     INSERT INTO graphql_api (name, authentication_type)
     VALUES ('${apiName}', '${authType}');
   `,
@@ -98,10 +102,12 @@ describe('App Sync Integration Testing', () => {
 
   it('undo changes', rollback());
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new GraphQL API entry',
     query(
-      `  
+      `
     INSERT INTO graphql_api (name, authentication_type)
     VALUES ('${apiName}', '${authType}');
   `,
@@ -122,6 +128,8 @@ describe('App Sync Integration Testing', () => {
       (res: any) => expect(res.length).toBe(1),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'tries to update Graphql API auth type',
@@ -146,6 +154,8 @@ describe('App Sync Integration Testing', () => {
       (res: any) => expect(res.length).toBe(1),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'tries to update Graphql API ID',
@@ -184,6 +194,8 @@ describe('App Sync Integration Testing', () => {
       (res: any) => expect(res.length).toBe(1),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'deletes the Graphql API',

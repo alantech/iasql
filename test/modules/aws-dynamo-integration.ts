@@ -6,6 +6,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  runBegin,
   runCommit,
   runInstall,
   runQuery,
@@ -16,6 +17,7 @@ import {
 const prefix = getPrefix();
 const dbAlias = 'dynamotest';
 
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
@@ -76,6 +78,8 @@ describe('Dynamo Integration Testing', () => {
 
   it('installs the dynamo module', install(modules));
 
+  it('starts a transaction', begin());
+
   it(
     'creates a Dynamo table',
     query(
@@ -107,6 +111,8 @@ describe('Dynamo Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(0),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'creates a Dynamo table',
@@ -140,6 +146,8 @@ describe('Dynamo Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'changes the column definition',
     query(
@@ -171,6 +179,8 @@ describe('Dynamo Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(1),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'removes the dynamo table',
@@ -211,6 +221,8 @@ describe('Dynamo Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'creates a table in a non-default region',
     query(
@@ -247,6 +259,8 @@ describe('Dynamo Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'changes the region the table is located in',
     query(
@@ -277,6 +291,8 @@ describe('Dynamo Integration Testing', () => {
       },
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'removes the dynamo table',

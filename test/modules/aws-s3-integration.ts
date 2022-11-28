@@ -6,6 +6,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  runBegin,
   runCommit,
   runInstall,
   runQuery,
@@ -16,6 +17,7 @@ import {
 const prefix = getPrefix();
 const dbAlias = 's3test';
 const s3Name = `${prefix}${dbAlias}`;
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
@@ -115,6 +117,8 @@ describe('S3 Integration Testing', () => {
 
   it('installs the s3 module', install(modules));
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new s3 bucket',
     query(
@@ -142,6 +146,8 @@ describe('S3 Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new s3 bucket',
     query(
@@ -168,6 +174,8 @@ describe('S3 Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(1),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'inserts content into bucket object',
@@ -219,6 +227,8 @@ describe('S3 Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'deletes one object of the bucket',
     query(
@@ -266,6 +276,8 @@ describe('S3 Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'updates the bucket timestamp',
     query(
@@ -304,12 +316,21 @@ describe('S3 Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'cleans the bucket',
-    query(`DELETE FROM bucket_object WHERE bucket_name='${s3Name}'`, undefined, true, () => ({
-      username,
-      password,
-    })),
+    query(
+      `
+        DELETE FROM bucket_object WHERE bucket_name='${s3Name}'
+      `,
+      undefined,
+      true,
+      () => ({
+        username,
+        password,
+      }),
+    ),
   );
 
   it(
@@ -343,8 +364,8 @@ describe('S3 Integration Testing', () => {
       'updates the bucket policy',
       query(
         `
-    UPDATE bucket SET policy_document='${newPolicyDocument}' WHERE name = '${s3Name}';
-    `,
+          UPDATE bucket SET policy_document='${newPolicyDocument}' WHERE name = '${s3Name}';
+        `,
         undefined,
         true,
         () => ({ username, password }),
@@ -420,12 +441,21 @@ describe('S3 Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'cleans the bucket again',
-    query(`DELETE FROM bucket_object WHERE bucket_name='${s3Name}'`, undefined, false, () => ({
-      username,
-      password,
-    })),
+    query(
+      `
+        DELETE FROM bucket_object WHERE bucket_name='${s3Name}'
+      `,
+      undefined,
+      false,
+      () => ({
+        username,
+        password,
+      }),
+    ),
   );
 
   it(

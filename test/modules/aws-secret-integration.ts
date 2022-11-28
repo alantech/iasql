@@ -6,6 +6,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  runBegin,
   runCommit,
   runInstall,
   runQuery,
@@ -18,6 +19,7 @@ const dbAlias = 'secrettest';
 const secretName = `${prefix}${dbAlias}`;
 const secretValue = 'value';
 
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
@@ -78,6 +80,8 @@ describe('Secrets Manager Integration Testing', () => {
 
   it('installs the secret module', install(modules));
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new secret',
     query(
@@ -92,6 +96,8 @@ describe('Secrets Manager Integration Testing', () => {
   );
 
   it('undo changes', rollback());
+
+  it('starts a transaction', begin());
 
   it(
     'adds a new secret',
@@ -118,6 +124,8 @@ describe('Secrets Manager Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'tries to update secret description',
     query(
@@ -142,6 +150,8 @@ describe('Secrets Manager Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'tries to update secret value',
     query(
@@ -155,6 +165,8 @@ describe('Secrets Manager Integration Testing', () => {
   );
 
   it('applies the secret value update', commit());
+
+  it('starts a transaction', begin());
 
   it(
     'tries to update version',
@@ -194,6 +206,8 @@ describe('Secrets Manager Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'moves the secret to another region with a new value',
     query(
@@ -221,6 +235,8 @@ describe('Secrets Manager Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'creates the same secret back in the original region at the same time',
     query(
@@ -247,6 +263,8 @@ describe('Secrets Manager Integration Testing', () => {
       },
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'deletes the secret',

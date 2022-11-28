@@ -5,6 +5,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  runBegin,
   runCommit,
   runInstall,
   runQuery,
@@ -35,6 +36,7 @@ const nonDefaultRegion = 'us-east-1';
 const subnetGroupName = `${prefix}${dbAlias}sng`;
 const clusterName = `${prefix}${dbAlias}cl`;
 
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
@@ -92,6 +94,8 @@ describe('MemoryDB Multi-region Integration Testing', () => {
 
   it('installs the memory db module', install(modules));
 
+  it('starts a transaction', begin());
+
   it(
     'creates a subnet group',
     query(
@@ -118,6 +122,8 @@ describe('MemoryDB Multi-region Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(1),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'creates a memory db cluster',
@@ -224,6 +230,8 @@ describe('MemoryDB Multi-region Integration Testing', () => {
       return {};
     }));
 
+  it('starts a transaction', begin());
+
   it(
     'changes the region',
     query(
@@ -297,6 +305,8 @@ describe('MemoryDB Multi-region Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'removes the memory db cluster',
     query(
@@ -347,6 +357,8 @@ describe('MemoryDB Multi-region Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(1),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'removes the subnet group',

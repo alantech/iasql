@@ -6,6 +6,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  runBegin,
   runCommit,
   runInstall,
   runQuery,
@@ -18,6 +19,7 @@ const dbAlias = 'rdstest';
 const parameterGroupName = `${prefix}${dbAlias}pg`;
 const engineFamily = `postgres13`;
 
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
@@ -78,6 +80,8 @@ describe('RDS Integration Testing', () => {
 
   it('installs the rds module', install(modules));
 
+  it('starts a transaction', begin());
+
   it(
     'creates an RDS instance',
     query(
@@ -123,6 +127,8 @@ describe('RDS Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'creates an RDS instance',
     query(
@@ -168,6 +174,8 @@ describe('RDS Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'changes the postgres version',
     query(
@@ -181,6 +189,8 @@ describe('RDS Integration Testing', () => {
   );
 
   it('applies the change', commit());
+
+  it('starts a transaction', begin());
 
   it(
     'creates an RDS parameter group',
@@ -220,6 +230,8 @@ describe('RDS Integration Testing', () => {
       (res: any[]) => expect(res.every(r => r['value'] === '1')).toBeFalsy(),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'changes all boolean parameters for the new parameter group to be true',
@@ -289,6 +301,8 @@ describe('RDS Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'removes the RDS instance',
     query(
@@ -327,6 +341,8 @@ describe('RDS Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(0),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'removes the parameter group and it parameters',

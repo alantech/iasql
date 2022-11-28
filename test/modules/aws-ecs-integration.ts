@@ -6,6 +6,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  runBegin,
   runCommit,
   runInstall,
   runQuery,
@@ -25,6 +26,8 @@ const sidecarCommit = runCommit.bind(null, dbAliasSidecar);
 const sidecarInstall = runInstall.bind(null, dbAliasSidecar);
 const region = defaultRegion();
 const nonDefaultRegion = 'us-east-1';
+
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
@@ -184,6 +187,8 @@ describe('ECS Integration Testing', () => {
   it('installs the ecs module and its dependencies', install(modules));
 
   // Cluster
+  it('starts a transaction', begin());
+
   it(
     'adds a new cluster',
     query(
@@ -210,6 +215,8 @@ describe('ECS Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(0),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'adds a new cluster',
@@ -240,6 +247,8 @@ describe('ECS Integration Testing', () => {
 
   // Service dependencies
   it('applies service dependencies', commit());
+
+  it('starts a transaction', begin());
 
   it(
     'adds service dependencies',
@@ -352,6 +361,8 @@ describe('ECS Integration Testing', () => {
   );
 
   // Task definition
+  it('starts a transaction', begin());
+
   it(
     'adds a new task definition',
     query(
@@ -491,6 +502,8 @@ describe('ECS Integration Testing', () => {
   );
 
   // Service
+  it('starts a transaction', begin());
+
   it(
     'adds a new service',
     query(
@@ -578,6 +591,8 @@ describe('ECS Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'tries to update a service (update)',
     query(
@@ -604,6 +619,8 @@ describe('ECS Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'tries to update a service (restore)',
     query(
@@ -629,6 +646,8 @@ describe('ECS Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(1),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'tries to update a service (replace)',
@@ -660,7 +679,8 @@ describe('ECS Integration Testing', () => {
     'tries to force update a service',
     query(
       `
-      SELECT deploy_service(arn) FROM service WHERE name='${newServiceName}'`,
+        SELECT deploy_service(arn) FROM service WHERE name='${newServiceName}'
+      `,
       (res: any[]) => {
         expect(res.length).toBe(1);
         expect(res[0].deploy_service).toContain('OK');
@@ -707,6 +727,8 @@ describe('ECS Integration Testing', () => {
 
   it('installs the ecs module', install(['aws_ecs_fargate']));
 
+  it('starts a transaction', begin());
+
   it(
     'deletes service',
     query(
@@ -741,6 +763,8 @@ describe('ECS Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(0),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'deletes container definitons',
@@ -812,6 +836,8 @@ describe('ECS Integration Testing', () => {
   it('installs the ecs module', install(['aws_ecs_fargate']));
 
   // deletes service dependencies
+  it('starts a transaction', begin());
+
   it(
     'deletes service dependencies',
     query(
@@ -847,6 +873,8 @@ describe('ECS Integration Testing', () => {
 
   it('applies deletes service dependencies', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'tries to update a cluster field (restore)',
     query(
@@ -861,6 +889,8 @@ describe('ECS Integration Testing', () => {
 
   it('applies tries to update a cluster field (restore)', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'tries to update cluster (replace)',
     query(
@@ -874,6 +904,8 @@ describe('ECS Integration Testing', () => {
   );
 
   it('applies tries to update cluster (replace)', commit());
+
+  it('starts a transaction', begin());
 
   it(
     'deletes the cluster',

@@ -8,6 +8,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  runBegin,
   runCommit,
   runInstall,
   runQuery,
@@ -57,6 +58,7 @@ const ubuntuAmiId =
   'resolve:ssm:/aws/service/canonical/ubuntu/server/20.04/stable/current/amd64/hvm/ebs-gp2/ami-id';
 
 const prefix = getPrefix();
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
@@ -146,6 +148,8 @@ describe('EC2 Integration Testing', () => {
 
   it('installs the ec2 module', install(modules));
 
+  it('starts a transaction', begin());
+
   it('adds an ec2 instance', done => {
     query(
       `
@@ -229,6 +233,8 @@ describe('EC2 Integration Testing', () => {
   );
 
   describe('create IAM role', () => {
+    it('starts a transaction', begin());
+
     it(
       'creates ec2 instance role',
       query(
@@ -268,6 +274,8 @@ describe('EC2 Integration Testing', () => {
       ),
     );
   });
+
+  it('starts a transaction', begin());
 
   it(
     'create target group and register instance to it',
@@ -447,6 +455,8 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'deletes the instance',
     query(
@@ -507,6 +517,8 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'deletes the target group',
     query(
@@ -535,6 +547,8 @@ describe('EC2 Integration Testing', () => {
   );
 
   describe('delete role', () => {
+    it('starts a transaction', begin());
+
     it(
       'deletes role',
       query(
