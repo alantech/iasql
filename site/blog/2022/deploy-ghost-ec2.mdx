@@ -32,62 +32,22 @@ VALUES
 INSERT INTO
   security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
 SELECT
-  FALSE,
-  'tcp',
-  22,
-  22,
-  '0.0.0.0/0',
-  'ghost_sg_group_rule_ssh',
-  id
+  t.is_egress,
+  t.ip_protocol,
+  t.from_port,
+  t.to_port,
+  t.cidr_ipv4,
+  t.description,
+  security_group.id
 FROM
-  security_group
+  security_group, (VALUES
+    (FALSE, 'tcp', 22, 22, '0.0.0.0/0', 'ghost_sg_group_rule_ssh'),
+    (FALSE, 'tcp', 80, 80, '0.0.0.0/0', 'ghost_sg_group_rule_http'),
+    (FALSE, 'tcp', 443, 443, '0.0.0.0/0', 'ghost_sg_group_rule_https'),
+    (TRUE, 'tcp', 1, 65535, '0.0.0.0/0', 'ghost_sg_group_rule_egress')
+  ) as t (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description)
 WHERE
-  group_name = 'ghost_sg_group';
-
-INSERT INTO
-  security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
-SELECT
-  FALSE,
-  'tcp',
-  80,
-  80,
-  '0.0.0.0/0',
-  'ghost_sg_group_rule_http',
-  id
-FROM
-  security_group
-WHERE
-  group_name = 'ghost_sg_group';
-
-INSERT INTO
-  security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
-SELECT
-  FALSE,
-  'tcp',
-  443,
-  443,
-  '0.0.0.0/0',
-  'ghost_sg_group_rule_https',
-  id
-FROM
-  security_group
-WHERE
-  group_name = 'ghost_sg_group';
-
-INSERT INTO
-  security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
-SELECT
-  TRUE,
-  'tcp',
-  1,
-  65335,
-  '0.0.0.0/0',
-  'ghost_sg_group_rule_egress',
-  id
-FROM
-  security_group
-WHERE
-  group_name = 'ghost_sg_group';
+  security_group.group_name = 'ghost_sg_group';
 
 -- insert instance with the right userdata
 INSERT INTO
