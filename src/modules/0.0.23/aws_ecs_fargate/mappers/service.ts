@@ -240,7 +240,7 @@ export class ServiceMapper extends MapperBase<Service> {
               awsSecurityGroupModule.securityGroup.generateId({ groupId: sg, region }),
             ));
         } catch (_) {
-          //** Do nothing. If it fails it means it is a misconfigured service and we ignore it */
+          // ** If it fails it means it is a misconfigured security group for this service and we ignore it */
         }
         if (sge) securityGroups.push(sge);
       }
