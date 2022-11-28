@@ -16,7 +16,10 @@ export class IasqlCommit extends RpcBase {
     ctx: Context,
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
     const res = (await iasql.commit(dbId, false, ctx)).rows;
-    return res.map(rec => super.formatObjKeysToSnakeCase(rec) as RpcResponseObject<typeof this.outputTable>);
+    await ctx.orm.query(`SELECT * FROM query_cron('enable');`);
+    return (
+      res?.map(rec => super.formatObjKeysToSnakeCase(rec) as RpcResponseObject<typeof this.outputTable>) ?? []
+    );
   };
 
   constructor(module: IasqlFunctions) {

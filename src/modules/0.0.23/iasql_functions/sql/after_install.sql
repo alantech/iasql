@@ -165,3 +165,52 @@ begin
   ]') as x(name text, signature text, description text, sample_usage text);
 end;
 $$;
+
+CREATE
+OR REPLACE FUNCTION query_cron (_action TEXT) RETURNS TEXT LANGUAGE plpgsql SECURITY INVOKER AS $$
+declare
+    _db_id text;
+    _dblink_conn_count int;
+    _dblink_sql text;
+    _out text;
+begin
+    SELECT current_database() INTO _db_id;
+    SELECT count(1) INTO _dblink_conn_count
+    FROM dblink_get_connections()
+    WHERE dblink_get_connections@>'{iasqlcronconn}';
+    IF _dblink_conn_count = 0 THEN
+        PERFORM dblink_connect('iasqlcronconn', 'cron_dblink_' || _db_id);
+    END IF;
+    CASE
+      WHEN _action = 'schedule' THEN
+        _dblink_sql := format('SELECT schedule_in_database AS cron_res FROM cron.schedule_in_database (%L, %L, $CRON$ SELECT iasql_commit(); $CRON$, %L);', 'iasql_engine_' || _db_id, '*/2 * * * *', _db_id);
+      WHEN _action = 'unschedule' THEN
+        _dblink_sql := format('SELECT unschedule AS cron_res FROM cron.unschedule(%L);', 'iasql_engine_' || _db_id);
+      WHEN _action = 'enable' THEN
+        _dblink_sql := format('SELECT alter_job AS cron_res FROM cron.alter_job(job_id := %s, active := TRUE);', '(SELECT cron.job.jobid FROM cron.job WHERE cron.job.jobname = ''' || 'iasql_engine_' || _db_id || ''')');
+      WHEN _action = 'disable' THEN
+        _dblink_sql := format('SELECT alter_job AS cron_res FROM cron.alter_job(job_id := %s, active := FALSE);', '(SELECT cron.job.jobid FROM cron.job WHERE cron.job.jobname = ''' || 'iasql_engine_' || _db_id || ''')');
+      WHEN _action = 'status' THEN
+        _dblink_sql := format('SELECT active AS cron_res FROM cron.job WHERE cron.job.jobname = ''' || 'iasql_engine_' || _db_id || ''';');
+      WHEN _action = 'schedule_purge' THEN
+        _dblink_sql := format('SELECT schedule AS cron_res FROM cron.schedule (%L, %L, $PURGE$ DELETE FROM cron.job_run_details WHERE database = %L AND end_time < (now() - interval %L); $PURGE$);', 'purge_iasql_engine_' || _db_id, '0 0 * * *', _db_id, '7 days');
+      WHEN _action = 'unschedule_purge' THEN
+        _dblink_sql := format('SELECT unschedule AS cron_res FROM cron.unschedule(%L);', 'purge_iasql_engine_' || _db_id);
+      WHEN _action = 'schedule_unlock' THEN
+        _dblink_sql := format('SELECT schedule_in_database AS cron_res FROM cron.schedule_in_database (%L, %L, $CRON$ SELECT iasql_unlock_transaction(); $CRON$, %L);', 'unlock_iasql_engine_' || _db_id, '*/30 * * * *', _db_id);
+      WHEN _action = 'unschedule_unlock' THEN
+        _dblink_sql := format('SELECT unschedule AS cron_res FROM cron.unschedule(%L);', 'unlock_iasql_engine_' || _db_id);
+      ELSE
+        RAISE EXCEPTION 'Invalid action';
+        RETURN 'Execution error';
+    END CASE;
+    -- allow statement that returns results in dblink https://stackoverflow.com/a/28299993
+    WITH dblink_res as (
+      SELECT * FROM dblink('iasqlcronconn', _dblink_sql) AS dblink_res(cron_res text)
+    )
+    SELECT dblink_res.cron_res INTO _out FROM dblink_res;
+    -- give it some time to execute
+    PERFORM pg_sleep(1);
+    RETURN _out;
+end;
+$$;
