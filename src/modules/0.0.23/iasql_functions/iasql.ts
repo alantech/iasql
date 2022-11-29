@@ -618,7 +618,7 @@ export async function commit(
     context.orm = orm;
 
     const isRunning = await isCommitRunning(orm);
-    if (isRunning) throw new Error('Another transaction is in process. Please try again later.');
+    if (isRunning) throw new Error('Another execution is in process. Please try again later.');
 
     const newStartCommit: IasqlAuditLog = await insertLog(orm, dryRun ? 'preview_start' : 'start');
     if (dryRun) context.previewStartCommit = newStartCommit;
@@ -703,7 +703,7 @@ export async function rollback(dbId: string, context: Context, force = false, or
     context.orm = orm;
 
     const isRunning = await isCommitRunning(orm);
-    if (isRunning) throw new Error('Another transaction is in process. Please try again later.');
+    if (isRunning) throw new Error('Another execution is in process. Please try again later.');
 
     const newStartCommit = await insertLog(orm, 'start');
     context.startCommit = newStartCommit;
