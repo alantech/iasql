@@ -15,8 +15,8 @@ export class IasqlRollback extends RpcBase {
     _dbUser: string,
     ctx: Context,
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
-    const isOpenTransaction = await iasql.isOpenTransaction(ctx.orm);
-    if (!isOpenTransaction) {
+    const openTransaction = await iasql.isOpenTransaction(ctx.orm);
+    if (!openTransaction) {
       throw new Error('Cannot rollback without calling iasql_begin first.');
     }
     const res = (await iasql.rollback(dbId, ctx)).rows;
