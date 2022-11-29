@@ -39,9 +39,10 @@ export async function start(dbId: string, dbUser: string) {
   // create a dblink server per db to reduce connections when calling dblink in iasql op SP
   // https://aws.amazon.com/blogs/database/migrating-oracle-autonomous-transactions-to-postgresql/
   await conn.query(`CREATE EXTENSION IF NOT EXISTS dblink;`);
-  await conn.query(
-    `CREATE SERVER IF NOT EXISTS loopback_dblink_${dbId} FOREIGN DATA WRAPPER dblink_fdw OPTIONS (host '${config.db.host}', dbname '${dbId}', port '${config.db.port}');`,
-  );
+  await conn.query(`
+    DROP SERVER IF EXISTS loopback_dblink_${dbId} CASCADE;
+    CREATE SERVER loopback_dblink_${dbId} FOREIGN DATA WRAPPER dblink_fdw OPTIONS (host '${config.db.host}', dbname '${dbId}', port '${config.db.port}');
+  `);
   await conn.query(
     `CREATE USER MAPPING IF NOT EXISTS FOR ${config.db.user} SERVER loopback_dblink_${dbId} OPTIONS (user '${config.db.user}', password '${config.db.password}')`,
   );

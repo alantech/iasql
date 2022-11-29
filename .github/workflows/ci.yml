@@ -194,13 +194,16 @@ jobs:
           ACCOUNT_INDEX: ${{ steps['determine-test-account'].outputs['account_index'] }}
           ACCESS_KEY_IDS: ${{ secrets.ACCESS_KEY_IDS }}
           SECRET_ACCESS_KEYS: ${{ secrets.SECRET_ACCESS_KEYS }}
+          PSQL_CONN: postgres://postgres:test@localhost:5432/iasql?ssl=true&sslmode=require
         run: |
           # Establish needed secrets
           export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
           export AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
 
           # Spin up the engine and a postgres instance
-          docker-compose up -d
+          docker build -t iasql:latest .
+          # Temporarily export the engine port until it's only the Postgres port needed
+          docker run -p 5432:5432 -p 8088:8088 -e IASQL_ENV=ci --name iasql iasql &
           while ! curl --output /dev/null --silent --head --fail http://localhost:8088/health; do sleep 1 && echo -n .; done;
 
           # connect `iasql` db to aws account for `apply`
@@ -211,24 +214,24 @@ jobs:
 
           # Setup Account
           echo "\nInstalling aws_account..."
-          psql postgres://postgres:test@localhost:5432/iasql -c "
+          psql $PSQL_CONN -c "
             select iasql_install(
               'aws_account'
             );
           ";
 
           echo "\nAttaching credentials..."
-          psql postgres://postgres:test@localhost:5432/iasql -c "
+          psql $PSQL_CONN -c "
             INSERT INTO aws_credentials (access_key_id, secret_access_key)
             VALUES ('${AWS_ACCESS_KEY_ID}', '${AWS_SECRET_ACCESS_KEY}');
           ";
 
-          psql postgres://postgres:test@localhost:5432/iasql -c "
+          psql $PSQL_CONN -c "
             SELECT * FROM iasql_commit();
           ";
 
           echo "\nInstalling all modules in iasql db..."
-          psql postgres://postgres:test@localhost:5432/iasql -c "
+          psql $PSQL_CONN -c "
             select iasql_install(
               variadic array(select module_name from iasql_modules_list())
             );
@@ -240,13 +243,13 @@ jobs:
 
           # Delete all records
           echo "\nDelete all records..."
-          psql postgres://$username:$password@localhost:5432/iasql -c "select * from delete_all_records();"
+          psql "postgres://$username:$password@localhost:5432/iasql?ssl=true&sslmode=require" -c "select * from delete_all_records();"
 
           echo "\nApply..."
-          psql postgres://postgres:test@localhost:5432/iasql -c "select * from iasql_commit();" ; docker logs $(docker ps -a --filter "name=change" --format "{{.Names}}")
+          psql $PSQL_CONN -c "select * from iasql_commit();" ; docker logs $(docker ps -a --filter "name=iasql" --format "{{.Names}}")
 
           # Shut down the engine
-          docker-compose down
+          docker container stop iasql
 
       - name: Run modules tests
         timeout-minutes: 90

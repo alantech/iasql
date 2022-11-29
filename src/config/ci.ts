@@ -9,7 +9,7 @@ const config: ConfigInterface = {
     oldestVersion: '0.0.18',
   },
   db: {
-    host: 'postgresql',
+    host: 'localhost',
     user: 'postgres',
     password: 'test',
     port: 5432,
