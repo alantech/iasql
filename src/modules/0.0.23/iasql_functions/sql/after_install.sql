@@ -183,23 +183,14 @@ begin
     END IF;
     CASE
       WHEN _action = 'schedule' THEN
+        -- TODO: scheduled function should check if is safe to run commit or if it is an open transaction in place
         _dblink_sql := format('SELECT schedule_in_database AS cron_res FROM cron.schedule_in_database (%L, %L, $CRON$ SELECT iasql_commit(); $CRON$, %L);', 'iasql_engine_' || _db_id, '*/2 * * * *', _db_id);
       WHEN _action = 'unschedule' THEN
         _dblink_sql := format('SELECT unschedule AS cron_res FROM cron.unschedule(%L);', 'iasql_engine_' || _db_id);
-      WHEN _action = 'enable' THEN
-        _dblink_sql := format('SELECT alter_job AS cron_res FROM cron.alter_job(job_id := %s, active := TRUE);', '(SELECT cron.job.jobid FROM cron.job WHERE cron.job.jobname = ''' || 'iasql_engine_' || _db_id || ''')');
-      WHEN _action = 'disable' THEN
-        _dblink_sql := format('SELECT alter_job AS cron_res FROM cron.alter_job(job_id := %s, active := FALSE);', '(SELECT cron.job.jobid FROM cron.job WHERE cron.job.jobname = ''' || 'iasql_engine_' || _db_id || ''')');
-      WHEN _action = 'status' THEN
-        _dblink_sql := format('SELECT active AS cron_res FROM cron.job WHERE cron.job.jobname = ''' || 'iasql_engine_' || _db_id || ''';');
       WHEN _action = 'schedule_purge' THEN
         _dblink_sql := format('SELECT schedule AS cron_res FROM cron.schedule (%L, %L, $PURGE$ DELETE FROM cron.job_run_details WHERE database = %L AND end_time < (now() - interval %L); $PURGE$);', 'purge_iasql_engine_' || _db_id, '0 0 * * *', _db_id, '7 days');
       WHEN _action = 'unschedule_purge' THEN
         _dblink_sql := format('SELECT unschedule AS cron_res FROM cron.unschedule(%L);', 'purge_iasql_engine_' || _db_id);
-      WHEN _action = 'schedule_unlock' THEN
-        _dblink_sql := format('SELECT schedule_in_database AS cron_res FROM cron.schedule_in_database (%L, %L, $CRON$ SELECT iasql_unlock_transaction(); $CRON$, %L);', 'unlock_iasql_engine_' || _db_id, '*/30 * * * *', _db_id);
-      WHEN _action = 'unschedule_unlock' THEN
-        _dblink_sql := format('SELECT unschedule AS cron_res FROM cron.unschedule(%L);', 'unlock_iasql_engine_' || _db_id);
       ELSE
         RAISE EXCEPTION 'Invalid action';
         RETURN 'Execution error';
