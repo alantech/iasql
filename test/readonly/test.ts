@@ -57,6 +57,8 @@ describe('Aws read only Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it('syncs the regions', commit());
 
   it(
@@ -72,6 +74,8 @@ describe('Aws read only Integration Testing', () => {
   );
 
   it('installs all modules', installAll());
+
+  it('starts a transaction', begin());
 
   it('sync no-op', commit());
 
