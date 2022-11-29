@@ -790,6 +790,12 @@ async function insertLog(
     case 'preview_end':
       commitLog.changeType = AuditLogChangeType.PREVIEW_END_COMMIT;
       break;
+    case 'open':
+      commitLog.changeType = AuditLogChangeType.OPEN_TRANSACTION;
+      break;
+    case 'close':
+      commitLog.changeType = AuditLogChangeType.CLOSE_TRANSACTION;
+      break;
     default:
       break;
   }
@@ -1496,4 +1502,32 @@ async function getChangesAfterCommitStartedByEntity(
   const modsIndexedByTable = indexModsByTable(modulesWithChanges);
 
   return await getChangesByEntity(orm, changesAfterCommit, modsIndexedByTable);
+}
+
+export async function maybeOpenTransaction(orm: TypeormWrapper): Promise<void> {
+  // Check if no other transaction is open in the last 30 min
+  // Check if no commit is running
+  const [isRunning, openTransaction] = await Promise.all([
+    isCommitRunning(orm),
+    orm.find(IasqlAuditLog, {
+      order: { ts: 'DESC' },
+      where: {
+        changeType: In([AuditLogChangeType.OPEN_TRANSACTION, AuditLogChangeType.CLOSE_TRANSACTION]),
+        ts: MoreThan(new Date(Date.now() - 30 * 60 * 1000)),
+      },
+    }),
+  ]);
+  if (
+    !isRunning &&
+    (!openTransaction?.length ||
+      (openTransaction?.length && openTransaction[0] === AuditLogChangeType.CLOSE_TRANSACTION))
+  ) {
+    await insertLog(orm, 'open');
+  } else {
+    throw new Error('Another transaction is open or running. Please try again later.');
+  }
+}
+
+export async function closeTransaction(orm: TypeormWrapper): Promise<void> {
+  await insertLog(orm, 'close');
 }
