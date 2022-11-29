@@ -204,14 +204,14 @@ begin
         RAISE EXCEPTION 'Invalid action';
         RETURN 'Execution error';
     END CASE;
-    return _dblink_sql;
+    raise info 'cron sql %', _dblink_sql;
     -- allow statement that returns results in dblink https://stackoverflow.com/a/28299993
-    -- WITH dblink_res as (
-    --  SELECT * FROM dblink('iasqlcronconn', _dblink_sql) AS dblink_res(cron_res text)
-    -- )
-    -- SELECT dblink_res.cron_res INTO _out FROM dblink_res;
+    WITH dblink_res as (
+      SELECT * FROM dblink('iasqlcronconn', _dblink_sql) AS dblink_res(cron_res text)
+    )
+    SELECT dblink_res.cron_res INTO _out FROM dblink_res;
     -- give it some time to execute
-    -- PERFORM pg_sleep(1);
-    -- RETURN _out;
+    PERFORM pg_sleep(1);
+    RETURN _out;
 end;
 $$;
