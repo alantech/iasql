@@ -1527,7 +1527,7 @@ export async function isOpenTransaction(orm: TypeormWrapper): Promise<boolean> {
       changeType: In([AuditLogChangeType.OPEN_TRANSACTION, AuditLogChangeType.CLOSE_TRANSACTION]),
       ts: MoreThan(limitDate),
     },
-    take: 1
+    take: 1,
   });
   return !!transactions?.length && transactions[0].changeType === AuditLogChangeType.OPEN_TRANSACTION;
 }
