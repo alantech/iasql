@@ -179,7 +179,7 @@ begin
       ts > (now() - interval '30 minutes')
     ORDER BY ts DESC
     LIMIT 1;
-    IF _change_type = 'CLOSE_TRANSACTION' THEN
+    IF _change_type != 'OPEN_TRANSACTION' THEN
       SELECT * FROM iasql_commit();
       RETURN 'iasql_commit called';
     ELSE
