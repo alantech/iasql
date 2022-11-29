@@ -21,8 +21,10 @@ export class IasqlRollback extends RpcBase {
     }
     const res = (await iasql.rollback(dbId, ctx)).rows;
     await iasql.closeTransaction(ctx.orm);
+    // Why do I need to do this nonsense???
+    const outputTable = this.outputTable;
     return (
-      res?.map(rec => super.formatObjKeysToSnakeCase(rec) as RpcResponseObject<typeof this.outputTable>) ?? []
+      res?.map(rec => super.formatObjKeysToSnakeCase(rec) as RpcResponseObject<typeof outputTable>) ?? []
     );
   };
 
