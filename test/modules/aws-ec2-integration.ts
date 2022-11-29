@@ -264,6 +264,58 @@ describe('EC2 Integration Testing', () => {
 =======
   // generate keypairs
   it(
+    'generates a new keypair',
+    query(
+      `
+    SELECT *
+    FROM key_pair_request ('${prefix}-key-request', '${region}');
+  `,
+      (res: any[]) => {
+        expect(res.length).toBe(1), expect(res[0].privateKey.toContain('-----BEGIN RSA PRIVATE KEY-----'));
+      },
+    ),
+  );
+
+  it(
+    'check new keypair added',
+    query(
+      `
+    SELECT *
+    FROM key_pair
+    WHERE name = '${prefix}-key-request';
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it(
+    'deletes the keypair',
+    query(
+      `
+    DELETE FROM key_pair
+    WHERE name = '${prefix}-key-request';
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it('applies the keypair deletion', commit());
+
+  it(
+    'check new keypair deleted',
+    query(
+      `
+    SELECT *
+    FROM key_pair
+    WHERE name = '${prefix}-key-request';
+  `,
+      (res: any[]) => expect(res.length).toBe(0),
+    ),
+  );
+
+  it(
     'imports a new keypair',
     query(
       `
@@ -287,7 +339,7 @@ describe('EC2 Integration Testing', () => {
   );
 >>>>>>> 9e46bd5f (add tests for keypair import)
 
-  it('adds an instance without security groups', done => {
+  it('adds an instance without security groups and key', done => {
     query(
       `
       BEGIN;
@@ -299,9 +351,9 @@ describe('EC2 Integration Testing', () => {
           FROM subnet
           WHERE availability_zone = '${availabilityZone2}'
           LIMIT 1;
-        INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
+        INSERT INTO instance_security_groups (instance_id, security_group_id, key_pair_name) SELECT
           (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-2'),
-          (SELECT id FROM security_group WHERE group_name='fake-security-group' AND region = '${region}');
+          (SELECT id FROM security_group WHERE group_name='fake-security-group' AND region = '${region}'), '${prefix}-key';
       COMMIT;
     `,
       undefined,
@@ -617,7 +669,6 @@ describe('EC2 Integration Testing', () => {
     WHERE target_group_id = (SELECT id FROM target_group WHERE target_group_name = '${tgName}') AND instance.tags ->> 'name' = '${prefix}-1';
   `,
       (res: any[]) => {
-        console.log(JSON.stringify(res));
         return expect(res[0].port).toBe(tgPort);
       },
     ),
