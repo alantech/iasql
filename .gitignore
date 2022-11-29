@@ -4,6 +4,7 @@ dist/
 .vscode
 coverage/
 .deploy-env
+.bootstrap-env
 *.zip
 .DS_Store
 .idea

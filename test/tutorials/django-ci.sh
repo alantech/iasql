@@ -15,7 +15,7 @@ pip install -r requirements.txt
 echo "\nRun Django migrations"
 python manage.py migrate --database infra infra
 
-psql postgres://$IASQL_USERNAME:$IASQL_PASSWORD@localhost:5432/iasql -c "
+psql "postgres://$IASQL_USERNAME:$IASQL_PASSWORD@localhost:5432/iasql?ssl=true&sslmode=require" -c "
   SELECT ecr_build(
     '$GITHUB_SERVER_URL/$GITHUB_REPOSITORY',
     (SELECT id FROM repository WHERE repository_name = 'quickstart-repository')::varchar(255),
@@ -27,7 +27,7 @@ psql postgres://$IASQL_USERNAME:$IASQL_PASSWORD@localhost:5432/iasql -c "
 
 # Get DNS name, Set PGPASSWORD environment variable to avoid interaction
 echo "\nGet DNS name..."
-export DNS_NAME=$(psql postgres://postgres:test@localhost:5432/iasql -AXqtc "
+export DNS_NAME=$(psql "postgres://postgres:test@localhost:5432/iasql?ssl=true&sslmode=require" -AXqtc "
 SELECT load_balancer_dns
 FROM ecs_simplified
 WHERE app_name = 'quickstart';")
