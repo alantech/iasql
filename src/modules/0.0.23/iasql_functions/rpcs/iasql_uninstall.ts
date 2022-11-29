@@ -27,7 +27,9 @@ export class IasqlUninstall extends RpcBase {
       where left(m.name, length(mo.module)) = mo.module;
     `;
     const modulesUninstalled = await (ctx.orm as TypeormWrapper).query(query);
+    await iasql.maybeOpenTransaction(ctx.orm);
     await iasql.uninstall(params, dbId);
+    await iasql.closeTransaction(ctx.orm);
     return modulesUninstalled;
   };
 
