@@ -226,6 +226,14 @@ jobs:
             VALUES ('${AWS_ACCESS_KEY_ID}', '${AWS_SECRET_ACCESS_KEY}');
           ";
 
+          # Start transaction
+          echo "\nStarting transaction..."
+          psql $PSQL_CONN -c "
+            select * from iasql_begin();
+          ";
+
+          # Start transaction
+          echo "\nSynchronizing..."
           psql $PSQL_CONN -c "
             SELECT * FROM iasql_commit();
           ";
