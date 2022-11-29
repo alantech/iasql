@@ -91,6 +91,8 @@ describe('Route53 Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it('syncs the regions', commit());
 
   it(
@@ -219,6 +221,8 @@ describe('Route53 Integration Testing', () => {
       false,
     ),
   );
+
+  it('starts a transaction', begin());
 
   it('syncs the regions', commitStaging());
 
@@ -734,6 +738,8 @@ describe('Route53 install/uninstall', () => {
       () => ({ username, password }),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it('syncs the regions', commit());
 

@@ -150,6 +150,8 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it('syncs the regions', commit());
 
   it(
@@ -180,6 +182,8 @@ describe('EC2 Integration Testing', () => {
       false,
     ),
   );
+
+  it('starts a transaction', begin());
 
   it('syncs the regions', syncCommit());
 
@@ -1231,6 +1235,8 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it('syncs the regions', commit());
 
   it(
@@ -1539,6 +1545,8 @@ describe('EC2 install/uninstall', () => {
       () => ({ username, password }),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it('syncs the regions', commit());
 

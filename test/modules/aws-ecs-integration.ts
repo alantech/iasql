@@ -123,6 +123,8 @@ describe('ECS Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it('syncs the regions', commit());
 
   it(
@@ -165,6 +167,8 @@ describe('ECS Integration Testing', () => {
       false,
     ),
   );
+
+  it('starts a transaction', begin());
 
   it('syncs the regions', syncCommit());
 
@@ -957,6 +961,8 @@ describe('ECS install/uninstall', () => {
       () => ({ username, password }),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it('syncs the regions', commit());
 

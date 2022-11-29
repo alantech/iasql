@@ -116,6 +116,8 @@ describe('ECS Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it('syncs the regions', commit());
 
   it(
@@ -158,6 +160,8 @@ describe('ECS Integration Testing', () => {
       false,
     ),
   );
+
+  it('starts a transaction', begin());
 
   it('syncs the regions', syncCommit());
 
