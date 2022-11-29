@@ -1,6 +1,6 @@
 import * as iasql from '../../src/services/iasql';
 import MetadataRepo from '../../src/services/repositories/metadata';
-import { runCommit, runInstall, runQuery, finish, execComposeUp, execComposeDown } from '../helpers';
+import { runCommit, runInstall, runQuery, finish, execComposeUp, execComposeDown, runBegin } from '../helpers';
 
 const metadataQuery = runQuery.bind(null, 'iasql_metadata');
 const dbAlias = 'metadatatest';
@@ -9,6 +9,7 @@ const email = 'test@example.com';
 const dbQuery = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
+const begin = runBegin.bind(null, dbAlias);
 
 jest.setTimeout(360000);
 beforeAll(async () => await execComposeUp());
@@ -131,6 +132,8 @@ describe('Testing metadata repo', () => {
       false,
     ),
   );
+
+  it('starts a transaction', begin());
 
   it('apply updates db counts', commit());
 
