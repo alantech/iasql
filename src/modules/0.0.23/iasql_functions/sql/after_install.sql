@@ -167,6 +167,28 @@ end;
 $$;
 
 CREATE
+OR REPLACE FUNCTION maybe_commit () RETURNS TEXT LANGUAGE plpgsql SECURITY INVOKER AS $$
+declare
+    _change_type text;
+begin
+    -- Check if theres an open transaction
+    SELECT change_type INTO _change_type
+    FROM iasql_audit_log
+    WHERE 
+      change_type IN ('OPEN_TRANSACTION', 'CLOSE_TRANSACTION') AND
+      ts > (now() - interval '30 minutes')
+    ORDER BY ts DESC
+    LIMIT 1;
+    IF _change_type = 'CLOSE_TRANSACTION' THEN
+      SELECT * FROM iasql_commit();
+      RETURN 'iasql_commit called';
+    ELSE
+      RETURN 'Cannot call iasql_commit while a transaction is open';
+    END IF;
+end;
+$$;
+
+CREATE
 OR REPLACE FUNCTION query_cron (_action TEXT) RETURNS TEXT LANGUAGE plpgsql SECURITY INVOKER AS $$
 declare
     _db_id text;
@@ -184,7 +206,7 @@ begin
     CASE
       WHEN _action = 'schedule' THEN
         -- TODO: scheduled function should check if is safe to run commit or if it is an open transaction in place
-        _dblink_sql := format('SELECT schedule_in_database AS cron_res FROM cron.schedule_in_database (%L, %L, $CRON$ SELECT iasql_commit(); $CRON$, %L);', 'iasql_engine_' || _db_id, '*/2 * * * *', _db_id);
+        _dblink_sql := format('SELECT schedule_in_database AS cron_res FROM cron.schedule_in_database (%L, %L, $CRON$ SELECT maybe_commit(); $CRON$, %L);', 'iasql_engine_' || _db_id, '*/2 * * * *', _db_id);
       WHEN _action = 'unschedule' THEN
         _dblink_sql := format('SELECT unschedule AS cron_res FROM cron.unschedule(%L);', 'iasql_engine_' || _db_id);
       WHEN _action = 'schedule_purge' THEN
