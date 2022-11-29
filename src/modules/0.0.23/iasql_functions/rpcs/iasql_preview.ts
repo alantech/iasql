@@ -21,7 +21,9 @@ export class IasqlPreview extends RpcBase {
       throw new Error('Cannot preview without calling iasql_begin first.');
     }
     const res = (await iasql.commit(dbId, true, ctx)).rows;
-    return res.map(rec => super.formatObjKeysToSnakeCase(rec) as RpcResponseObject<typeof this.outputTable>);
+    // Why do I need to do this nonsense???
+    const outputTable = this.outputTable;
+    return res.map(rec => super.formatObjKeysToSnakeCase(rec) as RpcResponseObject<typeof outputTable>);
   };
 
   constructor(module: IasqlFunctions) {
