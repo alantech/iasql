@@ -225,14 +225,16 @@ export class RouteTableMapper extends MapperBase<RouteTable> {
         es.map(async e => {
           if (associations.find(a => a.routeTable.routeTableId === e.routeTableId && a.isMain)) {
             // it's the main route table, can't be deleted so return it to the db
-            const vpcDbRecord = await this.module.vpc.db.read(
-              ctx,
-              this.module.vpc.generateId({ vpcId: e.vpc?.vpcId ?? '', region: e.region }),
-            );
-            if (vpcDbRecord) await this.module.routeTable.db.update(e, ctx);
+            const vpc =
+              ctx?.memo?.db?.Vpc[
+                this.module.vpc.generateId({ vpcId: e.vpc.vpcId ?? '', region: e.vpc.region })
+              ] ?? null;
+            e.vpc.id = vpc.id;
+            await this.module.routeTable.db.update(e, ctx);
             return;
           }
           const client = (await ctx.getAwsClient(e.region)) as AWS;
+          await ctx.orm.remove(Route, e.routes);
           await client.ec2client.deleteRouteTable({ RouteTableId: e.routeTableId });
         }),
       );
