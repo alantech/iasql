@@ -70,13 +70,10 @@ export async function connect(dbAlias: string, uid: string, email: string, dbId 
       database: dbId,
     });
     await dbMan.migrate(conn2);
-    // TODO: remove conditional when 0.0.23 is the oldest
-    if (!['0.0.18', '0.0.20', '0.0.21', '0.0.22'].includes(config.modules.latestVersion)) {
-      await conn2.query(dbMan.setUpDblink(dbId));
-      await conn2.query(`SELECT * FROM query_cron('schedule');`);
-      await conn2.query(`SELECT * FROM query_cron('schedule_purge');`);
-      await conn2.query(`SELECT * FROM query_cron('schedule_unlock');`);
-    }
+    await conn2.query(dbMan.setUpDblink(dbId));
+    await conn2.query(`SELECT * FROM query_cron('schedule');`);
+    await conn2.query(`SELECT * FROM query_cron('schedule_purge');`);
+    await conn2.query(`SELECT * FROM query_cron('schedule_unlock');`);
     await conn2.query(dbMan.createDbPostgreGroupRole(dbId));
     await conn2.query(dbMan.newPostgresRoleQuery(dbUser, dbPass, dbId));
     await conn2.query(dbMan.grantPostgresGroupRoleQuery(dbUser, dbId));
@@ -122,12 +119,9 @@ export async function disconnect(dbAlias: string, uid: string) {
       database: db.pgName,
     });
     try {
-      // TODO: remove conditional when 0.0.23 is the oldest
-      if (!['0.0.18', '0.0.20', '0.0.21', '0.0.22'].includes(config.modules.latestVersion)) {
-        await conn2.query(`SELECT * FROM query_cron('unschedule');`);
-        await conn2.query(`SELECT * FROM query_cron('unschedule_purge');`);
-        await conn2.query(`SELECT * FROM query_cron('unschedule_unlock');`);
-      }
+      await conn2.query(`SELECT * FROM query_cron('unschedule');`);
+      await conn2.query(`SELECT * FROM query_cron('unschedule_purge');`);
+      await conn2.query(`SELECT * FROM query_cron('unschedule_unlock');`);
     } catch (e) {
       /** Do nothing */
     }
