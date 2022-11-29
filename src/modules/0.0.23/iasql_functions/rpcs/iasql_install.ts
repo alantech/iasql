@@ -17,8 +17,13 @@ export class IasqlInstall extends RpcBase {
     ...params: string[]
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
     await iasql.maybeOpenTransaction(ctx.orm);
-    await iasql.install(params, dbId, dbUser, false, false, ctx);
-    await iasql.closeTransaction(ctx.orm);
+    try {
+      await iasql.install(params, dbId, dbUser, false, false, ctx);
+    } catch(e) {
+      throw e;
+    } finally {
+      await iasql.closeTransaction(ctx.orm);
+    }
     const query = `
       select
           m.name as module_name,
