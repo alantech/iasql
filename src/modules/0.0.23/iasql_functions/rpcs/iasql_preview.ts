@@ -15,6 +15,11 @@ export class IasqlPreview extends RpcBase {
     _dbUser: string,
     ctx: Context,
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
+    const openTransaction = await iasql.isOpenTransaction(ctx.orm);
+    // If there is not an open transaction but the call is being done by the engine itself (for example  with the cron job we let it pass)
+    if (!openTransaction) {
+      throw new Error('Cannot preview without calling iasql_begin first.');
+    }
     const res = (await iasql.commit(dbId, true, ctx)).rows;
     return res.map(rec => super.formatObjKeysToSnakeCase(rec) as RpcResponseObject<typeof this.outputTable>);
   };
