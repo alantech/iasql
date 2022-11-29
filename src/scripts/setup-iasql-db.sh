@@ -8,6 +8,7 @@ echo "\nCreating an iasql db..."
 connectres=$(curl http://localhost:8088/v1/db/connect/iasql)
 export IASQL_USERNAME=$(jq -r '.user' <<<"$connectres")
 export IASQL_PASSWORD=$(jq -r '.password' <<<"$connectres")
+echo $connectres
 
 # Setup Account
 echo "\nInstalling aws_account..."
