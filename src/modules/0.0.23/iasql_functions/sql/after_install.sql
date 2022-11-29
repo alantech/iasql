@@ -180,7 +180,8 @@ begin
     ORDER BY ts DESC
     LIMIT 1;
     IF _change_type != 'OPEN_TRANSACTION' THEN
-      SELECT * FROM iasql_commit();
+      PERFORM iasql_begin();
+      PERFORM iasql_commit();
       RETURN 'iasql_commit called';
     ELSE
       RETURN 'Cannot call iasql_commit while a transaction is open';
