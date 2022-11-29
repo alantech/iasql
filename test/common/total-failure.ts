@@ -2,6 +2,7 @@ import * as iasql from '../../src/services/iasql';
 import { runQuery, finish, execComposeUp, execComposeDown, runInstall, runBegin } from '../helpers';
 
 const dbAlias = 'totalfailure';
+
 const begin = runBegin.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
