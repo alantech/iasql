@@ -96,12 +96,6 @@ const theButton = require('./src/rehype/thebutton');
               label: 'Docs',
             },
             {
-              to: '/api-reference',
-              target: '_self',
-              label: 'API reference',
-            },
-
-            {
               to: 'blog',
               target: '_self',
               label: 'Blog',
