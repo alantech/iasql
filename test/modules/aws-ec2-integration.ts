@@ -343,14 +343,14 @@ describe('EC2 Integration Testing', () => {
         INSERT INTO security_group (description, group_name)
         VALUES ('Fake security group', 'fake-security-group');
   
-        INSERT INTO instance (ami, instance_type, tags, subnet_id)
-          SELECT '${amznAmiId}', '${instanceType2}', '{"name":"${prefix}-2"}', id
+        INSERT INTO instance (ami, instance_type, tags, subnet_id, key_pair_name)
+          SELECT '${amznAmiId}', '${instanceType2}', '{"name":"${prefix}-2"}', id, '${prefix}-key'
           FROM subnet
           WHERE availability_zone = '${availabilityZone2}'
           LIMIT 1;
-        INSERT INTO instance_security_groups (instance_id, security_group_id, key_pair_name) SELECT
+        INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
           (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-2'),
-          (SELECT id FROM security_group WHERE group_name='fake-security-group' AND region = '${region}'), '${prefix}-key';
+          (SELECT id FROM security_group WHERE group_name='fake-security-group' AND region = '${region}');
       COMMIT;
     `,
       undefined,
