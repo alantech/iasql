@@ -259,9 +259,7 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
-<<<<<<< HEAD
   it('starts a transaction', begin());
-=======
   // generate keypairs
   it(
     'generates a new keypair',
@@ -337,7 +335,6 @@ describe('EC2 Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(1),
     ),
   );
->>>>>>> 9e46bd5f (add tests for keypair import)
 
   it('adds an instance without security groups and key', done => {
     query(
