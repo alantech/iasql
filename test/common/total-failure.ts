@@ -166,7 +166,7 @@ describe('Testing failure path', () => {
   );
 
   // Fail on upgrade
-  it('fails to upgrade database (as it is up-to-date already)', done => {
+  /* it('fails to upgrade database (as it is up-to-date already)', done => {
     query(`
       select * from iasql_upgrade();
     `)((_e?: any) => done()); // Ignore failure
@@ -187,7 +187,7 @@ describe('Testing failure path', () => {
         expect(row[0].output.length).toBeGreaterThan(0);
       },
     ),
-  );
+  ); */ // TODO: Revive upgrade check when upgrading is revived
 
   // TODO: how to test list, plan_apply, plan_sync, sync??
 

@@ -1,6 +1,6 @@
 import { EC2 } from '@aws-sdk/client-ec2';
 
-import config from '../../src/config';
+import { TargetTypeEnum, ProtocolEnum } from '../../src/modules/aws_elb/entity';
 import * as iasql from '../../src/services/iasql';
 import {
   defaultRegion,
@@ -11,6 +11,7 @@ import {
   runBegin,
   runCommit,
   runInstall,
+  runInstallAll,
   runQuery,
   runRollback,
   runUninstall,
@@ -70,16 +71,13 @@ const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const querySync = runQuery.bind(null, `${dbAlias}_sync`);
 const install = runInstall.bind(null, dbAlias);
+const installAll = runInstallAll.bind(null, dbAlias);
 const installSync = runInstall.bind(null, `${dbAlias}_sync`);
 const syncCommit = runCommit.bind(null, `${dbAlias}_sync`);
 const uninstall = runUninstall.bind(null, dbAlias);
 const modules = ['aws_ec2', 'aws_ec2_metadata', 'aws_security_group', 'aws_vpc', 'aws_elb', 'aws_iam'];
 
 // ELB integration
-const {
-  TargetTypeEnum,
-  ProtocolEnum,
-} = require(`../../src/modules/${config.modules.latestVersion}/aws_elb/entity`);
 const tgType = TargetTypeEnum.INSTANCE;
 const tgName = `${prefix}${dbAlias}tg`;
 const tgPort = 4142;
@@ -1560,8 +1558,7 @@ describe('EC2 install/uninstall', () => {
   // But uninstall won't uninstall dependencies, so we need to specify that we want all three here
   it('uninstalls the ec2 module', uninstall(modules));
 
-  it('installs all modules', done =>
-    void iasql.install([], dbAlias, config.db.user, true).then(...finish(done)));
+  it('installs all modules', installAll());
 
   it(
     'uninstall ec2 using overloaded sp',

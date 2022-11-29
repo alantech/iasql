@@ -23,7 +23,7 @@ if (config.auth) {
 }
 // TODO secure with scope
 v1.use('/db', db);
-v1.get('/version/latest', (_req, res) => res.send(config.modules.latestVersion));
-v1.get('/version/oldest', (_req, res) => res.send(config.modules.oldestVersion));
+v1.get('/version/latest', (_req, res) => res.send(config.version));
+v1.get('/version/oldest', (_req, res) => res.send(config.version));
 
 export { v1 };

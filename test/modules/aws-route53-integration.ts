@@ -1,4 +1,8 @@
-import config from '../../src/config';
+import {
+  IpAddressType,
+  LoadBalancerSchemeEnum,
+  LoadBalancerTypeEnum,
+} from '../../src/modules/aws_elb/entity';
 import * as iasql from '../../src/services/iasql';
 import logger from '../../src/services/logger';
 import {
@@ -10,16 +14,11 @@ import {
   runBegin,
   runCommit,
   runInstall,
+  runInstallAll,
   runQuery,
   runRollback,
   runUninstall,
 } from '../helpers';
-
-const {
-  IpAddressType,
-  LoadBalancerSchemeEnum,
-  LoadBalancerTypeEnum,
-} = require(`../../src/modules/${config.modules.latestVersion}/aws_elb/entity`);
 
 const prefix = getPrefix();
 const dbAlias = 'route53test';
@@ -46,6 +45,7 @@ const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
+const installAll = runInstallAll.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const commitStaging = runCommit.bind(null, dbAlias + 'staging');
@@ -753,8 +753,7 @@ describe('Route53 install/uninstall', () => {
 
   it('uninstalls the route53 module', uninstall(modules));
 
-  it('installs all modules', done =>
-    void iasql.install([], dbAlias, config.db.user, true).then(...finish(done)));
+  it('installs all modules', installAll());
 
   it(
     'uninstalls the route53 module',

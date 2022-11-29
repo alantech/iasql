@@ -34,8 +34,8 @@ async function connectHandler(req: Request, res: Response) {
         dbId,
         email,
         recordCount: database.recordCount,
-        operationCount: database.operationCount,
-        dbVersion: config.modules.latestVersion,
+        rpcCount: database.operationCount,
+        dbVersion: config.version,
       },
       {},
     );
@@ -85,7 +85,7 @@ db.post('/export', async (req: Request, res: Response) => {
         email,
         dbId,
         recordCount: database.recordCount,
-        operationCount: database.operationCount,
+        rpcCount: database.operationCount,
       },
       { dataOnly: !!dataOnly },
     );

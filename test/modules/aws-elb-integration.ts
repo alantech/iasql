@@ -1,6 +1,12 @@
 import { LoadBalancerStateEnum } from '@aws-sdk/client-elastic-load-balancing-v2';
 
-import config from '../../src/config';
+import {
+  IpAddressType,
+  LoadBalancerSchemeEnum,
+  LoadBalancerTypeEnum,
+  ProtocolEnum,
+  TargetTypeEnum,
+} from '../../src/modules/aws_elb/entity';
 import * as iasql from '../../src/services/iasql';
 import {
   defaultRegion,
@@ -12,18 +18,11 @@ import {
   runBegin,
   runCommit,
   runInstall,
+  runInstallAll,
   runQuery,
   runRollback,
   runUninstall,
 } from '../helpers';
-
-const {
-  IpAddressType,
-  LoadBalancerSchemeEnum,
-  LoadBalancerTypeEnum,
-  ProtocolEnum,
-  TargetTypeEnum,
-} = require(`../../src/modules/${config.modules.latestVersion}/aws_elb/entity`);
 
 const prefix = getPrefix();
 const dbAlias = 'elbtest';
@@ -36,6 +35,7 @@ const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
+const installAll = runInstallAll.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const region = defaultRegion();
 const modules = ['aws_security_group', 'aws_elb', 'aws_vpc', 'aws_acm', 'aws_route53'];
@@ -855,8 +855,7 @@ describe('ELB install/uninstall', () => {
 
   it('uninstalls the ELB module', uninstall(modules));
 
-  it('installs all modules', done =>
-    void iasql.install([], dbAlias, config.db.user, true).then(...finish(done)));
+  it('installs all modules', installAll());
 
   it(
     'uninstalls the ELB module and its dependent ones',
