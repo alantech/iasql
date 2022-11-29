@@ -18,6 +18,7 @@ import {
 } from '../helpers';
 
 const { generateKeyPairSync } = require('crypto');
+const sshpk = require('sshpk');
 
 const dbAlias = 'ec2test';
 const region = defaultRegion();
@@ -107,7 +108,17 @@ const gp3VolumeName = `${prefix}gp3volume`;
 // Keypair integration
 const { publicKey, privateKey } = generateKeyPairSync('rsa', {
   modulusLength: 2048,
+  publicKeyEncoding: {
+    type: 'spki',
+    format: 'pem',
+  },
+  privateKeyEncoding: {
+    type: 'pkcs8',
+    format: 'pem',
+  },
 });
+const pemKey = sshpk.parseKey(publicKey, 'pem');
+const sshRsa = pemKey.toString('ssh');
 
 jest.setTimeout(560000);
 beforeAll(async () => {
@@ -257,7 +268,7 @@ describe('EC2 Integration Testing', () => {
     query(
       `
     SELECT *
-    FROM key_pair_import ('${prefix}-key', '${publicKey}', '${region}');
+    FROM key_pair_import ('${prefix}-key', '${sshRsa}', '${region}');
   `,
       (res: any[]) => expect(res.length).toBe(1),
     ),
