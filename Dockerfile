@@ -19,6 +19,10 @@ RUN yarn install
 # COPY ./src/scripts/postgresql.conf /etc/postgresql/14/main/postgresql.conf
 # COPY ./src/scripts/pg_hba.conf /etc/postgresql/14/main/pg_hba.conf
 
+# Update postgresql APT repository [apt.postgresql.org](https://wiki.postgresql.org/wiki/Apt)
+RUN ["bash", "-c", "curl https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor | tee /etc/apt/trusted.gpg.d/apt.postgresql.org.gpg >/dev/null"]
+RUN ["bash", "-c", "echo 'deb http://apt.postgresql.org/pub/repos/apt/ bullseye-pgdg main' > /etc/apt/sources.list.d/postgresql.list"]
+RUN apt update
 RUN apt upgrade -y
 # From https://unix.stackexchange.com/a/366722
 RUN apt install postgresql-client-13 postgresql-13 postgresql-13-cron pgbouncer locales-all -y
