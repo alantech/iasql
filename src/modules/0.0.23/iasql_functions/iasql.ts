@@ -1520,12 +1520,14 @@ export async function closeTransaction(orm: TypeormWrapper): Promise<void> {
 }
 
 export async function isOpenTransaction(orm: TypeormWrapper): Promise<boolean> {
+  const limitDate = new Date(Date.now() - 30 * 60 * 1000);
   const transactions = await orm.find(IasqlAuditLog, {
     order: { ts: 'DESC' },
     where: {
       changeType: In([AuditLogChangeType.OPEN_TRANSACTION, AuditLogChangeType.CLOSE_TRANSACTION]),
-      ts: MoreThan(new Date(Date.now() - 30 * 60 * 1000)),
+      ts: MoreThan(limitDate),
     },
+    take: 1
   });
-  return !!transactions?.length && transactions[0] === AuditLogChangeType.OPEN_TRANSACTION;
+  return !!transactions?.length && transactions[0].changeType === AuditLogChangeType.OPEN_TRANSACTION;
 }
