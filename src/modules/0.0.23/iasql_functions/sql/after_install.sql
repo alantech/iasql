@@ -204,7 +204,6 @@ begin
         RAISE EXCEPTION 'Invalid action';
         RETURN 'Execution error';
     END CASE;
-    raise info 'cron sql %', _dblink_sql;
     -- allow statement that returns results in dblink https://stackoverflow.com/a/28299993
     WITH dblink_res as (
       SELECT * FROM dblink('iasqlcronconn', _dblink_sql) AS dblink_res(cron_res text)
