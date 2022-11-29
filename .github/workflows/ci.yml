@@ -232,6 +232,7 @@ jobs:
             select * from iasql_begin();
           ";
 
+
           # Start transaction
           echo "\nSynchronizing..."
           psql $PSQL_CONN -c "
