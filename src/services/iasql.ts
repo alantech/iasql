@@ -133,9 +133,9 @@ export async function connect(dbAlias: string, uid: string, email: string, dbId 
     // TODO: remove conditional when 0.0.23 is the oldest
     if (!['0.0.18', '0.0.20', '0.0.21', '0.0.22'].includes(config.modules.latestVersion)) {
       await conn2.query(dbMan.setUpDblink(dbId));
-      console.log(await conn2.query(`SELECT * FROM query_cron('schedule');`));
-      console.log(await conn2.query(`SELECT * FROM query_cron('schedule_purge');`));
-      console.log(await conn2.query(`SELECT * FROM query_cron('schedule_unlock');`));
+      await conn2.query(`SELECT * FROM query_cron('schedule');`);
+      await conn2.query(`SELECT * FROM query_cron('schedule_purge');`);
+      await conn2.query(`SELECT * FROM query_cron('schedule_unlock');`);
     }
     await conn2.query(dbMan.createDbPostgreGroupRole(dbId));
     await conn2.query(dbMan.newPostgresRoleQuery(dbUser, dbPass, dbId));
