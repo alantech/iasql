@@ -4,9 +4,9 @@
   "private": true,
   "scripts": {
     "docusaurus": "docusaurus",
-    "start:local": "IASQL_ENV=local docusaurus start",
-    "start": "docusaurus start",
-    "build": "docusaurus build",
+    "start:local": "IASQL_ENV=local typedoc --options ./typedoc.json && docusaurus start",
+    "start": "typedoc --options ./typedoc.json && docusaurus start",
+    "build": "typedoc --options ./typedoc.json && docusaurus build",
     "swizzle": "docusaurus swizzle",
     "deploy": "docusaurus deploy",
     "clear": "docusaurus clear",

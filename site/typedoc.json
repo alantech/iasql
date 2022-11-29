@@ -1,0 +1,8 @@
+{
+  "out": "./static/api-reference",
+  "theme": "default",
+  "entryPointStrategy": "expand",
+  "entryPoints": ["../src/modules/*.ts", "../src/modules/0.0.22/**/entity/*"],
+  "readme": "none",
+  "cleanOutputDir": true,
+}
