@@ -620,7 +620,7 @@ export async function commit(
     const isRunning = await isCommitRunning(orm);
     if (isRunning) throw new Error('Another transaction is in process. Please try again later.');
 
-    const newStartCommit: IasqlAuditLog = await insertCommit(orm, dryRun ? 'preview_start' : 'start');
+    const newStartCommit: IasqlAuditLog = await insertLog(orm, dryRun ? 'preview_start' : 'start');
     if (dryRun) context.previewStartCommit = newStartCommit;
     else context.startCommit = newStartCommit;
     const previousStartCommit = await getPreviousStartCommit(orm, newStartCommit.ts);
@@ -682,7 +682,7 @@ export async function commit(
     throw e;
   } finally {
     // Create end commit object
-    await insertCommit(orm, dryRun ? 'preview_end' : 'end');
+    await insertLog(orm, dryRun ? 'preview_end' : 'end');
     // do not drop the conn if it was provided
     if (orm !== ormOpt) orm?.dropConn();
     if (parentOrm) context.orm = parentOrm;
@@ -705,7 +705,7 @@ export async function rollback(dbId: string, context: Context, force = false, or
     const isRunning = await isCommitRunning(orm);
     if (isRunning) throw new Error('Another transaction is in process. Please try again later.');
 
-    const newStartCommit = await insertCommit(orm, 'start');
+    const newStartCommit = await insertLog(orm, 'start');
     context.startCommit = newStartCommit;
 
     const installedModulesNames = (await orm.find(IasqlModule)).map((m: any) => m.name);
@@ -729,7 +729,7 @@ export async function rollback(dbId: string, context: Context, force = false, or
     throw e;
   } finally {
     // Create end commit object
-    await insertCommit(orm, 'end');
+    await insertLog(orm, 'end');
     // do not drop the conn if it was provided
     if (orm !== ormOpt) orm?.dropConn();
     if (parentOrm) context.orm = parentOrm;
@@ -770,9 +770,9 @@ export async function isCommitRunning(orm: TypeormWrapper): Promise<boolean> {
   );
 }
 
-async function insertCommit(
+async function insertLog(
   orm: TypeormWrapper | null,
-  type: 'start' | 'preview_start' | 'end' | 'preview_end',
+  type: 'start' | 'preview_start' | 'end' | 'preview_end' | 'open' | 'close',
 ): Promise<IasqlAuditLog> {
   const commitLog = new IasqlAuditLog();
   commitLog.user = config.db.user;
