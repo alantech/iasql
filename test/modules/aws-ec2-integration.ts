@@ -1,3 +1,5 @@
+import { generateKeyPairSync } from 'crypto';
+
 import { EC2 } from '@aws-sdk/client-ec2';
 
 import { TargetTypeEnum, ProtocolEnum } from '../../src/modules/aws_elb/entity';
@@ -17,9 +19,7 @@ import {
   runUninstall,
 } from '../helpers';
 
-const { generateKeyPairSync } = require('crypto');
 const sshpk = require('sshpk');
-
 const dbAlias = 'ec2test';
 const region = defaultRegion();
 const accessKeyId = process.env.AWS_ACCESS_KEY_ID ?? '';
