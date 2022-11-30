@@ -71,7 +71,7 @@ const theButton = require('./src/rehype/thebutton');
           // other options are passed to posthog-js init as is
         },
       ],
-      ['docusaurus-plugin-typedoc', {}],
+      ['docusaurus-plugin-typedoc', { sidebar: { categoryLabel: 'API reference' } }],
     ],
 
     themeConfig:
