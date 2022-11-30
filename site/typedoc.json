@@ -1,8 +1,9 @@
 {
-  "out": "./static/api-reference",
-  "theme": "default",
+  "entryPoints": ["../src/modules/*"],
   "entryPointStrategy": "expand",
-  "entryPoints": ["../src/modules/*.ts", "../src/modules/0.0.22/**/entity/*"],
   "readme": "none",
   "cleanOutputDir": true,
+  "excludeExternals": true,
+  "exclude": ["../src/modules/**/mappers/*.ts", "../src/modules/**/migration/*.ts"],
+  "out": "./static/api",
 }
