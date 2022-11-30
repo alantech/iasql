@@ -137,7 +137,6 @@ jobs:
       - id: set-test-module-names
         name: Set modules tests names
         run: echo "::set-output name=test-module-names::$(npx jest **/modules/* --listTests --json | jq -c 'map(split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring)')"
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
       - name: Build and push
