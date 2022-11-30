@@ -132,6 +132,8 @@ describe('Aws read only Integration Testing', () => {
     }); // Ignore failure
   });
 
+  it('does a rollback to end the transaction', rollback());
+
   it('uninstalls all modules', uninstallAll());
 
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
