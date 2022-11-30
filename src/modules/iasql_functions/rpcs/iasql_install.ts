@@ -19,7 +19,7 @@ export class IasqlInstall extends RpcBase {
     await iasql.maybeOpenTransaction(ctx.orm);
     try {
       await iasql.install(params, dbId, dbUser, false, false, ctx);
-    } catch(e) {
+    } catch (e) {
       throw e;
     } finally {
       await iasql.closeTransaction(ctx.orm);

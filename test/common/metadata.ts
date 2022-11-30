@@ -1,6 +1,14 @@
 import * as iasql from '../../src/services/iasql';
 import MetadataRepo from '../../src/services/repositories/metadata';
-import { runCommit, runInstall, runQuery, finish, execComposeUp, execComposeDown, runBegin } from '../helpers';
+import {
+  runCommit,
+  runInstall,
+  runQuery,
+  finish,
+  execComposeUp,
+  execComposeDown,
+  runBegin,
+} from '../helpers';
 
 const metadataQuery = runQuery.bind(null, 'iasql_metadata');
 const dbAlias = 'metadatatest';
