@@ -217,9 +217,7 @@ export class RouteTableMapper extends MapperBase<RouteTable> {
       }
     },
     delete: async (es: RouteTable[], ctx: Context) => {
-      const associations: RouteTableAssociation[] = ctx.memo?.cloud?.RouteTableAssociation
-        ? Object.values(ctx.memo?.cloud?.RouteTableAssociation)
-        : await this.module.routeTableAssociation.cloud.read(ctx);
+      const associations: RouteTableAssociation[] = await this.module.routeTableAssociation.cloud.read(ctx);
 
       await Promise.all(
         es.map(async e => {
