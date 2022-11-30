@@ -1,4 +1,4 @@
-import config from '../../src/config';
+import { CpuMemCombination } from '../../src/modules/aws_ecs_fargate/entity';
 import * as iasql from '../../src/services/iasql';
 import {
   defaultRegion,
@@ -13,10 +13,6 @@ import {
   runRollback,
   runUninstall,
 } from '../helpers';
-
-const {
-  CpuMemCombination,
-} = require(`../../src/modules/${config.modules.latestVersion}/aws_ecs_fargate/entity`);
 
 const prefix = getPrefix();
 const dbAlias = 'ecstest';

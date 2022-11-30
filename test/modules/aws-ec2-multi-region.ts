@@ -1,6 +1,6 @@
 import { EC2 } from '@aws-sdk/client-ec2';
 
-import config from '../../src/config';
+import { TargetTypeEnum, ProtocolEnum } from '../../src/modules/aws_elb/entity';
 import * as iasql from '../../src/services/iasql';
 import {
   defaultRegion,
@@ -65,10 +65,6 @@ const install = runInstall.bind(null, dbAlias);
 const modules = ['aws_ec2', 'aws_ec2_metadata', 'aws_security_group', 'aws_vpc', 'aws_elb', 'aws_iam'];
 
 // ELB integration
-const {
-  TargetTypeEnum,
-  ProtocolEnum,
-} = require(`../../src/modules/${config.modules.latestVersion}/aws_elb/entity`);
 const tgType = TargetTypeEnum.INSTANCE;
 const tgName = `${prefix}${dbAlias}tg`;
 const tgPort = 4142;

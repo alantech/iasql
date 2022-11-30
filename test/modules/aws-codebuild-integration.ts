@@ -7,6 +7,7 @@ import {
   runBegin,
   runCommit,
   runInstall,
+  runInstallAll,
   runQuery,
   runUninstall,
 } from '../helpers';
@@ -17,6 +18,7 @@ const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
+const installAll = runInstallAll.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const region = defaultRegion();
 const modules = ['aws_codebuild', 'aws_ecr'];
@@ -514,7 +516,7 @@ describe('AwsCodebuild install/uninstall', () => {
 
   it('uninstalls the codebuild module', uninstall(modules));
 
-  it('installs all modules', done => void iasql.install([], dbAlias, 'postgres', true).then(...finish(done)));
+  it('installs all modules', installAll());
 
   it(
     'uninstalls the codebuild + ecs module',

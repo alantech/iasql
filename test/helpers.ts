@@ -143,7 +143,7 @@ export function getKeyCertPair(domainName: string): string[] {
   );
 
   // check if we have a valid content on stdout, or fallback to a file
-  let stdoutKey;
+  let stdoutKey: string;
   if (fs.existsSync('privkey.pem'))
     stdoutKey = execSync(`cat privkey.pem`, { shell: '/bin/bash', encoding: 'utf-8' });
   else stdoutKey = stdoutCert;

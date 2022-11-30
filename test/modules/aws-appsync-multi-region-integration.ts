@@ -1,4 +1,4 @@
-import config from '../../src/config';
+import { AuthenticationType } from '../../src/modules/aws_appsync/entity';
 import * as iasql from '../../src/services/iasql';
 import {
   defaultRegion,
@@ -18,9 +18,6 @@ const dbAlias = 'appsynctest';
 
 const nonDefaultRegion = 'us-east-1';
 const apiName = `${prefix}${dbAlias}region`;
-const {
-  AuthenticationType,
-} = require(`../../src/modules/${config.modules.latestVersion}/aws_appsync/entity`);
 const authType = AuthenticationType.API_KEY;
 
 const begin = runBegin.bind(null, dbAlias);

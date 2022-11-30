@@ -1,6 +1,5 @@
 import { ElastiCache } from '@aws-sdk/client-elasticache';
 
-import config from '../../src/config';
 import * as iasql from '../../src/services/iasql';
 import {
   defaultRegion,
@@ -11,6 +10,7 @@ import {
   runBegin,
   runCommit,
   runInstall,
+  runInstallAll,
   runQuery,
   runRollback,
   runUninstall,
@@ -27,6 +27,7 @@ const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
+const installAll = runInstallAll.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const cacheType = 'redis';
 const modules = ['aws_elasticache'];
@@ -412,8 +413,7 @@ describe('Elasticache install/uninstall', () => {
 
   it('uninstalls the Elasticache module', uninstall(modules));
 
-  it('installs all modules', done =>
-    void iasql.install([], dbAlias, config.db.user, true).then(...finish(done)));
+  it('installs all modules', installAll());
 
   it('uninstalls the Elasticache module', uninstall(['aws_elasticache']));
 

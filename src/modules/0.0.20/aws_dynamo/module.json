@@ -1,4 +1,0 @@
-{
-  "name": "aws_dynamo",
-  "dependencies": ["iasql_platform", "aws_account"]
-}

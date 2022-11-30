@@ -2,36 +2,21 @@ import * as sentry from '@sentry/node';
 import { PostHog } from 'posthog-node';
 
 import config, { IASQL_ENV } from '../config';
+import { throwError } from '../config/config';
 import logger from './logger';
-
-// ! DEPRECATED
-// TODO: REMOVE BY THE TIME 0.0.20 BECOMES UNSUPPORTED
-enum IasqlOperationType {
-  APPLY = 'APPLY',
-  SYNC = 'SYNC',
-  INSTALL = 'INSTALL',
-  UNINSTALL = 'UNINSTALL',
-  PLAN_APPLY = 'PLAN_APPLY',
-  PLAN_SYNC = 'PLAN_SYNC',
-  LIST = 'LIST',
-  UPGRADE = 'UPGRADE',
-}
 
 const DISCONNECT = 'DISCONNECT';
 const singletonPh = config.telemetry
   ? new PostHog(config.telemetry.posthogKey, { host: 'https://app.posthog.com' })
   : undefined;
 
-// TODO remove unused fields after 0.0.20 and make the rest required
-// instead of making them all optional
 export type DbProps = {
   dbAlias?: string;
   dbId?: string;
   iasqlEnv?: string;
   recordCount?: number;
-  operationCount?: number;
   rpcCount?: number;
-  email?: string;
+  email: string;
   dbVersion?: string;
 };
 
@@ -48,7 +33,7 @@ export async function logEvent(uid: string, event: string, dbProps: DbProps, eve
   // make all events uppercase
   event = event.toUpperCase();
   try {
-    dbProps.iasqlEnv = IASQL_ENV;
+    dbProps.iasqlEnv = IASQL_ENV ?? throwError('IASQL_ENV *must* be defined');
     if (singletonPh) {
       singletonPh.capture({
         event,
@@ -103,17 +88,6 @@ export async function logExport(uid: string, dbProps: DbProps, eventProps: Event
 
 export async function logRunSql(uid: string, dbProps: DbProps, eventProps: EventProps) {
   await logEvent(uid, 'RUNSQL', dbProps, eventProps);
-}
-
-// ! DEPRECATED
-// TODO: REMOVE BY THE TIME 0.0.20 BECOMES UNSUPPORTED
-export async function logOp(
-  opType: IasqlOperationType,
-  dbProps: DbProps,
-  eventProps: EventProps,
-  uid: string,
-) {
-  await logEvent(uid, opType, dbProps, eventProps);
 }
 
 export async function logRpc(

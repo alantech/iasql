@@ -3,14 +3,12 @@ import { Connection } from 'typeorm';
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
 
 import config from '../config';
-import { throwError } from '../config/config';
-import { modules as Modules } from '../modules';
+import * as Modules from '../modules';
 
 export async function migrate(conn: Connection) {
   // Needs to be done this way or a redeploy would accidentally start using the next version even
   // if it is not yet enabled.
-  const ModuleSet = (Modules as any)[config.modules.latestVersion];
-  const iasqlPlatform = ModuleSet?.iasqlPlatform ?? throwError('Core IasqlPlatform not found');
+  const iasqlPlatform = Modules.iasqlPlatform;
   const version = iasqlPlatform.version;
   const qr = conn.createQueryRunner();
   await qr.connect();
@@ -22,12 +20,12 @@ export async function migrate(conn: Connection) {
     await iasqlPlatform.migrations.afterInstall(qr);
   }
   await qr.query(`INSERT INTO iasql_module VALUES ('iasql_platform@${version}')`);
-  if (ModuleSet?.iasqlFunctions?.migrations?.beforeInstall) {
-    await ModuleSet?.iasqlFunctions?.migrations?.beforeInstall(qr);
+  if (Modules.iasqlFunctions?.migrations?.beforeInstall) {
+    await Modules.iasqlFunctions?.migrations?.beforeInstall(qr);
   }
-  await ModuleSet?.iasqlFunctions?.migrations?.install(qr);
-  if (ModuleSet?.iasqlFunctions?.migrations?.afterInstall) {
-    await ModuleSet?.iasqlFunctions?.migrations?.afterInstall(qr);
+  await Modules.iasqlFunctions?.migrations?.install(qr);
+  if (Modules.iasqlFunctions?.migrations?.afterInstall) {
+    await Modules.iasqlFunctions?.migrations?.afterInstall(qr);
   }
   await qr.query(`INSERT INTO iasql_module VALUES ('iasql_functions@${version}')`);
   await qr.query(
@@ -60,9 +58,6 @@ export const baseConnConfig: PostgresConnectionOptions = {
   }, // TODO: remove once DB instance with custom ssl cert is in place
 };
 
-// TODO remove when all versions become unsupported
-const versionsWithNoGroupRole = ['0.0.17', '0.0.18', '0.0.20', '0.0.21'];
-
 // TODO: try to roll back the `GRANT CREATE` to something a bit narrower in the future
 export function newPostgresRoleQuery(user: string, pass: string, dbId: string) {
   return `
@@ -84,62 +79,28 @@ export function createDbPostgreGroupRole(dbId: string) {
   `;
 }
 
-// TODO: Deprecate with v0.0.21
-export function grantPostgresRoleQuery(user: string) {
+export function grantPostgresGroupRoleQuery(user: string, dbId: string) {
+  const groupRole = getGroupRole(dbId);
   return `
-    GRANT SELECT ON ALL TABLES IN SCHEMA public TO ${user};
-    GRANT INSERT ON ALL TABLES IN SCHEMA public TO ${user};
-    GRANT UPDATE ON ALL TABLES IN SCHEMA public TO ${user};
-    GRANT DELETE ON ALL TABLES IN SCHEMA public TO ${user};
-    GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO ${user};
-    GRANT EXECUTE ON ALL PROCEDURES IN SCHEMA public TO ${user};
-    GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO ${user};
+    GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO ${groupRole};
+    GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO ${groupRole};
+    GRANT EXECUTE ON ALL PROCEDURES IN SCHEMA public TO ${groupRole};
+    GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO ${groupRole};
+    GRANT ${groupRole} to ${user};
   `;
 }
 
-export function grantPostgresGroupRoleQuery(user: string, dbId: string, versionString: string) {
-  if (versionsWithNoGroupRole.includes(versionString)) {
-    return grantPostgresRoleQuery(user);
-  } else {
-    const groupRole = getGroupRole(dbId);
-    return `
-      GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO ${groupRole};
-      GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO ${groupRole};
-      GRANT EXECUTE ON ALL PROCEDURES IN SCHEMA public TO ${groupRole};
-      GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO ${groupRole};
-      GRANT ${groupRole} to ${user};
-    `;
-  }
-}
-
 // runs query using the group role so user generated tables have the same owner
-export function setPostgresRoleQuery(dbId: string, versionString: string) {
-  return versionsWithNoGroupRole.includes(versionString)
-    ? ''
-    : `
+export function setPostgresRoleQuery(dbId: string) {
+  return `
     SET ROLE ${getGroupRole(dbId)};
   `;
 }
 
-export function revokePostgresRoleQuery(user: string, dbId: string, versionString: string) {
-  // TODO deprecate
-  if (versionsWithNoGroupRole.includes(versionString)) {
-    return `
-      REVOKE SELECT ON ALL TABLES IN SCHEMA public FROM ${user};
-      REVOKE INSERT ON ALL TABLES IN SCHEMA public FROM ${user};
-      REVOKE UPDATE ON ALL TABLES IN SCHEMA public FROM ${user};
-      REVOKE DELETE ON ALL TABLES IN SCHEMA public FROM ${user};
-      REVOKE EXECUTE ON ALL FUNCTIONS IN SCHEMA public FROM ${user};
-      REVOKE EXECUTE ON ALL PROCEDURES IN SCHEMA public FROM ${user};
-      REVOKE USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public FROM ${user};
-      REVOKE CREATE ON SCHEMA public FROM ${user};
-      REVOKE CONNECT ON DATABASE ${dbId} FROM ${user};
-    `;
-  } else {
-    return `
-      REVOKE ${getGroupRole(dbId)} FROM ${user};
-    `;
-  }
+export function revokePostgresRoleQuery(user: string, dbId: string) {
+  return `
+    REVOKE ${getGroupRole(dbId)} FROM ${user};
+  `;
 }
 
 export function dropPostgresRoleQuery(user: string, dbId: string, dropGroupRole: boolean) {

@@ -10,6 +10,7 @@ import {
   runBegin,
   runCommit,
   runInstall,
+  runInstallAll,
   runQuery,
   runRollback,
   runUninstall,
@@ -115,6 +116,7 @@ const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
+const installAll = runInstallAll.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const modules = ['aws_codedeploy', 'aws_iam', 'aws_ec2'];
 
@@ -726,7 +728,7 @@ describe('AwsCodedeploy install/uninstall', () => {
 
   it('uninstalls the codedeploy module', uninstall(modules));
 
-  it('installs all modules', done => void iasql.install([], dbAlias, 'postgres', true).then(...finish(done)));
+  it('installs all modules', installAll());
 
   it('uninstalls the codedeploy module', uninstall(['aws_codedeploy', 'aws_codepipeline']));
 

@@ -5,6 +5,7 @@ import { parse } from 'pgsql-parser';
 import { QueryRunner, getMetadataArgsStorage, ColumnType } from 'typeorm';
 import { snakeCase } from 'typeorm/util/StringUtils';
 
+import config from '../config';
 import { throwError } from '../config/config';
 import { getCloudId } from '../services/cloud-id';
 import logger from '../services/logger';
@@ -415,11 +416,6 @@ export class ModuleBase {
     context?: Context;
   };
   context?: Context;
-  // TODO: delete after v0.0.20 is deleted
-  sql?: {
-    afterInstallSqlPath?: string;
-    beforeUninstallSqlPath?: string;
-  };
   rpc?: { [key: string]: RpcInterface };
   migrations: {
     beforeInstall?: (q: QueryRunner) => Promise<void>;
@@ -474,10 +470,8 @@ export class ModuleBase {
 
   private getCustomSql() {
     const beforeInstallSql = this.readSqlDir('before_install') ?? '';
-    // TODO: delete customDir param after v0.0.20 is deleted
-    const afterInstallSql = this.readSqlDir('after_install', this.sql?.afterInstallSqlPath) ?? '';
-    // TODO: delete customDir param after v0.0.20 is deleted
-    const beforeUninstallSql = this.readSqlDir('before_uninstall', this.sql?.beforeUninstallSqlPath) ?? '';
+    const afterInstallSql = this.readSqlDir('after_install') ?? '';
+    const beforeUninstallSql = this.readSqlDir('before_uninstall') ?? '';
     const afterUninstallSql = this.readSqlDir('after_uninstall') ?? '';
     return {
       beforeInstallSql,
@@ -487,11 +481,9 @@ export class ModuleBase {
     };
   }
 
-  // TODO: delete customDir param after v0.0.20 is deleted
-  private readSqlDir(sqlFile: string, customDir?: string) {
+  private readSqlDir(sqlFile: string) {
     try {
-      // If no customDir specified, try to get the default
-      return fs.readFileSync(`${this.dirname}/${customDir ? `${customDir}` : `sql/${sqlFile}.sql`}`, 'utf8');
+      return fs.readFileSync(`${this.dirname}/sql/${sqlFile}.sql`, 'utf8');
     } catch (_) {
       /** Don't do anything if the default file is not there */
     }
@@ -511,7 +503,7 @@ export class ModuleBase {
     // Extract the name and version from `__dirname`
     const pathSegments = this.dirname.split(path.sep);
     const name = pathSegments[pathSegments.length - 1];
-    const version = pathSegments[pathSegments.length - 2];
+    const version = config.version;
     this.name = name;
     this.version = version;
     if (!this.dependencies) this.dependencies = require(`${this.dirname}/module.json`).dependencies;
