@@ -672,6 +672,8 @@ SELECT * FROM codedeploy_deployment_group WHERE application_id = (SELECT id FROM
     it('applies the security group deletion', commit());
   });
 
+  it('starts a transaction', begin());
+
   it('apply delete', commit());
 
   // cleanup

@@ -361,6 +361,8 @@ describe('VPC Multiregion Integration Testing', () => {
       ),
     );
 
+    it('starts a transaction', begin());
+
     it(
       'moves the nat gateway and elastic IP to another region',
       query(

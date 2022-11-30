@@ -166,6 +166,8 @@ describe('ECR Integration Testing', () => {
 
     it('applies the repository change', commit());
 
+    it('starts a transaction', begin());
+
     it(
       'pushes repository image',
       query(
@@ -478,6 +480,8 @@ describe('ECR Integration Testing', () => {
     );
 
     it('applies the public repository change', commit());
+
+    it('starts a transaction', begin());
 
     it(
       'pushes public repository image',

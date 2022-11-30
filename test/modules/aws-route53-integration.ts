@@ -48,10 +48,13 @@ const install = runInstall.bind(null, dbAlias);
 const installAll = runInstallAll.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
+
+const beginStaging = runBegin.bind(null, dbAlias + 'staging');
 const commitStaging = runCommit.bind(null, dbAlias + 'staging');
 const installStaging = runInstall.bind(null, dbAlias + 'staging');
 const uninstallStaging = runUninstall.bind(null, dbAlias + 'staging');
 const queryStaging = runQuery.bind(null, dbAlias + 'staging');
+
 const modules = ['aws_route53', 'aws_acm', 'aws_elb', 'aws_ec2'];
 
 jest.setTimeout(360000);
@@ -222,7 +225,7 @@ describe('Route53 Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  it('starts a transaction', beginStaging());
 
   it('syncs the regions', commitStaging());
 

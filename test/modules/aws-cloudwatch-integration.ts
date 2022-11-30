@@ -287,6 +287,8 @@ describe('AwsCloudwatch Integration Testing', () => {
 
   it('applies the deletion of the log group from the non-default region', commit());
 
+  it('starts a transaction', begin());
+
   it('syncs the state with the cloud', commit());
 
   it(
@@ -374,6 +376,8 @@ describe('AwsCloudwatch Integration Testing', () => {
   );
 
   it('applies moving the log group to the new region', commit());
+
+  it('starts a transaction', begin());
 
   it('syncs the log groups from the cloud', commit());
 

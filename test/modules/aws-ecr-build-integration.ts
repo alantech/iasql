@@ -96,6 +96,8 @@ describe('AwsEcrBuild Integration Testing', () => {
 
   it('applies the creation of ecr repository', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'builds hello world image and pushes to the new ecr repo',
     query(`

@@ -580,8 +580,6 @@ describe('ECS Simplified Integration Testing', () => {
     ),
   );
 
-  it('applies app update', commit());
-
   it(
     'check service force update',
     query(

@@ -602,6 +602,8 @@ describe('AwsCodepipeline Integration Testing', () => {
     it('applies the security group deletion', commit());
   });
 
+  it('starts a transaction', begin());
+
   it('apply delete', commit());
 
   it(

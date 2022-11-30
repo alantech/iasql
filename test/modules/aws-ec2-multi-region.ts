@@ -208,6 +208,8 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it('syncs the cloud state to update the metadata', commit());
 
   it(
@@ -417,6 +419,8 @@ describe('EC2 Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(1),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it('syncs the cloud state to update the metadata', commit());
 

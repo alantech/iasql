@@ -69,12 +69,15 @@ const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
-const querySync = runQuery.bind(null, `${dbAlias}_sync`);
+const uninstall = runUninstall.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const installAll = runInstallAll.bind(null, dbAlias);
-const installSync = runInstall.bind(null, `${dbAlias}_sync`);
-const syncCommit = runCommit.bind(null, `${dbAlias}_sync`);
-const uninstall = runUninstall.bind(null, dbAlias);
+
+const sidecarBegin = runBegin.bind(null, `${dbAlias}_sidecar`);
+const sidecarCommit = runCommit.bind(null, `${dbAlias}_sidecar`);
+const sidecarQuery = runQuery.bind(null, `${dbAlias}_sidecar`);
+const sidecarInstall = runInstall.bind(null, `${dbAlias}_sidecar`);
+
 const modules = ['aws_ec2', 'aws_ec2_metadata', 'aws_security_group', 'aws_vpc', 'aws_elb', 'aws_iam'];
 
 // ELB integration
@@ -167,11 +170,11 @@ describe('EC2 Integration Testing', () => {
   it('creates a new test db to test sync', done =>
     void iasql.connect(`${dbAlias}_sync`, 'not-needed', 'not-needed').then(...finish(done)));
 
-  it('installs the aws_account module', installSync(['aws_account']));
+  it('installs the aws_account module', sidecarInstall(['aws_account']));
 
   it(
     'inserts aws credentials',
-    querySync(
+    sidecarQuery(
       `
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
@@ -181,13 +184,13 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  it('starts a transaction', sidecarBegin());
 
-  it('syncs the regions', syncCommit());
+  it('syncs the regions', sidecarCommit());
 
   it(
     'sets the default region',
-    querySync(`
+    sidecarQuery(`
     UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
   `),
   );
@@ -421,7 +424,9 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
-  it('syncs the changes from the first database to the second', syncCommit());
+  it('starts a transaction', sidecarBegin());
+
+  it('syncs the changes from the first database to the second', sidecarCommit());
 
   it('starts a transaction', begin());
 
