@@ -35,6 +35,7 @@ def quickstart_down(_apps, schema_editor):
 def apply(_, schema_editor):
     db_alias = schema_editor.connection.alias
     with connections[db_alias].cursor() as cursor:
+        cursor.callproc('iasql_begin')
         cursor.callproc('iasql_commit')
         columns = [col[0] for col in cursor.description]
         print("\n")

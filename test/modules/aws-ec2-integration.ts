@@ -18,6 +18,7 @@ import {
 } from '../helpers';
 
 const dbAlias = 'ec2test';
+const dbAliasSidecar = 'ec2test_sidecar';
 const region = defaultRegion();
 const accessKeyId = process.env.AWS_ACCESS_KEY_ID ?? '';
 const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY ?? '';
@@ -69,12 +70,15 @@ const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
-const querySync = runQuery.bind(null, `${dbAlias}_sync`);
+const uninstall = runUninstall.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const installAll = runInstallAll.bind(null, dbAlias);
-const installSync = runInstall.bind(null, `${dbAlias}_sync`);
-const syncCommit = runCommit.bind(null, `${dbAlias}_sync`);
-const uninstall = runUninstall.bind(null, dbAlias);
+
+const sidecarBegin = runBegin.bind(null, dbAliasSidecar);
+const sidecarCommit = runCommit.bind(null, dbAliasSidecar);
+const sidecarQuery = runQuery.bind(null, dbAliasSidecar);
+const sidecarInstall = runInstall.bind(null, dbAliasSidecar);
+
 const modules = ['aws_ec2', 'aws_ec2_metadata', 'aws_security_group', 'aws_vpc', 'aws_elb', 'aws_iam'];
 
 // ELB integration
@@ -148,6 +152,8 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it('syncs the regions', commit());
 
   it(
@@ -163,13 +169,13 @@ describe('EC2 Integration Testing', () => {
   );
 
   it('creates a new test db to test sync', done =>
-    void iasql.connect(`${dbAlias}_sync`, 'not-needed', 'not-needed').then(...finish(done)));
+    void iasql.connect(`${dbAliasSidecar}`, 'not-needed', 'not-needed').then(...finish(done)));
 
-  it('installs the aws_account module', installSync(['aws_account']));
+  it('installs the aws_account module', sidecarInstall(['aws_account']));
 
   it(
     'inserts aws credentials',
-    querySync(
+    sidecarQuery(
       `
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
@@ -179,11 +185,13 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
-  it('syncs the regions', syncCommit());
+  it('starts a transaction', sidecarBegin());
+
+  it('syncs the regions', sidecarCommit());
 
   it(
     'sets the default region',
-    querySync(`
+    sidecarQuery(`
     UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
   `),
   );
@@ -417,7 +425,9 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
-  it('syncs the changes from the first database to the second', syncCommit());
+  it('starts a transaction', sidecarBegin());
+
+  it('syncs the changes from the first database to the second', sidecarCommit());
 
   it('starts a transaction', begin());
 
@@ -1196,7 +1206,7 @@ describe('EC2 Integration Testing', () => {
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 
   it('deletes the test sync db', done =>
-    void iasql.disconnect(`${dbAlias}_sync`, 'not-needed').then(...finish(done)));
+    void iasql.disconnect(`${dbAliasSidecar}`, 'not-needed').then(...finish(done)));
 });
 
 describe('EC2 General Purpose Volume Integration Testing', () => {
@@ -1228,6 +1238,8 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
       () => ({ username, password }),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it('syncs the regions', commit());
 
@@ -1537,6 +1549,8 @@ describe('EC2 install/uninstall', () => {
       () => ({ username, password }),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it('syncs the regions', commit());
 

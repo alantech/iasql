@@ -164,6 +164,8 @@ describe('AwsCodedeploy Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it('syncs the regions', commit());
 
   it(
@@ -670,6 +672,8 @@ SELECT * FROM codedeploy_deployment_group WHERE application_id = (SELECT id FROM
     it('applies the security group deletion', commit());
   });
 
+  it('starts a transaction', begin());
+
   it('apply delete', commit());
 
   // cleanup
@@ -705,6 +709,8 @@ describe('AwsCodedeploy install/uninstall', () => {
       () => ({ username, password }),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it('syncs the regions', commit());
 

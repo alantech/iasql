@@ -249,6 +249,8 @@ describe('AwsCodepipeline Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it('syncs the regions', commit());
 
   it(
@@ -600,6 +602,8 @@ describe('AwsCodepipeline Integration Testing', () => {
     it('applies the security group deletion', commit());
   });
 
+  it('starts a transaction', begin());
+
   it('apply delete', commit());
 
   it(
@@ -656,6 +660,8 @@ describe('AwsCodepipeline install/uninstall', () => {
       () => ({ username, password }),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it('syncs the regions', commit());
 

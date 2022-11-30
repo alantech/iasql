@@ -85,6 +85,8 @@ describe('ECR Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it('syncs the regions', commit());
 
   it(
@@ -163,6 +165,8 @@ describe('ECR Integration Testing', () => {
     );
 
     it('applies the repository change', commit());
+
+    it('starts a transaction', begin());
 
     it(
       'pushes repository image',
@@ -477,6 +481,8 @@ describe('ECR Integration Testing', () => {
 
     it('applies the public repository change', commit());
 
+    it('starts a transaction', begin());
+
     it(
       'pushes public repository image',
       query(
@@ -616,6 +622,8 @@ describe('ECR install/uninstall', () => {
       () => ({ username, password }),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it('syncs the regions', commit());
 

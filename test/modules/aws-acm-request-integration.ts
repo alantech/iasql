@@ -60,6 +60,8 @@ describe('AwsAcm Request Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it('syncs the regions', commit());
 
   it(

@@ -167,6 +167,37 @@ end;
 $$;
 
 CREATE
+OR REPLACE FUNCTION maybe_commit () RETURNS TEXT LANGUAGE plpgsql SECURITY INVOKER AS $$
+declare
+    _change_type text;
+    _ts TIMESTAMP WITH TIME ZONE;
+    _30_min_interval TIMESTAMP WITH TIME ZONE;
+    _almost_2_min_interval TIMESTAMP WITH TIME ZONE;
+    _current_ts TIMESTAMP WITH TIME ZONE;
+begin
+    _current_ts := now();
+    _30_min_interval := _current_ts - interval '30 minutes';
+    _almost_2_min_interval := _current_ts - interval '1.9 minutes';
+    -- Check if theres an open transaction
+    SELECT change_type, ts INTO _change_type, _ts
+    FROM iasql_audit_log
+    WHERE 
+      change_type IN ('OPEN_TRANSACTION', 'CLOSE_TRANSACTION') AND
+      ts > _30_min_interval
+    ORDER BY ts DESC
+    LIMIT 1;
+    -- If a transaction occurred less than 2 min ago we skip
+    IF _change_type != 'OPEN_TRANSACTION' AND (_ts IS NULL OR _ts < _almost_2_min_interval) THEN
+      PERFORM iasql_begin();
+      PERFORM iasql_commit();
+      RETURN 'iasql_commit called';
+    ELSE
+      RAISE EXCEPTION 'Cannot call iasql_commit while a transaction is open';
+    END IF;
+end;
+$$;
+
+CREATE
 OR REPLACE FUNCTION query_cron (_action TEXT) RETURNS TEXT LANGUAGE plpgsql SECURITY INVOKER AS $$
 declare
     _db_id text;
@@ -183,23 +214,14 @@ begin
     END IF;
     CASE
       WHEN _action = 'schedule' THEN
-        _dblink_sql := format('SELECT schedule_in_database AS cron_res FROM cron.schedule_in_database (%L, %L, $CRON$ SELECT iasql_commit(); $CRON$, %L);', 'iasql_engine_' || _db_id, '*/2 * * * *', _db_id);
+        -- TODO: scheduled function should check if is safe to run commit or if it is an open transaction in place
+        _dblink_sql := format('SELECT schedule_in_database AS cron_res FROM cron.schedule_in_database (%L, %L, $CRON$ SELECT maybe_commit(); $CRON$, %L);', 'iasql_engine_' || _db_id, '*/2 * * * *', _db_id);
       WHEN _action = 'unschedule' THEN
         _dblink_sql := format('SELECT unschedule AS cron_res FROM cron.unschedule(%L);', 'iasql_engine_' || _db_id);
-      WHEN _action = 'enable' THEN
-        _dblink_sql := format('SELECT alter_job AS cron_res FROM cron.alter_job(job_id := %s, active := TRUE);', '(SELECT cron.job.jobid FROM cron.job WHERE cron.job.jobname = ''' || 'iasql_engine_' || _db_id || ''')');
-      WHEN _action = 'disable' THEN
-        _dblink_sql := format('SELECT alter_job AS cron_res FROM cron.alter_job(job_id := %s, active := FALSE);', '(SELECT cron.job.jobid FROM cron.job WHERE cron.job.jobname = ''' || 'iasql_engine_' || _db_id || ''')');
-      WHEN _action = 'status' THEN
-        _dblink_sql := format('SELECT active AS cron_res FROM cron.job WHERE cron.job.jobname = ''' || 'iasql_engine_' || _db_id || ''';');
       WHEN _action = 'schedule_purge' THEN
         _dblink_sql := format('SELECT schedule AS cron_res FROM cron.schedule (%L, %L, $PURGE$ DELETE FROM cron.job_run_details WHERE database = %L AND end_time < (now() - interval %L); $PURGE$);', 'purge_iasql_engine_' || _db_id, '0 0 * * *', _db_id, '7 days');
       WHEN _action = 'unschedule_purge' THEN
         _dblink_sql := format('SELECT unschedule AS cron_res FROM cron.unschedule(%L);', 'purge_iasql_engine_' || _db_id);
-      WHEN _action = 'schedule_unlock' THEN
-        _dblink_sql := format('SELECT schedule_in_database AS cron_res FROM cron.schedule_in_database (%L, %L, $CRON$ SELECT iasql_unlock_transaction(); $CRON$, %L);', 'unlock_iasql_engine_' || _db_id, '*/30 * * * *', _db_id);
-      WHEN _action = 'unschedule_unlock' THEN
-        _dblink_sql := format('SELECT unschedule AS cron_res FROM cron.unschedule(%L);', 'unlock_iasql_engine_' || _db_id);
       ELSE
         RAISE EXCEPTION 'Invalid action';
         RETURN 'Execution error';

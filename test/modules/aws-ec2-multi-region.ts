@@ -128,6 +128,8 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it('syncs the regions', commit());
 
   it(
@@ -205,6 +207,8 @@ describe('EC2 Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(1),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it('syncs the cloud state to update the metadata', commit());
 
@@ -347,6 +351,8 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'moves the instance to another region',
     query(
@@ -415,6 +421,8 @@ describe('EC2 Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(1),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it('syncs the cloud state to update the metadata', commit());
 

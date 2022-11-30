@@ -71,6 +71,8 @@ describe('VPC Multiregion Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it('syncs the regions', commit());
 
   it(
@@ -358,6 +360,8 @@ describe('VPC Multiregion Integration Testing', () => {
         (res: any) => expect(res.length).toBe(1),
       ),
     );
+
+    it('starts a transaction', begin());
 
     it(
       'moves the nat gateway and elastic IP to another region',

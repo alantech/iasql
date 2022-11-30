@@ -60,20 +60,8 @@ describe('Automatic mode', () => {
     ),
   );
 
-  it(
-    'previews the change',
-    query(
-      `
-        select * from iasql_preview();
-      `,
-      (res: any) => {
-        expect(res[0]['action']).toBe('create');
-      },
-    ),
-  );
-
   it('wait for 2 min to let the cron be triggered', async () => {
-    await new Promise(r => setTimeout(r, 2 * 60 * 1000));
+    await new Promise(r => setTimeout(r, 4 * 60 * 1000));
   });
 
   it(

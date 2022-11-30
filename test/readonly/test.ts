@@ -21,7 +21,7 @@ const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
 const begin = runBegin.bind(null, dbAlias);
 
-jest.setTimeout(420000);
+jest.setTimeout(600000);
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown());
 
@@ -57,6 +57,8 @@ describe('Aws read only Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it('syncs the regions', commit());
 
   it(
@@ -72,6 +74,8 @@ describe('Aws read only Integration Testing', () => {
   );
 
   it('installs all modules', installAll());
+
+  it('starts a transaction', begin());
 
   it('sync no-op', commit());
 
@@ -141,6 +145,8 @@ describe('Aws read only Integration Testing', () => {
       },
     ),
   );
+
+  it('undo changes to close the transaction', rollback());
 
   it('uninstalls all modules', uninstallAll());
 
