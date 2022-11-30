@@ -373,6 +373,8 @@ describe('ECS Integration Testing', () => {
 
   it('applies adds a new task definition with container definition', commit());
 
+  it('starts a transaction', sidecarBegin());
+
   it('sync sidecar database', sidecarCommit());
 
   it(
@@ -458,6 +460,8 @@ describe('ECS Integration Testing', () => {
 
   it('applies service insertion', commit());
 
+  it('starts a transaction', sidecarBegin());
+
   it('sync sidecar database', sidecarCommit());
 
   it(
@@ -536,6 +540,8 @@ describe('ECS Integration Testing', () => {
   );
 
   it('applies deletes tasks and container definitions', commit());
+
+  it('starts a transaction', sidecarBegin());
 
   it('sync sidecar database', sidecarCommit());
 

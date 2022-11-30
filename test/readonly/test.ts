@@ -21,7 +21,7 @@ const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
 const begin = runBegin.bind(null, dbAlias);
 
-jest.setTimeout(420000);
+jest.setTimeout(600000);
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown());
 

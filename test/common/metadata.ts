@@ -153,7 +153,7 @@ describe('Testing metadata repo', () => {
     FROM iasql_database
     WHERE pg_name = '${dbAlias}';
   `,
-      (row: any[]) => expect(row[0].rpc_count).toBe(2),
+      (row: any[]) => expect(row[0].rpc_count).toBe(3),
     ),
   );
 

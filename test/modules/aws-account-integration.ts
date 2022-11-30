@@ -377,11 +377,9 @@ describe('AwsAccount Integration Testing', () => {
       return {};
     }));
 
-  it('starts a transaction', begin());
-
-  it('confirms that you cannot apply in a busted db', done =>
+  it('confirms that you cannot start a transaction in a busted db', done =>
     void query(`
-    SELECT * FROM iasql_commit();
+    SELECT * FROM iasql_begin();
   `)((e?: any) => {
       console.log({ e });
       try {

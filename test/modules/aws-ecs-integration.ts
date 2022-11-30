@@ -166,7 +166,7 @@ describe('ECS Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  it('starts a transaction', sidecarBegin());
 
   it('syncs the regions', sidecarCommit());
 

@@ -571,9 +571,19 @@ describe('ELB Integration Testing', () => {
     'deletes the security groups',
     query(
       `
-        DELETE
-        FROM security_group
-        WHERE group_name IN ('${sg1}', '${sg2}');
+        BEGIN;
+          DELETE
+          FROM security_group_rule
+          WHERE security_group_id IN (
+            SELECT id
+            FROM security_group
+            WHERE group_name IN ('${sg1}', '${sg2}')
+          );
+
+          DELETE
+          FROM security_group
+          WHERE group_name IN ('${sg1}', '${sg2}');
+        COMMIT;
     `,
       undefined,
       true,

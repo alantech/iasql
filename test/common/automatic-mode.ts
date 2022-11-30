@@ -61,7 +61,7 @@ describe('Automatic mode', () => {
   );
 
   it('wait for 2 min to let the cron be triggered', async () => {
-    await new Promise(r => setTimeout(r, 2 * 60 * 1000));
+    await new Promise(r => setTimeout(r, 4 * 60 * 1000));
   });
 
   it(

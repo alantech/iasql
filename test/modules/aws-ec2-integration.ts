@@ -18,6 +18,7 @@ import {
 } from '../helpers';
 
 const dbAlias = 'ec2test';
+const dbAliasSidecar = 'ec2test_sidecar';
 const region = defaultRegion();
 const accessKeyId = process.env.AWS_ACCESS_KEY_ID ?? '';
 const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY ?? '';
@@ -73,10 +74,10 @@ const uninstall = runUninstall.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const installAll = runInstallAll.bind(null, dbAlias);
 
-const sidecarBegin = runBegin.bind(null, `${dbAlias}_sidecar`);
-const sidecarCommit = runCommit.bind(null, `${dbAlias}_sidecar`);
-const sidecarQuery = runQuery.bind(null, `${dbAlias}_sidecar`);
-const sidecarInstall = runInstall.bind(null, `${dbAlias}_sidecar`);
+const sidecarBegin = runBegin.bind(null, dbAliasSidecar);
+const sidecarCommit = runCommit.bind(null, dbAliasSidecar);
+const sidecarQuery = runQuery.bind(null, dbAliasSidecar);
+const sidecarInstall = runInstall.bind(null, dbAliasSidecar);
 
 const modules = ['aws_ec2', 'aws_ec2_metadata', 'aws_security_group', 'aws_vpc', 'aws_elb', 'aws_iam'];
 
@@ -168,7 +169,7 @@ describe('EC2 Integration Testing', () => {
   );
 
   it('creates a new test db to test sync', done =>
-    void iasql.connect(`${dbAlias}_sync`, 'not-needed', 'not-needed').then(...finish(done)));
+    void iasql.connect(`${dbAliasSidecar}`, 'not-needed', 'not-needed').then(...finish(done)));
 
   it('installs the aws_account module', sidecarInstall(['aws_account']));
 
@@ -1205,7 +1206,7 @@ describe('EC2 Integration Testing', () => {
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 
   it('deletes the test sync db', done =>
-    void iasql.disconnect(`${dbAlias}_sync`, 'not-needed').then(...finish(done)));
+    void iasql.disconnect(`${dbAliasSidecar}`, 'not-needed').then(...finish(done)));
 });
 
 describe('EC2 General Purpose Volume Integration Testing', () => {
