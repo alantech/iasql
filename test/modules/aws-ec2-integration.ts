@@ -268,10 +268,7 @@ describe('EC2 Integration Testing', () => {
     SELECT *
     FROM key_pair_request ('${prefix}-key-request', '${region}');
   `,
-      (res: any[]) => {
-        console.log(res[0]);
-        expect(res.length).toBe(1), expect(res[0].privateKey).toContain('-----BEGIN RSA PRIVATE KEY-----');
-      },
+      (res: any[]) => expect(res.length).toBe(1),
     ),
   );
 
