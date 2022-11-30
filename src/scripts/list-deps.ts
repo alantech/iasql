@@ -1,10 +1,9 @@
 /* tslint:disable no-console */
 import { getModJsons, ModJson } from './module-json-utils';
 
-const moduleName = process.argv[process.argv.length - 2];
-const moduleVersion = process.argv[process.argv.length - 1];
+const moduleName = process.argv[process.argv.length - 1];
 
-const modJsons = getModJsons(moduleVersion);
+const modJsons = getModJsons();
 
 const depModules: { [key: string]: ModJson } = {};
 

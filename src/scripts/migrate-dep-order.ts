@@ -4,10 +4,9 @@ import { SnakeNamingStrategy } from 'typeorm-naming-strategies';
 
 import { sortMods, getModMigration, getModBeforeInstall } from './module-json-utils';
 
-const moduleName = process.argv[process.argv.length - 2];
-const moduleVersion = process.argv[process.argv.length - 1];
+const moduleName = process.argv[process.argv.length - 1];
 
-let sortedDeps = sortMods(moduleName, moduleVersion, false);
+let sortedDeps = sortMods(moduleName, false);
 
 // TODO: Remove this hackery once typeorm migration doesn't do weird alter table crap
 if (moduleName !== 'iasql_platform') {
@@ -15,7 +14,7 @@ if (moduleName !== 'iasql_platform') {
 }
 
 const entities = sortedDeps.map(
-  d => `${__dirname}/../modules/${moduleVersion}/${d.name}/entity/*.ts`,
+  d => `${__dirname}/../modules/${d.name}/entity/*.ts`,
 ) as any[];
 
 (async () => {
@@ -34,10 +33,10 @@ const entities = sortedDeps.map(
 
   for (const dep of sortedDeps) {
     console.log(`Adding ${dep.name} before install...`);
-    const beforeInstallSql = getModBeforeInstall(dep.name, moduleVersion);
+    const beforeInstallSql = getModBeforeInstall(dep.name);
     await qr.query(beforeInstallSql);
     console.log(`Adding ${dep.name} migration...`);
-    const migrationClass = getModMigration(dep.name, moduleVersion);
+    const migrationClass = getModMigration(dep.name);
     await migrationClass.prototype.up(qr);
   }
   console.log('Done!');
