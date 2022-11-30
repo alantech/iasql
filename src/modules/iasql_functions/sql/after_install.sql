@@ -167,6 +167,65 @@ end;
 $$;
 
 CREATE
+OR REPLACE FUNCTION wait_for_open_transaction () RETURNS bool LANGUAGE plpgsql SECURITY DEFINER AS $$
+declare
+    _counter integer := 0;
+    _is_open bool;
+
+begin
+    -- Loop for 15 min
+    WHILE _counter < 450 LOOP
+      SELECT * FROM is_open_transaction() INTO _is_open;
+      IF _is_open IS FALSE THEN
+        RETURN TRUE;
+      END IF;
+      _counter := _counter + 1;
+      perform pg_sleep(2);
+    END LOOP;
+    RAISE EXECPTION 'Another transaction is open or running. Please try again later.'
+end;
+$$;
+
+CREATE
+OR REPLACE FUNCTION is_open_transaction () RETURNS bool LANGUAGE plpgsql SECURITY DEFINER AS $$
+declare
+    _change_type text;
+    _current_ts TIMESTAMP WITH TIME ZONE;
+    _30_min_interval TIMESTAMP WITH TIME ZONE;
+begin
+    _current_ts := now();
+    _30_min_interval := _current_ts - interval '30 minutes';
+    -- Check if theres an open transaction
+    SELECT change_type INTO _change_type
+    FROM iasql_audit_log
+    WHERE 
+      change_type IN ('OPEN_TRANSACTION', 'CLOSE_TRANSACTION') AND
+      ts > _30_min_interval
+    ORDER BY ts DESC
+    LIMIT 1;
+    RETURN _change_type != 'OPEN_TRANSACTION';
+end;
+$$;
+
+CREATE
+OR REPLACE FUNCTION open_transaction () RETURNS bool LANGUAGE plpgsql SECURITY DEFINER AS $$
+begin
+    INSERT INTO iasql_audit_log ("user", change, change_type, table_name, ts)
+    VALUES (USER, '{}', 'OPEN_TRANSACTION', 'iasql_audit_log', now());
+    RETURN TRUE;
+end;
+$$;
+
+CREATE
+OR REPLACE FUNCTION close_transaction () RETURNS bool LANGUAGE plpgsql SECURITY DEFINER AS $$
+begin
+    INSERT INTO iasql_audit_log ("user", change, change_type, table_name, ts)
+    VALUES (USER, '{}', 'CLOSE_TRANSACTION', 'iasql_audit_log', now());
+    RETURN TRUE;
+end;
+$$;
+
+CREATE
 OR REPLACE FUNCTION maybe_commit () RETURNS TEXT LANGUAGE plpgsql SECURITY INVOKER AS $$
 declare
     _change_type text;

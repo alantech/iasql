@@ -24,6 +24,12 @@ export type RpcOutput = { [key: string]: ColumnType };
 
 export type RpcResponseObject<T> = { [Properties in keyof T]: any };
 
+export type TransactionMode =
+  | 'no-transaction'
+  | 'inner-transaction'
+  | 'wait-and-start'
+  | 'fail-if-no-transaction';
+
 export interface CrudInterface2<E> {
   create: (e: E[], ctx: Context) => Promise<void | E[]>;
   read: (ctx: Context, id?: string) => Promise<E[] | E | void>;
@@ -228,6 +234,7 @@ export interface MapperInterface<E> {
 export interface RpcInterface {
   module: ModuleInterface;
   outputTable: RpcOutput;
+  transactionMode: TransactionMode;
   call: (
     dbId: string,
     dbUser: string,
@@ -361,6 +368,7 @@ export class MapperBase<E> {
 export class RpcBase {
   module: ModuleInterface;
   outputTable: RpcOutput;
+  transactionMode: TransactionMode;
   call: (
     dbId: string,
     dbUser: string,
@@ -430,11 +438,21 @@ export class ModuleBase {
     let afterInstallSql = '';
     let beforeUninstallSql = '';
     for (const [key, rpc] of Object.entries(this.rpc ?? {})) {
-      const rpcOutputEntries = Object.entries(rpc.outputTable ?? {});
-      const rpcOutputTable = rpcOutputEntries
-        .map(([columnName, columnType]) => `${columnName} ${columnType}`)
-        .join(', ');
-      afterInstallSql += `
+      afterInstallSql += this.generateRpcSql(key, rpc);
+      beforeUninstallSql =
+        `
+        DROP FUNCTION "${snakeCase(key)}";
+      ` + beforeUninstallSql;
+    }
+    return [afterInstallSql, beforeUninstallSql];
+  }
+
+  private generateRpcSql(key: string, rpc: RpcInterface): string {
+    const rpcOutputEntries = Object.entries(rpc.outputTable ?? {});
+    const rpcOutputTable = rpcOutputEntries
+      .map(([columnName, columnType]) => `${columnName} ${columnType}`)
+      .join(', ');
+    return `
         create or replace function ${snakeCase(
           key,
         )}(variadic _args text[] default array[]::text[]) returns table (
@@ -444,28 +462,53 @@ export class ModuleBase {
         as $$
         declare
           _opid uuid;
+          _is_open bool;
         begin
-          _opid := until_iasql_rpc('${this.name}', '${key}', _args);
-          return query select
-            ${
-              rpcOutputEntries.length
-                ? `${rpcOutputEntries
-                    .map(([col, typ]) => `try_cast(j.s->>'${col}', NULL::${typ}) as ${col}`)
-                    .join(', ')}`
-                : ''
-            }
-          from (
-            select json_array_elements(output::json) as s from iasql_rpc where opid = _opid
-          ) as j;
+          
+          ${this.generateTransactionSql(rpc.transactionMode)}
+
+          BEGIN
+            _opid := until_iasql_rpc('${this.name}', '${key}', _args);
+            ${rpc.transactionMode === 'inner-transaction' ? 'PERFORM close_transaction();' : ''}
+            return query select
+              ${
+                rpcOutputEntries.length
+                  ? `${rpcOutputEntries
+                      .map(([col, typ]) => `try_cast(j.s->>'${col}', NULL::${typ}) as ${col}`)
+                      .join(', ')}`
+                  : ''
+              }
+            from (
+              select json_array_elements(output::json) as s from iasql_rpc where opid = _opid
+            ) as j;  
+          EXCEPTION
+            WHEN others THEN
+              ${rpc.transactionMode === 'inner-transaction' ? 'PERFORM close_transaction();' : 'RAISE EXCEPTION others;'}
+            END;
         end;
         $$;
       `;
-      beforeUninstallSql =
-        `
-        DROP FUNCTION "${snakeCase(key)}";
-      ` + beforeUninstallSql;
+  }
+
+  private generateTransactionSql(transactionMode: TransactionMode): string {
+    switch (transactionMode) {
+      case 'no-transaction':
+        return '';
+      case 'fail-if-no-transaction':
+        return `
+          SELECT * FROM is_open_transaction INTO _is_open;
+          IF _is_open IS FALSE THEN
+            RAISE EXCEPTION 'Cannot execute without calling iasql_begin first';
+          END IF;
+        `;
+      case 'wait-and-start':
+      case 'inner-transaction':
+      default:
+        return `
+          PERFORM wait_for_open_transaction();
+          PERFORM open_transaction();
+        `;
     }
-    return [afterInstallSql, beforeUninstallSql];
   }
 
   private getCustomSql() {
