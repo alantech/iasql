@@ -14,6 +14,7 @@ import logger from '../services/logger';
 // editor. They *shouldn't* have to be ever imported directly, only the classes ought to be, but as
 // the classes use these interfaces it helps give you hints as you develop a lot better than without
 // them.
+
 export type IdFields = { [key: string]: string };
 
 export type Context = { [key: string]: any };
@@ -23,7 +24,6 @@ export type RpcOutput = { [key: string]: ColumnType };
 
 export type RpcResponseObject<T> = { [Properties in keyof T]: any };
 
-/** @internal */
 export interface CrudInterface2<E> {
   create: (e: E[], ctx: Context) => Promise<void | E[]>;
   read: (ctx: Context, id?: string) => Promise<E[] | E | void>;
@@ -228,7 +228,6 @@ export interface MapperInterface<E extends {}> {
   cloud: Crud2<E>;
 }
 
-/** @internal */
 export interface RpcInterface {
   module: ModuleInterface;
   outputTable: RpcOutput;
@@ -363,7 +362,6 @@ export class MapperBase<E extends {}> {
   }
 }
 
-/** @internal */
 export class RpcBase {
   module: ModuleInterface;
   outputTable: RpcOutput;
@@ -385,7 +383,6 @@ export class RpcBase {
   }
 }
 
-/** @internal */
 export interface ModuleInterface {
   name: string;
   version?: string;
@@ -411,7 +408,6 @@ export interface ModuleInterface {
   };
 }
 
-/** @internal */
 export class ModuleBase {
   dirname: string;
   name: string;
