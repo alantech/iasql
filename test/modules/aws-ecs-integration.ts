@@ -248,8 +248,6 @@ describe('ECS Integration Testing', () => {
   );
 
   // Service dependencies
-  it('applies service dependencies', commit());
-
   it('starts a transaction', begin());
 
   it(
@@ -293,6 +291,8 @@ describe('ECS Integration Testing', () => {
     ),
   );
 
+  it('applies service dependencies', commit());
+
   it(
     'check target group insertion',
     query(
@@ -319,6 +319,8 @@ describe('ECS Integration Testing', () => {
 
   // Service spinning up a task definition with container using a docker image
   // Container definition
+  it('starts a transaction', begin());
+
   it(
     'adds container dependencies',
     query(
