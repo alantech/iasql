@@ -234,7 +234,6 @@ export class RouteTableMapper extends MapperBase<RouteTable> {
             return;
           }
           const client = (await ctx.getAwsClient(e.region)) as AWS;
-          await ctx.orm.remove(Route, e.routes);
           await client.ec2client.deleteRouteTable({ RouteTableId: e.routeTableId });
         }),
       );

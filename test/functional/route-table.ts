@@ -1,60 +1,58 @@
-import { modules } from '../../src/modules';
-import { TypeormWrapper } from '../../src/services/typeorm';
 import { v4 as uuidv4 } from 'uuid';
+
+import * as Modules from '../../src/modules';
+import { awsAccount, awsVpcModule } from '../../src/modules';
 import * as iasql from '../../src/services/iasql';
-import {
-  execComposeDown,
-  execComposeUp,
-  finish,
-  runApply,
-  runInstall,
-  runQuery,
-  runSync,
-  runUninstall,
-} from '../helpers';
 import { getContext } from '../../src/services/scheduler';
-import { awsAccount, awsVpcModule } from '../../src/modules/0.0.23';
+import { TypeormWrapper } from '../../src/services/typeorm';
+import { execComposeDown, execComposeUp, finish, runCommit, runInstall, runQuery, runUninstall } from '../helpers';
 
 const dbAlias = 'routetabletest';
 jest.setTimeout(360000);
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown());
 
-const apply = runApply.bind(null, dbAlias);
-const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
-const uninstall = runUninstall.bind(null, dbAlias);
+const commit = runCommit.bind(null, dbAlias);
 const region = 'eu-central-1';
 
 describe('RouteTable Functional Testing', () => {
-  let context: { [x: string]: any; };
+  let context: { [x: string]: any };
 
-  it('creates a new test db', (done) => void iasql.connect(
-    dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
+  it('creates a new test db', done =>
+    void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
 
   it('inits variables', async () => {
     const conn = await TypeormWrapper.createConn(dbAlias, { name: uuidv4() });
-    const versionString = await TypeormWrapper.getVersionString(dbAlias);
-    const Modules = (modules as any)[versionString];
     const initialContext = await getContext(conn, Modules);
     context = { ...awsAccount.context, ...initialContext };
   });
 
   it('installs the aws_account module', install(['aws_account']));
 
-  it('inserts aws credentials', query(`
+  it(
+    'inserts aws credentials',
+    query(
+      `
       INSERT INTO aws_credentials (access_key_id, secret_access_key)
       VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
-  `, undefined, false));
+  `,
+      undefined,
+      false,
+    ),
+  );
 
-  it('syncs the regions', sync());
+  it('syncs the regions', commit());
 
-  it('sets the default region', query(`
+  it(
+    'sets the default region',
+    query(`
       UPDATE aws_regions
       SET is_default = TRUE
       WHERE region = '${region}';
-  `));
+  `),
+  );
 
   it('installs the vpc module', install(['aws_vpc']));
 
@@ -63,7 +61,5 @@ describe('RouteTable Functional Testing', () => {
     console.log(out);
   });
 
-  it('deletes the test db', (done) => void iasql
-    .disconnect(dbAlias, 'not-needed')
-    .then(...finish(done)));
+  it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 });
