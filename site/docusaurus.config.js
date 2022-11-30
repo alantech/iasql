@@ -21,7 +21,7 @@ const theButton = require('./src/rehype/thebutton');
     url: config.url,
     baseUrl: '/',
     trailingSlash: true,
-    onBrokenLinks: 'throw',
+    onBrokenLinks: 'warn',
     onBrokenMarkdownLinks: 'throw',
     favicon: 'img/favicon.png',
     projectName: 'iasql-engine',
@@ -95,7 +95,7 @@ const theButton = require('./src/rehype/thebutton');
               label: 'Docs',
             },
             {
-              to: '/api-reference',
+              to: 'api',
               target: '_self',
               label: 'API reference',
             },
