@@ -172,7 +172,7 @@ declare
     _change_type text;
     _ts TIMESTAMP WITH TIME ZONE;
     _30_min_interval TIMESTAMP WITH TIME ZONE;
-    _2_min_interval TIMESTAMP WITH TIME ZONE;
+    _almost_2_min_interval TIMESTAMP WITH TIME ZONE;
     _current_ts TIMESTAMP WITH TIME ZONE;
 begin
     _current_ts := now();
