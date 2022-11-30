@@ -14,6 +14,7 @@ import logger from '../services/logger';
 // editor. They *shouldn't* have to be ever imported directly, only the classes ought to be, but as
 // the classes use these interfaces it helps give you hints as you develop a lot better than without
 // them.
+
 export type IdFields = { [key: string]: string };
 
 export type Context = { [key: string]: any };
@@ -23,7 +24,6 @@ export type RpcOutput = { [key: string]: ColumnType };
 
 export type RpcResponseObject<T> = { [Properties in keyof T]: any };
 
-/** @internal */
 export interface CrudInterface2<E> {
   create: (e: E[], ctx: Context) => Promise<void | E[]>;
   read: (ctx: Context, id?: string) => Promise<E[] | E | void>;
@@ -32,12 +32,8 @@ export interface CrudInterface2<E> {
   delete: (e: E[], ctx: Context) => Promise<void | E[]>;
 }
 
-<<<<<<< HEAD
-export class Crud2<E extends {}> {
-=======
 /** @internal */
-export class Crud2<E> {
->>>>>>> 731a279c (add latest typedoc config)
+export class Crud2<E extends {}> {
   module: ModuleInterface;
   createFn: (e: E[], ctx: Context) => Promise<void | E[]>;
   readFn: (ctx: Context, id?: string) => Promise<E[] | E | void>;
@@ -230,7 +226,6 @@ export interface MapperInterface<E extends {}> {
   cloud: Crud2<E>;
 }
 
-/** @internal */
 export interface RpcInterface {
   module: ModuleInterface;
   outputTable: RpcOutput;
@@ -242,12 +237,8 @@ export interface RpcInterface {
   ) => Promise<RpcResponseObject<RpcOutput>[]>;
 }
 
-<<<<<<< HEAD
-export class MapperBase<E extends {}> {
-=======
 /** @internal */
-export class MapperBase<E> {
->>>>>>> 731a279c (add latest typedoc config)
+export class MapperBase<E extends {}> {
   module: ModuleInterface;
   entity: new () => E;
   entityId: (e: E) => string;
@@ -369,7 +360,6 @@ export class MapperBase<E> {
   }
 }
 
-/** @internal */
 export class RpcBase {
   module: ModuleInterface;
   outputTable: RpcOutput;
@@ -391,7 +381,6 @@ export class RpcBase {
   }
 }
 
-/** @internal */
 export interface ModuleInterface {
   name: string;
   version?: string;
@@ -417,7 +406,6 @@ export interface ModuleInterface {
   };
 }
 
-/** @internal */
 export class ModuleBase {
   dirname: string;
   name: string;
