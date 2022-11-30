@@ -1490,12 +1490,19 @@ async function getChangesAfterCommitStartedByEntity(
 export async function maybeOpenTransaction(orm: TypeormWrapper): Promise<void> {
   // Check if no other transaction is open in the last 30 min
   // Check if no commit is running
-  const [isRunning, openTransaction] = await Promise.all([isCommitRunning(orm), isOpenTransaction(orm)]);
-  if (!isRunning && !openTransaction) {
-    await insertLog(orm, 'open');
-  } else {
-    throw new Error('Another transaction is open or running. Please try again later.');
-  }
+  let addedTransaction = false,
+    loops = 120;
+  do {
+    const [isRunning, openTransaction] = await Promise.all([isCommitRunning(orm), isOpenTransaction(orm)]);
+    if (!isRunning && !openTransaction) {
+      await insertLog(orm, 'open');
+      addedTransaction = true;
+    } else {
+      await new Promise(r => setTimeout(r, 1000)); // Sleep for a sec
+      loops--;
+    }
+  } while (!addedTransaction && !!loops);
+  if (!addedTransaction) throw new Error('Another transaction is open or running. Please try again later.');
 }
 
 export async function closeTransaction(orm: TypeormWrapper): Promise<void> {
