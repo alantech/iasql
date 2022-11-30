@@ -3,11 +3,12 @@ import { InvokeCommandInput, InvokeCommandOutput } from '@aws-sdk/client-lambda'
 import { AwsLambdaModule } from '..';
 import { AWS } from '../../../services/aws_macros';
 import { awsCloudwatchModule } from '../../aws_cloudwatch';
-import { Context, RpcBase, RpcResponseObject } from '../../interfaces';
+import { Context, RpcBase, RpcResponseObject, TransactionModeEnum } from '../../interfaces';
 import { invokeFunction } from '../aws';
 
 export class LambdaFunctionInvokeRpc extends RpcBase {
   module: AwsLambdaModule;
+  transactionMode = TransactionModeEnum.NO_TRANSACTION;
   outputTable = {
     function_name: 'varchar',
     version: 'varchar',

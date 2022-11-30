@@ -1,8 +1,9 @@
 import { IasqlFunctions } from '..';
-import { Context, RpcBase, RpcResponseObject } from '../../interfaces';
+import { Context, RpcBase, RpcResponseObject, TransactionModeEnum } from '../../interfaces';
 
 export class IasqlSync extends RpcBase {
   module: IasqlFunctions;
+  transactionMode = TransactionModeEnum.NO_TRANSACTION;
   outputTable = {
     action: 'varchar',
     table_name: 'varchar',

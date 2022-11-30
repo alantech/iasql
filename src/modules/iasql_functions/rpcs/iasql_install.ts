@@ -1,10 +1,11 @@
 import { IasqlFunctions } from '..';
 import { TypeormWrapper } from '../../../services/typeorm';
-import { Context, RpcBase, RpcResponseObject } from '../../interfaces';
+import { Context, RpcBase, RpcResponseObject, TransactionModeEnum } from '../../interfaces';
 import * as iasql from '../iasql';
 
 export class IasqlInstall extends RpcBase {
   module: IasqlFunctions;
+  transactionMode = TransactionModeEnum.INNER_TRANSACTION;
   outputTable = {
     module_name: 'varchar',
     created_table_name: 'varchar',
@@ -16,14 +17,14 @@ export class IasqlInstall extends RpcBase {
     ctx: Context,
     ...params: string[]
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
-    await iasql.maybeOpenTransaction(ctx.orm);
-    try {
-      await iasql.install(params, dbId, dbUser, false, false, ctx);
-    } catch (e) {
-      throw e;
-    } finally {
-      await iasql.closeTransaction(ctx.orm);
-    }
+    // await iasql.maybeOpenTransaction(ctx.orm);
+    // try {
+    await iasql.install(params, dbId, dbUser, false, false, ctx);
+    // } catch (e) {
+    //   throw e;
+    // } finally {
+    //   await iasql.closeTransaction(ctx.orm);
+    // }
     const query = `
       select
           m.name as module_name,

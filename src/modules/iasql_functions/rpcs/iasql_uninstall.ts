@@ -1,10 +1,11 @@
 import { IasqlFunctions } from '..';
 import { TypeormWrapper } from '../../../services/typeorm';
-import { Context, RpcBase, RpcResponseObject } from '../../interfaces';
+import { Context, RpcBase, RpcResponseObject, TransactionModeEnum } from '../../interfaces';
 import * as iasql from '../iasql';
 
 export class IasqlUninstall extends RpcBase {
   module: IasqlFunctions;
+  transactionMode = TransactionModeEnum.INNER_TRANSACTION;
   outputTable = {
     module_name: 'varchar',
     dropped_table_name: 'varchar',
@@ -27,14 +28,14 @@ export class IasqlUninstall extends RpcBase {
       where left(m.name, length(mo.module)) = mo.module;
     `;
     const modulesUninstalled = await (ctx.orm as TypeormWrapper).query(query);
-    await iasql.maybeOpenTransaction(ctx.orm);
-    try {
-      await iasql.uninstall(params, dbId);
-    } catch (e) {
-      throw e;
-    } finally {
-      await iasql.closeTransaction(ctx.orm);
-    }
+    // await iasql.maybeOpenTransaction(ctx.orm);
+    // try {
+    await iasql.uninstall(params, dbId);
+    // } catch (e) {
+    //   throw e;
+    // } finally {
+    //   await iasql.closeTransaction(ctx.orm);
+    // }
     return modulesUninstalled;
   };
 

@@ -1,9 +1,10 @@
 import { IasqlFunctions } from '..';
-import { Context, RpcBase, RpcResponseObject } from '../../interfaces';
+import { Context, RpcBase, RpcResponseObject, TransactionModeEnum } from '../../interfaces';
 import * as iasql from '../iasql';
 
 export class IasqlModulesList extends RpcBase {
   module: IasqlFunctions;
+  transactionMode = TransactionModeEnum.NO_TRANSACTION;
   outputTable = {
     module_name: 'varchar',
     module_version: 'varchar',

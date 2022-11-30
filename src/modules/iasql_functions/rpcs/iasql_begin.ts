@@ -1,9 +1,10 @@
 import { IasqlFunctions } from '..';
-import { Context, RpcBase, RpcResponseObject } from '../../interfaces';
+import { Context, RpcBase, RpcResponseObject, TransactionModeEnum } from '../../interfaces';
 import * as iasql from '../iasql';
 
 export class IasqlBegin extends RpcBase {
   module: IasqlFunctions;
+  transactionMode = TransactionModeEnum.WAIT_AND_START;
   outputTable = {
     message: 'varchar',
   } as const;
@@ -12,7 +13,7 @@ export class IasqlBegin extends RpcBase {
     _dbUser: string,
     ctx: Context,
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
-    await iasql.maybeOpenTransaction(ctx.orm);
+    // await iasql.maybeOpenTransaction(ctx.orm);
     const message = 'Transaction started';
     return [{ message }];
   };
