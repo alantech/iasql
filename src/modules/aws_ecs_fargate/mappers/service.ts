@@ -227,16 +227,21 @@ export class ServiceMapper extends MapperBase<Service> {
       const securityGroups = [];
       const cloudSecurityGroups = networkConf.securityGroups ?? [];
       for (const sg of cloudSecurityGroups) {
-        securityGroups.push(
-          (await awsSecurityGroupModule.securityGroup.db.read(
-            ctx,
-            awsSecurityGroupModule.securityGroup.generateId({ groupId: sg, region }),
-          )) ??
+        let sge;
+        try {
+          sge =
+            (await awsSecurityGroupModule.securityGroup.db.read(
+              ctx,
+              awsSecurityGroupModule.securityGroup.generateId({ groupId: sg, region }),
+            )) ??
             (await awsSecurityGroupModule.securityGroup.cloud.read(
               ctx,
               awsSecurityGroupModule.securityGroup.generateId({ groupId: sg, region }),
-            )),
-        );
+            ));
+        } catch (_) {
+          // ** If it fails it means it is a misconfigured security group for this service and we ignore it */
+        }
+        if (sge) securityGroups.push(sge);
       }
       if (securityGroups.filter(sg => !!sg).length !== cloudSecurityGroups.length)
         throw new Error('Security groups need to be loaded first');
