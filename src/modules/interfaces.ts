@@ -24,11 +24,12 @@ export type RpcOutput = { [key: string]: ColumnType };
 
 export type RpcResponseObject<T> = { [Properties in keyof T]: any };
 
-export type TransactionMode =
-  | 'no-transaction'
-  | 'inner-transaction'
-  | 'wait-and-start'
-  | 'fail-if-no-transaction';
+export enum TransactionModeEnum {
+  NO_TRANSACTION = 'no-transaction',
+  INNER_TRANSACTION = 'inner-transaction',
+  WAIT_AND_START = 'wait-and-start',
+  FAIL_IF_NO_TRANSACTION = 'fail-if-no-transaction',
+}
 
 export interface CrudInterface2<E> {
   create: (e: E[], ctx: Context) => Promise<void | E[]>;
@@ -234,7 +235,7 @@ export interface MapperInterface<E> {
 export interface RpcInterface {
   module: ModuleInterface;
   outputTable: RpcOutput;
-  transactionMode: TransactionMode;
+  transactionMode: TransactionModeEnum;
   call: (
     dbId: string,
     dbUser: string,
@@ -368,7 +369,7 @@ export class MapperBase<E> {
 export class RpcBase {
   module: ModuleInterface;
   outputTable: RpcOutput;
-  transactionMode: TransactionMode;
+  transactionMode: TransactionModeEnum;
   call: (
     dbId: string,
     dbUser: string,
@@ -464,12 +465,18 @@ export class ModuleBase {
           _opid uuid;
           _is_open bool;
         begin
-          
+
           ${this.generateTransactionSql(rpc.transactionMode)}
 
           BEGIN
             _opid := until_iasql_rpc('${this.name}', '${key}', _args);
-            ${rpc.transactionMode === 'inner-transaction' ? 'PERFORM close_transaction();' : ''}
+            ${
+              [TransactionModeEnum.INNER_TRANSACTION, TransactionModeEnum.FAIL_IF_NO_TRANSACTION].includes(
+                rpc.transactionMode,
+              )
+                ? 'PERFORM close_transaction();'
+                : ''
+            }
             return query select
               ${
                 rpcOutputEntries.length
@@ -480,29 +487,33 @@ export class ModuleBase {
               }
             from (
               select json_array_elements(output::json) as s from iasql_rpc where opid = _opid
-            ) as j;  
+            ) as j;
           EXCEPTION
             WHEN others THEN
-              ${rpc.transactionMode === 'inner-transaction' ? 'PERFORM close_transaction();' : 'RAISE EXCEPTION others;'}
+              ${
+                rpc.transactionMode === TransactionModeEnum.INNER_TRANSACTION
+                  ? 'PERFORM close_transaction();'
+                  : 'RAISE EXCEPTION others;'
+              }
             END;
         end;
         $$;
       `;
   }
 
-  private generateTransactionSql(transactionMode: TransactionMode): string {
+  private generateTransactionSql(transactionMode: TransactionModeEnum): string {
     switch (transactionMode) {
-      case 'no-transaction':
+      case TransactionModeEnum.NO_TRANSACTION:
         return '';
-      case 'fail-if-no-transaction':
+      case TransactionModeEnum.FAIL_IF_NO_TRANSACTION:
         return `
           SELECT * FROM is_open_transaction INTO _is_open;
           IF _is_open IS FALSE THEN
             RAISE EXCEPTION 'Cannot execute without calling iasql_begin first';
           END IF;
         `;
-      case 'wait-and-start':
-      case 'inner-transaction':
+      case TransactionModeEnum.WAIT_AND_START:
+      case TransactionModeEnum.INNER_TRANSACTION:
       default:
         return `
           PERFORM wait_for_open_transaction();
