@@ -56,9 +56,20 @@ jobs:
           node-version: 16.x
           cache: 'yarn'
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build and push
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha
+          tags: iasql:latest
+
       - name: Start local iasql engine
         run: |
-          docker build -t iasql:latest .
           # Temporarily export the engine port until it's only the Postgres port needed
           docker run -p 5432:5432 -p 8088:8088 -e IASQL_ENV=ci --name iasql iasql &
           while ! curl --output /dev/null --silent --head --fail http://localhost:8088/health; do sleep 1 && echo -n .; done;
