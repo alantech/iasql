@@ -1,9 +1,9 @@
 {
-  "entryPoints": ["../src/modules/*"],
-  "entryPointStrategy": "expand",
   "readme": "none",
+  "entryPoints": ["../src/modules/index.ts"],
+  "entryPointStrategy": "resolve",
   "cleanOutputDir": true,
   "excludeExternals": true,
-  "exclude": ["../src/modules/**/mappers/*.ts", "../src/modules/**/migration/*.ts"],
-  "out": "./static/api",
+  "name": "IaSQL documentation",
+  "excludeInternal": true,
 }

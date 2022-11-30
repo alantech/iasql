@@ -14,7 +14,6 @@ import logger from '../services/logger';
 // editor. They *shouldn't* have to be ever imported directly, only the classes ought to be, but as
 // the classes use these interfaces it helps give you hints as you develop a lot better than without
 // them.
-
 export type IdFields = { [key: string]: string };
 
 export type Context = { [key: string]: any };
@@ -24,6 +23,7 @@ export type RpcOutput = { [key: string]: ColumnType };
 
 export type RpcResponseObject<T> = { [Properties in keyof T]: any };
 
+/** @internal */
 export interface CrudInterface2<E> {
   create: (e: E[], ctx: Context) => Promise<void | E[]>;
   read: (ctx: Context, id?: string) => Promise<E[] | E | void>;
@@ -32,6 +32,7 @@ export interface CrudInterface2<E> {
   delete: (e: E[], ctx: Context) => Promise<void | E[]>;
 }
 
+/** @internal */
 export class Crud2<E> {
   module: ModuleInterface;
   createFn: (e: E[], ctx: Context) => Promise<void | E[]>;
@@ -214,6 +215,8 @@ export class Crud2<E> {
     return this.updateOrReplaceFn(prev, next);
   }
 }
+
+/** @internal */
 export interface MapperInterface<E> {
   entity: new () => E;
   entityId: (e: E) => string;
@@ -225,6 +228,7 @@ export interface MapperInterface<E> {
   cloud: Crud2<E>;
 }
 
+/** @internal */
 export interface RpcInterface {
   module: ModuleInterface;
   outputTable: RpcOutput;
@@ -236,6 +240,7 @@ export interface RpcInterface {
   ) => Promise<RpcResponseObject<RpcOutput>[]>;
 }
 
+/** @internal */
 export class MapperBase<E> {
   module: ModuleInterface;
   entity: new () => E;
@@ -358,6 +363,7 @@ export class MapperBase<E> {
   }
 }
 
+/** @internal */
 export class RpcBase {
   module: ModuleInterface;
   outputTable: RpcOutput;
@@ -379,6 +385,7 @@ export class RpcBase {
   }
 }
 
+/** @internal */
 export interface ModuleInterface {
   name: string;
   version?: string;
@@ -404,6 +411,7 @@ export interface ModuleInterface {
   };
 }
 
+/** @internal */
 export class ModuleBase {
   dirname: string;
   name: string;
