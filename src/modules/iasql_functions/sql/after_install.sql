@@ -170,21 +170,29 @@ CREATE
 OR REPLACE FUNCTION maybe_commit () RETURNS TEXT LANGUAGE plpgsql SECURITY INVOKER AS $$
 declare
     _change_type text;
+    _ts TIMESTAMP WITH TIME ZONE;
+    _30_min_interval TIMESTAMP WITH TIME ZONE;
+    _2_min_interval TIMESTAMP WITH TIME ZONE;
+    _current_ts TIMESTAMP WITH TIME ZONE;
 begin
+    _current_ts := now();
+    _30_min_interval := _current_ts - interval '30 minutes';
+    _2_min_interval := _current_ts - interval '2 minutes';
     -- Check if theres an open transaction
-    SELECT change_type INTO _change_type
+    SELECT change_type, ts INTO _change_type, _ts
     FROM iasql_audit_log
     WHERE 
       change_type IN ('OPEN_TRANSACTION', 'CLOSE_TRANSACTION') AND
-      ts > (now() - interval '30 minutes')
+      ts > _30_min_interval
     ORDER BY ts DESC
     LIMIT 1;
-    IF _change_type != 'OPEN_TRANSACTION' THEN
+    -- If a transaction occurred less than 2 min ago we skip
+    IF _change_type != 'OPEN_TRANSACTION' AND (_ts IS NULL OR _ts < _2_min_interval) THEN
       PERFORM iasql_begin();
       PERFORM iasql_commit();
       RETURN 'iasql_commit called';
     ELSE
-      RETURN 'Cannot call iasql_commit while a transaction is open';
+      RAISE EXCEPTION 'Cannot call iasql_commit while a transaction is open';
     END IF;
 end;
 $$;
