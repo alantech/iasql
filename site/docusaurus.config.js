@@ -21,7 +21,7 @@ const theButton = require('./src/rehype/thebutton');
     url: config.url,
     baseUrl: '/',
     trailingSlash: true,
-    onBrokenLinks: 'warn',
+    onBrokenLinks: 'throw',
     onBrokenMarkdownLinks: 'throw',
     favicon: 'img/favicon.png',
     projectName: 'iasql-engine',
@@ -33,7 +33,6 @@ const theButton = require('./src/rehype/thebutton');
         '@docusaurus/preset-classic',
         {
           docs: {
-            sidebarPath: require.resolve('./sidebars.js'),
             routeBasePath: '/docs',
             remarkPlugins: [theButton],
           },
@@ -51,12 +50,6 @@ const theButton = require('./src/rehype/thebutton');
             ignorePatterns: ['/tags/**'],
             filename: 'sitemap.xml',
           },
-          pages: {
-            path: 'pages',
-            routeBasePath: '/pages',
-            include: ['**/*.{js,jsx,ts,tsx,md,mdx}'],
-            mdxPageComponent: '@theme/MDXPage',
-          },
         },
       ],
     ],
@@ -71,7 +64,7 @@ const theButton = require('./src/rehype/thebutton');
           // other options are passed to posthog-js init as is
         },
       ],
-      ['docusaurus-plugin-typedoc', { sidebar: { categoryLabel: 'API reference' } }],
+      ['docusaurus-plugin-typedoc', { sidebar: { categoryLabel: 'API reference', position: 8 } }],
     ],
 
     themeConfig:
@@ -97,17 +90,17 @@ const theButton = require('./src/rehype/thebutton');
               label: 'Dashboard',
             },
             {
-              to: 'docs',
+              href: '/docs',
               target: '_self',
               label: 'Docs',
             },
             {
-              to: 'blog',
+              href: '/blog',
               target: '_self',
               label: 'Blog',
             },
             {
-              to: 'schema',
+              href: '/schema',
               target: '_self',
               label: 'Schema',
             },
@@ -140,12 +133,12 @@ const theButton = require('./src/rehype/thebutton');
               items: [
                 {
                   label: 'Docs',
-                  href: 'docs',
+                  href: '/docs',
                   target: '_self',
                 },
                 {
                   label: 'Blog',
-                  href: 'blog',
+                  href: '/blog',
                   target: '_self',
                 },
                 {
