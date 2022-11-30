@@ -177,7 +177,7 @@ declare
 begin
     _current_ts := now();
     _30_min_interval := _current_ts - interval '30 minutes';
-    _2_min_interval := _current_ts - interval '2 minutes';
+    _almost_2_min_interval := _current_ts - interval '1.9 minutes';
     -- Check if theres an open transaction
     SELECT change_type, ts INTO _change_type, _ts
     FROM iasql_audit_log
@@ -187,7 +187,7 @@ begin
     ORDER BY ts DESC
     LIMIT 1;
     -- If a transaction occurred less than 2 min ago we skip
-    IF _change_type != 'OPEN_TRANSACTION' AND (_ts IS NULL OR _ts < _2_min_interval) THEN
+    IF _change_type != 'OPEN_TRANSACTION' AND (_ts IS NULL OR _ts < _almost_2_min_interval) THEN
       PERFORM iasql_begin();
       PERFORM iasql_commit();
       RETURN 'iasql_commit called';
