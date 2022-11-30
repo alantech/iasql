@@ -50,6 +50,12 @@ const theButton = require('./src/rehype/thebutton');
             ignorePatterns: ['/tags/**'],
             filename: 'sitemap.xml',
           },
+          pages: {
+            path: 'pages',
+            routeBasePath: '/pages',
+            include: ['**/*.{js,jsx,ts,tsx,md,mdx}'],
+            mdxPageComponent: '@theme/MDXPage',
+          },
         },
       ],
     ],
@@ -93,11 +99,6 @@ const theButton = require('./src/rehype/thebutton');
               to: 'docs',
               target: '_self',
               label: 'Docs',
-            },
-            {
-              to: 'api',
-              target: '_self',
-              label: 'API reference',
             },
             {
               to: 'blog',
