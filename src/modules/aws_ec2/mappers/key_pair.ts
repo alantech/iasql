@@ -68,7 +68,6 @@ export class KeyPairMapper extends MapperBase<KeyPair> {
         return out;
       }
     },
-    updateOrReplace: (a: KeyPair, b: KeyPair) => 'replace',
     update: async (es: KeyPair[], ctx: Context) => {
       const out = [];
       for (const e of es) {
