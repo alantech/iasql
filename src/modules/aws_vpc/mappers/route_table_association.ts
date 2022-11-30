@@ -1,8 +1,8 @@
 import { EC2 } from '@aws-sdk/client-ec2';
 import { RouteTableAssociation as AwsRouteTableAssociation } from '@aws-sdk/client-ec2/dist-types/models/models_1';
 
-import { AWS } from '../../../../services/aws_macros';
-import { Context, Crud2, MapperBase } from '../../../interfaces';
+import { AWS } from '../../../services/aws_macros';
+import { Context, Crud2, MapperBase } from '../../interfaces';
 import { RouteTableAssociation } from '../entity';
 import { AwsVpcModule } from '../index';
 

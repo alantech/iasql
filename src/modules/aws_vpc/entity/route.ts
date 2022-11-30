@@ -1,6 +1,6 @@
 import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 
-import { cloudId } from '../../../../services/cloud-id';
+import { cloudId } from '../../../services/cloud-id';
 import { RouteTable } from './route_table';
 
 @Entity()
