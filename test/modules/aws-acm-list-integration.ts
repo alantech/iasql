@@ -5,8 +5,10 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  runBegin,
   runCommit,
   runInstall,
+  runInstallAll,
   runQuery,
   runRollback,
   runUninstall,
@@ -16,10 +18,12 @@ const prefix = getPrefix();
 const dbAlias = 'acmlisttest';
 const domainName = `${prefix}${dbAlias}.com`;
 
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
+const installAll = runInstallAll.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const region = defaultRegion();
 const modules = ['aws_acm'];
@@ -76,6 +80,8 @@ describe('AwsAcm List Integration Testing', () => {
 
   it('installs the acm module', install(modules));
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new certificate',
     query(
@@ -102,6 +108,8 @@ describe('AwsAcm List Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(0),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'adds a new certificate',
@@ -209,7 +217,7 @@ describe('AwsAcm List install/uninstall', () => {
 
   it('uninstalls the modules', uninstall(modules));
 
-  it('installs all modules', done => void iasql.install([], dbAlias, 'postgres', true).then(...finish(done)));
+  it('installs all modules', installAll());
 
   it(
     'uninstalls the module',

@@ -1,4 +1,8 @@
-import config from '../../src/config';
+import {
+  IpAddressType,
+  LoadBalancerSchemeEnum,
+  LoadBalancerTypeEnum,
+} from '../../src/modules/aws_elb/entity';
 import * as iasql from '../../src/services/iasql';
 import logger from '../../src/services/logger';
 import {
@@ -7,18 +11,14 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  runBegin,
   runCommit,
   runInstall,
+  runInstallAll,
   runQuery,
   runRollback,
   runUninstall,
 } from '../helpers';
-
-const {
-  IpAddressType,
-  LoadBalancerSchemeEnum,
-  LoadBalancerTypeEnum,
-} = require(`../../src/modules/${config.modules.latestVersion}/aws_elb/entity`);
 
 const prefix = getPrefix();
 const dbAlias = 'route53test';
@@ -41,9 +41,11 @@ const lbScheme = LoadBalancerSchemeEnum.INTERNET_FACING;
 const lbType = LoadBalancerTypeEnum.APPLICATION;
 const lbIPAddressType = IpAddressType.IPV4;
 
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
+const installAll = runInstallAll.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const commitStaging = runCommit.bind(null, dbAlias + 'staging');
@@ -105,6 +107,8 @@ describe('Route53 Integration Testing', () => {
 
   it('installs module', install(modules));
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new hosted zone',
     query(
@@ -143,6 +147,8 @@ describe('Route53 Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(0),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'adds a new hosted zone',
@@ -272,6 +278,8 @@ describe('Route53 Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new record to hosted zone',
     query(
@@ -314,6 +322,8 @@ describe('Route53 Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(3),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'adds a new A record to hosted zone',
@@ -367,6 +377,8 @@ describe('Route53 Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'tries to update a hosted zone domain name field (replace)',
     query(
@@ -418,6 +430,8 @@ describe('Route53 Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(0),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'adds a new record to hosted zone',
@@ -471,6 +485,8 @@ describe('Route53 Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'updates a record name',
     query(
@@ -509,6 +525,8 @@ describe('Route53 Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'creates hosted zone with the same name',
     query(
@@ -546,6 +564,8 @@ describe('Route53 Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'deletes the hosted zone with the same name',
     query(
@@ -565,6 +585,8 @@ describe('Route53 Integration Testing', () => {
   );
 
   it('applies the removal of hosted zone with the same name', commit());
+
+  it('starts a transaction', begin());
 
   it(
     'deletes records',
@@ -607,6 +629,8 @@ describe('Route53 Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(2),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'deletes mandatory records and hosted zone',
@@ -729,8 +753,7 @@ describe('Route53 install/uninstall', () => {
 
   it('uninstalls the route53 module', uninstall(modules));
 
-  it('installs all modules', done =>
-    void iasql.install([], dbAlias, config.db.user, true).then(...finish(done)));
+  it('installs all modules', installAll());
 
   it(
     'uninstalls the route53 module',

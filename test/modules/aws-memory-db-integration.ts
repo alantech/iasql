@@ -1,4 +1,3 @@
-import config from '../../src/config';
 import * as iasql from '../../src/services/iasql';
 import {
   defaultRegion,
@@ -6,8 +5,10 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  runBegin,
   runCommit,
   runInstall,
+  runInstallAll,
   runQuery,
   runRollback,
   runUninstall,
@@ -19,10 +20,12 @@ const dbAlias = 'memorydbtest';
 const subnetGroupName = `${prefix}${dbAlias}sng`;
 const clusterName = `${prefix}${dbAlias}cl`;
 
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
+const installAll = runInstallAll.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 // MemoryDB has a *very* constrained set of regions
 const region = defaultRegion([
@@ -95,6 +98,8 @@ describe('MemoryDB Integration Testing', () => {
 
   it('installs the memory db module', install(modules));
 
+  it('starts a transaction', begin());
+
   it(
     'creates a subnet group',
     query(
@@ -121,6 +126,8 @@ describe('MemoryDB Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(0),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'creates a subnet group',
@@ -149,6 +156,8 @@ describe('MemoryDB Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'changes the subnet group description',
     query(
@@ -164,6 +173,8 @@ describe('MemoryDB Integration Testing', () => {
   );
 
   it('applies the change', commit());
+
+  it('starts a transaction', begin());
 
   it(
     'creates a memory db cluster',
@@ -194,6 +205,8 @@ describe('MemoryDB Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(0),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'creates a memory db cluster',
@@ -225,6 +238,8 @@ describe('MemoryDB Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'changes the cluster description',
     query(
@@ -240,6 +255,8 @@ describe('MemoryDB Integration Testing', () => {
   );
 
   it('applies the change', commit());
+
+  it('starts a transaction', begin());
 
   it(
     'changes the cluster arn',
@@ -272,6 +289,8 @@ describe('MemoryDB Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(1),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'removes the memory db cluster',
@@ -323,6 +342,8 @@ describe('MemoryDB Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(1),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'removes the subnet group',
@@ -414,8 +435,7 @@ describe('MemoryDB install/uninstall', () => {
 
   it('uninstalls the module', uninstall(modules));
 
-  it('installs all modules', done =>
-    void iasql.install([], dbAlias, config.db.user, true).then(...finish(done)));
+  it('installs all modules', installAll());
 
   it('uninstalls the module', uninstall(['aws_memory_db']));
 

@@ -1,4 +1,3 @@
-import config from '../../src/config';
 import * as iasql from '../../src/services/iasql';
 import {
   defaultRegion,
@@ -6,8 +5,10 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  runBegin,
   runCommit,
   runInstall,
+  runInstallAll,
   runQuery,
   runRollback,
   runUninstall,
@@ -16,10 +17,13 @@ import {
 const prefix = getPrefix();
 const dbAlias = 'sgtest';
 const sgName = `${prefix}${dbAlias}`;
+
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
+const installAll = runInstallAll.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const region = defaultRegion();
 const modules = ['aws_security_group', 'aws_vpc'];
@@ -78,6 +82,8 @@ describe('Security Group Integration Testing', () => {
 
   it('installs the security group module', install(modules));
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new security group',
     query(
@@ -104,6 +110,8 @@ describe('Security Group Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(0),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'adds a new security group',
@@ -132,6 +140,8 @@ describe('Security Group Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'adds security group rules',
     query(
@@ -152,6 +162,8 @@ describe('Security Group Integration Testing', () => {
   );
 
   it('applies the security group rule change', commit());
+
+  it('starts a transaction', begin());
 
   it(
     'updates the security group rule',
@@ -184,6 +196,8 @@ describe('Security Group Integration Testing', () => {
   );
 
   it('applies the security group rule change (again)', commit());
+
+  it('starts a transaction', begin());
 
   it(
     'updates the security group',
@@ -225,6 +239,8 @@ describe('Security Group Integration Testing', () => {
 
   // Testing potential race condition with security group with very large ruleset, particularly
   // during install
+
+  it('starts a transaction', begin());
 
   it(
     'inserts a security group with a large ruleset and more',
@@ -275,6 +291,8 @@ describe('Security Group Integration Testing', () => {
   it('should successfully create this mess', commit());
 
   // create rule targetting to another security group
+  it('starts a transaction', begin());
+
   it(
     'adds a new security group',
     query(
@@ -319,6 +337,8 @@ describe('Security Group Integration Testing', () => {
       expect(e).toBeTruthy;
     }
   });
+
+  it('starts a transaction', begin());
 
   it(
     'adds a new security group rule',
@@ -371,6 +391,8 @@ describe('Security Group Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'deletes the source security group rule',
     query(
@@ -396,6 +418,8 @@ describe('Security Group Integration Testing', () => {
   );
 
   // tests self referencing security group
+  it('starts a transaction', begin());
+
   it(
     'adds a new security group rule pointing to itself',
     query(
@@ -447,6 +471,8 @@ describe('Security Group Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'deletes the source security group rule pointing to itself',
     query(
@@ -471,15 +497,26 @@ describe('Security Group Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'deletes the original security group to test source',
-    query(`DELETE FROM security_group WHERE group_name = '${prefix}sgforsource'`, undefined, true, () => ({
-      username,
-      password,
-    })),
+    query(
+      `
+        DELETE FROM security_group WHERE group_name = '${prefix}sgforsource'
+      `,
+      undefined,
+      true,
+      () => ({
+        username,
+        password,
+      }),
+    ),
   );
 
   it('applies the deletion of source security group rule', commit());
+
+  it('starts a transaction', begin());
 
   it(
     'deletes the vpc',
@@ -510,6 +547,8 @@ describe('Security Group Integration Testing', () => {
   it('applies the vpc removal', commit());
 
   // tests cycle in security rules
+  it('starts a transaction', begin());
+
   it(
     'adds self-referential security groups A and B',
     query(
@@ -554,6 +593,8 @@ describe('Security Group Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'deletes the source security group rule for A',
     query(
@@ -566,7 +607,8 @@ describe('Security Group Integration Testing', () => {
   it(
     'deletes the source security group rule for B',
     query(
-      `DELETE FROM security_group_rule WHERE source_security_group = (SELECT id FROM security_group WHERE group_name='${prefix}sgtestB')`,
+      `
+DELETE FROM security_group_rule WHERE source_security_group = (SELECT id FROM security_group WHERE group_name='${prefix}sgtestB')`,
       undefined,
       true,
       () => ({ username, password }),
@@ -574,17 +616,31 @@ describe('Security Group Integration Testing', () => {
   );
   it(
     'deletes the source security group for A',
-    query(`DELETE FROM security_group WHERE group_name = '${prefix}sgtestA'`, undefined, true, () => ({
-      username,
-      password,
-    })),
+    query(
+      `
+        DELETE FROM security_group WHERE group_name = '${prefix}sgtestA'
+      `,
+      undefined,
+      true,
+      () => ({
+        username,
+        password,
+      }),
+    ),
   );
   it(
     'deletes the source security group for B',
-    query(`DELETE FROM security_group WHERE group_name = '${prefix}sgtestB'`, undefined, true, () => ({
-      username,
-      password,
-    })),
+    query(
+      `
+      DELETE FROM security_group WHERE group_name = '${prefix}sgtestB'
+    `,
+      undefined,
+      true,
+      () => ({
+        username,
+        password,
+      }),
+    ),
   );
 
   it('deletes rules and groups', commit());
@@ -618,6 +674,8 @@ describe('Security Group Integration Testing', () => {
 
   it('installs the security group module', install(modules));
 
+  it('starts a transaction', begin());
+
   it(
     'deletes the security group rules',
     query(
@@ -642,6 +700,8 @@ describe('Security Group Integration Testing', () => {
   );
 
   it('applies the security group rule change (last time)', commit());
+
+  it('starts a transaction', begin());
 
   it(
     'deletes the security groups',
@@ -695,6 +755,8 @@ describe('Security Group Integration Testing', () => {
 
   // Special testing involving the default security group you can't edit or delete
 
+  it('starts a transaction', begin());
+
   it(
     'clears out any default security group rules if they exist',
     query(
@@ -712,6 +774,8 @@ describe('Security Group Integration Testing', () => {
 
   it('applies this change', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'tries to delete the default security group',
     query(
@@ -725,6 +789,8 @@ describe('Security Group Integration Testing', () => {
   );
 
   it('applies the security group change which will restore the record', commit());
+
+  it('starts a transaction', begin());
 
   it(
     'tries to change the default security group description',
@@ -740,6 +806,8 @@ describe('Security Group Integration Testing', () => {
 
   it('applies the security group change which will undo this change', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'tries to change the default security group id which triggers simultaneous create/delete',
     query(
@@ -753,6 +821,8 @@ describe('Security Group Integration Testing', () => {
   );
 
   it('applies the security group change which will recreate the record', commit());
+
+  it('starts a transaction', begin());
 
   it(
     'adds another two security groups for a more complex test',
@@ -770,6 +840,8 @@ describe('Security Group Integration Testing', () => {
   );
 
   it('creates these security groups', commit());
+
+  it('starts a transaction', begin());
 
   it(
     'creates a new security group, deletes another security group, and modifies a third',
@@ -807,6 +879,8 @@ describe('Security Group Integration Testing', () => {
       },
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'deletes these test records',
@@ -893,8 +967,7 @@ describe('Security Group install/uninstall', () => {
     ),
   );
 
-  it('installs all modules', done =>
-    void iasql.install([], dbAlias, config.db.user, true).then(...finish(done)));
+  it('installs all modules', installAll());
 
   it(
     'uninstalls the Security Group module',
@@ -914,6 +987,8 @@ describe('Security Group install/uninstall', () => {
       'aws_lambda',
     ]),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'inserts a new VPC (that creates a new default SG automatically)',
@@ -947,6 +1022,8 @@ describe('Security Group install/uninstall', () => {
   );
 
   it('uninstalls the Security Group module again (to be easier)', uninstall(['aws_security_group']));
+
+  it('starts a transaction', begin());
 
   it(
     'deletes the vpc',

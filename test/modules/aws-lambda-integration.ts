@@ -1,4 +1,3 @@
-import config from '../../src/config';
 import * as iasql from '../../src/services/iasql';
 import {
   defaultRegion,
@@ -6,8 +5,10 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  runBegin,
   runCommit,
   runInstall,
+  runInstallAll,
   runQuery,
   runRollback,
   runUninstall,
@@ -52,10 +53,12 @@ const attachAssumeLambdaPolicy = JSON.stringify({
 });
 const sgGroupName = `${prefix}sglambda`;
 
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
+const installAll = runInstallAll.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const region = defaultRegion();
 const modules = ['aws_lambda'];
@@ -115,6 +118,8 @@ describe('Lambda Integration Testing', () => {
 
   it('installs the lambda module', install(modules));
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new security group',
     query(
@@ -148,6 +153,8 @@ describe('Lambda Integration Testing', () => {
   );
   it('applies the security group and rules creation', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new lambda function and role',
     query(
@@ -180,6 +187,8 @@ describe('Lambda Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new lambda role',
     query(
@@ -194,6 +203,8 @@ describe('Lambda Integration Testing', () => {
   );
 
   it('applies the iam role creation', commit());
+
+  it('starts a transaction', begin());
 
   it(
     'adds a new lambda function',
@@ -286,6 +297,8 @@ describe('Lambda Integration Testing', () => {
     }));
 
   // Check restore path
+  it('starts a transaction', begin());
+
   it(
     'updates the function arn',
     query(
@@ -325,6 +338,8 @@ describe('Lambda Integration Testing', () => {
   );
 
   // Check subnet modification
+  it('starts a transaction', begin());
+
   it(
     'adds a new vpc',
     query(
@@ -354,6 +369,8 @@ describe('Lambda Integration Testing', () => {
   );
 
   it('applies the vpc and subnet creation', commit());
+
+  it('starts a transaction', begin());
 
   it(
     'adds a new security group with non-default vpc',
@@ -388,6 +405,8 @@ describe('Lambda Integration Testing', () => {
   );
   it('applies the not default security group and rules creation', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'updates the function subnets',
     query(
@@ -421,13 +440,15 @@ describe('Lambda Integration Testing', () => {
     query(
       `
       SELECT * FROM lambda_function 
-      WHERE name = '${lambdaFunctionName}' AND cardinality(subnets)=1;      
+      WHERE name = '${lambdaFunctionName}' AND cardinality(subnets)=1;
   `,
       (res: any[]) => expect(res.length).toBe(1),
     ),
   );
 
   // Check configuration update path
+  it('starts a transaction', begin());
+
   it(
     'updates the function',
     query(
@@ -467,6 +488,8 @@ describe('Lambda Integration Testing', () => {
   );
 
   // Check code update path
+  it('starts a transaction', begin());
+
   it(
     'updates the function',
     query(
@@ -506,6 +529,8 @@ describe('Lambda Integration Testing', () => {
   );
 
   // Check tags update path
+  it('starts a transaction', begin());
+
   it(
     'updates the function',
     query(
@@ -547,6 +572,8 @@ describe('Lambda Integration Testing', () => {
   it('uninstalls the lambda module', uninstall(modules));
 
   it('installs the lambda module', install(modules));
+
+  it('starts a transaction', begin());
 
   it(
     'deletes the lambda function',
@@ -592,6 +619,8 @@ describe('Lambda Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'deletes the lambda function role',
     query(
@@ -630,6 +659,8 @@ describe('Lambda Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'deletes security group rules',
     query(
@@ -655,6 +686,8 @@ describe('Lambda Integration Testing', () => {
   );
 
   it('applies the security group deletion', commit());
+
+  it('starts a transaction', begin());
 
   it(
     'deletes the subnet and security groups',
@@ -795,8 +828,7 @@ describe('Lambda install/uninstall', () => {
     ),
   );
 
-  it('installs all modules', done =>
-    void iasql.install([], dbAlias, config.db.user, true).then(...finish(done)));
+  it('installs all modules', installAll());
 
   it('uninstalls the lambda module', uninstall(modules));
 

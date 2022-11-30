@@ -11,6 +11,7 @@ const APP_NAME = pkg.name;
 const prisma = new PrismaClient();
 
 async function main() {
+  await prisma.$queryRaw`SELECT * FROM iasql_begin();`;
   const data = {
     app_name: APP_NAME,
     public_ip: true,

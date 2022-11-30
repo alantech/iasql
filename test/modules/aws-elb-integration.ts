@@ -1,6 +1,12 @@
 import { LoadBalancerStateEnum } from '@aws-sdk/client-elastic-load-balancing-v2';
 
-import config from '../../src/config';
+import {
+  IpAddressType,
+  LoadBalancerSchemeEnum,
+  LoadBalancerTypeEnum,
+  ProtocolEnum,
+  TargetTypeEnum,
+} from '../../src/modules/aws_elb/entity';
 import * as iasql from '../../src/services/iasql';
 import {
   defaultRegion,
@@ -9,20 +15,14 @@ import {
   finish,
   getKeyCertPair,
   getPrefix,
+  runBegin,
   runCommit,
   runInstall,
+  runInstallAll,
   runQuery,
   runRollback,
   runUninstall,
 } from '../helpers';
-
-const {
-  IpAddressType,
-  LoadBalancerSchemeEnum,
-  LoadBalancerTypeEnum,
-  ProtocolEnum,
-  TargetTypeEnum,
-} = require(`../../src/modules/${config.modules.latestVersion}/aws_elb/entity`);
 
 const prefix = getPrefix();
 const dbAlias = 'elbtest';
@@ -30,10 +30,12 @@ const dbAlias = 'elbtest';
 const domainName = `${prefix}${dbAlias}.com`;
 const [key, cert] = getKeyCertPair(domainName);
 
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
+const installAll = runInstallAll.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const region = defaultRegion();
 const modules = ['aws_security_group', 'aws_elb', 'aws_vpc', 'aws_acm', 'aws_route53'];
@@ -113,6 +115,8 @@ describe('ELB Integration Testing', () => {
   it('installs the elb module', install(modules));
 
   // Target group
+  it('starts a transaction', begin());
+
   it(
     'adds a new targetGroup',
     query(
@@ -139,6 +143,8 @@ describe('ELB Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(0),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'adds a new targetGroup',
@@ -167,6 +173,8 @@ describe('ELB Integration Testing', () => {
 
   it('applies the change', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'tries to update a target group field',
     query(
@@ -182,6 +190,8 @@ describe('ELB Integration Testing', () => {
   );
 
   it('applies the change', commit());
+
+  it('starts a transaction', begin());
 
   it(
     'tries to update a target group field (replace)',
@@ -200,6 +210,8 @@ describe('ELB Integration Testing', () => {
   it('applies the change', commit());
 
   // Load balancer
+  it('starts a transaction', begin());
+
   it(
     'adds a new load balancer',
     query(
@@ -226,6 +238,8 @@ describe('ELB Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'adds new security groups',
     query(
@@ -242,6 +256,8 @@ describe('ELB Integration Testing', () => {
   );
 
   it('applies the change', commit());
+
+  it('starts a transaction', begin());
 
   it(
     'adds a new load balancer',
@@ -288,10 +304,14 @@ describe('ELB Integration Testing', () => {
 
   it('applies the change', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'tries to update a load balancer attribute (update)',
     query(
-      `UPDATE load_balancer SET attributes='${loadBalancerAttributes}' WHERE load_balancer_name='${lbName}'`,
+      `
+        UPDATE load_balancer SET attributes='${loadBalancerAttributes}' WHERE load_balancer_name='${lbName}'
+      `,
       undefined,
       true,
       () => ({ username, password }),
@@ -315,6 +335,8 @@ describe('ELB Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'tries to update a load balancer field',
     query(
@@ -330,6 +352,8 @@ describe('ELB Integration Testing', () => {
   );
 
   it('applies the change and restore it', commit());
+
+  it('starts a transaction', begin());
 
   it(
     'tries to update a load balancer security group (replace)',
@@ -347,6 +371,8 @@ describe('ELB Integration Testing', () => {
 
   it('applies the change', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'tries to update a load balancer scheme (replace)',
     query(
@@ -362,6 +388,8 @@ describe('ELB Integration Testing', () => {
   );
 
   it('applies the change', commit());
+
+  it('starts a transaction', begin());
 
   it(
     'adds a new listener',
@@ -392,6 +420,8 @@ describe('ELB Integration Testing', () => {
   );
 
   it('applies the change', commit());
+
+  it('starts a transaction', begin());
 
   it(
     'tries to update a listener field',
@@ -427,6 +457,8 @@ describe('ELB Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(1),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'adds a new HTTPS listener',
@@ -475,6 +507,8 @@ describe('ELB Integration Testing', () => {
 
   it('installs the elb module', install(['aws_elb']));
 
+  it('starts a transaction', begin());
+
   it(
     'deletes the listener',
     query(
@@ -502,6 +536,8 @@ describe('ELB Integration Testing', () => {
   );
 
   it('applies the change', commit());
+
+  it('starts a transaction', begin());
 
   it(
     'deletes the load balancer',
@@ -557,6 +593,8 @@ describe('ELB Integration Testing', () => {
 
   it('applies the change', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'deletes the target group',
     query(
@@ -585,6 +623,8 @@ describe('ELB Integration Testing', () => {
 
   it('applies the change (last time)', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'deletes the certificate',
     query(
@@ -612,6 +652,8 @@ describe('ELB Integration Testing', () => {
   );
 
   it('applies the cert delete change', commit());
+
+  it('starts a transaction', begin());
 
   it(
     'creates a target group in non-default region',
@@ -642,6 +684,8 @@ describe('ELB Integration Testing', () => {
       },
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'creates a security group in non-default region',
@@ -692,6 +736,8 @@ describe('ELB Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'adds a listener to the load balancer in non-default region',
     query(
@@ -723,6 +769,8 @@ describe('ELB Integration Testing', () => {
       },
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'deletes multi-region resources',
@@ -807,8 +855,7 @@ describe('ELB install/uninstall', () => {
 
   it('uninstalls the ELB module', uninstall(modules));
 
-  it('installs all modules', done =>
-    void iasql.install([], dbAlias, config.db.user, true).then(...finish(done)));
+  it('installs all modules', installAll());
 
   it(
     'uninstalls the ELB module and its dependent ones',

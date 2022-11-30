@@ -1,7 +1,8 @@
 import * as iasql from '../../src/services/iasql';
-import { runQuery, finish, execComposeUp, execComposeDown, runInstall } from '../helpers';
+import { runQuery, finish, execComposeUp, execComposeDown, runInstall, runBegin } from '../helpers';
 
 const dbAlias = 'totalfailure';
+const begin = runBegin.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const applyModules = ['aws_ec2', 'aws_security_group', 'aws_vpc'];
@@ -103,6 +104,8 @@ describe('Testing failure path', () => {
   });
 
   // Fail on apply
+  it('starts a transaction', begin());
+
   it(
     'insert a new instance with wrong values',
     query(
@@ -163,7 +166,7 @@ describe('Testing failure path', () => {
   );
 
   // Fail on upgrade
-  it('fails to upgrade database (as it is up-to-date already)', done => {
+  /* it('fails to upgrade database (as it is up-to-date already)', done => {
     query(`
       select * from iasql_upgrade();
     `)((_e?: any) => done()); // Ignore failure
@@ -184,7 +187,7 @@ describe('Testing failure path', () => {
         expect(row[0].output.length).toBeGreaterThan(0);
       },
     ),
-  );
+  ); */ // TODO: Revive upgrade check when upgrading is revived
 
   // TODO: how to test list, plan_apply, plan_sync, sync??
 

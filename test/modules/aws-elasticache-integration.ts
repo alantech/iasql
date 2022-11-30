@@ -1,6 +1,5 @@
 import { ElastiCache } from '@aws-sdk/client-elasticache';
 
-import config from '../../src/config';
 import * as iasql from '../../src/services/iasql';
 import {
   defaultRegion,
@@ -8,8 +7,10 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  runBegin,
   runCommit,
   runInstall,
+  runInstallAll,
   runQuery,
   runRollback,
   runUninstall,
@@ -21,10 +22,12 @@ const clusterId = `${prefix}${dbAlias}`;
 const newClusterId = `new-${prefix}${dbAlias}`;
 const anotherClusterId = `${prefix}${dbAlias}2`;
 
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
+const installAll = runInstallAll.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const cacheType = 'redis';
 const modules = ['aws_elasticache'];
@@ -116,6 +119,8 @@ describe('Elasticache Integration Testing', () => {
 
   it('installs the elasticache module', install(modules));
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new cacheCluster',
     query(
@@ -131,9 +136,11 @@ describe('Elasticache Integration Testing', () => {
 
   it('undo changes', rollback());
 
+  it('starts a transaction', begin());
+
   it('adds a new cacheCluster', done => {
     query(
-      `  
+      `
       INSERT INTO cache_cluster (cluster_id, node_type, engine, num_nodes)
       VALUES ('${clusterId}', '${nodeType}', '${cacheType}', 1);
     `,
@@ -158,9 +165,11 @@ describe('Elasticache Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it('tries to update cache_cluster node type', done => {
     query(
-      `  
+      `
     UPDATE cache_cluster SET node_type='${updatedNodeType}' WHERE cluster_id='${clusterId}';
     `,
       undefined,
@@ -185,6 +194,8 @@ describe('Elasticache Integration Testing', () => {
       done();
     });
   });
+
+  it('starts a transaction', begin());
 
   it(
     'tries to update cache_cluster engine',
@@ -220,6 +231,8 @@ describe('Elasticache Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'tries to update cache_cluster id',
     query(
@@ -254,6 +267,8 @@ describe('Elasticache Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'changes the region the cache_cluster is in',
     query(
@@ -280,6 +295,8 @@ describe('Elasticache Integration Testing', () => {
       },
     ),
   );
+
+  it('starts a transaction', begin());
 
   it('makes two more cache clusters with the same cluster_id in different regions', done => {
     query(
@@ -323,6 +340,8 @@ describe('Elasticache Integration Testing', () => {
       (res: any) => expect(res.length).toBe(2),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'deletes the cache_cluster',
@@ -390,8 +409,7 @@ describe('Elasticache install/uninstall', () => {
 
   it('uninstalls the Elasticache module', uninstall(modules));
 
-  it('installs all modules', done =>
-    void iasql.install([], dbAlias, config.db.user, true).then(...finish(done)));
+  it('installs all modules', installAll());
 
   it('uninstalls the Elasticache module', uninstall(['aws_elasticache']));
 

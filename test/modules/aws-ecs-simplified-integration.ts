@@ -1,4 +1,4 @@
-import config from '../../src/config';
+import { CpuMemCombination } from '../../src/modules/aws_ecs_fargate/entity';
 import * as iasql from '../../src/services/iasql';
 import {
   defaultRegion,
@@ -6,24 +6,24 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  runBegin,
   runCommit,
   runInstall,
+  runInstallAll,
   runQuery,
   runRollback,
   runUninstall,
 } from '../helpers';
 
-const {
-  CpuMemCombination,
-} = require(`../../src/modules/${config.modules.latestVersion}/aws_ecs_fargate/entity`);
-
 const prefix = getPrefix();
 const dbAlias = 'ecssmptest';
 const region = defaultRegion();
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
+const installAll = runInstallAll.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const modules = ['aws_ecs_simplified'];
 
@@ -98,6 +98,8 @@ describe('ECS Simplified Integration Testing', () => {
 
   it('installs the ecs simplified module and its dependencies', install(modules));
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new row',
     query(
@@ -148,6 +150,8 @@ describe('ECS Simplified Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(0),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'adds a new row',
@@ -369,6 +373,8 @@ describe('ECS Simplified Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'updates a row',
     query(
@@ -399,6 +405,8 @@ describe('ECS Simplified Integration Testing', () => {
       },
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'updates a row',
@@ -447,6 +455,8 @@ describe('ECS Simplified Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'updates a row',
     query(
@@ -477,6 +487,8 @@ describe('ECS Simplified Integration Testing', () => {
       },
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'updates a row',
@@ -510,12 +522,14 @@ describe('ECS Simplified Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'updates env vars',
     query(
-      `  
-    UPDATE ecs_simplified SET env_variables = '${envVariables}' WHERE app_name = '${appName}';
-  `,
+      `
+        UPDATE ecs_simplified SET env_variables = '${envVariables}' WHERE app_name = '${appName}';
+      `,
       undefined,
       true,
       () => ({ username, password }),
@@ -610,6 +624,8 @@ describe('ECS Simplified Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'deletes the app',
     query(
@@ -695,8 +711,7 @@ describe('ECS Simplified install/uninstall', () => {
 
   it('uninstalls the ECS Simplified module', uninstall(modules));
 
-  it('installs all modules', done =>
-    void iasql.install([], dbAlias, config.db.user, true).then(...finish(done)));
+  it('installs all modules', installAll());
 
   it('uninstalls the ECS Simplified module', uninstall(modules));
 

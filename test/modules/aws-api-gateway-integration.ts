@@ -1,4 +1,3 @@
-import config from '../../src/config';
 import * as iasql from '../../src/services/iasql';
 import {
   defaultRegion,
@@ -6,8 +5,10 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  runBegin,
   runCommit,
   runInstall,
+  runInstallAll,
   runQuery,
   runRollback,
   runUninstall,
@@ -16,10 +17,12 @@ import {
 const prefix = getPrefix();
 const dbAlias = `${prefix}apigatewaytest`;
 
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
+const installAll = runInstallAll.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const modules = ['aws_api_gateway'];
 // the AWS website lied, API gateway also has restricted regions
@@ -93,10 +96,12 @@ describe('API Gateway Integration Testing', () => {
 
   it('installs the API gateway module', install(modules));
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new API gateway',
     query(
-      `  
+      `
     INSERT INTO api (name, description)
     VALUES ('${apiName}', 'description');
   `,
@@ -108,10 +113,12 @@ describe('API Gateway Integration Testing', () => {
 
   it('undo changes', rollback());
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new API gateway',
     query(
-      `  
+      `
     INSERT INTO api (name, description, disable_execute_api_endpoint, version)
     VALUES ('${apiName}', 'description', false, '1.0');
   `,
@@ -132,6 +139,8 @@ describe('API Gateway Integration Testing', () => {
       (res: any) => expect(res.length).toBe(1),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'tries to update API description',
@@ -157,6 +166,8 @@ describe('API Gateway Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'tries to update API ID',
     query(
@@ -180,6 +191,8 @@ describe('API Gateway Integration Testing', () => {
       (res: any) => expect(res.length).toBe(0),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'tries to update the API protocol',
@@ -227,6 +240,8 @@ describe('API Gateway Integration Testing', () => {
       (res: any) => expect(res.length).toBe(1),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'deletes the API',
@@ -294,8 +309,7 @@ describe('API install/uninstall', () => {
 
   it('uninstalls the API module', uninstall(modules));
 
-  it('installs all modules', done =>
-    void iasql.install([], dbAlias, config.db.user, true).then(...finish(done)));
+  it('installs all modules', installAll());
 
   it('uninstalls the API module', uninstall(['aws_api_gateway']));
 

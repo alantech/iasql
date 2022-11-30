@@ -1,6 +1,6 @@
 import { EC2 } from '@aws-sdk/client-ec2';
 
-import config from '../../src/config';
+import { TargetTypeEnum, ProtocolEnum } from '../../src/modules/aws_elb/entity';
 import * as iasql from '../../src/services/iasql';
 import {
   defaultRegion,
@@ -8,8 +8,10 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  runBegin,
   runCommit,
   runInstall,
+  runInstallAll,
   runQuery,
   runRollback,
   runUninstall,
@@ -63,21 +65,19 @@ const ubuntuAmiId =
 const instancePort = 1234;
 
 const prefix = getPrefix();
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const querySync = runQuery.bind(null, `${dbAlias}_sync`);
 const install = runInstall.bind(null, dbAlias);
+const installAll = runInstallAll.bind(null, dbAlias);
 const installSync = runInstall.bind(null, `${dbAlias}_sync`);
 const syncCommit = runCommit.bind(null, `${dbAlias}_sync`);
 const uninstall = runUninstall.bind(null, dbAlias);
 const modules = ['aws_ec2', 'aws_ec2_metadata', 'aws_security_group', 'aws_vpc', 'aws_elb', 'aws_iam'];
 
 // ELB integration
-const {
-  TargetTypeEnum,
-  ProtocolEnum,
-} = require(`../../src/modules/${config.modules.latestVersion}/aws_elb/entity`);
 const tgType = TargetTypeEnum.INSTANCE;
 const tgName = `${prefix}${dbAlias}tg`;
 const tgPort = 4142;
@@ -190,6 +190,8 @@ describe('EC2 Integration Testing', () => {
 
   it('installs the ec2 module', install(modules));
 
+  it('starts a transaction', begin());
+
   it('adds two ec2 instance', done => {
     query(
       `
@@ -239,6 +241,8 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it('adds an instance without security groups', done => {
     query(
       `
@@ -279,6 +283,8 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'deletes security group and instance',
     query(
@@ -300,6 +306,8 @@ describe('EC2 Integration Testing', () => {
   );
 
   it('applies the security group and instance deletion', commit());
+
+  it('starts a transaction', begin());
 
   it('adds two ec2 instance', done => {
     query(
@@ -411,6 +419,8 @@ describe('EC2 Integration Testing', () => {
 
   it('syncs the changes from the first database to the second', syncCommit());
 
+  it('starts a transaction', begin());
+
   it(
     'set both ec2 instances to the same ami',
     query(
@@ -453,6 +463,8 @@ describe('EC2 Integration Testing', () => {
   );
 
   describe('create IAM role', () => {
+    it('starts a transaction', begin());
+
     it(
       'creates ec2 instance role',
       query(
@@ -492,6 +504,8 @@ describe('EC2 Integration Testing', () => {
       ),
     );
   });
+
+  it('starts a transaction', begin());
 
   it(
     'create target group and register instance to it',
@@ -565,6 +579,8 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'register instance with custom port to target group',
     query(
@@ -617,6 +633,8 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'updates register instance with custom port to target group',
     query(
@@ -660,6 +678,8 @@ describe('EC2 Integration Testing', () => {
   );
 
   describe('update instance with IAM role', () => {
+    it('starts a transaction', begin());
+
     it(
       'assigns role to instance',
       query(
@@ -700,6 +720,8 @@ describe('EC2 Integration Testing', () => {
     );
   });
 
+  it('starts a transaction', begin());
+
   it(
     'stop instance',
     query(
@@ -728,6 +750,8 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'start instance',
     query(
@@ -754,6 +778,8 @@ describe('EC2 Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(1),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'hibernates instance',
@@ -782,6 +808,8 @@ describe('EC2 Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(1),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'start instance',
@@ -865,6 +893,8 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it('adds an ec2 instance with no security group', done => {
     query(
       `
@@ -921,6 +951,8 @@ describe('EC2 Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(1),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'deletes one of the registered instances',
@@ -982,6 +1014,8 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'update instance metadata',
     query(
@@ -1019,6 +1053,8 @@ describe('EC2 Integration Testing', () => {
       },
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'deletes all ec2 instances',
@@ -1086,6 +1122,8 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'deletes the target group',
     query(
@@ -1114,6 +1152,8 @@ describe('EC2 Integration Testing', () => {
   );
 
   describe('delete role', () => {
+    it('starts a transaction', begin());
+
     it(
       'deletes role',
       query(
@@ -1205,6 +1245,8 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
 
   it('installs the module', install(modules));
 
+  it('starts a transaction', begin());
+
   it('adds new volumes', done => {
     query(
       `
@@ -1247,6 +1289,8 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(0),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it('adds new volumes', done => {
     query(
@@ -1307,6 +1351,8 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'tries to update a volume field to be restored',
     query(
@@ -1333,6 +1379,8 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'tries to update a volume size',
     query(
@@ -1358,6 +1406,8 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
       (res: any[]) => expect(res[0].size).toBe(150),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it('tries to update a volume availability zone', done => {
     query(
@@ -1398,6 +1448,8 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'tries to update a volume availability zone',
     query(
@@ -1423,6 +1475,8 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
       (res: any[]) => expect(res[0].tags.updated).toBe('true'),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'deletes the volumes',
@@ -1504,8 +1558,7 @@ describe('EC2 install/uninstall', () => {
   // But uninstall won't uninstall dependencies, so we need to specify that we want all three here
   it('uninstalls the ec2 module', uninstall(modules));
 
-  it('installs all modules', done =>
-    void iasql.install([], dbAlias, config.db.user, true).then(...finish(done)));
+  it('installs all modules', installAll());
 
   it(
     'uninstall ec2 using overloaded sp',

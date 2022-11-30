@@ -1,4 +1,3 @@
-import config from '../../src/config';
 import * as iasql from '../../src/services/iasql';
 import {
   defaultRegion,
@@ -6,8 +5,10 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  runBegin,
   runCommit,
   runInstall,
+  runInstallAll,
   runQuery,
   runRollback,
   runUninstall,
@@ -18,10 +19,12 @@ const dbAlias = 'secrettest';
 const secretName = `${prefix}${dbAlias}`;
 const secretValue = 'value';
 
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
+const installAll = runInstallAll.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const region = defaultRegion();
 const modules = ['aws_secrets_manager'];
@@ -78,6 +81,8 @@ describe('Secrets Manager Integration Testing', () => {
 
   it('installs the secret module', install(modules));
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new secret',
     query(
@@ -92,6 +97,8 @@ describe('Secrets Manager Integration Testing', () => {
   );
 
   it('undo changes', rollback());
+
+  it('starts a transaction', begin());
 
   it(
     'adds a new secret',
@@ -118,6 +125,8 @@ describe('Secrets Manager Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'tries to update secret description',
     query(
@@ -142,6 +151,8 @@ describe('Secrets Manager Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'tries to update secret value',
     query(
@@ -155,6 +166,8 @@ describe('Secrets Manager Integration Testing', () => {
   );
 
   it('applies the secret value update', commit());
+
+  it('starts a transaction', begin());
 
   it(
     'tries to update version',
@@ -194,6 +207,8 @@ describe('Secrets Manager Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'moves the secret to another region with a new value',
     query(
@@ -221,6 +236,8 @@ describe('Secrets Manager Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'creates the same secret back in the original region at the same time',
     query(
@@ -247,6 +264,8 @@ describe('Secrets Manager Integration Testing', () => {
       },
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'deletes the secret',
@@ -314,8 +333,7 @@ describe('Secret install/uninstall', () => {
 
   it('uninstalls the secret module', uninstall(modules));
 
-  it('installs all modules', done =>
-    void iasql.install([], dbAlias, config.db.user, true).then(...finish(done)));
+  it('installs all modules', installAll());
 
   it('uninstalls the secret module', uninstall(['aws_secrets_manager']));
 

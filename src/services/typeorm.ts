@@ -6,7 +6,7 @@ import { PostgresDriver } from 'typeorm/driver/postgres/PostgresDriver';
 import { v4 as uuidv4 } from 'uuid';
 
 import config from '../config';
-import { modules as AllModules } from '../modules';
+import * as AllModules from '../modules';
 import { NullCheckerSubscriber } from '../modules/subscribers';
 
 export class TypeormWrapper {
@@ -44,12 +44,13 @@ export class TypeormWrapper {
     const tempconn = await createConnection(connOpts);
     // If this connection is being used to create a new DB, assume we're creating one with the
     // newest module versions
-    let versionString: string = config.modules.latestVersion;
+    let versionString: string = config.version;
     try {
       const res = await tempconn.query(`
         SELECT DISTINCT name FROM iasql_module LIMIT 1;
       `);
       versionString = res[0].name.split('@')[1];
+      if (versionString !== config.version) throw new Error(`Unsupported version ${versionString}`);
     } catch (e) {
       // We're fine with just defaulting to the latest version
     }
@@ -65,14 +66,11 @@ export class TypeormWrapper {
     if (connMan.has(dbname)) {
       throw new Error(`Connection ${dbname} already exists`);
     }
-    const versionString = await TypeormWrapper.getVersionString(database);
-    const Modules = (AllModules as any)[versionString];
-    if (!Modules) throw new Error(`Unsupported version ${versionString} in database ${database}`);
     // Grab all of the entities and create the TypeORM connection with it. Theoretically only need
     // the module in question at first, but when we try to use the module to acquire the cloud
     // records, it may use one or more other modules it depends on, so we just load them all into
     // the TypeORM client
-    const entities = Object.values(Modules)
+    const entities = Object.values(AllModules)
       .filter((m: any) => m.hasOwnProperty('provides'))
       .map((m: any) => Object.values(m.provides.entities))
       .flat()
@@ -154,6 +152,6 @@ export class TypeormWrapper {
   }
 
   async getEntityMetadata(entity: EntityTarget<any>): Promise<EntityMetadata> {
-    return await this.connection.getMetadata(entity);
+    return this.connection.getMetadata(entity);
   }
 }

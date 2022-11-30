@@ -4,12 +4,8 @@ const config: ConfigInterface = {
   http: {
     port: 8088,
   },
-  modules: {
-    latestVersion: '0.0.23',
-    oldestVersion: '0.0.18',
-  },
   db: {
-    host: 'postgresql',
+    host: 'localhost',
     user: 'postgres',
     password: 'test',
     port: 5432,

@@ -7,17 +7,22 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  runBegin,
   runCommit,
   runInstall,
+  runInstallAll,
   runQuery,
   runUninstall,
 } from '../helpers';
 
 const prefix = getPrefix();
 const dbAlias = 'codepipelinetest';
+
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
+const installAll = runInstallAll.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 // codepipeline has a more limited region list
 const region = defaultRegion([
@@ -260,6 +265,8 @@ describe('AwsCodepipeline Integration Testing', () => {
 
   it('installs the codepipeline module', install(modules));
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new role',
     query(
@@ -349,6 +356,8 @@ describe('AwsCodepipeline Integration Testing', () => {
   it('applies the security group and rules creation', commit());
 
   // create sample ec2 instance
+  it('starts a transaction', begin());
+
   it('adds an ec2 instance', done => {
     query(
       `
@@ -373,6 +382,8 @@ describe('AwsCodepipeline Integration Testing', () => {
   });
 
   it('applies the created instance', commit());
+
+  it('starts a transaction', begin());
 
   it(
     'adds a new codedeploy_application for deployment',
@@ -401,6 +412,8 @@ describe('AwsCodepipeline Integration Testing', () => {
   );
 
   it('applies the deployment group creation', commit());
+
+  it('starts a transaction', begin());
 
   it(
     'adds a new pipeline',
@@ -446,6 +459,8 @@ describe('AwsCodepipeline Integration Testing', () => {
   it('uninstalls the codepipeline module', uninstall(modules));
 
   it('installs the codepipeline module', install(modules));
+
+  it('starts a transaction', begin());
 
   it(
     'delete pipeline',
@@ -510,6 +525,8 @@ describe('AwsCodepipeline Integration Testing', () => {
     it('applies the instance deletion', commit());
   });
 
+  it('starts a transaction', begin());
+
   it(
     'delete role',
     query(
@@ -525,10 +542,17 @@ describe('AwsCodepipeline Integration Testing', () => {
 
   it(
     'cleans up the bucket',
-    query(`DELETE FROM bucket_object WHERE bucket_name='${bucket}'`, undefined, true, () => ({
-      username,
-      password,
-    })),
+    query(
+      `
+        DELETE FROM bucket_object WHERE bucket_name='${bucket}'
+      `,
+      undefined,
+      true,
+      () => ({
+        username,
+        password,
+      }),
+    ),
   );
 
   it(
@@ -547,6 +571,8 @@ describe('AwsCodepipeline Integration Testing', () => {
   it('apply deletions', commit());
 
   describe('delete security groups and rules', () => {
+    it('starts a transaction', begin());
+
     it(
       'deletes security group rules',
       query(
@@ -649,7 +675,7 @@ describe('AwsCodepipeline install/uninstall', () => {
 
   it('uninstalls the codepipeline module', uninstall(modules));
 
-  it('installs all modules', done => void iasql.install([], dbAlias, 'postgres', true).then(...finish(done)));
+  it('installs all modules', installAll());
 
   it('uninstalls the codepipeline module', uninstall(['aws_codepipeline']));
 

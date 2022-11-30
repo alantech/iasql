@@ -1,4 +1,4 @@
-import config from '../../src/config';
+import { CpuMemCombination, TaskDefinitionStatus } from '../../src/modules/aws_ecs_fargate/entity';
 import * as iasql from '../../src/services/iasql';
 import {
   defaultRegion,
@@ -6,17 +6,14 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  runBegin,
   runCommit,
   runInstall,
+  runInstallAll,
   runQuery,
   runRollback,
   runUninstall,
 } from '../helpers';
-
-const {
-  CpuMemCombination,
-  TaskDefinitionStatus,
-} = require(`../../src/modules/${config.modules.latestVersion}/aws_ecs_fargate/entity`);
 
 const prefix = getPrefix();
 const dbAlias = 'ecstest';
@@ -25,10 +22,13 @@ const sidecarCommit = runCommit.bind(null, dbAliasSidecar);
 const sidecarInstall = runInstall.bind(null, dbAliasSidecar);
 const region = defaultRegion();
 const nonDefaultRegion = 'us-east-1';
+
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
+const installAll = runInstallAll.bind(null, dbAlias);
 const querySync = runQuery.bind(null, dbAliasSidecar);
 const installSync = runInstall.bind(null, dbAliasSidecar);
 const syncCommit = runCommit.bind(null, dbAliasSidecar);
@@ -184,6 +184,8 @@ describe('ECS Integration Testing', () => {
   it('installs the ecs module and its dependencies', install(modules));
 
   // Cluster
+  it('starts a transaction', begin());
+
   it(
     'adds a new cluster',
     query(
@@ -210,6 +212,8 @@ describe('ECS Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(0),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'adds a new cluster',
@@ -240,6 +244,8 @@ describe('ECS Integration Testing', () => {
 
   // Service dependencies
   it('applies service dependencies', commit());
+
+  it('starts a transaction', begin());
 
   it(
     'adds service dependencies',
@@ -352,6 +358,8 @@ describe('ECS Integration Testing', () => {
   );
 
   // Task definition
+  it('starts a transaction', begin());
+
   it(
     'adds a new task definition',
     query(
@@ -491,6 +499,8 @@ describe('ECS Integration Testing', () => {
   );
 
   // Service
+  it('starts a transaction', begin());
+
   it(
     'adds a new service',
     query(
@@ -578,6 +588,8 @@ describe('ECS Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'tries to update a service (update)',
     query(
@@ -604,6 +616,8 @@ describe('ECS Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'tries to update a service (restore)',
     query(
@@ -629,6 +643,8 @@ describe('ECS Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(1),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'tries to update a service (replace)',
@@ -660,7 +676,8 @@ describe('ECS Integration Testing', () => {
     'tries to force update a service',
     query(
       `
-      SELECT deploy_service(arn) FROM service WHERE name='${newServiceName}'`,
+        SELECT deploy_service(arn) FROM service WHERE name='${newServiceName}'
+      `,
       (res: any[]) => {
         expect(res.length).toBe(1);
         expect(res[0].deploy_service).toContain('OK');
@@ -707,6 +724,8 @@ describe('ECS Integration Testing', () => {
 
   it('installs the ecs module', install(['aws_ecs_fargate']));
 
+  it('starts a transaction', begin());
+
   it(
     'deletes service',
     query(
@@ -741,6 +760,8 @@ describe('ECS Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(0),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'deletes container definitons',
@@ -812,6 +833,8 @@ describe('ECS Integration Testing', () => {
   it('installs the ecs module', install(['aws_ecs_fargate']));
 
   // deletes service dependencies
+  it('starts a transaction', begin());
+
   it(
     'deletes service dependencies',
     query(
@@ -847,6 +870,8 @@ describe('ECS Integration Testing', () => {
 
   it('applies deletes service dependencies', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'tries to update a cluster field (restore)',
     query(
@@ -861,6 +886,8 @@ describe('ECS Integration Testing', () => {
 
   it('applies tries to update a cluster field (restore)', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'tries to update cluster (replace)',
     query(
@@ -874,6 +901,8 @@ describe('ECS Integration Testing', () => {
   );
 
   it('applies tries to update cluster (replace)', commit());
+
+  it('starts a transaction', begin());
 
   it(
     'deletes the cluster',
@@ -951,8 +980,7 @@ describe('ECS install/uninstall', () => {
 
   it('uninstalls the ECS module', uninstall(modules));
 
-  it('installs all modules', done =>
-    void iasql.install([], dbAlias, config.db.user, true).then(...finish(done)));
+  it('installs all modules', installAll());
 
   it('uninstalls the ECS module', uninstall(['aws_ecs_fargate', 'aws_ecs_simplified']));
 

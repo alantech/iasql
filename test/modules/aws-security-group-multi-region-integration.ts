@@ -5,6 +5,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  runBegin,
   runCommit,
   runInstall,
   runQuery,
@@ -16,6 +17,8 @@ const dbAlias = 'sgtest';
 const sgName = `${prefix}${dbAlias}`;
 const nonDefaultRegion = 'us-east-1';
 const defaultRegion = dr();
+
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
@@ -74,6 +77,8 @@ describe('Security Group Multi region Integration Testing', () => {
 
   it('installs the security group module', install(modules));
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new security group',
     query(
@@ -100,6 +105,8 @@ describe('Security Group Multi region Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(0),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'adds a new security group',
@@ -128,6 +135,8 @@ describe('Security Group Multi region Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'adds security group rules',
     query(
@@ -148,6 +157,8 @@ describe('Security Group Multi region Integration Testing', () => {
   );
 
   it('applies the security group rule change', commit());
+
+  it('starts a transaction', begin());
 
   it(
     'updates the security group rule',
@@ -180,6 +191,8 @@ describe('Security Group Multi region Integration Testing', () => {
   );
 
   it('applies the security group rule change (again)', commit());
+
+  it('starts a transaction', begin());
 
   it(
     'updates the security group',
@@ -233,6 +246,8 @@ describe('Security Group Multi region Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(2),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'deletes these test records',

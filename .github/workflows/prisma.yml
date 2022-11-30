@@ -57,7 +57,9 @@ jobs:
 
       - name: Start local iasql engine
         run: |
-          IASQL_ENV=ci docker-compose up --build --detach
+          docker build -t iasql:latest .
+          # Temporarily export the engine port until it's only the Postgres port needed
+          docker run -p 5432:5432 -p 8088:8088 -e IASQL_ENV=ci --name iasql iasql &
           while ! curl --output /dev/null --silent --head --fail http://localhost:8088/health; do sleep 1 && echo -n .; done;
 
       - name: Determine Test Account To Use
@@ -89,10 +91,12 @@ jobs:
         run: |
           export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
           export AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
+          echo "\nStart transaction..."
+          psql "postgres://$IASQL_USERNAME:$IASQL_PASSWORD@localhost:5432/iasql?ssl=true&sslmode=require" -c "select * from iasql_begin();"
           echo "\nDelete all records..."
-          psql postgres://$IASQL_USERNAME:$IASQL_PASSWORD@localhost:5432/iasql -c "select * from delete_all_records();"
+          psql "postgres://$IASQL_USERNAME:$IASQL_PASSWORD@localhost:5432/iasql?ssl=true&sslmode=require" -c "select * from delete_all_records();"
           echo "\nApply..."
-          psql postgres://postgres:test@localhost:5432/iasql -c "select * from iasql_commit();"
+          psql $PSQL_CONN -c "select * from iasql_commit();"
         env:
           ACCOUNT_INDEX: ${{ steps['determine-test-account'].outputs['account_index'] }}
           AWS_REGION: ${{ needs.setup.outputs['region'] }}
@@ -100,6 +104,7 @@ jobs:
           SECRET_ACCESS_KEYS: ${{ secrets.SECRET_ACCESS_KEYS }}
           IASQL_USERNAME: ${{ env.iasql_username }}
           IASQL_PASSWORD: ${{ env.iasql_password }}
+          PSQL_CONN: postgres://postgres:test@localhost:5432/iasql?ssl=true&sslmode=require
 
       - name: Run deploy script
         run: |
@@ -111,7 +116,7 @@ jobs:
           AWS_REGION: ${{ needs.setup.outputs['region'] }}
           ACCESS_KEY_IDS: ${{ secrets.ACCESS_KEY_IDS }}
           SECRET_ACCESS_KEYS: ${{ secrets.SECRET_ACCESS_KEYS }}
-          DATABASE_URL: postgres://${{ env.iasql_username }}:${{ env.iasql_password }}@localhost:5432/iasql
+          DATABASE_URL: postgres://${{ env.iasql_username }}:${{ env.iasql_password }}@localhost:5432/iasql?ssl=true&sslmode=require
           GH_PAT: ${{ secrets.GH_PAT }}
 
       - name: Run cleaning script
@@ -119,10 +124,12 @@ jobs:
         run: |
           export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
           export AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
+          echo "\nStart transaction..."
+          psql "postgres://$IASQL_USERNAME:$IASQL_PASSWORD@localhost:5432/iasql?ssl=true&sslmode=require" -c "select * from iasql_begin();"
           echo "\nDelete all records..."
-          psql postgres://$IASQL_USERNAME:$IASQL_PASSWORD@localhost:5432/iasql -c "select * from delete_all_records();"
+          psql "postgres://$IASQL_USERNAME:$IASQL_PASSWORD@localhost:5432/iasql?ssl=true&sslmode=require" -c "select * from delete_all_records();"
           echo "\nApply..."
-          psql postgres://postgres:test@localhost:5432/iasql -c "select * from iasql_commit();"
+          psql $PSQL_CONN -c "select * from iasql_commit();"
         env:
           ACCOUNT_INDEX: ${{ steps['determine-test-account'].outputs['account_index'] }}
           AWS_REGION: ${{ needs.setup.outputs['region'] }}
@@ -130,6 +137,7 @@ jobs:
           SECRET_ACCESS_KEYS: ${{ secrets.SECRET_ACCESS_KEYS }}
           IASQL_USERNAME: ${{ env.iasql_username }}
           IASQL_PASSWORD: ${{ env.iasql_password }}
+          PSQL_CONN: postgres://postgres:test@localhost:5432/iasql?ssl=true&sslmode=require
 
       - name: Return test account
         if: always()
@@ -141,8 +149,4 @@ jobs:
 
       - name: Local engine logs
         if: always()
-        run: docker logs iasql-engine_change_engine_1
-
-      - name: Local psql logs
-        if: always()
-        run: docker logs iasql-engine_postgresql_1
+        run: docker logs iasql

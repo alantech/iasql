@@ -1,4 +1,3 @@
-import config from '../../src/config';
 import * as iasql from '../../src/services/iasql';
 import {
   defaultRegion,
@@ -6,8 +5,10 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  runBegin,
   runCommit,
   runInstall,
+  runInstallAll,
   runQuery,
   runRollback,
   runUninstall,
@@ -18,10 +19,12 @@ const dbAlias = 'rdstest';
 const parameterGroupName = `${prefix}${dbAlias}pg`;
 const engineFamily = `postgres13`;
 
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
+const installAll = runInstallAll.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const region = defaultRegion();
 const modules = ['aws_security_group', 'aws_rds', 'aws_vpc'];
@@ -78,6 +81,8 @@ describe('RDS Integration Testing', () => {
 
   it('installs the rds module', install(modules));
 
+  it('starts a transaction', begin());
+
   it(
     'creates an RDS instance',
     query(
@@ -123,6 +128,8 @@ describe('RDS Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'creates an RDS instance',
     query(
@@ -168,6 +175,8 @@ describe('RDS Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'changes the postgres version',
     query(
@@ -181,6 +190,8 @@ describe('RDS Integration Testing', () => {
   );
 
   it('applies the change', commit());
+
+  it('starts a transaction', begin());
 
   it(
     'creates an RDS parameter group',
@@ -220,6 +231,8 @@ describe('RDS Integration Testing', () => {
       (res: any[]) => expect(res.every(r => r['value'] === '1')).toBeFalsy(),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'changes all boolean parameters for the new parameter group to be true',
@@ -289,6 +302,8 @@ describe('RDS Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'removes the RDS instance',
     query(
@@ -327,6 +342,8 @@ describe('RDS Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(0),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'removes the parameter group and it parameters',
@@ -418,8 +435,7 @@ describe('RDS install/uninstall', () => {
 
   it('uninstalls the RDS module', uninstall(modules));
 
-  it('installs all modules', done =>
-    void iasql.install([], dbAlias, config.db.user, true).then(...finish(done)));
+  it('installs all modules', installAll());
 
   it('uninstalls the RDS module', uninstall(['aws_rds']));
 

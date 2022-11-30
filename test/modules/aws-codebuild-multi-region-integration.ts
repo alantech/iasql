@@ -4,12 +4,15 @@ import {
   execComposeDown,
   execComposeUp,
   finish,
+  runBegin,
   runCommit,
   runInstall,
   runQuery,
 } from '../helpers';
 
 const dbAlias = 'codebuildtest';
+
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
@@ -86,6 +89,8 @@ describe('AwsCodebuild Multi-region Integration Testing', () => {
 
   it('installs the codebuild module', install(modules));
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new source_credentials_import',
     query(
@@ -125,6 +130,8 @@ describe('AwsCodebuild Multi-region Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'delete source_credentials_list',
     query(
@@ -151,6 +158,8 @@ describe('AwsCodebuild Multi-region Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(0),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'adds a new role',
@@ -179,6 +188,8 @@ describe('AwsCodebuild Multi-region Integration Testing', () => {
   );
 
   it('apply codebuild_project creation', commit());
+
+  it('starts a transaction', begin());
 
   it(
     'start build',
@@ -216,6 +227,8 @@ describe('AwsCodebuild Multi-region Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(1),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'delete build',

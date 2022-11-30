@@ -7,8 +7,10 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  runBegin,
   runCommit,
   runInstall,
+  runInstallAll,
   runQuery,
   runRollback,
   runUninstall,
@@ -109,10 +111,12 @@ const sgGroupName = `${prefix}sgcodedeploy`;
 let availabilityZone: string;
 let instanceType: string;
 
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
+const installAll = runInstallAll.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const modules = ['aws_codedeploy', 'aws_iam', 'aws_ec2'];
 
@@ -176,6 +180,8 @@ describe('AwsCodedeploy Integration Testing', () => {
 
   it('installs the codedeploy module and dependencies', install(modules));
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new codedeploy role',
     query(
@@ -204,10 +210,12 @@ describe('AwsCodedeploy Integration Testing', () => {
 
   it('applies the role creation', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new security group',
     query(
-      `  
+      `
     INSERT INTO security_group (description, group_name)
     VALUES ('CodedeploySecurity Group', '${sgGroupName}');
   `,
@@ -242,6 +250,8 @@ describe('AwsCodedeploy Integration Testing', () => {
   );
   it('applies the security group and rules creation', commit());
 
+  it('starts a transaction', begin());
+
   // create sample ec2 instance
   it('adds an ec2 instance', done => {
     query(
@@ -268,6 +278,8 @@ describe('AwsCodedeploy Integration Testing', () => {
 
   it('applies the created instance', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new codedeploy_application',
     query(
@@ -282,6 +294,8 @@ describe('AwsCodedeploy Integration Testing', () => {
   );
 
   it('undo changes', rollback());
+
+  it('starts a transaction', begin());
 
   it(
     'adds a new codedeploy_application',
@@ -308,6 +322,8 @@ describe('AwsCodedeploy Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'tries to update application ID',
     query(
@@ -331,6 +347,8 @@ describe('AwsCodedeploy Integration Testing', () => {
       (res: any) => expect(res.length).toBe(0),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'tries to update the codedeploy_application compute_platform',
@@ -360,6 +378,8 @@ describe('AwsCodedeploy Integration Testing', () => {
 
   it('installs the codedeploy module', install(modules));
 
+  it('starts a transaction', begin());
+
   it(
     'delete application',
     query(
@@ -375,6 +395,8 @@ describe('AwsCodedeploy Integration Testing', () => {
   it('applies the application deletion', commit());
 
   // deployment group testing
+  it('starts a transaction', begin());
+
   it(
     'adds a new codedeploy_application for deployment',
     query(
@@ -412,6 +434,8 @@ describe('AwsCodedeploy Integration Testing', () => {
       (res: any) => expect(res.length).toBe(1),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'tries to update the codedeploy_deployment_group tags',
@@ -486,6 +510,8 @@ describe('Move deployments to another region', () => {
       return {};
     }));
 
+  it('starts a transaction', begin());
+
   it(
     'moves a deployment to another region',
     query(
@@ -520,6 +546,8 @@ describe('Move deployments to another region', () => {
 
 // cleanup
 describe('deployment cleanup', () => {
+  it('starts a transaction', begin());
+
   it(
     'delete deployment group',
     query(
@@ -569,6 +597,8 @@ SELECT * FROM codedeploy_deployment_group WHERE application_id = (SELECT id FROM
   );
 
   describe('ec2 cleanup', () => {
+    it('starts a transaction', begin());
+
     it(
       'deletes all ec2 instances',
       query(
@@ -593,6 +623,8 @@ SELECT * FROM codedeploy_deployment_group WHERE application_id = (SELECT id FROM
   });
 
   describe('delete roles', () => {
+    it('starts a transaction', begin());
+
     it(
       'deletes role',
       query(
@@ -609,6 +641,8 @@ SELECT * FROM codedeploy_deployment_group WHERE application_id = (SELECT id FROM
   });
 
   describe('delete security groups and rules', () => {
+    it('starts a transaction', begin());
+
     it(
       'deletes security group rules',
       query(
@@ -690,7 +724,7 @@ describe('AwsCodedeploy install/uninstall', () => {
 
   it('uninstalls the codedeploy module', uninstall(modules));
 
-  it('installs all modules', done => void iasql.install([], dbAlias, 'postgres', true).then(...finish(done)));
+  it('installs all modules', installAll());
 
   it('uninstalls the codedeploy module', uninstall(['aws_codedeploy', 'aws_codepipeline']));
 

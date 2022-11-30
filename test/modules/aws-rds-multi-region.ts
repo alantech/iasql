@@ -5,6 +5,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  runBegin,
   runCommit,
   runInstall,
   runQuery,
@@ -15,6 +16,7 @@ const dbAlias = 'rdstest';
 const parameterGroupName = `${prefix}${dbAlias}pg`;
 const engineFamily = `postgres13`;
 
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
@@ -73,6 +75,8 @@ describe('RDS Multi-Region Testing', () => {
 
   it('installs the rds module', install(modules));
 
+  it('starts a transaction', begin());
+
   it(
     'creates an RDS instance',
     query(
@@ -93,6 +97,8 @@ describe('RDS Multi-Region Testing', () => {
 
   it('applies the change', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'creates an RDS parameter group',
     query(
@@ -107,6 +113,8 @@ describe('RDS Multi-Region Testing', () => {
   );
 
   it('applies the change', commit());
+
+  it('starts a transaction', begin());
 
   it(
     'moves the parameter group to another region',
@@ -144,6 +152,8 @@ describe('RDS Multi-Region Testing', () => {
 
   it('applies the region move and parameter group usage', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'removes the RDS instance',
     query(
@@ -158,6 +168,8 @@ describe('RDS Multi-Region Testing', () => {
   );
 
   it('applies the change', commit());
+
+  it('starts a transaction', begin());
 
   it(
     'removes the parameter group and it parameters',

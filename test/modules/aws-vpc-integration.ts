@@ -1,4 +1,3 @@
-import config from '../../src/config';
 import * as iasql from '../../src/services/iasql';
 import {
   defaultRegion,
@@ -6,8 +5,10 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  runBegin,
   runCommit,
   runInstall,
+  runInstallAll,
   runQuery,
   runRollback,
   runUninstall,
@@ -35,10 +36,12 @@ const testPolicy = JSON.stringify({
   ],
 });
 
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
+const installAll = runInstallAll.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const region = defaultRegion();
 // We have to install the `aws_security_group` to test fully the integration even though is not being used,
@@ -110,6 +113,8 @@ describe('VPC Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new vpc',
     query(
@@ -124,6 +129,8 @@ describe('VPC Integration Testing', () => {
   );
 
   it('undo changes', rollback());
+
+  it('starts a transaction', begin());
 
   it(
     'adds a new vpc',
@@ -180,6 +187,8 @@ describe('VPC Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'adds a subnet',
     query(
@@ -197,6 +206,8 @@ describe('VPC Integration Testing', () => {
   );
 
   it('applies the subnet change', commit());
+
+  it('starts a transaction', begin());
 
   it(
     'updates vpc state',
@@ -224,6 +235,8 @@ describe('VPC Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'tries to update vpc tags',
     query(
@@ -247,6 +260,8 @@ describe('VPC Integration Testing', () => {
       (res: any) => expect(res.length).toBe(1),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'tries to update vpc cidr',
@@ -274,6 +289,8 @@ describe('VPC Integration Testing', () => {
   );
 
   describe('Elastic IP and nat gateway creation', () => {
+    it('starts a transaction', begin());
+
     it(
       'adds a new elastic ip',
       query(
@@ -309,6 +326,8 @@ describe('VPC Integration Testing', () => {
       ),
     );
 
+    it('starts a transaction', begin());
+
     it(
       'adds a private nat gateway',
       query(
@@ -336,6 +355,8 @@ describe('VPC Integration Testing', () => {
       ),
     );
 
+    it('starts a transaction', begin());
+
     it(
       'adds a public nat gateway with existing elastic ip',
       query(
@@ -362,6 +383,8 @@ describe('VPC Integration Testing', () => {
         (res: any) => expect(res.length).toBe(1),
       ),
     );
+
+    it('starts a transaction', begin());
 
     it(
       'adds a public nat gateway with no existing elastic ip',
@@ -403,6 +426,8 @@ describe('VPC Integration Testing', () => {
   });
 
   describe('VPC endpoint gateway creation', () => {
+    it('starts a transaction', begin());
+
     it(
       'adds a new s3 endpoint gateway',
       query(
@@ -443,6 +468,8 @@ describe('VPC Integration Testing', () => {
   });
 
   describe('VPC endpoint interface creation', () => {
+    it('starts a transaction', begin());
+
     it(
       'adds a new lambda endpoint interface',
       query(
@@ -556,6 +583,8 @@ describe('VPC Integration Testing', () => {
   );
 
   describe('Elastic Ip and Nat gateway updates', () => {
+    it('starts a transaction', begin());
+
     it(
       'updates a elastic ip',
       query(
@@ -592,6 +621,8 @@ describe('VPC Integration Testing', () => {
       ),
     );
 
+    it('starts a transaction', begin());
+
     it(
       'updates a public nat gateway with existing elastic ip to be private',
       query(
@@ -627,6 +658,8 @@ describe('VPC Integration Testing', () => {
         (res: any) => expect(res[0]['connectivity_type']).toBe('private'),
       ),
     );
+
+    it('starts a transaction', begin());
 
     it(
       'updates a public nat gateway with no existing elastic ip',
@@ -667,6 +700,8 @@ describe('VPC Integration Testing', () => {
   });
 
   describe('VPC endpoint gateway updates', () => {
+    it('starts a transaction', begin());
+
     it(
       'updates a endpoint gateway to be restored',
       query(
@@ -702,6 +737,8 @@ describe('VPC Integration Testing', () => {
         (res: any) => expect(res[0]['state']).toBe('available'),
       ),
     );
+
+    it('starts a transaction', begin());
 
     it(
       'updates a endpoint gateway policy',
@@ -739,6 +776,8 @@ describe('VPC Integration Testing', () => {
       ),
     );
 
+    it('starts a transaction', begin());
+
     it(
       'updates a endpoint gateway tags',
       query(
@@ -774,6 +813,8 @@ describe('VPC Integration Testing', () => {
         (res: any) => expect(res[0]['tags']['updated']).toBe('true'),
       ),
     );
+
+    it('starts a transaction', begin());
 
     it(
       'updates a endpoint gateway to be replaced',
@@ -813,6 +854,8 @@ describe('VPC Integration Testing', () => {
   });
 
   describe('VPC endpoint interface updates', () => {
+    it('starts a transaction', begin());
+
     it(
       'updates a endpoint interface to be restored',
       query(
@@ -848,6 +891,8 @@ describe('VPC Integration Testing', () => {
         (res: any) => expect(res[0]['state']).toBe('available'),
       ),
     );
+
+    it('starts a transaction', begin());
 
     it(
       'updates a endpoint interface policy',
@@ -885,6 +930,8 @@ describe('VPC Integration Testing', () => {
       ),
     );
 
+    it('starts a transaction', begin());
+
     it(
       'updates a endpoint interface tags',
       query(
@@ -920,6 +967,8 @@ describe('VPC Integration Testing', () => {
         (res: any) => expect(res[0]['tags']['updated']).toBe('true'),
       ),
     );
+
+    it('starts a transaction', begin());
 
     it(
       'removes the current endpoint subnets',
@@ -958,6 +1007,8 @@ describe('VPC Integration Testing', () => {
       ),
     );
 
+    it('starts a transaction', begin());
+
     it(
       'adds new endpoint subnet',
       query(
@@ -985,6 +1036,8 @@ describe('VPC Integration Testing', () => {
   });
 
   describe('Elastic Ip and Nat gateway deletion', () => {
+    it('starts a transaction', begin());
+
     it(
       'deletes a public nat gateways',
       query(
@@ -1009,6 +1062,8 @@ describe('VPC Integration Testing', () => {
         (res: any) => expect(res.length).toBe(0),
       ),
     );
+
+    it('starts a transaction', begin());
 
     it(
       'deletes a elastic ip created by the nat gateway',
@@ -1035,6 +1090,8 @@ describe('VPC Integration Testing', () => {
       ),
     );
 
+    it('starts a transaction', begin());
+
     it(
       'deletes a elastic ip',
       query(
@@ -1059,6 +1116,8 @@ describe('VPC Integration Testing', () => {
         (res: any) => expect(res.length).toBe(0),
       ),
     );
+
+    it('starts a transaction', begin());
 
     it(
       'updates a private nat gateway',
@@ -1096,6 +1155,8 @@ describe('VPC Integration Testing', () => {
       ),
     );
 
+    it('starts a transaction', begin());
+
     it(
       'deletes a private nat gateway',
       query(
@@ -1123,6 +1184,8 @@ describe('VPC Integration Testing', () => {
   });
 
   describe('VPC endpoint gateway deletion', () => {
+    it('starts a transaction', begin());
+
     it(
       'deletes a endpoint_gateway',
       query(
@@ -1150,6 +1213,8 @@ describe('VPC Integration Testing', () => {
   });
 
   describe('VPC endpoint interface deletion', () => {
+    it('starts a transaction', begin());
+
     it(
       'deletes a endpoint_interface',
       query(
@@ -1176,6 +1241,8 @@ describe('VPC Integration Testing', () => {
     );
   });
 
+  it('starts a transaction', begin());
+
   it(
     'deletes the subnet',
     query(
@@ -1197,6 +1264,8 @@ describe('VPC Integration Testing', () => {
   );
 
   it('applies the subnet removal', commit());
+
+  it('starts a transaction', begin());
 
   it(
     'deletes the vpc',
@@ -1283,8 +1352,7 @@ describe('VPC install/uninstall', () => {
 
   it('uninstalls the VPC module', uninstall(modules));
 
-  it('installs all modules', done =>
-    void iasql.install([], dbAlias, config.db.user, true).then(...finish(done)));
+  it('installs all modules', installAll());
 
   it(
     'uninstalls the VPC module',

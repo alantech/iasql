@@ -1,4 +1,3 @@
-import config from '../../src/config';
 import * as iasql from '../../src/services/iasql';
 import {
   defaultRegion,
@@ -6,8 +5,10 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  runBegin,
   runCommit,
   runInstall,
+  runInstallAll,
   runQuery,
   runRollback,
   runUninstall,
@@ -52,10 +53,12 @@ const s3behavior = {
 };
 const s3behaviorString = JSON.stringify(s3behavior);
 
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
+const installAll = runInstallAll.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const region = defaultRegion();
 const modules = ['aws_cloudfront', 'aws_s3'];
@@ -120,6 +123,8 @@ describe('Cloudfront Integration Testing', () => {
 
   it('installs the cloudfront module', install(modules));
 
+  it('starts a transaction', begin());
+
   it(
     'creates a dummy s3 resource',
     query(
@@ -132,10 +137,12 @@ describe('Cloudfront Integration Testing', () => {
   );
   it('applies the s3 creation', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new distribution',
     query(
-      `  
+      `
     INSERT INTO distribution (caller_reference, default_cache_behavior, origins)
     VALUES ('${callerReference}', '${behaviorString}', '${originsString}');
   `,
@@ -147,9 +154,11 @@ describe('Cloudfront Integration Testing', () => {
 
   it('undo changes', rollback());
 
+  it('starts a transaction', begin());
+
   it('adds a new s3 distribution', done => {
     query(
-      `  
+      `
     INSERT INTO distribution (caller_reference, comment, enabled, is_ipv6_enabled, default_cache_behavior, origins )
     VALUES ('${s3CallerReference}', 'a comment', true, false, '${s3behaviorString}', '${s3OriginsString}');
   `,
@@ -174,10 +183,12 @@ describe('Cloudfront Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new distribution',
     query(
-      `  
+      `
     INSERT INTO distribution (caller_reference, comment, enabled, is_ipv6_enabled, default_cache_behavior, origins )
     VALUES ('${callerReference}', 'a comment', true, false, '${behaviorString}', '${originsString}');
   `,
@@ -198,6 +209,8 @@ describe('Cloudfront Integration Testing', () => {
       (res: any) => expect(res.length).toBe(1),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'tries to update distribution comment',
@@ -223,6 +236,8 @@ describe('Cloudfront Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'tries to update distribution id',
     query(
@@ -246,6 +261,8 @@ describe('Cloudfront Integration Testing', () => {
       (res: any) => expect(res.length).toBe(0),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'tries to update status',
@@ -285,6 +302,8 @@ describe('Cloudfront Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'deletes the distribution',
     query(
@@ -299,6 +318,8 @@ describe('Cloudfront Integration Testing', () => {
   );
 
   it('applies the distribution removal', commit());
+
+  it('starts a transaction', begin());
 
   it(
     'deletes the s3 bucket',
@@ -365,8 +386,7 @@ describe('Cloudfront install/uninstall', () => {
 
   it('uninstalls the Cloudfront module', uninstall(modules));
 
-  it('installs all modules', done =>
-    void iasql.install([], dbAlias, config.db.user, true).then(...finish(done)));
+  it('installs all modules', installAll());
 
   it('uninstalls the Cloudfront module', uninstall(['aws_cloudfront']));
 

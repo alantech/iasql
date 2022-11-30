@@ -4,16 +4,21 @@ import {
   execComposeDown,
   execComposeUp,
   finish,
+  runBegin,
   runCommit,
   runInstall,
+  runInstallAll,
   runQuery,
   runUninstall,
 } from '../helpers';
 
 const dbAlias = 'codebuildtest';
+
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
+const installAll = runInstallAll.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const region = defaultRegion();
 const modules = ['aws_codebuild', 'aws_ecr'];
@@ -145,6 +150,8 @@ phases:
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'adds a new source_credentials_import',
     query(
@@ -184,6 +191,8 @@ phases:
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'delete source_credentials_list',
     query(
@@ -210,6 +219,8 @@ phases:
       (res: any[]) => expect(res.length).toBe(0),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'adds a new repository',
@@ -264,6 +275,8 @@ phases:
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'deletes codebuild codepipeline project',
     query(
@@ -290,6 +303,8 @@ phases:
   );
 
   it('apply codebuild_project creation', commit());
+
+  it('starts a transaction', begin());
 
   it(
     'start and wait for build',
@@ -342,6 +357,8 @@ phases:
       (res: any[]) => expect(res.length).toBe(1),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'delete build',
@@ -495,7 +512,7 @@ describe('AwsCodebuild install/uninstall', () => {
 
   it('uninstalls the codebuild module', uninstall(modules));
 
-  it('installs all modules', done => void iasql.install([], dbAlias, 'postgres', true).then(...finish(done)));
+  it('installs all modules', installAll());
 
   it(
     'uninstalls the codebuild + ecs module',

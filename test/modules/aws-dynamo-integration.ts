@@ -1,4 +1,3 @@
-import config from '../../src/config';
 import * as iasql from '../../src/services/iasql';
 import {
   defaultRegion,
@@ -6,8 +5,10 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  runBegin,
   runCommit,
   runInstall,
+  runInstallAll,
   runQuery,
   runRollback,
   runUninstall,
@@ -16,10 +17,12 @@ import {
 const prefix = getPrefix();
 const dbAlias = 'dynamotest';
 
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
+const installAll = runInstallAll.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const region = defaultRegion();
 const modules = ['aws_dynamo'];
@@ -76,6 +79,8 @@ describe('Dynamo Integration Testing', () => {
 
   it('installs the dynamo module', install(modules));
 
+  it('starts a transaction', begin());
+
   it(
     'creates a Dynamo table',
     query(
@@ -107,6 +112,8 @@ describe('Dynamo Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(0),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'creates a Dynamo table',
@@ -140,6 +147,8 @@ describe('Dynamo Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'changes the column definition',
     query(
@@ -171,6 +180,8 @@ describe('Dynamo Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(1),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'removes the dynamo table',
@@ -211,6 +222,8 @@ describe('Dynamo Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'creates a table in a non-default region',
     query(
@@ -247,6 +260,8 @@ describe('Dynamo Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it(
     'changes the region the table is located in',
     query(
@@ -277,6 +292,8 @@ describe('Dynamo Integration Testing', () => {
       },
     ),
   );
+
+  it('starts a transaction', begin());
 
   it(
     'removes the dynamo table',
@@ -356,8 +373,7 @@ describe('Dynamo install/uninstall', () => {
 
   it('uninstalls the Dynamo module', uninstall(modules));
 
-  it('installs all modules', done =>
-    void iasql.install([], dbAlias, config.db.user, true).then(...finish(done)));
+  it('installs all modules', installAll());
 
   it('uninstalls the Dynamo module', uninstall(['aws_rds']));
 
