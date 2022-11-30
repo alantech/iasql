@@ -1487,30 +1487,31 @@ async function getChangesAfterCommitStartedByEntity(
   return await getChangesByEntity(orm, changesAfterCommit, modsIndexedByTable);
 }
 
-export async function maybeOpenTransaction(orm: TypeormWrapper): Promise<void> {
-  // Check if no other transaction is open in the last 30 min
-  // Check if no commit is running
-  const [isRunning, openTransaction] = await Promise.all([isCommitRunning(orm), isOpenTransaction(orm)]);
-  if (!isRunning && !openTransaction) {
-    await insertLog(orm, 'open');
-  } else {
-    throw new Error('Another transaction is open or running. Please try again later.');
-  }
-}
+// TODO: REMOVE THIS?
+// export async function maybeOpenTransaction(orm: TypeormWrapper): Promise<void> {
+//   // Check if no other transaction is open in the last 30 min
+//   // Check if no commit is running
+//   const [isRunning, openTransaction] = await Promise.all([isCommitRunning(orm), isOpenTransaction(orm)]);
+//   if (!isRunning && !openTransaction) {
+//     await insertLog(orm, 'open');
+//   } else {
+//     throw new Error('Another transaction is open or running. Please try again later.');
+//   }
+// }
 
-export async function closeTransaction(orm: TypeormWrapper): Promise<void> {
-  await insertLog(orm, 'close');
-}
+// export async function closeTransaction(orm: TypeormWrapper): Promise<void> {
+//   await insertLog(orm, 'close');
+// }
 
-export async function isOpenTransaction(orm: TypeormWrapper): Promise<boolean> {
-  const limitDate = new Date(Date.now() - 30 * 60 * 1000);
-  const transactions = await orm.find(IasqlAuditLog, {
-    order: { ts: 'DESC' },
-    where: {
-      changeType: In([AuditLogChangeType.OPEN_TRANSACTION, AuditLogChangeType.CLOSE_TRANSACTION]),
-      ts: MoreThan(limitDate),
-    },
-    take: 1,
-  });
-  return !!transactions?.length && transactions[0].changeType === AuditLogChangeType.OPEN_TRANSACTION;
-}
+// export async function isOpenTransaction(orm: TypeormWrapper): Promise<boolean> {
+//   const limitDate = new Date(Date.now() - 30 * 60 * 1000);
+//   const transactions = await orm.find(IasqlAuditLog, {
+//     order: { ts: 'DESC' },
+//     where: {
+//       changeType: In([AuditLogChangeType.OPEN_TRANSACTION, AuditLogChangeType.CLOSE_TRANSACTION]),
+//       ts: MoreThan(limitDate),
+//     },
+//     take: 1,
+//   });
+//   return !!transactions?.length && transactions[0].changeType === AuditLogChangeType.OPEN_TRANSACTION;
+// }
