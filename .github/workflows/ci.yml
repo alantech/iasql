@@ -6,11 +6,11 @@ name: CI
 # events but only for the main branch.
 on:
   push:
-    branches: [main]
-    paths: ['.github/workflows/ci.yml', 'src/**', 'test/**', 'package.json', 'yarn.lock']
+    branches: [ main ]
+    paths: [ '.github/workflows/ci.yml', 'src/**', 'test/**', 'package.json', 'yarn.lock' ]
   pull_request:
-    branches: [main]
-    paths: ['.github/workflows/ci.yml', 'src/**', 'test/**', 'package.json', 'yarn.lock']
+    branches: [ main ]
+    paths: [ '.github/workflows/ci.yml', 'src/**', 'test/**', 'package.json', 'yarn.lock' ]
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -169,6 +169,18 @@ jobs:
           ACCOUNT_INDEX=$(echo $RESPONSE | jq '.[0]' || exit 1)
           echo "::set-output name=account_index::$(echo ${ACCOUNT_INDEX})"
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build and push
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha
+          tags: iasql:latest
+
       - name: Pre-clean Test Account
         id: pre-clean-test-account
         env:
@@ -183,7 +195,6 @@ jobs:
           export AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
 
           # Spin up the engine and a postgres instance
-          docker build -t iasql:latest .
           # Temporarily export the engine port until it's only the Postgres port needed
           docker run -p 5432:5432 -p 8088:8088 -e IASQL_ENV=ci --name iasql iasql &
           while ! curl --output /dev/null --silent --head --fail http://localhost:8088/health; do sleep 1 && echo -n .; done;
