@@ -7,10 +7,10 @@ export type ModJson = {
   dependencies: string[];
 };
 
-export const getModJsons = (version: string) => {
-  const modDir = fs.readdirSync(`${__dirname}/../modules/${version}`).filter(r => !/.ts$/.test(r));
+export const getModJsons = () => {
+  const modDir = fs.readdirSync(`${__dirname}/../modules`).filter(r => !/.ts$/.test(r));
   const modJsons: ModJson[] = modDir
-    .map(r => fs.readFileSync(`${__dirname}/../modules/${version}/${r}/module.json`, 'utf8'))
+    .map(r => fs.readFileSync(`${__dirname}/../modules/${r}/module.json`, 'utf8'))
     .map(r => JSON.parse(r) as ModJson);
   const mods: { [key: string]: ModJson } = {};
   modJsons.forEach(m => (mods[m.name] = m));
@@ -18,8 +18,8 @@ export const getModJsons = (version: string) => {
 };
 
 // TODO: Figure out some way to DRY this logic with `interfaces.ts`
-export const getModMigration = (name: string, version: string) => {
-  const migrationDir = `${__dirname}/../modules/${version}/${name}/migration`;
+export const getModMigration = (name: string) => {
+  const migrationDir = `${__dirname}/../modules/${name}/migration`;
   const files = fs.readdirSync(migrationDir).filter(r => !/.map$/.test(r));
   if (files.length !== 1) throw new Error('Cannot determine migration file');
   const migration = require(`${migrationDir}/${files[0]}`);
@@ -31,9 +31,9 @@ export const getModMigration = (name: string, version: string) => {
   return migrationClass;
 };
 
-export const getModBeforeInstall = (name: string, version: string) => {
+export const getModBeforeInstall = (name: string) => {
   try {
-    const sqlDir = `${__dirname}/../modules/${version}/${name}/sql`;
+    const sqlDir = `${__dirname}/../modules/${name}/sql`;
     const beforeInstallSql = fs.readFileSync(`${sqlDir}/before_install.sql`, 'utf8');
     return beforeInstallSql;
   } catch (_) {
@@ -42,8 +42,8 @@ export const getModBeforeInstall = (name: string, version: string) => {
 };
 
 // TODO: Figure out some way to DRY this logic with `dep-sorting.ts`
-export const sortMods = (name: string, version: string, includeRoot: boolean) => {
-  const mods = getModJsons(version);
+export const sortMods = (name: string, includeRoot: boolean) => {
+  const mods = getModJsons();
   const rootMod = mods[name];
   console.log({ mods, rootMod });
   const modSubset: { [key: string]: ModJson } = includeRoot ? { name: rootMod } : {};

@@ -6,7 +6,6 @@
 
 # Give the module being worked on a special name for clearer referencing
 MODULE=$1
-VERSION=$2
 
 set -vex
 
@@ -26,7 +25,7 @@ cd src
 
 # Get the list of modules this module depends upon and include itself for use in the temporary
 # TypeORM configuration
-MODULES=`ts-node scripts/list-deps ${MODULE} ${VERSION}`
+MODULES=`ts-node scripts/list-deps ${MODULE}`
 MODARR=($(echo ${MODULES} | sed 's/:/\n/g'))
 #readarray -d ":" -t MODARR <<< "${MODULES}"
 
@@ -37,8 +36,8 @@ NL=$'\n'
 for (( n=0; n < ${#MODARR[*]}; n++))
 do
   MOD=`echo ${MODARR[n]} | xargs`
-  ENTITIES="${ENTITIES}\"modules/${VERSION}/${MOD}/entity/*.ts\",${NL}"
-  MIGRATIONS="${MIGRATIONS}\"modules/${VERSION}/${MOD}/migration/*.ts\",${NL}"
+  ENTITIES="${ENTITIES}\"modules/${MOD}/entity/*.ts\",${NL}"
+  MIGRATIONS="${MIGRATIONS}\"modules/${MOD}/migration/*.ts\",${NL}"
 done
 
 # Generate the TypeORM config
@@ -62,8 +61,8 @@ module.exports = {
   ${MIGRATIONS}
  ],
  "cli": {
-  "entitiesDir": "modules/${VERSION}/${MODULE}/entity",
-  "migrationsDir": "modules/${VERSION}/${MODULE}/migration",
+  "entitiesDir": "modules/${MODULE}/entity",
+  "migrationsDir": "modules/${MODULE}/migration",
  },
  namingStrategy: new SnakeNamingStrategy(),
 };
@@ -72,10 +71,10 @@ EOF
 # First, run all migrations that already exist (required because we blew it all away before, but
 # also keeps things clean because we don't accidentally break the migration generation with bad
 # cruft in the database)
-ts-node scripts/migrate-dep-order ${MODULE} ${VERSION}
+ts-node scripts/migrate-dep-order ${MODULE}
 
 # Blow away the existing migration for the specified module, if one exists
-rm -rf modules/${VERSION}/${MODULE}/migration
+rm -rf modules/${MODULE}/migration
 
 # Now run the migration generation for the module
 ts-node ../node_modules/.bin/typeorm migration:generate -n $(echo ${MODULE} | sed 's/@.*$//g')
