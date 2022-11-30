@@ -182,7 +182,7 @@ begin
       _counter := _counter + 1;
       perform pg_sleep(2);
     END LOOP;
-    RAISE EXECPTION 'Another transaction is open or running. Please try again later.'
+    RAISE EXCEPTION 'Another transaction is open or running. Please try again later.'
 end;
 $$;
 
