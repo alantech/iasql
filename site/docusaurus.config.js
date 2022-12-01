@@ -21,8 +21,8 @@ const theButton = require('./src/rehype/thebutton');
     url: config.url,
     baseUrl: '/',
     trailingSlash: true,
-    onBrokenLinks: 'throw',
-    onBrokenMarkdownLinks: 'throw',
+    onBrokenLinks: 'warn',
+    onBrokenMarkdownLinks: 'warn',
     favicon: 'img/favicon.png',
     projectName: 'iasql-engine',
     organizationName: 'iasql',
@@ -64,7 +64,7 @@ const theButton = require('./src/rehype/thebutton');
           // other options are passed to posthog-js init as is
         },
       ],
-      ['docusaurus-plugin-typedoc', { sidebar: { categoryLabel: 'API reference', position: 8 } }],
+      ['docusaurus-plugin-iasql', { sidebar: { categoryLabel: 'SQL reference', position: 8 } }],
     ],
 
     themeConfig:
