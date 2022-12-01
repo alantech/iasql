@@ -342,6 +342,7 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
   it('adds an instance without security groups and key', done => {
     query(
       `
