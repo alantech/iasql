@@ -2,11 +2,12 @@ import { CloudWatchLogs, FilteredLogEvent } from '@aws-sdk/client-cloudwatch-log
 
 import { AwsCloudwatchModule } from '..';
 import { AWS, crudBuilderFormat } from '../../../services/aws_macros';
-import { Context, RpcBase, RpcResponseObject, TransactionModeEnum } from '../../interfaces';
+import { Context, PostTransactionCheck, PreTransactionCheck, RpcBase, RpcResponseObject } from '../../interfaces';
 
 export class LogGroupTailRpc extends RpcBase {
   module: AwsCloudwatchModule;
-  transactionMode = TransactionModeEnum.NO_TRANSACTION;
+  preTransactionCheck = PreTransactionCheck.NO_CHECK;
+  postTransactionCheck = PostTransactionCheck.NO_CHECK;
   outputTable = {
     event_id: 'varchar',
     log_stream_name: 'varchar',

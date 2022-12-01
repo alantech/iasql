@@ -3,12 +3,13 @@ import { WaiterOptions } from '@aws-sdk/util-waiter';
 
 import { AwsS3Module } from '..';
 import { AWS, crudBuilderFormat } from '../../../services/aws_macros';
-import { Context, RpcBase, RpcResponseObject, TransactionModeEnum } from '../../interfaces';
+import { Context, PostTransactionCheck, PreTransactionCheck, RpcBase, RpcResponseObject } from '../../interfaces';
 import { BucketObject } from '../entity';
 
 export class S3UploadObjectRpc extends RpcBase {
   module: AwsS3Module;
-  transactionMode = TransactionModeEnum.INNER_TRANSACTION;
+  preTransactionCheck = PreTransactionCheck.WAIT_FOR_LOCK;
+  postTransactionCheck = PostTransactionCheck.UNLOCK_ALWAYS;
   outputTable = {
     bucket: 'varchar',
     key: 'varchar',

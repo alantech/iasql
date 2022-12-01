@@ -16,13 +16,14 @@ import { BuildStatus } from '../../aws_codebuild/entity';
 import { awsIamModule } from '../../aws_iam';
 import { IamRole } from '../../aws_iam/entity';
 import { modules } from '../../iasql_functions/iasql';
-import { Context, RpcBase, RpcResponseObject, TransactionModeEnum } from '../../interfaces';
+import { Context, PostTransactionCheck, PreTransactionCheck, RpcBase, RpcResponseObject } from '../../interfaces';
 import { Repository, RepositoryImage } from '../entity';
 import { AwsEcrModule } from '../index';
 
 export class EcrBuildRpc extends RpcBase {
   module: AwsEcrModule;
-  transactionMode = TransactionModeEnum.INNER_TRANSACTION;
+  preTransactionCheck = PreTransactionCheck.WAIT_FOR_LOCK;
+  postTransactionCheck = PostTransactionCheck.UNLOCK_ALWAYS;
   outputTable = {
     imageId: 'varchar',
   } as const;

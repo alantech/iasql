@@ -1,10 +1,11 @@
 import { IasqlFunctions } from '..';
-import { Context, RpcBase, RpcResponseObject, TransactionModeEnum } from '../../interfaces';
+import { Context, PostTransactionCheck, PreTransactionCheck, RpcBase, RpcResponseObject } from '../../interfaces';
 import * as iasql from '../iasql';
 
 export class IasqlBegin extends RpcBase {
   module: IasqlFunctions;
-  transactionMode = TransactionModeEnum.WAIT_AND_START;
+  preTransactionCheck = PreTransactionCheck.WAIT_FOR_LOCK;
+  postTransactionCheck = PostTransactionCheck.NO_CHECK;
   outputTable = {
     message: 'varchar',
   } as const;

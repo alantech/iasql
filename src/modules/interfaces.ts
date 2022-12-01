@@ -24,11 +24,16 @@ export type RpcOutput = { [key: string]: ColumnType };
 
 export type RpcResponseObject<T> = { [Properties in keyof T]: any };
 
-export enum TransactionModeEnum {
-  NO_TRANSACTION = 'no-transaction',
-  INNER_TRANSACTION = 'inner-transaction',
-  WAIT_AND_START = 'wait-and-start',
-  FAIL_IF_NO_TRANSACTION = 'fail-if-no-transaction',
+export enum PreTransactionCheck {
+  NO_CHECK = 'no-check',
+  WAIT_FOR_LOCK = 'wait-for-lock',
+  FAIL_IF_NOT_LOCKED = 'fail-if-not-locked',
+}
+
+export enum PostTransactionCheck {
+  NO_CHECK = 'no-check',
+  UNLOCK_IF_SUCCEED = 'unlock-if-succeed',
+  UNLOCK_ALWAYS = 'unlock-always',
 }
 
 export interface CrudInterface2<E> {
@@ -235,7 +240,8 @@ export interface MapperInterface<E> {
 export interface RpcInterface {
   module: ModuleInterface;
   outputTable: RpcOutput;
-  transactionMode: TransactionModeEnum;
+  preTransactionCheck: PreTransactionCheck;
+  postTransactionCheck: PostTransactionCheck;
   call: (
     dbId: string,
     dbUser: string,
@@ -369,7 +375,8 @@ export class MapperBase<E> {
 export class RpcBase {
   module: ModuleInterface;
   outputTable: RpcOutput;
-  transactionMode: TransactionModeEnum;
+  preTransactionCheck: PreTransactionCheck;
+  postTransactionCheck: PostTransactionCheck;
   call: (
     dbId: string,
     dbUser: string,
@@ -466,7 +473,7 @@ export class ModuleBase {
           _is_open bool;
         begin
 
-          ${this.generateTransactionSql(rpc.transactionMode)}
+          ${this.generateTransactionSql(rpc.preTransactionCheck)}
 
           BEGIN
             perform http.http_set_curlopt('CURLOPT_TIMEOUT_MS', '3600000');
@@ -490,9 +497,7 @@ export class ModuleBase {
               end if;
             end if;
             ${
-              [TransactionModeEnum.INNER_TRANSACTION, TransactionModeEnum.FAIL_IF_NO_TRANSACTION].includes(
-                rpc.transactionMode,
-              )
+              rpc.postTransactionCheck === PostTransactionCheck.UNLOCK_IF_SUCCEED
                 ? 'PERFORM close_transaction();'
                 : ''
             }
@@ -510,7 +515,7 @@ export class ModuleBase {
           EXCEPTION
             WHEN OTHERS THEN
               ${
-                rpc.transactionMode === TransactionModeEnum.INNER_TRANSACTION
+                rpc.postTransactionCheck === PostTransactionCheck.UNLOCK_ALWAYS
                   ? `
                     PERFORM close_transaction();
                     RAISE;
@@ -523,19 +528,18 @@ export class ModuleBase {
       `;
   }
 
-  private generateTransactionSql(transactionMode: TransactionModeEnum): string {
-    switch (transactionMode) {
-      case TransactionModeEnum.NO_TRANSACTION:
+  private generateTransactionSql(transactionCheck: PreTransactionCheck): string {
+    switch (transactionCheck) {
+      case PreTransactionCheck.NO_CHECK:
         return '';
-      case TransactionModeEnum.FAIL_IF_NO_TRANSACTION:
+      case PreTransactionCheck.FAIL_IF_NOT_LOCKED:
         return `
           SELECT * FROM is_open_transaction() INTO _is_open;
           IF _is_open IS FALSE THEN
             RAISE EXCEPTION 'Cannot execute without calling iasql_begin first';
           END IF;
         `;
-      case TransactionModeEnum.WAIT_AND_START:
-      case TransactionModeEnum.INNER_TRANSACTION:
+      case PreTransactionCheck.WAIT_FOR_LOCK:
       default:
         return `
           PERFORM wait_for_transaction();

@@ -1,8 +1,9 @@
 import { IasqlFunctions } from '..';
-import { Context, RpcBase, RpcResponseObject, TransactionModeEnum } from '../../interfaces';
+import { Context, PostTransactionCheck, PreTransactionCheck, RpcBase, RpcResponseObject } from '../../interfaces';
 
 export class IasqlApply extends RpcBase {
-  transactionMode = TransactionModeEnum.NO_TRANSACTION;
+  preTransactionCheck = PreTransactionCheck.NO_CHECK;
+  postTransactionCheck = PostTransactionCheck.NO_CHECK;
   module: IasqlFunctions;
   outputTable = {
     action: 'varchar',

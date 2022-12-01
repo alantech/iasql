@@ -2,13 +2,14 @@ import { ACM, ImportCertificateCommandInput, paginateListCertificates } from '@a
 
 import { AwsAcmModule } from '..';
 import { AWS, paginateBuilder } from '../../../services/aws_macros';
-import { Context, RpcBase, RpcResponseObject, TransactionModeEnum } from '../../interfaces';
+import { Context, PostTransactionCheck, PreTransactionCheck, RpcBase, RpcResponseObject } from '../../interfaces';
 import { Certificate } from '../entity';
 import { safeParse } from './common';
 
 export class CertificateImportRpc extends RpcBase {
   module: AwsAcmModule;
-  transactionMode = TransactionModeEnum.INNER_TRANSACTION;
+  preTransactionCheck = PreTransactionCheck.WAIT_FOR_LOCK;
+  postTransactionCheck = PostTransactionCheck.UNLOCK_ALWAYS;
   outputTable = {
     arn: 'varchar',
     status: 'varchar',

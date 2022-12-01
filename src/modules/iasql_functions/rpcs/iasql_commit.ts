@@ -1,10 +1,11 @@
 import { IasqlFunctions } from '..';
-import { Context, RpcBase, RpcResponseObject, TransactionModeEnum } from '../../interfaces';
+import { Context, PostTransactionCheck, PreTransactionCheck, RpcBase, RpcResponseObject } from '../../interfaces';
 import * as iasql from '../iasql';
 
 export class IasqlCommit extends RpcBase {
   module: IasqlFunctions;
-  transactionMode = TransactionModeEnum.FAIL_IF_NO_TRANSACTION;
+  preTransactionCheck = PreTransactionCheck.FAIL_IF_NOT_LOCKED;
+  postTransactionCheck = PostTransactionCheck.UNLOCK_IF_SUCCEED;
   outputTable = {
     action: 'varchar',
     table_name: 'varchar',

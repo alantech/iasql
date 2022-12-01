@@ -15,7 +15,7 @@ import { AWS, paginateBuilder } from '../../../services/aws_macros';
 import { awsRoute53Module } from '../../aws_route53';
 import { HostedZone, ResourceRecordSet } from '../../aws_route53/entity';
 import { modules } from '../../iasql_functions/iasql';
-import { Context, RpcBase, RpcResponseObject, TransactionModeEnum } from '../../interfaces';
+import { Context, PostTransactionCheck, PreTransactionCheck, RpcBase, RpcResponseObject } from '../../interfaces';
 import { Certificate } from '../entity';
 import { safeParse } from './common';
 
@@ -26,7 +26,8 @@ enum ValidationMethod {
 
 export class CertificateRequestRpc extends RpcBase {
   module: AwsAcmModule;
-  transactionMode = TransactionModeEnum.INNER_TRANSACTION;
+  preTransactionCheck = PreTransactionCheck.WAIT_FOR_LOCK;
+  postTransactionCheck = PostTransactionCheck.UNLOCK_ALWAYS;
   outputTable = {
     arn: 'varchar',
     status: 'varchar',

@@ -1,11 +1,12 @@
 import { IasqlFunctions } from '..';
 import { TypeormWrapper } from '../../../services/typeorm';
-import { Context, RpcBase, RpcResponseObject, TransactionModeEnum } from '../../interfaces';
+import { Context, PostTransactionCheck, PreTransactionCheck, RpcBase, RpcResponseObject } from '../../interfaces';
 import * as iasql from '../iasql';
 
 export class IasqlUninstall extends RpcBase {
   module: IasqlFunctions;
-  transactionMode = TransactionModeEnum.INNER_TRANSACTION;
+  preTransactionCheck = PreTransactionCheck.WAIT_FOR_LOCK;
+  postTransactionCheck = PostTransactionCheck.UNLOCK_ALWAYS;
   outputTable = {
     module_name: 'varchar',
     dropped_table_name: 'varchar',
