@@ -3,9 +3,9 @@ import { v4 as uuidv4 } from 'uuid';
 import * as Modules from '../../src/modules';
 import { awsAccount, awsVpcModule } from '../../src/modules';
 import * as iasql from '../../src/services/iasql';
-import { getContext } from '../../src/services/scheduler';
 import { TypeormWrapper } from '../../src/services/typeorm';
-import { execComposeDown, execComposeUp, finish, runCommit, runInstall, runQuery, runUninstall } from '../helpers';
+import { execComposeDown, execComposeUp, finish, runCommit, runInstall, runQuery } from '../helpers';
+import { getContext } from '../../src/router/db';
 
 const dbAlias = 'routetabletest';
 jest.setTimeout(360000);
@@ -35,9 +35,9 @@ describe('RouteTable Functional Testing', () => {
     'inserts aws credentials',
     query(
       `
-      INSERT INTO aws_credentials (access_key_id, secret_access_key)
-      VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
-  `,
+          INSERT INTO aws_credentials (access_key_id, secret_access_key)
+          VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
+      `,
       undefined,
       false,
     ),
@@ -48,10 +48,10 @@ describe('RouteTable Functional Testing', () => {
   it(
     'sets the default region',
     query(`
-      UPDATE aws_regions
-      SET is_default = TRUE
-      WHERE region = '${region}';
-  `),
+        UPDATE aws_regions
+        SET is_default = TRUE
+        WHERE region = '${region}';
+    `),
   );
 
   it('installs the vpc module', install(['aws_vpc']));

@@ -704,6 +704,15 @@ describe('Lambda Integration Testing', () => {
     USING vpc
     WHERE subnet.vpc_id = vpc.id;
 
+    WITH vpc as (
+        SELECT id
+        FROM vpc
+        WHERE cidr_block = '192.${randIPBlock}.0.0/16' AND region='${region}' LIMIT 1
+    )
+    DELETE FROM route_table
+        USING vpc
+    WHERE route_table.vpc_id = vpc.id;
+
     DELETE FROM security_group_rule WHERE description='${prefix}lambda_rule_http_not_default' or description='${prefix}lambda_rule_egress_not_default' AND region='${region}';
 
     DELETE FROM security_group WHERE group_name = '${prefix}lambdanotdefault' AND region='${region}';
@@ -712,7 +721,7 @@ describe('Lambda Integration Testing', () => {
       SELECT id
       FROM vpc
       WHERE cidr_block = '192.${randIPBlock}.0.0/16' AND region='${region}' LIMIT 1
-    )    
+    )
     DELETE FROM security_group_rule
     USING vpc
     WHERE security_group_id = (
@@ -724,7 +733,7 @@ describe('Lambda Integration Testing', () => {
       SELECT id
       FROM vpc
       WHERE cidr_block = '192.${randIPBlock}.0.0/16' AND region='${region}' LIMIT 1
-    )      
+    )
     DELETE FROM security_group
     USING vpc
     WHERE security_group.vpc_id = vpc.id;
