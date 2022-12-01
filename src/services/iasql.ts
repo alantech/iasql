@@ -93,21 +93,26 @@ export async function connect(dbAlias: string, uid: string, email: string, dbId 
 }
 
 export async function disconnect(dbAlias: string, uid: string) {
-  let conn, conn2;
+  let conn;
   try {
     const db: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
     conn = await createConnection(dbMan.baseConnConfig);
-    conn2 = await createConnection({
-      ...dbMan.baseConnConfig,
-      name: db.pgName,
-      database: db.pgName,
-    });
-    try {
-      await conn2.query(`SELECT * FROM query_cron('unschedule');`);
-      await conn2.query(`SELECT * FROM query_cron('unschedule_purge');`);
-    } catch (e) {
-      /** Do nothing */
-    }
+    // Cancel all connections
+    conn.query(`REVOKE CONNECT ON DATABASE ${db.pgName} FROM PUBLIC;`);
+    // Unschedule all jobs
+    await MetadataRepo.unscheduleJobs(db.pgName);
+    // Kill all open connections https://stackoverflow.com/questions/5108876/kill-a-postgresql-session-connection
+    conn.query(`
+      SELECT
+        pg_terminate_backend(pid)
+      FROM
+        pg_stat_activity
+      WHERE
+        -- don't kill my own connection!
+        pid <> pg_backend_pid()
+        -- don't kill the connections to other databases
+        AND datname = '${db.pgName}';
+    `);
     await conn.query(`
       DROP DATABASE IF EXISTS ${db.pgName} WITH (FORCE);
     `);
@@ -119,7 +124,6 @@ export async function disconnect(dbAlias: string, uid: string) {
     throw e;
   } finally {
     conn?.close();
-    conn2?.close();
   }
 }
 

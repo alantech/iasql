@@ -144,6 +144,10 @@ class MetadataRepo {
     // remove entry
     await this.dbRepo.remove(dbToDel);
   }
+
+  async unscheduleJobs(dbId: string) {
+    this.conn.query(`SELECT cron.unschedule(jobid) FROM cron.job WHERE database = '${dbId}';`);
+  }
 }
 const singleton = new MetadataRepo();
 export default singleton;
