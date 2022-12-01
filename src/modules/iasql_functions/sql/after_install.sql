@@ -92,7 +92,7 @@ end;
 $$;
 
 CREATE
-OR REPLACE FUNCTION wait_for_open_transaction () RETURNS bool LANGUAGE plpgsql SECURITY DEFINER AS $$
+OR REPLACE FUNCTION wait_for_transaction () RETURNS bool LANGUAGE plpgsql SECURITY DEFINER AS $$
 declare
     _counter integer := 0;
     _is_open bool;
