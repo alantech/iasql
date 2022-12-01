@@ -1,3 +1,5 @@
+import { generateKeyPairSync } from 'crypto';
+
 import { EC2 } from '@aws-sdk/client-ec2';
 
 import { TargetTypeEnum, ProtocolEnum } from '../../src/modules/aws_elb/entity';
@@ -17,6 +19,7 @@ import {
   runUninstall,
 } from '../helpers';
 
+const sshpk = require('sshpk');
 const dbAlias = 'ec2test';
 const dbAliasSidecar = 'ec2test_sidecar';
 const region = defaultRegion();
@@ -105,6 +108,21 @@ const ec2RolePolicy = JSON.stringify({
 // Ebs integration
 const gp2VolumeName = `${prefix}gp2volume`;
 const gp3VolumeName = `${prefix}gp3volume`;
+
+// Keypair integration
+const { publicKey, privateKey } = generateKeyPairSync('rsa', {
+  modulusLength: 2048,
+  publicKeyEncoding: {
+    type: 'spki',
+    format: 'pem',
+  },
+  privateKeyEncoding: {
+    type: 'pkcs8',
+    format: 'pem',
+  },
+});
+const pemKey = sshpk.parseKey(publicKey, 'pem');
+const sshRsa = pemKey.toString('ssh');
 
 jest.setTimeout(560000);
 beforeAll(async () => {
@@ -249,17 +267,91 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  // generate keypairs
+  it(
+    'generates a new keypair',
+    query(
+      `
+    SELECT *
+    FROM key_pair_request ('${prefix}-key-request', '${region}');
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
 
-  it('adds an instance without security groups', done => {
+  it(
+    'check new keypair added',
+    query(
+      `
+    SELECT *
+    FROM key_pair
+    WHERE name = '${prefix}-key-request';
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it('starts a transaction', begin());
+  it(
+    'deletes the keypair',
+    query(
+      `
+    DELETE FROM key_pair
+    WHERE name = '${prefix}-key-request';
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it('applies the keypair deletion', commit());
+
+  it(
+    'check new keypair deleted',
+    query(
+      `
+    SELECT *
+    FROM key_pair
+    WHERE name = '${prefix}-key-request';
+  `,
+      (res: any[]) => expect(res.length).toBe(0),
+    ),
+  );
+
+  it(
+    'imports a new keypair',
+    query(
+      `
+    SELECT *
+    FROM key_pair_import ('${prefix}-key', '${sshRsa}', '${region}');
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it(
+    'check new keypair added',
+    query(
+      `
+    SELECT *
+    FROM key_pair
+    WHERE name = '${prefix}-key';
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it('starts a transaction', begin());
+  it('adds an instance without security groups and key', done => {
     query(
       `
       BEGIN;
         INSERT INTO security_group (description, group_name)
         VALUES ('Fake security group', 'fake-security-group');
   
-        INSERT INTO instance (ami, instance_type, tags, subnet_id)
-          SELECT '${amznAmiId}', '${instanceType2}', '{"name":"${prefix}-2"}', id
+        INSERT INTO instance (ami, instance_type, tags, subnet_id, key_pair_name)
+          SELECT '${amznAmiId}', '${instanceType2}', '{"name":"${prefix}-2"}', id, '${prefix}-key'
           FROM subnet
           WHERE availability_zone = '${availabilityZone2}'
           LIMIT 1;
@@ -583,7 +675,6 @@ describe('EC2 Integration Testing', () => {
     WHERE target_group_id = (SELECT id FROM target_group WHERE target_group_name = '${tgName}') AND instance.tags ->> 'name' = '${prefix}-1';
   `,
       (res: any[]) => {
-        console.log(JSON.stringify(res));
         return expect(res[0].port).toBe(tgPort);
       },
     ),
@@ -1202,6 +1293,23 @@ describe('EC2 Integration Testing', () => {
       ),
     );
   });
+
+  // delete keypair
+  it('starts a transaction', begin());
+  it(
+    'deletes the keypair',
+    query(
+      `
+    DELETE FROM key_pair
+    WHERE name = '${prefix}-key';
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it('applies the keypair deletion', commit());
 
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 
