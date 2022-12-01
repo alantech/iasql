@@ -40,7 +40,7 @@ export class IasqlFunctions extends ModuleBase {
     this.iasqlPreview = new IasqlPreview(this);
     this.iasqlRollback = new IasqlRollback(this);
     this.iasqlBegin = new IasqlBegin(this);
-    super.init();
+    super.loadBasics();
   }
 }
 export const iasqlFunctions = new IasqlFunctions();

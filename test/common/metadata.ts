@@ -23,8 +23,6 @@ jest.setTimeout(360000);
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown());
 
-let username: string, password: string;
-
 describe('Testing metadata repo', () => {
   it(
     'no users should exist',
@@ -76,18 +74,6 @@ describe('Testing metadata repo', () => {
   );
 
   it(
-    'check rpc db count',
-    metadataQuery(
-      `
-    SELECT rpc_count
-    FROM iasql_database
-    WHERE pg_name = '${dbAlias}';
-  `,
-      (row: any[]) => expect(row[0].rpc_count).toBe(0),
-    ),
-  );
-
-  it(
     'check rec db count',
     metadataQuery(
       `
@@ -118,18 +104,6 @@ describe('Testing metadata repo', () => {
   it('installs the aws_account module', install(['aws_account']));
 
   it(
-    'check rpc db count',
-    metadataQuery(
-      `
-    SELECT rpc_count
-    FROM iasql_database
-    WHERE pg_name = '${dbAlias}';
-  `,
-      (row: any[]) => expect(row[0].rpc_count).toBe(1),
-    ),
-  );
-
-  it(
     'inserts aws credentials',
     dbQuery(
       `
@@ -144,18 +118,6 @@ describe('Testing metadata repo', () => {
   it('starts a transaction', begin());
 
   it('apply updates db counts', commit());
-
-  it(
-    'check rpc db count',
-    metadataQuery(
-      `
-    SELECT rpc_count
-    FROM iasql_database
-    WHERE pg_name = '${dbAlias}';
-  `,
-      (row: any[]) => expect(row[0].rpc_count).toBe(3),
-    ),
-  );
 
   it(
     'check rec db count',

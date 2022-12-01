@@ -2,9 +2,9 @@
 
 set -vex
 
-if [ -d /var/lib/postgresql/13/main ]; then
-  chown -R postgres /var/lib/postgresql/13/main
-  chgrp -R postgres /var/lib/postgresql/13/main
+if [ -d /var/lib/postgresql/14/main ]; then
+  chown -R postgres /var/lib/postgresql/14/main
+  chgrp -R postgres /var/lib/postgresql/14/main
 fi
 
 service postgresql start
@@ -17,6 +17,4 @@ service postgresql restart
 su - postgres -c "psql iasql_metadata -c \"CREATE EXTENSION IF NOT EXISTS pg_cron;\""
 su - postgres -c "psql iasql_metadata -c \"GRANT EXECUTE ON FUNCTION cron.schedule_in_database(text,text,text,text,text,boolean) TO postgres;\""
 
-yarn forever -f dist/services/scheduler.js &
-yarn wait-on http://localhost:14527/health/
 yarn start

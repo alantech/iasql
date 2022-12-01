@@ -79,7 +79,7 @@ describe('basic begin, commit and preview functionality', () => {
       SELECT * FROM iasql_begin();
     `)((e?: any) => {
       try {
-        expect(e?.detail).toContain('Another transaction is open');
+        expect(e?.message).toContain('Another transaction is open');
       } catch (err) {
         done(err);
         return {};
