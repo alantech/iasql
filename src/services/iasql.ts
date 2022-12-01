@@ -14,6 +14,7 @@ import * as dbMan from './db-manager';
 import logger from './logger';
 import MetadataRepo from './repositories/metadata';
 import { TypeormWrapper } from './typeorm';
+import config from '../config';
 
 const exec = promisify(execNode);
 
@@ -99,8 +100,8 @@ export async function disconnect(dbAlias: string, uid: string) {
     console.log(`+-+ CREATING MAIN CONN`)
     conn = await createConnection(dbMan.baseConnConfig);
     // Cancel all connections
-    console.log(`+-+ REVOKE CONNECT ON DATABASE ${db.pgName} FROM PUBLIC`)
-    await conn.query(`REVOKE CONNECT ON DATABASE ${db.pgName} FROM PUBLIC;`);
+    console.log(`+-+ REVOKE CONNECT ON DATABASE ${db.pgName} FROM PUBLIC, ${config.db.user}, ${db.pgUser}`)
+    await conn.query(`REVOKE CONNECT ON DATABASE ${db.pgName} FROM PUBLIC, ${config.db.user}, ${db.pgUser};`);
     // Unschedule all jobs
     console.log(`+-+ MetadataRepo.unscheduleJobs`)
     await MetadataRepo.unscheduleJobs(db.pgName);
