@@ -123,7 +123,7 @@ export async function disconnect(dbAlias: string, uid: string) {
     }`)
     const reskill = await conn.query(`
       SELECT
-        pg_terminate_backend(pid)
+        pg_terminate_backend(pid), pg_cancel_backend(pid)
       FROM
         pg_stat_activity
       WHERE
