@@ -106,6 +106,20 @@ export async function disconnect(dbAlias: string, uid: string) {
     await MetadataRepo.unscheduleJobs(db.pgName);
     // Kill all open connections https://stackoverflow.com/questions/5108876/kill-a-postgresql-session-connection
     console.log(`+-+ Kill all open connections`)
+    const res = await conn.query(`
+    SELECT
+      pid
+    FROM
+      pg_stat_activity
+    WHERE
+      -- don't kill my own connection!
+      pid <> pg_backend_pid()
+      -- don't kill the connections to other databases
+      AND datname = '${db.pgName}';
+    `);  
+    console.log(`+-+ ${
+      JSON.stringify(res)
+    }`)
     await conn.query(`
       SELECT
         pg_terminate_backend(pid)
@@ -125,6 +139,7 @@ export async function disconnect(dbAlias: string, uid: string) {
     await MetadataRepo.delDb(uid, dbAlias);
     return db.pgName;
   } catch (e: any) {
+    console.log(`+-+ THROWING HERE ${e}`)
     // re-throw
     throw e;
   } finally {
