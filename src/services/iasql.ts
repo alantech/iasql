@@ -96,12 +96,16 @@ export async function disconnect(dbAlias: string, uid: string) {
   let conn;
   try {
     const db: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
+    console.log(`+-+ CREATING MAIN CONN`)
     conn = await createConnection(dbMan.baseConnConfig);
     // Cancel all connections
+    console.log(`+-+ REVOKE CONNECT ON DATABASE ${db.pgName} FROM PUBLIC`)
     await conn.query(`REVOKE CONNECT ON DATABASE ${db.pgName} FROM PUBLIC;`);
     // Unschedule all jobs
+    console.log(`+-+ MetadataRepo.unscheduleJobs`)
     await MetadataRepo.unscheduleJobs(db.pgName);
     // Kill all open connections https://stackoverflow.com/questions/5108876/kill-a-postgresql-session-connection
+    console.log(`+-+ Kill all open connections`)
     await conn.query(`
       SELECT
         pg_terminate_backend(pid)
@@ -113,6 +117,7 @@ export async function disconnect(dbAlias: string, uid: string) {
         -- don't kill the connections to other databases
         AND datname = '${db.pgName}';
     `);
+    console.log(`+-+ DROP DATABASE IF EXISTS`)
     await conn.query(`
       DROP DATABASE IF EXISTS ${db.pgName} WITH (FORCE);
     `);
