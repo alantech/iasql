@@ -497,7 +497,9 @@ export class ModuleBase {
               end if;
             end if;
             ${
-              rpc.postTransactionCheck === PostTransactionCheck.UNLOCK_IF_SUCCEED
+              [PostTransactionCheck.UNLOCK_IF_SUCCEED, PostTransactionCheck.UNLOCK_ALWAYS].includes(
+                rpc.postTransactionCheck,
+              )
                 ? 'PERFORM close_transaction();'
                 : ''
             }
