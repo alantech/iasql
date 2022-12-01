@@ -98,8 +98,8 @@ declare
     _is_open bool;
 
 begin
-    -- Loop for 15 min
-    WHILE _counter < 450 LOOP
+    -- Loop for 2 min
+    WHILE _counter < 60 LOOP
       SELECT * FROM is_open_transaction() INTO _is_open;
       IF _is_open IS FALSE THEN
         RETURN TRUE;
