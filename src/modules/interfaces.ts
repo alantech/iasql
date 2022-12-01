@@ -508,13 +508,16 @@ export class ModuleBase {
               select json_array_elements(_content::json) as s
             ) as j;
           EXCEPTION
-            WHEN others THEN
+            WHEN OTHERS THEN
               ${
                 rpc.transactionMode === TransactionModeEnum.INNER_TRANSACTION
-                  ? 'PERFORM close_transaction();'
-                  : 'RAISE EXCEPTION others;'
+                  ? `
+                    PERFORM close_transaction();
+                    RAISE;
+                  `
+                  : 'RAISE;'
               }
-            END;
+          END;
         end;
         $$;
       `;
@@ -526,7 +529,7 @@ export class ModuleBase {
         return '';
       case TransactionModeEnum.FAIL_IF_NO_TRANSACTION:
         return `
-          SELECT * FROM is_open_transaction INTO _is_open;
+          SELECT * FROM is_open_transaction() INTO _is_open;
           IF _is_open IS FALSE THEN
             RAISE EXCEPTION 'Cannot execute without calling iasql_begin first';
           END IF;
@@ -535,7 +538,7 @@ export class ModuleBase {
       case TransactionModeEnum.INNER_TRANSACTION:
       default:
         return `
-          PERFORM wait_for_open_transaction();
+          PERFORM wait_for_transaction();
           PERFORM open_transaction();
         `;
     }
