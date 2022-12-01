@@ -128,7 +128,7 @@ begin
       ts > _30_min_interval
     ORDER BY ts DESC
     LIMIT 1;
-    RETURN _change_type != 'OPEN_TRANSACTION';
+    RETURN _change_type IS NOT NULL AND _change_type = 'OPEN_TRANSACTION';
 end;
 $$;
 
