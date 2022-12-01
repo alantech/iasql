@@ -118,7 +118,7 @@ declare
     _current_ts TIMESTAMP WITH TIME ZONE;
     _30_min_interval TIMESTAMP WITH TIME ZONE;
 begin
-    _current_ts := now();
+    _current_ts := clock_timestamp();
     _30_min_interval := _current_ts - interval '30 minutes';
     -- Check if theres an open transaction
     SELECT change_type INTO _change_type
@@ -136,7 +136,7 @@ CREATE
 OR REPLACE FUNCTION open_transaction () RETURNS bool LANGUAGE plpgsql SECURITY DEFINER AS $$
 begin
     INSERT INTO iasql_audit_log ("user", change, change_type, table_name, ts)
-    VALUES (USER, '{}', 'OPEN_TRANSACTION', 'iasql_audit_log', now());
+    VALUES (USER, '{}', 'OPEN_TRANSACTION', 'iasql_audit_log', clock_timestamp());
     RETURN TRUE;
 end;
 $$;
@@ -145,7 +145,7 @@ CREATE
 OR REPLACE FUNCTION close_transaction () RETURNS bool LANGUAGE plpgsql SECURITY DEFINER AS $$
 begin
     INSERT INTO iasql_audit_log ("user", change, change_type, table_name, ts)
-    VALUES (USER, '{}', 'CLOSE_TRANSACTION', 'iasql_audit_log', now());
+    VALUES (USER, '{}', 'CLOSE_TRANSACTION', 'iasql_audit_log', clock_timestamp());
     RETURN TRUE;
 end;
 $$;
@@ -159,7 +159,7 @@ declare
     _almost_2_min_interval TIMESTAMP WITH TIME ZONE;
     _current_ts TIMESTAMP WITH TIME ZONE;
 begin
-    _current_ts := now();
+    _current_ts := clock_timestamp();
     _30_min_interval := _current_ts - interval '30 minutes';
     _almost_2_min_interval := _current_ts - interval '1.9 minutes';
     -- Check if theres an open transaction
