@@ -1,34 +1,19 @@
 FROM debian:bullseye
-WORKDIR /engine/
+WORKDIR /psql/
 
-COPY package.json /engine/package.json
-COPY yarn.lock /engine/yarn.lock
 RUN apt update
 RUN apt install curl ca-certificates gnupg -y
-RUN ["bash", "-c", "curl -fsSL https://deb.nodesource.com/setup_16.x | bash -"]
-RUN apt install nodejs -y
-RUN npm install -g yarn
-RUN yarn install
-
-# Update postgresql APT repository [apt.postgresql.org](https://wiki.postgresql.org/wiki/Apt)
 RUN ["bash", "-c", "curl https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor | tee /etc/apt/trusted.gpg.d/apt.postgresql.org.gpg >/dev/null"]
 RUN ["bash", "-c", "echo 'deb http://apt.postgresql.org/pub/repos/apt/ bullseye-pgdg main' > /etc/apt/sources.list.d/postgresql.list"]
 RUN apt update
 RUN apt upgrade -y
 RUN apt install postgresql-client-14 postgresql-14 postgresql-14-cron pgbouncer postgresql-server-dev-14 libcurl4-openssl-dev git make g++ locales-all -y
-COPY ./src/scripts/postgresql.conf /etc/postgresql/14/main/postgresql.conf
-COPY ./src/scripts/pg_hba.conf /etc/postgresql/14/main/pg_hba.conf
+COPY ./postgresql.conf /etc/postgresql/14/main/postgresql.conf
+COPY ./pg_hba.conf /etc/postgresql/14/main/pg_hba.conf
+COPY ./docker-entrypoint.sh /psql/docker-entrypoint.sh
 
 RUN git clone https://github.com/pramsey/pgsql-http
 RUN cd pgsql-http && make && make install && cd ..
 
-COPY . /engine/
-ARG SENTRY_RELEASE
-ENV SENTRY_RELEASE=$SENTRY_RELEASE
-ARG IASQL_ENV
-ENV IASQL_ENV=$IASQL_ENV
-RUN yarn build
-
-EXPOSE 8088
 EXPOSE 5432
-ENTRYPOINT ["/engine/docker-entrypoint.sh"]
+ENTRYPOINT ["/psql/docker-entrypoint.sh"]

@@ -1,18 +1,38 @@
 import { execSync } from 'child_process';
+import express from 'express';
 import fs from 'fs';
 import { createConnection } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 
+import config from '../src/config';
+import { v1 } from '../src/router';
 import logger from '../src/services/logger';
 import MetadataRepo from '../src/services/repositories/metadata';
+
+const port = config.http.port;
+const app = express();
+app.use('/v1', v1);
+let server: any;
 
 export async function execComposeUp() {
   execSync('cd test && docker-compose up -d && sleep 5');
   await MetadataRepo.init();
+  await new Promise(r => {
+    server = app.listen(port, () => {
+      logger.info(`Server is running on port ${port}`);
+      r(undefined);
+    });
+  });
 }
 
 export async function execComposeDown() {
   execSync('cd test && docker-compose down');
+  await new Promise(r => {
+    server?.close(() => {
+      logger.info('Server is shutting down');
+      r(undefined);
+    });
+  });
 }
 
 export function getPrefix() {

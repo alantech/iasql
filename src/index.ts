@@ -8,7 +8,6 @@ import config from './config';
 import { v1 } from './router';
 import logger from './services/logger';
 import MetadataRepo from './services/repositories/metadata';
-import * as scheduler from './services/scheduler-api';
 
 const port = config.http.port;
 const app = express();
@@ -66,10 +65,8 @@ app.use((error: any, _req: any, res: any, _next: any) => {
 
 // init metadata repo
 MetadataRepo.init().then(() => {
-  scheduler.init().then(() => {
-    app.listen(port, () => {
-      logger.info(`Server is running on port ${port}`);
-    });
+  app.listen(port, () => {
+    logger.info(`Server is running on port ${port}`);
   });
 });
 
