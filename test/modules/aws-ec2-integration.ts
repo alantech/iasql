@@ -1295,6 +1295,7 @@ describe('EC2 Integration Testing', () => {
   });
 
   // delete keypair
+  it('starts a transaction', begin());
   it(
     'deletes the keypair',
     query(
