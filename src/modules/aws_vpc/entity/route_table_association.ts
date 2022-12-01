@@ -15,11 +15,12 @@ export class RouteTableAssociation {
   routeTableAssociationId?: string;
 
   @ManyToOne(() => RouteTable, {
-    nullable: false,
+    nullable: true,
     eager: true,
+    onDelete: 'SET NULL',
   })
   @JoinColumn()
-  routeTable: RouteTable;
+  routeTable?: RouteTable;
 
   @ManyToOne(() => Subnet, {
     nullable: true,

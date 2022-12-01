@@ -217,11 +217,13 @@ export class RouteTableMapper extends MapperBase<RouteTable> {
       }
     },
     delete: async (es: RouteTable[], ctx: Context) => {
-      const associations: RouteTableAssociation[] = await this.module.routeTableAssociation.cloud.read(ctx);
+      const associations: RouteTableAssociation[] = Object.values(ctx.memo?.cloud?.RouteTableAssociation)
+        ? Object.values(ctx.memo?.cloud?.RouteTableAssociation)
+        : await this.module.routeTableAssociation.cloud.read(ctx);
 
       await Promise.all(
         es.map(async e => {
-          if (associations.find(a => a.routeTable.routeTableId === e.routeTableId && a.isMain)) {
+          if (associations.find(a => a.routeTable?.routeTableId === e.routeTableId && a.isMain)) {
             // it's the main route table, can't be deleted so return it to the db
             const vpc =
               ctx?.memo?.db?.Vpc[
@@ -233,6 +235,7 @@ export class RouteTableMapper extends MapperBase<RouteTable> {
           }
           const client = (await ctx.getAwsClient(e.region)) as AWS;
           await client.ec2client.deleteRouteTable({ RouteTableId: e.routeTableId });
+          await this.module.routeTableAssociation.db.delete(associations, ctx);
         }),
       );
     },
