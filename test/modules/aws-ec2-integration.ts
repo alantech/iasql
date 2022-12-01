@@ -267,7 +267,6 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
   // generate keypairs
   it(
     'generates a new keypair',
