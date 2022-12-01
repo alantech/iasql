@@ -6,11 +6,11 @@ name: CI
 # events but only for the main branch.
 on:
   push:
-    branches: [main]
-    paths: ['.github/workflows/ci.yml', 'src/**', 'test/**', 'package.json', 'yarn.lock']
+    branches: [ main ]
+    paths: [ '.github/workflows/ci.yml', 'src/**', 'test/**', 'package.json', 'yarn.lock' ]
   pull_request:
-    branches: [main]
-    paths: ['.github/workflows/ci.yml', 'src/**', 'test/**', 'package.json', 'yarn.lock']
+    branches: [ main ]
+    paths: [ '.github/workflows/ci.yml', 'src/**', 'test/**', 'package.json', 'yarn.lock' ]
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -142,6 +142,24 @@ jobs:
       - id: set-test-module-names
         name: Set modules tests names
         run: echo "::set-output name=test-module-names::$(npx jest **/modules/* --listTests --json | jq -c 'map(split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring)')"
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      - name: Build and push
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          push: false
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha
+          tags: iasql:latest
+          outputs: type=docker,dest=/tmp/iasql-image.tar
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: iasql-image
+          path: /tmp/iasql-image.tar
+
 
   module-test:
     runs-on: ubuntu-latest
@@ -175,6 +193,21 @@ jobs:
           ACCOUNT_INDEX=$(echo $RESPONSE | jq '.[0]' || exit 1)
           echo "::set-output name=account_index::$(echo ${ACCOUNT_INDEX})"
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Download artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: iasql-image
+          path: /tmp
+
+      - name: Load image
+        run: |
+          docker load --input /tmp/iasql-image.tar
+          docker image ls -a
+
+
       - name: Pre-clean Test Account
         id: pre-clean-test-account
         env:
@@ -189,7 +222,6 @@ jobs:
           export AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
 
           # Spin up the engine and a postgres instance
-          docker build -t iasql:latest .
           # Temporarily export the engine port until it's only the Postgres port needed
           docker run -p 5432:5432 -p 8088:8088 -e IASQL_ENV=ci --name iasql iasql &
           while ! curl --output /dev/null --silent --head --fail http://localhost:8088/health; do sleep 1 && echo -n .; done;
