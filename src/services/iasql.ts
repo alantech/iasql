@@ -108,7 +108,7 @@ export async function disconnect(dbAlias: string, uid: string) {
     console.log(`+-+ Kill all open connections`)
     const res = await conn.query(`
     SELECT
-      pid
+      *
     FROM
       pg_stat_activity
     WHERE
@@ -137,7 +137,7 @@ export async function disconnect(dbAlias: string, uid: string) {
 
     const res2 = await conn.query(`
     SELECT
-      pid
+      *
     FROM
       pg_stat_activity
     WHERE
