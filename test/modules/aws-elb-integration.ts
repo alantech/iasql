@@ -96,6 +96,8 @@ describe('ELB Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it('syncs the regions', commit());
 
   it(
@@ -569,9 +571,19 @@ describe('ELB Integration Testing', () => {
     'deletes the security groups',
     query(
       `
-        DELETE
-        FROM security_group
-        WHERE group_name IN ('${sg1}', '${sg2}');
+        BEGIN;
+          DELETE
+          FROM security_group_rule
+          WHERE security_group_id IN (
+            SELECT id
+            FROM security_group
+            WHERE group_name IN ('${sg1}', '${sg2}')
+          );
+
+          DELETE
+          FROM security_group
+          WHERE group_name IN ('${sg1}', '${sg2}');
+        COMMIT;
     `,
       undefined,
       true,
@@ -834,6 +846,8 @@ describe('ELB install/uninstall', () => {
       () => ({ username, password }),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it('syncs the regions', commit());
 

@@ -443,9 +443,28 @@ export class ModuleBase {
         language plpgsql security definer
         as $$
         declare
-          _opid uuid;
+          _content text;
         begin
-          _opid := until_iasql_rpc('${this.name}', '${key}', _args);
+          perform http.http_set_curlopt('CURLOPT_TIMEOUT_MS', '3600000');
+          select content into _content
+          from http.http_post(
+            'http://localhost:8088/v1/db/rpc',
+            json_build_object(
+              'dbId', current_database(),
+              'dbUser', SESSION_USER,
+              'params', _args,
+              'modulename', '${this.name}',
+              'methodname', '${key}'
+            )::varchar,
+            'application/json'
+          );
+          if json_typeof(_content::json) <> 'array' then
+            if json_typeof(_content::json) = 'object' then
+              raise exception 'Error: %', _content::json->>'message';
+            else
+              raise exception 'Error: %', _content;
+            end if;
+          end if;
           return query select
             ${
               rpcOutputEntries.length
@@ -455,7 +474,7 @@ export class ModuleBase {
                 : ''
             }
           from (
-            select json_array_elements(output::json) as s from iasql_rpc where opid = _opid
+            select json_array_elements(_content::json) as s
           ) as j;
         end;
         $$;

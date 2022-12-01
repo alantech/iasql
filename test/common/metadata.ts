@@ -1,6 +1,14 @@
 import * as iasql from '../../src/services/iasql';
 import MetadataRepo from '../../src/services/repositories/metadata';
-import { runCommit, runInstall, runQuery, finish, execComposeUp, execComposeDown } from '../helpers';
+import {
+  runCommit,
+  runInstall,
+  runQuery,
+  finish,
+  execComposeUp,
+  execComposeDown,
+  runBegin,
+} from '../helpers';
 
 const metadataQuery = runQuery.bind(null, 'iasql_metadata');
 const dbAlias = 'metadatatest';
@@ -9,12 +17,11 @@ const email = 'test@example.com';
 const dbQuery = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
+const begin = runBegin.bind(null, dbAlias);
 
 jest.setTimeout(360000);
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown());
-
-let username: string, password: string;
 
 describe('Testing metadata repo', () => {
   it(
@@ -67,18 +74,6 @@ describe('Testing metadata repo', () => {
   );
 
   it(
-    'check rpc db count',
-    metadataQuery(
-      `
-    SELECT rpc_count
-    FROM iasql_database
-    WHERE pg_name = '${dbAlias}';
-  `,
-      (row: any[]) => expect(row[0].rpc_count).toBe(0),
-    ),
-  );
-
-  it(
     'check rec db count',
     metadataQuery(
       `
@@ -109,18 +104,6 @@ describe('Testing metadata repo', () => {
   it('installs the aws_account module', install(['aws_account']));
 
   it(
-    'check rpc db count',
-    metadataQuery(
-      `
-    SELECT rpc_count
-    FROM iasql_database
-    WHERE pg_name = '${dbAlias}';
-  `,
-      (row: any[]) => expect(row[0].rpc_count).toBe(1),
-    ),
-  );
-
-  it(
     'inserts aws credentials',
     dbQuery(
       `
@@ -132,19 +115,9 @@ describe('Testing metadata repo', () => {
     ),
   );
 
-  it('apply updates db counts', commit());
+  it('starts a transaction', begin());
 
-  it(
-    'check rpc db count',
-    metadataQuery(
-      `
-    SELECT rpc_count
-    FROM iasql_database
-    WHERE pg_name = '${dbAlias}';
-  `,
-      (row: any[]) => expect(row[0].rpc_count).toBe(2),
-    ),
-  );
+  it('apply updates db counts', commit());
 
   it(
     'check rec db count',

@@ -61,6 +61,8 @@ describe('Security Group Multi region Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it('syncs the regions', commit());
 
   it(

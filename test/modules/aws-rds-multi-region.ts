@@ -59,6 +59,8 @@ describe('RDS Multi-Region Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it('syncs the regions', commit());
 
   it(

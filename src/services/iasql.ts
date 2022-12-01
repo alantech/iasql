@@ -13,7 +13,6 @@ import { isString } from './common';
 import * as dbMan from './db-manager';
 import logger from './logger';
 import MetadataRepo from './repositories/metadata';
-import * as scheduler from './scheduler-api';
 import { TypeormWrapper } from './typeorm';
 
 const exec = promisify(execNode);
@@ -30,19 +29,10 @@ export async function getDbRecCount(conn: TypeormWrapper): Promise<number> {
   return parseInt(res[0].sum ?? '0', 10);
 }
 
-export async function getRpcCount(conn: TypeormWrapper): Promise<number> {
-  const res = await conn.query(`
-    SELECT COUNT(*)
-    FROM iasql_rpc
-  `);
-  return parseInt(res[0].count ?? '0', 10);
-}
-
 // TODO: connect and disconnect to be turned into metadata RPCs
 export async function connect(dbAlias: string, uid: string, email: string, dbId = dbMan.genDbId(dbAlias)) {
   let conn1: any, conn2: any, dbUser: any;
   let dbSaved,
-    schedulerStarted,
     roleGranted = false;
   try {
     logger.info('Creating account for user...');
@@ -60,26 +50,22 @@ export async function connect(dbAlias: string, uid: string, email: string, dbId 
     await conn1.query(`
       CREATE DATABASE ${dbId};
     `);
-    // wait for the scheduler to start and register its migrations before ours so that the stored procedures
-    // that use the scheduler's schema succeed
-    await scheduler.start(dbId, dbUser);
-    schedulerStarted = true;
     conn2 = await createConnection({
       ...dbMan.baseConnConfig,
       name: dbId,
       database: dbId,
     });
     await dbMan.migrate(conn2);
+    await conn2.query('CREATE SCHEMA http; CREATE EXTENSION http WITH SCHEMA http;');
     await conn2.query(dbMan.setUpDblink(dbId));
     await conn2.query(`SELECT * FROM query_cron('schedule');`);
     await conn2.query(`SELECT * FROM query_cron('schedule_purge');`);
-    await conn2.query(`SELECT * FROM query_cron('schedule_unlock');`);
     await conn2.query(dbMan.createDbPostgreGroupRole(dbId));
     await conn2.query(dbMan.newPostgresRoleQuery(dbUser, dbPass, dbId));
     await conn2.query(dbMan.grantPostgresGroupRoleQuery(dbUser, dbId));
     roleGranted = true;
     const recCount = await getDbRecCount(conn2);
-    const opCount = await getRpcCount(conn2);
+    const opCount = 0;
     // TODO: UPDATE BY THE TIME 0.0.20 BECOMES UNSUPPORTED
     // TODO: Update what? I don't understand this TODO
     await MetadataRepo.updateDbCounts(dbId, recCount, opCount);
@@ -94,7 +80,6 @@ export async function connect(dbAlias: string, uid: string, email: string, dbId 
       id: dbId,
     };
   } catch (e: any) {
-    if (schedulerStarted) await scheduler.stop(dbId);
     // delete db in psql and metadata
     if (dbSaved) await conn1?.query(`DROP DATABASE IF EXISTS ${dbId} WITH (FORCE);`);
     if (dbUser && roleGranted) await conn1?.query(dbMan.dropPostgresRoleQuery(dbUser, dbId, true));
@@ -111,7 +96,6 @@ export async function disconnect(dbAlias: string, uid: string) {
   let conn, conn2;
   try {
     const db: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
-    await scheduler.stop(db.pgName);
     conn = await createConnection(dbMan.baseConnConfig);
     conn2 = await createConnection({
       ...dbMan.baseConnConfig,
@@ -121,7 +105,6 @@ export async function disconnect(dbAlias: string, uid: string) {
     try {
       await conn2.query(`SELECT * FROM query_cron('unschedule');`);
       await conn2.query(`SELECT * FROM query_cron('unschedule_purge');`);
-      await conn2.query(`SELECT * FROM query_cron('unschedule_unlock');`);
     } catch (e) {
       /** Do nothing */
     }
@@ -289,7 +272,7 @@ export async function dump(dbId: string, dataOnly: boolean) {
       dataOnly
         ? `--data-only --no-privileges --column-inserts --rows-per-insert=50 --on-conflict-do-nothing ${excludedDataTables}`
         : ''
-    } --inserts --exclude-schema=graphile_worker -x ${pgUrl}`,
+    } --inserts -x ${pgUrl}`,
     { shell: '/bin/bash' },
   );
   return stdout;

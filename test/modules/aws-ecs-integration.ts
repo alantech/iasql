@@ -18,8 +18,6 @@ import {
 const prefix = getPrefix();
 const dbAlias = 'ecstest';
 const dbAliasSidecar = `${dbAlias}sync`;
-const sidecarCommit = runCommit.bind(null, dbAliasSidecar);
-const sidecarInstall = runInstall.bind(null, dbAliasSidecar);
 const region = defaultRegion();
 const nonDefaultRegion = 'us-east-1';
 
@@ -29,10 +27,13 @@ const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const installAll = runInstallAll.bind(null, dbAlias);
-const querySync = runQuery.bind(null, dbAliasSidecar);
-const installSync = runInstall.bind(null, dbAliasSidecar);
-const syncCommit = runCommit.bind(null, dbAliasSidecar);
 const uninstall = runUninstall.bind(null, dbAlias);
+
+const sidecarQuery = runQuery.bind(null, dbAliasSidecar);
+const sidecarInstall = runInstall.bind(null, dbAliasSidecar);
+const sidecarCommit = runCommit.bind(null, dbAliasSidecar);
+const sidecarBegin = runBegin.bind(null, dbAliasSidecar);
+
 const modules = [
   'aws_ecr',
   'aws_elb',
@@ -120,6 +121,8 @@ describe('ECS Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it('syncs the regions', commit());
 
   it(
@@ -149,11 +152,11 @@ describe('ECS Integration Testing', () => {
   it('creates a new sidecar test db ECS', done =>
     void iasql.connect(dbAliasSidecar, 'not-needed', 'not-needed').then(...finish(done)));
 
-  it('installs the aws_account module', installSync(['aws_account']));
+  it('installs the aws_account module', sidecarInstall(['aws_account']));
 
   it(
     'inserts aws credentials',
-    querySync(
+    sidecarQuery(
       `
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
@@ -163,18 +166,20 @@ describe('ECS Integration Testing', () => {
     ),
   );
 
-  it('syncs the regions', syncCommit());
+  it('starts a transaction', sidecarBegin());
+
+  it('syncs the regions', sidecarCommit());
 
   it(
     'sets the default region',
-    querySync(`
+    sidecarQuery(`
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `),
   );
 
   it(
     'sets only 2 enabled regions to avoid long runs',
-    querySync(`
+    sidecarQuery(`
     UPDATE aws_regions SET is_enabled = FALSE WHERE region != '${region}' AND region != (SELECT region FROM aws_regions WHERE region != 'us-east-1' AND region != '${region}' ORDER BY region DESC LIMIT 1);
   `),
   );
@@ -243,8 +248,6 @@ describe('ECS Integration Testing', () => {
   );
 
   // Service dependencies
-  it('applies service dependencies', commit());
-
   it('starts a transaction', begin());
 
   it(
@@ -288,6 +291,8 @@ describe('ECS Integration Testing', () => {
     ),
   );
 
+  it('applies service dependencies', commit());
+
   it(
     'check target group insertion',
     query(
@@ -314,6 +319,8 @@ describe('ECS Integration Testing', () => {
 
   // Service spinning up a task definition with container using a docker image
   // Container definition
+  it('starts a transaction', begin());
+
   it(
     'adds container dependencies',
     query(
@@ -718,6 +725,8 @@ describe('ECS Integration Testing', () => {
       return {};
     }));
 
+  it('starts a transaction', sidecarBegin());
+
   it('sync sidecar database', sidecarCommit());
 
   it('uninstalls the ecs module', uninstall(['aws_ecs_fargate']));
@@ -789,6 +798,8 @@ describe('ECS Integration Testing', () => {
   );
 
   it('applies deletes tasks and container definitions', commit());
+
+  it('starts a transaction', sidecarBegin());
 
   it('sync sidecar database', sidecarCommit());
 
@@ -954,6 +965,8 @@ describe('ECS install/uninstall', () => {
       () => ({ username, password }),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it('syncs the regions', commit());
 

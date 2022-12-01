@@ -28,81 +28,6 @@ end;
 $$;
 
 CREATE
-OR REPLACE FUNCTION iasql_should_clean_rpcs () RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
-DECLARE
-  current_count integer;
-begin
-  DELETE FROM iasql_rpc
-  WHERE NOT (
-    opid = any(
-      array(
-        SELECT opid
-        FROM iasql_rpc
-        WHERE start_date >= CURRENT_DATE - INTERVAL '6 months'
-        ORDER BY start_date DESC
-        LIMIT 4999
-      )
-    )
-  );
-end;
-$$;
-
-CREATE
-OR REPLACE FUNCTION until_iasql_rpc (_module_name TEXT, _method_name TEXT, _params TEXT[]) RETURNS UUID LANGUAGE plpgsql SECURITY DEFINER AS $$
-declare
-    _opid uuid;
-    _counter integer := 0;
-    _output text;
-    _err text;
-    _dblink_sql text;
-    _db_id text;
-    _dblink_conn_count int;
-begin
-    PERFORM iasql_should_clean_rpcs();
-    select md5(random()::text || clock_timestamp()::text)::uuid into _opid;
-    select current_database() into _db_id;
-    -- reuse the 'iasqlrpcconn' db dblink connection if one exists for the session
-    -- dblink connection closes automatically at the end of a session
-    SELECT count(1) INTO _dblink_conn_count FROM dblink_get_connections()
-        WHERE dblink_get_connections@>'{iasqlrpcconn}';
-    IF _dblink_conn_count = 0 THEN
-        PERFORM dblink_connect('iasqlrpcconn', 'loopback_dblink_' || _db_id);
-    END IF;
-    -- schedule job via dblink
-    _dblink_sql := format('insert into iasql_rpc (opid, module_name, method_name, params) values (%L, %L, %L, array[''%s'']::text[]);', _opid, _module_name, _method_name, array_to_string(_params, ''','''));
-    -- raise exception '%', _dblink_sql;
-    PERFORM dblink_exec('iasqlrpcconn', _dblink_sql);
-    _dblink_sql := format('select graphile_worker.add_job(%L, json_build_object(%L, %L, %L, %L, %L, %L, %L, array[''%s'']::text[]));', 'rpc', 'opid', _opid, 'modulename', _module_name, 'methodname', _method_name, 'params', array_to_string(_params, ''','''));
-    -- raise exception '%', _dblink_sql;
-    -- allow statement that returns results in dblink https://stackoverflow.com/a/28299993
-    PERFORM * FROM dblink('iasqlrpcconn', _dblink_sql) alias(col text);
-    -- times out after 45 minutes = 60 * 45 = 2700 seconds
-    -- currently the longest is RDS where the unit test has a timeout of 16m
-    while _counter < 2700 loop
-        if (select end_date from iasql_rpc where opid = _opid) is not null then
-            select output into _output from iasql_rpc where opid = _opid;
-            select err into _err from iasql_rpc where opid = _opid;
-            -- done!
-            if _output is not null and _err is null then
-                return _opid;
-            end if;
-            if _err is not null then
-                raise exception '% % error: %', _module_name, _method_name, _err::json->'message'
-                using detail = _err;
-            end if;
-            -- exit sp
-            return _opid;
-        end if;
-        perform pg_sleep(1);
-        _counter := _counter + 1;
-    end loop;
-    -- timed out
-    raise warning 'Done waiting for % %.', _module_name, _method_name
-    using hint = 'The operation will show up in the iasql_rpc table when it completes under this opid: ' || _opid;
-end;
-$$;
-
-CREATE
 OR REPLACE FUNCTION iasql_modules_installed () RETURNS TABLE (module_name TEXT, module_version TEXT, dependencies VARCHAR[]) LANGUAGE plpgsql SECURITY DEFINER AS $$
 begin
   return query select
@@ -167,6 +92,37 @@ end;
 $$;
 
 CREATE
+OR REPLACE FUNCTION maybe_commit () RETURNS TEXT LANGUAGE plpgsql SECURITY INVOKER AS $$
+declare
+    _change_type text;
+    _ts TIMESTAMP WITH TIME ZONE;
+    _30_min_interval TIMESTAMP WITH TIME ZONE;
+    _almost_2_min_interval TIMESTAMP WITH TIME ZONE;
+    _current_ts TIMESTAMP WITH TIME ZONE;
+begin
+    _current_ts := now();
+    _30_min_interval := _current_ts - interval '30 minutes';
+    _almost_2_min_interval := _current_ts - interval '1.9 minutes';
+    -- Check if theres an open transaction
+    SELECT change_type, ts INTO _change_type, _ts
+    FROM iasql_audit_log
+    WHERE 
+      change_type IN ('OPEN_TRANSACTION', 'CLOSE_TRANSACTION') AND
+      ts > _30_min_interval
+    ORDER BY ts DESC
+    LIMIT 1;
+    -- If a transaction occurred less than 2 min ago we skip
+    IF _change_type != 'OPEN_TRANSACTION' AND (_ts IS NULL OR _ts < _almost_2_min_interval) THEN
+      PERFORM iasql_begin();
+      PERFORM iasql_commit();
+      RETURN 'iasql_commit called';
+    ELSE
+      RAISE EXCEPTION 'Cannot call iasql_commit while a transaction is open';
+    END IF;
+end;
+$$;
+
+CREATE
 OR REPLACE FUNCTION query_cron (_action TEXT) RETURNS TEXT LANGUAGE plpgsql SECURITY INVOKER AS $$
 declare
     _db_id text;
@@ -183,23 +139,14 @@ begin
     END IF;
     CASE
       WHEN _action = 'schedule' THEN
-        _dblink_sql := format('SELECT schedule_in_database AS cron_res FROM cron.schedule_in_database (%L, %L, $CRON$ SELECT iasql_commit(); $CRON$, %L);', 'iasql_engine_' || _db_id, '*/2 * * * *', _db_id);
+        -- TODO: scheduled function should check if is safe to run commit or if it is an open transaction in place
+        _dblink_sql := format('SELECT schedule_in_database AS cron_res FROM cron.schedule_in_database (%L, %L, $CRON$ SELECT maybe_commit(); $CRON$, %L);', 'iasql_engine_' || _db_id, '*/2 * * * *', _db_id);
       WHEN _action = 'unschedule' THEN
         _dblink_sql := format('SELECT unschedule AS cron_res FROM cron.unschedule(%L);', 'iasql_engine_' || _db_id);
-      WHEN _action = 'enable' THEN
-        _dblink_sql := format('SELECT alter_job AS cron_res FROM cron.alter_job(job_id := %s, active := TRUE);', '(SELECT cron.job.jobid FROM cron.job WHERE cron.job.jobname = ''' || 'iasql_engine_' || _db_id || ''')');
-      WHEN _action = 'disable' THEN
-        _dblink_sql := format('SELECT alter_job AS cron_res FROM cron.alter_job(job_id := %s, active := FALSE);', '(SELECT cron.job.jobid FROM cron.job WHERE cron.job.jobname = ''' || 'iasql_engine_' || _db_id || ''')');
-      WHEN _action = 'status' THEN
-        _dblink_sql := format('SELECT active AS cron_res FROM cron.job WHERE cron.job.jobname = ''' || 'iasql_engine_' || _db_id || ''';');
       WHEN _action = 'schedule_purge' THEN
         _dblink_sql := format('SELECT schedule AS cron_res FROM cron.schedule (%L, %L, $PURGE$ DELETE FROM cron.job_run_details WHERE database = %L AND end_time < (now() - interval %L); $PURGE$);', 'purge_iasql_engine_' || _db_id, '0 0 * * *', _db_id, '7 days');
       WHEN _action = 'unschedule_purge' THEN
         _dblink_sql := format('SELECT unschedule AS cron_res FROM cron.unschedule(%L);', 'purge_iasql_engine_' || _db_id);
-      WHEN _action = 'schedule_unlock' THEN
-        _dblink_sql := format('SELECT schedule_in_database AS cron_res FROM cron.schedule_in_database (%L, %L, $CRON$ SELECT iasql_unlock_transaction(); $CRON$, %L);', 'unlock_iasql_engine_' || _db_id, '*/30 * * * *', _db_id);
-      WHEN _action = 'unschedule_unlock' THEN
-        _dblink_sql := format('SELECT unschedule AS cron_res FROM cron.unschedule(%L);', 'unlock_iasql_engine_' || _db_id);
       ELSE
         RAISE EXCEPTION 'Invalid action';
         RETURN 'Execution error';

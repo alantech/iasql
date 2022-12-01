@@ -26,6 +26,10 @@ psql $CONNSTR -c "
 ";
 
 psql $CONNSTR -c "
+  SELECT * FROM iasql_begin();
+";
+
+psql $CONNSTR -c "
   SELECT * FROM iasql_commit();
 ";
 

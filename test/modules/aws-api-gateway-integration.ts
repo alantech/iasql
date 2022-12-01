@@ -80,6 +80,8 @@ describe('API Gateway Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it('syncs the regions', commit());
 
   it(
@@ -290,6 +292,8 @@ describe('API install/uninstall', () => {
       () => ({ username, password }),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it('syncs the regions', commit());
 

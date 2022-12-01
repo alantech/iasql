@@ -12,7 +12,6 @@ import {
   IasqlUninstall,
   IasqlRollback,
   IasqlBegin,
-  IasqlUnlockTransaction,
 } from './rpcs';
 
 export class IasqlFunctions extends ModuleBase {
@@ -27,7 +26,6 @@ export class IasqlFunctions extends ModuleBase {
   iasqlPreview: IasqlPreview;
   iasqlRollback: IasqlRollback;
   iasqlBegin: IasqlBegin;
-  iasqlUnlockTransaction: IasqlUnlockTransaction;
 
   constructor() {
     super();
@@ -42,8 +40,7 @@ export class IasqlFunctions extends ModuleBase {
     this.iasqlPreview = new IasqlPreview(this);
     this.iasqlRollback = new IasqlRollback(this);
     this.iasqlBegin = new IasqlBegin(this);
-    this.iasqlUnlockTransaction = new IasqlUnlockTransaction(this);
-    super.init();
+    super.loadBasics();
   }
 }
 export const iasqlFunctions = new IasqlFunctions();

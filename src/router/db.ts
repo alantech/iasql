@@ -1,14 +1,20 @@
 import * as express from 'express';
 import { Response } from 'express';
 import { Request } from 'express-jwt';
+import { default as cloneDeep } from 'lodash.clonedeep';
+import { v4 as uuidv4 } from 'uuid';
 
 import config from '../config';
+import { throwError } from '../config/config';
 import { IasqlDatabase } from '../entity';
+import * as Modules from '../modules';
+import { Context, ModuleBase, ModuleInterface } from '../modules';
 import * as dbMan from '../services/db-manager';
 import * as iasql from '../services/iasql';
 import logger, { logErrSentry } from '../services/logger';
 import MetadataRepo from '../services/repositories/metadata';
 import * as telemetry from '../services/telemetry';
+import { TypeormWrapper } from '../services/typeorm';
 
 export const db = express.Router();
 
@@ -199,6 +205,112 @@ db.post('/run/:dbAlias', async (req: Request, res: Response) => {
       res.status(500).end(error);
     }
     telemetry.logRunSql(uid, { dbId, email }, { sql, error });
+  }
+});
+
+async function getContext(conn: TypeormWrapper, AllModules: any): Promise<Context> {
+  // Find all of the installed modules, and create the context object only for these
+  const iasqlModule =
+    AllModules?.IasqlPlatform?.utils?.IasqlModule ??
+    AllModules?.iasqlPlatform?.iasqlModule ??
+    throwError('Core IasqlModule not found');
+  const moduleNames = (await conn.find(iasqlModule)).map((m: any) => m.name);
+  const memo: any = {};
+  const context: Context = { orm: conn, memo };
+  for (const name of moduleNames) {
+    const mod = (Object.values(AllModules) as ModuleInterface[]).find(
+      m => `${m.name}@${m.version}` === name,
+    ) as ModuleInterface;
+    if (!mod) throwError(`This should be impossible. Cannot find module ${name}`);
+    const moduleContext = mod?.provides?.context ?? {};
+    Object.keys(moduleContext).forEach(k => {
+      if (typeof moduleContext[k] === 'function') {
+        context[k] = moduleContext[k];
+      } else {
+        context[k] = cloneDeep(moduleContext[k]);
+      }
+    });
+  }
+  return context;
+}
+
+db.post('/rpc', async (req: Request, res: Response) => {
+  logger.info('Calling /rpc');
+  const { dbId, dbUser, params, modulename, methodname } = req.body;
+  const missing = [];
+  if (!dbId) missing.push('dbId');
+  if (!dbUser) missing.push('dbUser');
+  if (!params) missing.push('params');
+  if (!modulename) missing.push('modulename');
+  if (!methodname) missing.push('methodname');
+  if (!!missing.length) return res.status(400).json(`Required key(s) ${missing.join(', ')} not provided`);
+  try {
+    let output: string | undefined;
+    let error;
+    const user = await MetadataRepo.getUserFromDbId(dbId);
+    const uid = user?.id;
+    const email = user?.email;
+    const dbAlias = user?.iasqlDatabases?.[0]?.alias;
+    const dbRec = await MetadataRepo.getDbById(dbId);
+    const versionString = await TypeormWrapper.getVersionString(dbId);
+    const conn = await TypeormWrapper.createConn(dbId, { name: uuidv4() });
+    // Do not call RPCs if db is upgrading.
+    if (dbRec?.upgrading) {
+      throwError(`Database ${dbId} is upgrading.`);
+    }
+    try {
+      // Look for the Module's instance name with the RPC to be called
+      if (versionString !== config.version) throwError(`Unsupported version ${versionString}`);
+      const [moduleInstanceName] = Object.entries(Modules ?? {})
+        .filter(([_, m]: [string, any]) => m instanceof ModuleBase)
+        .find(([_, m]: [string, any]) => m.name === modulename) ?? ['unknown', undefined];
+      if (!(Modules as any)[moduleInstanceName]) throwError(`Module ${modulename} not found`);
+      const context = await getContext(conn, Modules);
+      const rpcRes: any[] | undefined = await (
+        (Modules as any)[moduleInstanceName] as ModuleInterface
+      )?.rpc?.[methodname].call(dbId, dbUser, context, ...params);
+      output = JSON.stringify(rpcRes);
+      return res.status(200).json(rpcRes);
+    } catch (e) {
+      let errorMessage: string | string[] = logErrSentry(e, uid, email, dbAlias);
+      // split message if multiple lines in it
+      if (errorMessage.includes('\n')) errorMessage = errorMessage.split('\n');
+      // error must be valid JSON as a string
+      error = JSON.stringify({ message: errorMessage });
+      return res.status(400).json({ message: errorMessage });
+    } finally {
+      try {
+        const recordCount = await iasql.getDbRecCount(conn);
+        const rpcCount = 0;
+        await MetadataRepo.updateDbCounts(dbId, recordCount, undefined, rpcCount);
+        // list is called by us and has no dbAlias so ignore
+        // TODO: refactor properly this condition if (uid && modulename !== 'iasqlFunctions' && methodname !== 'modulesList')
+        if (uid)
+          telemetry.logRpc(
+            uid,
+            modulename,
+            methodname,
+            {
+              dbId,
+              email: email ?? '',
+              dbAlias,
+              recordCount,
+              rpcCount,
+              dbVersion: versionString,
+            },
+            {
+              params,
+              output,
+              error,
+            },
+          );
+      } catch (e: any) {
+        logger.error('could not log op event', e);
+      }
+    }
+  } catch (e: any) {
+    logger.error(`RPC user error: ${e?.message}`, { dbUser, dbId, params, modulename, methodname });
+    res.status(500).end(e?.message);
   }
 });
 

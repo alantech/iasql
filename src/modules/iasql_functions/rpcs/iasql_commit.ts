@@ -15,10 +15,16 @@ export class IasqlCommit extends RpcBase {
     _dbUser: string,
     ctx: Context,
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
+    const openTransaction = await iasql.isOpenTransaction(ctx.orm);
+    if (!openTransaction) {
+      throw new Error('Cannot commit without calling iasql_begin first.');
+    }
     const res = (await iasql.commit(dbId, false, ctx)).rows;
-    await ctx.orm.query(`SELECT * FROM query_cron('enable');`);
+    await iasql.closeTransaction(ctx.orm);
+    // Why do I need to do this nonsense???
+    const outputTable = this.outputTable;
     return (
-      res?.map(rec => super.formatObjKeysToSnakeCase(rec) as RpcResponseObject<typeof this.outputTable>) ?? []
+      res?.map(rec => super.formatObjKeysToSnakeCase(rec) as RpcResponseObject<typeof outputTable>) ?? []
     );
   };
 

@@ -1,13 +1,13 @@
 /* tslint:disable no-console */
+import { Logger, LogFunctionFactory } from '@graphile/logger';
 import { createLogger } from '@logdna/logger';
 import * as sentry from '@sentry/node';
-import { Logger, LogFunctionFactory } from 'graphile-worker';
 import * as util from 'util';
 
 import config from '../config';
 import { DepError } from './lazy-dep';
 
-const logFactory: LogFunctionFactory = scope => {
+const logFactory: LogFunctionFactory<Logger> = scope => {
   // Better to check the config once in the factory and return fixed functions instead of checking
   // on each log output
   if (config.logger.logDnaKey) {
@@ -106,7 +106,7 @@ export function debugObj(e: any) {
   if (config.logger.debug) console.dir(e, { depth: 6 });
 }
 
-// this function should only be used in the catch statement of the routes and scheduler
+// this function should only be used in the catch statement of the routes
 // everywhere else `throw` the error upstream
 // TODO is there a way to DRY that?
 // returns the sentry error id

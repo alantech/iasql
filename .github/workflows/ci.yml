@@ -21,16 +21,17 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       # Set up Node.js
       - name: Use Node.js 16.x
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v3
         with:
           node-version: 16.x
+          cache: 'yarn'
 
       - name: Install dependencies
-        run: yarn
+        run: yarn --prefer-offline
 
       - name: Run linter check
         run: yarn lint
@@ -42,16 +43,17 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       # Set up Node.js
       - name: Use Node.js 16.x
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v3
         with:
           node-version: 16.x
+          cache: 'yarn'
 
       - name: Install dependencies
-        run: yarn
+        run: yarn --prefer-offline
 
       - name: Run code style check
         run: yarn style
@@ -60,15 +62,16 @@ jobs:
     runs-on: ubuntu-latest
     name: common tests
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Use Node.js 16.x
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v3
         with:
           node-version: 16.x
+          cache: 'yarn'
 
       - name: Install dependencies
-        run: yarn
+        run: yarn --prefer-offline
 
       - name: Run common tests
         run: yarn coverage **/common/*
@@ -82,15 +85,16 @@ jobs:
     runs-on: ubuntu-latest
     name: readonly tests
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Use Node.js 16.x
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v3
         with:
           node-version: 16.x
+          cache: 'yarn'
 
       - name: Install dependencies
-        run: yarn
+        run: yarn --prefer-offline
 
       - name: Run read-only tests
         run: yarn coverage **/readonly/*
@@ -104,15 +108,16 @@ jobs:
     runs-on: ubuntu-latest
     name: iasql_upgrade test
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Use Node.js 16.x
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v3
         with:
           node-version: 16.x
+          cache: 'yarn'
 
       - name: Install dependencies
-        run: yarn
+        run: yarn --prefer-offline
 
       - name: Run common tests
         run: ./test/upgrade/run-upgrade.sh
@@ -128,8 +133,8 @@ jobs:
       test-modules: ${{ steps['set-test-modules'].outputs['test-modules'] }}
       set-test-module-names: ${{ steps['set-test-module-names'].outputs['test-module-names'] }}
     steps:
-      - uses: actions/checkout@v2
-      - run: yarn
+      - uses: actions/checkout@v3
+      - run: yarn --prefer-offline
       - id: set-test-modules
         name: Set modules tests
         run: >
@@ -149,15 +154,16 @@ jobs:
         module: ${{ fromJson(needs.setup-module-test.outputs['set-test-module-names']) }}
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Use Node.js 16.x
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v3
         with:
           node-version: 16.x
+          cache: 'yarn'
 
       - name: Install dependencies
-        run: yarn
+        run: yarn --prefer-offline
 
       - name: Determine Test Account To Use
         id: determine-test-account
@@ -208,6 +214,14 @@ jobs:
             VALUES ('${AWS_ACCESS_KEY_ID}', '${AWS_SECRET_ACCESS_KEY}');
           ";
 
+          # Start transaction
+          echo "\nStarting transaction..."
+          psql $PSQL_CONN -c "
+            select * from iasql_begin();
+          ";
+
+          # Start transaction
+          echo "\nSynchronizing..."
           psql $PSQL_CONN -c "
             SELECT * FROM iasql_commit();
           ";

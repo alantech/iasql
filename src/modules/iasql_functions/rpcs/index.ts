@@ -9,4 +9,3 @@ export * from './iasql_sync';
 export * from './iasql_preview';
 export * from './iasql_rollback';
 export * from './iasql_begin';
-export * from './iasql_unlock_transaction';

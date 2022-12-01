@@ -603,9 +603,9 @@ export async function commit(
     context.orm = orm;
 
     const isRunning = await isCommitRunning(orm);
-    if (isRunning) throw new Error('Another transaction is in process. Please try again later.');
+    if (isRunning) throw new Error('Another execution is in process. Please try again later.');
 
-    const newStartCommit: IasqlAuditLog = await insertCommit(orm, dryRun ? 'preview_start' : 'start');
+    const newStartCommit: IasqlAuditLog = await insertLog(orm, dryRun ? 'preview_start' : 'start');
     if (dryRun) context.previewStartCommit = newStartCommit;
     else context.startCommit = newStartCommit;
     const previousStartCommit = await getPreviousStartCommit(orm, newStartCommit.ts);
@@ -667,7 +667,7 @@ export async function commit(
     throw e;
   } finally {
     // Create end commit object
-    await insertCommit(orm, dryRun ? 'preview_end' : 'end');
+    await insertLog(orm, dryRun ? 'preview_end' : 'end');
     // do not drop the conn if it was provided
     if (orm !== ormOpt) orm?.dropConn();
     if (parentOrm) context.orm = parentOrm;
@@ -688,9 +688,9 @@ export async function rollback(dbId: string, context: Context, force = false, or
     context.orm = orm;
 
     const isRunning = await isCommitRunning(orm);
-    if (isRunning) throw new Error('Another transaction is in process. Please try again later.');
+    if (isRunning) throw new Error('Another execution is in process. Please try again later.');
 
-    const newStartCommit = await insertCommit(orm, 'start');
+    const newStartCommit = await insertLog(orm, 'start');
     context.startCommit = newStartCommit;
 
     const installedModulesNames = (await orm.find(IasqlModule)).map((m: any) => m.name);
@@ -714,7 +714,7 @@ export async function rollback(dbId: string, context: Context, force = false, or
     throw e;
   } finally {
     // Create end commit object
-    await insertCommit(orm, 'end');
+    await insertLog(orm, 'end');
     // do not drop the conn if it was provided
     if (orm !== ormOpt) orm?.dropConn();
     if (parentOrm) context.orm = parentOrm;
@@ -753,9 +753,9 @@ export async function isCommitRunning(orm: TypeormWrapper): Promise<boolean> {
   );
 }
 
-async function insertCommit(
+async function insertLog(
   orm: TypeormWrapper | null,
-  type: 'start' | 'preview_start' | 'end' | 'preview_end',
+  type: 'start' | 'preview_start' | 'end' | 'preview_end' | 'open' | 'close',
 ): Promise<IasqlAuditLog> {
   const commitLog = new IasqlAuditLog();
   commitLog.user = config.db.user;
@@ -772,6 +772,12 @@ async function insertCommit(
       break;
     case 'preview_end':
       commitLog.changeType = AuditLogChangeType.PREVIEW_END_COMMIT;
+      break;
+    case 'open':
+      commitLog.changeType = AuditLogChangeType.OPEN_TRANSACTION;
+      break;
+    case 'close':
+      commitLog.changeType = AuditLogChangeType.CLOSE_TRANSACTION;
       break;
     default:
       break;
@@ -1479,4 +1485,39 @@ async function getChangesAfterCommitStartedByEntity(
   const modsIndexedByTable = indexModsByTable(modulesWithChanges);
 
   return await getChangesByEntity(orm, changesAfterCommit, modsIndexedByTable);
+}
+
+export async function maybeOpenTransaction(orm: TypeormWrapper): Promise<void> {
+  // Check if no other transaction is open in the last 30 min
+  // Check if no commit is running
+  let addedTransaction = false,
+    loops = 120;
+  do {
+    const [isRunning, openTransaction] = await Promise.all([isCommitRunning(orm), isOpenTransaction(orm)]);
+    if (!isRunning && !openTransaction) {
+      await insertLog(orm, 'open');
+      addedTransaction = true;
+    } else {
+      await new Promise(r => setTimeout(r, 1000)); // Sleep for a sec
+      loops--;
+    }
+  } while (!addedTransaction && !!loops);
+  if (!addedTransaction) throw new Error('Another transaction is open or running. Please try again later.');
+}
+
+export async function closeTransaction(orm: TypeormWrapper): Promise<void> {
+  await insertLog(orm, 'close');
+}
+
+export async function isOpenTransaction(orm: TypeormWrapper): Promise<boolean> {
+  const limitDate = new Date(Date.now() - 30 * 60 * 1000);
+  const transactions = await orm.find(IasqlAuditLog, {
+    order: { ts: 'DESC' },
+    where: {
+      changeType: In([AuditLogChangeType.OPEN_TRANSACTION, AuditLogChangeType.CLOSE_TRANSACTION]),
+      ts: MoreThan(limitDate),
+    },
+    take: 1,
+  });
+  return !!transactions?.length && transactions[0].changeType === AuditLogChangeType.OPEN_TRANSACTION;
 }

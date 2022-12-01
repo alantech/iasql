@@ -1,11 +1,11 @@
 import config from '../../src/config';
 import * as iasql from '../../src/services/iasql';
-import * as scheduler from '../../src/services/scheduler';
 import {
   defaultRegion,
   execComposeDown,
   execComposeUp,
   finish,
+  runBegin,
   runCommit,
   runInstall,
   runQuery,
@@ -14,6 +14,7 @@ import {
 const latestVersion = config.version;
 
 const dbAlias = 'accounttest';
+const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
@@ -149,6 +150,8 @@ describe('AwsAccount Integration Testing', () => {
     })();
   });
 
+  it('starts a transaction', begin());
+
   it(
     'inserts a second, useless row into the aws_credentials table',
     query(
@@ -265,9 +268,7 @@ describe('AwsAccount Integration Testing', () => {
     ),
   );
 
-  // tests that on startup subsequent iasql ops for existing dbs succeed
-  it('stops the worker for all dbs', done => void scheduler.stopAll().then(...finish(done)));
-  it('starts a worker for each db', done => void scheduler.init().then(...finish(done)));
+  it('starts a transaction', begin());
 
   it('does absolutely nothing when you sync this', commit());
 
@@ -362,7 +363,7 @@ describe('AwsAccount Integration Testing', () => {
   `)((e?: any) => {
       console.log({ e });
       try {
-        expect(e?.detail).toContain('Unsupported version');
+        expect(e?.message).toContain('Unsupported version');
       } catch (err) {
         done(err);
         return {};
@@ -371,13 +372,13 @@ describe('AwsAccount Integration Testing', () => {
       return {};
     }));
 
-  it('confirms that you cannot apply in a busted db', done =>
+  it('confirms that you cannot start a transaction in a busted db', done =>
     void query(`
-    SELECT * FROM iasql_commit();
+    SELECT * FROM iasql_begin();
   `)((e?: any) => {
       console.log({ e });
       try {
-        expect(e?.detail).toContain('Unsupported version');
+        expect(e?.message).toContain('Unsupported version');
       } catch (err) {
         done(err);
         return {};

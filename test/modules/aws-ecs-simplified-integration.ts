@@ -75,6 +75,8 @@ describe('ECS Simplified Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it('syncs the regions', commit());
 
   it(
@@ -578,8 +580,6 @@ describe('ECS Simplified Integration Testing', () => {
     ),
   );
 
-  it('applies app update', commit());
-
   it(
     'check service force update',
     query(
@@ -685,6 +685,8 @@ describe('ECS Simplified install/uninstall', () => {
       () => ({ username, password }),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it('syncs the regions', commit());
 
