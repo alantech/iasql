@@ -15,7 +15,13 @@ import { AWS, paginateBuilder } from '../../../services/aws_macros';
 import { awsRoute53Module } from '../../aws_route53';
 import { HostedZone, ResourceRecordSet } from '../../aws_route53/entity';
 import { modules } from '../../iasql_functions/iasql';
-import { Context, PostTransactionCheck, PreTransactionCheck, RpcBase, RpcResponseObject } from '../../interfaces';
+import {
+  Context,
+  PostTransactionCheck,
+  PreTransactionCheck,
+  RpcBase,
+  RpcResponseObject,
+} from '../../interfaces';
 import { Certificate } from '../entity';
 import { safeParse } from './common';
 

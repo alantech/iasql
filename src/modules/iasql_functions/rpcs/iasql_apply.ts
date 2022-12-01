@@ -1,5 +1,11 @@
 import { IasqlFunctions } from '..';
-import { Context, PostTransactionCheck, PreTransactionCheck, RpcBase, RpcResponseObject } from '../../interfaces';
+import {
+  Context,
+  PostTransactionCheck,
+  PreTransactionCheck,
+  RpcBase,
+  RpcResponseObject,
+} from '../../interfaces';
 
 export class IasqlApply extends RpcBase {
   preTransactionCheck = PreTransactionCheck.NO_CHECK;

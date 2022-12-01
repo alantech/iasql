@@ -3,7 +3,13 @@ import { InvokeCommandInput, InvokeCommandOutput } from '@aws-sdk/client-lambda'
 import { AwsLambdaModule } from '..';
 import { AWS } from '../../../services/aws_macros';
 import { awsCloudwatchModule } from '../../aws_cloudwatch';
-import { Context, PostTransactionCheck, PreTransactionCheck, RpcBase, RpcResponseObject } from '../../interfaces';
+import {
+  Context,
+  PostTransactionCheck,
+  PreTransactionCheck,
+  RpcBase,
+  RpcResponseObject,
+} from '../../interfaces';
 import { invokeFunction } from '../aws';
 
 export class LambdaFunctionInvokeRpc extends RpcBase {

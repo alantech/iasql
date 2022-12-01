@@ -3,7 +3,13 @@ import { WaiterOptions } from '@aws-sdk/util-waiter';
 
 import { AwsS3Module } from '..';
 import { AWS, crudBuilderFormat } from '../../../services/aws_macros';
-import { Context, PostTransactionCheck, PreTransactionCheck, RpcBase, RpcResponseObject } from '../../interfaces';
+import {
+  Context,
+  PostTransactionCheck,
+  PreTransactionCheck,
+  RpcBase,
+  RpcResponseObject,
+} from '../../interfaces';
 import { BucketObject } from '../entity';
 
 export class S3UploadObjectRpc extends RpcBase {

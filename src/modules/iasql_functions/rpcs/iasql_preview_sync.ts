@@ -1,5 +1,11 @@
 import { IasqlFunctions } from '..';
-import { Context, PostTransactionCheck, PreTransactionCheck, RpcBase, RpcResponseObject } from '../../interfaces';
+import {
+  Context,
+  PostTransactionCheck,
+  PreTransactionCheck,
+  RpcBase,
+  RpcResponseObject,
+} from '../../interfaces';
 
 export class IasqlPreviewSync extends RpcBase {
   module: IasqlFunctions;
