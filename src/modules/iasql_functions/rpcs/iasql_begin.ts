@@ -6,7 +6,6 @@ import {
   RpcBase,
   RpcResponseObject,
 } from '../../interfaces';
-import * as iasql from '../iasql';
 
 export class IasqlBegin extends RpcBase {
   module: IasqlFunctions;
@@ -18,9 +17,8 @@ export class IasqlBegin extends RpcBase {
   call = async (
     _dbId: string,
     _dbUser: string,
-    ctx: Context,
+    _ctx: Context,
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
-    // await iasql.maybeOpenTransaction(ctx.orm);
     const message = 'Transaction started';
     return [{ message }];
   };
