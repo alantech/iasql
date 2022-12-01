@@ -120,7 +120,7 @@ export async function disconnect(dbAlias: string, uid: string) {
     console.log(`+-+ ${
       JSON.stringify(res)
     }`)
-    await conn.query(`
+    const reskill = await conn.query(`
       SELECT
         pg_terminate_backend(pid)
       FROM
@@ -131,6 +131,24 @@ export async function disconnect(dbAlias: string, uid: string) {
         -- don't kill the connections to other databases
         AND datname = '${db.pgName}';
     `);
+    console.log(`+-+ KILLING respnse ${
+      JSON.stringify(reskill)
+    }`)
+
+    const res2 = await conn.query(`
+    SELECT
+      pid
+    FROM
+      pg_stat_activity
+    WHERE
+      -- don't kill my own connection!
+      pid <> pg_backend_pid()
+      -- don't kill the connections to other databases
+      AND datname = '${db.pgName}';
+    `);  
+    console.log(`+-+ AFTER KILLING ${
+      JSON.stringify(res2)
+    }`)
     console.log(`+-+ DROP DATABASE IF EXISTS`)
     await conn.query(`
       DROP DATABASE IF EXISTS ${db.pgName} WITH (FORCE);
