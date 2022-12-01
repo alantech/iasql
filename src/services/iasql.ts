@@ -135,7 +135,7 @@ export async function disconnect(dbAlias: string, uid: string) {
     console.log(`+-+ KILLING respnse ${
       JSON.stringify(reskill)
     }`)
-
+    await conn.query(`PERFORM pg_sleep(5);`);
     const res2 = await conn.query(`
     SELECT
       *
