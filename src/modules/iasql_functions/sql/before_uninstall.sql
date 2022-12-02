@@ -1,4 +1,22 @@
 DROP FUNCTION
+  "query_cron";
+
+DROP FUNCTION
+  "maybe_commit";
+
+DROP FUNCTION
+  "close_transaction";
+
+DROP FUNCTION
+  "open_transaction";
+
+DROP FUNCTION
+  "is_open_transaction";
+
+DROP FUNCTION
+  "wait_for_transaction";
+
+DROP FUNCTION
   "iasql_help";
 
 DROP FUNCTION
