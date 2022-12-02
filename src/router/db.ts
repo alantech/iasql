@@ -235,7 +235,7 @@ async function getContext(conn: TypeormWrapper, AllModules: any): Promise<Contex
 }
 
 db.post('/rpc', async (req: Request, res: Response) => {
-  logger.info('Calling /rpc');
+  logger.info(`Calling /rpc ${req.body?.methodname ?? ''}`);
   const { dbId, dbUser, params, modulename, methodname } = req.body;
   const missing = [];
   if (!dbId) missing.push('dbId');

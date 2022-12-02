@@ -40,7 +40,7 @@ if (cluster.isPrimary) {
     app.use(sentry.Handlers.requestHandler());
   }
   app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
-    logger.info(`Starting request on: ${req.path}`);
+    logger.info(`Starting request on: ${req.path} ${req.body?.methodname ?? ''}`);
     const realSend = res.send;
     const start = Date.now();
     res.send = (body?: any) => {
