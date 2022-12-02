@@ -97,14 +97,20 @@ export class RouteTableAssociationMapper extends MapperBase<RouteTableAssociatio
             if (
               !(await this.module.routeTable.db.read(
                 ctx,
-                this.module.routeTable.generateId({ routeTableId: a.routeTable.routeTableId ?? '' }),
+                this.module.routeTable.generateId({
+                  routeTableId: a.routeTable.routeTableId ?? '',
+                  region: a.vpc.region,
+                }),
               ))
             )
               await this.module.routeTable.db.create(a.routeTable, ctx);
 
             a.routeTable = await this.module.routeTable.db.read(
               ctx,
-              this.module.routeTable.generateId({ routeTableId: a.routeTable.routeTableId ?? '' }),
+              this.module.routeTable.generateId({
+                routeTableId: a.routeTable.routeTableId ?? '',
+                region: a.vpc.region,
+              }),
             );
             await this.module.routeTableAssociation.db.create(a, ctx);
             return;
