@@ -157,7 +157,10 @@ declare
 begin
     SELECT * FROM is_open_transaction() INTO _is_open;
     IF _is_open IS FALSE THEN
-      PERFORM open_transaction();
+      BEGIN;
+        LOCK TABLE iasql_audit_log IN SHARE MODE NOWAIT;
+        PERFORM open_transaction();
+      COMMIT;
       PERFORM iasql_commit();
       RETURN 'iasql_commit called';
     ELSE
