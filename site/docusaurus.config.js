@@ -21,8 +21,8 @@ const theButton = require('./src/rehype/thebutton');
     url: config.url,
     baseUrl: '/',
     trailingSlash: true,
-    onBrokenLinks: 'warn',
-    onBrokenMarkdownLinks: 'warn',
+    onBrokenLinks: 'throw',
+    onBrokenMarkdownLinks: 'throw',
     favicon: 'img/favicon.png',
     projectName: 'iasql-engine',
     organizationName: 'iasql',
@@ -90,17 +90,17 @@ const theButton = require('./src/rehype/thebutton');
               label: 'Dashboard',
             },
             {
-              href: '/docs',
+              to: 'docs',
               target: '_self',
               label: 'Docs',
             },
             {
-              href: '/blog',
+              to: 'blog',
               target: '_self',
               label: 'Blog',
             },
             {
-              href: '/schema',
+              to: 'schema',
               target: '_self',
               label: 'Schema',
             },
@@ -133,12 +133,12 @@ const theButton = require('./src/rehype/thebutton');
               items: [
                 {
                   label: 'Docs',
-                  href: '/docs',
+                  to: 'docs',
                   target: '_self',
                 },
                 {
                   label: 'Blog',
-                  href: '/blog',
+                  to: 'blog',
                   target: '_self',
                 },
                 {
