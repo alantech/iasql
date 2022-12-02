@@ -26,7 +26,7 @@ export class RouteTableAssociation {
     },
     {
       name: 'vpc_id',
-      referencedColumnName: 'vpc',
+      referencedColumnName: 'vpcId',
     },
   ])
   routeTable: RouteTable;

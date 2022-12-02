@@ -1,4 +1,4 @@
-import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn, Unique } from 'typeorm';
 
 import { cloudId } from '../../../services/cloud-id';
 import { AwsRegions } from '../../aws_account/entity';
@@ -6,6 +6,7 @@ import { Route } from './route';
 import { RouteTableAssociation } from './route_table_association';
 import { Vpc } from './vpc';
 
+@Unique('uq_route_table_vpc', ['id', 'vpcId'])
 @Entity()
 export class RouteTable {
   @PrimaryGeneratedColumn()
@@ -14,6 +15,9 @@ export class RouteTable {
   @Column({ nullable: true })
   @cloudId
   routeTableId?: string;
+
+  @Column({ nullable: false })
+  vpcId: number;
 
   @ManyToOne(() => Vpc, {
     nullable: false,
