@@ -26,7 +26,6 @@ const theButton = require('./src/rehype/thebutton');
     favicon: 'img/favicon.png',
     projectName: 'iasql-engine',
     organizationName: 'iasql',
-
     customFields: config,
 
     presets: [
@@ -34,7 +33,6 @@ const theButton = require('./src/rehype/thebutton');
         '@docusaurus/preset-classic',
         {
           docs: {
-            sidebarPath: require.resolve('./sidebars.js'),
             routeBasePath: '/docs',
             remarkPlugins: [theButton],
           },
@@ -66,6 +64,7 @@ const theButton = require('./src/rehype/thebutton');
           // other options are passed to posthog-js init as is
         },
       ],
+      ['docusaurus-plugin-iasql', { sidebar: { categoryLabel: 'SQL reference', position: 8 } }],
     ],
 
     themeConfig:
@@ -134,12 +133,12 @@ const theButton = require('./src/rehype/thebutton');
               items: [
                 {
                   label: 'Docs',
-                  href: 'docs',
+                  to: 'docs',
                   target: '_self',
                 },
                 {
                   label: 'Blog',
-                  href: 'blog',
+                  to: 'blog',
                   target: '_self',
                 },
                 {
