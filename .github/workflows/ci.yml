@@ -190,9 +190,6 @@ jobs:
           node-version: 16.x
           cache: 'yarn'
 
-      - name: Install dependencies
-        run: yarn --prefer-offline
-
       - name: Determine Test Account To Use
         id: determine-test-account
         env:
@@ -276,6 +273,9 @@ jobs:
 
           # Shut down the engine
           docker container stop iasql
+
+      - name: Install dependencies
+        run: yarn --prefer-offline
 
       - name: Run modules tests
         timeout-minutes: 90
