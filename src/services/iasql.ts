@@ -101,7 +101,7 @@ export async function disconnect(dbAlias: string, uid: string) {
     conn = await createConnection(dbMan.baseConnConfig);
     // Cancel all connections
     console.log(`+-+ REVOKE CONNECT ON DATABASE ${db.pgName} FROM PUBLIC, ${config.db.user}, ${db.pgUser}`)
-    await conn.query(`REVOKE CONNECT ON DATABASE ${db.pgName} FROM PUBLIC, ${config.db.user}, ${db.pgUser};`);
+    await conn.query(`REVOKE CONNECT ON DATABASE ${db.pgName} FROM PUBLIC;`);
     // Unschedule all jobs
     console.log(`+-+ MetadataRepo.unscheduleJobs`)
     await MetadataRepo.unscheduleJobs(db.pgName);
