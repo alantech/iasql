@@ -158,7 +158,6 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha
           tags: ghcr.io/iasql/iasql-engine:$GITHUB_SHA
-          outputs: type=docker,dest=/tmp/iasql-image.tar
 
   module-test:
     runs-on: ubuntu-latest
