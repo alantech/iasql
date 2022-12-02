@@ -58,7 +58,7 @@ describe('RouteTable Functional Testing', () => {
 
   it('tries calling cloud read', async () => {
     const out = await awsVpcModule.routeTable.cloud.read(context);
-    console.log(out);
+    // console.log(out);
   });
 
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
