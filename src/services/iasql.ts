@@ -101,7 +101,7 @@ export async function disconnect(dbAlias: string, uid: string) {
     conn = await createConnection(dbMan.baseConnConfig);
     // Cancel all connections
     console.log(`+-+ REVOKE CONNECT ON DATABASE ${db.pgName} FROM PUBLIC, ${config.db.user}, ${db.pgUser}`)
-    await conn.query(`REVOKE CONNECT ON DATABASE ${db.pgName} FROM PUBLIC;`);
+    await conn.query(`REVOKE CONNECT ON DATABASE ${db.pgName} FROM PUBLIC, ${config.db.user}, ${db.pgUser};`);
     // Unschedule all jobs
     console.log(`+-+ MetadataRepo.unscheduleJobs`)
     await MetadataRepo.unscheduleJobs(db.pgName);
@@ -121,9 +121,10 @@ export async function disconnect(dbAlias: string, uid: string) {
     console.log(`+-+ ${
       JSON.stringify(res)
     }`)
+    // pg_terminate_backend(pid), pg_cancel_backend(pid)
     const reskill = await conn.query(`
       SELECT
-        pg_terminate_backend(pid), pg_cancel_backend(pid)
+        pg_terminate_backend(pid)
       FROM
         pg_stat_activity
       WHERE
