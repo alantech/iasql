@@ -4,8 +4,6 @@
   "entryPointStrategy": "expand",
   "cleanOutputDir": true,
   "excludeExternals": true,
-  "excludePrivate": true,
-  "excludeInternal": true,
   "name": "IaSQL documentation",
   "categorizeByGroup": false,
   "disableSources": true,
