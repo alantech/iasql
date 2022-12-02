@@ -8,13 +8,13 @@ import { createConnection } from 'typeorm';
 import { promisify } from 'util';
 import { v4 as uuidv4 } from 'uuid';
 
+import config from '../config';
 import { IasqlDatabase } from '../entity';
 import { isString } from './common';
 import * as dbMan from './db-manager';
 import logger from './logger';
 import MetadataRepo from './repositories/metadata';
 import { TypeormWrapper } from './typeorm';
-import config from '../config';
 
 const exec = promisify(execNode);
 
@@ -97,34 +97,18 @@ export async function disconnect(dbAlias: string, uid: string) {
   let conn;
   try {
     const db: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
-    console.log(`+-+ CREATING MAIN CONN`)
     conn = await createConnection(dbMan.baseConnConfig);
     // Cancel all connections
-    console.log(`+-+ REVOKE CONNECT ON DATABASE ${db.pgName} FROM PUBLIC, ${config.db.user}, ${db.pgUser}`)
     await conn.query(`REVOKE CONNECT ON DATABASE ${db.pgName} FROM PUBLIC, ${config.db.user}, ${db.pgUser};`);
     // Unschedule all jobs
-    console.log(`+-+ MetadataRepo.unscheduleJobs`)
     await MetadataRepo.unscheduleJobs(db.pgName);
-    // Kill all open connections https://stackoverflow.com/questions/5108876/kill-a-postgresql-session-connection
-    console.log(`+-+ Kill all open connections`)
-    const res = await conn.query(`
-    SELECT
-      *
-    FROM
-      pg_stat_activity
-    WHERE
-      -- don't kill my own connection!
-      pid <> pg_backend_pid()
-      -- don't kill the connections to other databases
-      AND datname = '${db.pgName}';
-    `);  
-    console.log(`+-+ ${
-      JSON.stringify(res)
-    }`)
-    // pg_terminate_backend(pid), pg_cancel_backend(pid)
-    const reskill = await conn.query(`
+    // Kill all open connections.
+    // `pg_terminate_backend` forces any currently running transactions in the terminated session to release all locks and roll back the transaction.
+    // `pg_cancel_backend` Cancels a query currently being run.
+    // https://stackoverflow.com/questions/5108876/kill-a-postgresql-session-connection
+    await conn.query(`
       SELECT
-        pg_terminate_backend(pid)
+        pg_terminate_backend(pid), pg_cancel_backend(pid)
       FROM
         pg_stat_activity
       WHERE
@@ -133,36 +117,13 @@ export async function disconnect(dbAlias: string, uid: string) {
         -- don't kill the connections to other databases
         AND datname = '${db.pgName}';
     `);
-    console.log(`+-+ KILLING respnse ${
-      JSON.stringify(reskill)
-    }`)
-    // await conn.query(`SELECT pg_sleep(5);`);
-    const res2 = await conn.query(`
-    SELECT
-      *
-    FROM
-      pg_stat_activity
-    WHERE
-      -- don't kill my own connection!
-      pid <> pg_backend_pid()
-      -- don't kill the connections to other databases
-      AND datname = '${db.pgName}';
-    `);  
-    console.log(`+-+ AFTER KILLING ${
-      JSON.stringify(res2)
-    }`)
-    console.log(`+-+ DROP DATABASE IF EXISTS`)
     await conn.query(`
       DROP DATABASE IF EXISTS ${db.pgName} WITH (FORCE);
     `);
-    console.log(`+-+ DROP roles`)
     await conn.query(dbMan.dropPostgresRoleQuery(db.pgUser, db.pgName, true));
-    console.log(`+-+ DELETE DB`)
     await MetadataRepo.delDb(uid, dbAlias);
-    console.log(`+-+ THE END`)
     return db.pgName;
   } catch (e: any) {
-    console.log(`+-+ THROWING HERE ${e}`)
     // re-throw
     throw e;
   } finally {
