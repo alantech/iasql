@@ -9,10 +9,10 @@ export class RouteTableAssociationMapper extends MapperBase<RouteTableAssociatio
   module: AwsVpcModule;
   entity = RouteTableAssociation;
   equals = (a: RouteTableAssociation, b: RouteTableAssociation) =>
-    Object.is(a.routeTable.routeTableId, b.routeTable.routeTableId) &&
+    Object.is(a.routeTable?.routeTableId, b.routeTable?.routeTableId) &&
     Object.is(a.isMain, b.isMain) &&
     Object.is(a.subnet?.subnetId, b.subnet?.subnetId) &&
-    Object.is(a.vpc.vpcId, b.vpc.vpcId);
+    Object.is(a.vpc?.vpcId, b.vpc?.vpcId);
 
   private async getSubnet(ctx: Context, id: string, region: string) {
     return (
