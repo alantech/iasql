@@ -94,11 +94,19 @@ export class RouteTableAssociationMapper extends MapperBase<RouteTableAssociatio
       await Promise.all(
         es.map(async a => {
           if (a.isMain) {
-            // main association can't be deleted
-            await this.module.routeTableAssociation.db.update(a, ctx);
-            // also write the route table back to the db if deleted
-            await this.module.routeTable.db.update(a.routeTable, ctx);
+            if (
+              !(await this.module.routeTable.db.read(
+                ctx,
+                this.module.routeTable.generateId({ routeTableId: a.routeTable.routeTableId ?? '' }),
+              ))
+            )
+              await this.module.routeTable.db.create(a.routeTable, ctx);
 
+            a.routeTable = await this.module.routeTable.db.read(
+              ctx,
+              this.module.routeTable.generateId({ routeTableId: a.routeTable.routeTableId ?? '' }),
+            );
+            await this.module.routeTableAssociation.db.create(a, ctx);
             return;
           }
           const client = (await ctx.getAwsClient(a.routeTable.region)) as AWS;
