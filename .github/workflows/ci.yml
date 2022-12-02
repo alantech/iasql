@@ -148,7 +148,7 @@ jobs:
         run: echo "::set-output name=registry-image-tag::ghcr.io/iasql/iasql-engine:$GITHUB_SHA"
 
   build-and-push:
-    runs-on: ubuntu:latest
+    runs-on: ubuntu-latest
     steps:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
