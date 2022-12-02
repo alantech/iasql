@@ -9,7 +9,7 @@ import { AWS, crudBuilderFormat, paginateBuilder } from '../../../services/aws_m
 import { getCloudId } from '../../../services/cloud-id';
 import { findDiff } from '../../../services/diff';
 import { Context, Crud2, MapperBase } from '../../interfaces';
-import { Route, RouteTable, RouteTableAssociation } from '../entity';
+import { Route, RouteTable } from '../entity';
 import { AwsVpcModule } from '../index';
 import { convertTagsForAws, convertTagsFromAws, eqTags } from './tags';
 
@@ -217,25 +217,11 @@ export class RouteTableMapper extends MapperBase<RouteTable> {
       }
     },
     delete: async (es: RouteTable[], ctx: Context) => {
-      const associations: RouteTableAssociation[] = Object.values(ctx.memo?.cloud?.RouteTableAssociation)
-        ? Object.values(ctx.memo?.cloud?.RouteTableAssociation)
-        : await this.module.routeTableAssociation.cloud.read(ctx);
-
       await Promise.all(
         es.map(async e => {
-          if (associations.find(a => a.routeTable?.routeTableId === e.routeTableId && a.isMain)) {
-            // it's the main route table, can't be deleted so return it to the db
-            const vpc =
-              ctx?.memo?.db?.Vpc[
-                this.module.vpc.generateId({ vpcId: e.vpc.vpcId ?? '', region: e.vpc.region })
-              ] ?? null;
-            e.vpc.id = vpc.id;
-            await this.module.routeTable.db.update(e, ctx);
-            return;
-          }
           const client = (await ctx.getAwsClient(e.region)) as AWS;
+          // fails if it's the main route table, but the routeTableAssociation.cloud.delete would write it back to the db
           await client.ec2client.deleteRouteTable({ RouteTableId: e.routeTableId });
-          await this.module.routeTableAssociation.db.delete(associations, ctx);
         }),
       );
     },

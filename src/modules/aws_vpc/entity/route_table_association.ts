@@ -3,8 +3,9 @@ import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, Unique }
 import { cloudId } from '../../../services/cloud-id';
 import { RouteTable } from './route_table';
 import { Subnet } from './subnet';
+import { Vpc } from './vpc';
 
-@Unique('uq_routetable_routetable_subnet_ismain', ['routeTable', 'subnet', 'isMain'])
+@Unique('uq_routetable_routetable_subnet_ismain', ['vpc', 'subnet', 'isMain'])
 @Entity()
 export class RouteTableAssociation {
   @PrimaryGeneratedColumn()
@@ -15,12 +16,20 @@ export class RouteTableAssociation {
   routeTableAssociationId?: string;
 
   @ManyToOne(() => RouteTable, {
-    nullable: true,
+    nullable: false,
     eager: true,
-    onDelete: 'SET NULL',
   })
-  @JoinColumn()
-  routeTable?: RouteTable;
+  @JoinColumn([
+    {
+      name: 'route_table_id',
+      referencedColumnName: 'id',
+    },
+    {
+      name: 'vpc_id',
+      referencedColumnName: 'vpc',
+    },
+  ])
+  routeTable: RouteTable;
 
   @ManyToOne(() => Subnet, {
     nullable: true,
@@ -28,6 +37,14 @@ export class RouteTableAssociation {
   })
   @JoinColumn()
   subnet?: Subnet;
+
+  @ManyToOne(() => Vpc, {
+    nullable: false,
+    eager: true,
+    onDelete: 'CASCADE',
+  })
+  @JoinColumn()
+  vpc: Vpc;
 
   @Column({ default: false })
   isMain: boolean;

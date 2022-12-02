@@ -1,4 +1,3 @@
-import { EC2 } from '@aws-sdk/client-ec2';
 import { RouteTableAssociation as AwsRouteTableAssociation } from '@aws-sdk/client-ec2/dist-types/models/models_1';
 
 import { AWS } from '../../../services/aws_macros';
@@ -10,9 +9,10 @@ export class RouteTableAssociationMapper extends MapperBase<RouteTableAssociatio
   module: AwsVpcModule;
   entity = RouteTableAssociation;
   equals = (a: RouteTableAssociation, b: RouteTableAssociation) =>
-    Object.is(a.routeTable?.routeTableId, b.routeTable?.routeTableId) &&
+    Object.is(a.routeTable.routeTableId, b.routeTable.routeTableId) &&
     Object.is(a.isMain, b.isMain) &&
-    Object.is(a.subnet?.subnetId, b.subnet?.subnetId);
+    Object.is(a.subnet?.subnetId, b.subnet?.subnetId) &&
+    Object.is(a.vpc.vpcId, b.vpc.vpcId);
 
   private async getSubnet(ctx: Context, id: string, region: string) {
     return (
@@ -40,9 +40,17 @@ export class RouteTableAssociationMapper extends MapperBase<RouteTableAssociatio
     );
   }
 
+  private async getVpc(ctx: Context, vpcId: string, region: string) {
+    return (
+      (await this.module.vpc.db.read(ctx, this.module.vpc.generateId({ vpcId, region }))) ??
+      (await this.module.vpc.cloud.read(ctx, this.module.vpc.generateId({ vpcId, region })))
+    );
+  }
+
   async routeTableAssociationMapper(
     routeTableAssociation: AwsRouteTableAssociation,
     region: string,
+    vpcId: string,
     ctx: Context,
   ) {
     const out: RouteTableAssociation = new RouteTableAssociation();
@@ -54,6 +62,7 @@ export class RouteTableAssociationMapper extends MapperBase<RouteTableAssociatio
       const subnet = await this.getSubnet(ctx, routeTableAssociation.SubnetId, region);
       if (subnet) out.subnet = subnet;
     }
+    out.vpc = await this.getVpc(ctx, vpcId, region);
 
     return out;
   }
@@ -62,8 +71,22 @@ export class RouteTableAssociationMapper extends MapperBase<RouteTableAssociatio
     create: async (es: RouteTableAssociation[], ctx: Context) => {
       const out: RouteTableAssociation[] = [];
       for (const a of es) {
-        const client = (await ctx.getAwsClient(a.routeTable?.region)) as AWS;
-        out.push(await this.createOrReplaceAssociation(ctx, a, client.ec2client));
+        if (a.isMain) {
+          // can't create a main route table, in this case the old entry should be updated
+          // delete the new entry from the db
+          await this.module.routeTableAssociation.db.delete(a, ctx);
+          continue;
+        }
+
+        const client = (await ctx.getAwsClient(a.routeTable.region)) as AWS;
+        a.routeTableAssociationId = (
+          await client.ec2client.associateRouteTable({
+            SubnetId: a.subnet!.subnetId,
+            RouteTableId: a.routeTable.routeTableId,
+          })
+        ).AssociationId;
+        await this.module.routeTableAssociation.db.update(a, ctx); // write back the associationId to the db
+        out.push(a);
       }
       return out;
     },
@@ -71,19 +94,14 @@ export class RouteTableAssociationMapper extends MapperBase<RouteTableAssociatio
       await Promise.all(
         es.map(async a => {
           if (a.isMain) {
-            // if the vpc is not deleted, the main route table association should be kept
-            const vpc = await this.module.vpc.db.read(
-              ctx,
-              this.module.vpc.generateId({
-                vpcId: a.routeTable?.vpc.vpcId ?? '',
-                region: a.routeTable?.region ?? '',
-              }),
-            );
-            // main route table can't be disassociated, return it to the db
-            if (vpc) await this.module.routeTableAssociation.db.update(a, ctx);
+            // main association can't be deleted
+            await this.module.routeTableAssociation.db.update(a, ctx);
+            // also write the route table back to the db if deleted
+            await this.module.routeTable.db.update(a.routeTable, ctx);
+
             return;
           }
-          const client = (await ctx.getAwsClient(a.routeTable?.region)) as AWS;
+          const client = (await ctx.getAwsClient(a.routeTable.region)) as AWS;
           await client.ec2client.disassociateRouteTable({ AssociationId: a.routeTableAssociationId });
         }),
       );
@@ -97,7 +115,12 @@ export class RouteTableAssociationMapper extends MapperBase<RouteTableAssociatio
           for (const rawRouteTable of await this.module.routeTable.getRouteTables(client.ec2client)) {
             if (rawRouteTable.Associations)
               for (const rawAssociation of rawRouteTable.Associations) {
-                const association = await this.routeTableAssociationMapper(rawAssociation, region, ctx);
+                const association = await this.routeTableAssociationMapper(
+                  rawAssociation,
+                  region,
+                  rawRouteTable.VpcId,
+                  ctx,
+                );
                 if (!association) continue;
                 out.push(association);
               }
@@ -110,79 +133,53 @@ export class RouteTableAssociationMapper extends MapperBase<RouteTableAssociatio
     update: async (es: RouteTableAssociation[], ctx: Context) => {
       const out: RouteTableAssociation[] = [];
       for (const a of es) {
-        const client = (await ctx.getAwsClient(a.routeTable?.region)) as AWS;
-        const cloudRecord = ctx?.memo?.cloud?.RouteTableAssociation?.[this.entityId(a)];
+        const client = (await ctx.getAwsClient(a.routeTable.region)) as AWS;
+        const cloudRecord = ctx?.memo?.cloud?.RouteTableAssociation?.[
+          this.entityId(a)
+        ] as RouteTableAssociation;
 
-        if (this.module.routeTableAssociation.cloud.updateOrReplace(cloudRecord, a) === 'update')
-          out.push(await this.createOrReplaceAssociation(ctx, a, client.ec2client));
-        else {
-          // route table has been changed, should delete and recreate
-          await this.module.routeTableAssociation.cloud.delete(cloudRecord, ctx);
-          const newAssociation = await this.module.routeTableAssociation.cloud.create(a, ctx);
-          if (newAssociation) out.push(newAssociation as RouteTableAssociation);
+        if (cloudRecord.isMain) {
+          if (cloudRecord.vpc.vpcId !== a.vpc.vpcId) {
+            // vpc id for a main route table can't be changed, write it back to the db
+            cloudRecord.id = a.id;
+            await this.module.routeTableAssociation.db.update(cloudRecord, ctx);
+            out.push(cloudRecord);
+          } else {
+            // a new route table in the same vpc should be the main one
+            a.routeTableAssociationId = (
+              await client.ec2client.replaceRouteTableAssociation({
+                AssociationId: cloudRecord.routeTableAssociationId,
+                RouteTableId: a.routeTable.routeTableId,
+              })
+            ).NewAssociationId;
+            await this.module.routeTableAssociation.db.update(a, ctx);
+            out.push(a);
+          }
+          continue;
+        }
+
+        // the subnet should be assigned to a new route table
+        if (cloudRecord.subnet?.subnetId !== a.subnet?.subnetId) {
+          // subnet id can't be changed. the record is for the association belonging this subnet.
+          cloudRecord.id = a.id;
+          await this.module.routeTableAssociation.db.update(cloudRecord, ctx);
+          out.push(cloudRecord);
+        } else {
+          // just explicitly associating the subnet to a new route table
+          a.routeTableAssociationId = (
+            await client.ec2client.replaceRouteTableAssociation({
+              AssociationId: cloudRecord.routeTableAssociationId,
+              RouteTableId: a.routeTable.routeTableId,
+            })
+          ).NewAssociationId;
+          await this.module.routeTableAssociation.db.update(a, ctx);
+          out.push(a);
         }
       }
       return out;
     },
-    updateOrReplace: (prev: RouteTableAssociation, next: RouteTableAssociation) => {
-      if (!next.routeTable?.routeTableId)
-        throw new Error('Temporary state. Should be handled by RouteTableMapper.');
-      if (prev.isMain && !next.isMain)
-        throw new Error('Cannot switch from main to not main. Create a main association for the VPC first.');
-      if (prev.routeTable?.vpc.vpcId !== next.routeTable?.vpc.vpcId && prev.isMain)
-        throw new Error(
-          'You are trying to associate the main route table for a VPC to a route table that does not belong to that VPC.',
-        );
-      if (
-        prev.routeTable?.vpc.vpcId !== next.routeTable?.vpc.vpcId ||
-        prev.subnet?.subnetId !== next.subnet?.subnetId ||
-        prev.isMain !== next.isMain
-      )
-        return 'replace';
-      return 'update';
-    },
+    updateOrReplace: () => 'update',
   });
-
-  private async createOrReplaceAssociation(ctx: Context, a: RouteTableAssociation, client: EC2) {
-    const cloudRecords: RouteTableAssociation[] = Object.values(ctx.memo?.cloud?.RouteTableAssociation);
-    const oldCloudAssociation = cloudRecords.find(
-      r =>
-        Object.is(r.routeTable?.vpc.vpcId, a.routeTable?.vpc.vpcId) &&
-        Object.is(r.subnet, a.subnet) &&
-        Object.is(r.isMain, a.isMain) &&
-        !!r.routeTableAssociationId, // to avoid matching the object itself
-    );
-
-    if (oldCloudAssociation) {
-      // replace
-      a.routeTableAssociationId = (
-        await client.replaceRouteTableAssociation({
-          AssociationId: oldCloudAssociation.routeTableAssociationId,
-          RouteTableId: a.routeTable?.routeTableId,
-        })
-      ).NewAssociationId;
-      await this.module.routeTableAssociation.db.update(a, ctx);
-
-      const oldDbAssociation = await this.module.routeTableAssociation.db.read(
-        ctx,
-        this.entityId(oldCloudAssociation),
-      );
-      if (oldDbAssociation && oldDbAssociation.id)
-        await this.module.routeTableAssociation.db.delete(oldDbAssociation, ctx);
-
-      return a;
-    } else {
-      // create
-      a.routeTableAssociationId = (
-        await client.associateRouteTable({
-          SubnetId: a.subnet?.subnetId,
-          RouteTableId: a.routeTable?.routeTableId,
-        })
-      ).AssociationId;
-      await this.module.routeTableAssociation.db.update(a, ctx);
-      return a;
-    }
-  }
 
   constructor(module: AwsVpcModule) {
     super();

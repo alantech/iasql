@@ -18,6 +18,7 @@ export class RouteTable {
   @ManyToOne(() => Vpc, {
     nullable: false,
     eager: true,
+    onDelete: 'CASCADE',
   })
   @JoinColumn([
     {
