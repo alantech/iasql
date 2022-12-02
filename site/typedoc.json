@@ -1,5 +1,4 @@
 {
-  "readme": "none",
   "entryPoints": ["../src/modules/*" ],
   "entryPointStrategy": "expand",
   "cleanOutputDir": true,
@@ -7,5 +6,6 @@
   "name": "IaSQL documentation",
   "categorizeByGroup": false,
   "disableSources": true,
+  "readme": "./sql_reference.md",
   "exclude": ["../src/modules/**/mappers/*", "../src/modules/**/migration/*", "../src/modules/iasql_functions/*", "../src/modules/iasql_platform/*", "../src/modules/interfaces.ts", "../src/modules/subscribers.ts"]
 }
