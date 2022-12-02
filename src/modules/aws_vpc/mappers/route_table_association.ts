@@ -115,7 +115,7 @@ export class RouteTableAssociationMapper extends MapperBase<RouteTableAssociatio
             await this.module.routeTableAssociation.db.create(a, ctx);
             return;
           }
-          const client = (await ctx.getAwsClient(a.routeTable.region)) as AWS;
+          const client = (await ctx.getAwsClient(a.vpc?.region)) as AWS;
           await client.ec2client.disassociateRouteTable({ AssociationId: a.routeTableAssociationId });
         }),
       );
@@ -147,7 +147,7 @@ export class RouteTableAssociationMapper extends MapperBase<RouteTableAssociatio
     update: async (es: RouteTableAssociation[], ctx: Context) => {
       const out: RouteTableAssociation[] = [];
       for (const a of es) {
-        const client = (await ctx.getAwsClient(a.routeTable.region)) as AWS;
+        const client = (await ctx.getAwsClient(a.vpc?.region)) as AWS;
         const cloudRecord = ctx?.memo?.cloud?.RouteTableAssociation?.[
           this.entityId(a)
         ] as RouteTableAssociation;
