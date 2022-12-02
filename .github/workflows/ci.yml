@@ -217,7 +217,7 @@ jobs:
           ACCOUNT_INDEX: ${{ steps['determine-test-account'].outputs['account_index'] }}
           ACCESS_KEY_IDS: ${{ secrets.ACCESS_KEY_IDS }}
           SECRET_ACCESS_KEYS: ${{ secrets.SECRET_ACCESS_KEYS }}
-          PSQL_CONN: postgres://postgres:test@localhost:5432/iasql?ssl=true&sslmode=require
+          PSQL_CONN: postgres://postgres:test@localhost:5432/iasql
         run: |
           # Establish needed secrets
           export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
@@ -226,11 +226,11 @@ jobs:
           # Spin up the engine and a postgres instance
           # Temporarily export the engine port until it's only the Postgres port needed
           docker run -p 5432:5432 -p 8088:8088 -e IASQL_ENV=ci --name iasql ghcr.io/iasql/iasql-engine:$GITHUB_SHA &
-          while ! curl --output /dev/null --silent --head --fail http://localhost:8088/health; do sleep 1 && echo -n .; done;
+          while ! psql postgres://postgres:test@localhost:5432/iasql_metadata -b -q -c "SELECT iasql_engine_health()"; do sleep 1 && echo -n .; done;
 
           # connect `iasql` db to aws account for `apply`
           echo "\nCreating an iasql db..."
-          connectres=$(curl http://localhost:8088/v1/db/connect/iasql)
+          connectres=$(psql "postgres://postgres:test@localhost:5432/iasql_metadata" -t -c "SELECT json_agg(c)->0 FROM iasql_connect('iasql') as c;")
           username=$(jq -r '.user' <<<"$connectres")
           password=$(jq -r '.password' <<<"$connectres")
 
@@ -273,7 +273,7 @@ jobs:
 
           # Delete all records
           echo "\nDelete all records..."
-          psql "postgres://$username:$password@localhost:5432/iasql?ssl=true&sslmode=require" -c "select * from delete_all_records();"
+          psql "postgres://$username:$password@localhost:5432/iasql" -c "select * from delete_all_records();"
 
           echo "\nApply..."
           psql $PSQL_CONN -c "select * from iasql_commit();" ; docker logs $(docker ps -a --filter "name=iasql" --format "{{.Names}}")
