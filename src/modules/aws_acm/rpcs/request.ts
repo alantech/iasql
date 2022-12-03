@@ -24,14 +24,44 @@ enum ValidationMethod {
   EMAIL = 'EMAIL',
 }
 
+/**
+ * Method for requesting a new AWS certificate for a given domain. The certificate will be automatically validated
+ * via DNS method
+ *
+ * Returns following columns:
+ *
+ * arn: The unique ARN for the imported certificate
+ *
+ * status: OK if the certificate was imported successfully
+ *
+ * message: Error message in case of failure
+ *
+ * @example
+ * ```sql
+ *   SELECT * FROM certificate_request('fakeDomain.com', 'DNS', 'us-east-2', '');
+ * ```
+ *
+ * @see https://github.com/iasql/iasql-engine/blob/main/test/modules/aws-acm-request-integration.ts#L83
+ * @see https://aws.amazon.com/certificate-manager
+ *
+ */
 export class CertificateRequestRpc extends RpcBase {
+  /**
+   * @internal
+   */
   module: AwsAcmModule;
+  /**
+   * @internal
+   */
   outputTable = {
     arn: 'varchar',
     status: 'varchar',
     message: 'varchar',
   } as const;
 
+  /**
+   * @internal
+   */
   getCertificatesSummary = paginateBuilder<ACM>(paginateListCertificates, 'CertificateSummaryList');
 
   async requestCertificate(client: ACM, input: RequestCertificateCommandInput) {
