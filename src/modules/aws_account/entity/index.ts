@@ -24,10 +24,6 @@ import { cloudId } from '../../../services/cloud-id';
 export class AwsCredentials {
   /**
    * @private
-<<<<<<< HEAD
-=======
-   * @param
->>>>>>> f6ea523f (feat: add documentation to classes)
    * Internal ID field for storing accounts
    */
   @PrimaryGeneratedColumn()
@@ -36,10 +32,6 @@ export class AwsCredentials {
 
   /**
    * @public
-<<<<<<< HEAD
-=======
-   * @param
->>>>>>> f6ea523f (feat: add documentation to classes)
    * AWS Access Key
    */
   @Column()
@@ -47,10 +39,6 @@ export class AwsCredentials {
 
   /**
    * @public
-<<<<<<< HEAD
-=======
-   * @param
->>>>>>> f6ea523f (feat: add documentation to classes)
    * AWS Secret Access Key
    */
   @Column()
@@ -75,10 +63,7 @@ export class AwsCredentials {
 export class AwsRegions {
   /**
    * @public
-<<<<<<< HEAD
-=======
    * @param
->>>>>>> f6ea523f (feat: add documentation to classes)
    * AWS region
    */
   @PrimaryColumn()
@@ -87,10 +72,6 @@ export class AwsRegions {
 
   /**
    * @public
-<<<<<<< HEAD
-=======
-   * @param
->>>>>>> f6ea523f (feat: add documentation to classes)
    * Identifies the default region. Only one region can be the default one
    */
   @Column({
@@ -102,10 +83,6 @@ export class AwsRegions {
 
   /**
    * @public
-<<<<<<< HEAD
-=======
-   * @param
->>>>>>> f6ea523f (feat: add documentation to classes)
    * Identifies if the region is enabled to interact with IaSQL or not
    */
   @Column({
