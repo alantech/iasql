@@ -32,7 +32,7 @@ export interface CrudInterface2<E> {
   delete: (e: E[], ctx: Context) => Promise<void | E[]>;
 }
 
-export class Crud2<E> {
+export class Crud2<E extends {}> {
   module: ModuleInterface;
   createFn: (e: E[], ctx: Context) => Promise<void | E[]>;
   readFn: (ctx: Context, id?: string) => Promise<E[] | E | void>;
@@ -214,7 +214,7 @@ export class Crud2<E> {
     return this.updateOrReplaceFn(prev, next);
   }
 }
-export interface MapperInterface<E> {
+export interface MapperInterface<E extends {}> {
   entity: new () => E;
   entityId: (e: E) => string;
   idFields: (id: string) => IdFields;
@@ -236,7 +236,7 @@ export interface RpcInterface {
   ) => Promise<RpcResponseObject<RpcOutput>[]>;
 }
 
-export class MapperBase<E> {
+export class MapperBase<E extends {}> {
   module: ModuleInterface;
   entity: new () => E;
   entityId: (e: E) => string;
@@ -632,9 +632,9 @@ export class ModuleBase {
         if (/^create table/i.test(text)) {
           tables.push((text.match(/^[^"]*"([^"]*)"/) ?? [])[1]);
         } else if (/^create or replace procedure/i.test(text)) {
-          functions.push((text.match(/^create or replace procedure ([^(]*)/i) ?? [])[0]);
+          functions.push((text.match(/^create or replace procedure ([^(]*)/i) ?? [])[0] ?? '');
         } else if (/^create or replace function/i.test(text)) {
-          functions.push((text.match(/^create or replace function ([^(]*)/i) ?? [])[0]);
+          functions.push((text.match(/^create or replace function ([^(]*)/i) ?? [])[0] ?? '');
         }
         // Don't do anything for queries that don't match
       },
