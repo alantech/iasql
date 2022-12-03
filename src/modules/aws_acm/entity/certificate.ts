@@ -57,7 +57,7 @@ export enum certificateRenewalEligibilityEnum {
 @Entity()
 export class Certificate {
   /**
-   * @private
+   * @internal
    * Internal ID field for storing accounts
    */
   @PrimaryGeneratedColumn()
