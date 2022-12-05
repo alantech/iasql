@@ -67,7 +67,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - run: yarn --prefer-offline
-      - id: set-test-modules
+      - id: set-common-tests
         name: Set common tests
         run: >
           echo "::set-output name=common-tests::$(npx jest **/common/* --listTests --json | jq -c 'map({(. | split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring): .}) | add')"
