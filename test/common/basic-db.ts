@@ -6,7 +6,7 @@ import * as Entities from '../../src/modules/iasql_platform/entity';
 import { migrate } from '../../src/services/db-manager';
 import { TypeormWrapper } from '../../src/services/typeorm';
 
-jest.setTimeout(60000);
+jest.setTimeout(200000);
 
 beforeAll(done => {
   (async () => {
