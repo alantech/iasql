@@ -91,17 +91,36 @@ class MetadataRepo {
     return user?.email ?? 'hello@iasql.com';
   }
 
-  // TODO: REMOVE opCount BY THE TIME 0.0.20 BECOMES UNSUPPORTED
-  async updateDbCounts(dbId: string, recCount: number, opCount?: number, rpcCount?: number) {
+  async updateRecordCount(dbId: string, recCount: number) {
     const db = await this.dbRepo.findOne(dbId);
     if (!db) {
       logger.warn(`No db with id ${dbId} found`);
       return;
     }
     db.recordCount = recCount;
-    if (opCount) db.operationCount = opCount;
-    if (rpcCount) db.rpcCount = rpcCount;
     await this.dbRepo.save(db);
+  }
+
+  async incrementRecordsSynced(dbId: string, recordsSynced: number): Promise<number | undefined> {
+    const db = await this.dbRepo.findOne(dbId);
+    if (!db) {
+      logger.warn(`No db with id ${dbId} found`);
+      return;
+    }
+    db.recordsSynced += recordsSynced;
+    await this.dbRepo.save(db);
+    return db.recordsSynced;
+  }
+
+  async incrementRecordsApplied(dbId: string, recordsApplied: number): Promise<number | undefined> {
+    const db = await this.dbRepo.findOne(dbId);
+    if (!db) {
+      logger.warn(`No db with id ${dbId} found`);
+      return;
+    }
+    db.recordsApplied += recordsApplied;
+    await this.dbRepo.save(db);
+    return db.recordsApplied;
   }
 
   async getUserFromDbId(dbId: string): Promise<IasqlUser | undefined> {

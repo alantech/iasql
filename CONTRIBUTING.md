@@ -211,4 +211,8 @@ This section will change much more frequently compared to the other sections.
 
 There are probably many other footguns at the moment, feel free to update this with any you can think of!
 
-<!-- TODO: Revive Postgres function explanation for the new HTTP-based RPC approach -->
+## How IaSQL PostgreSQL functions work
+
+IaSQL [functions or operations](https://iasql.com/docs/function) like `iasql_install(..)`, `iasql_sync()`, `iasql_apply()` are required to provide a synchronous user experience within a PostgreSQL connection such that the user can't accidentally alter data in tables while an `apply` is taking place whilst still implementing the majority of the logic behind the operations in Node.js. It is worth pointing out that fulfilling this requirement doesn't stop someone from opening two simultaneous connections to the same database or creating two databases pointing to the same cloud account.
+
+IaSQL functions use an RPC mechanism where IaSQL spins up a Node.js HTTP server within the Docker container that is not exposed outside of the container and PGSQL invoke endpoints in the Node.js server using the `pg-http` postgres extension. At startup, the Node.js engine looks at its [metadata repository](https://github.com/iasql/iasql-engine/blob/main/src/entity/index.ts) which stores information about all the IaSQL databases the engine is managing. New databases created via the `/connect` route get a new metadata repo entry.

@@ -15,8 +15,9 @@ export type DbProps = {
   dbId?: string;
   iasqlEnv?: string;
   recordCount?: number;
-  rpcCount?: number;
-  email: string;
+  recordsSynced?: number;
+  recordsApplied?: number;
+  email?: string;
   dbVersion?: string;
 };
 
@@ -45,7 +46,8 @@ export async function logEvent(uid: string, event: string, dbProps: DbProps, eve
             event !== DISCONNECT
               ? {
                   [`record_count__${dbProps.dbAlias}`]: dbProps.recordCount,
-                  [`rpc_count__${dbProps.dbAlias}`]: dbProps.rpcCount,
+                  [`records_applied__${dbProps.dbAlias}`]: dbProps.recordCount,
+                  [`records_synced__${dbProps.dbAlias}`]: dbProps.recordCount,
                   [`version__${dbProps.dbAlias}`]: dbProps.dbVersion,
                 }
               : {},
@@ -53,7 +55,8 @@ export async function logEvent(uid: string, event: string, dbProps: DbProps, eve
             event === DISCONNECT
               ? [
                   `record_count__${dbProps.dbAlias}`,
-                  `rpc_count__${dbProps.dbAlias}`,
+                  `records_applied__${dbProps.dbAlias}`,
+                  `records_synced__${dbProps.dbAlias}`,
                   `version__${dbProps.dbAlias}`,
                 ]
               : [],
@@ -84,6 +87,26 @@ export async function logDisconnect(uid: string, dbProps: DbProps, eventProps?: 
 
 export async function logExport(uid: string, dbProps: DbProps, eventProps: EventProps) {
   await logEvent(uid, 'EXPORT', dbProps, eventProps);
+}
+
+export async function logRunSql(uid: string, dbProps: DbProps, eventProps: EventProps) {
+  await logEvent(uid, 'RUNSQL', dbProps, eventProps);
+}
+
+export async function logInstall(uid: string, dbProps: DbProps, eventProps: EventProps) {
+  await logEvent(uid, 'INSTALL', dbProps, eventProps);
+}
+
+export async function logUninstall(uid: string, dbProps: DbProps, eventProps: EventProps) {
+  await logEvent(uid, 'UNINSTALL', dbProps, eventProps);
+}
+
+export async function logCommitApply(uid: string, dbProps: DbProps, eventProps: EventProps) {
+  await logEvent(uid, 'COMMIT_APPLY', dbProps, eventProps);
+}
+
+export async function logCommitSync(uid: string, dbProps: DbProps, eventProps: EventProps) {
+  await logEvent(uid, 'COMMIT_SYNC', dbProps, eventProps);
 }
 
 export async function logRpc(
