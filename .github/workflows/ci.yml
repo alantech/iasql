@@ -97,7 +97,7 @@ jobs:
         run: yarn --prefer-offline
 
       - name: Run common tests
-        run: yarn coverage $(echo $COMMONS | jq -r '."${{matrix.module}}"')
+        run: yarn coverage $(echo $COMMONS | jq -r '."${{matrix.common}}"')
         env:
           IASQL_ENV: test
           COMMONS: ${{ needs.setup-common-test.outputs['common-tests'] }}
