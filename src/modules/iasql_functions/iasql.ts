@@ -1032,7 +1032,7 @@ async function commitApply(
             );
           }
           if (r.diff.entitiesChanged.length > 0) {
-            logger.info(`${name} has records to update`, { records: r.diff.entitiesChanged });
+            logger.info(`${name} has records to update - apply`, { records: r.diff.entitiesChanged });
             outArr.push(
               r.diff.entitiesChanged.map((ec: any) => async () => {
                 const out = await r.mapper.cloud.update(ec.db, context); // Assuming SoT is the DB
@@ -1234,7 +1234,7 @@ async function commitSync(
             );
           }
           if (r.diff.entitiesChanged.length > 0) {
-            logger.info(`${name} has records to update`, { records: r.diff.entitiesChanged });
+            logger.info(`${name} has records to update - sync`, { records: r.diff.entitiesChanged });
             outArr.push(
               r.diff.entitiesChanged.map((ec: any) => async () => {
                 if (ec.db.id) ec.cloud.id = ec.db.id;

@@ -4,14 +4,16 @@ import * as Modules from '../../src/modules';
 import { awsAccount, awsVpcModule } from '../../src/modules';
 import * as iasql from '../../src/services/iasql';
 import { TypeormWrapper } from '../../src/services/typeorm';
-import { execComposeDown, execComposeUp, finish, runCommit, runInstall, runQuery } from '../helpers';
+import { execComposeDown, execComposeUp, finish, runBegin, runCommit, runInstall, runQuery } from '../helpers';
 import { getContext } from '../../src/router/db';
+import { RouteTableAssociation } from '../../src/modules/aws_vpc/entity';
 
 const dbAlias = 'routetabletest';
 jest.setTimeout(360000);
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown());
 
+const begin = runBegin.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
@@ -43,6 +45,8 @@ describe('RouteTable Functional Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   it('syncs the regions', commit());
 
   it(
@@ -57,8 +61,15 @@ describe('RouteTable Functional Testing', () => {
   it('installs the vpc module', install(['aws_vpc']));
 
   it('tries calling cloud read', async () => {
-    const out = await awsVpcModule.routeTable.cloud.read(context);
-    // console.log(out);
+    const out = await awsVpcModule.routeTableAssociation.db.read(context) as RouteTableAssociation[];
+    for (const a of out)
+      expect(a.vpc.id).toBe(a.routeTable.id);
+  });
+
+  it('tries reading using direct orm command', async () => {
+    const entities = await context.orm.find(RouteTableAssociation, {}) as RouteTableAssociation[];
+    for (const a of entities)
+      expect(a.vpc.id).toBe(a.routeTable.id);
   });
 
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));

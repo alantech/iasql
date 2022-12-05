@@ -339,7 +339,8 @@ export class MapperBase<E> {
                 where: Object.fromEntries(id.split('|').map((val, i) => [cloudColumns[i], val])),
               }
             : {};
-          return await ctx.orm.find(this.entity, opts);
+          const entity = await ctx.orm.find(this.entity, opts);
+          return entity;
         },
       });
       this.db.entity = this.entity;
@@ -448,7 +449,7 @@ export class ModuleBase {
           perform http.http_set_curlopt('CURLOPT_TIMEOUT_MS', '3600000');
           select content into _content
           from http.http_post(
-            'http://localhost:8088/v1/db/rpc',
+            'http://host.docker.internal:8088/v1/db/rpc',
             json_build_object(
               'dbId', current_database(),
               'dbUser', SESSION_USER,

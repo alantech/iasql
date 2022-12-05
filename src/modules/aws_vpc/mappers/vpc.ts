@@ -295,16 +295,6 @@ export class VpcMapper extends MapperBase<Vpc> {
           if (relevantSubnets.length > 0) {
             await this.module.subnet.db.update(relevantSubnets, ctx);
           }
-          const routeTables = await this.module.routeTable.cloud.read(ctx);
-          await this.module.routeTable.db.update(
-            routeTables.filter((rt: RouteTable) => rt.vpc.vpcId === e.vpcId),
-            ctx,
-          );
-          const routeTableAssociations = await this.module.routeTableAssociation.cloud.read(ctx);
-          await this.module.routeTableAssociation.db.update(
-            routeTableAssociations.filter((a: RouteTableAssociation) => a.vpc.vpcId === e.vpcId),
-            ctx,
-          );
         } else {
           await this.deleteVpc(client.ec2client, {
             VpcId: e.vpcId,
