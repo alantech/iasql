@@ -61,7 +61,7 @@ jobs:
   setup-common-test:
     runs-on: ubuntu-latest
     outputs:
-      common-tests: ${{ steps['set-common-test'].outputs['common-tests'] }}
+      common-tests: ${{ steps['set-common-tests'].outputs['common-tests'] }}
       set-common-test-names: ${{ steps['set-common-test-names'].outputs['common-test-names'] }}
       registry-image-tag: ${{ steps['set-registry-image-tag'].outputs['registry-image-tag'] }}
     steps:
