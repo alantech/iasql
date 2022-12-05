@@ -243,8 +243,6 @@ export class ServiceMapper extends MapperBase<Service> {
         }
         if (sge) securityGroups.push(sge);
       }
-      if (securityGroups.filter(sg => !!sg).length !== cloudSecurityGroups.length)
-        throw new Error('Security groups need to be loaded first');
       out.securityGroups = securityGroups;
       for (const sn of networkConf.subnets ?? []) {
         // Even though we already have the subnet ids, we look for them to avoid having
