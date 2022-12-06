@@ -1,6 +1,7 @@
 export interface ConfigInterface {
   // Configuration for the http server itself
   http: {
+    host: string;
     port: number;
   };
   // Configuration for the postgres database

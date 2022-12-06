@@ -6,4 +6,5 @@ services:
     command: postgres -c shared_preload_libraries=pg_cron -c cron.database_name=iasql_metadata
     environment:
       - POSTGRES_PASSWORD=test
-    network_mode: "host"
+    ports:
+      - 5432:5432

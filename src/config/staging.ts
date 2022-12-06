@@ -2,6 +2,7 @@ import { ConfigInterface, throwError } from './config';
 
 const config: ConfigInterface = {
   http: {
+    host: 'localhost',
     port: 8088,
   },
   db: {

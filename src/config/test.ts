@@ -2,6 +2,7 @@ import { ConfigInterface } from './config';
 
 const config: ConfigInterface = {
   http: {
+    host: 'host.docker.internal',
     port: 8088,
   },
   db: {

@@ -1,5 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
+import config from '../config';
+
 export class rpcs1669932953007 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
@@ -11,7 +13,7 @@ export class rpcs1669932953007 implements MigrationInterface {
         declare
           _content text;
         begin
-          select content into _content from http.http_get('http://localhost:8088/health');
+          select content into _content from http.http_get('http://${config.http.host}:8088/health');
           return _content;
         end;
         $$;
@@ -22,7 +24,7 @@ export class rpcs1669932953007 implements MigrationInterface {
         declare
           _content text;
         begin
-          select content into _content from http.http_get('http://localhost:8088/v1/version');
+          select content into _content from http.http_get('http://${config.http.host}:8088/v1/version');
           return _content;
         end;
         $$;
@@ -33,7 +35,7 @@ export class rpcs1669932953007 implements MigrationInterface {
         declare
           _content text;
         begin
-          select content into _content from http.http_get('http://localhost:8088/debug-error');
+          select content into _content from http.http_get('http://${config.http.host}:8088/debug-error');
           return _content;
         end;
         $$;
@@ -45,7 +47,7 @@ export class rpcs1669932953007 implements MigrationInterface {
           _content text;
         begin
           select content into _content from http.http_post(
-            'http://localhost:8088/v1/db/event',
+            'http://${config.http.host}:8088/v1/db/event',
             json_build_object(
               'dbAlias', db_alias,
               'eventName', event_name,
@@ -69,7 +71,7 @@ export class rpcs1669932953007 implements MigrationInterface {
         begin
           perform http.http_set_curlopt('CURLOPT_TIMEOUT_MS', '3600000');
           select content into _content from http.http_post(
-            'http://localhost:8088/v1/db/connect',
+            'http://${config.http.host}:8088/v1/db/connect',
             json_build_object(
               'dbAlias', db_alias,
               'user', session_user
@@ -96,7 +98,7 @@ export class rpcs1669932953007 implements MigrationInterface {
         begin
           perform http.http_set_curlopt('CURLOPT_TIMEOUT_MS', '3600000');
           select content into _content from http.http_post(
-            'http://localhost:8088/v1/db/disconnect',
+            'http://${config.http.host}:8088/v1/db/disconnect',
             json_build_object(
               'dbAlias', db_alias,
               'user', session_user
@@ -115,7 +117,7 @@ export class rpcs1669932953007 implements MigrationInterface {
         begin
           perform http.http_set_curlopt('CURLOPT_TIMEOUT_MS', '3600000');
           select content into _content from http.http_post(
-            'http://localhost:8088/v1/db/export',
+            'http://${config.http.host}:8088/v1/db/export',
             json_build_object(
               'dbAlias', db_alias,
               'dataOnly', data_only,
