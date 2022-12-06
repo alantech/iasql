@@ -6,7 +6,7 @@ services:
     command: postgres -c shared_preload_libraries=pg_cron -c cron.database_name=iasql_metadata
     environment:
       - POSTGRES_PASSWORD=test
-    extra_hosts:
-      - host.docker.internal:host-gateway
     ports:
       - 5432:5432
+    extra_hosts:
+      - host.docker.internal:host-gateway
