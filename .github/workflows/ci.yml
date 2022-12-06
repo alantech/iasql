@@ -63,7 +63,6 @@ jobs:
     outputs:
       common-tests: ${{ steps['set-common-tests'].outputs['common-tests'] }}
       set-common-test-names: ${{ steps['set-common-test-names'].outputs['common-test-names'] }}
-      registry-image-tag: ${{ steps['set-registry-image-tag'].outputs['registry-image-tag'] }}
     steps:
       - uses: actions/checkout@v3
       - run: yarn --prefer-offline
