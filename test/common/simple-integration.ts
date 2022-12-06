@@ -10,7 +10,7 @@ const sha = execSync('git rev-parse HEAD', { encoding: 'utf8' }).trim();
 beforeAll(() => {
   // Build the docker containers
   execSync('docker build -t iasql:latest .');
-  execSync('docker run -p 5432:5432 -e IASQL_ENV=ci --name iasql -d iasql');
+  execSync('docker run -p 5432:5432 -e IASQL_ENV=ci --name iasql --add-host=host.docker.internal:host-gateway -d iasql');
   // Wait for them to be usable
   execSync(
     'while ! psql postgres://postgres:test@localhost:5432/iasql_metadata -b -q -c "SELECT iasql_engine_health()"; do sleep 1 && echo -n .; done;',
