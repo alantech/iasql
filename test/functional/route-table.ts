@@ -6,7 +6,7 @@ import * as iasql from '../../src/services/iasql';
 import { TypeormWrapper } from '../../src/services/typeorm';
 import { execComposeDown, execComposeUp, finish, runBegin, runCommit, runInstall, runQuery } from '../helpers';
 import { getContext } from '../../src/router/db';
-import { RouteTableAssociation, RouteTable } from '../../src/modules/aws_vpc/entity';
+import { RouteTableAssociation } from '../../src/modules/aws_vpc/entity';
 
 const dbAlias = 'routetabletest';
 jest.setTimeout(360000);
@@ -60,21 +60,10 @@ describe('RouteTable Functional Testing', () => {
 
   it('installs the vpc module', install(['aws_vpc']));
 
-  it('reads route table', async () => {
-    const out = await awsVpcModule.routeTable.db.read(context) as RouteTable[];
-    console.log(out);
-  });
-
-  it('tries calling cloud read', async () => {
-    const out = await awsVpcModule.routeTableAssociation.db.read(context) as RouteTableAssociation[];
-    for (const a of out)
-      expect(a.vpc.id).toBe(a.routeTable.id);
-  });
-
-  it('tries reading using direct orm command', async () => {
-    const entities = await context.orm.find(RouteTableAssociation, {}) as RouteTableAssociation[];
-    for (const a of entities)
-      expect(a.vpc.id).toBe(a.routeTable.id);
+  it('regions for vpc and route table should be the same', async () => {
+    const associations = await awsVpcModule.routeTableAssociation.db.read(context) as RouteTableAssociation[];
+    for (const a of associations)
+      expect(a.vpc.region).toBe(a.routeTable.region);
   });
 
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
