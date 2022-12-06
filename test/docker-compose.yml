@@ -7,6 +7,6 @@ services:
     environment:
       - POSTGRES_PASSWORD=test
     ports:
-      - 5432:5432
+      - "5432:5432"
     extra_hosts:
-      - host.docker.internal:host-gateway
+      - "host.docker.internal:host-gateway"
