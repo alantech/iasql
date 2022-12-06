@@ -6,7 +6,6 @@ import { Route } from './route';
 import { RouteTableAssociation } from './route_table_association';
 import { Vpc } from './vpc';
 
-@Unique('uq_route_table_vpc', ['id', 'vpcId'])
 @Entity()
 export class RouteTable {
   @PrimaryGeneratedColumn()
@@ -15,9 +14,6 @@ export class RouteTable {
   @Column({ nullable: true })
   @cloudId
   routeTableId?: string;
-
-  @Column({ nullable: false })
-  vpcId: number;
 
   @ManyToOne(() => Vpc, {
     nullable: false,

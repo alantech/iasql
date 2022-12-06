@@ -19,16 +19,7 @@ export class RouteTableAssociation {
     nullable: false,
     eager: true,
   })
-  @JoinColumn([
-    {
-      name: 'route_table_id',
-      referencedColumnName: 'id',
-    },
-    {
-      name: 'vpc_id',
-      referencedColumnName: 'vpcId',
-    },
-  ])
+  @JoinColumn({ name: 'route_table_id' })
   routeTable: RouteTable;
 
   @ManyToOne(() => Subnet, {

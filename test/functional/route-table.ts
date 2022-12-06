@@ -6,7 +6,7 @@ import * as iasql from '../../src/services/iasql';
 import { TypeormWrapper } from '../../src/services/typeorm';
 import { execComposeDown, execComposeUp, finish, runBegin, runCommit, runInstall, runQuery } from '../helpers';
 import { getContext } from '../../src/router/db';
-import { RouteTableAssociation } from '../../src/modules/aws_vpc/entity';
+import { RouteTableAssociation, RouteTable } from '../../src/modules/aws_vpc/entity';
 
 const dbAlias = 'routetabletest';
 jest.setTimeout(360000);
@@ -59,6 +59,11 @@ describe('RouteTable Functional Testing', () => {
   );
 
   it('installs the vpc module', install(['aws_vpc']));
+
+  it('reads route table', async () => {
+    const out = await awsVpcModule.routeTable.db.read(context) as RouteTable[];
+    console.log(out);
+  });
 
   it('tries calling cloud read', async () => {
     const out = await awsVpcModule.routeTableAssociation.db.read(context) as RouteTableAssociation[];
