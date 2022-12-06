@@ -9305,6 +9305,13 @@
   resolved "https://registry.yarnpkg.com/@tsconfig/node16/-/node16-1.0.3.tgz#472eaab5f15c1ffdd7f8628bd4c4f753995ec79e"
   integrity sha512-yOlFc+7UtL/89t2ZhjPvvB/DeAr3r+Dq58IgzsFkOAvVC6NMJXmCGjbptdXdR9qsX7pKcTL+s87FtYREi2dEEQ==
 
+"@types/asn1@*":
+  version "0.2.0"
+  resolved "https://registry.yarnpkg.com/@types/asn1/-/asn1-0.2.0.tgz#23b568688b321740bd4eafef49e6b13ffc101b31"
+  integrity sha512-5TMxIpYbIA9c1J0hYQjQDX3wr+rTgQEAXaW2BI8ECM8FO53wSW4HFZplTalrKSHuZUc76NtXcePRhwuOHqGD5g==
+  dependencies:
+    "@types/node" "*"
+
 "@types/babel__core@^7.0.0", "@types/babel__core@^7.1.14":
   version "7.1.19"
   resolved "https://registry.yarnpkg.com/@types/babel__core/-/babel__core-7.1.19.tgz#7b497495b7d1b4812bdb9d02804d0576f43ee460"
@@ -9514,6 +9521,14 @@
   integrity sha512-nCkHGI4w7ZgAdNkrEu0bv+4xNV/XDqW+DydknebMOQwkpDGx8G+HTlj7R7ABI8i8nKxVw0wtKPi1D+lPOkh4YQ==
   dependencies:
     "@types/mime" "^1"
+    "@types/node" "*"
+
+"@types/sshpk@^1.17.1":
+  version "1.17.1"
+  resolved "https://registry.yarnpkg.com/@types/sshpk/-/sshpk-1.17.1.tgz#2eb4fee514dc41fa9b904390a20eb02a58de5e10"
+  integrity sha512-bOJek/W++DvWRNAeHmpvgX8Q1ypAq4nmeVi3nJ+pjDcMB214S8kSGkxRUw/Uz+zau4VwxcfNp0xUq4s/3DLjLw==
+  dependencies:
+    "@types/asn1" "*"
     "@types/node" "*"
 
 "@types/stack-utils@^2.0.0":
