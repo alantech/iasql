@@ -1283,6 +1283,12 @@ describe('VPC Integration Testing', () => {
         WHERE cidr_block = '191.${randIPBlock}.0.0/16' AND tags ->> 'name' = '${prefix}-2'
       )
     );
+    DELETE FROM route_table_association
+    WHERE vpc_id = (
+        SELECT id
+        FROM vpc
+        WHERE cidr_block = '191.${randIPBlock}.0.0/16' AND tags ->> 'name' = '${prefix}-2'
+    );
     DELETE FROM route_table
     WHERE vpc_id = (
         SELECT id

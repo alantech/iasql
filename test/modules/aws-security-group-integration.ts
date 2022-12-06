@@ -1037,6 +1037,14 @@ describe('Security Group install/uninstall', () => {
                        FROM vpc
                        WHERE cidr_block = '192.${randIPBlock}.0.0/24')
           DELETE
+          FROM route_table_association
+              USING vpc
+          WHERE vpc_id = vpc.id;
+
+          WITH vpc as (SELECT id
+                       FROM vpc
+                       WHERE cidr_block = '192.${randIPBlock}.0.0/24')
+          DELETE
           FROM route_table
               USING vpc
           WHERE vpc_id = vpc.id;

@@ -709,6 +709,15 @@ describe('Lambda Integration Testing', () => {
         FROM vpc
         WHERE cidr_block = '192.${randIPBlock}.0.0/16' AND region='${region}' LIMIT 1
     )
+    DELETE FROM route_table_association
+        USING vpc
+    WHERE route_table_association.vpc_id = vpc.id;
+
+    WITH vpc as (
+        SELECT id
+        FROM vpc
+        WHERE cidr_block = '192.${randIPBlock}.0.0/16' AND region='${region}' LIMIT 1
+    )
     DELETE FROM route_table
         USING vpc
     WHERE route_table.vpc_id = vpc.id;
