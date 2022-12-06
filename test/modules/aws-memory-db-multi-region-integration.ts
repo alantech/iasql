@@ -131,8 +131,8 @@ describe('MemoryDB Multi-region Integration Testing', () => {
     'creates a memory db cluster',
     query(
       `
-      INSERT INTO memory_db_cluster (cluster_name, subnet_group_id)
-      VALUES ('${clusterName}', (select id from subnet_group where subnet_group_name = '${subnetGroupName}'));
+      INSERT INTO memory_db_cluster (cluster_name, node_type, subnet_group_id)
+      VALUES ('${clusterName}', 'db.t4g.small', (select id from subnet_group where subnet_group_name = '${subnetGroupName}'));
   `,
       undefined,
       true,
