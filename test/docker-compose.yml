@@ -9,4 +9,4 @@ services:
     ports:
       - "5432:5432"
     extra_hosts:
-      - "host.docker.internal:127.18.0.1"
+      - "host.docker.internal:host-gateway"

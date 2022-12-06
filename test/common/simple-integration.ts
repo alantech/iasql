@@ -11,7 +11,7 @@ beforeAll(() => {
   // Build the docker containers
   execSync('docker build -t iasql:latest .');
   execSync(
-    'docker run -p 5432:5432 -e IASQL_ENV=ci --name iasql --add-host=host.docker.internal:172.18.0.1 -d iasql',
+    'docker run -p 5432:5432 -e IASQL_ENV=ci --name iasql --add-host=host.docker.internal:host-gateway -d iasql',
   );
   // Wait for them to be usable
   execSync(
