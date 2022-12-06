@@ -58,9 +58,32 @@ jobs:
       - name: Run code style check
         run: yarn style
 
+  setup-common-test:
+    runs-on: ubuntu-latest
+    outputs:
+      common-tests: ${{ steps['set-common-tests'].outputs['common-tests'] }}
+      set-common-test-names: ${{ steps['set-common-test-names'].outputs['common-test-names'] }}
+      registry-image-tag: ${{ steps['set-registry-image-tag'].outputs['registry-image-tag'] }}
+    steps:
+      - uses: actions/checkout@v3
+      - run: yarn --prefer-offline
+      - id: set-common-tests
+        name: Set common tests
+        run: >
+          echo "::set-output name=common-tests::$(npx jest **/common/* --listTests --json | jq -c 'map({(. | split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring): .}) | add')"
+      - id: set-common-test-names
+        name: Set common test names
+        run: echo "::set-output name=common-test-names::$(npx jest **/common/* --listTests --json | jq -c 'map(split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring)')"
+
   common-test:
     runs-on: ubuntu-latest
-    name: common tests
+    needs:
+      - setup-common-test
+    name: common.test.${{ matrix.common }}
+    strategy:
+      fail-fast: false
+      matrix:
+        common: ${{ fromJson(needs.setup-common-test.outputs['set-common-test-names']) }}
     steps:
       - uses: actions/checkout@v3
 
@@ -74,9 +97,10 @@ jobs:
         run: yarn --prefer-offline
 
       - name: Run common tests
-        run: yarn coverage **/common/*
+        run: yarn coverage $(echo $COMMONS | jq -r '."${{matrix.common}}"')
         env:
           IASQL_ENV: test
+          COMMONS: ${{ needs.setup-common-test.outputs['common-tests'] }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID_TESTING }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY_TESTING }}
           A0_IASQL_API_TOKEN: ${{ secrets.A0_IASQL_API_TOKEN }}
