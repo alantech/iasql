@@ -225,7 +225,7 @@ jobs:
 
           # Spin up the engine and a postgres instance
           # Temporarily export the engine port until it's only the Postgres port needed
-          docker run -p 5432:5432 -e IASQL_ENV=ci --name iasql --add-host=host.docker.internal:host-gateway ghcr.io/iasql/iasql-engine:$GITHUB_SHA &
+          docker run -p 5432:5432 -e IASQL_ENV=ci --name iasql ghcr.io/iasql/iasql-engine:$GITHUB_SHA &
           while ! psql postgres://postgres:test@localhost:5432/iasql_metadata -b -q -c "SELECT iasql_engine_health()"; do sleep 1 && echo -n .; done;
 
           # connect `iasql` db to aws account for `apply`
