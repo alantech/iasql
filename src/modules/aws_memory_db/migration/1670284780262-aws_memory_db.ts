@@ -1,14 +1,14 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class awsMemoryDb1665571756904 implements MigrationInterface {
-  name = 'awsMemoryDb1665571756904';
+export class awsMemoryDb1670284780262 implements MigrationInterface {
+  name = 'awsMemoryDb1670284780262';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
       `CREATE TABLE "subnet_group" ("id" SERIAL NOT NULL, "subnet_group_name" character varying NOT NULL, "description" character varying, "arn" character varying, "subnets" character varying array, "region" character varying NOT NULL DEFAULT default_aws_region(), CONSTRAINT "uq_subnet_group_name_region" UNIQUE ("subnet_group_name", "region"), CONSTRAINT "uq_subnet_group_id_region" UNIQUE ("id", "region"), CONSTRAINT "PK_a54731069caf05d2029dc7cd4c2" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
-      `CREATE TYPE "public"."memory_db_cluster_node_type_enum" AS ENUM('db.t4g.small', 'db.t4g.medium', 'db.r6g.large', 'db.r6g.xlarge', 'db.r6g.2xlarge', 'db.r6g.4xlarge', 'db.r6g.8xlarge', 'db.r6g.12xlarge', 'db.r6g.16xlarg')`,
+      `CREATE TYPE "public"."memory_db_cluster_node_type_enum" AS ENUM('db.t4g.small', 'db.t4g.medium', 'db.r6g.large', 'db.r6g.xlarge', 'db.r6g.2xlarge', 'db.r6g.4xlarge', 'db.r6g.8xlarge', 'db.r6g.12xlarge', 'db.r6g.16xlarge')`,
     );
     await queryRunner.query(
       `CREATE TABLE "memory_db_cluster" ("id" SERIAL NOT NULL, "cluster_name" character varying NOT NULL, "description" character varying, "address" character varying, "port" integer NOT NULL DEFAULT '6379', "node_type" "public"."memory_db_cluster_node_type_enum" NOT NULL DEFAULT 'db.r6g.large', "arn" character varying, "status" character varying, "tags" json, "region" character varying NOT NULL DEFAULT default_aws_region(), "subnet_group_id" integer NOT NULL, CONSTRAINT "uq_memory_db_cluster_name_region" UNIQUE ("cluster_name", "region"), CONSTRAINT "uq_memory_db_cluster_id_region" UNIQUE ("id", "region"), CONSTRAINT "PK_b7461d91a0f9b5cda3a86a7da24" PRIMARY KEY ("id"))`,

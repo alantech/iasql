@@ -23,7 +23,7 @@ export enum NodeTypeEnum {
   db_r6g_4xlarge = 'db.r6g.4xlarge',
   db_r6g_8xlarge = 'db.r6g.8xlarge',
   db_r6g_12xlarge = 'db.r6g.12xlarge',
-  db_r6g_16xlarg = 'db.r6g.16xlarg',
+  db_r6g_16xlarge = 'db.r6g.16xlarge',
 }
 
 @Entity()
