@@ -9,8 +9,8 @@ export class Route {
   id: number;
 
   @ManyToOne(() => RouteTable, {
-    nullable: false,
     onDelete: 'CASCADE',
+    onUpdate: 'CASCADE',
   })
   @JoinColumn()
   routeTable: RouteTable;

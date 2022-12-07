@@ -38,7 +38,6 @@ export class RouteTable {
   @OneToMany(() => Route, route => route.routeTable, {
     eager: true,
     cascade: true,
-    orphanedRowAction: 'delete',
   })
   routes: Route[];
 
