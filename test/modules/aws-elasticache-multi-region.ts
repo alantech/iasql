@@ -67,9 +67,7 @@ afterAll(async () => await execComposeDown());
 
 let username: string, password: string;
 
-
 describe('Elasticache Multi-Region Integration Testing', () => {
-
   it('creates a new test db', done => {
     (async () => {
       try {
@@ -116,7 +114,6 @@ describe('Elasticache Multi-Region Integration Testing', () => {
   );
 
   it('installs the elasticache module', install(modules));
-
 
   it('starts a transaction', begin());
 
