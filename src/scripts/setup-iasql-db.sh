@@ -5,11 +5,11 @@ set -e
 
 # connect `iasql` db to aws account for `apply`
 echo "\nCreating an iasql db..."
-connectres=$(curl http://localhost:8088/v1/db/connect/iasql)
+connectres=$(psql "postgres://postgres:test@localhost:5432/iasql_metadata" -t -c "SELECT json_agg(c)->0 FROM iasql_connect('iasql') as c;")
 export IASQL_USERNAME=$(jq -r '.user' <<<"$connectres")
 export IASQL_PASSWORD=$(jq -r '.password' <<<"$connectres")
 
-CONNSTR="postgres://postgres:test@localhost:5432/iasql?ssl=true&sslmode=require"
+CONNSTR="postgres://postgres:test@localhost:5432/iasql"
 
 # Setup Account
 echo "\nInstalling aws_account..."
