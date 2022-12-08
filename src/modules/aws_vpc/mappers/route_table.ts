@@ -1,3 +1,5 @@
+import _ from 'lodash';
+
 import { EC2, paginateDescribeRouteTables } from '@aws-sdk/client-ec2';
 import { CreateRouteTableCommandInput } from '@aws-sdk/client-ec2/dist-types/commands/CreateRouteTableCommand';
 import {
@@ -45,22 +47,7 @@ export class RouteTableMapper extends MapperBase<RouteTable> {
   }
 
   eqRoute(a: Route, b: Route) {
-    return (
-      a.DestinationCidrBlock === b.DestinationCidrBlock &&
-      a.DestinationIpv6CidrBlock === b.DestinationIpv6CidrBlock &&
-      a.DestinationPrefixListId === b.DestinationPrefixListId &&
-      a.EgressOnlyInternetGatewayId === b.EgressOnlyInternetGatewayId &&
-      a.GatewayId === b.GatewayId &&
-      a.InstanceId === b.InstanceId &&
-      a.InstanceOwnerId === b.InstanceOwnerId &&
-      a.NatGatewayId === b.NatGatewayId &&
-      a.TransitGatewayId === b.TransitGatewayId &&
-      a.LocalGatewayId === b.LocalGatewayId &&
-      a.CarrierGatewayId === b.CarrierGatewayId &&
-      a.NetworkInterfaceId === b.NetworkInterfaceId &&
-      a.VpcPeeringConnectionId === b.VpcPeeringConnectionId &&
-      a.CoreNetworkArn === b.CoreNetworkArn
-    );
+    return _.isEqual(_.omit(a, ['id', 'routeTable']), _.omit(b, ['id', 'routeTable']));
   }
 
   getRouteTables = paginateBuilder<EC2>(paginateDescribeRouteTables, 'RouteTables');
