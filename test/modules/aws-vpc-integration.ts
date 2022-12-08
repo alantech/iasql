@@ -1248,6 +1248,12 @@ describe('VPC Integration Testing', () => {
       INSERT INTO vpc (cidr_block, tags, enable_dns_hostnames, enable_dns_support, region)
       VALUES ('176.${randIPBlock}.0.0/16', '{"name":"${prefix}-peering-vpc"}', true, true, 'us-east-1');
   `));
+  it('adds a subnet to the vpc', query(`
+      INSERT INTO subnet (availability_zone, vpc_id, cidr_block, region)
+      SELECT '${region}a', id, '176.${randIPBlock}.1.0/24', 'us-east-1'
+      FROM vpc
+      WHERE tags ->> 'name' = '${prefix}-peering-vpc';
+  `, undefined, true, () => ({ username, password })));
   it('applies the creation of the second vpc', commit());
 
   it('starts a transaction', begin());
