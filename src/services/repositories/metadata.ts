@@ -87,7 +87,7 @@ class MetadataRepo {
   }
 
   async getEmailByUid(a0Id: string) {
-    const user = await this.userRepo.findOneOrFail(a0Id);
+    const user = await this.userRepo.findOne(a0Id);
     return user?.email ?? 'hello@iasql.com';
   }
 
