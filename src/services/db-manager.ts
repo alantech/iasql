@@ -154,18 +154,6 @@ export function ourPgUrl(dbId: string): string {
   }/${dbId}`;
 }
 
-export function getEmail(user: any): string {
-  // following the format for this auth0 rule
-  // https://manage.auth0.com/dashboard/us/iasql/rules/rul_D2HobGBMtSmwUNQm
-  // more context here https://community.auth0.com/t/include-email-in-jwt/39778/4
-  return config.auth ? user[`${config.auth.domain}email`] : 'hello@iasql.com';
-}
-
-// TODO type user
-export function getUid(user: any): string {
-  return config.auth ? user.sub : 'iasql';
-}
-
 export function setUpDblink(dbId: string) {
   return `
     CREATE EXTENSION IF NOT EXISTS dblink;

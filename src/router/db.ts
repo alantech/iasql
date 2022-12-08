@@ -20,22 +20,14 @@ export const db = express.Router();
 
 async function connectHandler(req: Request, res: Response) {
   logger.info('Calling /connect');
-  const { dbAlias, user } = !!Object.keys(req.body).length ? req.body : req.params;
+  const { dbAlias, user: uid } = req.body;
   if (!dbAlias)
     return res
       .status(400)
       .json(
         `Required key(s) not provided: ${['dbAlias'].filter(k => !req.params.hasOwnProperty(k)).join(', ')}`,
       );
-  let uid, email;
-  if (user) {
-    logger.info('TODO: Get the UID and email by DB user');
-    uid = user;
-    email = 'hello@iasql.com';
-  } else {
-    uid = dbMan.getUid(req.auth);
-    email = dbMan.getEmail(req.auth);
-  }
+  const email = await MetadataRepo.getEmailByUid(uid);
   const dbId = dbMan.genDbId(dbAlias);
   try {
     const database = await iasql.connect(dbAlias, uid, email, dbId);
@@ -83,10 +75,9 @@ db.post('/connect', connectHandler);
 
 db.post('/export', async (req: Request, res: Response) => {
   logger.info('Calling /export');
-  const { dbAlias, dataOnly } = req.body;
+  const { dbAlias, dataOnly, user: uid } = req.body;
   if (!dbAlias) return res.status(400).json("Required key 'dbAlias' not provided");
-  const uid = dbMan.getUid(req.auth);
-  const email = dbMan.getEmail(req.auth);
+  const email = await MetadataRepo.getEmailByUid(uid);
   try {
     const database: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
     const dbId = database.pgName;
@@ -109,17 +100,9 @@ db.post('/export', async (req: Request, res: Response) => {
 
 db.post('/disconnect', async (req: Request, res: Response) => {
   logger.info('Calling /disconnect');
-  const { dbAlias, user } = req.body;
+  const { dbAlias, user: uid } = req.body;
   if (!dbAlias) return res.status(400).json("Required key 'dbAlias' not provided");
-  let uid, email;
-  if (user) {
-    logger.info('TODO: Get the UID and email by DB user');
-    uid = user;
-    email = 'hello@iasql.com';
-  } else {
-    uid = dbMan.getUid(req.auth);
-    email = dbMan.getEmail(req.auth);
-  }
+  const email = await MetadataRepo.getEmailByUid(uid);
   let dbId;
   try {
     dbId = await iasql.disconnect(dbAlias, uid);
@@ -248,16 +231,8 @@ db.post('/rpc', async (req: Request, res: Response) => {
 
 db.post('/event', async (req: Request, res: Response) => {
   logger.info('Calling /event');
-  const { dbAlias, eventName, buttonAlias, sql, user } = req.body;
-  let uid, email;
-  if (user) {
-    logger.info('TODO: Get the UID and email by DB user');
-    uid = user;
-    email = 'hello@iasql.com';
-  } else {
-    uid = dbMan.getUid(req.auth);
-    email = dbMan.getEmail(req.auth);
-  }
+  const { dbAlias, eventName, buttonAlias, sql, user: uid } = req.body;
+  const email = await MetadataRepo.getEmailByUid(uid);
   if (dbAlias) {
     const database: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
     const dbId = database.pgName;

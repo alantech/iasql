@@ -145,7 +145,7 @@ export class rpcs1669932953007 implements MigrationInterface {
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
-        -- drop function iasql_db_list;
+        drop function iasql_db_list;
         drop function iasql_export;
         drop function iasql_disconnect;
         drop function iasql_connect;
