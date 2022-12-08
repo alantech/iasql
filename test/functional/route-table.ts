@@ -33,7 +33,6 @@ const region = defaultRegion();
 const prefix = getPrefix();
 let username: string, password: string;
 
-
 describe('RouteTable Functional Testing', () => {
   let context: { [x: string]: any };
 
@@ -99,54 +98,102 @@ describe('RouteTable Functional Testing', () => {
     for (const a of associations) expect(a.vpc.region).toBe(a.routeTable.region);
   });
 
-
-  it('checks each vpc has at least a route table', query(`
+  it(
+    'checks each vpc has at least a route table',
+    query(
+      `
       SELECT vpc.vpc_id, COUNT(rt) as rt_count
       FROM vpc
                LEFT JOIN route_table rt on vpc.id = rt.vpc_id
       GROUP BY vpc.vpc_id;
-  `, (res: any[]) => {
-    expect(res.length).toBeGreaterThan(0); // at least one VPC
-    res.map(row => expect(parseInt(row.rt_count, 10)).toBeGreaterThanOrEqual(1));
-  }, true, () => ({ username, password })));
+  `,
+      (res: any[]) => {
+        expect(res.length).toBeGreaterThan(0); // at least one VPC
+        res.map(row => expect(parseInt(row.rt_count, 10)).toBeGreaterThanOrEqual(1));
+      },
+      true,
+      () => ({ username, password }),
+    ),
+  );
 
   it('starts a transaction', begin());
-  it('creates a new vpc', query(`
+  it(
+    'creates a new vpc',
+    query(
+      `
       INSERT INTO vpc (cidr_block, tags, region)
       VALUES ('10.${randIPBlock}.0.0/16', '{"name":"${prefix}"}', '${region}');
-  `, undefined, true, () => ({ username, password })));
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
 
-  it('adds a subnet to the vpc', query(`
+  it(
+    'adds a subnet to the vpc',
+    query(
+      `
       INSERT INTO subnet (availability_zone, vpc_id, cidr_block, region)
       SELECT '${region}a', id, '10.${randIPBlock}.1.0/24', '${region}'
       FROM vpc
       WHERE tags ->> 'name' = '${prefix}';
-  `, undefined, true, () => ({ username, password })));
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
   it('applies creation of the vpc', commit());
 
   it('starts a transaction', begin());
-  it('adds a new route table to the vpc in the region', query(`
+  it(
+    'adds a new route table to the vpc in the region',
+    query(
+      `
       INSERT INTO route_table (vpc_id, tags, region)
       VALUES ((SELECT id FROM vpc WHERE tags ->> 'name' = '${prefix}'), '{"name":"${prefix}"}',
               '${region}');
-  `, undefined, true, () => ({ username, password })));
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
   it('applies creation of the route table', commit());
 
-  it('confirms that the default route is created', query(`
+  it(
+    'confirms that the default route is created',
+    query(
+      `
       SELECT *
       FROM route
       WHERE route_table_id = (SELECT id FROM route_table WHERE tags ->> 'name' = '${prefix}')
-  `, (res: any[]) => expect(res.length).toBe(1), true, () => ({ username, password })));
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+      true,
+      () => ({ username, password }),
+    ),
+  );
 
-  it('checks there is no association for the route table', query(`
+  it(
+    'checks there is no association for the route table',
+    query(
+      `
       SELECT *
       FROM route_table_association
       WHERE route_table_id = (SELECT id FROM route_table WHERE tags ->> 'name' = '${prefix}')
-  `, (res: any[]) => {
-    expect(res.length).toBe(0);
-  }));
+  `,
+      (res: any[]) => {
+        expect(res.length).toBe(0);
+      },
+    ),
+  );
   it('starts a transaction', begin());
-  it('associates the route table to the subnet', query(`
+  it(
+    'associates the route table to the subnet',
+    query(
+      `
       INSERT INTO route_table_association (route_table_id, vpc_id, subnet_id)
       VALUES ((SELECT id FROM route_table WHERE tags ->> 'name' = '${prefix}'),
               (SELECT id FROM vpc WHERE tags ->> 'name' = '${prefix}'),
@@ -154,28 +201,52 @@ describe('RouteTable Functional Testing', () => {
                FROM subnet
                WHERE cidr_block = '10.${randIPBlock}.1.0/24'
                  AND availability_zone = '${region}a'));
-  `, undefined, true, () => ({ username, password })));
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
   it('applies creation of the route table', commit());
-  it('checks whether the route table is associated to the subnet', query(`
+  it(
+    'checks whether the route table is associated to the subnet',
+    query(
+      `
       SELECT *
       FROM route_table_association
       WHERE route_table_id = (SELECT id FROM route_table WHERE tags ->> 'name' = '${prefix}');
-  `, (res: any[]) => {
-    expect(res.length).toBe(1);
-  }));
+  `,
+      (res: any[]) => {
+        expect(res.length).toBe(1);
+      },
+    ),
+  );
 
   it('starts a transaction', begin());
-  it('deletes the association', query(`
+  it(
+    'deletes the association',
+    query(
+      `
       DELETE
       FROM route_table_association
       WHERE route_table_id = (SELECT id FROM route_table WHERE tags ->> 'name' = '${prefix}');
-  `, undefined, true, () => ({ username, password })));
-  it('deletes the route table', query(`
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+  it(
+    'deletes the route table',
+    query(`
       DELETE
       FROM route_table
       WHERE tags ->> 'name' = '${prefix}';
-  `));
-  it('deletes the subnet and vpc', query(`
+  `),
+  );
+  it(
+    'deletes the subnet and vpc',
+    query(`
       DELETE
       FROM subnet
       WHERE vpc_id = (SELECT id FROM vpc WHERE tags ->> 'name' = '${prefix}');
@@ -183,7 +254,8 @@ describe('RouteTable Functional Testing', () => {
       DELETE
       FROM vpc
       WHERE tags ->> 'name' = '${prefix}';
-  `));
+  `),
+  );
   it('applies deletion of resources', commit());
 
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
