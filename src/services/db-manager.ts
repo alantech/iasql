@@ -62,8 +62,8 @@ export const baseConnConfig: PostgresConnectionOptions = {
 export function newPostgresRoleQuery(user: string, pass: string, dbId: string) {
   return `
     CREATE ROLE ${user} LOGIN PASSWORD '${pass}';
-    GRANT CONNECT ON DATABASE ${dbId} TO ${user};
-    GRANT CREATE ON SCHEMA public TO ${user};
+    GRANT CONNECT ON DATABASE ${dbId} TO "${user}";
+    GRANT CREATE ON SCHEMA public TO "${user}";
   `;
 }
 
@@ -86,7 +86,7 @@ export function grantPostgresGroupRoleQuery(user: string, dbId: string) {
     GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO ${groupRole};
     GRANT EXECUTE ON ALL PROCEDURES IN SCHEMA public TO ${groupRole};
     GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO ${groupRole};
-    GRANT ${groupRole} to ${user};
+    GRANT ${groupRole} to "${user}";
   `;
 }
 
