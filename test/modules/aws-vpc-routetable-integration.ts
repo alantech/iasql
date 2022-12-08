@@ -33,7 +33,7 @@ const region = defaultRegion();
 const prefix = getPrefix();
 let username: string, password: string;
 
-describe('RouteTable Functional Testing', () => {
+describe('RouteTable Integration Testing', () => {
   let context: { [x: string]: any };
 
   it('creates a new test db', done => {

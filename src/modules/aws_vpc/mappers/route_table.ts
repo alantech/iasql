@@ -27,6 +27,8 @@ export class RouteTableMapper extends MapperBase<RouteTable> {
   };
 
   eqListItems<T>(eq: (a: T, b: T) => boolean, a?: T[], b?: T[]) {
+    // warning: this function assumes neither of a nor b have repeated elements
+    if (a?.length !== b?.length) return false;
     const subset1 = !!a?.every(a1 => !!b?.find(a2 => eq(a1, a2)));
     const subset2 = !!b?.every(a1 => !!a?.find(a2 => eq(a1, a2)));
     return subset1 && subset2;
