@@ -11,9 +11,9 @@ import { DescribeVpcPeeringConnectionsCommandOutput } from '@aws-sdk/client-ec2/
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 
 import { AwsVpcModule } from '..';
-import { AWS, crudBuilder2, paginateBuilder } from '../../../../services/aws_macros';
-import { Context, Crud2, MapperBase } from '../../../interfaces';
+import { AWS, crudBuilder2, paginateBuilder } from '../../../services/aws_macros';
 import { updateTags } from '../../aws_ec2/mappers/tags';
+import { Context, Crud2, MapperBase } from '../../interfaces';
 import { PeeringConnection, PeeringConnectionState } from '../entity';
 import { eqTags } from './tags';
 
