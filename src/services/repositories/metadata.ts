@@ -86,6 +86,11 @@ class MetadataRepo {
     });
   }
 
+  async getEmailByUid(a0Id: string) {
+    const user = await this.userRepo.findOne(a0Id);
+    return user?.email ?? 'hello@iasql.com';
+  }
+
   // TODO: REMOVE opCount BY THE TIME 0.0.20 BECOMES UNSUPPORTED
   async updateDbCounts(dbId: string, recCount: number, opCount?: number, rpcCount?: number) {
     const db = await this.dbRepo.findOne(dbId);

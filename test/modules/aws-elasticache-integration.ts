@@ -20,7 +20,6 @@ const prefix = getPrefix();
 const dbAlias = 'elasticachetest';
 const clusterId = `${prefix}${dbAlias}`;
 const newClusterId = `new-${prefix}${dbAlias}`;
-const anotherClusterId = `${prefix}${dbAlias}2`;
 
 const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
@@ -269,60 +268,6 @@ describe('Elasticache Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
-
-  it(
-    'changes the region the cache_cluster is in',
-    query(
-      `
-    UPDATE cache_cluster SET region='us-east-1' WHERE cluster_id = '${newClusterId}';
-  `,
-      undefined,
-      true,
-      () => ({ username, password }),
-    ),
-  );
-
-  it('applies the change', commit());
-
-  it(
-    'checks the region was updated',
-    query(
-      `
-    SELECT * FROM cache_cluster WHERE cluster_id = '${newClusterId}';
-  `,
-      (res: any[]) => {
-        expect(res.length).toBe(1);
-        expect(res[0].region).toBe('us-east-1');
-      },
-    ),
-  );
-
-  it('starts a transaction', begin());
-
-  it('makes two more cache clusters with the same cluster_id in different regions', done => {
-    query(
-      `
-      INSERT INTO cache_cluster (cluster_id, node_type, engine, num_nodes, region)
-      VALUES
-        ('${anotherClusterId}', '${nodeType}', '${cacheType}', 1, '${region}'),
-        ('${anotherClusterId}', '${nodeType}', '${cacheType}', 1, 'us-east-1');
-    `,
-      undefined,
-      true,
-      () => ({ username, password }),
-    )((e?: any) => {
-      if (!!e) return done(e);
-      done();
-    });
-  });
-
-  it('makes the cache_cluster change', commit());
-
-  it('uninstalls the elasticache module', uninstall(modules));
-
-  it('installs the elasticache module again (to make sure it reloads stuff)', install(modules));
-
   it(
     'checks cache_cluster count of one set',
     query(
@@ -333,16 +278,6 @@ describe('Elasticache Integration Testing', () => {
     ),
   );
 
-  it(
-    'checks cache_cluster count of second set',
-    query(
-      `
-    SELECT * FROM cache_cluster WHERE cluster_id='${anotherClusterId}';
-  `,
-      (res: any) => expect(res.length).toBe(2),
-    ),
-  );
-
   it('starts a transaction', begin());
 
   it(
@@ -350,7 +285,7 @@ describe('Elasticache Integration Testing', () => {
     query(
       `
     DELETE FROM cache_cluster
-    WHERE cluster_id = '${newClusterId}' OR cluster_id = '${anotherClusterId}';
+    WHERE cluster_id = '${newClusterId}';
   `,
       undefined,
       true,

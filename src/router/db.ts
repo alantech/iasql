@@ -20,15 +20,14 @@ export const db = express.Router();
 
 async function connectHandler(req: Request, res: Response) {
   logger.info('Calling /connect');
-  const dbAlias = req.params?.dbAlias ?? req.body?.dbAlias;
+  const { dbAlias, user: uid } = req.body;
   if (!dbAlias)
     return res
       .status(400)
       .json(
         `Required key(s) not provided: ${['dbAlias'].filter(k => !req.params.hasOwnProperty(k)).join(', ')}`,
       );
-  const uid = dbMan.getUid(req.auth);
-  const email = dbMan.getEmail(req.auth);
+  const email = await MetadataRepo.getEmailByUid(uid);
   const dbId = dbMan.genDbId(dbAlias);
   try {
     const database = await iasql.connect(dbAlias, uid, email, dbId);
@@ -76,10 +75,9 @@ db.post('/connect', connectHandler);
 
 db.post('/export', async (req: Request, res: Response) => {
   logger.info('Calling /export');
-  const { dbAlias, dataOnly } = req.body;
+  const { dbAlias, dataOnly, user: uid } = req.body;
   if (!dbAlias) return res.status(400).json("Required key 'dbAlias' not provided");
-  const uid = dbMan.getUid(req.auth);
-  const email = dbMan.getEmail(req.auth);
+  const email = await MetadataRepo.getEmailByUid(uid);
   try {
     const database: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
     const dbId = database.pgName;
@@ -100,24 +98,11 @@ db.post('/export', async (req: Request, res: Response) => {
   }
 });
 
-db.get('/list', async (req: Request, res: Response) => {
-  logger.info('Calling /list');
-  const uid = dbMan.getUid(req.auth);
-  const email = dbMan.getEmail(req.auth);
-  try {
-    const dbs = await MetadataRepo.getDbs(uid, email);
-    res.json(dbs);
-  } catch (e) {
-    res.status(500).end(logErrSentry(e, uid, email));
-  }
-});
-
-db.get('/disconnect/:dbAlias', async (req: Request, res: Response) => {
+db.post('/disconnect', async (req: Request, res: Response) => {
   logger.info('Calling /disconnect');
-  const { dbAlias } = req.params;
+  const { dbAlias, user: uid } = req.body;
   if (!dbAlias) return res.status(400).json("Required key 'dbAlias' not provided");
-  const uid = dbMan.getUid(req.auth);
-  const email = dbMan.getEmail(req.auth);
+  const email = await MetadataRepo.getEmailByUid(uid);
   let dbId;
   try {
     dbId = await iasql.disconnect(dbAlias, uid);
@@ -135,76 +120,6 @@ db.get('/disconnect/:dbAlias', async (req: Request, res: Response) => {
     const error = logErrSentry(e, uid, email, dbAlias);
     res.status(500).end(error);
     telemetry.logDisconnect(uid, { dbId, email }, { error });
-  }
-});
-
-function until(p: Promise<any>, timeout: number) {
-  return new Promise((resolve, reject) => {
-    let finished: boolean = false;
-    p.then((val: any) => {
-      if (!finished) {
-        finished = true;
-        resolve(val);
-      }
-    }).catch((err: any) => {
-      if (!finished) {
-        finished = true;
-        reject(err);
-      }
-    });
-    setTimeout(() => {
-      if (!finished) {
-        finished = true;
-        reject(new Error(`Timeout of ${timeout}ms reached`));
-      }
-    }, timeout);
-  });
-}
-
-db.post('/run/:dbAlias', async (req: Request, res: Response) => {
-  logger.info('Calling /run');
-  if (!config.db.sqlViaRest) return res.status(400).end('SQL Querying via REST disabled');
-  const { dbAlias } = req.params;
-  if (!dbAlias) return res.status(400).json("Required key 'dbAlias' not provided");
-  const { sql, byStatement, byUser } = req.body;
-  const uid = dbMan.getUid(req.auth);
-  const email = dbMan.getEmail(req.auth);
-  let dbId;
-  try {
-    const database: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
-    dbId = database.pgName;
-    const output = await until(iasql.runSql(dbAlias, uid, sql, byStatement ?? false), 5 * 60 * 1000);
-    // ignore queries done by the dashboard itself
-    if (byUser) {
-      telemetry.logRunSql(
-        uid,
-        {
-          dbAlias,
-          email,
-          dbId,
-        },
-        {
-          output: JSON.stringify(output),
-          sql,
-        },
-      );
-    }
-    res.json(output);
-  } catch (e: any) {
-    // do not send to sentry
-    const error = e?.message ?? '';
-    if (/^Timeout of/.test(error)) {
-      // Avoid 500 here to keep ELB/Fargate happy
-      res
-        .status(400)
-        .end(
-          'This query is taking a long time. It will continue running in the background. You may query (with simpler queries) to see.',
-        );
-    } else {
-      logger.error(`RunSQL user error: ${error}`, { uid, dbId, email, dbAlias });
-      res.status(500).end(error);
-    }
-    telemetry.logRunSql(uid, { dbId, email }, { sql, error });
   }
 });
 
@@ -316,9 +231,8 @@ db.post('/rpc', async (req: Request, res: Response) => {
 
 db.post('/event', async (req: Request, res: Response) => {
   logger.info('Calling /event');
-  const { dbAlias, eventName, buttonAlias, sql } = req.body;
-  const uid = dbMan.getUid(req.auth);
-  const email = dbMan.getEmail(req.auth);
+  const { dbAlias, eventName, buttonAlias, sql, user: uid } = req.body;
+  const email = await MetadataRepo.getEmailByUid(uid);
   if (dbAlias) {
     const database: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
     const dbId = database.pgName;

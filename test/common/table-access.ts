@@ -5,7 +5,6 @@ const dbAlias = 'tableaccesstest';
 const uid = '12345';
 const install = runInstall.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
-const runSql = iasql.runSql.bind(null, dbAlias, uid);
 const email = 'test@example.com';
 
 jest.setTimeout(360000);
@@ -22,28 +21,6 @@ describe('Testing table creation and access', () => {
         password = newPassword;
         username = user;
         if (!password || !username) done(new Error('Did not fetch pg credentials'));
-        done();
-      } catch (e) {
-        done(e);
-      }
-    })();
-  });
-
-  it('runSql: create custom table', done => {
-    (async () => {
-      try {
-        await runSql('CREATE TABLE example (id serial PRIMARY KEY);', false);
-        done();
-      } catch (e) {
-        done(e);
-      }
-    })();
-  });
-
-  it('runSql: drop custom table', done => {
-    (async () => {
-      try {
-        await runSql('DROP TABLE example;', false);
         done();
       } catch (e) {
         done(e);
@@ -77,17 +54,6 @@ describe('Testing table creation and access', () => {
 
   it('installs the aws_account module', install(['aws_account']));
 
-  it('runSql: select IaSQL managed table', done => {
-    (async () => {
-      try {
-        await runSql('SELECT * FROM aws_credentials;', false);
-        done();
-      } catch (e) {
-        done(e);
-      }
-    })();
-  });
-
   it(
     'dbUser: select IaSQL managed table',
     query(
@@ -99,17 +65,6 @@ describe('Testing table creation and access', () => {
       () => ({ username, password }),
     ),
   );
-
-  it('runSql: fails to drop IaSQL managed table', done => {
-    (async () => {
-      try {
-        await runSql('DROP TABLE aws_credentials;', false);
-        done(new Error('This line should not be reached'));
-      } catch (e) {
-        done();
-      }
-    })();
-  });
 
   it('dbUser: fails to drop IaSQL managed table', done => {
     query(
