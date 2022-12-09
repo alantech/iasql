@@ -5,7 +5,7 @@ on:
     branches: [main]
     paths: ['site/**']
   workflow_run:
-    workflows: ["RELEASE"]
+    workflows: ['RELEASE']
     types:
       - completed
 
@@ -24,7 +24,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v3
         with:
-          node-version: "16"
+          node-version: '16'
       # Install and build Docusaurus website
       - name: Build Docusaurus website
         run: |
@@ -32,7 +32,7 @@ jobs:
           yarn 
           yarn build
       - name: Deploy to GitHub Pages
-        if: success()
+        if: ${{ success() }}
         uses: crazy-max/ghaction-github-pages@v2
         with:
           target_branch: gh-pages
