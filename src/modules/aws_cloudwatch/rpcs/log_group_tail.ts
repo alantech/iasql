@@ -9,13 +9,10 @@ import { Context, RpcBase, RpcResponseObject } from '../../interfaces';
  *
  * Returns a set of SQL records with the following format:
  *
- * event_id: The ID of the event for the produced log
- *
- * log_stream_name: Name of the log stream that is visualized
- *
- * event_timestamp: The timestamp for the log entry
- *
- * message: The content of the log entry
+ * - event_id: The ID of the event for the produced log
+ * - log_stream_name: Name of the log stream that is visualized
+ * - event_timestamp: The timestamp for the log entry
+ * - message: The content of the log entry
  *
  * @example
  * ```sql
