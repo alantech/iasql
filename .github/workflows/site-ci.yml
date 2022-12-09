@@ -30,7 +30,6 @@ jobs:
         run: |
           cd site
           yarn
-          yarn install
           yarn build
       - name: Returns true if the site has been generated
         run: |
