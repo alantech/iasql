@@ -5,6 +5,8 @@ import {
   EndpointGatewayMapper,
   EndpointInterfaceMapper,
   NatGatewayMapper,
+  RouteTableAssociationMapper,
+  RouteTableMapper,
   SubnetMapper,
   VpcMapper,
 } from './mappers';
@@ -17,6 +19,8 @@ export class AwsVpcModule extends ModuleBase {
   endpointGateway: EndpointGatewayMapper;
   endpointInterface: EndpointInterfaceMapper;
   availabilityZone: AvailabilityZoneMapper;
+  routeTable: RouteTableMapper;
+  routeTableAssociation: RouteTableAssociationMapper;
 
   constructor() {
     super();
@@ -27,7 +31,10 @@ export class AwsVpcModule extends ModuleBase {
     this.endpointGateway = new EndpointGatewayMapper(this);
     this.endpointInterface = new EndpointInterfaceMapper(this);
     this.availabilityZone = new AvailabilityZoneMapper(this);
+    this.routeTable = new RouteTableMapper(this);
+    this.routeTableAssociation = new RouteTableAssociationMapper(this);
     super.init();
   }
 }
+
 export const awsVpcModule = new AwsVpcModule();

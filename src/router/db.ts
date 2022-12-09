@@ -123,7 +123,7 @@ db.post('/disconnect', async (req: Request, res: Response) => {
   }
 });
 
-async function getContext(conn: TypeormWrapper, AllModules: any): Promise<Context> {
+export async function getContext(conn: TypeormWrapper, AllModules: any): Promise<Context> {
   // Find all of the installed modules, and create the context object only for these
   const iasqlModule =
     AllModules?.IasqlPlatform?.utils?.IasqlModule ??
