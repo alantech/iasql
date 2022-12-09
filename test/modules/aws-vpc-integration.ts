@@ -1256,7 +1256,7 @@ describe('VPC Integration Testing', () => {
     query(
       `
       INSERT INTO subnet (availability_zone, vpc_id, cidr_block, region)
-      SELECT '${region}a', id, '176.${randIPBlock}.1.0/24', 'us-east-1'
+      SELECT 'us-east-1a', id, '176.${randIPBlock}.1.0/24', 'us-east-1'
       FROM vpc
       WHERE tags ->> 'name' = '${prefix}-peering-vpc';
   `,
