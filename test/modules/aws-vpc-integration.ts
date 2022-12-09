@@ -1249,7 +1249,7 @@ describe('VPC Integration Testing', () => {
     query(`
       INSERT INTO vpc (cidr_block, tags, enable_dns_hostnames, enable_dns_support, region)
       VALUES ('176.${randIPBlock}.0.0/16', '{"name":"${prefix}-peering-vpc"}', true, true, 'us-east-1');
-  `),
+  `, undefined, true, () => ({ username, password })),
   );
   it(
     'adds a subnet to the vpc',
@@ -1275,7 +1275,7 @@ describe('VPC Integration Testing', () => {
       VALUES ((SELECT id FROM vpc WHERE tags ->> 'name' = '${prefix}-2'),
               (SELECT id FROM vpc WHERE tags ->> 'name' = '${prefix}-peering-vpc'),
               '{"name": "${prefix}-peering-connection-test"}');
-  `),
+  `, undefined, true, () => ({ username, password })),
   );
   it('applies creation of the peering connection', commit());
 
@@ -1298,7 +1298,7 @@ describe('VPC Integration Testing', () => {
       UPDATE peering_connection
       SET tags = '{"name": "${prefix}-peering-connection-test-changed"}'
       WHERE tags ->> 'name' = '${prefix}-peering-connection-test';
-  `),
+  `, undefined, true, () => ({ username, password })),
   );
   it('applies creation of the peering connection', commit());
 
@@ -1321,7 +1321,7 @@ describe('VPC Integration Testing', () => {
       UPDATE peering_connection
       SET state = 'expired'
       WHERE tags ->> 'name' = '${prefix}-peering-connection-test-changed';
-  `),
+  `, undefined, true, () => ({ username, password })),
   );
   it('applies the change of peering connection state', commit());
 
@@ -1344,7 +1344,7 @@ describe('VPC Integration Testing', () => {
       DELETE
       FROM peering_connection
       WHERE tags ->> 'name' = '${prefix}-peering-connection-test-changed';
-  `),
+  `, undefined, true, () => ({ username, password })),
   );
 
   it(
@@ -1362,7 +1362,7 @@ describe('VPC Integration Testing', () => {
       DELETE
       FROM vpc
       WHERE cidr_block = '176.${randIPBlock}.0.0/16';
-  `),
+  `, undefined, true, () => ({ username, password })),
   );
   it('applies the deletion of the second vpc and peering connection', commit());
 
