@@ -4,6 +4,28 @@ import { AwsCloudwatchModule } from '..';
 import { AWS, crudBuilderFormat } from '../../../services/aws_macros';
 import { Context, RpcBase, RpcResponseObject } from '../../interfaces';
 
+/**
+ * Method for tailing logs for an specific CloudWatch log group.
+ *
+ * Returns a set of SQL records with the following format:
+ *
+ * event_id: The ID of the event for the produced log
+ *
+ * log_stream_name: Name of the log stream that is visualized
+ *
+ * event_timestamp: The timestamp for the log entry
+ *
+ * message: The content of the log entry
+ *
+ * @example
+ * ```sql
+ *   SELECT * FROM log_group_tail('log_group_name');
+ * ```
+ *
+ * @see https://github.com/iasql/iasql-engine/blob/b2c2383b73d73f5cdf75c867d334e80cdf40caa1/test/modules/aws-tail-log-group.ts#L143
+ * @see https://awscli.amazonaws.com/v2/documentation/api/latest/reference/logs/tail.html
+ *
+ */
 export class LogGroupTailRpc extends RpcBase {
   module: AwsCloudwatchModule;
   outputTable = {

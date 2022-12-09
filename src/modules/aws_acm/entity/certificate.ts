@@ -40,8 +40,10 @@ export enum certificateRenewalEligibilityEnum {
 
 /**
  * Table to query for all AWS certificates in the system, managed by AWS ACM.
- * Certificates can be read and deleted, but not created or modified. Instead certificates can be created
- * by using RPCs.
+ * Certificates can be read and deleted, but not created or modified. Instead certificates can be
+ * created or imported by using the following postgres functions:
+ * @see https://iasql.com/docs/sql/classes/aws_acm_rpcs_import.CertificateImportRpc/
+ * @see https://iasql.com/docs/sql/classes/aws_acm_rpcs_request.CertificateRequestRpc/
  *
  * @example
  * ```sql
@@ -132,7 +134,7 @@ export class Certificate {
 
   /**
    * @public
-   * Region to where the certificate was
+   * Region for the certificate creation
    */
   @Column({
     type: 'character varying',

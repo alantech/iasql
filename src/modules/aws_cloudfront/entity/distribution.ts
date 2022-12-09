@@ -54,8 +54,8 @@ export enum originProtocolPolicyEnum {
 @Entity()
 export class Distribution {
   /**
-   * @internal
-   * Internal ID field for storing accounts
+   * @private
+   * Auto-incremented ID field for storing accounts
    */
   @PrimaryGeneratedColumn()
   id: number;

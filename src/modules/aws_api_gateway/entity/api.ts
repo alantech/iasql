@@ -30,8 +30,8 @@ export enum Protocol {
 @Entity()
 export class Api {
   /**
-   * @internal
-   * Internal ID field for storing accounts
+   * @private
+   * Auto-incremented ID field for storing accounts
    */
   @PrimaryGeneratedColumn()
   id?: number;

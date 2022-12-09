@@ -286,7 +286,7 @@ export class MapperBase<E extends {}> {
             !Object.keys(fields).every(fk => [primaryColumn].includes(fk))
           ) {
             throw new Error(
-              `Id generat ion error. Valid field to generate id is: ${primaryColumn}. Receiving: ${Object.keys(
+              `Id generation error. Valid field to generate id is: ${primaryColumn}. Receiving: ${Object.keys(
                 fields,
               ).join(', ')}`,
             );
