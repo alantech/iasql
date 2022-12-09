@@ -20,7 +20,6 @@
     "@mdx-js/react": "^1.6.21",
     "@mxssfd/typedoc-theme": "^1.0.3",
     "@svgr/webpack": "^6.5.1",
-    "@types/node": "^18.11.12",
     "clsx": "^1.2.1",
     "docusaurus-plugin-iasql": "https://github.com/iasql/docusaurus-plugin-iasql",
     "file-loader": "^6.2.0",
@@ -51,6 +50,8 @@
     "trim": "0.0.1"
   },
   "devDependencies": {
+    "@types/node": "^18.11.12",
+    "process": "^0.11.10",
     "typescript": "^4.7.4"
   }
 }
