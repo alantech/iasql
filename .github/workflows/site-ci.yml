@@ -28,9 +28,10 @@ jobs:
       # Install and build Docusaurus website
       - name: Build Docusaurus website
         run: |
+          yarn
           cd site
           yarn
           yarn build
       - name: Returns true if the site has been generated
         run: |
-          [ -d "./docs/sql" ]
+          [ -d "./site/docs/sql" ]
