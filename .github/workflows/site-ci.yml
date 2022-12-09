@@ -7,10 +7,10 @@ name: SITE BUILD
 on:
   push:
     branches: [main]
-    paths: ['site/**']
+    paths: ['site/**', '.github/workflows/site-deploy.yml']
   pull_request:
     branches: [main]
-    paths: ['site/**']
+    paths: ['site/**', '.github/workflows/site-deploy.yml']
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -24,11 +24,14 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v3
         with:
-          node-version: '16'
+          node-version: '18'
       # Install and build Docusaurus website
       - name: Build Docusaurus website
         run: |
+          yarn
           cd site
           yarn
-          yarn install
           yarn build
+      - name: Returns true if the site has been generated
+        run: |
+          [ -d "./site/docs/sql" ]
