@@ -3,7 +3,7 @@ name: SITE DEPLOY
 on:
   push:
     branches: [main]
-    paths: ['site/**']
+    paths: ['site/**', '.github/workflows/site-deploy.yml']
   workflow_run:
     workflows: ['RELEASE']
     types:

@@ -7,7 +7,7 @@ name: SITE BUILD
 on:
   push:
     branches: [main]
-    paths: ['site/**']
+    paths: ['site/**', '.github/workflows/site-deploy.yml']
   pull_request:
     branches: [main]
     paths: ['site/**']
