@@ -7,5 +7,6 @@
   "categorizeByGroup": false,
   "disableSources": true,
   "readme": "default",
-  "exclude": ["../src/modules/**/mappers/*", "../src/modules/**/migration/*", "../src/modules/iasql_functions/*", "../src/modules/iasql_platform/*", "../src/modules/interfaces.ts", "../src/modules/subscribers.ts"]
+  "exclude": ["../src/modules/**/mappers/*", "../src/modules/**/migration/*", "../src/modules/iasql_functions/*", "../src/modules/iasql_platform/*", "../src/modules/interfaces.ts", "../src/modules/subscribers.ts"],
+  "tsconfig": "../tsconfig.json"
 }
