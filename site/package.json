@@ -48,7 +48,7 @@
   },
   "resolutions": {
     "nth-check": "2.0.1",
-    "trim": "0.0.3"
+    "trim": "0.0.1"
   },
   "devDependencies": {
     "typescript": "^4.7.4"
