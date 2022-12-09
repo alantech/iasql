@@ -15,7 +15,7 @@ export class Route {
   @JoinColumn()
   routeTable: RouteTable;
 
-  // destinations
+  // destination fields: used to determine the destination to be matched
   @Column({ nullable: true })
   @cloudId
   DestinationCidrBlock?: string;
@@ -28,7 +28,7 @@ export class Route {
   @cloudId
   DestinationPrefixListId?: string;
 
-  // through
+  // target fields: through where should the request be routed?
   @Column({ nullable: true })
   @cloudId
   EgressOnlyInternetGatewayId?: string;

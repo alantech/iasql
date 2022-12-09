@@ -339,8 +339,7 @@ export class MapperBase<E> {
                 where: Object.fromEntries(id.split('|').map((val, i) => [cloudColumns[i], val])),
               }
             : {};
-          const entity = await ctx.orm.find(this.entity, opts);
-          return entity;
+          return await ctx.orm.find(this.entity, opts);
         },
       });
       this.db.entity = this.entity;
