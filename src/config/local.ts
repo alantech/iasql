@@ -2,6 +2,7 @@ import { ConfigInterface } from './config';
 
 const config: ConfigInterface = {
   http: {
+    host: 'localhost',
     port: 8088,
   },
   db: {
@@ -10,7 +11,6 @@ const config: ConfigInterface = {
     password: 'test',
     port: 5432,
     forceSSL: false,
-    sqlViaRest: true,
   },
   logger: {
     debug: true,

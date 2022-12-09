@@ -58,9 +58,31 @@ jobs:
       - name: Run code style check
         run: yarn style
 
+  setup-common-test:
+    runs-on: ubuntu-latest
+    outputs:
+      common-tests: ${{ steps['set-common-tests'].outputs['common-tests'] }}
+      set-common-test-names: ${{ steps['set-common-test-names'].outputs['common-test-names'] }}
+    steps:
+      - uses: actions/checkout@v3
+      - run: yarn --prefer-offline
+      - id: set-common-tests
+        name: Set common tests
+        run: >
+          echo "::set-output name=common-tests::$(npx jest **/common/* --listTests --json | jq -c 'map({(. | split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring): .}) | add')"
+      - id: set-common-test-names
+        name: Set common test names
+        run: echo "::set-output name=common-test-names::$(npx jest **/common/* --listTests --json | jq -c 'map(split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring)')"
+
   common-test:
     runs-on: ubuntu-latest
-    name: common tests
+    needs:
+      - setup-common-test
+    name: common.test.${{ matrix.common }}
+    strategy:
+      fail-fast: false
+      matrix:
+        common: ${{ fromJson(needs.setup-common-test.outputs['set-common-test-names']) }}
     steps:
       - uses: actions/checkout@v3
 
@@ -74,9 +96,10 @@ jobs:
         run: yarn --prefer-offline
 
       - name: Run common tests
-        run: yarn coverage **/common/*
+        run: yarn coverage $(echo $COMMONS | jq -r '."${{matrix.common}}"')
         env:
           IASQL_ENV: test
+          COMMONS: ${{ needs.setup-common-test.outputs['common-tests'] }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID_TESTING }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY_TESTING }}
           A0_IASQL_API_TOKEN: ${{ secrets.A0_IASQL_API_TOKEN }}
@@ -132,6 +155,7 @@ jobs:
     outputs:
       test-modules: ${{ steps['set-test-modules'].outputs['test-modules'] }}
       set-test-module-names: ${{ steps['set-test-module-names'].outputs['test-module-names'] }}
+      registry-image-tag: ${{ steps['set-registry-image-tag'].outputs['registry-image-tag'] }}
     steps:
       - uses: actions/checkout@v3
       - run: yarn --prefer-offline
@@ -142,29 +166,38 @@ jobs:
       - id: set-test-module-names
         name: Set modules tests names
         run: echo "::set-output name=test-module-names::$(npx jest **/modules/* --listTests --json | jq -c 'map(split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring)')"
+      - id: set-registry-image-tag
+        name: Set registry image tag
+        run: echo "::set-output name=registry-image-tag::ghcr.io/iasql/iasql-engine:$GITHUB_SHA"
+
+  build-and-push:
+    runs-on: ubuntu-latest
+    needs:
+      - setup-module-test
+    steps:
+      - uses: actions/checkout@v3
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and push
         uses: docker/build-push-action@v3
         with:
           context: .
-          push: false
-          load: true
+          push: true
           cache-from: type=gha
           cache-to: type=gha
-          tags: iasql:latest
-          outputs: type=docker,dest=/tmp/iasql-image.tar
-      - name: Upload artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: iasql-image
-          path: /tmp/iasql-image.tar
-
+          tags: ${{ needs.setup-module-test.outputs.registry-image-tag }}
 
   module-test:
     runs-on: ubuntu-latest
     needs:
       - setup-module-test
+      - build-and-push
     name: module test ${{ matrix.module }}
     strategy:
       fail-fast: false
@@ -180,9 +213,6 @@ jobs:
           node-version: 16.x
           cache: 'yarn'
 
-      - name: Install dependencies
-        run: yarn --prefer-offline
-
       - name: Determine Test Account To Use
         id: determine-test-account
         env:
@@ -196,17 +226,12 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
-      - name: Download artifact
-        uses: actions/download-artifact@v3
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
         with:
-          name: iasql-image
-          path: /tmp
-
-      - name: Load image
-        run: |
-          docker load --input /tmp/iasql-image.tar
-          docker image ls -a
-
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Pre-clean Test Account
         id: pre-clean-test-account
@@ -215,7 +240,7 @@ jobs:
           ACCOUNT_INDEX: ${{ steps['determine-test-account'].outputs['account_index'] }}
           ACCESS_KEY_IDS: ${{ secrets.ACCESS_KEY_IDS }}
           SECRET_ACCESS_KEYS: ${{ secrets.SECRET_ACCESS_KEYS }}
-          PSQL_CONN: postgres://postgres:test@localhost:5432/iasql?ssl=true&sslmode=require
+          PSQL_CONN: postgres://postgres:test@localhost:5432/iasql
         run: |
           # Establish needed secrets
           export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
@@ -223,12 +248,12 @@ jobs:
 
           # Spin up the engine and a postgres instance
           # Temporarily export the engine port until it's only the Postgres port needed
-          docker run -p 5432:5432 -p 8088:8088 -e IASQL_ENV=ci --name iasql iasql &
-          while ! curl --output /dev/null --silent --head --fail http://localhost:8088/health; do sleep 1 && echo -n .; done;
+          docker run -p 5432:5432 -e IASQL_ENV=ci --name iasql ghcr.io/iasql/iasql-engine:$GITHUB_SHA &
+          while ! psql postgres://postgres:test@localhost:5432/iasql_metadata -b -q -c "SELECT iasql_engine_health()"; do sleep 1 && echo -n .; done;
 
           # connect `iasql` db to aws account for `apply`
           echo "\nCreating an iasql db..."
-          connectres=$(curl http://localhost:8088/v1/db/connect/iasql)
+          connectres=$(psql "postgres://postgres:test@localhost:5432/iasql_metadata" -t -c "SELECT json_agg(c)->0 FROM iasql_connect('iasql') as c;")
           username=$(jq -r '.user' <<<"$connectres")
           password=$(jq -r '.password' <<<"$connectres")
 
@@ -271,13 +296,16 @@ jobs:
 
           # Delete all records
           echo "\nDelete all records..."
-          psql "postgres://$username:$password@localhost:5432/iasql?ssl=true&sslmode=require" -c "select * from delete_all_records();"
+          psql "postgres://$username:$password@localhost:5432/iasql" -c "select * from delete_all_records();"
 
           echo "\nApply..."
           psql $PSQL_CONN -c "select * from iasql_commit();" ; docker logs $(docker ps -a --filter "name=iasql" --format "{{.Names}}")
 
           # Shut down the engine
           docker container stop iasql
+
+      - name: Install dependencies
+        run: yarn --prefer-offline
 
       - name: Run modules tests
         timeout-minutes: 90
