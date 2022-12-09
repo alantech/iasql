@@ -6,8 +6,33 @@ import { AwsEc2Module } from '..';
 import { AWS } from '../../../services/aws_macros';
 import { Context, RpcBase, RpcResponseObject } from '../../interfaces';
 
+/**
+ * Method for requesting a new EC2 keypair
+ *
+ * Returns following columns:
+ *
+ * - name: The name for the created key
+ * - status: OK if the certificate was imported successfully
+ * - message: Error message in case of failure
+ *
+ * @example
+ * ```sql
+ *   SELECT * FROM certificate_request('fakeDomain.com', 'DNS', 'us-east-2', '');
+ * ```
+ *
+ * @see https://github.com/iasql/iasql-engine/blob/main/test/modules/aws-ec2-integration.ts#L269
+ * @see https://aws.amazon.com/certificate-manager
+ *
+ */
 export class KeyPairRequestRpc extends RpcBase {
+  /**
+   * @internal
+   */
   module: AwsEc2Module;
+
+  /**
+   * @internal
+   */
   outputTable = {
     name: 'varchar',
     status: 'varchar',
@@ -15,6 +40,9 @@ export class KeyPairRequestRpc extends RpcBase {
     privateKey: 'varchar',
   } as const;
 
+  /**
+   * @internal
+   */
   async requestKeyPair(client: EC2, input: CreateKeyPairCommandInput) {
     const res = await client.createKeyPair(input);
     if (res) {

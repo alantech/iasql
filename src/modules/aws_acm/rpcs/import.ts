@@ -26,7 +26,6 @@ import { safeParse } from './common';
  * @see https://aws.amazon.com/certificate-manager
  *
  */
-
 export class CertificateImportRpc extends RpcBase {
   /**
    * @internal
@@ -48,7 +47,7 @@ export class CertificateImportRpc extends RpcBase {
 
   /**
    *
-   * Immports the certificate
+   * Imports the certificate
    */
   // TODO: Can I macro this somehow?
   async importCertificate(client: ACM, input: ImportCertificateCommandInput) {
