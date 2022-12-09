@@ -17,21 +17,51 @@ import { IamRole } from '../../aws_iam/entity';
 import { SecurityGroup } from '../../aws_security_group/entity';
 import { Subnet } from '../../aws_vpc/entity';
 
-// "terminated" is ommittted because that is achieved by deleting the row
-// "pending", "shutting-down", "stopping" are ommitted because they are interim states
+/**
+ * @enum
+ * Different states for the EC2 instance
+ * "terminated" is ommittted because that is achieved by deleting the row
+ * "pending", "shutting-down", "stopping" are ommitted because they are interim states
+ */
 export enum State {
   RUNNING = 'running',
   STOPPED = 'stopped',
   HIBERNATE = 'hibernate',
 }
 
+/**
+ * Table to manage AWS EC2 instances.
+ *
+ * @example
+ * ```sql
+ * INSERT INTO instance (ami, instance_type, tags, subnet_id)
+ *         SELECT '<internal-ami-id>', 't1.small', '{"name":"test-vm"}', id
+ *         FROM subnet
+ *         WHERE availability_zone = 'us-east-1a'
+ *         LIMIT 1;
+ * UPDATE instance SET role_name = 'role_name' WHERE tags ->> 'name' = 'test-vm';
+ * SELECT * FROM instance WHERE tags ->> 'name' = 'test-vm';
+ * DELETE FROM instance  WHERE tags ->> 'name' = 'test-vm';
+ * ```
+ *
+ * @see https://github.com/iasql/iasql-engine/blob/main/test/modules/aws-ec2-integration.ts#L219
+ * @see https://aws.amazon.com/ec2/features
+ */
 @Entity()
 @Check('check_role_ec2', 'role_name IS NULL OR (role_name IS NOT NULL AND check_role_ec2(role_name))')
 @Unique('instance_id_region', ['id', 'region']) // So the General Purpose Volume entity can join on both
 export class Instance {
+  /**
+   * @private
+   * Auto-incremented ID field for storing builds
+   */
   @PrimaryGeneratedColumn()
   id?: number;
 
+  /**
+   * @public
+   * Internal AWS ID for the instance
+   */
   @Column({
     nullable: true,
     comment: 'Unique identifier provided by AWS once the instance is provisioned',
@@ -39,17 +69,36 @@ export class Instance {
   @cloudId
   instanceId?: string;
 
+  /**
+   * @public
+   * Unique identifier for the image to use on the vm.
+   * @see https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AMIs.html
+   */
   @Column()
   ami: string;
 
+  /**
+   * @public
+   * Type of EC2 instance to spin
+   * @see https://aws.amazon.com/es/ec2/instance-types/
+   */
   @Column()
   instanceType: string;
 
+  /**
+   * @public
+   * Name of the keypair to use to SSH into the machine
+   * @see https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-key-pairs.html
+   */
   @Column({
     nullable: true,
   })
   keyPairName: string;
 
+  /**
+   * @public
+   * Current state of the EC2 instance
+   */
   @Column({
     type: 'enum',
     enum: State,
@@ -57,24 +106,44 @@ export class Instance {
   })
   state: State;
 
+  /**
+   * @public
+   * Text blob containing the specific user data to configure the instance
+   * @see https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/user-data.html
+   */
   @Column({
     type: 'text',
     nullable: true,
   })
   userData?: string;
 
+  /**
+   * @public
+   * Complex type to provide identifier tags for the volume
+   * @see https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-ec2/interfaces/createvolumecommandinput.html#tagspecifications
+   */
   @Column({
     type: 'json',
     nullable: true,
   })
   tags?: { [key: string]: string };
 
+  /**
+   * @public
+   * Reference to the security groups configured for that instance
+   * @see https://docs.aws.amazon.com/vpc/latest/userguide/VPC_SecurityGroups.html
+   */
   @ManyToMany(() => SecurityGroup, { eager: true })
   @JoinTable({
     name: 'instance_security_groups',
   })
   securityGroups: SecurityGroup[];
 
+  /**
+   * @public
+   * Specific role name used to spin the instance
+   * @see
+   */
   @ManyToOne(() => IamRole, role => role.roleName, {
     nullable: true,
     eager: true,
@@ -84,6 +153,11 @@ export class Instance {
   })
   role?: IamRole;
 
+  /**
+   * @public
+   * Reference to the subnets where this instance is connected
+   * @see https://docs.aws.amazon.com/vpc/latest/userguide/configure-subnets.html
+   */
   @ManyToOne(() => Subnet, subnet => subnet.id, {
     nullable: true,
     eager: true,
@@ -93,11 +167,20 @@ export class Instance {
   })
   subnet?: Subnet;
 
+  /**
+   * @public
+   * Specifies if the hibernation mode is enabled for the instance
+   * @see https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Hibernate.html
+   */
   @Column({
     default: false,
   })
   hibernationEnabled: boolean;
 
+  /**
+   * @public
+   * Region for the volume
+   */
   @Column({
     type: 'character varying',
     nullable: false,
