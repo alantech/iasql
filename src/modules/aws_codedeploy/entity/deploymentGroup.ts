@@ -5,33 +5,76 @@ import { IamRole } from '../../aws_iam/entity';
 import { CodedeployApplication } from './application';
 import { CodedeployDeployment } from './deployment';
 
+/**
+ * @enum
+ * Set of rules and success and failure conditions used by CodeDeploy during a deployment
+ * @see https://docs.aws.amazon.com/codedeploy/latest/userguide/deployment-configurations.html
+ */
 export enum DeploymentConfigType {
   ALL_AT_ONCE = 'CodeDeployDefault.AllAtOnce',
   HALF_AT_A_TIME = 'CodeDeployDefault.HalfAtATime',
   ONE_AT_A_TIME = 'CodeDeployDefault.OneAtATime',
 }
 
+/**
+ * @enum
+ * Types of filters used for selecting the target instances to associate with the deployment group
+ * @see https://docs.aws.amazon.com/es_es/AWSCloudFormation/latest/UserGuide/aws-properties-codedeploy-deploymentgroup-tagfilter.html
+ */
 export enum EC2TagFilterType {
   KEY_AND_VALUE = 'KEY_AND_VALUE',
   KEY_ONLY = 'KEY_ONLY',
   VALUE_ONLY = 'VALUE_ONLY',
 }
 
+/**
+ * Table to manage AWS CodeDeploy deployment group entities. You can specify one or more deployment groups
+ * for a CodeDeploy application. Each application deployment uses one of its deployment groups.
+ * The deployment group contains settings and configurations used during the deployment.
+ *
+ * @example
+ * ```sql
+ * INSERT INTO codedeploy_deployment_group (application_id, name, role_name) VALUES
+ * ((SELECT id FROM codedeploy_application WHERE name = 'application-name'), 'deployment-group-name', 'role-name');
+ * SELECT * FROM codedeploy_deployment_group WHERE name='deployment-group-name';
+ * DELETE FROM codedeploy_deployment_group WHERE name = 'deployment-group-name'
+ * ```
+ *
+ * @see https://github.com/iasql/iasql-engine/blob/main/test/modules/aws-codedeploy-integration.ts#L419
+ * @see https://docs.aws.amazon.com/codedeploy/latest/userguide/deployment-groups.html
+ *
+ */
 @Unique('uq_codedeploydeploymentgroup_id_region', ['id', 'region'])
 @Unique('uq_codedeploydeploymentgroup_name_region', ['name', 'region'])
 @Entity()
 export class CodedeployDeploymentGroup {
+  /**
+   * @private
+   * Auto-incremented ID field for storing builds
+   */
   @PrimaryGeneratedColumn()
   id: number;
 
+  /**
+   * @public
+   * Name for the Codedeploy deployment group
+   */
   @Column()
   name: string;
 
+  /**
+   * @public
+   * Internal AWS ID for the deployment group
+   */
   @Column({
     nullable: true,
   })
   deploymentGroupId?: string;
 
+  /**
+   * @public
+   * Reference for the application to where this deployment group belongs
+   */
   @ManyToOne(() => CodedeployApplication, {
     eager: true,
     nullable: false,
@@ -48,6 +91,10 @@ export class CodedeployDeploymentGroup {
   ])
   application: CodedeployApplication;
 
+  /**
+   * @public
+   * Deployment model to follow
+   */
   @Column({
     type: 'enum',
     enum: DeploymentConfigType,
@@ -55,6 +102,11 @@ export class CodedeployDeploymentGroup {
   })
   deploymentConfigName: DeploymentConfigType;
 
+  /**
+   * @public
+   * Complex type used to filter the instances where the application will be deployed
+   * @see https://docs.aws.amazon.com/codedeploy/latest/userguide/instances-tagging.html
+   */
   @Column({
     type: 'json',
     nullable: true,
@@ -65,6 +117,10 @@ export class CodedeployDeploymentGroup {
     Value: string | undefined;
   }[];
 
+  /**
+   * @public
+   * Reference for the AWS role used by this deployment group
+   */
   @ManyToOne(() => IamRole, role => role.roleName, {
     nullable: true,
     eager: true,
@@ -74,12 +130,20 @@ export class CodedeployDeploymentGroup {
   })
   role?: IamRole;
 
+  /**
+   * @public
+   * List of the current deployments associated to this group
+   */
   @OneToMany(() => CodedeployDeployment, deployments => deployments.deploymentGroup, {
     nullable: true,
     cascade: true,
   })
   deployments?: CodedeployDeployment[];
 
+  /**
+   * @public
+   * Region for the Codedeploy deployment group
+   */
   @Column({
     type: 'character varying',
     nullable: false,

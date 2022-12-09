@@ -5,6 +5,11 @@ import { AwsRegions } from '../../aws_account/entity';
 import { CodedeployApplication } from './application';
 import { CodedeployDeploymentGroup } from './deploymentGroup';
 
+/**
+ * @enum
+ * Status of the current deployment
+ * @see https://docs.aws.amazon.com/codedeploy/latest/APIReference/API_DeploymentInfo.html
+ */
 export enum DeploymentStatusEnum {
   BAKING = 'Baking',
   CREATED = 'Created',
@@ -16,18 +21,43 @@ export enum DeploymentStatusEnum {
   SUCCEEDED = 'Succeeded',
 }
 
+/**
+ * @enum
+ * Type of source code where to get the application configuration. Currently S3 and Github are supported
+ */
 export enum RevisionType {
   S3 = 'S3',
   GITHUB = 'GitHub',
 }
 
+/**
+ * Table to list existing AWS CodeDeploy deployments. A deployment is the process, and the components involved in the process,
+ * of installing content on one or more instances.
+ *
+ * @example
+ * ```sql
+ * SELECT * FROM codedeploy_deployment WHERE application_id = (SELECT id FROM codedeploy_application WHERE name = 'application_name');
+ * ```
+ *
+ * @see https://github.com/iasql/iasql-engine/blob/main/test/modules/aws-codedeploy-integration.ts#L595
+ * @see https://docs.aws.amazon.com/codedeploy/latest/userguide/deployments.html
+ *
+ */
 @Unique('uq_codedeploydeployment_id_region', ['id', 'region'])
 @Unique('uq_codedeploydeployment_deploymentid_region', ['deploymentId', 'region'])
 @Entity()
 export class CodedeployDeployment {
+  /**
+   * @private
+   * Auto-incremented ID field for storing builds
+   */
   @PrimaryGeneratedColumn()
   id: number;
 
+  /**
+   * @public
+   * Internal AWS ID for the deployment
+   */
   @Column({
     nullable: true,
     unique: true,
@@ -35,6 +65,10 @@ export class CodedeployDeployment {
   @cloudId
   deploymentId?: string;
 
+  /**
+   * @public
+   * Reference for the application to where the deployment belongs
+   */
   @ManyToOne(() => CodedeployApplication, {
     eager: true,
     nullable: false,
@@ -51,6 +85,10 @@ export class CodedeployDeployment {
   ])
   application: CodedeployApplication;
 
+  /**
+   * @public
+   * Reference for the deployment group to where the deployment belongs
+   */
   @ManyToOne(() => CodedeployDeploymentGroup, {
     eager: true,
     nullable: false,
@@ -68,16 +106,29 @@ export class CodedeployDeployment {
   ])
   deploymentGroup: CodedeployDeploymentGroup;
 
+  /**
+   * @public
+   * Description to identify the deployment group
+   */
   @Column({
     nullable: true,
   })
   description?: string;
 
+  /**
+   * @public
+   * The unique ID for an external resource (for example, a CloudFormation stack ID) that is linked to this deployment.
+   * @see https://docs.aws.amazon.com/codedeploy/latest/APIReference/API_DeploymentInfo.html
+   */
   @Column({
     nullable: true,
   })
   externalId?: string;
 
+  /**
+   * @public
+   * Current status of the deployment
+   */
   @Column({
     nullable: true,
     type: 'enum',
@@ -85,6 +136,12 @@ export class CodedeployDeployment {
   })
   status?: DeploymentStatusEnum;
 
+  /**
+   * @public
+   * Complex type to identified the location used by the deployment. It has specific configurations
+   * for Github or S3
+   * @see https://docs.aws.amazon.com/codedeploy/latest/APIReference/API_RevisionLocation.html
+   */
   @Column({
     nullable: true,
     type: 'json',
@@ -106,6 +163,10 @@ export class CodedeployDeployment {
       | undefined;
   };
 
+  /**
+   * @public
+   * Region for the Codedeploy deployment
+   */
   @Column({
     type: 'character varying',
     nullable: false,
