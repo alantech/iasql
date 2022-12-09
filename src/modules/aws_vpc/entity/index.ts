@@ -6,3 +6,6 @@ export * from './endpoint_interface';
 export * from './nat_gateway';
 export * from './subnet';
 export * from './vpc';
+export * from './route_table';
+export * from './route';
+export * from './route_table_association';

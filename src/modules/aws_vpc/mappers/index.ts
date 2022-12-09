@@ -6,3 +6,5 @@ export * from './nat_gateway';
 export * from './subnet';
 export * from './vpc';
 export * from './peering_connection';
+export * from './route_table';
+export * from './route_table_association';

@@ -5,6 +5,8 @@ import {
   EndpointGatewayMapper,
   EndpointInterfaceMapper,
   NatGatewayMapper,
+  RouteTableAssociationMapper,
+  RouteTableMapper,
   SubnetMapper,
   VpcMapper,
   PeeringConnectionMapper,
@@ -19,6 +21,8 @@ export class AwsVpcModule extends ModuleBase {
   endpointInterface: EndpointInterfaceMapper;
   availabilityZone: AvailabilityZoneMapper;
   peeringConnection: PeeringConnectionMapper;
+  routeTable: RouteTableMapper;
+  routeTableAssociation: RouteTableAssociationMapper;
 
   constructor() {
     super();
@@ -30,6 +34,8 @@ export class AwsVpcModule extends ModuleBase {
     this.endpointInterface = new EndpointInterfaceMapper(this);
     this.availabilityZone = new AvailabilityZoneMapper(this);
     this.peeringConnection = new PeeringConnectionMapper(this);
+    this.routeTable = new RouteTableMapper(this);
+    this.routeTableAssociation = new RouteTableAssociationMapper(this);
     super.init();
   }
 }
