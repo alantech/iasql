@@ -1376,6 +1376,17 @@ describe('VPC Integration Testing', () => {
     'deletes the second vpc',
     query(
       `
+      DELETE FROM security_group_rule
+      WHERE security_group_id = (
+          SELECT id
+          FROM security_group
+          WHERE vpc_id = (
+              SELECT id
+              FROM vpc
+              WHERE cidr_block = '176.${randIPBlock}.0.0/16'
+                AND tags ->> 'name' = '${prefix}-peering-vpc'
+          )
+      );
       WITH vpc as (SELECT id
                    FROM vpc
                    WHERE cidr_block = '176.${randIPBlock}.0.0/16'
