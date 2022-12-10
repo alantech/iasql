@@ -5,7 +5,14 @@ import { Context, RpcBase, RpcResponseObject } from '../../interfaces';
  * @internal
  */
 export class IasqlApply extends RpcBase {
+  /**
+   * @internal
+   */
   module: IasqlFunctions;
+
+  /**
+   * @internal
+   */
   outputTable = {
     action: 'varchar',
     table_name: 'varchar',
