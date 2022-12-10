@@ -20,32 +20,80 @@ import { Context, RpcBase, RpcResponseObject } from '../../interfaces';
 import { Repository, RepositoryImage } from '../entity';
 import { AwsEcrModule } from '../index';
 
+/**
+ * Method to build an image associated to an especific ECR repository
+ *
+ * Returns following columns:
+ * - imageId: Internal AWS ID for the generated image
+ *
+ * Accepts the following parameters:
+ * - githubRepoUrl: URL where to get the source code for the build
+ * - ecrRepositoryId: ID fot the repository where to push the image
+ * - buildPath: Internal path on the Github repo where to read the buildspec
+ * - githubRef: Git reference for the source code repo
+ * - githubPersonalAccessToken: Personal Access Token used to access private repositories
+ *
+ * @example
+ * ```sql
+ *   SELECT ecr_build('https://github.com/iasql/docker-helloworld',
+ * (SELECT id FROM repository WHERE repository_name = '${repositoryName}')::varchar(255), '.', 'main', '<personal_access_token>');
+ * ```
+ *
+ * @see https://github.com/iasql/iasql-engine/blob/b2c2383b73d73f5cdf75c867d334e80cdf40caa1/test/modules/aws-ecr-build-integration.ts#L104
+ * @see https://docs.aws.amazon.com/codebuild/latest/userguide/sample-ecr.html
+ *
+ */
 export class EcrBuildRpc extends RpcBase {
+  /**
+   * @internal
+   */
   module: AwsEcrModule;
+
+  /**
+   * @internal
+   */
   outputTable = {
     imageId: 'varchar',
   } as const;
 
+  /**
+   * @internal
+   */
   importSourceCredentials = crudBuilderFormat<CodeBuild, 'importSourceCredentials', string | undefined>(
     'importSourceCredentials',
     input => input,
     res => res?.arn,
   );
+
+  /**
+   * @internal
+   */
   deleteSourceCredentials = crudBuilder2<CodeBuild, 'deleteSourceCredentials'>(
     'deleteSourceCredentials',
     input => input,
   );
 
+  /**
+   * @internal
+   */
   createProject = crudBuilderFormat<CodeBuild, 'createProject', Project | undefined>(
     'createProject',
     input => input,
     res => res?.project,
   );
+
+  /**
+   * @internal
+   */
   startBuild = crudBuilderFormat<CodeBuild, 'startBuild', Build | undefined>(
     'startBuild',
     input => input,
     res => res?.build,
   );
+
+  /**
+   * @internal
+   */
   deleteProject = crudBuilder2<CodeBuild, 'deleteProject'>('deleteProject', input => input);
   async waitForBuildsToComplete(client: CodeBuild, ids: string[]) {
     // wait for policies to be attached
@@ -79,6 +127,9 @@ export class EcrBuildRpc extends RpcBase {
     );
   }
 
+  /**
+   * @internal
+   */
   call = async (
     _dbId: string,
     _dbUser: string,
