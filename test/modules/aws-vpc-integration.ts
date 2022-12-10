@@ -1396,6 +1396,16 @@ describe('VPC Integration Testing', () => {
           USING vpc
       WHERE vpc_id = vpc.id;
 
+      WITH vpc as (
+          SELECT id
+          FROM vpc
+          WHERE cidr_block = '176.${randIPBlock}.0.0/16'
+            AND tags ->> 'name' = '${prefix}-peering-vpc'
+      )
+      DELETE FROM subnet
+          USING vpc
+      WHERE vpc_id = vpc.id;
+
       DELETE
       FROM vpc
       WHERE cidr_block = '176.${randIPBlock}.0.0/16';
