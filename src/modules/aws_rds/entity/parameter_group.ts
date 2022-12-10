@@ -5,9 +5,12 @@ import { Parameter } from '@aws-sdk/client-rds';
 import { cloudId } from '../../../services/cloud-id';
 import { AwsRegions } from '../../aws_account/entity';
 
-// Enum generated executing the command
-// aws rds describe-db-engine-versions --query "DBEngineVersions[].DBParameterGroupFamily"
-// generating a set, and then replacing '-' and '.' with '_' for the keys.
+/**
+ * @enum
+ * Specifies the type of database engine
+ * Enum generated executing the command
+ * aws rds describe-db-engine-versions --query "DBEngineVersions[].DBParameterGroupFamily"
+ */
 export enum ParameterGroupFamily {
   AURORA_MYSQL5_7 = 'aurora-mysql5.7',
   AURORA_MYSQL8_0 = 'aurora-mysql8.0',
@@ -58,38 +61,81 @@ export enum ParameterGroupFamily {
   SQLSERVER_WEB_15_0 = 'sqlserver-web-15.0',
 }
 
+/**
+ * Table to manage AWS RDS parameter groups
+ *
+ * @example
+ * ```sql
+ * INSERT INTO parameter_group (name, family, description) VALUES ('pg_name', 'postgres14', 'description');
+ * SELECT params ->> 'ParameterValue' as value FROM parameter_group, jsonb_array_elements(parameters) as params
+ * WHERE name = 'pg_name' AND params ->> 'DataType' = 'boolean' AND params ->> 'IsModifiable' = 'true';
+ * DELETE FROM parameter_group WHERE name = 'pg_name';
+ * ```
+ *
+ * @see https://github.com/iasql/iasql-engine/blob/b2c2383b73d73f5cdf75c867d334e80cdf40caa1/test/modules/aws-rds-integration.ts#L202
+ * @see https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_WorkingWithParamGroups.html
+ */
 @Entity()
 @Unique('paragrp_name_region', ['name', 'region'])
 @Unique('paragrp_id_region', ['id', 'region']) // So the RDS entity can join on both
 export class ParameterGroup {
+  /**
+   * @private
+   * Auto-incremented ID field for EC2 instance
+   */
   @PrimaryGeneratedColumn()
   id?: number;
 
+  /**
+   * @public
+   * Name for the parameter group
+   */
   @cloudId
   @Column()
   name: string;
 
+  /**
+   * @public
+   * AWS ARN for the parameter group
+   */
   @Column({
     unique: true,
     nullable: true,
   })
   arn?: string;
 
+  /**
+   * @public
+   * Family for the parameter group
+   */
   @Column({
     type: 'enum',
     enum: ParameterGroupFamily,
   })
   family: ParameterGroupFamily;
 
+  /**
+   * @public
+   * Description for the parameter group
+   */
   @Column()
   description: string;
 
+  /**
+   * @public
+   * Complex type to represent the list of parameters for the group
+   * @see https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_ParamValuesRef.html
+   */
   @Column({
     type: 'jsonb',
     nullable: true,
   })
   parameters?: Parameter[];
 
+  /**
+   * @public
+   * Region for the instance
+   */
   @Column({
     type: 'character varying',
     nullable: false,
