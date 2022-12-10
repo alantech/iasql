@@ -3,8 +3,34 @@ import { TypeormWrapper } from '../../../services/typeorm';
 import { Context, RpcBase, RpcResponseObject } from '../../interfaces';
 import * as iasql from '../iasql';
 
+/**
+ * Method to install the IaSQL modules provided by the engine
+ *
+ * Returns following columns:
+ * - module_name: Name of the module that was installed
+ * - created_table_name: Name of the associated table that was created
+ * - record_count: Total of registers added
+ *
+ * Accepts the following parameters:
+ * - list of modules to install
+ *
+ * @example
+ * ```sql
+ * SELECT * FROM iasql_install('aws_account');
+ * ```
+ *
+ * @see https://github.com/iasql/iasql-engine/blob/main/site/docs/reference/function.md
+ *
+ */
 export class IasqlInstall extends RpcBase {
+  /**
+   * @internal
+   */
   module: IasqlFunctions;
+
+  /**
+   * @internal
+   */
   outputTable = {
     module_name: 'varchar',
     created_table_name: 'varchar',

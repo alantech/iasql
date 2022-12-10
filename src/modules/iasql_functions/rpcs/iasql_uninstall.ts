@@ -3,8 +3,34 @@ import { TypeormWrapper } from '../../../services/typeorm';
 import { Context, RpcBase, RpcResponseObject } from '../../interfaces';
 import * as iasql from '../iasql';
 
+/**
+ * Method to uninstall the IaSQL modules provided by the engine
+ *
+ * Returns following columns:
+ * - module_name: Name of the module that was uninstalled
+ * - dropped_table_name: Name of the associated table that was deleted
+ * - record_count: Total of registers deleted
+ *
+ * Accepts the following parameters:
+ * - list of modules to uninstall
+ *
+ * @example
+ * ```sql
+ * SELECT * FROM iasql_uninstall('aws_account');
+ * ```
+ *
+ * @see https://github.com/iasql/iasql-engine/blob/main/site/docs/reference/function.md
+ *
+ */
 export class IasqlUninstall extends RpcBase {
+  /**
+   * @internal
+   */
   module: IasqlFunctions;
+
+  /**
+   * @internal
+   */
   outputTable = {
     module_name: 'varchar',
     dropped_table_name: 'varchar',

@@ -2,8 +2,18 @@ import { IasqlFunctions } from '..';
 import { Context, RpcBase, RpcResponseObject } from '../../interfaces';
 import * as iasql from '../iasql';
 
+/**
+ * @internal
+ */
 export class IasqlRollback extends RpcBase {
+  /**
+   * @internal
+   */
   module: IasqlFunctions;
+
+  /**
+   * @internal
+   */
   outputTable = {
     action: 'varchar',
     table_name: 'varchar',

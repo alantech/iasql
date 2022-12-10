@@ -1,6 +1,9 @@
 import { IasqlFunctions } from '..';
 import { Context, RpcBase, RpcResponseObject } from '../../interfaces';
 
+/**
+ * @internal
+ */
 export class IasqlApply extends RpcBase {
   module: IasqlFunctions;
   outputTable = {

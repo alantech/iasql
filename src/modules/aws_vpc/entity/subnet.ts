@@ -6,18 +6,45 @@ import { AvailabilityZone } from './availability_zone';
 import { RouteTableAssociation } from './route_table_association';
 import { Vpc } from './vpc';
 
+/**
+ * @enum
+ * Different states for the subnet. It can be 'available' or 'pending'
+ */
 export enum SubnetState {
   AVAILABLE = 'available',
   PENDING = 'pending',
 }
 
+/**
+ * Table to manage AWS subnet entries.
+ * A subnet is a range of IP addresses in your VPC. You can launch AWS resources into a specified subnet.
+ * Use a public subnet for resources that must be connected to the internet, and a private subnet for
+ * resources that won't be connected to the internet.
+ *
+ * @example
+ * ```sql
+ *  INSERT INTO subnet (availability_zone, vpc_id, cidr_block) SELECT 'us-east-1a', id, '192.0.0.0/16'
+ * FROM vpc WHERE is_default = false AND cidr_block = '192.0.0.0/16';
+ * ```
+ *
+ * @see https://github.com/iasql/iasql-engine/blob/main/test/modules/aws-vpc-integration.ts#L198
+ * @see https://docs.aws.amazon.com/vpc/latest/userguide/configure-subnets.html
+ */
 @Unique('uq_subnet_region', ['id', 'region'])
 @Unique('uq_subnet_id_region', ['subnetId', 'region'])
 @Entity()
 export class Subnet {
+  /**
+   * @private
+   * Auto-incremented ID field for the subnet
+   */
   @PrimaryGeneratedColumn()
   id: number;
 
+  /**
+   * @public
+   * Reference to the availability zone associated with this subnet
+   */
   @ManyToOne(() => AvailabilityZone, { nullable: false, eager: true })
   @JoinColumn([
     {
@@ -31,6 +58,10 @@ export class Subnet {
   ])
   availabilityZone: AvailabilityZone;
 
+  /**
+   * @public
+   * Current state of the subnet
+   */
   @Column({
     nullable: true,
     type: 'enum',
@@ -38,6 +69,10 @@ export class Subnet {
   })
   state?: SubnetState;
 
+  /**
+   * @public
+   * Reference to the VPC associated with this subnet
+   */
   @ManyToOne(() => Vpc, { nullable: false, eager: true })
   @JoinColumn([
     {
@@ -51,38 +86,67 @@ export class Subnet {
   ])
   vpc: Vpc;
 
+  /**
+   * @public
+   * The number of IPv4 addresses in the subnet that are available.
+   */
   @Column({
     nullable: true,
     type: 'int',
   })
   availableIpAddressCount?: number;
 
+  /**
+   * @public
+   * The IPv4 CIDR block of the subnet. The CIDR block you specify must exactly match the subnet's CIDR block
+   * for information to be returned for the subnet. You can also use cidr or cidrBlock as the filter names.
+   */
   @Column({
     nullable: true,
   })
   cidrBlock?: string;
 
+  /**
+   * @public
+   * AWS ID used to identify the subnet
+   */
   @Column({
     nullable: true,
   })
   @cloudId
   subnetId?: string;
 
+  /**
+   * @public
+   * The AWS account ID for the owner of this subnet
+   */
   @Column({
     nullable: true,
   })
   ownerId?: string;
 
+  /**
+   * @public
+   * AWS ARN used to identify the subnet
+   */
   @Column({
     nullable: true,
   })
   subnetArn?: string;
 
+  /**
+   * @public
+   * Reference to the route table associations for this subnet
+   */
   @OneToMany(() => RouteTableAssociation, rta => rta.routeTable, {
     nullable: true,
   })
   explicitRouteTableAssociations?: RouteTableAssociation[];
 
+  /**
+   * @public
+   * Reference to the region where it belongs
+   */
   @Column({
     type: 'character varying',
     nullable: false,

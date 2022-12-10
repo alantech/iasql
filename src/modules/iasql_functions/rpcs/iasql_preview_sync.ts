@@ -1,8 +1,18 @@
 import { IasqlFunctions } from '..';
 import { Context, RpcBase, RpcResponseObject } from '../../interfaces';
 
+/**
+ * @internal
+ */
 export class IasqlPreviewSync extends RpcBase {
+  /**
+   * @internal
+   */
   module: IasqlFunctions;
+
+  /**
+   * @internal
+   */
   outputTable = {
     action: 'varchar',
     table_name: 'varchar',
