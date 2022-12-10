@@ -27,7 +27,6 @@ import { cloudId } from '../../../services/cloud-id';
  * @see https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles.html
  * TODO complete schema
  */
-
 @Entity()
 export class IamRole {
   /**

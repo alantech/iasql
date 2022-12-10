@@ -2,6 +2,9 @@ import { ModuleBase } from '../interfaces';
 import { LambdaFunctionMapper } from './mappers';
 import { LambdaFunctionInvokeRpc } from './rpcs';
 
+/**
+ * @internal
+ */
 export class AwsLambdaModule extends ModuleBase {
   lambdaFunction: LambdaFunctionMapper;
   invokeLambda: LambdaFunctionInvokeRpc;

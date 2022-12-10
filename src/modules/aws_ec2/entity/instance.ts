@@ -53,7 +53,7 @@ export enum State {
 export class Instance {
   /**
    * @private
-   * Auto-incremented ID field for storing builds
+   * Auto-incremented ID field for EC2 instance
    */
   @PrimaryGeneratedColumn()
   id?: number;
@@ -119,7 +119,7 @@ export class Instance {
 
   /**
    * @public
-   * Complex type to provide identifier tags for the volume
+   * Complex type to provide identifier tags for the instance
    * @see https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-ec2/interfaces/createvolumecommandinput.html#tagspecifications
    */
   @Column({
