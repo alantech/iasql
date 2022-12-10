@@ -179,7 +179,7 @@ export class Instance {
 
   /**
    * @public
-   * Region for the volume
+   * Region for the instance
    */
   @Column({
     type: 'character varying',
