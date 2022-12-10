@@ -21,3 +21,22 @@ export async function updateTags(client: EC2, resourceId: string, tags?: { [key:
     Tags: tgs,
   });
 }
+
+export function convertTagsFromAws(inputTags?: Tag[]) {
+  const tags: { [key: string]: any } = {};
+  (inputTags || [])
+    .filter(t => t.hasOwnProperty('Key') && t.hasOwnProperty('Value'))
+    .forEach(t => {
+      tags[t.Key as string] = t.Value;
+    });
+  return tags;
+}
+
+export function convertTagsForAws(tags: { [key: string]: string }) {
+  return Object.keys(tags).map(k => {
+    return {
+      Key: k,
+      Value: tags[k],
+    };
+  });
+}
