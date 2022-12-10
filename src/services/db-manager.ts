@@ -39,7 +39,8 @@ function randomHexValue() {
 }
 
 export function genDbId(dbAlias: string) {
-  return config.auth ? `_${randomHexValue()}` : dbAlias;
+  // TODO: Find a better way to distinguish multi-user vs single-user situations
+  return config.sentry ? `_${randomHexValue()}` : dbAlias;
 }
 
 function getGroupRole(dbId: string) {

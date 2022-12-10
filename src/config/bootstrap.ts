@@ -18,9 +18,6 @@ const config: ConfigInterface = {
     test: false,
     forceLocal: false,
   },
-  cors: {
-    origin: 'http://localhost:3000',
-  },
 };
 
 export default config;

@@ -1,6 +1,5 @@
 import * as express from 'express';
-import { Response } from 'express';
-import { Request } from 'express-jwt';
+import { Request, Response } from 'express';
 import { default as cloneDeep } from 'lodash.clonedeep';
 import { v4 as uuidv4 } from 'uuid';
 
