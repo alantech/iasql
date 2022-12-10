@@ -10,10 +10,10 @@ const sha = execSync('git rev-parse HEAD', { encoding: 'utf8' }).trim();
 beforeAll(() => {
   // Build the docker containers
   execSync('docker build -t iasql:latest .');
-  execSync('docker run -p 5432:5432 -e IASQL_ENV=ci --name iasql -d iasql');
+  execSync('docker run -p 5432:5432 -p 8088:8088 -e IASQL_ENV=ci --name iasql -d iasql');
   // Wait for them to be usable
   execSync(
-    'while ! psql postgres://postgres:test@localhost:5432/iasql_metadata -b -q -c "SELECT iasql_engine_health()"; do sleep 1 && echo -n .; done;',
+    'while ! curl --output /dev/null --silent --head --fail http://localhost:8088/health; do sleep 1 && echo -n .; done;',
   );
 });
 
@@ -29,41 +29,44 @@ describe('Basic integration testing', () => {
   it('should run new correctly', () => {
     // `execSync` throws on error, so this should be good
     execSync(`
-      psql \
-      "postgres://postgres:test@localhost:5432/iasql_metadata" \
-      -t \
-      -c \
-      "SELECT json_agg(c)->0 FROM iasql_connect('__${sha}__') as c;"
+      curl \
+      --request POST \
+      --url 'http://localhost:8088/v1/db/connect/' \
+      --show-error --silent --fail \
+      --header 'content-type: application/json' \
+      --data '{
+        "dbAlias": "__${sha}__"
+      }'
     `);
   });
 
   it('should run export correctly', () => {
     execSync(`
-      psql \
-      "postgres://postgres:test@localhost:5432/iasql_metadata" \
-      -t \
-      -c \
-      "SELECT iasql_export('__${sha}__', false);"
+      curl \
+        -X POST \
+        -H 'Content-Type: application/json' \
+        -f \
+        -s \
+        -S http://localhost:8088/v1/db/export \
+        -d '{"dbAlias": "__${sha}__"}'
     `);
   });
 
   it('should run list correctly', () => {
     execSync(`
-      psql \
-      "postgres://postgres:test@localhost:5432/iasql_metadata" \
-      -t \
-      -c \
-      "SELECT * FROM iasql_db_list();"
+      curl \
+        -f \
+        -s \
+        -S http://localhost:8088/v1/db/list
     `);
   });
 
   it('should run remove correctly', () => {
     execSync(`
-      psql \
-      "postgres://postgres:test@localhost:5432/iasql_metadata" \
-      -t \
-      -c \
-      "SELECT iasql_disconnect('__${sha}__');"
+      curl \
+        -f \
+        -s \
+        -S http://localhost:8088/v1/db/disconnect/__${sha}__
     `);
   });
 });

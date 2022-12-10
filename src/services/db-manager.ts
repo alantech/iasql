@@ -62,8 +62,8 @@ export const baseConnConfig: PostgresConnectionOptions = {
 export function newPostgresRoleQuery(user: string, pass: string, dbId: string) {
   return `
     CREATE ROLE ${user} LOGIN PASSWORD '${pass}';
-    GRANT CONNECT ON DATABASE ${dbId} TO "${user}";
-    GRANT CREATE ON SCHEMA public TO "${user}";
+    GRANT CONNECT ON DATABASE ${dbId} TO ${user};
+    GRANT CREATE ON SCHEMA public TO ${user};
   `;
 }
 
@@ -86,7 +86,7 @@ export function grantPostgresGroupRoleQuery(user: string, dbId: string) {
     GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO ${groupRole};
     GRANT EXECUTE ON ALL PROCEDURES IN SCHEMA public TO ${groupRole};
     GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO ${groupRole};
-    GRANT ${groupRole} to "${user}";
+    GRANT ${groupRole} to ${user};
   `;
 }
 
@@ -152,6 +152,18 @@ export function ourPgUrl(dbId: string): string {
   return `postgres://${encodeURIComponent(config.db.user)}:${encodeURIComponent(config.db.password)}@${
     config.db.host
   }/${dbId}`;
+}
+
+export function getEmail(user: any): string {
+  // following the format for this auth0 rule
+  // https://manage.auth0.com/dashboard/us/iasql/rules/rul_D2HobGBMtSmwUNQm
+  // more context here https://community.auth0.com/t/include-email-in-jwt/39778/4
+  return config.auth ? user[`${config.auth.domain}email`] : 'hello@iasql.com';
+}
+
+// TODO type user
+export function getUid(user: any): string {
+  return config.auth ? user.sub : 'iasql';
 }
 
 export function setUpDblink(dbId: string) {

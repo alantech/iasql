@@ -55,8 +55,8 @@ jobs:
       - name: Start local iasql engine
         run: |
           # Temporarily export the engine port until it's only the Postgres port needed
-          docker run -p 5432:5432 -e IASQL_ENV=ci --name iasql iasql &
-          while ! psql postgres://postgres:test@localhost:5432/iasql_metadata -b -q -c "SELECT iasql_engine_health()"; do sleep 1 && echo -n .; done;
+          docker run -p 5432:5432 -p 8088:8088 -e IASQL_ENV=ci --name iasql iasql &
+          while ! curl --output /dev/null --silent --head --fail http://localhost:8088/health; do sleep 1 && echo -n .; done;
 
       - name: Determine Test Account To Use
         id: determine-test-account
@@ -89,9 +89,9 @@ jobs:
           export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
           export AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
           echo "\nStart transaction..."
-          psql "postgres://$IASQL_USERNAME:$IASQL_PASSWORD@localhost:5432/iasql" -c "select * from iasql_begin();"
+          psql "postgres://$IASQL_USERNAME:$IASQL_PASSWORD@localhost:5432/iasql?ssl=true&sslmode=require" -c "select * from iasql_begin();"
           echo "\nDelete all records..."
-          psql "postgres://$IASQL_USERNAME:$IASQL_PASSWORD@localhost:5432/iasql" -c "select * from delete_all_records();"
+          psql "postgres://$IASQL_USERNAME:$IASQL_PASSWORD@localhost:5432/iasql?ssl=true&sslmode=require" -c "select * from delete_all_records();"
           echo "\nApply..."
           psql $PSQL_CONN -c "select * from iasql_commit();"
         env:
@@ -101,7 +101,7 @@ jobs:
           SECRET_ACCESS_KEYS: ${{ secrets.SECRET_ACCESS_KEYS }}
           IASQL_USERNAME: ${{ env.iasql_username }}
           IASQL_PASSWORD: ${{ env.iasql_password }}
-          PSQL_CONN: postgres://postgres:test@localhost:5432/iasql
+          PSQL_CONN: postgres://postgres:test@localhost:5432/iasql?ssl=true&sslmode=require
 
       - name: Run deploy script
         run: |
@@ -128,9 +128,9 @@ jobs:
           export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
           export AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
           echo "\nStart transaction..."
-          psql "postgres://$IASQL_USERNAME:$IASQL_PASSWORD@localhost:5432/iasql" -c "select * from iasql_begin();"
+          psql "postgres://$IASQL_USERNAME:$IASQL_PASSWORD@localhost:5432/iasql?ssl=true&sslmode=require" -c "select * from iasql_begin();"
           echo "\nDelete all records..."
-          psql "postgres://$IASQL_USERNAME:$IASQL_PASSWORD@localhost:5432/iasql" -c "select * from delete_all_records();"
+          psql "postgres://$IASQL_USERNAME:$IASQL_PASSWORD@localhost:5432/iasql?ssl=true&sslmode=require" -c "select * from delete_all_records();"
           echo "\nApply..."
           psql $PSQL_CONN -c "select * from iasql_commit();"
         env:
@@ -140,7 +140,7 @@ jobs:
           SECRET_ACCESS_KEYS: ${{ secrets.SECRET_ACCESS_KEYS }}
           IASQL_USERNAME: ${{ env.iasql_username }}
           IASQL_PASSWORD: ${{ env.iasql_password }}
-          PSQL_CONN: postgres://postgres:test@localhost:5432/iasql
+          PSQL_CONN: postgres://postgres:test@localhost:5432/iasql?ssl=true&sslmode=require
 
       - name: Return test account
         if: always()

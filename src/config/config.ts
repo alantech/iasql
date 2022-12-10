@@ -1,7 +1,6 @@
 export interface ConfigInterface {
   // Configuration for the http server itself
   http: {
-    host: string;
     port: number;
   };
   // Configuration for the postgres database
@@ -11,6 +10,7 @@ export interface ConfigInterface {
     password: string; // For the server's own user
     port: number;
     forceSSL: boolean;
+    sqlViaRest: boolean; // Enables a REST endpoint to run SQL commands via HTTPS
   };
   // Configuration for server logging
   logger: {

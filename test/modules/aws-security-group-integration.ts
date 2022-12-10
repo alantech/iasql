@@ -954,7 +954,7 @@ describe('Security Group install/uninstall', () => {
     select * from iasql_install('aws_security_group', 'aws_vpc');
   `,
       (res: any[]) => {
-        expect(res.length).toBe(14);
+        expect(res.length).toBe(11);
       },
     ),
   );
@@ -966,7 +966,7 @@ describe('Security Group install/uninstall', () => {
     select * from iasql_uninstall('aws_security_group', 'aws_vpc');
   `,
       (res: any[]) => {
-        expect(res.length).toBe(14);
+        expect(res.length).toBe(11);
       },
     ),
   );
@@ -1033,26 +1033,9 @@ describe('Security Group install/uninstall', () => {
     'deletes the vpc',
     query(
       `
-          WITH vpc as (SELECT id
-                       FROM vpc
-                       WHERE cidr_block = '192.${randIPBlock}.0.0/24')
-          DELETE
-          FROM route_table_association
-              USING vpc
-          WHERE vpc_id = vpc.id;
-
-          WITH vpc as (SELECT id
-                       FROM vpc
-                       WHERE cidr_block = '192.${randIPBlock}.0.0/24')
-          DELETE
-          FROM route_table
-              USING vpc
-          WHERE vpc_id = vpc.id;
-
-          DELETE
-          FROM vpc
-          WHERE cidr_block = '192.${randIPBlock}.0.0/16';
-      `,
+    DELETE FROM vpc
+    WHERE cidr_block = '192.${randIPBlock}.0.0/16';
+  `,
       undefined,
       true,
       () => ({ username, password }),

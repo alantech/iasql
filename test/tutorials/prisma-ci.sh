@@ -34,7 +34,7 @@ echo "\nRun script"
 node index.js
 
 echo "\nGet DNS name..."
-export DNS_NAME=$(psql "postgres://postgres:test@localhost:5432/iasql" -AXqtc "
+export DNS_NAME=$(psql "postgres://postgres:test@localhost:5432/iasql?ssl=true&sslmode=require" -AXqtc "
 SELECT load_balancer_dns
 FROM ecs_simplified
 WHERE app_name = 'quickstart';");

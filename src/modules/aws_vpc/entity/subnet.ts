@@ -1,9 +1,8 @@
-import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn, Unique } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, Unique } from 'typeorm';
 
 import { cloudId } from '../../../services/cloud-id';
 import { AwsRegions } from '../../aws_account/entity';
 import { AvailabilityZone } from './availability_zone';
-import { RouteTableAssociation } from './route_table_association';
 import { Vpc } from './vpc';
 
 export enum SubnetState {
@@ -77,11 +76,6 @@ export class Subnet {
     nullable: true,
   })
   subnetArn?: string;
-
-  @OneToMany(() => RouteTableAssociation, rta => rta.routeTable, {
-    nullable: true,
-  })
-  explicitRouteTableAssociations?: RouteTableAssociation[];
 
   @Column({
     type: 'character varying',

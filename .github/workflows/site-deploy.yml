@@ -3,9 +3,9 @@ name: SITE DEPLOY
 on:
   push:
     branches: [main]
-    paths: ['site/**', '.github/workflows/site-deploy.yml']
+    paths: ['site/**']
   workflow_run:
-    workflows: ['RELEASE']
+    workflows: ["RELEASE"]
     types:
       - completed
 
@@ -24,11 +24,10 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v3
         with:
-          node-version: '18'
+          node-version: "16"
       # Install and build Docusaurus website
       - name: Build Docusaurus website
         run: |
-          yarn
           cd site
           yarn 
           yarn build

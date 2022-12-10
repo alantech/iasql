@@ -99,17 +99,16 @@ For Windows you can use below command:
 $env:IASQL_ENV = 'local'; docker-compose up --build
 ```
 
-`IASQL_ENV=local` configures the engine to use the values from `src/config/local.ts`. The Postgres superadmin user will be `postgres` and its password `test`. To create a new database in your local Postgres engine and connect it to an AWS account (and whatever region you prefer) send the following SQL query to the 'iasql_metadata' database:
+`IASQL_ENV=local` configures the engine to use the values from `src/config/local.ts`. The Postgres superadmin user will be `postgres` and its password `test`. The Node.js server will start on port 8088. To create a new database in your local Postgres engine and connect it to an AWS account (and whatever region you prefer) send the following HTTP request to the local engine:
 
 ```bash
 curl http://localhost:8088/v1/db/connect/db_name
-psql "postgres://postgres:test@localhost:5432/iasql_metadata" -t -c "SELECT json_agg(c)->0 FROM iasql_connect('db_name') as c;"
 ```
 
-This will return the specially-made username and password for your new database. Connecting to the database is a simple as:
+Now connecting to the database is a simple as:
 
 ```bash
-psql postgres://<username>:<password>@127.0.0.1:5432/db_name
+psql postgres://postgres:test@127.0.0.1:5432/db_name
 ```
 
 You are off to the races! You'll likely want to manipulate an AWS account, so you'll want to install the `aws_account` module:
@@ -128,7 +127,7 @@ VALUES ('AKIASOMEKEYHERE', 'somesecrethere', 'us-east-2');
 If you wish to disconnect the local database from the AWS account and remove it from the engine simply run:
 
 ```bash
-psql "postgres://postgres:test@localhost:5432/iasql_metadata" -t -c "SELECT iasql_disconnect('db_name');"
+curl http://localhost:8088/v1/db/disconnect/db_name
 ```
 
 ## How to develop IaSQL
@@ -137,15 +136,15 @@ Instead of a centralized linear list of migrations, we have a module-based appro
 
 Development of a new module is expected to follow this pattern:
 
-1. Create the module directory, and create `entity` and `migration` directories inside of it.
+1. Create the module directory inside the latest version directory, and create `entity` and `migration` directories inside of it.
 2. Create the entity or entities in the `entity` directory and export them all from the `index.ts` file (or just define them in there).
-3. Run the `yarn gen-module my_new_module_name` script and have it generate the migration file. (`my_new_module_name` needs to match the directory name for the module in question.)
+3. Run the `yarn gen-module my_new_module_name my_new_module_version` script and have it generate the migration file. (`my_new_module_name` needs to match the directory name for the module in question and `my_new_module_version` needs to match the module's parent directory.)
 4. Write the module's `index.ts` file. It must implement the `MapperInterface` inside of `modules/interfaces.ts`, which also requires importing and constructing `Mapper` and `Crud` objects.
 
 Development of an existing module is expected to follow this pattern:
 
 1. Make the changes to the entities that you want to make.
-2. Run the `yarn gen-module my_existing_module_name` script and have it generate a new migration file. (`my_existing_module_name` needs to match the directory name for the module in question.)
+2. Run the `yarn gen-module my_existing_module_name my_existing_module_version` script and have it generate a new migration file. (`my_existing_module_name` needs to match the directory name for the module in question and `my_existing_module_version` needs to match the module's parent directory.)
 3. Commit the removal of the old migration and add in the new one. You can only have one migration file per module.
 
 ### Migrations

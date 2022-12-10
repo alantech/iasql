@@ -18,6 +18,7 @@ const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
+const runSql = iasql.runSql.bind(null, dbAlias, 'not-needed');
 const region = defaultRegion();
 
 jest.setTimeout(360000);
@@ -67,6 +68,88 @@ describe('AwsAccount Integration Testing', () => {
     ),
   );
 
+  it('runSql segue: confirms bad sql queries return an error string', done => {
+    (async () => {
+      try {
+        await runSql('SELECT * FROM foo', false);
+        done(new Error('This line should not be reached'));
+      } catch (_) {
+        done();
+      }
+    })();
+  });
+
+  it('runSql segue by statement: confirms bad sql queries return an error string', done => {
+    (async () => {
+      try {
+        await runSql('SELECT * FROM foo', true);
+        done(new Error('This line should not be reached'));
+      } catch (_) {
+        done();
+      }
+    })();
+  });
+
+  it('runSql segue: confirms good sql queries return an array of records', done => {
+    (async () => {
+      const rows = await runSql('SELECT * FROM aws_credentials', false);
+      if (
+        rows instanceof Array &&
+        rows[0] instanceof Array &&
+        rows[0][0].access_key_id === process.env.AWS_ACCESS_KEY_ID
+      ) {
+        done();
+      } else {
+        done(new Error('Unexpected response from normal query'));
+      }
+    })();
+  });
+
+  it('runSql segue by statement: confirms good sql queries return an array of records', done => {
+    (async () => {
+      const rows = await runSql('SELECT * FROM aws_credentials', true);
+      if (
+        rows instanceof Array &&
+        rows[0]['result'] instanceof Array &&
+        rows[0]['result'][0].access_key_id === process.env.AWS_ACCESS_KEY_ID
+      ) {
+        done();
+      } else {
+        done(new Error('Unexpected response from normal query'));
+      }
+    })();
+  });
+
+  it('runSql segue: confirms multiple sql queries returns an array of arrays of records', done => {
+    (async () => {
+      const results = await runSql('SELECT * FROM iasql_module; SELECT * FROM iasql_help();', false);
+      if (
+        results instanceof Array &&
+        results[0] instanceof Array &&
+        (results[0][0] as any).name.includes('@')
+      ) {
+        done();
+      } else {
+        done(new Error('Unexpected response from batch query'));
+      }
+    })();
+  });
+
+  it('runSql segue by statements: confirms multiple sql queries returns an array of arrays of records', done => {
+    (async () => {
+      const results = await runSql('SELECT * FROM iasql_module; SELECT * FROM iasql_help();', true);
+      if (
+        results instanceof Array &&
+        results[0]['result'] instanceof Array &&
+        (results[0]['result'][0] as any).name.includes('@')
+      ) {
+        done();
+      } else {
+        done(new Error('Unexpected response from batch query'));
+      }
+    })();
+  });
+
   it('starts a transaction', begin());
 
   it(
@@ -105,20 +188,21 @@ describe('AwsAccount Integration Testing', () => {
     ),
   );
 
-  it('tries to set a second default region', done =>
-    void query(`
-      UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
-    `)((e?: any) => {
-      console.log({ e });
+  it('tries to set a second default region', done => {
+    (async () => {
       try {
-        expect(e?.message).toBeTruthy();
-      } catch (err) {
-        done(err);
-        return {};
+        await runSql(
+          `
+          UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
+        `,
+          false,
+        );
+      } catch (_) {
+        return done(); // This is the expected path
       }
-      done();
-      return {};
-    }));
+      return done(new Error('Did not get the expected error'));
+    })();
+  });
 
   it(
     'confirms that the default region was not changed',

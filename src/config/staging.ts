@@ -2,7 +2,6 @@ import { ConfigInterface, throwError } from './config';
 
 const config: ConfigInterface = {
   http: {
-    host: 'localhost',
     port: 8088,
   },
   db: {
@@ -12,6 +11,7 @@ const config: ConfigInterface = {
     password: process.env.DB_PASSWORD ?? throwError('No DB Password defined'),
     port: 5432,
     forceSSL: true,
+    sqlViaRest: true,
   },
   logger: {
     debug: true,
