@@ -25,5 +25,11 @@ RUN cd pgsql-http && make && make install && cd ..
 COPY . /engine/
 RUN yarn build
 
+# Default ENVs that can be overwritten
+ENV IASQL_VERSION=local
+ENV SENTRY_RELEASE=0.0.35
+ENV DB_USER=iasql
+ENV DB_PASSWORD=test
+
 EXPOSE 5432
 ENTRYPOINT ["bash", "-c", "/engine/docker-entrypoint.sh"]
