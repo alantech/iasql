@@ -50,7 +50,8 @@ export class awsCodebuild1666771293452 implements MigrationInterface {
       `ALTER TABLE "codebuild_build_list" ADD CONSTRAINT "FK_a10d877414684a4c96249d4fa82" FOREIGN KEY ("project_name", "region") REFERENCES "codebuild_project"("project_name","region") ON DELETE NO ACTION ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
-      `ALTER TABLE "codebuild_build_list" ADD CONSTRAINT "FK_6832b4b361539b03981122a1457" FOREIGN KEY ("region") REFERENCES "aws_regions"("region") ON DELETE NO ACTION ON UPDATE NO ACTION`,
+      `ALTER TABLE "codebuild_build_list"
+          ADD CONSTRAINT "FK_6832b4b361539b03981122a1457" FOREIGN KEY ("region") REFERENCES "aws_regions" ("region") ON DELETE NO ACTION ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
       `ALTER TABLE "codebuild_build_import" ADD CONSTRAINT "FK_7bb6ac46e08be07c9135f955a6e" FOREIGN KEY ("project_name", "region") REFERENCES "codebuild_project"("project_name","region") ON DELETE NO ACTION ON UPDATE NO ACTION`,
