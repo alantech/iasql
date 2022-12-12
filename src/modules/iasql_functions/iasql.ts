@@ -712,6 +712,7 @@ export async function rollback(dbId: string, context: Context, force = false, or
     return await commitSync(dbId, installedModulesSorted, context, force, crupdes, false);
   } catch (e: any) {
     debugObj(e);
+    await insertErrorLog(orm, logErrSentry(e));
     throw e;
   } finally {
     // Create end commit object
