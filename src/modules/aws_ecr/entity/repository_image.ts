@@ -5,8 +5,10 @@ import { cloudId } from '../../../services/cloud-id';
 import { AwsRegions } from '../../aws_account/entity';
 
 /**
- * Table to manage images to be published in ECR repositories
- * It can only list and delete the associated images
+ * Table to manage images to be published in ECR repositories. Amazon Elastic Container Registry (Amazon ECR) stores Docker images, Open Container Initiative (OCI) images,
+ * and OCI compatible artifacts in private repositories. You can use the Docker CLI, or your preferred client, to push and pull images to and from your repositories.
+ *
+ * This table can only list and delete the associated images
  *
  * @example
  * ```sql

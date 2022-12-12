@@ -3,7 +3,8 @@ import { Column, CreateDateColumn, Entity, PrimaryColumn } from 'typeorm';
 import { cloudId } from '../../../services/cloud-id';
 
 /**
- * Table to manage AWS IAM users.
+ * Table to manage AWS IAM users. An AWS Identity and Access Management (IAM) user is an entity that you create in AWS to represent the person
+ * or application that uses it to interact with AWS. A user in AWS consists of a name and credentials.
  *
  * @example
  * ```sql

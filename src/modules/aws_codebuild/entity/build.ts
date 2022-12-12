@@ -19,8 +19,13 @@ export enum BuildStatus {
 }
 
 /**
- * Table to manage AWS CodeBuild build entities. This table can only be used
- * to check the existing builds, and delete them. The main builds are created
+ * Table to manage AWS CodeBuild build entities. AWS CodeBuild is a fully managed continuous integration service that
+ * compiles source code, runs tests, and produces ready-to-deploy software packages.
+ *
+ * A build represents a set of actions performed by AWS CodeBuild to create output artifacts (for example, a JAR file)
+ * based on a set of input artifacts (for example, a collection of Java class files).
+ *
+ * This table can only be used to check the existing builds, and delete them. The main builds are created
  * via a CodeBuild project.
  *
  * @example

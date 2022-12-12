@@ -19,7 +19,8 @@ export enum ImageTagMutability {
 }
 
 /**
- * Table to manage AWS ECR private repositories.
+ * Table to manage AWS ECR private repositories. Amazon Elastic Container Registry (Amazon ECR) provides API operations to create,
+ * monitor, and delete image repositories and set permissions that control who can access them.
  *
  * @example
  * ```sql

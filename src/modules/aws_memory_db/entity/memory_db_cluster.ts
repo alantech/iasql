@@ -32,7 +32,8 @@ export enum NodeTypeEnum {
 }
 
 /**
- * Table to manage Memory DB clusters
+ * Table to manage Memory DB clusters. Amazon MemoryDB for Redis is a Redis-compatible, durable, in-memory
+ * database service that delivers ultra-fast performance. It is purpose-built for modern applications with microservices architectures.
  *
  * @example
  * ```sql

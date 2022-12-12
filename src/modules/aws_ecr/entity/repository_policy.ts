@@ -4,7 +4,11 @@ import { Repository } from '.';
 import { AwsRegions } from '../../aws_account/entity';
 
 /**
- * Table to manage AWS ECR private repository policies
+ * Table to manage AWS ECR private repository policies. Amazon ECR uses resource-based permissions to control access to repositories.
+ * Resource-based permissions let you specify which IAM users or roles have access to a repository and what actions they can perform on it.
+ *
+ * By default, only the AWS account that created the repository has access to a repository.
+ * You can apply a policy document that allow additional permissions to your repository.
  *
  * @example
  * ```sql

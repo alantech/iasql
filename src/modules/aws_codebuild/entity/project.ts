@@ -56,8 +56,13 @@ export enum EnvironmentType {
 }
 
 /**
- * Table to manage AWS CodeBuild project entities. A Codebuild project can be
- * created, then successful builds can be triggered for that specific project.
+ * Table to manage AWS CodeBuild project entities. AWS CodeBuild is a fully managed continuous integration service that
+ * compiles source code, runs tests, and produces ready-to-deploy software packages.
+ *
+ * A build project includes information about how to run a build, including where to get the source code,
+ * which build environment to use, which build commands to run, and where to store the build output.
+ *
+ * A Codebuild project can be created, then successful builds can be triggered for that specific project.
  *
  * @example
  * ```sql

@@ -3,9 +3,15 @@ import { ClusterMapper, ServiceMapper, TaskDefinitionMapper } from './mappers';
 import { DeployServiceRPC } from './rpcs';
 
 export class AwsEcsFargateModule extends ModuleBase {
+  /** @internal */
   cluster: ClusterMapper;
+
+  /** @internal */
   taskDefinition: TaskDefinitionMapper;
+
+  /** @internal */
   service: ServiceMapper;
+
   deployService: DeployServiceRPC;
 
   constructor() {

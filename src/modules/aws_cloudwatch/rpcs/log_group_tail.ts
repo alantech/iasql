@@ -24,7 +24,10 @@ import { Context, RpcBase, RpcResponseObject } from '../../interfaces';
  *
  */
 export class LogGroupTailRpc extends RpcBase {
+  /** @internal */
   module: AwsCloudwatchModule;
+
+  /** @internal */
   outputTable = {
     event_id: 'varchar',
     log_stream_name: 'varchar',
@@ -32,6 +35,7 @@ export class LogGroupTailRpc extends RpcBase {
     message: 'varchar',
   } as const;
 
+  /** @internal */
   filterLogEvents = crudBuilderFormat<CloudWatchLogs, 'filterLogEvents', FilteredLogEvent[]>(
     'filterLogEvents',
     logGroupName => ({ logGroupName, limit: 1000 }), // Opinionated limit. We can start and see if it is enough, cannot imagine some reading more than a thousand db records of logs

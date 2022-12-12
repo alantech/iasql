@@ -4,7 +4,10 @@ import { cloudId } from '../../../services/cloud-id';
 import { RepositoryImage } from './repository_image';
 
 /**
- * Table to manage AWS ECR public repositories.
+ * Table to manage AWS ECR public repositories. Amazon Elastic Container Registry provides API operations to create,
+ * monitor, and delete public image repositories and set permissions that control who can push images to them.
+ *
+ * Amazon ECR integrates with the Docker CLI to push images from your development environments to your public repositories.
  *
  * @example
  * ```sql

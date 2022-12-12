@@ -15,7 +15,8 @@ export enum Engine {
 }
 
 /**
- * Table to manage ElastiCache clusters
+ * Table to manage ElastiCache clusters. A cluster is a collection of one or more cache nodes, all of which run an instance of the Redis
+ * cache engine software. When you create a cluster, you specify the engine and version for all of the nodes to use.
  *
  * @example
  * ```sql

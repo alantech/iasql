@@ -30,7 +30,9 @@ export enum State {
 }
 
 /**
- * Table to manage AWS EC2 instances.
+ * Table to manage AWS EC2 instances. Amazon Elastic Compute Cloud (Amazon EC2) provides scalable computing capacity
+ * in the Amazon Web Services (AWS) Cloud. You can use Amazon EC2 to launch as many or as few virtual servers
+ * as you need, configure security and networking, and manage storage.
  *
  * @example
  * ```sql

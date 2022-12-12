@@ -66,7 +66,13 @@ export enum IpAddressType {
 }
 
 /**
- * Table to manage AWS Load Balancers
+ * Table to manage AWS Load Balancers. Elastic Load Balancing automatically distributes your incoming traffic across multiple targets,
+ * such as EC2 instances, containers, and IP addresses, in one or more Availability Zones.
+ *
+ * A load balancer serves as the single point of contact for clients. The load balancer distributes incoming application traffic across
+ * multiple targets, such as EC2 instances, in multiple Availability Zones. This increases the availability of your application.
+ *
+ * You add one or more listeners to your load balancer.
  *
  * @example
  * ```sql

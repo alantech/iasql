@@ -53,7 +53,8 @@ export enum ProtocolVersionEnum {
 }
 
 /**
- * Table to manage AWS Target groups
+ * Table to manage AWS Target groups. Each target group is used to route requests to one or more registered targets.
+ * When you create each listener rule, you specify a target group and conditions. When a rule condition is met, traffic is forwarded to the corresponding target group
  *
  * @example
  * ```sql

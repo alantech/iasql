@@ -3,8 +3,12 @@ import { Column, Entity, PrimaryGeneratedColumn, PrimaryColumn } from 'typeorm';
 import { cloudId } from '../../../services/cloud-id';
 
 /**
- * Table that will hold the user's AWS credentials. When a new connection to IaSQL is issued,
- * the AWS credentials are stored.
+ * Table that will hold the user's AWS credentials.
+ * When you interact with AWS, you specify your AWS security credentials to verify who you
+ * are and whether you have permission to access the resources that you are requesting.
+ * AWS uses the security credentials to authenticate and authorize your requests.
+ *
+ * When a new connection to IaSQL is issued, the AWS credentials are stored.
  * The keys can be generated from the AWS console for each registered user
  *
  * @example
@@ -46,8 +50,11 @@ export class AwsCredentials {
 }
 
 /**
- * Table that will hold all the AWS regions where IaSQL operates. User can specify
- * which regions are enabled and which region is used as default.
+ * Table that will hold all the AWS regions where IaSQL operates.
+ * AWS has the concept of a Region, which is a physical location around the
+ * world where we cluster data centers.
+ *
+ * An user can specify which regions are enabled and which region is used as default.
  *
  * @example
  * ```sql
@@ -63,7 +70,6 @@ export class AwsCredentials {
 export class AwsRegions {
   /**
    * @public
-   * @param
    * AWS region
    */
   @PrimaryColumn()

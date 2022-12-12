@@ -4,8 +4,13 @@ import { LoadBalancerMapper } from './mappers/load_balancer';
 import { TargetGroupMapper } from './mappers/target_group';
 
 export class AwsElbModule extends ModuleBase {
+  /** @internal */
   listener: ListenerMapper;
+
+  /** @internal */
   loadBalancer: LoadBalancerMapper;
+
+  /** @internal */
   targetGroup: TargetGroupMapper;
 
   constructor() {

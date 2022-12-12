@@ -72,7 +72,7 @@ export enum CpuMemCombination {
 }
 
 /**
- * Table to manage AWS ECS task definitions.
+ * Table to manage AWS ECS task definitions. A task definition is required to run Docker containers in Amazon ECS.
  *
  * @example
  * ```sql

@@ -6,7 +6,9 @@ import { LambdaFunctionInvokeRpc } from './rpcs';
  * @internal
  */
 export class AwsLambdaModule extends ModuleBase {
+  /** @internal */
   lambdaFunction: LambdaFunctionMapper;
+
   invokeLambda: LambdaFunctionInvokeRpc;
 
   constructor() {

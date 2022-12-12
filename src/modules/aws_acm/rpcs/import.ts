@@ -11,11 +11,11 @@ import { safeParse } from './common';
  *
  * Returns following columns:
  *
- * arn: The unique ARN for the imported certificate
+ * - arn: The unique ARN for the imported certificate
  *
- * status: OK if the certificate was imported successfully
+ * - status: OK if the certificate was imported successfully
  *
- * message: Error message in case of failure
+ * - message: Error message in case of failure
  *
  * @example
  * ```sql

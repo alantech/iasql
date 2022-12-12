@@ -29,7 +29,8 @@ export enum VolumeState {
 }
 
 /**
- * Table to manage AWS general purpose Volume entities.
+ * Table to manage AWS general purpose Volume entities. Amazon Elastic Block Store (Amazon EBS) provides block
+ * level storage volumes for use with EC2 instances. EBS volumes behave like raw, unformatted block devices.
  *
  * @example
  * ```sql

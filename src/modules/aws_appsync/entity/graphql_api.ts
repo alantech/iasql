@@ -5,7 +5,12 @@ import { AwsRegions } from '../../aws_account/entity';
 
 /**
  * @enum
- * Available types of authentication for GraphQL endpoint
+ * Available types of authentication for GraphQL endpoint. GraphQL is a query and manipulation
+ * language for APIs.
+ *
+ * GraphQL provides a flexible and intuitive syntax to describe data requirements and interactions.
+ * It enables developers to ask for exactly what is needed and get back predictable results.
+ *
  * @see https://docs.aws.amazon.com/appsync/latest/devguide/security-authz.html
  */
 export enum AuthenticationType {

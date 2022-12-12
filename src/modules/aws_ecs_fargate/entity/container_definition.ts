@@ -16,7 +16,7 @@ export enum TransportProtocol {
 }
 
 /**
- * Table to manage AWS ECS container definitions.
+ * Table to manage AWS ECS container definitions. Container definitions are used in task definitions to describe the different containers that are launched as part of a task.
  *
  * @example
  * ```sql

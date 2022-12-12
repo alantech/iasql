@@ -4,7 +4,13 @@ import { cloudId } from '../../../services/cloud-id';
 import { AwsRegions } from '../../aws_account/entity';
 
 /**
- * Table to query for all AWS Cloudwatch log groups in the system.
+ * Table to query for all AWS Cloudwatch log groups in the system. You can use Amazon CloudWatch Logs to monitor,
+ * store, and access your log files from Amazon Elastic Compute Cloud (Amazon EC2) instances,
+ * AWS CloudTrail, Route 53, and other sources.
+ *
+ * A log group is a group of log streams that share the same retention, monitoring, and access control settings.
+ * You can define log groups and specify which streams to put into each group.
+ * There is no limit on the number of log streams that can belong to one log group.
  *
  * @example
  * ```sql

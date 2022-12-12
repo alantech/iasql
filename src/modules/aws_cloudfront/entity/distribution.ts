@@ -27,7 +27,10 @@ export enum originProtocolPolicyEnum {
 }
 
 /**
- * Table to query for all AWS CloudFront distributions in the system.
+ * Table to query for all AWS CloudFront distributions in the system. Amazon CloudFront is a web service that speeds up distribution of your
+ * static and dynamic web content, such as .html, .css, .js, and image files, to your users.
+ *
+ * You create a CloudFront distribution to tell CloudFront where you want content to be delivered from, and the details about how to track and manage content delivery.
  *
  * @example
  * ```sql

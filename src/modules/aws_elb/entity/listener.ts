@@ -20,7 +20,9 @@ export enum ActionTypeEnum {
 }
 
 /**
- * Table to manage AWS Load Balancer listeners
+ * Table to manage AWS Load Balancer listeners. Before you start using your Application Load Balancer, you must add one or more listeners.
+ * A listener is a process that checks for connection requests, using the protocol and port that you configure.
+ * The rules that you define for a listener determine how the load balancer routes requests to its registered targets.
  *
  * @example
  * ```sql
