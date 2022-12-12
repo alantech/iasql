@@ -83,10 +83,10 @@ export class RDS {
    *
    * TODO: make this an entity eventually?
    */
-  //@ManyToOne(() => DBInstanceClass, { eager: true, })
-  //@JoinColumn({
+  // @ManyToOne(() => DBInstanceClass, { eager: true, })
+  // @JoinColumn({
   // . name: 'db_instance_class_id',
-  //})
+  // })
   @Column()
   dbInstanceClass: string;
 

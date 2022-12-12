@@ -137,7 +137,8 @@ export class LambdaFunction {
    * This currently work as input value. After creation the value is set to null.
    * @see https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-lambda/interfaces/functioncode.html#zipfile
    * TODO: Validate string content is a valid b64 encoded zip file
-   * TODO: Add flag to keep code around. Try to get code back from lambda s3 bucket.*/
+   * TODO: Add flag to keep code around. Try to get code back from lambda s3 bucket.
+   */
   @Column({ nullable: true })
   zipB64?: string;
 

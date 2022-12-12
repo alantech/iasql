@@ -18,7 +18,7 @@ import { cloudId } from '../../../services/cloud-id';
  *     Action: 'sts:AssumeRole',
  *   },
  * ],
- *}');
+ * }');
  * SELECT * FROM iam_role WHERE role_name = 'lambda_role_name';
  * DELETE FROM iam_role WHERE role_name = 'lambda_role_name';
  * ```
