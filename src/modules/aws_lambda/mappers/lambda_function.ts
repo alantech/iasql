@@ -394,12 +394,13 @@ export class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
     delete: async (es: LambdaFunction[], ctx: Context) => {
       for (const e of es) {
         const client = (await ctx.getAwsClient(e.region)) as AWS;
+        const cloudRecord = ctx?.memo?.cloud?.LambdaFunction?.[this.entityId(e)];
 
         // Update function configuration, decoupling the VPC to allow
         // network interfaces to be released and removed automatically
         const input: UpdateFunctionConfigurationCommandInput = {
           FunctionName: e.name,
-          Role: e.role.arn,
+          Role: e.role?.arn ?? cloudRecord.role?.arn,
           Handler: e.handler,
           Description: e.description,
           MemorySize: e.memorySize,
