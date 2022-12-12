@@ -22,7 +22,7 @@ import { Route53 } from '@aws-sdk/client-route-53';
 import { S3 } from '@aws-sdk/client-s3';
 import { SecretsManager } from '@aws-sdk/client-secrets-manager';
 import { SSM } from '@aws-sdk/client-ssm';
-import { StandardRetryStrategy } from '@aws-sdk/middleware-retry';
+import { defaultRetryDecider, StandardRetryStrategy } from '@aws-sdk/middleware-retry';
 
 type AWSCreds = {
   accessKeyId: string;
@@ -83,6 +83,16 @@ export class AWS {
   constructor(config: AWSConfig) {
     // declare an specific slow retry strategy, to reuse in slow apis
     this.slowRetryStrategy = new StandardRetryStrategy(async () => SLOW_STRATEGY_RETRIES, {
+      retryDecider: error => {
+        // copied the default behavior from aws-sdk to fix the problem caused by Jest on isRetryableByTrait
+        if (!error) {
+          return false;
+        }
+        if (error.name !== 'Error')
+          // default behavior when running outside Jest
+          return defaultRetryDecider(error);
+        else return true; // jest has messed the error object
+      },
       delayDecider: (_, attempts) =>
         Math.floor(
           Math.min(
