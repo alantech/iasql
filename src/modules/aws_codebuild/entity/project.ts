@@ -11,7 +11,7 @@ export enum SourceType {
   // S3 = 'S3',
   // BITBUCKET = 'BITBUCKET',
   // GITHUB_ENTERPRISE = 'GITHUB_ENTERPRISE',
-  // NO_SOURCE = 'NO_SOURCE'
+  NO_SOURCE = 'NO_SOURCE',
 }
 
 export enum EnvironmentVariableType {
