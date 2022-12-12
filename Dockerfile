@@ -26,4 +26,4 @@ COPY . /engine/
 RUN yarn build
 
 EXPOSE 5432
-ENTRYPOINT ["/engine/docker-entrypoint.sh"]
+ENTRYPOINT ["bash", "-c", "/engine/docker-entrypoint.sh"]
