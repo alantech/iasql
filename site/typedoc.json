@@ -11,4 +11,5 @@
   "readme": "default",
   "exclude": ["../src/modules/**/mappers/*", "../src/modules/**/migration/*", "../src/modules/interfaces.ts", "../src/modules/subscribers.ts",
 "../src/modules/iasql_functions/**", "../src/modules/iasql_platform/**"  ]
+  "tsconfig": "../tsconfig.json"
 }
