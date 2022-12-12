@@ -23,10 +23,6 @@ RUN git clone https://github.com/pramsey/pgsql-http
 RUN cd pgsql-http && make && make install && cd ..
 
 COPY . /engine/
-ARG SENTRY_RELEASE
-ENV SENTRY_RELEASE=$SENTRY_RELEASE
-ARG IASQL_ENV
-ENV IASQL_ENV=$IASQL_ENV
 RUN yarn build
 
 EXPOSE 5432
