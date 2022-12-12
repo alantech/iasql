@@ -10,9 +10,9 @@ import { cloudId } from '../../../services/cloud-id';
  * @example
  * ```sql
  *  INSERT INTO aws_credentials (access_key_id, secret_access_key)
- *  VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
+ *  VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}');
  *
- *  SELECT * FROM aws_credentials
+ *  SELECT * FROM aws_credentials;
  * ```
  *
  * @see https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html
