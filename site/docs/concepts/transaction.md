@@ -5,7 +5,7 @@ slug: '/transaction'
 
 # IaSQL transactions at a high level
 
-Users need not use any special syntax, akin to `apply` from IaC, to work normally with IaSQL. They just `SELECT/INSERT/UPDATE/DELETE` records and eventually the changes are reflected in their cloud account. This should also work with migration systems without issues, though in an eventually-consistent fashion. The most basic architectural diagram is simply your IaSQL database and your cloud account with the IaSQL in between. 
+IaSQL does not any special syntax, akin to `apply` in IaC, to work normally. You can just `SELECT/INSERT/UPDATE/DELETE` records and eventually the changes are reflected in your cloud account. This also works with migration systems without issues, though in an eventually-consistent fashion. The most basic architectural diagram is simply your IaSQL database and your cloud account with the IaSQL in between.
 
 ```
    ______
@@ -22,9 +22,9 @@ Traditional IaC tools like Terraform use an internal statefile for this purpose,
 
 IaSQL's engine, on the other hand, is completely stateless. It acquires the state of both the database and the cloud when asked to perform a change in either direction and then determines the work it will do based on the *true state* of both.
 
-## `iasql_begin` and `iasql_commit`
+## IaSQL Transactions with `iasql_begin` and `iasql_commit`
 
-It is possible to perform changes to your cloud account synchronously by temporarily turning off the normal two-way propagation between the cloud and database through the usage of an IaSQL transaction using the provided PostgreSQL function `iasql_begin`. This lets the user make whatever changes they want to batch together or stage, and then calling `iasql_commit` marks the end of the transaction and propagates the changes from the database to the cloud account akin to a traditional [database transaction](https://en.wikipedia.org/wiki/Database_transaction).
+It is possible to perform changes to your cloud account synchronously by temporarily turning off the normal two-way propagation between the cloud and database through the usage of an IaSQL transaction using the provided PostgreSQL function `iasql_begin`. This lets you batch, or stage, changes together and then calling `iasql_commit` to mark the end of the transaction and propagate the changes from the database to the cloud account akin to a traditional [database transaction](https://en.wikipedia.org/wiki/Database_transaction).
 
 ```
    ______
@@ -39,11 +39,11 @@ The way this works under the hood is that IaSQL has a cron job that makes sure t
 
 ## `iasql_preview`
 
-Users can visualize proposed changes for an ongoing IaSQL transaction to see how the database will update the cloud with the new data model using the `iasql_preview` function which returns a virtual table of database records.
+IaSQL lets you visualize proposed changes for an ongoing IaSQL transaction to see how the database will update the cloud with the new data model using the `iasql_preview` function which returns a virtual table of database records.
 
 ## `iasql_rollback`
 
-Users abort an IaSQL transaction if they want to discard the changes the have been working since calling `iasql_begin` by calling `iasql_rollback`. This will re-enable regular behaviour of IaSQL in which changes are propagated both ways in an eventually consistent way without any special syntax other than `SELECT/INSERT/UPDATE/DELETE` records normally.
+IaSQL lets you abort an IaSQL transaction if you want to discard the changes done since calling `iasql_begin` by calling `iasql_rollback`. This will re-enable regular behaviour of IaSQL in which changes are propagated both ways in an eventually consistent way without any special syntax other than `SELECT/INSERT/UPDATE/DELETE` records normally.
 
 ```
    ______
