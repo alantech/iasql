@@ -88,7 +88,7 @@ export class AWS {
         if (!error) {
           return false;
         }
-        if (error.name !== 'Error')
+        if (error.message.includes('AWS SDK error wrapper'))
           // default behavior when running outside Jest
           return defaultRetryDecider(error);
         else return true; // jest has messed the error object

@@ -2,7 +2,6 @@ import { AWS } from '../../src/services/aws_macros';
 
 jest.setTimeout(3000000);
 
-
 describe('Jest-AWS Error Issue', () => {
   it('triggers AWS error to inspect', async () => {
     // use a debugger to inspect internal sdk error object
@@ -14,9 +13,7 @@ describe('Jest-AWS Error Issue', () => {
       region: 'us-east-1',
     });
     const results = await Promise.all(
-      [...Array(100).keys()].map(async () =>
-        await client.s3Client.listBuckets({}),
-      ),
+      [...Array(100).keys()].map(async () => await client.s3Client.listBuckets({})),
     );
   });
 });

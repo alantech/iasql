@@ -10,11 +10,7 @@ const client = new AWS({
 
 async function triggerAwsError() {
   // use a debugger to inspect internal sdk error object
-  return await Promise.all(
-    [...Array(100).keys()].map(async () =>
-      await client.s3Client.listBuckets({}),
-    ),
-  );
+  return await Promise.all([...Array(100).keys()].map(async () => await client.s3Client.listBuckets({})));
 }
 
 triggerAwsError().then();
