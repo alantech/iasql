@@ -2,11 +2,11 @@
 
 set -vex
 
-env
-
 if [ -d /var/lib/postgresql/14/main ]; then
   chown -R postgres /var/lib/postgresql/14/main
   chgrp -R postgres /var/lib/postgresql/14/main
+else
+  su - postgres -c "mkdir -p /var/lib/postgresql/14/main"
 fi
 
 service postgresql start
