@@ -617,24 +617,6 @@ class RepositoryPolicyMapper extends MapperBase<RepositoryPolicy> {
     }),
   );
 
-  db = new Crud2<RepositoryPolicy>({
-    create: (es: RepositoryPolicy[], ctx: Context) => ctx.orm.save(RepositoryPolicy, es),
-    update: (es: RepositoryPolicy[], ctx: Context) => ctx.orm.save(RepositoryPolicy, es),
-    delete: (es: RepositoryPolicy[], ctx: Context) => ctx.orm.remove(RepositoryPolicy, es),
-    read: async (ctx: Context, id?: string) => {
-      const [repositoryName, region] = id?.split('|') ?? [undefined, undefined];
-      const opts = repositoryName
-        ? {
-            where: {
-              repositoryName,
-              region,
-            },
-          }
-        : {};
-      return await ctx.orm.find(RepositoryPolicy, opts);
-    },
-  });
-
   cloud: Crud2<RepositoryPolicy> = new Crud2({
     create: async (es: RepositoryPolicy[], ctx: Context) => {
       const out = [];
