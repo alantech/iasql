@@ -4,7 +4,8 @@ import { cloudId } from '../../../services/cloud-id';
 import { RouteTable } from './route_table';
 
 /**
- * Table to manage AWS routes.
+ * Table to manage AWS routes. A route table contains a set of rules, called routes,
+ * that determine where network traffic from your subnet or gateway is directed.
  *
  * @see https://docs.aws.amazon.com/vpc/latest/userguide/route-table-options.html
  */

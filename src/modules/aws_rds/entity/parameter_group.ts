@@ -62,7 +62,10 @@ export enum ParameterGroupFamily {
 }
 
 /**
- * Table to manage AWS RDS parameter groups
+ * Table to manage AWS RDS parameter groups. Database parameters specify how the database is configured.
+ * For example, database parameters can specify the amount of resources, such as memory, to allocate to a database.
+ *
+ * A DB parameter group acts as a container for engine configuration values that are applied to one or more DB instances.
  *
  * @example
  * ```sql

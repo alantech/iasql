@@ -4,7 +4,10 @@ import { cloudId } from '../../../services/cloud-id';
 import { AwsRegions } from '../../aws_account/entity';
 
 /**
- * Table to manage AWS S3 buckets.
+ * Table to manage AWS S3 buckets. Amazon Simple Storage Service (Amazon S3) is an object storage service that offers
+ * industry-leading scalability, data availability, security, and performance.
+ *
+ * A bucket is a container for objects stored in Amazon S3. You can store any number of objects in a bucket and can have up to 100 buckets in your account.
  *
  * @example
  * ```sql

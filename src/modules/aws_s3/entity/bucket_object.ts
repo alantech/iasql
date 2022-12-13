@@ -5,7 +5,9 @@ import { AwsRegions } from '../../aws_account/entity';
 import { Bucket } from './bucket';
 
 /**
- * Table to manage the objects associated to an S3 bucket
+ * Table to manage the objects associated to an S3 bucket. To store your data in Amazon S3, you work with resources known as buckets and objects.
+ * A bucket is a container for objects. An object is a file and any metadata that describes that file.
+ *
  * Objects can only be listed and deleted, will need to be uploaded using an specific RPC method
  *
  * @example

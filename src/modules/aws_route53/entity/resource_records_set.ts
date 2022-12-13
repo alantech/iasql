@@ -25,7 +25,9 @@ export enum RecordType {
 }
 
 /**
- * Table to manage AWS Route 53 recordsets
+ * Table to manage AWS Route 53 recordsets. After you create a hosted zone for your domain, such as example.com, you create records to tell the
+ * Domain Name System (DNS) how you want traffic to be routed for that domain. Each record includes the name of a domain or a subdomain,
+ * a record type (for example, a record with a type of MX routes email), and other information applicable to the record type (for MX records, the host name of one or more mail servers and a priority for each server).
  *
  * @example
  * ```sql

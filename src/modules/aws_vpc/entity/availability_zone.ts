@@ -4,7 +4,10 @@ import { cloudId } from '../../../services/cloud-id';
 import { AwsRegions } from '../../aws_account/entity';
 
 /**
- * Table to manage AWS availability zones. This is a read-only table.
+ * Table to manage AWS availability zones. An Availability Zone (AZ) is one or more discrete data
+ * centers with redundant power, networking, and connectivity in an AWS Region.
+ *
+ * This is a read-only table.
  *
  * @example
  * ```sql

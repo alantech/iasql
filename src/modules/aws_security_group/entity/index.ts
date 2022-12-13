@@ -112,8 +112,8 @@ export class SecurityGroup {
 }
 
 /**
- * Table to manage AWS security group rules.
- * A security group controls the traffic that is allowed to reach and leave the resources that it is associated with.
+ * Table to manage AWS security group rules. The rules of a security group control the inbound traffic that's allowed to reach the
+ * instances that are associated with the security group. The rules also control the outbound traffic that's allowed to leave them.
  *
  * @example
  * ```sql
