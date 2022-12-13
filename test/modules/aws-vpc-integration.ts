@@ -1,3 +1,4 @@
+import _ from 'lodash';
 import * as iasql from '../../src/services/iasql';
 import {
   defaultRegion,
@@ -1298,6 +1299,24 @@ describe('VPC Integration Testing', () => {
       WHERE tags ->> 'name' = '${prefix}-peering-connection-test';
   `,
       (res: any) => expect(res[0].state).toBe('active'),
+    ),
+  );
+
+  it(
+    'checks if routes from requester to accepter is added',
+    query(
+      `
+          SELECT destination_cidr_block
+          FROM route
+          WHERE vpc_peering_connection_id = (SELECT peering_connection_id
+                                             FROM peering_connection
+                                             WHERE tags ->> 'name' = '${prefix}-peering-connection-test');
+      `,
+      (res: { destination_cidr_block: string }[]) => {
+        expect(res.length).toBe(2);
+        expect(_.some(res, { destination_cidr_block: `176.${randIPBlock}.1.0/24` })).toBe(true);
+        expect(_.some(res, { destination_cidr_block: `192.${randIPBlock}.0.0/16` })).toBe(true);
+      },
     ),
   );
 

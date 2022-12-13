@@ -14,7 +14,7 @@ import { AwsVpcModule } from '..';
 import { AWS, crudBuilder2, paginateBuilder } from '../../../services/aws_macros';
 import { updateTags } from '../../aws_ec2/mappers/tags';
 import { Context, Crud2, MapperBase } from '../../interfaces';
-import { PeeringConnection, PeeringConnectionState } from '../entity';
+import { PeeringConnection, PeeringConnectionState, Route, RouteTable, Vpc } from '../entity';
 import { eqTags } from './tags';
 
 export class PeeringConnectionMapper extends MapperBase<PeeringConnection> {
@@ -172,7 +172,9 @@ export class PeeringConnectionMapper extends MapperBase<PeeringConnection> {
           ).ec2client,
           input,
         );
-        if (!res) continue;
+        if (!res || !res.VpcPeeringConnectionId) continue;
+        await this.createTwoWayRoutes(e.requester, e.accepter, res.VpcPeeringConnectionId, ctx);
+
         const newPeeringConnection = await this.peeringConnectionMapper(res, ctx);
         if (!newPeeringConnection) continue;
 
@@ -252,6 +254,33 @@ export class PeeringConnectionMapper extends MapperBase<PeeringConnection> {
       }
     },
   });
+
+  private async createTwoWayRoutes(
+    requesterVpc: Vpc,
+    accepterVpc: Vpc,
+    vpcPeeringConnectionId: string,
+    ctx: Context,
+  ) {
+    const routeTables: RouteTable[] = await this.module.routeTable.db.read(ctx);
+    // create requester -> accepter route
+    const requesterRouteTables = routeTables.filter(rt => rt.vpc.vpcId === requesterVpc.vpcId);
+    for (const routeTable of requesterRouteTables) {
+      const route = new Route();
+      route.DestinationCidrBlock = accepterVpc.cidrBlock;
+      route.VpcPeeringConnectionId = vpcPeeringConnectionId;
+      routeTable.routes.push(route);
+      await this.module.routeTable.db.update(routeTable, ctx);
+    }
+    // create accepter -> requester route
+    const accepterRouteTables = routeTables.filter(rt => rt.vpc.vpcId === accepterVpc.vpcId);
+    for (const routeTable of accepterRouteTables) {
+      const route = new Route();
+      route.DestinationCidrBlock = requesterVpc.cidrBlock;
+      route.VpcPeeringConnectionId = vpcPeeringConnectionId;
+      routeTable.routes.push(route);
+      await this.module.routeTable.db.update(routeTable, ctx);
+    }
+  }
 
   constructor(module: AwsVpcModule) {
     super();
