@@ -3,6 +3,10 @@ import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 't
 import { cloudId } from '../../../services/cloud-id';
 import { Vpc } from './vpc';
 
+/**
+ * @enum
+ * Different states for a peering connection. A valid peering connection should be in ACTIVE state
+ */
 export enum PeeringConnectionState {
   ACTIVE = 'active',
   EXPIRED = 'expired',
