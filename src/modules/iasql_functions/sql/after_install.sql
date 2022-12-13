@@ -114,7 +114,13 @@ begin
     -- If a transaction occurred less than 2 min ago we skip
     IF _change_type != 'OPEN_TRANSACTION' AND (_ts IS NULL OR _ts < _almost_2_min_interval) THEN
       PERFORM iasql_begin();
-      PERFORM iasql_commit();
+      BEGIN
+        PERFORM iasql_commit();
+      EXCEPTION
+        WHEN others THEN
+          INSERT INTO iasql_audit_log (ts, "user", table_name, change_type, change)
+          VALUES (clock_timestamp(), USER, 'iasql_audit_log', 'CLOSE_TRANSACTION', '{}'::json);
+        END;
       RETURN 'iasql_commit called';
     ELSE
       RAISE EXCEPTION 'Cannot call iasql_commit while a transaction is open';
