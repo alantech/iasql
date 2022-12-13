@@ -543,10 +543,6 @@ class RepositoryMapper extends MapperBase<Repository> {
       for (const e of es) {
         const client = (await ctx.getAwsClient(e.region)) as AWS;
         await this.deleteECRRepository(client.ecrClient, e.repositoryName!);
-        // Also need to delete the repository policy associated with this repository,
-        // if any
-        const policy = await this.module.repositoryPolicy.db.read(ctx, this.entityId(e));
-        await this.module.repositoryPolicy.db.delete(policy, ctx);
       }
     },
   });
