@@ -32,7 +32,9 @@ if ! getent passwd "$uid" &> /dev/null; then
   done
 fi
 
-su - postgres -c "eval '/usr/lib/postgresql/14/bin/initdb --username=\"postgres\" --pwfile=<(node ./dist/scripts/from-config.js db.password) -D /var/lib/postgresql/14/main'"
+PS_PWD=$(node ./dist/scripts/from-config.js db.password)
+
+su - postgres -c "eval '/usr/lib/postgresql/14/bin/initdb --username=\"postgres\" --pwfile=<(echo $PS_PWD) -D /var/lib/postgresql/14/main'"
 
 # unset/cleanup "nss_wrapper" bits
 if [[ "${LD_PRELOAD:-}" == */libnss_wrapper.so ]]; then
@@ -42,7 +44,7 @@ fi
 
 service postgresql start
 
-# su - postgres -c "psql -c \"ALTER ROLE postgres WITH password '$(node ./dist/scripts/from-config.js db.password)'\""
+# su - postgres -c "psql -c \"ALTER ROLE postgres WITH password '$PS_PWD'\""
 su - postgres -c "echo \"SELECT 'CREATE DATABASE iasql_metadata' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'iasql_metadata')\gexec\" | psql"
 
 service postgresql restart
