@@ -33,7 +33,7 @@ export enum RootDeviceType {
  * associated to each instance.
  * It is a read-only table.
  *
- * @example
+ * @example TheButton[Show metadata from an EC2 instance]="Show metadata from an EC2 instance"
  * ```sql
  * SELECT * FROM instance_metadata WHERE instance_id = (SELECT instance_id FROM instance WHERE tags ->> 'name' = 'test');
  * ```

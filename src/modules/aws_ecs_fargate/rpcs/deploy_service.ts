@@ -17,7 +17,7 @@ import { Service } from '../entity';
  * - arn: AWS ARN for the service to deploy
  *
  * @example
- * ```sql
+ * ```sql TheButton[Trigger the deployment of an ECS service]="Trigger the deployment of an ECS service"
  * SELECT deploy_service(arn) FROM service WHERE name='service_name';
  * ```
  *

@@ -34,8 +34,8 @@ import { AwsEcrModule } from '../index';
  * - githubPersonalAccessToken: Personal Access Token used to access private repositories
  *
  * @example
- * ```sql
- *   SELECT ecr_build('https://github.com/iasql/docker-helloworld',
+ * ```sql TheButton[Trigger an ECR image build]="Trigger an ECR image build"
+ * SELECT ecr_build('https://github.com/iasql/docker-helloworld',
  * (SELECT id FROM repository WHERE repository_name = '${repositoryName}')::varchar(255), '.', 'main', '<personal_access_token>');
  * ```
  *

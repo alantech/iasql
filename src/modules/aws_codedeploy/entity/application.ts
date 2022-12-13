@@ -20,7 +20,7 @@ export enum ComputePlatform {
  * referenced during a deployment.
  *
  * @example
- * ```sql
+ * ```sql TheButton[Manage a CodeDeploy app]="Manage a CodeDeploy app"
  * INSERT INTO codedeploy_application (name, compute_platform) VALUES ('application-name', 'Server');
  * SELECT * FROM codedeploy_application WHERE name='application-name';
  * DELETE FROM codedeploy_application WHERE name = 'application-name';

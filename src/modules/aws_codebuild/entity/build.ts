@@ -29,7 +29,7 @@ export enum BuildStatus {
  * via a CodeBuild project.
  *
  * @example
- * ```sql
+ * ```sql TheButton[Manage CodeBuild builds]="Manage CodeBuild builds"
  * SELECT * FROM codebuild_build_list WHERE project_name = 'build_project_name' and build_status = 'FAILED';
  * DELETE FROM codebuild_build_list WHERE project_name = 'build_project_name';
  * ```

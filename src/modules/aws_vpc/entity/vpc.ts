@@ -18,11 +18,18 @@ export enum VpcState {
  * environment, including resource placement, connectivity, and security.
  *
  * @example
- * ```sql
- * INSERT INTO vpc (cidr_block, tags, enable_dns_hostnames, enable_dns_support)
- * VALUES ('192.0.0.0/16', '{"name":"vpc-1"}', true, true);
- * SELECT * FROM vpc WHERE cidr_block='192.0.0.0/16' AND state='available';
- * DELETE FROM vpc WHERE cidr_block = '191.0.0.0/16';
+ * ```sql TheButton[VPC creation]="Create a VPC and the associated subnet"
+ * SELECT * FROM iasql_install('aws_vpc');
+ *
+ * INSERT INTO vpc (cidr_block) VALUES ('192.168.0.0/16');
+ *
+ * SELECT * FROM vpc WHERE cidr_block='192.168.0.0/16' AND state='available';
+ *
+ * INSERT INTO subnet (availability_zone, vpc_id, cidr_block) SELECT
+ * (SELECT * FROM availability_zone LIMIT 1), id, '192.168.0.0/16' FROM vpc
+ * WHERE is_default = false AND cidr_block = '192.168.0.0/16';
+ *
+ * DELETE FROM vpc WHERE cidr_block = '192.168.0.0/16';
  * ```
  *
  * @see https://github.com/iasql/iasql-engine/blob/main/test/modules/aws-vpc-integration.ts#L141

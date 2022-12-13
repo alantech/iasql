@@ -23,7 +23,7 @@ export enum ImageTagMutability {
  * monitor, and delete image repositories and set permissions that control who can access them.
  *
  * @example
- * ```sql
+ * ```sql TheButton[Manage ECR private repositories]="Manage ECR private repositories"
  * INSERT INTO repository (repository_name, scan_on_push, image_tag_mutability) VALUES ('repository', false, 'MUTABLE');
  * SELECT * FROM repository WHERE repository_name = 'repository';
  * DELETE FROM repository WHERE repository_name = 'repository';

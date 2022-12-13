@@ -19,7 +19,7 @@ export enum AuthType {
  * Table to list and delete the internal credentials used to access internal repositories from Codebuild.
  *
  * @example
- * ```sql
+ * ```sql TheButton[Manage SourceCredentials for CodeBuild]="Manage SourceCredentials for CodeBuild"
  * SELECT * FROM source_credentials_list WHERE source_type = 'GITHUB';
  * DELETE FROM source_credentials_list WHERE source_type = 'GITHUB';
  * ```

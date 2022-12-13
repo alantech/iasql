@@ -11,11 +11,13 @@ import { AwsRegions } from '../../aws_account/entity';
  * You can apply a policy document that allow additional permissions to your repository.
  *
  * @example
- * ```sql
+ * ```sql TheButton[Manage policies for an ECR repository]="Manage policies for an ECR repository"
  * INSERT INTO repository_policy (repository_id, policy_text) VALUES
  * ((select id from repository where repository_name = 'repository'),
  * '{ "Version": "2012-10-17", "Statement": [ { "Sid": "DenyPull", "Effect": "Deny", "Principal": "*", "Action": [ "ecr:BatchGetImage", "ecr:GetDownloadUrlForLayer" ] } ]}');
+ *
  * SELECT * FROM repository_policy WHERE repository_id = (select id from repository where repository_name = 'repository');
+ *
  * DELETE FROM repository_policy WHERE repository_id = (select id from repository where repository_name = 'repository');
  * ```
  *

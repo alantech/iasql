@@ -25,10 +25,11 @@ export enum ActionTypeEnum {
  * The rules that you define for a listener determine how the load balancer routes requests to its registered targets.
  *
  * @example
- * ```sql
+ * ```sql TheButton[Manage an Load Balancer listener]="Manage a Load Balancer listener"
  * INSERT INTO listener (load_balancer_id, port, protocol, target_group_id) VALUES
  * ((SELECT id FROM load_balancer WHERE load_balancer_name = 'lb_name'), 5678, 'tcp',
  * (SELECT id FROM target_group WHERE target_group_name = 'target_group_name'));
+ *
  * DELETE FROM listener WHERE load_balancer_id = (SELECT id FROM load_balancer WHERE load_balancer_name = 'lb_name');
  * ```
  *

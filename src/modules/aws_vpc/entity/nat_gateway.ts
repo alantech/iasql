@@ -35,10 +35,12 @@ export enum NatGatewayState {
  * outside your VPC but external services cannot initiate a connection with those instances.
  *
  * @example
- * ```sql
+ * ```sql TheButton[Manage a NAT gateway]="Manage a NAT gateway"
  * INSERT INTO nat_gateway (connectivity_type, subnet_id, tags) SELECT 'private', id, '{"Name":"nat_gateway"}
  * FROM subnet WHERE cidr_block = '191.0.0.0/16';
+ *
  * SELECT * FROM nat_gateway WHERE tags ->> 'name' = 'nat_gateway';
+ *
  * DELETE FROM nat_gateway WHERE tags ->> 'name' = 'nat_gateway';
  * ```
  *

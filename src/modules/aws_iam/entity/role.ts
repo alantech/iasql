@@ -12,7 +12,7 @@ import { cloudId } from '../../../services/cloud-id';
  * Instead, when you assume a role, it provides you with temporary security credentials for your role session.
  *
  * @example
- * ```sql
+ * ```sql TheButton[Manage an IAM role]="Manage an IAM role"
  * INSERT INTO iam_role (role_name, assume_role_policy_document) VALUES ('lambda_role_name', '{
  * Version: '2012-10-17',
  * Statement: [
@@ -25,7 +25,9 @@ import { cloudId } from '../../../services/cloud-id';
  *   },
  * ],
  * }');
+ *
  * SELECT * FROM iam_role WHERE role_name = 'lambda_role_name';
+ *
  * DELETE FROM iam_role WHERE role_name = 'lambda_role_name';
  * ```
  *

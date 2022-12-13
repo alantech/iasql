@@ -12,7 +12,7 @@ import { AwsRegions } from '../../aws_account/entity';
  * or an on-premise server or virtual machine (VM) that you manage remotely.
  *
  * @example
- * ```sql
+ * ```sql TheButton[Manage an ECS cluster]="Manage an ECS cluster"
  * INSERT INTO cluster (cluster_name) VALUES('cluster_name');
  * SELECT * FROM cluster WHERE cluster_name = 'cluster_name';
  * DELETE FROM cluster WHERE cluster_name = 'cluster_name';

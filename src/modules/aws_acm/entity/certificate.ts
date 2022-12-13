@@ -49,8 +49,8 @@ export enum certificateRenewalEligibilityEnum {
  * @see https://iasql.com/docs/sql/classes/aws_acm_rpcs_request.CertificateRequestRpc/
  *
  * @example
- * ```sql
- *   SELECT * FROM certificate WHERE domain_name = '${domainName}';
+ * ```sql TheButton[Show certificates for domain]="Show certificates for domain"
+ *   SELECT * FROM certificate WHERE domain_name = 'domain.com';
  * ```
  *
  * @see https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html

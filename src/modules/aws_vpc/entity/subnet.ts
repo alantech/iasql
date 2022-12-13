@@ -22,7 +22,7 @@ export enum SubnetState {
  * resources that won't be connected to the internet.
  *
  * @example
- * ```sql
+ * ```sql TheButton[Creates a subnet]="Creates a subnet"
  *  INSERT INTO subnet (availability_zone, vpc_id, cidr_block) SELECT 'us-east-1a', id, '192.0.0.0/16'
  * FROM vpc WHERE is_default = false AND cidr_block = '192.0.0.0/16';
  * ```

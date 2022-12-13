@@ -9,12 +9,13 @@ import { Vpc } from './vpc';
  * Table to manage associations between a Route and a Route table.
  *
  * @example
- * ```sql
+ * ```sql TheButton[Manage Route Table associations]="Manage Route Table associations"
  * INSERT INTO route_table_association (route_table_id, vpc_id, subnet_id) VALUES
  * ((SELECT id FROM route_table WHERE tags ->> 'name' = 'route_table'),
  * (SELECT id FROM vpc WHERE tags ->> 'name' = 'vpc'),
  * (SELECT id FROM subnet WHERE cidr_block = '10.0.1.0/24' AND availability_zone = 'us-east-1a'));
  * SELECT * FROM route_table_association WHERE route_table_id = (SELECT id FROM route_table WHERE tags ->> 'name' = 'route_table');
+ *
  * DELETE FROM route_table_association WHERE route_table_id = (SELECT id FROM route_table WHERE tags ->> 'name' = 'route_table');
  * ```
  *

@@ -33,10 +33,12 @@ export enum EC2TagFilterType {
  * The deployment group contains settings and configurations used during the deployment.
  *
  * @example
- * ```sql
+ * ```sql TheButton[Manage CodeDeploy deployment groups]="Manage CodeDeploy deployment groups"
  * INSERT INTO codedeploy_deployment_group (application_id, name, role_name) VALUES
  * ((SELECT id FROM codedeploy_application WHERE name = 'application-name'), 'deployment-group-name', 'role-name');
+ *
  * SELECT * FROM codedeploy_deployment_group WHERE name='deployment-group-name';
+ *
  * DELETE FROM codedeploy_deployment_group WHERE name = 'deployment-group-name'
  * ```
  *

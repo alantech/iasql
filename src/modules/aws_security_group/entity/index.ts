@@ -18,7 +18,7 @@ import { Vpc } from '../../aws_vpc/entity';
  * A security group controls the traffic that is allowed to reach and leave the resources that it is associated with.
  *
  * @example
- * ```sql
+ * ```sql TheButton[Manage a Security group]="Manage a Security group"
  * INSERT INTO security_group (description, group_name) VALUES ('sg description', 'sg_name');
  * SELECT * FROM security_group WHERE group_name = 'sg_name';
  * DELETE FROM security_group WHERE group_name = 'sg_name';
@@ -116,11 +116,13 @@ export class SecurityGroup {
  * instances that are associated with the security group. The rules also control the outbound traffic that's allowed to leave them.
  *
  * @example
- * ```sql
+ * ```sql TheButton[Manage security group rules]="Manage security group rules"
  * INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
  * SELECT true, 'tcp', 443, 443, '0.0.0.0/8', 'rule_name', id FROM security_group WHERE group_name = 'sg_name';
+ *
  * SELECT * FROM security_group_rule INNER JOIN security_group ON security_group.id = security_group_rule.security_group_id
  * WHERE group_name = 'sg_name';
+ *
  * DELETE FROM security_group_rule WHERE source_security_group = (SELECT id FROM security_group WHERE group_name='sg_name')
  * ```
  *

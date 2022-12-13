@@ -57,10 +57,12 @@ export enum ProtocolVersionEnum {
  * When you create each listener rule, you specify a target group and conditions. When a rule condition is met, traffic is forwarded to the corresponding target group
  *
  * @example
- * ```sql
+ * ```sql TheButton[Manage a Load Balancer target group]="Manage a Load Balancer target group"
  * INSERT INTO target_group (target_group_name, target_type, protocol, port, vpc, health_check_path)
  * VALUES ('tg_name', 'ip', 'HTTP', 5678, null, '/health');
+ *
  * SELECT * FROM target_group WHERE target_group_name = 'tg_name';
+ *
  * DELETE FROM target_group WHERE target_group_name = 'tg_name';
  * ```
  *

@@ -33,7 +33,7 @@ export enum originProtocolPolicyEnum {
  * You create a CloudFront distribution to tell CloudFront where you want content to be delivered from, and the details about how to track and manage content delivery.
  *
  * @example
- * ```sql
+ * ```sql TheButton[Manage a CloudFront distribution]="Manage a CloudFront distribution"
  *  INSERT INTO distribution (caller_reference, comment, enabled, is_ipv6_enabled, default_cache_behavior, origins ) VALUES ('s3-bucket-ref', 'a comment', true, false, "{
  * TargetOriginId: s3-caller,
  * ViewerProtocolPolicy: 'allow-all',

@@ -35,7 +35,7 @@ export enum RevisionType {
  * of installing content on one or more instances.
  *
  * @example
- * ```sql
+ * ```sql TheButton[List CodeDeploy deployments]="List CodeDeploy deployments"
  * SELECT * FROM codedeploy_deployment WHERE application_id = (SELECT id FROM codedeploy_application WHERE name = 'application_name');
  * ```
  *

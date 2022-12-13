@@ -7,10 +7,12 @@ import { cloudId } from '../../../services/cloud-id';
  * or application that uses it to interact with AWS. A user in AWS consists of a name and credentials.
  *
  * @example
- * ```sql
+ * ```sql TheButton[Manage an IAM user]="Manage an IAM user"
  * INSERT INTO iam_user (user_name, path, attached_policies_arns) VALUES ('user_name', '/username/',
  * array['arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy']);
+ *
  * SELECT * FROM iam_user WHERE user_name = 'user_name';
+ *
  * DELETE FROM iam_user WHERE user_name = 'user_name';
  * ```
  *

@@ -22,7 +22,7 @@ import { ParameterGroup } from './parameter_group';
  * It provides cost-efficient, resizable capacity for an industry-standard relational database and manages common database administration tasks.
  *
  * @example
- * ```sql
+ * ```sql TheButton[Manage an RDS instance]="Manage an RDS instance"
  * INSERT INTO rds (db_instance_identifier, allocated_storage, db_instance_class, master_username, master_user_password, availability_zone, engine, backup_retention_period)
  * VALUES ('db_name', 20, 'db.t3.micro', 'test', 'testpass', (SELECT name FROM availability_zone WHERE region = 'us-east-1' LIMIT 1), 'postgres:13.4', 0);
  * SELECT * FROM rds WHERE db_instance_identifier = 'db_name';

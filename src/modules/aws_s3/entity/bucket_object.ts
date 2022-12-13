@@ -11,7 +11,7 @@ import { Bucket } from './bucket';
  * Objects can only be listed and deleted, will need to be uploaded using an specific RPC method
  *
  * @example
- * ```sql
+ * ```sql TheButton[Manage Bucket Objects]="Manage Bucket Objects"
  * SELECT * FROM bucket_object WHERE bucket_name = 'bucket' AND key='object_key';
  * DELETE FROM bucket_object WHERE bucket_name = 'bucket' AND key='object_key';
  * ```

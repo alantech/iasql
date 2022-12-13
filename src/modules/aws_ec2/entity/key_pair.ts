@@ -15,7 +15,7 @@ import { AwsRegions } from '../../aws_account/entity';
  * The keypairs can be created using `key_pair_request` and `key_pair_import` methods.
  *
  * @example
- * ```sql
+ * ```sql TheButton[Manage EC2 keypairs]="Manage EC2 keypairs"
  * SELECT * FROM key_pair WHERE name = 'key';
  * DELETE FROM key_pair WHERE name = 'key';
  * ```

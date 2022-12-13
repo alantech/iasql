@@ -8,7 +8,7 @@ import { AwsRegions } from '../../aws_account/entity';
  * An Elastic IP address is a static IPv4 address designed for dynamic cloud computing. An Elastic IP address is allocated to your AWS account, and is yours until you release it.
  *
  * @example
- * ```sql
+ * ```sql TheButton[Manage an Elastic IP]="Manage an Elastic IP"
  * INSERT INTO elastic_ip (tags) VALUES ('{"name": "test_eip"}');
  * SELECT * FROM elastic_ip WHERE tags ->> 'name' = 'test_eip';
  * DELETE FROM elastic_ip WHERE tags ->> 'name' = 'test_eip';

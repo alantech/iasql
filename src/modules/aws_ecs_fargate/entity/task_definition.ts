@@ -75,8 +75,9 @@ export enum CpuMemCombination {
  * Table to manage AWS ECS task definitions. A task definition is required to run Docker containers in Amazon ECS.
  *
  * @example
- * ```sql
+ * ```sql TheButton[Manage an ECS task definition]="Manage an ECS task definition"
  * INSERT INTO task_definition ("family", task_role_name, execution_role_name, cpu_memory) VALUES ('family', 'task-name', 'task-role', 'vCPU4-25GB');
+ *
  * SELECT * FROM task_definition WHERE family = 'family' AND status IS NULL;
  * delete from task_definition where family = 'family';
  * ```

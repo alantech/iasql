@@ -19,11 +19,13 @@ export enum TransportProtocol {
  * Table to manage AWS ECS container definitions. Container definitions are used in task definitions to describe the different containers that are launched as part of a task.
  *
  * @example
- * ```sql
+ * ```sql TheButton[Manage an ECS container definition]="Manage an ECS container definition"
  * INSERT INTO container_definition ("name", image, essential, memory_reservation, host_port, container_port, protocol, env_variables, task_definition_id, log_group_id)
  * VALUES('container_name', 'image_name', true, 2048, 6379, 6379, 'tcp', '{ "test": 2}', (select id from task_definition where family = 'task_definition' and status is null
  * and region = 'us-east-1' limit 1), (select id from log_group where log_group_name = 'log_group' and region = 'us-east-1'));
+ *
  * SELECT * FROM container_definition WHERE name = 'container_name' AND image = 'image_name';
+ *
  * DELETE FROM container_definition using task_definition where container_definition.task_definition_id = task_definition.id and task_definition.family = 'task_name';
  * ```
  *

@@ -7,7 +7,7 @@ import { LoadBalancer } from '../../aws_elb/entity';
  * distribution or an Amazon S3 bucket, that you want to route traffic to.
  *
  * @example
- * ```sql
+ * ```sql TheButton[Add an Alias Target]="Add an Alias target"
  * INSERT INTO alias_target (load_balancer_id) VALUES ((SELECT id FROM load_balancer WHERE load_balancer_name = 'lb_name'));
  * ```
  *

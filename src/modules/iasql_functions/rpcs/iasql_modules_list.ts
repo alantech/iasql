@@ -13,7 +13,7 @@ import * as iasql from '../iasql';
  *
  * @example
  * ```sql
- * SELECT * FROM iasql_preview_apply()
+ * SELECT * FROM iasql_preview_apply();
  * ```
  *
  * @see https://github.com/iasql/iasql-engine/blob/main/site/docs/reference/function.md

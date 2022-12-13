@@ -75,10 +75,12 @@ export enum IpAddressType {
  * You add one or more listeners to your load balancer.
  *
  * @example
- * ```sql
+ * ```sql TheButton[Manage a Load Balancer]="Manage a Load Balancer"
  * INSERT INTO load_balancer (load_balancer_name, scheme, vpc, load_balancer_type, ip_address_type)
  * VALUES ('load_balancer', 'internet-facing', null, 'application', 'ipv4');
+ *
  * SELECT * FROM load_balancer WHERE load_balancer_name = 'load_balancer';
+ *
  * DELETE FROM load_balancer WHERE load_balancer_name = 'load_balancer';
  * ```
  *

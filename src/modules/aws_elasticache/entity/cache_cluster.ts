@@ -19,7 +19,7 @@ export enum Engine {
  * cache engine software. When you create a cluster, you specify the engine and version for all of the nodes to use.
  *
  * @example
- * ```sql
+ * ```sql TheButton[Manage an ElastiCache cluster]="Manage an ElastiCache cluster"
  * INSERT INTO cache_cluster (cluster_id, node_type, engine, num_nodes) VALUES ('cluster_name', 'cache.t1.micro', 'redis', 1);
  * SELECT * FROM cache_cluster WHERE cluster_id='cluster_name';
  * DELETE FROM cache_cluster WHERE cluster_id = 'cluster_name';

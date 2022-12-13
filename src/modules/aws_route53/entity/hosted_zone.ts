@@ -7,7 +7,7 @@ import { cloudId } from '../../../services/cloud-id';
  * records contain information about how you want to route traffic for a specific domain
  *
  * @example
- * ```sql
+ * ```sql TheButton[Manage a Hosted Zone]="Manage a Hosted Zone"
  * INSERT INTO hosted_zone (domain_name) VALUES ('domain.com');
  * SELECT * FROM hosted_zone WHERE domain_name = 'domain.com';
  * DELETE FROM hosted_zone WHERE domain_name = 'domain.com';

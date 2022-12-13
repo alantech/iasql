@@ -13,9 +13,11 @@ import { AwsRegions } from '../../aws_account/entity';
  * There is no limit on the number of log streams that can belong to one log group.
  *
  * @example
- * ```sql
+ * ```sql TheButton[Manae a CloudWatch Log group entry]="Manage a CloudWatch Log group entry"
  * INSERT INTO log_group (log_group_name) VALUES ('log_name');
+ *
  * SELECT * FROM log_group WHERE log_group_name = 'log_name';
+ *
  * DELETE FROM log_group WHERE log_group_name = 'log_name';
  * ```
  *

@@ -11,7 +11,7 @@ import { Vpc } from './vpc';
  * A route table contains a set of rules, called routes, that determine where network traffic from your subnet or gateway is directed.
  *
  * @example
- * ```sql
+ * ```sql TheButton[Creates a Route table]="Creates a Route table"
  * INSERT INTO route_table (vpc_id, tags, region) VALUES
  * ((SELECT id FROM vpc WHERE tags ->> 'name' = 'vpc'), '{"name":"route_table"}', 'us-east-1');
  * ```

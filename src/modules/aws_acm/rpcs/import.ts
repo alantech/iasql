@@ -18,7 +18,7 @@ import { safeParse } from './common';
  * - message: Error message in case of failure
  *
  * @example
- * ```sql
+ * ```sql TheButton[Import an ACM certificate]="Import an ACM certificate"
  *   SELECT * FROM certificate_import('***your_certificate_content***', '***your_key_content***', 'us-east-2', '');
  * ```
  *

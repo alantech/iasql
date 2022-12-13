@@ -16,10 +16,10 @@ import * as iasql from '../iasql';
  *
  * @example
  * ```sql
- * SELECT * FROM iasql_install('aws_account');
+ * SELECT * FROM iasql_install('aws_ec2');
  * ```
  *
- * @see https://github.com/iasql/iasql-engine/blob/main/site/docs/reference/function.md
+ * @see https://iasql.com/docs/function/
  *
  */
 export class IasqlInstall extends RpcBase {

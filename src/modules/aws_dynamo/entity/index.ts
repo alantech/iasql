@@ -19,10 +19,12 @@ export enum TableClass {
  * continuous backups, automated multi-Region replication, in-memory caching, and data import and export tools.
  *
  * @example
- * ```sql
+ * ```sql TheButton[Manage a DynamoDB table]="Manage a DynamoDB table"
  * INSERT INTO dynamo_table (table_name, table_class, throughput, primary_key)
  * VALUES ('dynamo-table', 'STANDARD','"PAY_PER_REQUEST"', '{"key": "S", "val": "S"}');
+ *
  * SELECT * FROM dynamo_table  WHERE table_name = 'dynamo-table';
+ *
  * DELETE FROM dynamo_table WHERE table_name = 'dynamo-table';
  * ```
  *

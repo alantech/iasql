@@ -25,7 +25,7 @@ export enum ActionCategory {
  * use to model, visualize, and automate the steps required to release your software.
  *
  * @example
- * ```sql
+ * ```sql TheButton[Create a new CodePipeline declaration]="Create a new CodePipeline declaration"
  * INSERT INTO pipeline_declaration (name, service_role_name, stages, artifact_store)
  * VALUES ('pipeline-name', 'pipeline-role', "{
  *  name: 'Source',

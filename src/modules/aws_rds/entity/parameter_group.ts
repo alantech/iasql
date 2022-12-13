@@ -68,10 +68,11 @@ export enum ParameterGroupFamily {
  * A DB parameter group acts as a container for engine configuration values that are applied to one or more DB instances.
  *
  * @example
- * ```sql
+ * ```sql TheButton[Manage RDS parameter groups]="Manage RDS parameter groups"
  * INSERT INTO parameter_group (name, family, description) VALUES ('pg_name', 'postgres14', 'description');
  * SELECT params ->> 'ParameterValue' as value FROM parameter_group, jsonb_array_elements(parameters) as params
  * WHERE name = 'pg_name' AND params ->> 'DataType' = 'boolean' AND params ->> 'IsModifiable' = 'true';
+ *
  * DELETE FROM parameter_group WHERE name = 'pg_name';
  * ```
  *

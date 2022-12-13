@@ -36,7 +36,7 @@ export enum NodeTypeEnum {
  * database service that delivers ultra-fast performance. It is purpose-built for modern applications with microservices architectures.
  *
  * @example
- * ```sql
+ * ```sql TheButton[Manage a MemoryDB cluster]="Manage a MemoryDB cluster"
  * INSERT INTO memory_db_cluster (cluster_name, subnet_group_id) VALUES ('cluster_name', (select id from subnet_group where subnet_group_name = 'subnet_name'));
  * SELECT * FROM memory_db_cluster WHERE cluster_name = 'cluster_name';
  * DELETE FROM memory_db_cluster WHERE cluster_name = 'cluster_name';

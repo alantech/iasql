@@ -10,7 +10,7 @@ import { AwsRegions } from '../../aws_account/entity';
  * This is a read-only table.
  *
  * @example
- * ```sql
+ * ```sql TheButton[Shows availability zones]="Shows availability zones"
  * SELECT * FROM availability_zone;
  * ```
  *

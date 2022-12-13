@@ -22,7 +22,7 @@ import { invokeFunction } from '../aws';
  * - region: Region where the function is stored
  *
  * @example
- * ```sql
+ * ```sql TheButton[Invoke a Lambda Function]="Invoke a Lambda Function"
  * SELECT * FROM invoke_lambda('function_name', '{name: test}');
  * ```
  *

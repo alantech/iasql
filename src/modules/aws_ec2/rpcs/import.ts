@@ -15,7 +15,7 @@ import { Context, RpcBase, RpcResponseObject } from '../../interfaces';
  * - message: Error message in case of failure
  *
  * @example
- * ```sql
+ * ```sql TheButton[Import an EC2 keypair]="Import an EC2 keypair"
  * SELECT * FROM key_pair_import ('test-key', '<content_for_ssh_key>', 'us-east-1');
  * ```
  *

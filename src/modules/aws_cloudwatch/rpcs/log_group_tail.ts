@@ -15,7 +15,7 @@ import { Context, RpcBase, RpcResponseObject } from '../../interfaces';
  * - message: The content of the log entry
  *
  * @example
- * ```sql
+ * ```sql TheButton[Tail CloudWatch logs]="Tail CloudWatch logs"
  *   SELECT * FROM log_group_tail('log_group_name');
  * ```
  *

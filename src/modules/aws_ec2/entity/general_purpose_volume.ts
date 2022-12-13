@@ -33,7 +33,7 @@ export enum VolumeState {
  * level storage volumes for use with EC2 instances. EBS volumes behave like raw, unformatted block devices.
  *
  * @example
- * ```sql
+ * ```sql TheButton[Create a General purpose volume]="Create a general purpose volume"
  * INSERT INTO general_purpose_volume (volume_type, availability_zone, size, tags) VALUES ('gp3', 'us-east-1a', 50, '{"Name": "gp3-volume-name"}');
  * ```
  *

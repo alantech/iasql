@@ -10,7 +10,7 @@ import { AwsRegions } from '../../aws_account/entity';
  * MemoryDB uses that subnet group to choose a subnet and IP addresses within that subnet to associate with your nodes.
  *
  * @example
- * ```sql
+ * ```sql TheButton[Manage a MemoryDB subnet group]="Manage a MemoryDB subnet group"
  * INSERT INTO subnet_group (subnet_group_name) VALUES ('subnet_group');
  * SELECT * FROM subnet_group WHERE subnet_group_name = 'subnet_group';
  * DELETE FROM subnet_group WHERE subnet_group_name = 'subnet_group';

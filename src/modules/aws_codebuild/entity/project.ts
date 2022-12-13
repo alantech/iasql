@@ -65,7 +65,7 @@ export enum EnvironmentType {
  * A Codebuild project can be created, then successful builds can be triggered for that specific project.
  *
  * @example
- * ```sql
+ * ```sql TheButton[Manage a CodeBuild project]="Manage a CodeBuild project"
  * INSERT INTO codebuild_project (project_name, source_type, service_role_name, source_location)
  * VALUES ('codebuild_project', 'GITHUB', 'codebuild_role_name', 'https://github.com/iasql/iasql-engine');
  * DELETE FROM codebuild_project WHERE project_name='codebuild_project';

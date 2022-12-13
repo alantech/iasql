@@ -12,9 +12,9 @@ import { cloudId } from '../../../services/cloud-id';
  * The keys can be generated from the AWS console for each registered user
  *
  * @example
- * ```sql
+ * ```sql TheButton[Add new credentials]="Add new credentials"
  *  INSERT INTO aws_credentials (access_key_id, secret_access_key)
- *  VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}');
+ *  VALUES ('AKIA...', '<your secret access key>');
  *
  *  SELECT * FROM aws_credentials;
  * ```

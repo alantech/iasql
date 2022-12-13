@@ -31,13 +31,15 @@ export enum AssignPublicIp {
  * scheduler launches another instance of your task definition to replace it. This helps maintain your desired number of tasks in the service.
  *
  * @example
- * ```sql
+ * ```sql TheButton[Manage an ECS service]="Manage an ECS service"
  * INSERT INTO service ("name", desired_count, subnets, assign_public_ip, cluster_id, task_definition_id, target_group_id)
  * VALUES ('service_name', 1, (select array(select subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true and vpc.region = 'us-east-1' limit 3)),
  * 'ENABLED', (SELECT id FROM cluster WHERE cluster_name = '${clusterName}'), (select id from task_definition where family = 'task-definition' and region = 'us-east-1'
  * order by revision desc limit 1), (SELECT id FROM target_group WHERE target_group_name = 'target-group' and region = 'us-east-1'));
+ *
  * SELECT * FROM service WHERE name = 'service-name';
- * delete from service where name = 'service-name';
+ *
+ * DELETE FROM service WHERE name = 'service-name';
  * ```
  *
  * @see https://github.com/iasql/iasql-engine/blob/b2c2383b73d73f5cdf75c867d334e80cdf40caa1/test/modules/aws-ecs-integration.ts#L516

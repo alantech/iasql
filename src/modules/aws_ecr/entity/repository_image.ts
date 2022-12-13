@@ -11,7 +11,7 @@ import { AwsRegions } from '../../aws_account/entity';
  * This table can only list and delete the associated images
  *
  * @example
- * ```sql
+ * ```sql TheButton[Manage ECR repository images]="Manage ECR repository images"
  * SELECT * FROM repository_image WHERE private_repository_id = (select id from repository where repository_name = 'test-repo');
  * DELETE FROM public_repository WHERE repository_name = 'repository_name';
  * ```

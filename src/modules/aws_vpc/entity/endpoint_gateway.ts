@@ -20,7 +20,7 @@ export enum EndpointGatewayService {
  * Gateway endpoints do not enable AWS PrivateLink.
  *
  * @example
- * ```sql
+ * ```sql TheButton[Manage a Gateway endpoint]="Manage a Gateway endpoint"
  * INSERT INTO endpoint_gateway (service, vpc_id, tags) SELECT 's3', id, '{"Name": "s3_gateway"}'
  * FROM vpc WHERE is_default = false AND cidr_block = '191.0.0.0/16';
  * SELECT * FROM endpoint_gateway WHERE tags ->> 'name' = 's3_gateway';

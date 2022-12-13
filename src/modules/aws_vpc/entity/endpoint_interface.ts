@@ -42,10 +42,12 @@ export enum EndpointInterfaceService {
  * connect your VPC to services as if they were in your VPC.
  *
  * @example
- * ```sql
+ * ```sql TheButton[Manage an Interface endpoint]="Manage an Interface endpoint"
  * INSERT INTO endpoint_interface (service, vpc_id, tags) SELECT 'lambda', id, '{"Name": "lambda_vpc_endpoint"}'
  * FROM vpc WHERE is_default = false AND cidr_block = '191.0.0.0/16';
+ *
  * SELECT * FROM endpoint_interface WHERE tags ->> 'Name' = 'lambda_vpc_endpoint';
+ *
  * DELETE FROM endpoint_interface WHERE tags ->> 'Name' = 'lambda_vpc_endpoint';
  * ```
  *

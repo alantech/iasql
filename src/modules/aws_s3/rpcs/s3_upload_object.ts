@@ -22,7 +22,7 @@ import { BucketObject } from '../entity';
  * - contentType: MIME type for the uploaded object
  *
  * @example
- * ```sql
+ * ```sql TheButton[Uploads an object]="Uploads an object"
  * SELECT * FROM s3_upload_object('bucket', 'object_key', '{
  * name: 'Iasql',
  * value: 'Hello world!',
