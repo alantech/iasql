@@ -42,7 +42,7 @@ beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown());
 
 let username: string, password: string;
-let repoUri: string, buildSpec: string;
+let repoUri: string;
 
 describe('AwsCodebuild Integration Testing', () => {
   it('creates a new test db with the same name', done => {
@@ -368,8 +368,10 @@ phases:
     ),
   );
 
-  it('creates the buildSpec', () => {
-    buildSpec = `version: 0.2
+  it('starts a transaction', begin());
+  it('creates a project that pushes to ecr', query(`
+      INSERT INTO codebuild_project (project_name, build_spec, source_type, privileged_mode, service_role_name)
+      VALUES ('${dbAlias}-push-ecr', 'version: 0.2
 
 phases:
   pre_build:
@@ -384,13 +386,7 @@ phases:
   post_build:
     commands:
       - echo Pushing the Docker image...
-      - docker push ${repoUri}:latest`
-  });
-
-  it('starts a transaction', begin());
-  it('creates a project that pushes to ecr', query(`
-      INSERT INTO codebuild_project (project_name, build_spec, source_type, privileged_mode, service_role_name)
-      VALUES ('${dbAlias}-push-ecr', '${buildSpec}', 'NO_SOURCE', true, '${dbAlias}');
+      - docker push ${repoUri}:latest', 'NO_SOURCE', true, '${dbAlias}');
     `, undefined,
     true,
     () => ({ username, password }),));
