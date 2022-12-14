@@ -11,7 +11,7 @@ import { Context, MapperInterface, ModuleInterface, MapperBase } from '../../mod
 import * as dbMan from '../../services/db-manager';
 import { findDiff } from '../../services/diff';
 import { DepError, lazyLoader } from '../../services/lazy-dep';
-import logger, { debugObj } from '../../services/logger';
+import logger, { debugObj, logErrSentry } from '../../services/logger';
 import { sortModules } from '../../services/mod-sort';
 import MetadataRepo from '../../services/repositories/metadata';
 import { TypeormWrapper } from '../../services/typeorm';
@@ -664,6 +664,7 @@ export async function commit(
     return await commitSync(dbId, installedModulesSorted, context, force, crupdes, dryRun);
   } catch (e: any) {
     debugObj(e);
+    await insertErrorLog(orm, logErrSentry(e));
     throw e;
   } finally {
     // Create end commit object
@@ -711,6 +712,7 @@ export async function rollback(dbId: string, context: Context, force = false, or
     return await commitSync(dbId, installedModulesSorted, context, force, crupdes, false);
   } catch (e: any) {
     debugObj(e);
+    await insertErrorLog(orm, logErrSentry(e));
     throw e;
   } finally {
     // Create end commit object
@@ -1520,4 +1522,15 @@ export async function isOpenTransaction(orm: TypeormWrapper): Promise<boolean> {
     take: 1,
   });
   return !!transactions?.length && transactions[0].changeType === AuditLogChangeType.OPEN_TRANSACTION;
+}
+
+export async function insertErrorLog(orm: TypeormWrapper | null, err: string): Promise<void> {
+  const errorLog = new IasqlAuditLog();
+  errorLog.user = config.db.user;
+  errorLog.change = {};
+  errorLog.message = err;
+  errorLog.changeType = AuditLogChangeType.ERROR;
+  errorLog.tableName = 'iasql_audit_log';
+  errorLog.ts = new Date();
+  await orm?.save(IasqlAuditLog, errorLog);
 }
