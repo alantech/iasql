@@ -32,6 +32,7 @@ export interface CrudInterface2<E> {
   delete: (e: E[], ctx: Context) => Promise<void | E[]>;
 }
 
+/** @internal */
 export class Crud2<E extends {}> {
   module: ModuleInterface;
   createFn: (e: E[], ctx: Context) => Promise<void | E[]>;
@@ -214,6 +215,8 @@ export class Crud2<E extends {}> {
     return this.updateOrReplaceFn(prev, next);
   }
 }
+
+/** @internal */
 export interface MapperInterface<E extends {}> {
   entity: new () => E;
   entityId: (e: E) => string;
@@ -236,6 +239,7 @@ export interface RpcInterface {
   ) => Promise<RpcResponseObject<RpcOutput>[]>;
 }
 
+/** @internal */
 export class MapperBase<E extends {}> {
   module: ModuleInterface;
   entity: new () => E;

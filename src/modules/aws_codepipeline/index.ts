@@ -2,6 +2,7 @@ import { ModuleBase } from '../interfaces';
 import { PipelineDeclarationMapper } from './mappers';
 
 export class AwsCodepipelineModule extends ModuleBase {
+  /** @internal  */
   pipelineDeclaration: PipelineDeclarationMapper;
 
   constructor() {

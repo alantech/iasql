@@ -3,6 +3,7 @@ import { CertificateMapper } from './mappers';
 import { CertificateRequestRpc, CertificateImportRpc } from './rpcs';
 
 export class AwsAcmModule extends ModuleBase {
+  /** @internal */
   certificate: CertificateMapper;
   certificateRequest: CertificateRequestRpc;
   certificateImport: CertificateImportRpc;

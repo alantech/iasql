@@ -15,6 +15,9 @@ import {
   IasqlGetErrors,
 } from './rpcs';
 
+/**
+ * @internal
+ */
 export class IasqlFunctions extends ModuleBase {
   iasqlApply: IasqlApply;
   iasqlPreviewApply: IasqlPreviewApply;
@@ -46,4 +49,8 @@ export class IasqlFunctions extends ModuleBase {
     super.loadBasics();
   }
 }
+
+/**
+ * @internal
+ */
 export const iasqlFunctions = new IasqlFunctions();

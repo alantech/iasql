@@ -8,10 +8,19 @@ import {
 } from './mappers';
 
 export class AwsCodebuildModule extends ModuleBase {
+  /** @internal */
   project: CodebuildProjectMapper;
+
+  /** @internal */
   sourceCredentialsList: SourceCredentialsListMapper;
+
+  /** @internal */
   sourceCredentialsImport: SourceCredentialsImportMapper;
+
+  /** @internal */
   buildImport: CodebuildBuildImportMapper;
+
+  /** @internal */
   buildList: CodebuildBuildListMapper;
 
   constructor() {

@@ -7,7 +7,10 @@ export class AwsMemoryDBModule extends ModuleBase {
 
   constructor() {
     super();
+    /** @internal */
     this.memoryDBCluster = new MemoryDBClusterMapper(this);
+
+    /** @internal */
     this.subnetGroup = new SubnetGroupMapper(this);
     super.init();
   }
