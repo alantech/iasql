@@ -116,7 +116,7 @@ export class StartBuildRPC extends RpcBase {
       ];
     }
 
-    const dbBuild = await this.module.buildList.buildListMapper(cloudBuild, ctx, projectObj.region);
+    const dbBuild = await this.module.buildList.buildListMapper(currentBuild, ctx, projectObj.region);
     if (!dbBuild) {
       return [
         {
