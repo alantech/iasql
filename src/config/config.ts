@@ -11,6 +11,7 @@ export interface ConfigInterface {
     password: string; // For the server's own user
     port: number;
     forceSSL: boolean;
+    multiUser: boolean; // Specifies if it is running in a multi-user environment (where collisions on DB name and etc can occur)
   };
   // Configuration for server logging
   logger: {
