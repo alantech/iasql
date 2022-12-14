@@ -253,6 +253,10 @@ export class PeeringConnectionMapper extends MapperBase<PeeringConnection> {
         });
       }
     },
+    updateOrReplace: (a: PeeringConnection, b: PeeringConnection) => {
+      if (a.accepter.vpcId !== b.accepter.vpcId || a.requester.vpcId !== b.requester.vpcId) return 'replace';
+      return 'update';
+    },
   });
 
   private async createTwoWayRoutes(
