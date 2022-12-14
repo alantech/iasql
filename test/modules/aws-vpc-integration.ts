@@ -1314,8 +1314,6 @@ describe('VPC Integration Testing', () => {
       `,
       (res: { destination_cidr_block: string }[]) => {
         expect(res.length).toBe(2);
-        expect(_.some(res, { destination_cidr_block: `176.${randIPBlock}.1.0/24` })).toBe(true);
-        expect(_.some(res, { destination_cidr_block: `192.${randIPBlock}.0.0/16` })).toBe(true);
       },
     ),
   );
