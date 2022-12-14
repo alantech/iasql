@@ -191,31 +191,16 @@ describe('AwsCodebuild Multi-region Integration Testing', () => {
 
   it('apply codebuild_project creation', commit());
 
-  it('starts a transaction', begin());
-
   it(
-    'start build',
+    'start and wait for build',
     query(
       `
-    INSERT INTO codebuild_build_import (project_name, region)
-    VALUES ('${dbAlias}', '${nonDefaultRegion}');
+      SELECT * FROM start_build('${dbAlias}', '${nonDefaultRegion}');
   `,
-      undefined,
-      true,
-      () => ({ username, password }),
-    ),
-  );
-
-  it('apply build start', commit());
-
-  it(
-    'check build imports is empty',
-    query(
-      `
-    SELECT * FROM codebuild_build_import
-    WHERE project_name = '${dbAlias}' and region = '${nonDefaultRegion}';
-  `,
-      (res: any[]) => expect(res.length).toBe(0),
+      (res: any[]) => {
+        expect(res.length).toBe(1);
+        expect(res[0].status).toBe('OK');
+      },
     ),
   );
 
