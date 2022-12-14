@@ -42,7 +42,6 @@ beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown());
 
 let username: string, password: string;
-let repoUri: string;
 
 describe('AwsCodebuild Integration Testing', () => {
   it('creates a new test db with the same name', done => {
@@ -278,13 +277,6 @@ phases:
     ),
   );
 
-  it('checks the repository exists', query(`
-    SELECT * FROM repository WHERE repository_name = '${dbAlias}';
-  `, (res:any[]) => {
-    expect(res.length).toBe(1);
-    repoUri = res[0].repository_uri;
-  }))
-
   it('starts a transaction', begin());
 
   it(
@@ -377,16 +369,16 @@ phases:
   pre_build:
     commands:
       - echo Logging in to Amazon ECR...
-      - aws ecr get-login-password --region ${region} | docker login --username AWS --password-stdin ${repoUri}
+      - aws ecr get-login-password --region ${region} | docker login --username AWS --password-stdin ' || (SELECT repository_uri FROM repository WHERE repository_name = '${dbAlias}' ) || '
   build:
     commands:
       - echo Building the Docker image...
       - docker pull ubuntu:latest
-      - docker tag ubuntu:latest ${repoUri}:latest
+      - docker tag ubuntu:latest ' || (SELECT repository_uri FROM repository WHERE repository_name = '${dbAlias}' ) || ':latest
   post_build:
     commands:
       - echo Pushing the Docker image...
-      - docker push ${repoUri}:latest', 'NO_SOURCE', true, '${dbAlias}');
+      - docker push ' || (SELECT repository_uri FROM repository WHERE repository_name = '${dbAlias}' ) || ':latest', 'NO_SOURCE', true, '${dbAlias}');
     `, undefined,
     true,
     () => ({ username, password }),));
