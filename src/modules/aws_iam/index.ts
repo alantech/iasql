@@ -4,6 +4,9 @@ import {
   IAM,
   ListAttachedRolePoliciesCommandInput,
   ListAttachedUserPoliciesCommandInput,
+  LoginProfile,
+  NoSuchEntityException,
+  paginateListAccessKeys,
   paginateListRoles,
   paginateListUsers,
   Role as AWSRole,
@@ -43,7 +46,21 @@ class UserMapper extends MapperBase<IamUser> {
     res => res?.User,
   );
 
+  getUserLoginProfile = crudBuilderFormat<IAM, 'getLoginProfile', LoginProfile | undefined>(
+    'getLoginProfile',
+    UserName => ({ UserName }),
+    res => res?.LoginProfile,
+  );
+
   getAllUsers = paginateBuilder<IAM>(paginateListUsers, 'Users');
+
+  getUserKeys = paginateBuilder<IAM>(
+    paginateListAccessKeys,
+    'AccessKeyMetadata',
+    undefined,
+    undefined,
+    UserName => ({ UserName }),
+  );
 
   updateUserPath = crudBuilder2<IAM, 'updateUser'>('updateUser', (UserName, NewPath) => ({
     UserName,
@@ -51,6 +68,33 @@ class UserMapper extends MapperBase<IamUser> {
   }));
 
   deleteUser = crudBuilder2<IAM, 'deleteUser'>('deleteUser', UserName => ({ UserName }));
+
+  deleteLoginProfile = crudBuilder2<IAM, 'deleteLoginProfile'>('deleteLoginProfile', UserName => ({
+    UserName,
+  }));
+
+  async deleteUserLoginProfile(client: IAM, username: string) {
+    // first check if we have a profile
+    try {
+      const profile = await this.getUserLoginProfile(client, username);
+      if (profile) await this.deleteLoginProfile(client, profile.UserName);
+    } catch (e) {
+      if (e instanceof NoSuchEntityException) return;
+      else throw new Error('Error deleting user login profile');
+    }
+  }
+
+  async deleteUserKeys(client: IAM, username: string) {
+    // list all keys for an user
+    const keys = (await this.getUserKeys(client, username)) ?? [];
+    for (const key of keys) {
+      // just delete the key
+      await client.deleteAccessKey({
+        UserName: key.UserName,
+        AccessKeyId: key.AccessKeyId,
+      });
+    }
+  }
 
   async waitForAttachedUserPolicies(client: IAM, userName: string, policyArns: string[]) {
     // wait for policies to be attached
@@ -221,6 +265,8 @@ class UserMapper extends MapperBase<IamUser> {
         if (e.userName) {
           await this.detachUserPolicies(client.iamClient, e.userName, e.attachedPoliciesArns ?? []);
           await this.waitForAttachedUserPolicies(client.iamClient, e.userName, []);
+          await this.deleteUserKeys(client.iamClient, e.userName);
+          await this.deleteUserLoginProfile(client.iamClient, e.userName);
           await this.deleteUser(client.iamClient, e.userName);
         }
       }
