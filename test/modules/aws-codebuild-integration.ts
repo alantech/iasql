@@ -23,9 +23,6 @@ const query = runQuery.bind(null, dbAlias);
 const region = defaultRegion();
 const modules = ['aws_codebuild', 'aws_ecr'];
 
-const codebuildPolicyArn = 'arn:aws:iam::aws:policy/AWSCodeBuildAdminAccess';
-const cloudwatchLogsArn = 'arn:aws:iam::aws:policy/CloudWatchLogsFullAccess';
-const pushEcrPolicyArn = 'arn:aws:iam::aws:policy/service-role/AWSAppRunnerServicePolicyForECRAccess';
 const assumeServicePolicy = JSON.stringify({
   Statement: [
     {
@@ -45,6 +42,7 @@ beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown());
 
 let username: string, password: string;
+let repoUri: string, buildSpec: string;
 
 describe('AwsCodebuild Integration Testing', () => {
   it('creates a new test db with the same name', done => {
@@ -241,9 +239,12 @@ phases:
     'adds a new role',
     query(
       `
-    INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
-    VALUES ('${dbAlias}', '${assumeServicePolicy}', array['${codebuildPolicyArn}', '${cloudwatchLogsArn}', '${pushEcrPolicyArn}']);
-  `,
+          INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
+          VALUES ('${dbAlias}', '${assumeServicePolicy}', array ['arn:aws:iam::aws:policy/CloudWatchLogsFullAccess',
+              'arn:aws:iam::aws:policy/AWSCodeBuildAdminAccess',
+              'arn:aws:iam::aws:policy/AWSCodeStarFullAccess',
+              'arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess']);
+      `,
       undefined,
       true,
       () => ({ username, password }),
@@ -276,6 +277,13 @@ phases:
       (res: any[]) => expect(res.length).toBe(1),
     ),
   );
+
+  it('checks the repository exists', query(`
+    SELECT * FROM repository WHERE repository_name = '${dbAlias}';
+  `, (res:any[]) => {
+    expect(res.length).toBe(1);
+    repoUri = res[0].repository_uri;
+  }))
 
   it('starts a transaction', begin());
 
@@ -359,6 +367,58 @@ phases:
       (res: any[]) => expect(res.length).toBe(1),
     ),
   );
+
+  it('creates the buildSpec', () => {
+    buildSpec = `version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR...
+      - aws ecr get-login-password --region ${region} | docker login --username AWS --password-stdin ${repoUri}
+  build:
+    commands:
+      - echo Building the Docker image...
+      - docker pull ubuntu:latest
+      - docker tag ubuntu:latest ${repoUri}:latest
+  post_build:
+    commands:
+      - echo Pushing the Docker image...
+      - docker push ${repoUri}:latest`
+  });
+
+  it('starts a transaction', begin());
+  it('creates a project that pushes to ecr', query(`
+      INSERT INTO codebuild_project (project_name, build_spec, source_type, privileged_mode, service_role_name)
+      VALUES ('${dbAlias}-push-ecr', '${buildSpec}', 'NO_SOURCE', true, '${dbAlias}');
+    `, undefined,
+    true,
+    () => ({ username, password }),));
+  it('apply creation of codebuild project', commit());
+
+  it('starts a transaction', begin());
+  it(
+    'starts the build for pushing to ecr',
+    query(
+      `
+    INSERT INTO codebuild_build_import (project_name)
+    VALUES ('${dbAlias}-push-ecr');
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+  it('apply build and push', commit());
+
+  it('checks the image is pushed to ecr', query(`
+      SELECT *
+      FROM repository_image
+      WHERE private_repository_id = (SELECT id FROM repository WHERE repository_name = '${dbAlias}');
+  `, (res: any[]) => {
+    expect(res.length).toBe(1);
+    expect(res[0].image_tag).toBe('latest');
+  }));
 
   it('starts a transaction', begin());
 

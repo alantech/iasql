@@ -77,9 +77,7 @@ export async function modules(all: boolean, installed: boolean, dbId: string) {
     }));
   if (all) {
     // TODO: Remove this filter once two-way mode is standard
-    return allModules.filter(
-      (m: any) => !['aws_codebuild', 'aws_codedeploy', 'aws_codepipeline'].includes(m.name),
-    );
+    return allModules;
   } else if (installed && dbId) {
     const iasqlModule = AllModules?.iasqlPlatform?.iasqlModule ?? throwError('Core IasqlModule not found');
     const iasqlTables = AllModules?.iasqlPlatform?.iasqlTables ?? throwError('Core IasqlTables not found');
