@@ -11,7 +11,7 @@ import { Context, RpcBase, RpcResponseObject } from '../../interfaces';
  *
  * - name: the name of the project that was built
  *
- * - status: OK if the certificate was imported successfully
+ * - status: OK if the build was started successfully
  *
  * - message: Error message in case of failure
  *
@@ -71,63 +71,7 @@ export class StartBuildRPC extends RpcBase {
         this.module.project.generateId({ projectName: name, region }),
       ));
 
-    if (projectObj) {
-      const client = (await ctx.getAwsClient(projectObj.region)) as AWS;
-      const cloudBuild = await this.startBuild(client.cbClient, {
-        projectName: name,
-      });
-      if (!cloudBuild || !cloudBuild.id) {
-        return [
-          {
-            name,
-            status: 'KO',
-            message: 'Error launching build',
-          },
-        ];
-      }
-
-      // wait for builds to complete
-      await this.module.buildList.waitForBuildsToComplete(client.cbClient, [cloudBuild.id]);
-
-      // get latest status of the build
-      const awsId = cloudBuild.id;
-
-      const currentBuild = await this.module.buildList.cloud.read(
-        ctx,
-        this.module.buildList.generateId({ awsId, region }),
-      );
-      if (currentBuild) {
-        const dbBuild = await this.module.buildList.buildListMapper(cloudBuild, ctx, projectObj.region);
-        if (!dbBuild) {
-          return [
-            {
-              name,
-              status: 'KO',
-              message: 'Error starting build',
-            },
-          ];
-        } else {
-          // create the builds in the database
-          await this.module.buildList.db.create(dbBuild, ctx);
-
-          return [
-            {
-              name,
-              status: 'OK',
-              message: '',
-            },
-          ];
-        }
-      } else {
-        return [
-          {
-            name,
-            status: 'KO',
-            message: 'Error getting status of build',
-          },
-        ];
-      }
-    } else {
+    if (!projectObj) {
       return [
         {
           name,
@@ -136,6 +80,63 @@ export class StartBuildRPC extends RpcBase {
         },
       ];
     }
+
+    const client = (await ctx.getAwsClient(projectObj.region)) as AWS;
+    const cloudBuild = await this.startBuild(client.cbClient, {
+      projectName: name,
+    });
+    if (!cloudBuild || !cloudBuild.id) {
+      return [
+        {
+          name,
+          status: 'KO',
+          message: 'Error launching build',
+        },
+      ];
+    }
+
+    // wait for builds to complete
+    await this.module.buildList.waitForBuildsToComplete(client.cbClient, [cloudBuild.id]);
+
+    // get latest status of the build
+    const awsId = cloudBuild.id;
+
+    const currentBuild = await this.module.buildList.cloud.read(
+      ctx,
+      this.module.buildList.generateId({ awsId, region }),
+    );
+
+    if (!currentBuild) {
+      return [
+        {
+          name,
+          status: 'KO',
+          message: 'Error getting status of build',
+        },
+      ];
+    }
+
+    const dbBuild = await this.module.buildList.buildListMapper(cloudBuild, ctx, projectObj.region);
+    if (!dbBuild) {
+      return [
+        {
+          name,
+          status: 'KO',
+          message: 'Error starting build',
+        },
+      ];
+    }
+
+    // create the builds in the database
+    await this.module.buildList.db.create(dbBuild, ctx);
+
+    return [
+      {
+        name,
+        status: 'OK',
+        message: '',
+      },
+    ];
   };
 
   constructor(module: AwsCodebuildModule) {
