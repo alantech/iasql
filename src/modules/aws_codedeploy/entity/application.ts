@@ -51,7 +51,7 @@ export class CodedeployApplication {
 
   /**
    * @public
-   * Internal AWS ID for the application
+   * AWS generated ID for the application
    */
   @Column({
     nullable: true,

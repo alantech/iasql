@@ -52,6 +52,8 @@ export class CacheCluster {
    * @public
    * Node type to use as a base for the cluster deployment
    * @see https://docs.aws.amazon.com/AmazonElastiCache/latest/mem-ug/CacheNodes.SupportedTypes.html
+   *
+   * @privateRemarks
    * TODO: convert it to an independent table in the future
    */
   @Column({

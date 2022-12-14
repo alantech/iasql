@@ -38,6 +38,8 @@ export class AliasTarget {
   /**
    * @public
    * Reference to the load balancer where the alias target is pointing
+   *
+   * @privateRemarks
    * TODO: Add gradually new alias target FKs
    */
   @ManyToOne(() => LoadBalancer, {

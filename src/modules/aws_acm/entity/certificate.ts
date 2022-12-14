@@ -43,8 +43,8 @@ export enum certificateRenewalEligibilityEnum {
  * AWS Certificate Manager (ACM) handles the complexity of creating, storing, and renewing public
  * and private SSL/TLS X.509 certificates and keys that protect your AWS websites and applications.
  *
- * Certificates can be read and deleted, but not created or modified. Instead certificates can be
- * created or imported by using the following postgres functions:
+ * This table is used to list the existing certificates and be able to delete them. Certificates
+ * can be created or imported by using the following postgres functions:
  * @see https://iasql.com/docs/sql/classes/aws_acm_rpcs_import.CertificateImportRpc/
  * @see https://iasql.com/docs/sql/classes/aws_acm_rpcs_request.CertificateRequestRpc/
  *
@@ -61,7 +61,7 @@ export enum certificateRenewalEligibilityEnum {
 export class Certificate {
   /**
    * @internal
-   * Internal ID field for storing accounts
+   * Auto-incremented ID field for storing accounts
    */
   @PrimaryGeneratedColumn()
   id: number;
@@ -79,7 +79,7 @@ export class Certificate {
 
   /**
    * @public
-   * Internal ID for the certificate
+   * AWS generated ID for the certificate
    */
   @Column({
     nullable: true,

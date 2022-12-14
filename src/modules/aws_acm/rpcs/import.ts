@@ -48,8 +48,10 @@ export class CertificateImportRpc extends RpcBase {
   /**
    *
    * Imports the certificate
+   *
+   * @privateRemarks
+   * TODO: Can I macro this somehow?
    */
-  // TODO: Can I macro this somehow?
   async importCertificate(client: ACM, input: ImportCertificateCommandInput) {
     const res = await client.importCertificate(input);
     const arn = res.CertificateArn ?? '';

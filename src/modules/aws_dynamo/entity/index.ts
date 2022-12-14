@@ -66,9 +66,12 @@ export class DynamoTable {
   /**
    * @public
    * Complex type to represent the provisioned throughput settings for the table
-   * TODO: How to constrain this more appropriately in the database?
    * @see https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_ProvisionedThroughput.html
+   *
+   * @privateRemarks
+   * TODO: How to constrain this more appropriately in the database?
    */
+
   @Column({
     type: 'json',
     nullable: false,
@@ -90,6 +93,7 @@ export class DynamoTable {
    * Complex type to define the primary key for the table
    * @see https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/HowItWorks.CoreComponents.html#HowItWorks.CoreComponents.PrimaryKey
    *
+   * @privateRemarks
    * TODO: How to constrain this more appropriately in the database?
    * https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_AttributeValue.html
    * This was really hard to find to figure out the correct strings to shove in here

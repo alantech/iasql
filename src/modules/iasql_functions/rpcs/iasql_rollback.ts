@@ -3,7 +3,24 @@ import { Context, RpcBase, RpcResponseObject } from '../../interfaces';
 import * as iasql from '../iasql';
 
 /**
- * @internal
+ * Method to abort an IaSQL transaction if you want to discard the changes done since calling `iasql_begin` by
+ * calling `iasql_rollback`. This will re-enable regular behaviour of IaSQL in which changes are propagated
+ * both ways in an eventually consistent way without any special syntax other than
+ * `SELECT/INSERT/UPDATE/DELETE` records normally.
+ *
+ * Returns following columns:
+ * - action: The action issued in the db
+ * - table_name: Table that was affected
+ * - id: the ID of the generated change
+ * - description: A description of the generated change
+ *
+ * @example
+ * ```sql
+ * SELECT * FROM iasql_rollback();
+ * ```
+ *
+ * @see https://iasql.com/docs/transaction/
+ *
  */
 export class IasqlRollback extends RpcBase {
   /**
@@ -20,6 +37,8 @@ export class IasqlRollback extends RpcBase {
     id: 'varchar',
     description: 'varchar',
   } as const;
+
+  /** @internal */
   call = async (
     dbId: string,
     _dbUser: string,

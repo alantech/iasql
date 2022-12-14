@@ -54,6 +54,8 @@ export class RDS {
    * @public
    * Amount of storage requested for the database
    * @see https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-rds/interfaces/createdbinstancecommandinput.html#allocatedstorage
+   *
+   * @privateRemarks
    * TODO: Add constraints? range vary based on storage type and engine
    */
   @Column({
@@ -84,12 +86,13 @@ export class RDS {
    * Class that represents the computation and memory capacity of an Amazon RDS DB instance
    * @see https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.DBInstanceClass.html#Concepts.DBInstanceClass.Types
    *
+   * @privateRemarks
    * TODO: make this an entity eventually?
+   * @ManyToOne(() => DBInstanceClass, { eager: true, })
+   * @JoinColumn({
+   * . name: 'db_instance_class_id',
+   * })
    */
-  // @ManyToOne(() => DBInstanceClass, { eager: true, })
-  // @JoinColumn({
-  // . name: 'db_instance_class_id',
-  // })
   @Column()
   dbInstanceClass: string;
 
@@ -105,6 +108,8 @@ export class RDS {
    * @public
    * Master user password for the database
    * @see https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-rds/interfaces/createdbinstancecommandinput.html#masteruserpassword
+   *
+   * @privateRemarks
    * How to handle this? It is used just for creation and if an update is needed. After creation / update the value is removed from db
    * TODO: Apply constraints?
    */
@@ -117,6 +122,8 @@ export class RDS {
    * @public
    * Master username for the database
    * @see https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-rds/interfaces/createdbinstancecommandinput.html#masterusername
+   *
+   * @privateRemarks
    * TODO: Apply constraints?
    */
   @Column({
@@ -128,6 +135,8 @@ export class RDS {
    * @public
    * Reference to the VPC security groups for the database
    * @see https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.RDSSecurityGroups.html
+   *
+   * @privateRemarks
    * TODO rename table
    */
   @ManyToMany(() => SecurityGroup, { eager: true })
@@ -140,6 +149,8 @@ export class RDS {
    * @public
    * Address used to connect to the RDS database
    * @see https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_Endpoint.html
+   *
+   * @privateRemarks
    * TODO: make this an entity eventually?
    */
   @Column({
@@ -151,6 +162,8 @@ export class RDS {
    * @public
    * Port used to connect to the RDS database
    * @see https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_Endpoint.html
+   *
+   * @privateRemarks
    * TODO: make this an entity eventually?
    */
   @Column({
@@ -163,6 +176,8 @@ export class RDS {
    * @public
    * Hosted zone ID used to connect to the RDS database
    * @see https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_Endpoint.html
+   *
+   * @privateRemarks
    * TODO: make this an entity eventually?
    */
   @Column({

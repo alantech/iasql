@@ -16,7 +16,7 @@ import * as iasql from '../iasql';
  *
  * @example
  * ```sql
- * SELECT * FROM iasql_uninstall('aws_account');
+ * SELECT * FROM iasql_uninstall('aws_ec2');
  * ```
  *
  * @see https://github.com/iasql/iasql-engine/blob/main/site/docs/reference/function.md

@@ -66,7 +66,7 @@ export class CodedeployDeploymentGroup {
 
   /**
    * @public
-   * Internal AWS ID for the deployment group
+   * AWS generated ID for the deployment group
    */
   @Column({
     nullable: true,

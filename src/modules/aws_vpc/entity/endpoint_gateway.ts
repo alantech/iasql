@@ -94,6 +94,8 @@ export class EndpointGateway {
    * @public
    * Complex type representing the route tables associated with this gateway
    * @see https://docs.aws.amazon.com/vpc/latest/privatelink/gateway-endpoints.html#gateway-endpoint-routing
+   *
+   * @privateRemarks
    * TODO: update to be a reference to a RouteTable entity
    */
   @Column('text', { nullable: true, array: true })

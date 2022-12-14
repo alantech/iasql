@@ -24,8 +24,10 @@ export class PublicRepository {
   /**
    * @public
    * Name of the repository
+   *
+   * @privateRemarks
+   * TODO: add constraint "must satisfy regular expression '(?:[a-z0-9]+(?:[._-][a-z0-9]+)*\/)*[a-z0-9]+(?:[._-][a-z0-9]+)*'"
    */
-  // TODO: add constraint "must satisfy regular expression '(?:[a-z0-9]+(?:[._-][a-z0-9]+)*/)*[a-z0-9]+(?:[._-][a-z0-9]+)*'"
   @PrimaryColumn()
   @cloudId
   repositoryName: string;

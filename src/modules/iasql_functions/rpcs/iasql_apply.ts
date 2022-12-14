@@ -2,7 +2,21 @@ import { IasqlFunctions } from '..';
 import { Context, RpcBase, RpcResponseObject } from '../../interfaces';
 
 /**
- * @internal
+ * Method to create, delete or update the cloud resources in a hosted db
+ *
+ * Returns following columns:
+ * - action: The action issued in the db
+ * - table_name: Table that was affected
+ * - id: the ID of the generated change
+ * - description: A description of the generated change
+ *
+ * @example
+ * ```sql
+ * SELECT * FROM iasql_apply();
+ * ```
+ *
+ * @see https://iasql.com/docs/function/
+ *
  */
 export class IasqlApply extends RpcBase {
   /**

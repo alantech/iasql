@@ -44,7 +44,7 @@ export class KeyPair {
 
   /**
    * @public
-   * Internal AWS ID for the keypair
+   * AWS generated ID for the keypair
    */
   @Column({ nullable: true })
   keyPairId?: string;

@@ -24,7 +24,7 @@ import { AwsEcrModule } from '../index';
  * Method to build an image associated to an especific ECR repository
  *
  * Returns following columns:
- * - imageId: Internal AWS ID for the generated image
+ * - imageId: AWS generated ID for the generated image
  *
  * Accepts the following parameters:
  * - githubRepoUrl: URL where to get the source code for the build

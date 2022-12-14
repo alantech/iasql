@@ -73,6 +73,8 @@ export class ContainerDefinition {
    * @public
    * The image used to start the container
    * @see https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-ecs/interfaces/containerdefinition.html#image
+   *
+   * @privateRemarks
    * TODO: add constraint  Up to 255 letters (uppercase and lowercase), numbers, hyphens, underscores, colons, periods, forward slashes, and number signs are allowed.
    */
   @Column({ nullable: true })

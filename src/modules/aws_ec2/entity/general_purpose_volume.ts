@@ -40,6 +40,7 @@ export enum VolumeState {
  * @see https://github.com/iasql/iasql-engine/blob/main/test/modules/aws-ec2-gpv-integration.ts#L125
  * @see https://aws.amazon.com/ebs/general-purpose/
  *
+ * @privateRemarks
  * TODO: Revive this, but more safely. Currently breaks `iasql install` if the account has multiple
  * detached volumes.
  * @Unique('Unique_gp_instance_device_name', ['instanceDeviceName', 'attachedInstance'])
@@ -59,7 +60,7 @@ export class GeneralPurposeVolume {
 
   /**
    * @public
-   * Internal AWS ID for the volume
+   * AWS generated ID for the volume
    */
   @Column({ nullable: true })
   @cloudId

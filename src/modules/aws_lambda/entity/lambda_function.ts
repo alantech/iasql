@@ -141,6 +141,8 @@ export class LambdaFunction {
    * The base64-encoded contents of the deployment package.
    * This currently work as input value. After creation the value is set to null.
    * @see https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-lambda/interfaces/functioncode.html#zipfile
+   *
+   * @privateRemarks
    * TODO: Validate string content is a valid b64 encoded zip file
    * TODO: Add flag to keep code around. Try to get code back from lambda s3 bucket.
    */
@@ -234,6 +236,8 @@ export class LambdaFunction {
    * @public
    * Complex type to provide identifier tags for the function
    * @see https://docs.aws.amazon.com/lambda/latest/dg/configuration-tags.html
+   *
+   * @privateRemarks
    * TODO: find a way to add string values only constraint
    * TODO: find a way to add at least one key constraint
    */
