@@ -361,7 +361,10 @@ phases:
   );
 
   it('starts a transaction', begin());
-  it('creates a project that pushes to ecr', query(`
+  it(
+    'creates a project that pushes to ecr',
+    query(
+      `
       INSERT INTO codebuild_project (project_name, build_spec, source_type, privileged_mode, service_role_name)
       VALUES ('${dbAlias}-push-ecr', 'version: 0.2
 
@@ -379,9 +382,12 @@ phases:
     commands:
       - echo Pushing the Docker image...
       - docker push ' || (SELECT repository_uri FROM repository WHERE repository_name = '${dbAlias}' ) || ':latest', 'NO_SOURCE', true, '${dbAlias}');
-    `, undefined,
-    true,
-    () => ({ username, password }),));
+    `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
   it('apply creation of codebuild project', commit());
 
   it('starts a transaction', begin());
@@ -399,25 +405,36 @@ phases:
   );
   it('apply build and push', commit());
 
-  it('checks the image is pushed to ecr', query(`
+  it(
+    'checks the image is pushed to ecr',
+    query(
+      `
       SELECT *
       FROM repository_image
       WHERE private_repository_id = (SELECT id FROM repository WHERE repository_name = '${dbAlias}');
-  `, (res: any[]) => {
-    expect(res.length).toBe(1);
-    expect(res[0].image_tag).toBe('latest');
-  }));
+  `,
+      (res: any[]) => {
+        expect(res.length).toBe(1);
+        expect(res[0].image_tag).toBe('latest');
+      },
+    ),
+  );
 
   it('starts a transaction', begin());
 
-  it('deletes the image', query(`
+  it(
+    'deletes the image',
+    query(
+      `
               DELETE
               FROM repository_image
               WHERE private_repository_id = (SELECT id FROM repository WHERE repository_name = '${dbAlias}');
-    `, undefined,
-    true,
-    () => ({ username, password }),
-  ));
+    `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
 
   it(
     'delete build',
