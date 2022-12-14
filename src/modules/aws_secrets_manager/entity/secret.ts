@@ -22,7 +22,7 @@ import { AwsRegions } from '../../aws_account/entity';
 export class Secret {
   /**
    * @private
-   * Auto-incremented ID field for EC2 instance
+   * Auto-incremented ID field
    */
   @PrimaryGeneratedColumn()
   id: number;

@@ -13,7 +13,7 @@ import { RouteTable } from './route_table';
 export class Route {
   /**
    * @private
-   * Auto-incremented ID field for the route table
+   * Auto-incremented ID field
    */
   @PrimaryGeneratedColumn()
   id: number;

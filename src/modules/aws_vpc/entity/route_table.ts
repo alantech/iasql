@@ -23,7 +23,7 @@ import { Vpc } from './vpc';
 export class RouteTable {
   /**
    * @private
-   * Auto-incremented ID field for the route table
+   * Auto-incremented ID field
    */
   @PrimaryGeneratedColumn()
   id: number;

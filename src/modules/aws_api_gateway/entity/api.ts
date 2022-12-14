@@ -37,7 +37,7 @@ export enum Protocol {
 export class Api {
   /**
    * @private
-   * Auto-incremented ID field for storing accounts
+   * Auto-incremented ID field
    */
   @PrimaryGeneratedColumn()
   id?: number;

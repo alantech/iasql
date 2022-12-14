@@ -22,7 +22,7 @@ import { AwsRegions } from '../../aws_account/entity';
 export class ElasticIp {
   /**
    * @private
-   * Auto-incremented ID field for the elastic IP
+   * Auto-incremented ID field
    */
   @PrimaryGeneratedColumn()
   id: number;

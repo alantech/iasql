@@ -36,7 +36,7 @@ export enum TableClass {
 export class DynamoTable {
   /**
    * @private
-   * Auto-incremented ID field for storing builds
+   * Auto-incremented ID field
    */
   @PrimaryGeneratedColumn()
   id?: number;

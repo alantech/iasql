@@ -18,7 +18,7 @@ import { LoadBalancer } from '../../aws_elb/entity';
 export class AliasTarget {
   /**
    * @private
-   * Auto-incremented ID field for the alias target
+   * Auto-incremented ID field
    */
   @PrimaryGeneratedColumn()
   id?: number;

@@ -37,7 +37,7 @@ import { ParameterGroup } from './parameter_group';
 export class RDS {
   /**
    * @private
-   * Auto-incremented ID field for EC2 instance
+   * Auto-incremented ID field
    */
   @PrimaryGeneratedColumn()
   id?: number;

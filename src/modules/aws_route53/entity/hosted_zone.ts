@@ -20,7 +20,7 @@ import { cloudId } from '../../../services/cloud-id';
 export class HostedZone {
   /**
    * @private
-   * Auto-incremented ID field for the hosted zone
+   * Auto-incremented ID field
    */
   @PrimaryGeneratedColumn()
   id?: number;

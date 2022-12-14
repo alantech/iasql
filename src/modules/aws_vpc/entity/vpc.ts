@@ -41,7 +41,7 @@ export enum VpcState {
 export class Vpc {
   /**
    * @private
-   * Auto-incremented ID field for the VPC
+   * Auto-incremented ID field
    */
   @PrimaryGeneratedColumn()
   id: number;

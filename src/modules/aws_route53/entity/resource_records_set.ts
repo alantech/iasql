@@ -55,7 +55,7 @@ export enum RecordType {
 export class ResourceRecordSet {
   /**
    * @private
-   * Auto-incremented ID field for the recordset
+   * Auto-incremented ID field
    */
   @PrimaryGeneratedColumn()
   id?: number;

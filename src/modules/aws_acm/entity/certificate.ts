@@ -61,7 +61,7 @@ export enum certificateRenewalEligibilityEnum {
 export class Certificate {
   /**
    * @internal
-   * Auto-incremented ID field for storing accounts
+   * Auto-incremented ID field
    */
   @PrimaryGeneratedColumn()
   id: number;

@@ -27,7 +27,7 @@ import { Vpc } from './vpc';
 export class RouteTableAssociation {
   /**
    * @private
-   * Auto-incremented ID field for the route table association
+   * Auto-incremented ID field
    */
   @PrimaryGeneratedColumn()
   id: number;

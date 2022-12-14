@@ -25,7 +25,7 @@ import { AwsRegions } from '../../aws_account/entity';
 export class SubnetGroup {
   /**
    * @private
-   * Auto-incremented ID field for the subnet group
+   * Auto-incremented ID field
    */
   @PrimaryGeneratedColumn()
   id: number;

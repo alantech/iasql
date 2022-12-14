@@ -33,7 +33,7 @@ import { Vpc } from '../../aws_vpc/entity';
 export class SecurityGroup {
   /**
    * @private
-   * Auto-incremented ID field for the security group
+   * Auto-incremented ID field
    */
   @PrimaryGeneratedColumn()
   id?: number;
@@ -135,7 +135,7 @@ export class SecurityGroup {
 export class SecurityGroupRule {
   /**
    * @private
-   * Auto-incremented ID field for EC2 instance
+   * Auto-incremented ID field
    */
   @PrimaryGeneratedColumn()
   id?: number;

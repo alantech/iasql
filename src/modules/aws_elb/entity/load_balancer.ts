@@ -97,7 +97,7 @@ export enum IpAddressType {
 export class LoadBalancer {
   /**
    * @private
-   * Auto-incremented ID field for storing builds
+   * Auto-incremented ID field
    */
   @PrimaryGeneratedColumn()
   id: number;

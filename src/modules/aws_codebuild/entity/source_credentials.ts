@@ -82,7 +82,7 @@ export class SourceCredentialsList {
 export class SourceCredentialsImport {
   /**
    * @private
-   * Auto-incremented ID field for storing credentials
+   * Auto-incremented ID field
    */
   @PrimaryGeneratedColumn()
   id: number;

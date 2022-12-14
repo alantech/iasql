@@ -38,7 +38,7 @@ export enum ImageTagMutability {
 export class Repository {
   /**
    * @private
-   * Auto-incremented ID field for storing builds
+   * Auto-incremented ID field
    */
   @PrimaryGeneratedColumn()
   id: number;

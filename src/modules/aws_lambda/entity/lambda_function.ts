@@ -98,7 +98,7 @@ export enum Runtime {
 export class LambdaFunction {
   /**
    * @private
-   * Auto-incremented ID field for the lambda function
+   * Auto-incremented ID field
    */
   @PrimaryGeneratedColumn()
   id?: number;

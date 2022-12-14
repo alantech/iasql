@@ -36,7 +36,7 @@ export enum SubnetState {
 export class Subnet {
   /**
    * @private
-   * Auto-incremented ID field for the subnet
+   * Auto-incremented ID field
    */
   @PrimaryGeneratedColumn()
   id: number;

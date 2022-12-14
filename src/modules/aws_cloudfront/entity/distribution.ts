@@ -58,7 +58,7 @@ export enum originProtocolPolicyEnum {
 export class Distribution {
   /**
    * @private
-   * Auto-incremented ID field for storing accounts
+   * Auto-incremented ID field
    */
   @PrimaryGeneratedColumn()
   id: number;

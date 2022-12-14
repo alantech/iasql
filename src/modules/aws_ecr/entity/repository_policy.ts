@@ -29,7 +29,7 @@ import { AwsRegions } from '../../aws_account/entity';
 export class RepositoryPolicy {
   /**
    * @private
-   * Auto-incremented ID field for storing builds
+   * Auto-incremented ID field
    */
   @PrimaryGeneratedColumn()
   id: number;

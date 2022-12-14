@@ -85,7 +85,7 @@ export enum ParameterGroupFamily {
 export class ParameterGroup {
   /**
    * @private
-   * Auto-incremented ID field for EC2 instance
+   * Auto-incremented ID field
    */
   @PrimaryGeneratedColumn()
   id?: number;

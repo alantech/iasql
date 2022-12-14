@@ -52,7 +52,7 @@ export enum EC2TagFilterType {
 export class CodedeployDeploymentGroup {
   /**
    * @private
-   * Auto-incremented ID field for storing builds
+   * Auto-incremented ID field
    */
   @PrimaryGeneratedColumn()
   id: number;

@@ -55,7 +55,7 @@ export enum NatGatewayState {
 export class NatGateway {
   /**
    * @private
-   * Auto-incremented ID field for the endpoint
+   * Auto-incremented ID field
    */
   @PrimaryGeneratedColumn()
   id: number;

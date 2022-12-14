@@ -90,7 +90,7 @@ export enum CpuMemCombination {
 export class TaskDefinition {
   /**
    * @private
-   * Auto-incremented ID field for storing builds
+   * Auto-incremented ID field
    */
   @PrimaryGeneratedColumn()
   id?: number;

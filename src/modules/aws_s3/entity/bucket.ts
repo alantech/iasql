@@ -22,7 +22,7 @@ import { AwsRegions } from '../../aws_account/entity';
 export class Bucket {
   /**
    * @private
-   * Auto-incremented ID field for the S3 bucket
+   * Auto-incremented ID field
    */
   @PrimaryColumn({
     nullable: false,

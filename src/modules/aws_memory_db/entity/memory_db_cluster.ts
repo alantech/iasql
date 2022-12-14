@@ -51,7 +51,7 @@ export enum NodeTypeEnum {
 export class MemoryDBCluster {
   /**
    * @private
-   * Auto-incremented ID field for cluster
+   * Auto-incremented ID field
    */
   @PrimaryGeneratedColumn()
   id: number;

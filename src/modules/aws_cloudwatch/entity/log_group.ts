@@ -30,7 +30,7 @@ import { AwsRegions } from '../../aws_account/entity';
 export class LogGroup {
   /**
    * @private
-   * Auto-incremented ID field for storing log groups
+   * Auto-incremented ID field
    */
   @PrimaryGeneratedColumn()
   id: number;

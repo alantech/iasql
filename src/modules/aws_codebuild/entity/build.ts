@@ -44,7 +44,7 @@ export enum BuildStatus {
 export class CodebuildBuildList {
   /**
    * @private
-   * Auto-incremented ID field for storing builds
+   * Auto-incremented ID field
    */
   @PrimaryGeneratedColumn()
   id: number;
@@ -157,7 +157,7 @@ export class CodebuildBuildList {
 export class CodebuildBuildImport {
   /**
    * @private
-   * Auto-incremented ID field for storing log groups
+   * Auto-incremented ID field
    */
   @PrimaryGeneratedColumn()
   @cloudId

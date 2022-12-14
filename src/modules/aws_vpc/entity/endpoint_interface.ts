@@ -58,7 +58,7 @@ export enum EndpointInterfaceService {
 export class EndpointInterface {
   /**
    * @private
-   * Auto-incremented ID field for the endpoint
+   * Auto-incremented ID field
    */
   @PrimaryGeneratedColumn()
   id: number;

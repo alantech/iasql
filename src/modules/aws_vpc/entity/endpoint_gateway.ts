@@ -34,7 +34,7 @@ export enum EndpointGatewayService {
 export class EndpointGateway {
   /**
    * @private
-   * Auto-incremented ID field for the gateway
+   * Auto-incremented ID field
    */
   @PrimaryGeneratedColumn()
   id: number;
