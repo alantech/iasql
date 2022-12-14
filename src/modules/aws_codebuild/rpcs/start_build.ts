@@ -48,6 +48,7 @@ export class StartBuildRPC extends RpcBase {
     _dbUser: string,
     ctx: Context,
     name: string,
+    region: string,
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
     if (!name) {
       return [
@@ -61,8 +62,14 @@ export class StartBuildRPC extends RpcBase {
 
     // given the project name, read the details
     const projectObj =
-      (await this.module.project.db.read(ctx, this.module.project.generateId({ projectName: name }))) ??
-      (await this.module.project.cloud.read(ctx, this.module.project.generateId({ projectName: name })));
+      (await this.module.project.db.read(
+        ctx,
+        this.module.project.generateId({ projectName: name, region }),
+      )) ??
+      (await this.module.project.cloud.read(
+        ctx,
+        this.module.project.generateId({ projectName: name, region }),
+      ));
 
     if (projectObj) {
       const client = (await ctx.getAwsClient(projectObj.region)) as AWS;
