@@ -310,7 +310,7 @@ phases:
     'start and wait for build',
     query(
       `
-      SELECT * FROM start_build('${dbAlias}');
+      SELECT * FROM start_build('${dbAlias}', '${region}');
   `,
       (res: any[]) => {
         expect(res.length).toBe(1);
