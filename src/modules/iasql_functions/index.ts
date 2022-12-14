@@ -12,6 +12,7 @@ import {
   IasqlUninstall,
   IasqlRollback,
   IasqlBegin,
+  IasqlGetErrors,
 } from './rpcs';
 
 /**
@@ -29,6 +30,7 @@ export class IasqlFunctions extends ModuleBase {
   iasqlPreview: IasqlPreview;
   iasqlRollback: IasqlRollback;
   iasqlBegin: IasqlBegin;
+  iasqlGetErrors: IasqlGetErrors;
 
   constructor() {
     super();
@@ -43,6 +45,7 @@ export class IasqlFunctions extends ModuleBase {
     this.iasqlPreview = new IasqlPreview(this);
     this.iasqlRollback = new IasqlRollback(this);
     this.iasqlBegin = new IasqlBegin(this);
+    this.iasqlGetErrors = new IasqlGetErrors(this);
     super.loadBasics();
   }
 }

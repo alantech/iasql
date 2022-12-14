@@ -62,6 +62,7 @@ export enum AuditLogChangeType {
   PREVIEW_END_COMMIT = 'PREVIEW_END_COMMIT',
   OPEN_TRANSACTION = 'OPEN_TRANSACTION',
   CLOSE_TRANSACTION = 'CLOSE_TRANSACTION',
+  ERROR = 'ERROR',
 }
 
 @Entity()
@@ -95,4 +96,9 @@ export class IasqlAuditLog {
     type: 'json',
   })
   change: { original?: any; change?: any };
+
+  @Column({
+    nullable: true,
+  })
+  message: string;
 }

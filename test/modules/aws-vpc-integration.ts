@@ -1,3 +1,5 @@
+import _ from 'lodash';
+
 import * as iasql from '../../src/services/iasql';
 import {
   defaultRegion,
@@ -1242,6 +1244,208 @@ describe('VPC Integration Testing', () => {
       ),
     );
   });
+
+  it('starts a transaction', begin());
+  it(
+    'creates a second vpc in another region',
+    query(
+      `
+      INSERT INTO vpc (cidr_block, tags, enable_dns_hostnames, enable_dns_support, region)
+      VALUES ('176.${randIPBlock}.0.0/16', '{"name":"${prefix}-peering-vpc"}', true, true, 'us-east-1');
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+  it(
+    'adds a subnet to the vpc',
+    query(
+      `
+      INSERT INTO subnet (availability_zone, vpc_id, cidr_block, region)
+      SELECT 'us-east-1a', id, '176.${randIPBlock}.1.0/24', 'us-east-1'
+      FROM vpc
+      WHERE tags ->> 'name' = '${prefix}-peering-vpc';
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+  it('applies the creation of the second vpc', commit());
+
+  it('starts a transaction', begin());
+  it(
+    'creates a peering connection between the first and second vpc',
+    query(
+      `
+      INSERT INTO peering_connection (requester_id, accepter_id, tags)
+      VALUES ((SELECT id FROM vpc WHERE tags ->> 'name' = '${prefix}-2'),
+              (SELECT id FROM vpc WHERE tags ->> 'name' = '${prefix}-peering-vpc'),
+              '{"name": "${prefix}-peering-connection-test"}');
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+  it('applies creation of the peering connection', commit());
+
+  it(
+    'checks the state for peering connection is active',
+    query(
+      `
+      SELECT state
+      FROM peering_connection
+      WHERE tags ->> 'name' = '${prefix}-peering-connection-test';
+  `,
+      (res: any) => expect(res[0].state).toBe('active'),
+    ),
+  );
+
+  it(
+    'checks if routes from requester to accepter is added',
+    query(
+      `
+          SELECT destination_cidr_block
+          FROM route
+          WHERE vpc_peering_connection_id = (SELECT peering_connection_id
+                                             FROM peering_connection
+                                             WHERE tags ->> 'name' = '${prefix}-peering-connection-test');
+      `,
+      (res: { destination_cidr_block: string }[]) => {
+        expect(res.length).toBe(2);
+      },
+    ),
+  );
+
+  it('starts a transaction', begin());
+  it(
+    'changes the tags for the peering connection',
+    query(
+      `
+      UPDATE peering_connection
+      SET tags = '{"name": "${prefix}-peering-connection-test-changed"}'
+      WHERE tags ->> 'name' = '${prefix}-peering-connection-test';
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+  it('applies creation of the peering connection', commit());
+
+  it(
+    'checks the peering connection tags are changed',
+    query(
+      `
+      SELECT *
+      FROM peering_connection
+      WHERE tags ->> 'name' = '${prefix}-peering-connection-test-changed';
+  `,
+      (res: any) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it('starts a transaction', begin());
+  it(
+    'tries to change the peering connection state',
+    query(
+      `
+      UPDATE peering_connection
+      SET state = 'expired'
+      WHERE tags ->> 'name' = '${prefix}-peering-connection-test-changed';
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+  it('applies the change of peering connection state', commit());
+
+  it(
+    'verifies the rollback of the peering connection state change',
+    query(
+      `
+      SELECT state
+      FROM peering_connection
+      WHERE tags ->> 'name' = '${prefix}-peering-connection-test-changed';
+  `,
+      (res: any) => expect(res[0].state).toBe('active'),
+    ),
+  );
+
+  it('starts a transaction', begin());
+  it(
+    'deletes the peering connection',
+    query(
+      `
+      DELETE
+      FROM peering_connection
+      WHERE tags ->> 'name' = '${prefix}-peering-connection-test-changed';
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it(
+    'deletes the second vpc',
+    query(
+      `
+      DELETE FROM security_group_rule
+      WHERE security_group_id = (
+          SELECT id
+          FROM security_group
+          WHERE vpc_id = (
+              SELECT id
+              FROM vpc
+              WHERE cidr_block = '176.${randIPBlock}.0.0/16'
+                AND tags ->> 'name' = '${prefix}-peering-vpc'
+          )
+      );
+      WITH vpc as (SELECT id
+                   FROM vpc
+                   WHERE cidr_block = '176.${randIPBlock}.0.0/16'
+                     AND tags ->> 'name' = '${prefix}-peering-vpc')
+      DELETE
+      FROM security_group
+          USING vpc
+      WHERE vpc_id = vpc.id;
+
+      WITH vpc as (
+          SELECT id
+          FROM vpc
+          WHERE cidr_block = '176.${randIPBlock}.0.0/16'
+            AND tags ->> 'name' = '${prefix}-peering-vpc'
+      )
+      DELETE FROM subnet
+          USING vpc
+      WHERE vpc_id = vpc.id;
+
+      DELETE
+      FROM vpc
+      WHERE cidr_block = '176.${randIPBlock}.0.0/16';
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+  it('applies the deletion of the second vpc and peering connection', commit());
+
+  it(
+    'checks deletion of the peering connection',
+    query(
+      `
+      SELECT *
+      FROM peering_connection
+      WHERE tags ->> 'name' = '${prefix}-peering-connection-test';
+  `,
+      (res: any) => expect(res.length).toBe(0),
+    ),
+  );
 
   it('starts a transaction', begin());
 

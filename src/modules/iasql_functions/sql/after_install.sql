@@ -81,6 +81,7 @@ begin
     {"name": "preview", "signature": "iasql_preview()", "description": "Preview of the resources in the db to be modified on the next `commit`", "sample_usage": "SELECT * FROM iasql_preview()"},
     {"name": "commit", "signature": "iasql_commit()", "description": "Commit changes done to the database by creating, updating or deleting cloud resources", "sample_usage": "SELECT * FROM iasql_commit()"},
     {"name": "rollback", "signature": "iasql_rollback()", "description": "Rollback changes done to the database by synchronizing cloud resources", "sample_usage": "SELECT * FROM iasql_rollback()"},
+    {"name": "get_errors", "signature": "iasql_get_errors()", "description": "Get latest error messages ocurred during a commit or a rollback", "sample_usage": "SELECT * FROM iasql_get_errors()"},
     {"name": "install", "signature": "iasql_install(variadic text[])", "description": "Install modules in the hosted db", "sample_usage": "SELECT * FROM iasql_install(''aws_vpc'', ''aws_ec2'')"},
     {"name": "uninstall", "signature": "iasql_uninstall(variadic text[])", "description": "Uninstall modules in the hosted db", "sample_usage": "SELECT * FROM iasql_uninstall(''aws_vpc'', ''aws_ec2'')"},
     {"name": "modules_list", "signature": "iasql_modules_list()", "description": "Lists all modules available to be installed", "sample_usage": "SELECT * FROM iasql_modules_list()"},

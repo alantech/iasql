@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class iasqlPlatform1669731340279 implements MigrationInterface {
-  name = 'iasqlPlatform1669731340279';
+export class iasqlPlatform1670880297247 implements MigrationInterface {
+  name = 'iasqlPlatform1670880297247';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
@@ -11,10 +11,10 @@ export class iasqlPlatform1669731340279 implements MigrationInterface {
       `CREATE TABLE "iasql_tables" ("table" character varying NOT NULL, "module" character varying NOT NULL, CONSTRAINT "PK_2e2832f9cf90115571eb803a943" PRIMARY KEY ("table", "module"))`,
     );
     await queryRunner.query(
-      `CREATE TYPE "public"."iasql_audit_log_change_type_enum" AS ENUM('INSERT', 'UPDATE', 'DELETE', 'START_COMMIT', 'PREVIEW_START_COMMIT', 'END_COMMIT', 'PREVIEW_END_COMMIT', 'OPEN_TRANSACTION', 'CLOSE_TRANSACTION')`,
+      `CREATE TYPE "public"."iasql_audit_log_change_type_enum" AS ENUM('INSERT', 'UPDATE', 'DELETE', 'START_COMMIT', 'PREVIEW_START_COMMIT', 'END_COMMIT', 'PREVIEW_END_COMMIT', 'OPEN_TRANSACTION', 'CLOSE_TRANSACTION', 'ERROR')`,
     );
     await queryRunner.query(
-      `CREATE TABLE "iasql_audit_log" ("id" SERIAL NOT NULL, "ts" TIMESTAMP WITH TIME ZONE NOT NULL, "user" character varying NOT NULL, "table_name" character varying NOT NULL, "change_type" "public"."iasql_audit_log_change_type_enum" NOT NULL, "change" json NOT NULL, CONSTRAINT "PK_96a7317761701ced55a158c195d" PRIMARY KEY ("id"))`,
+      `CREATE TABLE "iasql_audit_log" ("id" SERIAL NOT NULL, "ts" TIMESTAMP WITH TIME ZONE NOT NULL, "user" character varying NOT NULL, "table_name" character varying NOT NULL, "change_type" "public"."iasql_audit_log_change_type_enum" NOT NULL, "change" json NOT NULL, "message" character varying, CONSTRAINT "PK_96a7317761701ced55a158c195d" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(`CREATE INDEX "IDX_ff85981b261fe1c34027ed6f41" ON "iasql_audit_log" ("ts") `);
     await queryRunner.query(
