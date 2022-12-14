@@ -410,12 +410,21 @@ phases:
 
   it('starts a transaction', begin());
 
+  it('deletes the image', query(`
+              DELETE
+              FROM repository_image
+              WHERE private_repository_id = (SELECT id FROM repository WHERE repository_name = '${dbAlias}');
+    `, undefined,
+    true,
+    () => ({ username, password }),
+  ));
+
   it(
     'delete build',
     query(
       `
     DELETE FROM codebuild_build_list
-    WHERE project_name = '${dbAlias}';
+    WHERE project_name in ('${dbAlias}', '${dbAlias}-push-ecr');
   `,
       undefined,
       true,
@@ -428,7 +437,7 @@ phases:
     query(
       `
     DELETE FROM codebuild_project
-    WHERE project_name = '${dbAlias}';
+    WHERE project_name in ('${dbAlias}', '${dbAlias}-push-ecr');
   `,
       undefined,
       true,
