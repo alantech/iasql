@@ -36,8 +36,8 @@ export class AwsVpcModule extends ModuleBase {
 
   /** @internal */
   peeringConnection: PeeringConnectionMapper;
-  
-  /** @internal */  
+
+  /** @internal */
   routeTable: RouteTableMapper;
 
   /** @internal */
