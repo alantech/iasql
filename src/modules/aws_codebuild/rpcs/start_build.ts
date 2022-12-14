@@ -88,27 +88,45 @@ export class StartBuildRPC extends RpcBase {
 
       // wait for builds to complete
       await this.module.buildList.waitForBuildsToComplete(client.cbClient, [cloudBuild.id]);
-      const dbBuild = await this.module.buildList.buildListMapper(cloudBuild, ctx, projectObj.region);
-      if (!dbBuild) {
+
+      // get latest status of the build
+      const awsId = cloudBuild.id;
+
+      const currentBuild = await this.module.buildList.cloud.read(
+        ctx,
+        this.module.buildList.generateId({ awsId, region }),
+      );
+      if (currentBuild) {
+        const dbBuild = await this.module.buildList.buildListMapper(cloudBuild, ctx, projectObj.region);
+        if (!dbBuild) {
+          return [
+            {
+              name,
+              status: 'KO',
+              message: 'Error starting build',
+            },
+          ];
+        } else {
+          // create the builds in the database
+          await this.module.buildList.db.create(dbBuild, ctx);
+
+          return [
+            {
+              name,
+              status: 'OK',
+              message: '',
+            },
+          ];
+        }
+      } else {
         return [
           {
             name,
             status: 'KO',
-            message: 'Error starting build',
+            message: 'Error getting status of build',
           },
         ];
       }
-
-      // create the builds in the database
-      await this.module.buildList.db.create(dbBuild, ctx);
-
-      return [
-        {
-          name,
-          status: 'OK',
-          message: '',
-        },
-      ];
     } else {
       return [
         {

@@ -324,7 +324,7 @@ phases:
     query(
       `
     SELECT * FROM codebuild_build_list
-    WHERE project_name = '${dbAlias}' and build_status = 'FAILED';
+    WHERE project_name = '${dbAlias}';
   `,
       (res: any[]) => expect(res.length).toBe(1),
     ),
