@@ -11,7 +11,7 @@ const config: ConfigInterface = {
     password: 'test',
     port: 5432,
     forceSSL: false,
-    multiUser: true,
+    multiUser: false,
   },
   logger: {
     debug: false,
