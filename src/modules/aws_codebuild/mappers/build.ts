@@ -3,7 +3,6 @@ import {
   CodeBuild,
   BatchDeleteBuildsCommandInput,
   BatchGetBuildsCommandInput,
-  StartBuildInput,
   StopBuildInput,
   paginateListBuilds,
 } from '@aws-sdk/client-codebuild';
@@ -12,7 +11,7 @@ import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 import { AwsCodebuildModule } from '..';
 import { AWS, paginateBuilder, crudBuilderFormat, crudBuilder2 } from '../../../services/aws_macros';
 import { Context, Crud2, MapperBase } from '../../interfaces';
-import { CodebuildBuildList, CodebuildBuildImport, BuildStatus } from '../entity';
+import { CodebuildBuildList, BuildStatus } from '../entity';
 
 export class CodebuildBuildListMapper extends MapperBase<CodebuildBuildList> {
   module: AwsCodebuildModule;
@@ -182,53 +181,6 @@ export class CodebuildBuildListMapper extends MapperBase<CodebuildBuildList> {
           if (i === 59) throw new Error('Error deleting builds');
         }),
       );
-    },
-  });
-
-  constructor(module: AwsCodebuildModule) {
-    super();
-    this.module = module;
-    super.init();
-  }
-}
-
-export class CodebuildBuildImportMapper extends MapperBase<CodebuildBuildImport> {
-  module: AwsCodebuildModule;
-  entity = CodebuildBuildImport;
-  entityId = (e: CodebuildBuildImport) => e.id.toString();
-  equals = (a: CodebuildBuildImport, b: CodebuildBuildImport) =>
-    Object.is(a.id, b.id) && Object.is(a.project.projectName, b.project.projectName);
-
-  startBuild = crudBuilderFormat<CodeBuild, 'startBuild', Build | undefined>(
-    'startBuild',
-    input => input,
-    res => res?.build,
-  );
-
-  cloud: Crud2<CodebuildBuildImport> = new Crud2({
-    create: async (es: CodebuildBuildImport[], ctx: Context) => {
-      for (const e of es) {
-        const client = (await ctx.getAwsClient(e.region)) as AWS;
-        const input: StartBuildInput = {
-          projectName: e.project.projectName,
-        };
-        const cloudBuild = await this.startBuild(client.cbClient, input);
-        if (!cloudBuild || !cloudBuild.id) throw new Error('Error starting build');
-        await this.module.buildList.waitForBuildsToComplete(client.cbClient, [cloudBuild.id]);
-        const dbBuild = await this.module.buildList.buildListMapper(cloudBuild, ctx, e.region);
-        if (!dbBuild) throw new Error('Error starting build');
-        await this.module.buildImport.db.delete(e, ctx);
-        await this.module.buildList.db.create(dbBuild, ctx);
-      }
-    },
-    read: async () => {
-      return;
-    },
-    update: async () => {
-      return;
-    },
-    delete: async () => {
-      return;
     },
   });
 

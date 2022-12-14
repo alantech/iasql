@@ -306,31 +306,16 @@ phases:
 
   it('apply codebuild_project creation', commit());
 
-  it('starts a transaction', begin());
-
   it(
     'start and wait for build',
     query(
       `
-    INSERT INTO codebuild_build_import (project_name)
-    VALUES ('${dbAlias}');
+      SELECT * FROM start_build('${dbAlias}');
   `,
-      undefined,
-      true,
-      () => ({ username, password }),
-    ),
-  );
-
-  it('apply build start', commit());
-
-  it(
-    'check build imports is empty',
-    query(
-      `
-    SELECT * FROM codebuild_build_import
-    WHERE project_name = '${dbAlias}';
-  `,
-      (res: any[]) => expect(res.length).toBe(0),
+      (res: any[]) => {
+        expect(res.length).toBe(1);
+        expect(res[0].status).toBe('OK');
+      },
     ),
   );
 
