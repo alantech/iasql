@@ -70,7 +70,7 @@ export async function logEvent(uid: string, event: string, dbProps: DbProps, eve
         extra: { message },
       });
     }
-    logger.error(message, e);
+    logger.scope({ dbUser: uid }).error(message, e);
   }
 }
 
