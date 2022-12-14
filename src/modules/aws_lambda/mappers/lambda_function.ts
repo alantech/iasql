@@ -399,7 +399,6 @@ export class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
         // network interfaces to be released and removed automatically
         const input: UpdateFunctionConfigurationCommandInput = {
           FunctionName: e.name,
-          Role: e.role?.arn,
           Handler: e.handler,
           Description: e.description,
           MemorySize: e.memorySize,
