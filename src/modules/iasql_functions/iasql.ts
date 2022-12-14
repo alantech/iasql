@@ -76,7 +76,6 @@ export async function modules(all: boolean, installed: boolean, dbId: string) {
       dependencies: m.dependencies.filter((d: any) => !/iasql_.*/.test(d)),
     }));
   if (all) {
-    // TODO: Remove this filter once two-way mode is standard
     return allModules;
   } else if (installed && dbId) {
     const iasqlModule = AllModules?.iasqlPlatform?.iasqlModule ?? throwError('Core IasqlModule not found');
