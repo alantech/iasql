@@ -290,7 +290,12 @@ async function rpcCall(
         await iasqlFunctions.closeTransaction(conn);
         break;
       default:
-        await conn.query(`select * from iasql_commit();`);
+        try {
+          await conn.query(`select * from iasql_commit();`);
+        } catch (e) {
+          await iasqlFunctions.closeTransaction(conn);
+          throw e;
+        }
         break;
     }
   }
