@@ -262,8 +262,10 @@ async function rpcCall(
         }
         break;
       case PreTransactionCheck.WAIT_FOR_LOCK:
-      default:
         await iasqlFunctions.maybeOpenTransaction(conn);
+        break;
+      default:
+        await conn.query(`select * from iasql_begin();`);
         break;
     }
     rpcRes = await ((Modules as any)[moduleInstanceName] as ModuleInterface)?.rpc?.[methodname].call(
@@ -285,8 +287,10 @@ async function rpcCall(
         }
         break;
       case PostTransactionCheck.UNLOCK_ALWAYS:
-      default:
         await iasqlFunctions.closeTransaction(conn);
+        break;
+      default:
+        await conn.query(`select * from iasql_commit();`);
         break;
     }
   }
