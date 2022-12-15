@@ -23,6 +23,9 @@ import { SecretsManager } from '@aws-sdk/client-secrets-manager';
 import { SSM } from '@aws-sdk/client-ssm';
 import { StandardRetryStrategy } from '@aws-sdk/middleware-retry';
 
+const https = require('https');
+const { NodeHttpHandler } = require('@aws-sdk/node-http-handler');
+
 type AWSCreds = {
   accessKeyId: string;
   secretAccessKey: string;
@@ -119,7 +122,15 @@ export class AWS {
       region: config.region,
       retryStrategy: this.codeBuildRetryStrategy,
     });
-    this.cdClient = new CodeDeploy(config);
+    this.cdClient = new CodeDeploy({
+      credentials: config.credentials,
+      region: config.region,
+      requestHandler: new NodeHttpHandler({
+        httpsAgent: new https.Agent({
+          secureProtocol: 'TLSv1_2_method',
+        }),
+      }),
+    });
     this.cpClient = new CodePipeline(config);
     this.cwClient = new CloudWatchLogs(config);
     this.dynamoClient = new DynamoDB(config);
