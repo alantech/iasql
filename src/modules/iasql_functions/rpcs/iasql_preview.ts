@@ -8,10 +8,36 @@ import {
 } from '../../interfaces';
 import * as iasql from '../iasql';
 
+/**
+ * Method to visualize proposed changes for an ongoing IaSQL transaction to see how the database will update
+ * the cloud with the new data model using the `iasql_preview` function which returns a virtual table of database records.
+ *
+ * Returns following columns:
+ * - action: The action issued in the db
+ * - table_name: Table that was affected
+ * - id: the ID of the generated change
+ * - description: A description of the generated change
+ *
+ * @example
+ * ```sql
+ * SELECT * FROM iasql_preview();
+ * ```
+ *
+ * @see https://iasql.com/docs/transaction/
+ *
+ */
 export class IasqlPreview extends RpcBase {
+  /**
+   * @internal
+   */
   module: IasqlFunctions;
+  /** @internal */
   preTransactionCheck = PreTransactionCheck.FAIL_IF_NOT_LOCKED;
+  /** @internal */
   postTransactionCheck = PostTransactionCheck.NO_CHECK;
+  /**
+   * @internal
+   */
   outputTable = {
     action: 'varchar',
     table_name: 'varchar',

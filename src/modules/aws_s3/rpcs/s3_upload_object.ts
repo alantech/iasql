@@ -6,8 +6,42 @@ import { AWS, crudBuilderFormat } from '../../../services/aws_macros';
 import { Context, RpcBase, RpcResponseObject } from '../../interfaces';
 import { BucketObject } from '../entity';
 
+/**
+ * Method to upload an S3 object
+ *
+ * Returns following columns:
+ * - bucket: name of the bucket to host the object
+ * - key: identifier key of the object
+ * - status: Status of the upload operation. OK if succeeded
+ * - response_message: Error message in case of failure
+ *
+ * Accepts the following parameters:
+ * - name: name of the bucket to host the object
+ * - key: identifier for the object
+ * - content: blob for the object to upload
+ * - contentType: MIME type for the uploaded object
+ *
+ * @example
+ * ```sql TheButton[Uploads an object]="Uploads an object"
+ * SELECT * FROM s3_upload_object('bucket', 'object_key', '{
+ * name: 'Iasql',
+ * value: 'Hello world!',
+ * }', 'application/json')`,
+ * ```
+ *
+ * @see https://github.com/iasql/iasql-engine/blob/b2c2383b73d73f5cdf75c867d334e80cdf40caa1/test/modules/aws-s3-integration.ts#L209
+ * @see https://docs.aws.amazon.com/AmazonS3/latest/userguide/upload-objects.html
+ *
+ */
 export class S3UploadObjectRpc extends RpcBase {
+  /**
+   * @internal
+   */
   module: AwsS3Module;
+
+  /**
+   * @internal
+   */
   outputTable = {
     bucket: 'varchar',
     key: 'varchar',
@@ -15,6 +49,9 @@ export class S3UploadObjectRpc extends RpcBase {
     response_message: 'varchar',
   } as const;
 
+  /**
+   * @internal
+   */
   getBucketLocation = crudBuilderFormat<S3, 'getBucketLocation', string | undefined>(
     'getBucketLocation',
     name => ({
@@ -23,6 +60,9 @@ export class S3UploadObjectRpc extends RpcBase {
     res => res?.LocationConstraint,
   );
 
+  /**
+   * @internal
+   */
   call = async (
     _dbId: string,
     _dbUser: string,

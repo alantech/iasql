@@ -8,10 +8,35 @@ import {
 } from '../../interfaces';
 import * as iasql from '../iasql';
 
+/**
+ * Method to list all the installed modules
+ *
+ * Returns following columns:
+ * - module_name: Name of the module that was installed
+ * - module_version: Version of the modules that was installed
+ * - dependencies: complex type representing the dependencies for the module
+ *
+ *
+ * @example
+ * ```sql
+ * SELECT * FROM iasql_modules_list();
+ * ```
+ *
+ * @see https://github.com/iasql/iasql-engine/blob/main/site/docs/reference/function.md
+ *
+ */
 export class IasqlModulesList extends RpcBase {
+  /**
+   * @internal
+   */
   module: IasqlFunctions;
+  /** @internal */
   preTransactionCheck = PreTransactionCheck.NO_CHECK;
+  /** @internal */
   postTransactionCheck = PostTransactionCheck.NO_CHECK;
+  /**
+   * @internal
+   */
   outputTable = {
     module_name: 'varchar',
     module_version: 'varchar',

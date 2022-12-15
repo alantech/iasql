@@ -7,10 +7,39 @@ import {
   RpcResponseObject,
 } from '../../interfaces';
 
+/**
+ * Method to create, delete or update the cloud resources in a hosted db
+ *
+ * Returns following columns:
+ * - action: The action issued in the db
+ * - table_name: Table that was affected
+ * - id: the ID of the generated change
+ * - description: A description of the generated change
+ *
+ * @example
+ * ```sql
+ * SELECT * FROM iasql_apply();
+ * ```
+ *
+ * @see https://iasql.com/docs/function/
+ *
+ */
 export class IasqlApply extends RpcBase {
+  /**
+   * @internal
+   */
   module: IasqlFunctions;
+  /**
+   * @internal
+   */
   preTransactionCheck = PreTransactionCheck.NO_CHECK;
+  /**
+   * @internal
+   */
   postTransactionCheck = PostTransactionCheck.NO_CHECK;
+  /**
+   * @internal
+   */
   outputTable = {
     action: 'varchar',
     table_name: 'varchar',

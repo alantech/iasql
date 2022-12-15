@@ -13,15 +13,34 @@ import {
 } from './mappers';
 
 export class AwsVpcModule extends ModuleBase {
+  /** @internal */
   subnet: SubnetMapper;
+
+  /** @internal */
   vpc: VpcMapper;
+
+  /** @internal */
   natGateway: NatGatewayMapper;
+
+  /** @internal */
   elasticIp: ElasticIpMapper;
+
+  /** @internal */
   endpointGateway: EndpointGatewayMapper;
+
+  /** @internal */
   endpointInterface: EndpointInterfaceMapper;
+
+  /** @internal */
   availabilityZone: AvailabilityZoneMapper;
+
+  /** @internal */
   peeringConnection: PeeringConnectionMapper;
+
+  /** @internal */
   routeTable: RouteTableMapper;
+
+  /** @internal */
   routeTableAssociation: RouteTableAssociationMapper;
 
   constructor() {

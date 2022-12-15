@@ -3,6 +3,7 @@ import { LogGroupMapper } from './mappers';
 import { LogGroupTailRpc } from './rpcs';
 
 export class AwsCloudwatchModule extends ModuleBase {
+  /** @internal */
   logGroup: LogGroupMapper;
   logGroupTail: LogGroupTailRpc;
 

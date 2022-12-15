@@ -10,6 +10,9 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 
+/**
+ * @internal
+ */
 @Entity()
 export class IasqlModule {
   @Column({

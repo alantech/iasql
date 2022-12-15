@@ -7,10 +7,21 @@ import {
   RpcResponseObject,
 } from '../../interfaces';
 
+/**
+ * @internal
+ */
 export class IasqlPreviewSync extends RpcBase {
+  /**
+   * @internal
+   */
   module: IasqlFunctions;
+  /** @internal */
   preTransactionCheck = PreTransactionCheck.NO_CHECK;
+  /** @internal */
   postTransactionCheck = PostTransactionCheck.NO_CHECK;
+  /**
+   * @internal
+   */
   outputTable = {
     action: 'varchar',
     table_name: 'varchar',

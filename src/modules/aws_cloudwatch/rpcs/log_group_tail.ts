@@ -10,10 +10,33 @@ import {
   RpcResponseObject,
 } from '../../interfaces';
 
+/**
+ * Method for tailing logs for an specific CloudWatch log group.
+ *
+ * Returns a set of SQL records with the following format:
+ *
+ * - event_id: The ID of the event for the produced log
+ * - log_stream_name: Name of the log stream that is visualized
+ * - event_timestamp: The timestamp for the log entry
+ * - message: The content of the log entry
+ *
+ * @example
+ * ```sql TheButton[Tail CloudWatch logs]="Tail CloudWatch logs"
+ *   SELECT * FROM log_group_tail('log_group_name');
+ * ```
+ *
+ * @see https://github.com/iasql/iasql-engine/blob/b2c2383b73d73f5cdf75c867d334e80cdf40caa1/test/modules/aws-tail-log-group.ts#L143
+ * @see https://awscli.amazonaws.com/v2/documentation/api/latest/reference/logs/tail.html
+ *
+ */
 export class LogGroupTailRpc extends RpcBase {
+  /** @internal */
   module: AwsCloudwatchModule;
+  /** @internal */
   preTransactionCheck = PreTransactionCheck.NO_CHECK;
+  /** @internal */
   postTransactionCheck = PostTransactionCheck.NO_CHECK;
+  /** @internal */
   outputTable = {
     event_id: 'varchar',
     log_stream_name: 'varchar',
@@ -21,6 +44,7 @@ export class LogGroupTailRpc extends RpcBase {
     message: 'varchar',
   } as const;
 
+  /** @internal */
   filterLogEvents = crudBuilderFormat<CloudWatchLogs, 'filterLogEvents', FilteredLogEvent[]>(
     'filterLogEvents',
     logGroupName => ({ logGroupName, limit: 1000 }), // Opinionated limit. We can start and see if it is enough, cannot imagine some reading more than a thousand db records of logs

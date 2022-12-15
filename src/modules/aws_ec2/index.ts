@@ -8,10 +8,18 @@ import {
 import { KeyPairImportRpc, KeyPairRequestRpc } from './rpcs';
 
 export class AwsEc2Module extends ModuleBase {
+  /** @internal */
   instance: InstanceMapper;
+
+  /** @internal */
   registeredInstance: RegisteredInstanceMapper;
+
+  /** @internal */
   generalPurposeVolume: GeneralPurposeVolumeMapper;
+
+  /** @internal */
   keypair: KeyPairMapper;
+
   keyPairImport: KeyPairImportRpc;
   keyPairRequest: KeyPairRequestRpc;
 
