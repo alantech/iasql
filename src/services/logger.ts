@@ -6,8 +6,9 @@ import * as util from 'util';
 
 import config from '../config';
 import { DepError } from './lazy-dep';
+import MetadataRepo from './repositories/metadata';
 
-const logFactory: LogFunctionFactory<Logger> = scope => {
+const logFactory: LogFunctionFactory<Logger> = (scope: any) => {
   // Better to check the config once in the factory and return fixed functions instead of checking
   // on each log output
   if (config.logger.logDnaKey) {
@@ -21,21 +22,33 @@ const logFactory: LogFunctionFactory<Logger> = scope => {
       console.log('Fatal error in LogDNA', event);
     });
     if (config.logger.forceLocal) {
-      return (level, message, meta) => {
-        console.log(`${level}: ${message}`, { ...meta, ...scope });
+      return async (level, message, meta) => {
+        const { dbId } = scope;
+        let userId: string | undefined;
+        if (dbId) {
+          const user = await MetadataRepo.getUserFromDbId(dbId);
+          userId = user?.id;
+        }
+        console.log(`${level}: ${message}`, { ...meta, userId });
         logfn.log(message, {
           level: level === 'warning' ? 'warn' : level, // Graphile Logger vs LogDNA levels fix
-          meta: { ...meta, ...scope },
+          meta: { ...meta, userId },
           indexMeta: true,
           app: 'iasql-engine',
           env: process.env.IASQL_ENV,
         });
       };
     } else {
-      return (level, message, meta) => {
+      return async (level, message, meta) => {
+        const { dbId } = scope;
+        let userId: string | undefined;
+        if (dbId) {
+          const user = await MetadataRepo.getUserFromDbId(dbId);
+          userId = user?.id;
+        }
         logfn.log(message, {
           level: level === 'warning' ? 'warn' : level, // Graphile Logger vs LogDNA levels fix
-          meta: { ...meta, ...scope },
+          meta: { ...meta, userId },
           indexMeta: true,
           app: 'iasql-engine',
           env: process.env.IASQL_ENV,
