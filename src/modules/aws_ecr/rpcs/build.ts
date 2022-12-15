@@ -1,18 +1,5 @@
-import {
-  BatchGetBuildsCommandInput,
-  Build,
-  CodeBuild,
-  CreateProjectCommandInput,
-  DeleteProjectInput,
-  DeleteSourceCredentialsCommandInput,
-  ImportSourceCredentialsInput,
-  Project,
-  StartBuildInput,
-} from '@aws-sdk/client-codebuild';
-import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
-
-import { AWS, crudBuilder2, crudBuilderFormat } from '../../../services/aws_macros';
-import { BuildStatus } from '../../aws_codebuild/entity';
+import { awsCodebuildModule } from '../../aws_codebuild';
+import { CodebuildProject, SourceCredentialsList, SourceType } from '../../aws_codebuild/entity';
 import { awsIamModule } from '../../aws_iam';
 import { IamRole } from '../../aws_iam/entity';
 import { modules } from '../../iasql_functions/iasql';
@@ -59,77 +46,6 @@ export class EcrBuildRpc extends RpcBase {
   /**
    * @internal
    */
-  importSourceCredentials = crudBuilderFormat<CodeBuild, 'importSourceCredentials', string | undefined>(
-    'importSourceCredentials',
-    input => input,
-    res => res?.arn,
-  );
-
-  /**
-   * @internal
-   */
-  deleteSourceCredentials = crudBuilder2<CodeBuild, 'deleteSourceCredentials'>(
-    'deleteSourceCredentials',
-    input => input,
-  );
-
-  /**
-   * @internal
-   */
-  createProject = crudBuilderFormat<CodeBuild, 'createProject', Project | undefined>(
-    'createProject',
-    input => input,
-    res => res?.project,
-  );
-
-  /**
-   * @internal
-   */
-  startBuild = crudBuilderFormat<CodeBuild, 'startBuild', Build | undefined>(
-    'startBuild',
-    input => input,
-    res => res?.build,
-  );
-
-  /**
-   * @internal
-   */
-  deleteProject = crudBuilder2<CodeBuild, 'deleteProject'>('deleteProject', input => input);
-  async waitForBuildsToComplete(client: CodeBuild, ids: string[]) {
-    // wait for policies to be attached
-    const input: BatchGetBuildsCommandInput = {
-      ids,
-    };
-    await createWaiter<CodeBuild, BatchGetBuildsCommandInput>(
-      {
-        client,
-        // all in seconds
-        maxWaitTime: 900,
-        minDelay: 1,
-        maxDelay: 4,
-      },
-      input,
-      async (cl, cmd) => {
-        try {
-          const data = await cl.batchGetBuilds(cmd);
-          const done = data?.builds?.every(bd => bd.buildStatus !== BuildStatus.IN_PROGRESS || !!bd.endTime);
-          if (done) {
-            data.builds?.map(bd => {
-              if (bd.buildStatus === BuildStatus.FAILED) throw new Error(`Build with arn ${bd.arn} failed.`);
-            });
-            return { state: WaiterState.SUCCESS };
-          }
-          return { state: WaiterState.RETRY };
-        } catch (e: any) {
-          throw e;
-        }
-      },
-    );
-  }
-
-  /**
-   * @internal
-   */
   call = async (
     _dbId: string,
     _dbUser: string,
@@ -140,18 +56,27 @@ export class EcrBuildRpc extends RpcBase {
     githubRef: string,
     githubPersonalAccessToken: string,
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
-    await this.ensureAwsIamModule(_dbId);
+    await this.ensureModules(_dbId);
 
     const ecrRepository = await this.getEcrRepoById(ctx, ecrRepositoryId);
     const region = ecrRepository.region;
-    const client = (await ctx.getAwsClient(region)) as AWS;
     const prefix = (Math.random() + 1).toString(36).substring(7);
 
     // create github credentials
     let credentialsArn;
-    if (githubPersonalAccessToken)
-      credentialsArn = await this.createGithubCredentials(githubPersonalAccessToken, client);
-
+    if (githubPersonalAccessToken) {
+      const importCredentialResult = await awsCodebuildModule.importSourceCredential.call(
+        _dbId,
+        _dbUser,
+        ctx,
+        region,
+        githubPersonalAccessToken,
+        'GITHUB',
+        'PERSONAL_ACCESS_TOKEN',
+      );
+      if (importCredentialResult[0].status === 'ERROR') throw new Error(importCredentialResult[0].message);
+      credentialsArn = importCredentialResult[0].arn;
+    }
     // create service role
     const role: IamRole = await this.createServiceRole(prefix, ctx);
 
@@ -164,31 +89,42 @@ export class EcrBuildRpc extends RpcBase {
       githubPersonalAccessToken ? '' : githubRepoUrl,
       githubRef,
     );
-    await this.createCodebuildProject(
+    const codeBuildProject = await this.createCodebuildProject(
       codeBuildProjectName,
       buildSpec,
       githubRef,
       githubPersonalAccessToken ? githubRepoUrl : '',
       role,
-      client,
+      region,
+      ctx,
     );
 
     // start build and wait for it to complete
-    const build = await this.startCodebuildProject(codeBuildProjectName, client);
-    await this.waitForBuildsToComplete(client.cbClient, [build.id!]);
+    const buildResult = await awsCodebuildModule.startBuild.call(
+      _dbId,
+      _dbUser,
+      ctx,
+      codeBuildProjectName,
+      region,
+    );
+    if (!buildResult.length || buildResult[0].status !== 'OK')
+      throw new Error(`Error when starting codebuild project: ${buildResult[0].message}`);
 
     // get the pushed image from the cloud and create it in the DB
     const createdImage = await this.getCreatedEcrImage(ctx, ecrRepository);
-    this.module.repositoryImages.db.create(createdImage, ctx);
+    await this.module.repositoryImages.db.create(createdImage, ctx);
 
     // delete service role
-    awsIamModule.role.cloud.delete(role, ctx);
+    await awsIamModule.role.cloud.delete(role, ctx);
 
     // delete credentials
-    if (githubPersonalAccessToken) await this.deleteGithubCredentials(credentialsArn, client);
+    await awsCodebuildModule.sourceCredentialsList.cloud.delete(
+      { arn: credentialsArn } as SourceCredentialsList, // hacky but works
+      ctx,
+    );
 
     // delete codebuild project
-    await this.deleteCodebuildProject(codeBuildProjectName, client);
+    await awsCodebuildModule.project.cloud.delete(codeBuildProject, ctx);
 
     return [
       {
@@ -203,25 +139,12 @@ export class EcrBuildRpc extends RpcBase {
     super.init();
   }
 
-  private async ensureAwsIamModule(_dbId: string) {
-    const installedModules = await modules(false, true, _dbId);
-    if (!installedModules.map(m => m.moduleName).includes('aws_iam')) {
-      throw new Error('ecr_build RPC is only available if you have "aws_iam" module installed');
-    }
-  }
-
-  private async deleteCodebuildProject(codeBuildProjectName: string, client: AWS) {
-    const input: DeleteProjectInput = {
-      name: codeBuildProjectName,
-    };
-    await this.deleteProject(client.cbClient, input);
-  }
-
-  private async deleteGithubCredentials(credentialsArn: any, client: AWS) {
-    const deleteCredentialsInput: DeleteSourceCredentialsCommandInput = {
-      arn: credentialsArn,
-    };
-    await this.deleteSourceCredentials(client.cbClient, deleteCredentialsInput);
+  private async ensureModules(_dbId: string) {
+    const installedModuleNames = (await modules(false, true, _dbId)).map(m => m.moduleName);
+    if (!installedModuleNames.includes('aws_iam'))
+      throw new Error('ecr_build needs "aws_iam" module installed to be able to create a codebuild project');
+    if (!installedModuleNames.includes('aws_codebuild'))
+      throw new Error('ecr_build needs "aws_codebuild" module installed to build and push your image');
   }
 
   private async getEcrRepoById(ctx: Context, ecrRepositoryId: string) {
@@ -245,54 +168,33 @@ export class EcrBuildRpc extends RpcBase {
     return createdImage;
   }
 
-  private async startCodebuildProject(codeBuildProjectName: string, client: AWS) {
-    const startProjectInput: StartBuildInput = {
-      projectName: codeBuildProjectName,
-    };
-    const build = await this.startBuild(client.cbClient, startProjectInput);
-    if (!build || !build.id) throw new Error('Error starting build');
-    return build;
-  }
-
   private async createCodebuildProject(
-    codebuildProjectName: string,
+    projectName: string,
     buildSpec: string,
     githubRef: string,
     githubRepoUrl: string,
     role: IamRole,
-    client: AWS,
+    region: string,
+    ctx: Context,
   ) {
-    let source, sourceVersion;
+    const project = new CodebuildProject();
+    project.projectName = projectName;
+    project.buildSpec = buildSpec;
     if (githubRepoUrl) {
-      source = {
-        location: githubRepoUrl,
-        type: 'GITHUB',
-        buildspec: buildSpec,
-      };
-      sourceVersion = githubRef ?? 'main';
-    } else
-      source = {
-        type: 'NO_SOURCE',
-        buildspec: buildSpec,
-      };
-    const createProjectInput: CreateProjectCommandInput = {
-      name: codebuildProjectName,
-      environment: {
-        type: 'LINUX_CONTAINER',
-        image: 'aws/codebuild/standard:6.0',
-        computeType: 'BUILD_GENERAL1_SMALL',
-        environmentVariables: [],
-        privilegedMode: true,
-      },
-      sourceVersion,
-      source,
-      serviceRole: role.arn,
-      artifacts: {
-        type: 'NO_ARTIFACTS',
-      },
-    };
-    const codeBuildProject = await this.createProject(client.cbClient, createProjectInput);
+      project.sourceType = SourceType.GITHUB;
+      project.sourceLocation = githubRepoUrl;
+      project.sourceVersion = githubRef ?? 'main';
+    } else project.sourceType = SourceType.NO_SOURCE;
+    project.serviceRole = role;
+    project.privilegedMode = true;
+    project.region = region;
+
+    const codeBuildProject = (await awsCodebuildModule.project.cloud.create(
+      project,
+      ctx,
+    )) as CodebuildProject;
     if (!codeBuildProject) throw new Error("Couldn't create CodeBuild project");
+    return codeBuildProject;
   }
 
   private generateBuildSpec(
@@ -302,7 +204,7 @@ export class EcrBuildRpc extends RpcBase {
     githubRepoUrl: string,
     githubRef: string,
   ) {
-    let additionalCommands = 'echo Github repo pulled successfuly using personal access token';
+    let additionalCommands = 'echo Github repo pulled successfully using personal access token';
     if (githubRepoUrl) {
       additionalCommands = `git clone ${githubRepoUrl} repo && cd repo && git checkout ${
         githubRef ?? 'main'
@@ -350,16 +252,5 @@ phases:
     };
     role = (await awsIamModule.role.cloud.create(role, ctx)) as IamRole;
     return role;
-  }
-
-  private async createGithubCredentials(githubPersonalAccessToken: string, client: AWS) {
-    const createCredentialsInput: ImportSourceCredentialsInput = {
-      token: githubPersonalAccessToken,
-      serverType: 'GITHUB',
-      authType: 'PERSONAL_ACCESS_TOKEN',
-    };
-    const credentialsArn = await this.importSourceCredentials(client.cbClient, createCredentialsInput);
-    if (!credentialsArn) throw new Error('Error adding Github credentials');
-    return credentialsArn;
   }
 }

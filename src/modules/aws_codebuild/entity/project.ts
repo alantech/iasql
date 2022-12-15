@@ -2,7 +2,7 @@ import { Column, Entity, ManyToOne, JoinColumn, PrimaryGeneratedColumn, Unique }
 
 import { cloudId } from '../../../services/cloud-id';
 import { AwsRegions } from '../../aws_account/entity';
-import { IamRole } from '../../aws_iam/entity/role';
+import { IamRole } from '../../aws_iam/entity';
 
 /**
  * @enum

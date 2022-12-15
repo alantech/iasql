@@ -8,7 +8,7 @@ import {
 import { AwsCodebuildModule } from '..';
 import { AWS, crudBuilder2, crudBuilderFormat } from '../../../services/aws_macros';
 import { Context, Crud2, MapperBase } from '../../interfaces';
-import { SourceCredentialsList, SourceCredentialsImport, SourceType, AuthType } from '../entity';
+import { SourceCredentialsList, SourceType, AuthType } from '../entity';
 
 export class SourceCredentialsListMapper extends MapperBase<SourceCredentialsList> {
   module: AwsCodebuildModule;
@@ -94,72 +94,6 @@ export class SourceCredentialsListMapper extends MapperBase<SourceCredentialsLis
         };
         await this.deleteSourceCredentials(client.cbClient, input);
       }
-    },
-  });
-
-  constructor(module: AwsCodebuildModule) {
-    super();
-    this.module = module;
-    super.init();
-  }
-}
-
-export class SourceCredentialsImportMapper extends MapperBase<SourceCredentialsImport> {
-  module: AwsCodebuildModule;
-  entity = SourceCredentialsImport;
-  entityId = (e: SourceCredentialsImport) => e.id.toString();
-  equals = (a: SourceCredentialsImport, b: SourceCredentialsImport) =>
-    Object.is(a.authType, b.authType) &&
-    Object.is(a.id, b.id) &&
-    Object.is(a.sourceType, b.sourceType) &&
-    Object.is(a.token, b.token) &&
-    Object.is(a.region, b.region);
-
-  importSourceCredentials = crudBuilderFormat<CodeBuild, 'importSourceCredentials', string | undefined>(
-    'importSourceCredentials',
-    input => input,
-    res => res?.arn,
-  );
-
-  db = new Crud2<SourceCredentialsImport>({
-    create: (es: SourceCredentialsImport[], ctx: Context) => ctx.orm.save(SourceCredentialsImport, es),
-    update: (es: SourceCredentialsImport[], ctx: Context) => ctx.orm.save(SourceCredentialsImport, es),
-    delete: (es: SourceCredentialsImport[], ctx: Context) => ctx.orm.remove(SourceCredentialsImport, es),
-    read: async (ctx: Context, id?: string) => {
-      const opts = id
-        ? {
-            where: {
-              id,
-            },
-          }
-        : {};
-      return await ctx.orm.find(SourceCredentialsImport, opts);
-    },
-  });
-  cloud: Crud2<SourceCredentialsImport> = new Crud2({
-    create: async (es: SourceCredentialsImport[], ctx: Context) => {
-      for (const e of es) {
-        const client = (await ctx.getAwsClient(e.region)) as AWS;
-        const input: ImportSourceCredentialsInput = {
-          token: e.token,
-          serverType: e.sourceType,
-          authType: e.authType,
-        };
-        const arn = await this.importSourceCredentials(client.cbClient, input);
-        if (!arn) throw new Error('Error importing source credentials');
-        const importedCreds = await this.module.sourceCredentialsList.cloud.read(ctx, `${arn}|${e.region}`);
-        await this.module.sourceCredentialsImport.db.delete(e, ctx);
-        await this.module.sourceCredentialsList.db.create(importedCreds, ctx);
-      }
-    },
-    read: async () => {
-      return;
-    },
-    update: async () => {
-      return;
-    },
-    delete: async () => {
-      return;
     },
   });
 
