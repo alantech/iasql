@@ -35,12 +35,13 @@ const theButton = require('./src/rehype/thebutton');
           docs: {
             routeBasePath: '/docs',
             remarkPlugins: [theButton],
+            sidebarPath: require.resolve('./sidebars.js'),
           },
           blog: {
             showReadingTime: true,
             routeBasePath: '/blog',
             remarkPlugins: [theButton],
-            exclude: ['2022/clean-your-aws-account.mdx']
+            exclude: ['2022/clean-your-aws-account.mdx'],
           },
           theme: {
             customCss: require.resolve('./src/css/custom.css'),
@@ -65,7 +66,7 @@ const theButton = require('./src/rehype/thebutton');
           // other options are passed to posthog-js init as is
         },
       ],
-      ['docusaurus-plugin-iasql', { sidebar: { categoryLabel: 'SQL reference', position: 8 } }],
+      ['docusaurus-plugin-iasql', {}],
     ],
 
     themeConfig:
