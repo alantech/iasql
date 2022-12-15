@@ -59,7 +59,13 @@ export class CodedeployApplicationMapper extends MapperBase<CodedeployApplicatio
           applicationName: e.name,
           computePlatform: ComputePlatform[e.computePlatform],
         };
-        const appId = await this.createApplication(client.cdClient, input);
+
+        let appId;
+        try {
+          appId = await this.createApplication(client.cdClient, input);
+        } catch (e) {
+          console.log(e);
+        }
         if (!appId) continue;
 
         // we just need to add the id
@@ -76,7 +82,13 @@ export class CodedeployApplicationMapper extends MapperBase<CodedeployApplicatio
         const { name, region } = this.idFields(id);
         if (enabledRegions.includes(region)) {
           const client = (await ctx.getAwsClient(region)) as AWS;
-          const rawApp = await this.getApplication(client.cdClient, { applicationName: name });
+
+          let rawApp;
+          try {
+            rawApp = await this.getApplication(client.cdClient, { applicationName: name });
+          } catch (e) {
+            console.log(e);
+          }
           if (!rawApp) return;
           // map to entity
           const app = await this.applicationMapper(rawApp, region);
@@ -87,10 +99,21 @@ export class CodedeployApplicationMapper extends MapperBase<CodedeployApplicatio
         await Promise.all(
           enabledRegions.map(async region => {
             const client = (await ctx.getAwsClient(region)) as AWS;
-            const appNames = await this.listApplications(client.cdClient);
+
+            let appNames;
+            try {
+              appNames = await this.listApplications(client.cdClient);
+            } catch (e) {
+              console.log(e);
+            }
             if (!appNames || !appNames.length) return;
             for (const appName of appNames) {
-              const rawApp = await this.getApplication(client.cdClient, { applicationName: appName });
+              let rawApp;
+              try {
+                rawApp = await this.getApplication(client.cdClient, { applicationName: appName });
+              } catch (e) {
+                console.log(e);
+              }
               if (!rawApp) continue;
               const app = await this.applicationMapper(rawApp, region);
               if (app) out.push(app);
@@ -120,7 +143,12 @@ export class CodedeployApplicationMapper extends MapperBase<CodedeployApplicatio
     delete: async (apps: CodedeployApplication[], ctx: Context) => {
       for (const app of apps) {
         const client = (await ctx.getAwsClient(app.region)) as AWS;
-        await this.deleteApplication(client.cdClient, { applicationName: app.name });
+
+        try {
+          await this.deleteApplication(client.cdClient, { applicationName: app.name });
+        } catch (e) {
+          console.log(e);
+        }
       }
     },
   });
