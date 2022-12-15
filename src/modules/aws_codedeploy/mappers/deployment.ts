@@ -92,30 +92,47 @@ export class CodedeployDeploymentMapper extends MapperBase<CodedeployDeployment>
       await this.module.deployment.db.delete(es, ctx);
     },
     read: async (ctx: Context, id?: string) => {
+      console.log('in read');
       const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
+      console.log('regions are');
+      console.log(enabledRegions);
       if (!!id) {
+        console.log('here');
         const { deploymentId, region } = this.idFields(id);
+        console.log('id is');
+        console.log(deploymentId);
         if (enabledRegions.includes(region)) {
+          console.log('in region');
           const client = (await ctx.getAwsClient(region)) as AWS;
           const rawDeployment = await this.getDeployment(client.cdClient, {
             deploymentId,
           });
+          console.log('raw is');
+          console.log(rawDeployment);
           if (!rawDeployment) return;
 
           // map to entity
+          console.log('before mapper');
           const deployment = await this.deploymentMapper(rawDeployment, region, ctx);
+          console.log('after mapper');
           return deployment;
         }
       } else {
+        console.log('i try to read all');
         const out: CodedeployDeployment[] = [];
         await Promise.all(
           enabledRegions.map(async region => {
             const client = (await ctx.getAwsClient(region)) as AWS;
+            console.log('for region');
+            console.log(region);
             const deploymentIds = await this.listDeployments(client.cdClient);
+            console.log('after list ids');
             for (const depId of deploymentIds) {
+              console.log('before get deployment');
               const rawDeployment = await this.getDeployment(client.cdClient, {
                 deploymentId: depId,
               });
+              console.log('after get deployment');
               if (!rawDeployment) continue;
 
               // map to entity
