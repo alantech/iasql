@@ -43,7 +43,7 @@ IaSQL lets you visualize proposed changes for an ongoing IaSQL transaction to se
 
 ## `iasql_rollback`
 
-You can abort an transaction if you want to discard the changes done since calling `iasql_begin` with `iasql_rollback` by syncing the database with the state of the cloud again into the database. The transaction will be stopped and regular behaviour of IaSQL re-enabled in which changes are propagated both ways in an eventually consistent way without any special syntax other than `SELECT/INSERT/UPDATE/DELETE` records normally.
+You can abort a transaction if you want to discard the changes done since calling `iasql_begin` with `iasql_rollback` by syncing the database with the state of the cloud again into the database. The transaction will be stopped and regular behaviour of IaSQL re-enabled in which changes are propagated both ways in an eventually consistent way without any special syntax other than `SELECT/INSERT/UPDATE/DELETE` records normally.
 
 ```
    ______
