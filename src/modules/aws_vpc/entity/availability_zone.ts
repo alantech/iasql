@@ -3,17 +3,37 @@ import { Column, Entity, JoinColumn, ManyToOne, PrimaryColumn, Unique } from 'ty
 import { cloudId } from '../../../services/cloud-id';
 import { AwsRegions } from '../../aws_account/entity';
 
-// This is ridiculous. Can we fix this?
-
+/**
+ * Table to manage AWS availability zones. An Availability Zone (AZ) is one or more discrete data
+ * centers with redundant power, networking, and connectivity in an AWS Region.
+ *
+ * This is a read-only table.
+ *
+ * @example
+ * ```sql TheButton[Shows availability zones]="Shows availability zones"
+ * SELECT * FROM availability_zone;
+ * ```
+ *
+ * @see https://github.com/iasql/iasql-engine/blob/main/test/modules/aws-vpc-integration.ts#L112
+ * @see https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-regions-availability-zones.html
+ */
 @Unique('uq_az_region', ['name', 'region'])
 @Entity({
   name: 'availability_zone',
 })
 export class AvailabilityZone {
+  /**
+   * @public
+   * Name for the availability zone
+   */
   @PrimaryColumn()
   @cloudId
   name: string;
 
+  /**
+   * @public
+   * Reference to the region where it belongs
+   */
   @Column({
     type: 'character varying',
     nullable: false,

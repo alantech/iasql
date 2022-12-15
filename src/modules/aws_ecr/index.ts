@@ -751,10 +751,18 @@ class RepositoryPolicyMapper extends MapperBase<RepositoryPolicy> {
 }
 
 export class AwsEcrModule extends ModuleBase {
+  /** @internal */
   publicRepository: PublicRepositoryMapper;
+
+  /** @internal */
   repository: RepositoryMapper;
+
+  /** @internal */
   repositoryPolicy: RepositoryPolicyMapper;
+
+  /** @internal */
   repositoryImages: RepositoryImageMapper;
+
   ecrBuild: EcrBuildRpc;
 
   constructor() {

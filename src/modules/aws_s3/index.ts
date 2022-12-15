@@ -3,8 +3,12 @@ import { BucketMapper, BucketObjectMapper } from './mappers';
 import { S3UploadObjectRpc } from './rpcs';
 
 export class AwsS3Module extends ModuleBase {
+  /** @internal */
   bucket: BucketMapper;
+
+  /** @internal */
   bucketObject: BucketObjectMapper;
+
   s3UploadObject: S3UploadObjectRpc;
 
   constructor() {

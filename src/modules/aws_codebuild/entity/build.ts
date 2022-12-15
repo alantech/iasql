@@ -4,6 +4,11 @@ import { cloudId } from '../../../services/cloud-id';
 import { AwsRegions } from '../../aws_account/entity';
 import { CodebuildProject } from './project';
 
+/**
+ * @enum
+ * Different status for a build. Only SUCCEEDED builds can be considered as valid
+ * @see https://docs.aws.amazon.com/codebuild/latest/APIReference/API_Build.html
+ */
 export enum BuildStatus {
   FAILED = 'FAILED',
   FAULT = 'FAULT',
@@ -13,30 +18,67 @@ export enum BuildStatus {
   TIMED_OUT = 'TIMED_OUT',
 }
 
+/**
+ * Table to manage AWS CodeBuild build entities. AWS CodeBuild is a fully managed continuous integration service that
+ * compiles source code, runs tests, and produces ready-to-deploy software packages.
+ *
+ * A build represents a set of actions performed by AWS CodeBuild to create output artifacts (for example, a JAR file)
+ * based on a set of input artifacts (for example, a collection of Java class files).
+ *
+ * This table can only be used to check the existing builds, and delete them. The main builds are created
+ * via a CodeBuild project.
+ *
+ * @example
+ * ```sql TheButton[Manage CodeBuild builds]="Manage CodeBuild builds"
+ * SELECT * FROM codebuild_build_list WHERE project_name = 'build_project_name' and build_status = 'FAILED';
+ * DELETE FROM codebuild_build_list WHERE project_name = 'build_project_name';
+ * ```
+ *
+ * @see https://github.com/iasql/iasql-engine/blob/main/test/modules/aws-codebuild-integration.ts#L341
+ * @see https://docs.aws.amazon.com/codebuild/latest/userguide/builds-working.html
+ *
+ */
 @Entity()
 @Unique('uq_codebuildlist_id_region', ['id', 'region'])
 @Unique('uq_codebuildlist_name_region', ['awsId', 'region'])
 export class CodebuildBuildList {
+  /**
+   * @private
+   * Auto-incremented ID field
+   */
   @PrimaryGeneratedColumn()
   id: number;
 
-  // AWS unique ID for the build.
+  /**
+   * @public
+   * Internal ID to identify the build
+   */
   @Column()
   @cloudId
   awsId: string;
 
+  /**
+   * @public
+   * AWS ARN to identify the build
+   */
   @Column({
     nullable: true,
   })
   arn: string;
 
-  // The number of the build. For each project, the buildNumber of its first build is 1. The buildNumber of each subsequent build is incremented by 1. If a build is deleted, the buildNumber of other builds does not change.
+  /**
+   * @public
+   * The number of the build. For each project, the buildNumber of its first build is 1. The buildNumber of each subsequent build is incremented by 1. If a build is deleted, the buildNumber of other builds does not change.
+   */
   @Column({
     nullable: true,
   })
   buildNumber?: number;
 
-  // AWS allows builds to exist once the project has been deleted
+  /**
+   * @public
+   * Associated project for the build. AWS allows builds to exist once the project has been deleted
+   */
   @ManyToOne(() => CodebuildProject, {
     eager: true,
     nullable: true,
@@ -53,24 +95,40 @@ export class CodebuildBuildList {
   ])
   project: CodebuildProject;
 
+  /**
+   * @public
+   * Current status for the build
+   */
   @Column({
     type: 'enum',
     enum: BuildStatus,
   })
   buildStatus: BuildStatus;
 
+  /**
+   * @public
+   * Time when the build finished
+   */
   @Column({
     type: 'timestamp without time zone',
     nullable: true,
   })
   endTime?: Date;
 
+  /**
+   * @public
+   * Time when the build was started
+   */
   @Column({
     type: 'timestamp without time zone',
     nullable: true,
   })
   startTime?: Date;
 
+  /**
+   * @public
+   * Region for the certificate creation
+   */
   @Column({
     type: 'character varying',
     nullable: false,
@@ -82,13 +140,33 @@ export class CodebuildBuildList {
   region: string;
 }
 
-// TODO allow overrides
+/**
+ * Table to trigger a new CodeBuild build for an existing project.
+ * When a new entry is created on the table, the referenced build is started.
+ *
+ * @example
+ * ```sql
+ * INSERT INTO codebuild_build_import (project_name) VALUES ('project_name');
+ * ```
+ *
+ * @see https://github.com/iasql/iasql-engine/blob/main/test/modules/aws-codebuild-integration.ts#L315
+ * @see https://docs.aws.amazon.com/cli/latest/reference/codebuild/start-build.html
+ *
+ */
 @Entity()
 export class CodebuildBuildImport {
+  /**
+   * @private
+   * Auto-incremented ID field
+   */
   @PrimaryGeneratedColumn()
   @cloudId
   id: number;
 
+  /**
+   * @public
+   * Project name for the triggered build
+   */
   @ManyToOne(() => CodebuildProject, {
     eager: true,
   })
@@ -104,6 +182,10 @@ export class CodebuildBuildImport {
   ])
   project: CodebuildProject;
 
+  /**
+   * @public
+   * Region for the Codebuild project
+   */
   @Column({
     type: 'character varying',
     nullable: false,

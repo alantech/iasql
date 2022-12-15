@@ -6,17 +6,52 @@ import { Context, RpcBase, RpcResponseObject } from '../../interfaces';
 import { Certificate } from '../entity';
 import { safeParse } from './common';
 
+/**
+ * Method for importing an AWS certificate, based on a local one.
+ *
+ * Returns following columns:
+ *
+ * - arn: The unique ARN for the imported certificate
+ *
+ * - status: OK if the certificate was imported successfully
+ *
+ * - message: Error message in case of failure
+ *
+ * @example
+ * ```sql TheButton[Import an ACM certificate]="Import an ACM certificate"
+ *   SELECT * FROM certificate_import('***your_certificate_content***', '***your_key_content***', 'us-east-2', '');
+ * ```
+ *
+ * @see https://github.com/iasql/iasql-engine/blob/main/test/modules/aws-acm-import-integration.ts#L86
+ * @see https://aws.amazon.com/certificate-manager
+ *
+ */
 export class CertificateImportRpc extends RpcBase {
+  /**
+   * @internal
+   */
   module: AwsAcmModule;
+  /**
+   * @internal
+   */
   outputTable = {
     arn: 'varchar',
     status: 'varchar',
     message: 'varchar',
   } as const;
 
+  /**
+   * @internal
+   */
   getCertificatesSummary = paginateBuilder<ACM>(paginateListCertificates, 'CertificateSummaryList');
 
-  // TODO: Can I macro this somehow?
+  /**
+   *
+   * Imports the certificate
+   *
+   * @privateRemarks
+   * TODO: Can I macro this somehow?
+   */
   async importCertificate(client: ACM, input: ImportCertificateCommandInput) {
     const res = await client.importCertificate(input);
     const arn = res.CertificateArn ?? '';
