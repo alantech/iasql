@@ -324,7 +324,7 @@ phases:
     query(
       `
     SELECT * FROM codebuild_build_list
-    WHERE project_name = '${dbAlias}';
+    WHERE project_name = '${dbAlias}' AND build_status='FAILED';
   `,
       (res: any[]) => expect(res.length).toBe(1),
     ),
@@ -387,6 +387,10 @@ phases:
       },
     ),
   );
+
+  it('starts a transaction', begin());
+
+  it('syncs the ecr images', commit());
 
   it(
     'checks the image is pushed to ecr',
