@@ -306,31 +306,16 @@ phases:
 
   it('apply codebuild_project creation', commit());
 
-  it('starts a transaction', begin());
-
   it(
     'start and wait for build',
     query(
       `
-    INSERT INTO codebuild_build_import (project_name)
-    VALUES ('${dbAlias}');
+      SELECT * FROM start_build('${dbAlias}', '${region}');
   `,
-      undefined,
-      true,
-      () => ({ username, password }),
-    ),
-  );
-
-  it('apply build start', commit());
-
-  it(
-    'check build imports is empty',
-    query(
-      `
-    SELECT * FROM codebuild_build_import
-    WHERE project_name = '${dbAlias}';
-  `,
-      (res: any[]) => expect(res.length).toBe(0),
+      (res: any[]) => {
+        expect(res.length).toBe(1);
+        expect(res[0].status).toBe('OK');
+      },
     ),
   );
 
@@ -339,7 +324,7 @@ phases:
     query(
       `
     SELECT * FROM codebuild_build_list
-    WHERE project_name = '${dbAlias}' and build_status = 'FAILED';
+    WHERE project_name = '${dbAlias}' AND build_status='FAILED';
   `,
       (res: any[]) => expect(res.length).toBe(1),
     ),
@@ -390,20 +375,33 @@ phases:
   );
   it('apply creation of codebuild project', commit());
 
-  it('starts a transaction', begin());
   it(
-    'starts the build for pushing to ecr',
+    'start ecr build and wait',
     query(
       `
-    INSERT INTO codebuild_build_import (project_name)
-    VALUES ('${dbAlias}-push-ecr');
+      SELECT * FROM start_build('${dbAlias}-push-ecr', '${region}');
   `,
-      undefined,
-      true,
-      () => ({ username, password }),
+      (res: any[]) => {
+        expect(res.length).toBe(1);
+        expect(res[0].status).toBe('OK');
+      },
     ),
   );
-  it('apply build and push', commit());
+
+  it(
+    'check successful build exists in list',
+    query(
+      `
+    SELECT * FROM codebuild_build_list
+    WHERE project_name = '${dbAlias}-push-ecr' AND build_status='SUCCEEDED';
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it('starts a transaction', begin());
+
+  it('syncs the ecr images', commit());
 
   it(
     'checks the image is pushed to ecr',
