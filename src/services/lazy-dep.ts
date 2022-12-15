@@ -10,9 +10,8 @@ export class DepError {
   }
 }
 
-export async function lazyLoader(promiseGenerators: (() => Promise<any>)[], dbUser: string) {
-  const loggerWithUser = logger.scope({ dbUser });
-  loggerWithUser.info('Running lazyLoader...');
+export async function lazyLoader(promiseGenerators: (() => Promise<any>)[], dbId: string) {
+  logger.scope({ dbId }).info('Running lazyLoader...');
   // Set up the tracking variables for the promise execution
   let generatorsToRun = [...promiseGenerators]; // Shallow clone to not mutate the input
   // Running at least one time, run every promise in parallel, and mark the failures to attempt
@@ -21,7 +20,7 @@ export async function lazyLoader(promiseGenerators: (() => Promise<any>)[], dbUs
   // was an unrecoverable failure, which causes this function to also fail.
   const failures = [];
   do {
-    loggerWithUser.info('Starting a loop...');
+    logger.scope({ dbId }).info('Starting a loop...');
     const generatorsToRerun = [];
     for (const g of generatorsToRun) {
       try {
@@ -36,7 +35,7 @@ export async function lazyLoader(promiseGenerators: (() => Promise<any>)[], dbUs
     if (generatorsToRun.length === generatorsToRerun.length) break;
     generatorsToRun = generatorsToRerun;
   } while (generatorsToRun.length > 0);
-  loggerWithUser.info('lazyLoader done!');
+  logger.scope({ dbId }).info('lazyLoader done!');
   // Handle the success and error paths
   if (generatorsToRun.length === 0) {
     return true;

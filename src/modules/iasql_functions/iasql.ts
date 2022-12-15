@@ -99,7 +99,6 @@ export async function install(
   syncContext?: Context,
   ormOpt?: TypeormWrapper,
 ) {
-  const loggerWithUser = logger.scope({ dbUser });
   await throwIfUpgrading(dbId, force);
   // Check to make sure that all specified modules actually exist
   if (allModules) {
@@ -164,7 +163,7 @@ export async function install(
       ),
     ];
     if (missingDeps.length > 0) {
-      loggerWithUser.warn('Automatically attaching missing dependencies to this install', {
+      logger.scope({ dbId }).warn('Automatically attaching missing dependencies to this install', {
         moduleList,
         missingDeps,
       });
@@ -178,7 +177,7 @@ export async function install(
   } while (missingDeps.length > 0);
   // See if we need to abort because now there's nothing to do
   if (mods.length === 0) {
-    loggerWithUser.warn('All modules already installed', { moduleList });
+    logger.scope({ dbId }).warn('All modules already installed', { moduleList });
     return 'Done!';
   }
   // Scan the database and see if there are any collisions
@@ -213,9 +212,9 @@ ${Object.keys(tableCollisions)
   // we first need to sync the existing modules to make sure there are no records the newly-added
   // modules have a dependency on.
   try {
-    await commit(dbId, dbUser, false, syncContext ?? { memo: {}, orm }, force, orm);
+    await commit(dbId, false, syncContext ?? { memo: {}, orm }, force, orm);
   } catch (e: any) {
-    loggerWithUser.error('Sync during module install failed', e);
+    logger.scope({ dbId }).error('Sync during module install failed', e);
     throw e;
   }
   // Sort the modules based on their dependencies, with both root-to-leaf order and vice-versa
@@ -304,21 +303,23 @@ ${Object.keys(tableCollisions)
           try {
             e = await mapper.cloud.read(context);
           } catch (err: any) {
-            loggerWithUser.error(`Error reading from cloud entity ${mapper.entity.name}`, err);
+            logger.scope({ dbId }).error(`Error reading from cloud entity ${mapper.entity.name}`, err);
             throw err;
           }
           if (!e || (Array.isArray(e) && !e.length)) {
-            loggerWithUser.warn('No cloud entity records');
+            logger.scope({ dbId }).warn('No cloud entity records');
           } else {
             try {
               await mapper.db.create(e, context);
             } catch (err: any) {
-              loggerWithUser.error(`Error reading from cloud entity ${mapper.entity.name}`, { e, err });
+              logger
+                .scope({ dbId })
+                .error(`Error reading from cloud entity ${mapper.entity.name}`, { e, err });
               throw err;
             }
           }
         }),
-        dbUser,
+        dbId,
       );
     }
     return 'Done!';
@@ -327,14 +328,7 @@ ${Object.keys(tableCollisions)
   }
 }
 
-export async function uninstall(
-  moduleList: string[],
-  dbId: string,
-  dbUser: string,
-  force = false,
-  orm?: TypeormWrapper,
-) {
-  const loggerWithUser = logger.scope({ dbUser });
+export async function uninstall(moduleList: string[], dbId: string, force = false, orm?: TypeormWrapper) {
   await throwIfUpgrading(dbId, force);
   // Check to make sure that all specified modules actually exist
   const version = AllModules?.iasqlPlatform?.version ?? throwError('Core IasqlPlatform not found');
@@ -368,7 +362,7 @@ export async function uninstall(
   }
   // See if we need to abort because now there's nothing to do
   if (mods.length === 0) {
-    loggerWithUser.warn('All modules already uninstalled', { moduleList });
+    logger.scope({ dbId }).warn('All modules already uninstalled', { moduleList });
     return 'Done!';
   }
   const remainingModules = existingModules.filter(
@@ -591,15 +585,13 @@ export async function continueUpgrade(
 
 export async function commit(
   dbId: string,
-  dbUser: string,
   dryRun: boolean,
   context: Context,
   force = false,
   ormOpt?: TypeormWrapper,
 ) {
   const t1 = Date.now();
-  const loggerWithUser = logger.scope({ dbUser });
-  loggerWithUser.info(`Committing to ${dbId}`);
+  logger.scope({ dbId }).info(`Committing to ${dbId}`);
   await throwIfUpgrading(dbId, force);
   const versionString = await TypeormWrapper.getVersionString(dbId);
   const importedModules = await getImportedModules(dbId, versionString, force);
@@ -641,7 +633,7 @@ export async function commit(
     const installedModulesSorted: ModuleInterface[] = sortModules(installedModules, installedModulesNames);
 
     const t2 = Date.now();
-    loggerWithUser.info(`Setup took ${t2 - t1}ms`);
+    logger.scope({ dbId }).info(`Setup took ${t2 - t1}ms`);
 
     const crupdes: { toCreate: Crupde; toUpdate: Crupde; toReplace: Crupde; toDelete: Crupde } = {
       toCreate: {},
@@ -652,10 +644,9 @@ export async function commit(
 
     try {
       if (modulesWithChanges.length) {
-        loggerWithUser.info('Starting commit apply phase for modules with changes');
+        logger.scope({ dbId }).info('Starting commit apply phase for modules with changes');
         const applyRes = await commitApply(
           dbId,
-          dbUser,
           modulesWithChangesSorted,
           context,
           force,
@@ -666,11 +657,11 @@ export async function commit(
         if (dryRun) return applyRes;
       }
     } catch (e) {
-      loggerWithUser.info('Something failed. Starting commit apply phase for all modules');
-      return await commitApply(dbId, dbUser, installedModulesSorted, context, force, crupdes, dryRun);
+      logger.scope({ dbId }).info('Something failed. Starting commit apply phase for all modules');
+      return await commitApply(dbId, installedModulesSorted, context, force, crupdes, dryRun);
     }
-    loggerWithUser.info('Starting commit sync phase for all modules');
-    return await commitSync(dbId, dbUser, installedModulesSorted, context, force, crupdes, dryRun);
+    logger.scope({ dbId }).info('Starting commit sync phase for all modules');
+    return await commitSync(dbId, installedModulesSorted, context, force, crupdes, dryRun);
   } catch (e: any) {
     debugObj(e);
     await insertErrorLog(orm, logErrSentry(e));
@@ -684,16 +675,9 @@ export async function commit(
   }
 }
 
-export async function rollback(
-  dbId: string,
-  dbUser: string,
-  context: Context,
-  force = false,
-  ormOpt?: TypeormWrapper,
-) {
+export async function rollback(dbId: string, context: Context, force = false, ormOpt?: TypeormWrapper) {
   const t1 = Date.now();
-  const loggerWithUser = logger.scope({ dbUser });
-  loggerWithUser.info(`Sync to ${dbId}`);
+  logger.scope({ dbId }).info(`Sync to ${dbId}`);
   await throwIfUpgrading(dbId, force);
   const versionString = await TypeormWrapper.getVersionString(dbId);
   const importedModules = await getImportedModules(dbId, versionString, force);
@@ -717,7 +701,7 @@ export async function rollback(
     const installedModulesSorted: ModuleInterface[] = sortModules(installedModules, installedModulesNames);
 
     const t2 = Date.now();
-    loggerWithUser.info(`Setup took ${t2 - t1}ms`);
+    logger.scope({ dbId }).info(`Setup took ${t2 - t1}ms`);
 
     const crupdes: { toCreate: Crupde; toUpdate: Crupde; toReplace: Crupde; toDelete: Crupde } = {
       toCreate: {},
@@ -725,7 +709,7 @@ export async function rollback(
       toReplace: {},
       toDelete: {},
     };
-    return await commitSync(dbId, dbUser, installedModulesSorted, context, force, crupdes, false);
+    return await commitSync(dbId, installedModulesSorted, context, force, crupdes, false);
   } catch (e: any) {
     debugObj(e);
     await insertErrorLog(orm, logErrSentry(e));
@@ -874,7 +858,6 @@ function getModulesWithChanges(
 
 async function commitApply(
   dbId: string,
-  dbUser: string,
   relevantModules: ModuleInterface[],
   context: Context,
   force: boolean,
@@ -882,7 +865,6 @@ async function commitApply(
   dryRun: boolean,
   changesToCommit?: IasqlAuditLog[],
 ): Promise<{ iasqlPlanVersion: number; rows: any[] }> {
-  const loggerWithUser = logger.scope({ dbUser });
   const oldOrm = context.orm;
   context.orm = await TypeormWrapper.createConn(dbId);
   const t1 = Date.now();
@@ -901,7 +883,7 @@ async function commitApply(
   const { toCreate, toUpdate, toReplace, toDelete } = crupdes;
   do {
     const t2 = Date.now();
-    loggerWithUser.info('Starting outer loop');
+    logger.scope({ dbId }).info('Starting outer loop');
     ranFullUpdate = false;
     const tables = mappers.map(mapper => mapper.entity.name);
     context.memo.db = {}; // Flush the DB entities on the outer loop to restore the actual intended state
@@ -909,7 +891,7 @@ async function commitApply(
       mappers.map(mapper => async () => {
         await mapper.db.read(context);
       }),
-      dbUser,
+      dbId,
     );
     // Every time we read from db we get possible changes that occured after this commit started
     const changesAfterCommitByEntity = await getChangesAfterCommitStartedByEntity(
@@ -922,17 +904,17 @@ async function commitApply(
     const idGens = mappers.map(mapper => mapper.entityId);
     let ranUpdate = false;
     do {
-      loggerWithUser.info('Starting inner loop');
+      logger.scope({ dbId }).info('Starting inner loop');
       ranUpdate = false;
       context.memo.cloud = {}; // Flush the Cloud entities on the inner loop to track changes to the state
       await lazyLoader(
         mappers.map(mapper => async () => {
           await mapper.cloud.read(context);
         }),
-        dbUser,
+        dbId,
       );
       const t3 = Date.now();
-      loggerWithUser.info(`Record acquisition time: ${t3 - t2}ms`);
+      logger.scope({ dbId }).info(`Record acquisition time: ${t3 - t2}ms`);
       const records = colToRow({
         table: tables,
         mapper: mappers,
@@ -942,7 +924,7 @@ async function commitApply(
         idGen: idGens,
       });
       const t4 = Date.now();
-      loggerWithUser.info(`AWS Mapping time: ${t4 - t3}ms`);
+      logger.scope({ dbId }).info(`AWS Mapping time: ${t4 - t3}ms`);
       if (!records.length) {
         await context.orm.dropConn();
         context.orm = oldOrm;
@@ -1031,14 +1013,16 @@ async function commitApply(
         });
       }
       const t5 = Date.now();
-      loggerWithUser.info(`Diff time: ${t5 - t4}ms`);
+      logger.scope({ dbId }).info(`Diff time: ${t5 - t4}ms`);
       const promiseGenerators = records
         .map(r => {
           const name = r.table;
-          loggerWithUser.info(`Checking ${name}`);
+          logger.scope({ dbId }).info(`Checking ${name}`);
           const outArr = [];
           if (r.diff.entitiesInDbOnly.length > 0) {
-            loggerWithUser.info(`${name} has records to create`, { records: r.diff.entitiesInDbOnly });
+            logger
+              .scope({ dbId })
+              .info(`${name} has records to create`, { records: r.diff.entitiesInDbOnly });
             outArr.push(
               r.diff.entitiesInDbOnly.map((e: any) => async () => {
                 const out = await r.mapper.cloud.create(e, context);
@@ -1054,7 +1038,7 @@ async function commitApply(
             );
           }
           if (r.diff.entitiesChanged.length > 0) {
-            loggerWithUser.info(`${name} has records to update`, { records: r.diff.entitiesChanged });
+            logger.scope({ dbId }).info(`${name} has records to update`, { records: r.diff.entitiesChanged });
             outArr.push(
               r.diff.entitiesChanged.map((ec: any) => async () => {
                 const out = await r.mapper.cloud.update(ec.db, context); // Assuming SoT is the DB
@@ -1076,10 +1060,12 @@ async function commitApply(
         .reverse()
         .map(r => {
           const name = r.table;
-          loggerWithUser.info(`Checking ${name}`);
+          logger.scope({ dbId }).info(`Checking ${name}`);
           const outArr = [];
           if (r.diff.entitiesInAwsOnly.length > 0) {
-            loggerWithUser.info(`${name} has records to delete`, { records: r.diff.entitiesInAwsOnly });
+            logger
+              .scope({ dbId })
+              .info(`${name} has records to delete`, { records: r.diff.entitiesInAwsOnly });
             outArr.push(
               r.diff.entitiesInAwsOnly.map((e: any) => async () => {
                 await r.mapper.cloud.delete(e, context);
@@ -1094,19 +1080,19 @@ async function commitApply(
         ranUpdate = true;
         ranFullUpdate = true;
         try {
-          await lazyLoader(generators, dbUser);
+          await lazyLoader(generators, dbId);
         } catch (e: any) {
           if (failureCount === e.metadata?.generatorsToRun?.length) throw e;
           failureCount = e.metadata?.generatorsToRun?.length;
           ranUpdate = false;
         }
         const t6 = Date.now();
-        loggerWithUser.info(`AWS update time: ${t6 - t5}ms`);
+        logger.scope({ dbId }).info(`AWS update time: ${t6 - t5}ms`);
       }
     } while (ranUpdate);
   } while (ranFullUpdate);
   const t7 = Date.now();
-  loggerWithUser.info(`${dbId} applied and synced, total time: ${t7 - t1}ms`);
+  logger.scope({ dbId }).info(`${dbId} applied and synced, total time: ${t7 - t1}ms`);
   await context.orm.dropConn();
   context.orm = oldOrm;
   return iasqlPlanV3(toCreate, toUpdate, toReplace, toDelete);
@@ -1114,14 +1100,12 @@ async function commitApply(
 
 async function commitSync(
   dbId: string,
-  dbUser: string,
   relevantModules: ModuleInterface[],
   context: Context,
   force: boolean,
   crupdes: { toCreate: Crupde; toUpdate: Crupde; toReplace: Crupde; toDelete: Crupde },
   dryRun: boolean,
 ): Promise<{ iasqlPlanVersion: number; rows: any[] }> {
-  const loggerWithUser = logger.scope({ dbUser });
   const oldOrm = context.orm;
   context.orm = await TypeormWrapper.createConn(dbId);
   const t1 = Date.now();
@@ -1146,7 +1130,7 @@ async function commitSync(
       mappers.map(mapper => async () => {
         await mapper.cloud.read(context);
       }),
-      dbUser,
+      dbId,
     );
     const comparators = mappers.map(mapper => mapper.equals);
     const idGens = mappers.map(mapper => mapper.entityId);
@@ -1158,9 +1142,9 @@ async function commitSync(
         mappers.map(mapper => async () => {
           await mapper.db.read(context);
         }),
-        dbUser,
+        dbId,
       );
-      // Every time we read from db we get possible changes that occured after this commit started
+      // Every time we read from db we get possible changes that occurred after this commit started
       const changesAfterCommitByEntity = await getChangesAfterCommitStartedByEntity(
         context.orm,
         context,
@@ -1168,7 +1152,7 @@ async function commitSync(
         force,
       );
       const t3 = Date.now();
-      loggerWithUser.info(`Record acquisition time: ${t3 - t2}ms`);
+      logger.scope({ dbId }).info(`Record acquisition time: ${t3 - t2}ms`);
       const records = colToRow({
         table: tables,
         mapper: mappers,
@@ -1178,7 +1162,7 @@ async function commitSync(
         idGen: idGens,
       });
       const t4 = Date.now();
-      loggerWithUser.info(`AWS Mapping time: ${t4 - t3}ms`);
+      logger.scope({ dbId }).info(`AWS Mapping time: ${t4 - t3}ms`);
       if (!records.length) {
         await context.orm.dropConn();
         context.orm = oldOrm;
@@ -1237,14 +1221,16 @@ async function commitSync(
         });
       }
       const t5 = Date.now();
-      loggerWithUser.info(`Diff time: ${t5 - t4}ms`);
+      logger.scope({ dbId }).info(`Diff time: ${t5 - t4}ms`);
       const promiseGenerators = records
         .map(r => {
           const name = r.table;
-          loggerWithUser.info(`Checking ${name}`);
+          logger.scope({ dbId }).info(`Checking ${name}`);
           const outArr = [];
           if (r.diff.entitiesInAwsOnly.length > 0) {
-            loggerWithUser.info(`${name} has records to create`, { records: r.diff.entitiesInAwsOnly });
+            logger
+              .scope({ dbId })
+              .info(`${name} has records to create`, { records: r.diff.entitiesInAwsOnly });
             outArr.push(
               r.diff.entitiesInAwsOnly.map((e: any) => async () => {
                 const out = await r.mapper.db.create(e, context);
@@ -1260,7 +1246,7 @@ async function commitSync(
             );
           }
           if (r.diff.entitiesChanged.length > 0) {
-            loggerWithUser.info(`${name} has records to update`, { records: r.diff.entitiesChanged });
+            logger.scope({ dbId }).info(`${name} has records to update`, { records: r.diff.entitiesChanged });
             outArr.push(
               r.diff.entitiesChanged.map((ec: any) => async () => {
                 if (ec.db.id) ec.cloud.id = ec.db.id;
@@ -1283,10 +1269,12 @@ async function commitSync(
         .reverse()
         .map(r => {
           const name = r.table;
-          loggerWithUser.info(`Checking ${name}`);
+          logger.scope({ dbId }).info(`Checking ${name}`);
           const outArr = [];
           if (r.diff.entitiesInDbOnly.length > 0) {
-            loggerWithUser.info(`${name} has records to delete`, { records: r.diff.entitiesInDbOnly });
+            logger
+              .scope({ dbId })
+              .info(`${name} has records to delete`, { records: r.diff.entitiesInDbOnly });
             outArr.push(
               r.diff.entitiesInDbOnly.map((e: any) => async () => {
                 await r.mapper.db.delete(e, context);
@@ -1301,19 +1289,19 @@ async function commitSync(
         ranUpdate = true;
         ranFullUpdate = true;
         try {
-          await lazyLoader(generators, dbUser);
+          await lazyLoader(generators, dbId);
         } catch (e: any) {
           if (failureCount === e.metadata?.generatorsToRun?.length) throw e;
           failureCount = e.metadata?.generatorsToRun?.length;
           ranUpdate = false;
         }
         const t6 = Date.now();
-        loggerWithUser.info(`AWS update time: ${t6 - t5}ms`);
+        logger.scope({ dbId }).info(`AWS update time: ${t6 - t5}ms`);
       }
     } while (ranUpdate);
   } while (ranFullUpdate);
   const t7 = Date.now();
-  loggerWithUser.info(`${dbId} synced, total time: ${t7 - t1}ms`);
+  logger.scope({ dbId }).info(`${dbId} synced, total time: ${t7 - t1}ms`);
   await context.orm.dropConn();
   context.orm = oldOrm;
   return iasqlPlanV3(toCreate, toUpdate, toReplace, toDelete);
