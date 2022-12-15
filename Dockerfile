@@ -23,11 +23,17 @@ RUN git clone https://github.com/pramsey/pgsql-http
 RUN cd pgsql-http && make && make install && cd ..
 
 COPY . /engine/
-ARG SENTRY_RELEASE
-ENV SENTRY_RELEASE=$SENTRY_RELEASE
-ARG IASQL_ENV
-ENV IASQL_ENV=$IASQL_ENV
 RUN yarn build
+
+# Default ENVs that can be overwritten
+ARG IASQL_ENV=local
+ENV IASQL_ENV=$IASQL_ENV
+ARG SENTRY_RELEASE=0.0.35
+ENV SENTRY_RELEASE=$SENTRY_RELEASE
+ARG DB_USER=postgres
+ENV DB_USER=$DB_USER
+ARG DB_PASSWORD=test
+ENV DB_PASSWORD=$DB_PASSWORD
 
 EXPOSE 5432
 ENTRYPOINT ["/engine/docker-entrypoint.sh"]

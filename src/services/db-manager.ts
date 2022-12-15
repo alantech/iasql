@@ -39,7 +39,7 @@ function randomHexValue() {
 }
 
 export function genDbId(dbAlias: string) {
-  return config.auth ? `_${randomHexValue()}` : dbAlias;
+  return config.db.multiUser ? `_${randomHexValue()}` : dbAlias;
 }
 
 function getGroupRole(dbId: string) {

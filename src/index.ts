@@ -1,6 +1,5 @@
 import * as sentry from '@sentry/node';
 import cluster from 'cluster';
-import cors from 'cors';
 import express from 'express';
 import { cpus } from 'os';
 import 'reflect-metadata';
@@ -26,13 +25,6 @@ if (cluster.isPrimary) {
   const port = config.http.port;
   const app = express();
 
-  if (config.cors) {
-    app.use(
-      cors({
-        origin: config.cors.origin,
-      }),
-    );
-  }
   if (config.sentry) {
     sentry.init(config.sentry);
     // RequestHandler creates a separate execution context using domains, so that every

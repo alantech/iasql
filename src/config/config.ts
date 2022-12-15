@@ -11,6 +11,7 @@ export interface ConfigInterface {
     password: string; // For the server's own user
     port: number;
     forceSSL: boolean;
+    multiUser: boolean; // Specifies if it is running in a multi-user environment (where collisions on DB name and etc can occur)
   };
   // Configuration for server logging
   logger: {
@@ -18,16 +19,6 @@ export interface ConfigInterface {
     test: boolean; // Whether or not a special test logger is enabled (bypass weirdness with Jest)
     forceLocal: boolean; // Whether or not to always log to stdout regardless of LogDNA usage
     logDnaKey?: string; // Indicates that logdna should be used if present
-  };
-  // Configuration for auth0 access control
-  auth?: {
-    // Not including this sub-object implies it is not enabled
-    domain: string;
-    audience: string;
-  };
-  // Configuration for CORS
-  cors?: {
-    origin: string;
   };
   // Configuration for amplitude telemetry
   telemetry?: {
