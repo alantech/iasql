@@ -1,3 +1,4 @@
+import { ImportSourceCredentialRpc } from '../../src/modules/aws_codebuild/rpcs';
 import * as iasql from '../../src/services/iasql';
 import {
   defaultRegion,
@@ -11,7 +12,6 @@ import {
   runQuery,
   runUninstall,
 } from '../helpers';
-import { ImportSourceCredentialRpc } from '../../src/modules/aws_codebuild/rpcs';
 
 const dbAlias = 'codebuildtest';
 
@@ -154,9 +154,9 @@ phases:
     'imports a new source credential',
     query(
       `
-    SELECT import_source_credential('${region}', '${process.env.GH_PAT}', 'GITHUB', 'PERSONAL_ACCESS_TOKEN')
+    SELECT * FROM import_source_credential('${region}', '${process.env.GH_PAT}', 'GITHUB', 'PERSONAL_ACCESS_TOKEN')
   `,
-      (res: ImportSourceCredentialRpc['outputTable'][]) => {
+      (res: any[]) => {
         expect(res.length).toBe(1);
         expect(res[0].status).toBe('SUCCESS');
         expect(res[0].arn.length).toBeGreaterThan(1);
