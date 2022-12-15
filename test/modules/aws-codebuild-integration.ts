@@ -388,6 +388,17 @@ phases:
     ),
   );
 
+  it(
+    'check successful build exists in list',
+    query(
+      `
+    SELECT * FROM codebuild_build_list
+    WHERE project_name = '${dbAlias}-push-ecr' AND build_status='SUCCEEDED';
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
   it('starts a transaction', begin());
 
   it('syncs the ecr images', commit());
