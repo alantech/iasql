@@ -3,9 +3,9 @@ import {
   CodebuildProjectMapper,
   SourceCredentialsImportMapper,
   SourceCredentialsListMapper,
-  CodebuildBuildImportMapper,
   CodebuildBuildListMapper,
 } from './mappers';
+import { StartBuildRPC } from './rpcs';
 
 export class AwsCodebuildModule extends ModuleBase {
   /** @internal */
@@ -16,11 +16,7 @@ export class AwsCodebuildModule extends ModuleBase {
 
   /** @internal */
   sourceCredentialsImport: SourceCredentialsImportMapper;
-
-  /** @internal */
-  buildImport: CodebuildBuildImportMapper;
-
-  /** @internal */
+  startBuild: StartBuildRPC;
   buildList: CodebuildBuildListMapper;
 
   constructor() {
@@ -28,8 +24,8 @@ export class AwsCodebuildModule extends ModuleBase {
     this.project = new CodebuildProjectMapper(this);
     this.sourceCredentialsList = new SourceCredentialsListMapper(this);
     this.sourceCredentialsImport = new SourceCredentialsImportMapper(this);
-    this.buildImport = new CodebuildBuildImportMapper(this);
     this.buildList = new CodebuildBuildListMapper(this);
+    this.startBuild = new StartBuildRPC(this);
     super.init();
   }
 }
