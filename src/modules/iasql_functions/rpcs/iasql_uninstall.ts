@@ -38,7 +38,7 @@ export class IasqlUninstall extends RpcBase {
   } as const;
   call = async (
     dbId: string,
-    dbUser: string,
+    _dbUser: string,
     ctx: Context,
     ...params: string[]
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
@@ -55,7 +55,7 @@ export class IasqlUninstall extends RpcBase {
     const modulesUninstalled = await (ctx.orm as TypeormWrapper).query(query);
     await iasql.maybeOpenTransaction(ctx.orm);
     try {
-      await iasql.uninstall(params, dbId, dbUser);
+      await iasql.uninstall(params, dbId);
     } catch (e) {
       throw e;
     } finally {

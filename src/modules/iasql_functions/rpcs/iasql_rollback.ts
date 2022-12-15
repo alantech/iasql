@@ -41,14 +41,14 @@ export class IasqlRollback extends RpcBase {
   /** @internal */
   call = async (
     dbId: string,
-    dbUser: string,
+    _dbUser: string,
     ctx: Context,
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
     const openTransaction = await iasql.isOpenTransaction(ctx.orm);
     if (!openTransaction) {
       throw new Error('Cannot rollback without calling iasql_begin first.');
     }
-    const res = (await iasql.rollback(dbId, dbUser, ctx)).rows;
+    const res = (await iasql.rollback(dbId, ctx)).rows;
     await iasql.closeTransaction(ctx.orm);
     // Why do I need to do this nonsense???
     const outputTable = this.outputTable;
