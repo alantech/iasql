@@ -251,6 +251,7 @@ async function rpcCall(
 ): Promise<any[] | undefined> {
   let rpcRes: any[] | undefined;
   let errorOcurred = false;
+  let finallyErr;
   try {
     switch (preTransaction) {
       case PreTransactionCheck.NO_CHECK:
@@ -294,11 +295,12 @@ async function rpcCall(
           await conn.query(`select * from iasql_commit();`);
         } catch (e) {
           await iasqlFunctions.closeTransaction(conn);
-          throw e;
+          finallyErr = e;
         }
         break;
     }
   }
+  if (finallyErr) throw finallyErr;
   return rpcRes;
 }
 
