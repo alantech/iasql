@@ -475,8 +475,8 @@ export class ModuleBase {
               'params', _args,
               'modulename', '${this.name}',
               'methodname', '${key}',
-              'preTransaction', ${rpc.preTransactionCheck},
-              'postTransaction', ${rpc.postTransactionCheck}
+              'preTransaction', '${rpc.preTransactionCheck}',
+              'postTransaction', '${rpc.postTransactionCheck}'
             )::varchar,
             'application/json'
           );
