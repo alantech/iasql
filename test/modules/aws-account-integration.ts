@@ -188,15 +188,19 @@ describe('AwsAccount Integration Testing', () => {
 
   it('does absolutely nothing when you sync this', commit());
 
-  it(
-    'does absolutely nothing when you preview this',
-    query(
-      `
-    select iasql_preview();
-  `,
-      (res: any[]) => expect(res.length).toBe(0),
-    ),
-  );
+  it('confirms that you cannot preview without opening a transaction', done =>
+    void query(`
+      select iasql_preview();
+    `)((e?: any) => {
+      try {
+        expect(e?.message).toContain('Cannot execute without calling iasql_begin() first');
+      } catch (err) {
+        done(err);
+        return {};
+      }
+      done();
+      return {};
+    }));
 
   it(
     'removes the useless row',
