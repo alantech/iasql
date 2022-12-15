@@ -375,20 +375,18 @@ phases:
   );
   it('apply creation of codebuild project', commit());
 
-  it('starts a transaction', begin());
   it(
-    'starts the build for pushing to ecr',
+    'start ecr build and wait',
     query(
       `
-    INSERT INTO codebuild_build_import (project_name)
-    VALUES ('${dbAlias}-push-ecr');
+      SELECT * FROM start_build('${dbAlias}-push-ecr', '${region}');
   `,
-      undefined,
-      true,
-      () => ({ username, password }),
+      (res: any[]) => {
+        expect(res.length).toBe(1);
+        expect(res[0].status).toBe('OK');
+      },
     ),
   );
-  it('apply build and push', commit());
 
   it(
     'checks the image is pushed to ecr',
