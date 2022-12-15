@@ -24,6 +24,18 @@ export type RpcOutput = { [key: string]: ColumnType };
 
 export type RpcResponseObject<T> = { [Properties in keyof T]: any };
 
+export enum PreTransactionCheck {
+  NO_CHECK = 'no-check',
+  WAIT_FOR_LOCK = 'wait-for-lock',
+  FAIL_IF_NOT_LOCKED = 'fail-if-not-locked',
+}
+
+export enum PostTransactionCheck {
+  NO_CHECK = 'no-check',
+  UNLOCK_IF_SUCCEED = 'unlock-if-succeed',
+  UNLOCK_ALWAYS = 'unlock-always',
+}
+
 export interface CrudInterface2<E> {
   create: (e: E[], ctx: Context) => Promise<void | E[]>;
   read: (ctx: Context, id?: string) => Promise<E[] | E | void>;
@@ -228,6 +240,8 @@ export interface MapperInterface<E extends {}> {
 export interface RpcInterface {
   module: ModuleInterface;
   outputTable: RpcOutput;
+  preTransactionCheck: PreTransactionCheck;
+  postTransactionCheck: PostTransactionCheck;
   call: (
     dbId: string,
     dbUser: string,
@@ -361,6 +375,8 @@ export class MapperBase<E extends {}> {
 export class RpcBase {
   module: ModuleInterface;
   outputTable: RpcOutput;
+  preTransactionCheck: PreTransactionCheck;
+  postTransactionCheck: PostTransactionCheck;
   call: (
     dbId: string,
     dbUser: string,
@@ -454,7 +470,9 @@ export class ModuleBase {
               'dbUser', SESSION_USER,
               'params', _args,
               'modulename', '${this.name}',
-              'methodname', '${key}'
+              'methodname', '${key}',
+              'preTransaction', ${rpc.preTransactionCheck},
+              'postTransaction', ${rpc.postTransactionCheck}
             )::varchar,
             'application/json'
           );
