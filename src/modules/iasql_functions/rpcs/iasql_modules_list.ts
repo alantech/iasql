@@ -1,9 +1,17 @@
 import { IasqlFunctions } from '..';
-import { Context, RpcBase, RpcResponseObject } from '../../interfaces';
+import {
+  Context,
+  PostTransactionCheck,
+  PreTransactionCheck,
+  RpcBase,
+  RpcResponseObject,
+} from '../../interfaces';
 import * as iasql from '../iasql';
 
 export class IasqlModulesList extends RpcBase {
   module: IasqlFunctions;
+  preTransactionCheck = PreTransactionCheck.NO_CHECK;
+  postTransactionCheck = PostTransactionCheck.NO_CHECK;
   outputTable = {
     module_name: 'varchar',
     module_version: 'varchar',

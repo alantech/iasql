@@ -1,9 +1,17 @@
 import { IasqlFunctions } from '..';
-import { Context, RpcBase, RpcResponseObject } from '../../interfaces';
+import {
+  Context,
+  PostTransactionCheck,
+  PreTransactionCheck,
+  RpcBase,
+  RpcResponseObject,
+} from '../../interfaces';
 import * as iasql from '../iasql';
 
 export class IasqlPreview extends RpcBase {
   module: IasqlFunctions;
+  preTransactionCheck = PreTransactionCheck.FAIL_IF_NOT_LOCKED;
+  postTransactionCheck = PostTransactionCheck.NO_CHECK;
   outputTable = {
     action: 'varchar',
     table_name: 'varchar',
