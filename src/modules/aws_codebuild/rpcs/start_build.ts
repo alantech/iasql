@@ -50,6 +50,8 @@ export class StartBuildRPC extends RpcBase {
     name: string,
     region: string,
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
+    console.log('i launch build');
+    console.log(name);
     if (!name) {
       return [
         {
@@ -59,6 +61,8 @@ export class StartBuildRPC extends RpcBase {
         },
       ];
     }
+
+    console.log('before project');
 
     // given the project name, read the details
     const projectObj =
@@ -71,6 +75,8 @@ export class StartBuildRPC extends RpcBase {
         this.module.project.generateId({ projectName: name, region }),
       ));
 
+    console.log('after project');
+
     if (!projectObj) {
       return [
         {
@@ -81,6 +87,7 @@ export class StartBuildRPC extends RpcBase {
       ];
     }
 
+    console.log('before start build');
     const client = (await ctx.getAwsClient(projectObj.region)) as AWS;
     const cloudBuild = await this.startBuild(client.cbClient, {
       projectName: name,
@@ -96,6 +103,7 @@ export class StartBuildRPC extends RpcBase {
     }
 
     // wait for builds to complete
+    console.log('before wait');
     await this.module.buildList.waitForBuildsToComplete(client.cbClient, [cloudBuild.id]);
 
     // get latest status of the build
@@ -105,6 +113,7 @@ export class StartBuildRPC extends RpcBase {
       ctx,
       this.module.buildList.generateId({ awsId, region }),
     );
+    console.log(currentBuildList);
 
     if (!currentBuildList) {
       return [
@@ -118,7 +127,12 @@ export class StartBuildRPC extends RpcBase {
 
     // modify the status of the build with the current one
     cloudBuild.buildStatus = currentBuildList.buildStatus;
+    console.log('final is');
+    console.log(cloudBuild);
     const dbBuild = await this.module.buildList.buildListMapper(cloudBuild, ctx, projectObj.region);
+
+    console.log('db is');
+    console.log(dbBuild);
     if (!dbBuild) {
       return [
         {
@@ -130,6 +144,7 @@ export class StartBuildRPC extends RpcBase {
     }
 
     // create the builds in the database
+    console.log('before create');
     await this.module.buildList.db.create(dbBuild, ctx);
 
     return [
