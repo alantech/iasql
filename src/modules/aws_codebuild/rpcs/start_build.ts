@@ -82,14 +82,10 @@ export class StartBuildRPC extends RpcBase {
     }
 
     const client = (await ctx.getAwsClient(projectObj.region)) as AWS;
-    console.log('before start build');
     const cloudBuild = await this.startBuild(client.cbClient, {
       projectName: name,
     });
-    console.log('cloud build is');
-    console.log(cloudBuild);
     if (!cloudBuild || !cloudBuild.id) {
-      console.log('In ko 1');
       return [
         {
           name,
@@ -100,22 +96,17 @@ export class StartBuildRPC extends RpcBase {
     }
 
     // wait for builds to complete
-    console.log('before wait');
     await this.module.buildList.waitForBuildsToComplete(client.cbClient, [cloudBuild.id]);
-    console.log('after wait');
 
     // get latest status of the build
     const awsId = cloudBuild.id;
 
-    const currentBuild = await this.module.buildList.cloud.read(
+    const currentBuildList = await this.module.buildList.cloud.read(
       ctx,
       this.module.buildList.generateId({ awsId, region }),
     );
-    console.log('current is');
-    console.log(currentBuild);
 
-    if (!currentBuild) {
-      console.log('in ko 2');
+    if (!currentBuildList) {
       return [
         {
           name,
@@ -125,7 +116,9 @@ export class StartBuildRPC extends RpcBase {
       ];
     }
 
-    const dbBuild = await this.module.buildList.buildListMapper(currentBuild, ctx, projectObj.region);
+    // modify the status of the build with the current one
+    cloudBuild.buildStatus = currentBuildList.buildStatus;
+    const dbBuild = await this.module.buildList.buildListMapper(cloudBuild, ctx, projectObj.region);
     if (!dbBuild) {
       return [
         {
