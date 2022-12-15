@@ -546,9 +546,47 @@ describe('Move deployments to another region', () => {
   it('apply region move', commit());
 });
 
+// triggers a deployment
+it(
+  'start and wait for deployment',
+  query(
+    `
+    SELECT * FROM start_deployment('${applicationNameForDeployment}', '${deploymentGroupName}', '${nonDefaultRegion}');
+`,
+    (res: any[]) => {
+      expect(res.length).toBe(1);
+      expect(res[0].status).toBe('OK');
+    },
+  ),
+);
+
+it(
+  'check deployment exists in list',
+  query(
+    `
+  SELECT * FROM codedeploy_deployment
+  WHERE application_id = (SELECT id FROM codedeploy_application WHERE codedeploy_application.name='${applicationNameForDeployment}') and region = '${nonDefaultRegion}';
+`,
+    (res: any[]) => expect(res.length).toBe(1),
+  ),
+);
+
 // cleanup
 describe('deployment cleanup', () => {
   it('starts a transaction', begin());
+
+  it(
+    'delete deployments',
+    query(
+      `
+      DELETE FROM codedeploy_deployment
+      WHERE application_id IN (SELECT id FROM codedeploy_application WHERE codedeploy_application.name='${applicationNameForDeployment}');
+    `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
 
   it(
     'delete deployment group',

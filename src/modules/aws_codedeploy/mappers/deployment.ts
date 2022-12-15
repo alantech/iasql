@@ -1,13 +1,6 @@
 import isEqual from 'lodash.isequal';
 
-import {
-  CodeDeploy,
-  CreateDeploymentCommandInput,
-  DeploymentInfo,
-  paginateListDeployments,
-  waitUntilDeploymentSuccessful,
-} from '@aws-sdk/client-codedeploy';
-import { WaiterOptions } from '@aws-sdk/util-waiter';
+import { CodeDeploy, DeploymentInfo, paginateListDeployments } from '@aws-sdk/client-codedeploy';
 
 import { AwsCodedeployModule } from '..';
 import { AWS, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
@@ -85,12 +78,6 @@ export class CodedeployDeploymentMapper extends MapperBase<CodedeployDeployment>
     return out;
   }
 
-  createDeployment = crudBuilderFormat<CodeDeploy, 'createDeployment', string | undefined>(
-    'createDeployment',
-    input => input,
-    res => res?.deploymentId,
-  );
-
   getDeployment = crudBuilderFormat<CodeDeploy, 'getDeployment', DeploymentInfo | undefined>(
     'getDeployment',
     input => input,
@@ -101,41 +88,8 @@ export class CodedeployDeploymentMapper extends MapperBase<CodedeployDeployment>
 
   cloud: Crud2<CodedeployDeployment> = new Crud2({
     create: async (es: CodedeployDeployment[], ctx: Context) => {
-      const out = [];
-      for (const e of es) {
-        const client = (await ctx.getAwsClient(e.region)) as AWS;
-        // if we do not have application, deployment group or revision, continue
-        if (!e.application || !e.deploymentGroup || !e.location) continue;
-
-        const input: CreateDeploymentCommandInput = {
-          applicationName: e.application.name,
-          deploymentGroupName: e.deploymentGroup.name,
-          description: e.description,
-          revision: e.location,
-        };
-        const deploymentId = await this.createDeployment(client.cdClient, input);
-        if (!deploymentId) continue;
-        e.deploymentId = deploymentId;
-
-        // wait until deployment is succeeded
-        const result = await waitUntilDeploymentSuccessful(
-          {
-            client: client.cdClient,
-            // all in seconds
-            maxWaitTime: 1200,
-            minDelay: 1,
-            maxDelay: 4,
-          } as WaiterOptions<CodeDeploy>,
-          { deploymentId },
-        );
-
-        if (result.state === 'SUCCESS') {
-          e.status = DeploymentStatusEnum.SUCCEEDED;
-          await this.db.update(e, ctx);
-          out.push(e);
-        }
-      }
-      return out;
+      // Do not cloud create, just restore database
+      await this.module.deployment.db.delete(es, ctx);
     },
     read: async (ctx: Context, id?: string) => {
       const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
@@ -174,20 +128,23 @@ export class CodedeployDeploymentMapper extends MapperBase<CodedeployDeployment>
       }
     },
     updateOrReplace: (_a: CodedeployDeployment, _b: CodedeployDeployment) => 'update',
-    update: async (deployments: CodedeployDeployment[], ctx: Context) => {
+    update: async (es: CodedeployDeployment[], ctx: Context) => {
+      // just restore the values for the updated records
       const out = [];
-      for (const deployment of deployments) {
-        if (!deployment.application || !deployment.deploymentGroup) continue; // cannot update a deployment group without app or id
-
-        const cloudRecord = ctx?.memo?.cloud?.CodedeployDeployment?.[this.entityId(deployment)];
-        cloudRecord.id = deployment.id;
-        cloudRecord.deploymentGroup = deployment.deploymentGroup;
-        await this.module.deployment.db.update(cloudRecord, ctx);
-        out.push(cloudRecord);
+      for (const e of es) {
+        if (e.deploymentId) {
+          const depId = e.deploymentId;
+          const region = e.region;
+          const cloudRecord = ctx?.memo?.cloud?.Deployment?.[this.generateId({ depId, region })];
+          cloudRecord.id = e.id;
+          await this.module.deployment.db.update(cloudRecord, ctx);
+          out.push(cloudRecord);
+        }
       }
       return out;
     },
     delete: async (deployments: CodedeployDeployment[], ctx: Context) => {
+      // deployments can't actually be deleted, we just need to recreate
       for (const d of deployments) {
         const application = await this.module.application.db.read(ctx, `${d.application.name}|${d.region}`);
         if (application) {

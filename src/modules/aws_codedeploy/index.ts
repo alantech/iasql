@@ -4,6 +4,7 @@ import {
   CodedeployDeploymentGroupMapper,
   CodedeployDeploymentMapper,
 } from './mappers';
+import { StartDeployRPC } from './rpcs';
 
 export class AwsCodedeployModule extends ModuleBase {
   /** @internal */
@@ -14,12 +15,14 @@ export class AwsCodedeployModule extends ModuleBase {
 
   /** @internal */
   deployment: CodedeployDeploymentMapper;
+  startDeploy: StartDeployRPC;
 
   constructor() {
     super();
     this.application = new CodedeployApplicationMapper(this);
     this.deploymentGroup = new CodedeployDeploymentGroupMapper(this);
     this.deployment = new CodedeployDeploymentMapper(this);
+    this.startDeploy = new StartDeployRPC(this);
     super.init();
   }
 }

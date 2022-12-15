@@ -1,22 +1,23 @@
-import { CodeDeploy, RevisionLocation, waitUntilDeploymentSuccessful } from "@aws-sdk/client-codedeploy";
-import { WaiterOptions } from "@aws-sdk/util-waiter";
-import { AwsCodedeployModule } from "..";
-import { AWS, crudBuilderFormat } from "../../../services/aws_macros";
-import { Context, RpcBase, RpcResponseObject } from "../../interfaces";
+import { CodeDeploy, RevisionLocation, waitUntilDeploymentSuccessful } from '@aws-sdk/client-codedeploy';
+import { WaiterOptions } from '@aws-sdk/util-waiter';
+
+import { AwsCodedeployModule } from '..';
+import { AWS, crudBuilderFormat } from '../../../services/aws_macros';
+import { Context, RpcBase, RpcResponseObject } from '../../interfaces';
 
 /**
  * Method for deploying a CodeDeploy application revision through a deployment group.
- * 
+ *
  * Accepts the following parameters:
- * 
+ *
  * - application: name of the application to deploy
- * 
+ *
  * - region: region where to trigger the deployment
- * 
+ *
  * - deployment group (optional): name of the deployment group to use
- * 
+ *
  * - revision (optional): complex type specifying the type and location of the revision to deploy
- * 
+ *
  * Returns following columns:
  *
  * - id: the ID of the triggered deployment
@@ -60,8 +61,7 @@ export class StartDeployRPC extends RpcBase {
     applicationName: string,
     region: string,
     deploymentGroupName?: string | undefined,
-    revision?: RevisionLocation | undefined,
-
+    revision?: string | undefined,
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
     if (!applicationName) {
       return [
@@ -118,11 +118,11 @@ export class StartDeployRPC extends RpcBase {
     }
 
     const client = (await ctx.getAwsClient(region)) as AWS;
-    const deploymentId = await this.createDeployment(client.cbClient, {
-      applicationName: applicationName,
-      deploymentGroupName: deploymentGroupName,
-      revision: revision,
-      region: region,
+    const deploymentId = await this.startDeploy(client.cdClient, {
+      applicationName,
+      deploymentGroupName,
+      revision,
+      region,
     });
 
     if (!deploymentId) {
@@ -163,81 +163,30 @@ export class StartDeployRPC extends RpcBase {
       ];
     }
 
-    const dbDeploy = await this.module.deployment.deploymentMapper(currentDeploy, ctx, projectObj.region);
-if (!dbBuild) {
-  return [
-    {
-      name,
-      status: 'KO',
-      message: 'Error starting build',
-    },
-  ];
-}
-
-// create the builds in the database
-await this.module.buildList.db.create(dbBuild, ctx);
-
-return [
-  {
-    name,
-    status: 'OK',
-    message: '',
-  },
-];    
-
-    if (result.state === 'SUCCESS') {
-      e.status = DeploymentStatusEnum.SUCCEEDED;
-      await this.db.update(e, ctx);
-      out.push(e);
-    }
-  }
-
-
-    // wait for builds to complete
-    await this.module.buildList.waitForBuildsToComplete(client.cbClient, [cloudBuild.id]);
-
-    // get latest status of the build
-    const awsId = cloudBuild.id;
-
-    const currentBuild = await this.module.buildList.cloud.read(
-      ctx,
-      this.module.buildList.generateId({ awsId, region }),
-    );
-
-    if (!currentBuild) {
+    const dbDeploy = await this.module.deployment.deploymentMapper(currentDeploy, region, ctx);
+    if (!dbDeploy) {
       return [
         {
-          name,
+          id: deploymentId,
           status: 'KO',
-          message: 'Error getting status of build',
+          message: 'Error starting deployment',
         },
       ];
     }
 
-    const dbBuild = await this.module.buildList.buildListMapper(cloudBuild, ctx, projectObj.region);
-    if (!dbBuild) {
-      return [
-        {
-          name,
-          status: 'KO',
-          message: 'Error starting build',
-        },
-      ];
-    }
-
-    // create the builds in the database
-    await this.module.buildList.db.create(dbBuild, ctx);
+    // create the deploy in the database
+    await this.module.deployment.db.create(dbDeploy, ctx);
 
     return [
       {
-        name,
+        id: deploymentId,
         status: 'OK',
         message: '',
       },
     ];
   };
 
-  constructor(module: AwsCodebuildModule) {
+  constructor(module: AwsCodedeployModule) {
     super();
     this.module = module;
     super.init();
