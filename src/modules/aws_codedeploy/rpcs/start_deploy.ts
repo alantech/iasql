@@ -72,6 +72,24 @@ export class StartDeployRPC extends RpcBase {
         },
       ];
     }
+    if (!deploymentGroupName) {
+      return [
+        {
+          id: '',
+          status: 'ERROR',
+          message: 'Please provide the name of the DeploymentGroup to use',
+        },
+      ];
+    }
+    if (!revision) {
+      return [
+        {
+          id: '',
+          status: 'ERROR',
+          message: 'Please provide the specification of the RevisionLocation to use',
+        },
+      ];
+    }
     if (!region) {
       return [
         {
