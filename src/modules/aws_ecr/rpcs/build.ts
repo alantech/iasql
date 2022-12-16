@@ -107,8 +107,6 @@ export class EcrBuildRpc extends RpcBase {
       codeBuildProjectName,
       region,
     );
-    if (!buildResult.length || buildResult[0].status !== 'OK')
-      throw new Error(`Error when starting codebuild project: ${buildResult[0].message}`);
 
     // get the pushed image from the cloud and create it in the DB
     const createdImage = await this.getCreatedEcrImage(ctx, ecrRepository);
