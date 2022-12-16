@@ -1,4 +1,9 @@
-import { CodeDeploy, RevisionLocation, waitUntilDeploymentSuccessful } from '@aws-sdk/client-codedeploy';
+import {
+  CodeDeploy,
+  CreateDeploymentCommandInput,
+  RevisionLocation,
+  waitUntilDeploymentSuccessful,
+} from '@aws-sdk/client-codedeploy';
 import { WaiterOptions } from '@aws-sdk/util-waiter';
 
 import { AwsCodedeployModule } from '..';
@@ -133,7 +138,7 @@ export class StartDeployRPC extends RpcBase {
           this.module.deploymentGroup.generateId({ deploymentGroupName, applicationName, region }),
         ));
 
-      if (!appObj) {
+      if (!dgObj) {
         return [
           {
             id: '',
@@ -145,12 +150,13 @@ export class StartDeployRPC extends RpcBase {
     }
 
     const client = (await ctx.getAwsClient(region)) as AWS;
-    const deploymentId = await this.startDeploy(client.cdClient, {
+    const revisionObj: RevisionLocation = JSON.parse(revision);
+    const input: CreateDeploymentCommandInput = {
       applicationName,
       deploymentGroupName,
-      revision,
-      region,
-    });
+      revision: revisionObj,
+    };
+    const deploymentId = await this.startDeploy(client.cdClient, input);
 
     if (!deploymentId) {
       return [
