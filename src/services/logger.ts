@@ -29,10 +29,10 @@ const logFactory: LogFunctionFactory<Logger> = (scope: any) => {
           const user = await MetadataRepo.getUserFromDbId(dbId);
           userId = user?.id;
         }
-        console.log(`${level}: ${message}`, { ...meta, userId });
+        console.log(`${level}: ${message}`, { ...meta, userId, dbId });
         logfn.log(message, {
           level: level === 'warning' ? 'warn' : level, // Graphile Logger vs LogDNA levels fix
-          meta: { ...meta, userId },
+          meta: { ...meta, userId, dbId },
           indexMeta: true,
           app: 'iasql-engine',
           env: process.env.IASQL_ENV,
@@ -48,7 +48,7 @@ const logFactory: LogFunctionFactory<Logger> = (scope: any) => {
         }
         logfn.log(message, {
           level: level === 'warning' ? 'warn' : level, // Graphile Logger vs LogDNA levels fix
-          meta: { ...meta, userId },
+          meta: { ...meta, userId, dbId },
           indexMeta: true,
           app: 'iasql-engine',
           env: process.env.IASQL_ENV,
