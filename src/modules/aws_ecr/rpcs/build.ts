@@ -177,7 +177,7 @@ export class EcrBuildRpc extends RpcBase {
     region: string,
     ctx: Context,
   ) {
-    const project = new CodebuildProject();
+    const project = await ctx.orm.newWithDefaults(CodebuildProject);
     project.projectName = projectName;
     project.buildSpec = buildSpec;
     if (githubRepoUrl) {
