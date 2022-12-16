@@ -473,7 +473,7 @@ it(
   'start and wait for deployment',
   query(
     `
-    SELECT * FROM start_deployment('${applicationNameForDeployment}', '${region}', '${deploymentGroupName}',);
+    SELECT * FROM start_deployment('${applicationNameForDeployment}', '${region}', '${deploymentGroupName}');
 `,
     (res: any[]) => {
       expect(res.length).toBe(1);
@@ -490,6 +490,34 @@ it(
   WHERE application_id = (SELECT id FROM codedeploy_application WHERE codedeploy_application.name='${applicationNameForDeployment}') and region = '${region}';
 `,
     (res: any[]) => expect(res.length).toBe(1),
+  ),
+);
+
+it('starts a transaction', begin());
+
+it(
+  'delete deployments',
+  query(
+    `
+    DELETE FROM codedeploy_deployment
+    WHERE application_id IN (SELECT id FROM codedeploy_application WHERE codedeploy_application.name='${applicationNameForDeployment}');
+  `,
+    undefined,
+    true,
+    () => ({ username, password }),
+  ),
+);
+
+it('applies deployment deletion', commit());
+
+it(
+  'check no deployment exists in list',
+  query(
+    `
+  SELECT * FROM codedeploy_deployment
+  WHERE application_id = (SELECT id FROM codedeploy_application WHERE codedeploy_application.name='${applicationNameForDeployment}') and region = '${region}';
+`,
+    (res: any[]) => expect(res.length).toBe(0),
   ),
 );
 
@@ -572,21 +600,8 @@ describe('Move deployments to another region', () => {
 });
 
 // cleanup
-describe('deployment cleanup', () => {
+describe('application cleanup', () => {
   it('starts a transaction', begin());
-
-  it(
-    'delete deployments',
-    query(
-      `
-      DELETE FROM codedeploy_deployment
-      WHERE application_id IN (SELECT id FROM codedeploy_application WHERE codedeploy_application.name='${applicationNameForDeployment}');
-    `,
-      undefined,
-      true,
-      () => ({ username, password }),
-    ),
-  );
 
   it(
     'delete deployment group',
