@@ -473,7 +473,7 @@ it(
   'start and wait for deployment',
   query(
     `
-    SELECT * FROM start_deployment('${applicationNameForDeployment}', '${deploymentGroupName}', '${region}');
+    SELECT * FROM start_deployment('${applicationNameForDeployment}', '${region}', '${deploymentGroupName}',);
 `,
     (res: any[]) => {
       expect(res.length).toBe(1);
