@@ -72,6 +72,15 @@ export class StartDeployRPC extends RpcBase {
         },
       ];
     }
+    if (!region) {
+      return [
+        {
+          id: '',
+          status: 'ERROR',
+          message: 'Please provide the region of the CodeDeploy application to deploy',
+        },
+      ];
+    }
 
     // validate if application name exists
     const appObj =
