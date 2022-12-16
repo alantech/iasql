@@ -2,7 +2,13 @@ import { CloudWatchLogs, FilteredLogEvent } from '@aws-sdk/client-cloudwatch-log
 
 import { AwsCloudwatchModule } from '..';
 import { AWS, crudBuilderFormat } from '../../../services/aws_macros';
-import { Context, RpcBase, RpcResponseObject } from '../../interfaces';
+import {
+  Context,
+  PostTransactionCheck,
+  PreTransactionCheck,
+  RpcBase,
+  RpcResponseObject,
+} from '../../interfaces';
 
 /**
  * Method for tailing logs for an specific CloudWatch log group.
@@ -26,7 +32,10 @@ import { Context, RpcBase, RpcResponseObject } from '../../interfaces';
 export class LogGroupTailRpc extends RpcBase {
   /** @internal */
   module: AwsCloudwatchModule;
-
+  /** @internal */
+  preTransactionCheck = PreTransactionCheck.NO_CHECK;
+  /** @internal */
+  postTransactionCheck = PostTransactionCheck.NO_CHECK;
   /** @internal */
   outputTable = {
     event_id: 'varchar',

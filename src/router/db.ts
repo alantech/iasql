@@ -7,7 +7,8 @@ import config from '../config';
 import { throwError } from '../config/config';
 import { IasqlDatabase } from '../entity';
 import * as Modules from '../modules';
-import { Context, ModuleBase, ModuleInterface } from '../modules';
+import { Context, ModuleBase, ModuleInterface, PostTransactionCheck, PreTransactionCheck } from '../modules';
+import * as iasqlFunctions from '../modules/iasql_functions/iasql';
 import * as dbMan from '../services/db-manager';
 import * as iasql from '../services/iasql';
 import logger, { logErrSentry } from '../services/logger';
@@ -149,8 +150,8 @@ export async function getContext(conn: TypeormWrapper, AllModules: any): Promise
 }
 
 db.post('/rpc', async (req: Request, res: Response) => {
-  logger.info('Calling /rpc');
-  const { dbId, dbUser, params, modulename, methodname } = req.body;
+  logger.info(`Calling /rpc ${req.body?.methodname ?? ''}`);
+  const { dbId, dbUser, params, modulename, methodname, preTransaction, postTransaction } = req.body;
   const missing = [];
   if (!dbId) missing.push('dbId');
   if (!dbUser) missing.push('dbUser');
@@ -180,9 +181,17 @@ db.post('/rpc', async (req: Request, res: Response) => {
         .find(([_, m]: [string, any]) => m.name === modulename) ?? ['unknown', undefined];
       if (!(Modules as any)[moduleInstanceName]) throwError(`Module ${modulename} not found`);
       const context = await getContext(conn, Modules);
-      const rpcRes: any[] | undefined = await (
-        (Modules as any)[moduleInstanceName] as ModuleInterface
-      )?.rpc?.[methodname].call(dbId, dbUser, context, ...params);
+      const rpcRes = await rpcCall(
+        dbId,
+        dbUser,
+        moduleInstanceName,
+        methodname,
+        params,
+        context,
+        conn,
+        preTransaction,
+        postTransaction,
+      );
       output = JSON.stringify(rpcRes);
       return res.status(200).json(rpcRes);
     } catch (e) {
@@ -227,6 +236,72 @@ db.post('/rpc', async (req: Request, res: Response) => {
     res.status(500).end(e?.message);
   }
 });
+
+async function rpcCall(
+  dbId: string,
+  dbUser: string,
+  moduleInstanceName: string,
+  methodname: string,
+  params: string[],
+  context: Context,
+  conn: TypeormWrapper,
+  preTransaction?: PreTransactionCheck,
+  postTransaction?: PostTransactionCheck,
+): Promise<any[] | undefined> {
+  let rpcRes: any[] | undefined;
+  let errorOcurred = false;
+  let finallyErr;
+  try {
+    switch (preTransaction) {
+      case PreTransactionCheck.NO_CHECK:
+        break;
+      case PreTransactionCheck.FAIL_IF_NOT_LOCKED:
+        const openTransaction = await iasqlFunctions.isOpenTransaction(conn);
+        if (!openTransaction) {
+          throw new Error('Cannot execute without calling iasql_begin() first');
+        }
+        break;
+      case PreTransactionCheck.WAIT_FOR_LOCK:
+        await iasqlFunctions.maybeOpenTransaction(conn);
+        break;
+      default:
+        await conn.query(`select * from iasql_begin();`);
+        break;
+    }
+    rpcRes = await ((Modules as any)[moduleInstanceName] as ModuleInterface)?.rpc?.[methodname].call(
+      dbId,
+      dbUser,
+      context,
+      ...params,
+    );
+  } catch (e) {
+    errorOcurred = true;
+    throw e;
+  } finally {
+    switch (postTransaction) {
+      case PostTransactionCheck.NO_CHECK:
+        break;
+      case PostTransactionCheck.UNLOCK_IF_SUCCEED:
+        if (!errorOcurred) {
+          await iasqlFunctions.closeTransaction(conn);
+        }
+        break;
+      case PostTransactionCheck.UNLOCK_ALWAYS:
+        await iasqlFunctions.closeTransaction(conn);
+        break;
+      default:
+        try {
+          await conn.query(`select * from iasql_commit();`);
+        } catch (e) {
+          await iasqlFunctions.closeTransaction(conn);
+          finallyErr = e;
+        }
+        break;
+    }
+  }
+  if (finallyErr) throw finallyErr;
+  return rpcRes;
+}
 
 db.post('/event', async (req: Request, res: Response) => {
   logger.info('Calling /event');

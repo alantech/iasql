@@ -1,5 +1,11 @@
 import { IasqlFunctions } from '..';
-import { Context, RpcBase, RpcResponseObject } from '../../interfaces';
+import {
+  Context,
+  PostTransactionCheck,
+  PreTransactionCheck,
+  RpcBase,
+  RpcResponseObject,
+} from '../../interfaces';
 
 /**
  * Method to create, delete or update the cloud resources in a hosted db
@@ -23,7 +29,14 @@ export class IasqlApply extends RpcBase {
    * @internal
    */
   module: IasqlFunctions;
-
+  /**
+   * @internal
+   */
+  preTransactionCheck = PreTransactionCheck.NO_CHECK;
+  /**
+   * @internal
+   */
+  postTransactionCheck = PostTransactionCheck.NO_CHECK;
   /**
    * @internal
    */
