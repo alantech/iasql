@@ -15,14 +15,15 @@ export class AwsCodedeployModule extends ModuleBase {
 
   /** @internal */
   deployment: CodedeployDeploymentMapper;
-  startDeploy: StartDeployRPC;
+
+  startDeployment: StartDeployRPC;
 
   constructor() {
     super();
     this.application = new CodedeployApplicationMapper(this);
     this.deploymentGroup = new CodedeployDeploymentGroupMapper(this);
     this.deployment = new CodedeployDeploymentMapper(this);
-    this.startDeploy = new StartDeployRPC(this);
+    this.startDeployment = new StartDeployRPC(this);
     super.init();
   }
 }
