@@ -475,6 +475,23 @@ describe('AwsCodedeploy Integration Testing', () => {
   );
 });
 
+it('starts a transaction', begin());
+
+it(
+  'adds a new source_credentials_import',
+  query(
+    `
+  INSERT INTO source_credentials_import (token, source_type, auth_type)
+  VALUES ('${process.env.GH_PAT}', 'GITHUB', 'PERSONAL_ACCESS_TOKEN')
+`,
+    undefined,
+    false,
+    () => ({ username, password }),
+  ),
+);
+
+it('apply import', commit());
+
 // triggers a deployment
 it(
   'start and wait for deployment',
@@ -527,6 +544,23 @@ it(
     (res: any[]) => expect(res.length).toBe(0),
   ),
 );
+
+it('starts a transaction', begin());
+
+it(
+  'delete source_credentials_list',
+  query(
+    `
+  DELETE FROM source_credentials_list
+  WHERE source_type = 'GITHUB';
+`,
+    undefined,
+    true,
+    () => ({ username, password }),
+  ),
+);
+
+it('apply delete', commit());
 
 describe('Move deployments to another region', () => {
   it('should fail moving just the deployment group', done =>
