@@ -415,7 +415,7 @@ export class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
           await updateFunctionConfiguration(client.lambdaClient, input);
           await waitUntilFunctionUpdated(client.lambdaClient, e.name);
         } catch (_) {
-          //** The lambda update could fail if the role have being deleted already so we just proceed to delete the function */
+          // The lambda update could fail if the role have being deleted already so we just proceed to delete the function
         }
         await deleteFunction(client.lambdaClient, e.name);
 
