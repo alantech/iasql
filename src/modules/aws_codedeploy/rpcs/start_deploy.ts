@@ -12,11 +12,11 @@ import { Context, RpcBase, RpcResponseObject } from '../../interfaces';
  *
  * - application: name of the application to deploy
  *
+ * - deployment group: name of the deployment group to use
+ *
+ * - revision: complex type specifying the type and location of the revision to deploy
+ *
  * - region: region where to trigger the deployment
- *
- * - deployment group (optional): name of the deployment group to use
- *
- * - revision (optional): complex type specifying the type and location of the revision to deploy
  *
  * Returns following columns:
  *
@@ -59,9 +59,9 @@ export class StartDeployRPC extends RpcBase {
     _dbUser: string,
     ctx: Context,
     applicationName: string,
+    deploymentGroupName: string,
+    revision: string,
     region: string,
-    deploymentGroupName?: string | undefined,
-    revision?: string | undefined,
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
     if (!applicationName) {
       return [

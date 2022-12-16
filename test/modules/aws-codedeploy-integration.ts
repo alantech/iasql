@@ -108,6 +108,13 @@ const ec2FilterTags = JSON.stringify([
 
 const sgGroupName = `${prefix}sgcodedeploy`;
 
+const revisionLocation = JSON.stringify({
+  githubLocation: {
+    repository: 'iasql/iasql-codedeploy-example',
+    commitId: 'cf6aa63cbd2502a5d1064363c2af5c56cc2107cc',
+  },
+});
+
 let availabilityZone: string;
 let instanceType: string;
 
@@ -473,7 +480,7 @@ it(
   'start and wait for deployment',
   query(
     `
-    SELECT * FROM start_deployment('${applicationNameForDeployment}', '${region}', '${deploymentGroupName}');
+    SELECT * FROM start_deployment('${applicationNameForDeployment}', '${deploymentGroupName}', '${revisionLocation}', '${region}');
 `,
     (res: any[]) => {
       expect(res.length).toBe(1);
