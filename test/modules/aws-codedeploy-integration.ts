@@ -110,7 +110,7 @@ const sgGroupName = `${prefix}sgcodedeploy`;
 
 const revisionLocation = JSON.stringify({
   revisionType: 'GitHub',
-  githubLocation: {
+  gitHubLocation: {
     repository: 'iasql/iasql-codedeploy-example',
     commitId: 'cf6aa63cbd2502a5d1064363c2af5c56cc2107cc',
   },
