@@ -249,25 +249,25 @@ async function rpcCall(
   postTransaction?: PostTransactionCheck,
 ): Promise<any[] | undefined> {
   let rpcRes: any[] | undefined;
-  let errorOcurred = false;
-  let finallyErr;
+  let rpcErr;
+  let commitErr;
+  switch (preTransaction) {
+    case PreTransactionCheck.NO_CHECK:
+      break;
+    case PreTransactionCheck.FAIL_IF_NOT_LOCKED:
+      const openTransaction = await iasqlFunctions.isOpenTransaction(conn);
+      if (!openTransaction) {
+        throw new Error('Cannot execute without calling iasql_begin() first');
+      }
+      break;
+    case PreTransactionCheck.WAIT_FOR_LOCK:
+      await iasqlFunctions.maybeOpenTransaction(conn);
+      break;
+    default:
+      await conn.query(`select * from iasql_begin();`);
+      break;
+  }
   try {
-    switch (preTransaction) {
-      case PreTransactionCheck.NO_CHECK:
-        break;
-      case PreTransactionCheck.FAIL_IF_NOT_LOCKED:
-        const openTransaction = await iasqlFunctions.isOpenTransaction(conn);
-        if (!openTransaction) {
-          throw new Error('Cannot execute without calling iasql_begin() first');
-        }
-        break;
-      case PreTransactionCheck.WAIT_FOR_LOCK:
-        await iasqlFunctions.maybeOpenTransaction(conn);
-        break;
-      default:
-        await conn.query(`select * from iasql_begin();`);
-        break;
-    }
     rpcRes = await ((Modules as any)[moduleInstanceName] as ModuleInterface)?.rpc?.[methodname].call(
       dbId,
       dbUser,
@@ -275,31 +275,30 @@ async function rpcCall(
       ...params,
     );
   } catch (e) {
-    errorOcurred = true;
-    throw e;
-  } finally {
-    switch (postTransaction) {
-      case PostTransactionCheck.NO_CHECK:
-        break;
-      case PostTransactionCheck.UNLOCK_IF_SUCCEED:
-        if (!errorOcurred) {
-          await iasqlFunctions.closeTransaction(conn);
-        }
-        break;
-      case PostTransactionCheck.UNLOCK_ALWAYS:
-        await iasqlFunctions.closeTransaction(conn);
-        break;
-      default:
-        try {
-          await conn.query(`select * from iasql_commit();`);
-        } catch (e) {
-          await iasqlFunctions.closeTransaction(conn);
-          finallyErr = e;
-        }
-        break;
-    }
+    rpcErr = e;
   }
-  if (finallyErr) throw finallyErr;
+  switch (postTransaction) {
+    case PostTransactionCheck.NO_CHECK:
+      break;
+    case PostTransactionCheck.UNLOCK_IF_SUCCEED:
+      if (!rpcErr) {
+        await iasqlFunctions.closeTransaction(conn);
+      }
+      break;
+    case PostTransactionCheck.UNLOCK_ALWAYS:
+      await iasqlFunctions.closeTransaction(conn);
+      break;
+    default:
+      try {
+        await conn.query(`select * from iasql_commit();`);
+      } catch (e) {
+        await iasqlFunctions.closeTransaction(conn);
+        commitErr = e;
+      }
+      break;
+  }
+  if (rpcErr) throw rpcErr;
+  if (commitErr) throw commitErr;
   return rpcRes;
 }
 
