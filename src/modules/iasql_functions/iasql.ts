@@ -934,9 +934,6 @@ async function commitApply(
       if (changesToCommit?.length) {
         const modsIndexedByTable = indexModsByTable(relevantModules);
         changesByEntity = await getChangesByEntity(context.orm, changesToCommit, modsIndexedByTable);
-        // todo: remove this logger on a follow up PR with tests passing
-        // tslint:disable-next-line:no-console
-        console.log(`+-+ changes by entity = ${JSON.stringify(changesByEntity)}`);
       }
 
       records.forEach(r => {
