@@ -111,16 +111,11 @@ export class CodedeployDeploymentMapper extends MapperBase<CodedeployDeployment>
         await Promise.all(
           enabledRegions.map(async region => {
             const client = (await ctx.getAwsClient(region)) as AWS;
-            console.log('for region');
-            console.log(region);
             const deploymentIds = await this.listDeployments(client.cdClient);
-            console.log('after list ids');
             for (const depId of deploymentIds) {
-              console.log('before get deployment');
               const rawDeployment = await this.getDeployment(client.cdClient, {
                 deploymentId: depId,
               });
-              console.log('after get deployment');
               if (!rawDeployment) continue;
 
               // map to entity

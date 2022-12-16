@@ -468,6 +468,31 @@ describe('AwsCodedeploy Integration Testing', () => {
   );
 });
 
+// triggers a deployment
+it(
+  'start and wait for deployment',
+  query(
+    `
+    SELECT * FROM start_deployment('${applicationNameForDeployment}', '${deploymentGroupName}', '${region}');
+`,
+    (res: any[]) => {
+      expect(res.length).toBe(1);
+      expect(res[0].status).toBe('OK');
+    },
+  ),
+);
+
+it(
+  'check deployment exists in list',
+  query(
+    `
+  SELECT * FROM codedeploy_deployment
+  WHERE application_id = (SELECT id FROM codedeploy_application WHERE codedeploy_application.name='${applicationNameForDeployment}') and region = '${region}';
+`,
+    (res: any[]) => expect(res.length).toBe(1),
+  ),
+);
+
 describe('Move deployments to another region', () => {
   it('should fail moving just the deployment group', done =>
     void query(
@@ -545,31 +570,6 @@ describe('Move deployments to another region', () => {
 
   it('apply region move', commit());
 });
-
-// triggers a deployment
-it(
-  'start and wait for deployment',
-  query(
-    `
-    SELECT * FROM start_deployment('${applicationNameForDeployment}', '${deploymentGroupName}', '${nonDefaultRegion}');
-`,
-    (res: any[]) => {
-      expect(res.length).toBe(1);
-      expect(res[0].status).toBe('OK');
-    },
-  ),
-);
-
-it(
-  'check deployment exists in list',
-  query(
-    `
-  SELECT * FROM codedeploy_deployment
-  WHERE application_id = (SELECT id FROM codedeploy_application WHERE codedeploy_application.name='${applicationNameForDeployment}') and region = '${nonDefaultRegion}';
-`,
-    (res: any[]) => expect(res.length).toBe(1),
-  ),
-);
 
 // cleanup
 describe('deployment cleanup', () => {
