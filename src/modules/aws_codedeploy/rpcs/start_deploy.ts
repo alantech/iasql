@@ -155,7 +155,6 @@ export class StartDeployRPC extends RpcBase {
       }
     }
 
-    console.log('before create');
     const client = (await ctx.getAwsClient(region)) as AWS;
     const revisionObj: RevisionLocation = JSON.parse(revision);
     const input: CreateDeploymentCommandInput = {
@@ -164,11 +163,8 @@ export class StartDeployRPC extends RpcBase {
       revision: revisionObj,
     };
     const deploymentId = await this.startDeploy(client.cdClient, input);
-    console.log('deployment is');
-    console.log(deploymentId);
 
     if (!deploymentId) {
-      console.log('error in create');
       return [
         {
           id: '',
@@ -179,7 +175,6 @@ export class StartDeployRPC extends RpcBase {
     }
 
     // wait until deployment is succeeded
-    console.log('before wait');
     const result = await waitUntilDeploymentSuccessful(
       {
         client: client.cdClient,
@@ -191,30 +186,9 @@ export class StartDeployRPC extends RpcBase {
       { deploymentId },
     );
 
-    console.log('result is');
-    console.log(result);
-
-    // get latest status of the deploy
-    const currentDeploy = await this.module.deployment.cloud.read(
-      ctx,
-      this.module.deployment.generateId({ deploymentId, region }),
-    );
-    console.log('current is');
-    console.log(currentDeploy);
-
-    if (!currentDeploy) {
-      console.log('error in status');
-      return [
-        {
-          id: deploymentId,
-          status: 'KO',
-          message: 'Error getting status of deployment',
-        },
-      ];
-    }
-
+    // update
     console.log('before db');
-    const dbDeploy = await this.module.deployment.deploymentMapper(currentDeploy, region, ctx);
+    const dbDeploy = await this.module.deployment.deploymentMapper(result.reason.deploymentInfo, region, ctx);
     console.log(dbDeploy);
     if (!dbDeploy) {
       console.log('error in mapping');
