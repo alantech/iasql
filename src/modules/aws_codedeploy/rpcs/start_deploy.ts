@@ -187,11 +187,8 @@ export class StartDeployRPC extends RpcBase {
     );
 
     // update
-    console.log('before db');
     const dbDeploy = await this.module.deployment.deploymentMapper(result.reason.deploymentInfo, region, ctx);
-    console.log(dbDeploy);
     if (!dbDeploy) {
-      console.log('error in mapping');
       return [
         {
           id: deploymentId,
@@ -203,7 +200,6 @@ export class StartDeployRPC extends RpcBase {
 
     // create the deploy in the database
     await this.module.deployment.db.create(dbDeploy, ctx);
-    console.log('ok');
 
     return [
       {

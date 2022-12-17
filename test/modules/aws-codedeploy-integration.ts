@@ -525,7 +525,7 @@ it(
   query(
     `
     DELETE FROM codedeploy_deployment
-    WHERE application_id IN (SELECT id FROM codedeploy_application WHERE codedeploy_application.name='${applicationNameForDeployment}');
+    WHERE application_id IN (SELECT id FROM codedeploy_application WHERE codedeploy_application.name='${applicationNameForDeployment}' AND region='${region}');
   `,
     undefined,
     true,
@@ -540,7 +540,7 @@ it(
   query(
     `
   SELECT * FROM codedeploy_deployment
-  WHERE application_id = (SELECT id FROM codedeploy_application WHERE codedeploy_application.name='${applicationNameForDeployment}') and region = '${region}';
+  WHERE application_id = (SELECT id FROM codedeploy_application WHERE codedeploy_application.name='${applicationNameForDeployment}' and region = '${region}');
 `,
     (res: any[]) => expect(res.length).toBe(0),
   ),
