@@ -476,23 +476,6 @@ describe('AwsCodedeploy Integration Testing', () => {
   );
 });
 
-it('starts a transaction', begin());
-
-it(
-  'adds a new source_credentials_import',
-  query(
-    `
-  INSERT INTO source_credentials_import (token, source_type, auth_type)
-  VALUES ('${process.env.GH_PAT}', 'GITHUB', 'PERSONAL_ACCESS_TOKEN')
-`,
-    undefined,
-    false,
-    () => ({ username, password }),
-  ),
-);
-
-it('apply import', commit());
-
 // triggers a deployment
 it(
   'start and wait for deployment',
@@ -536,32 +519,15 @@ it(
 it('applies deployment deletion', commit());
 
 it(
-  'check no deployment exists in list',
+  'check deployment could not be deleted',
   query(
     `
   SELECT * FROM codedeploy_deployment
   WHERE application_id = (SELECT id FROM codedeploy_application WHERE codedeploy_application.name='${applicationNameForDeployment}' and region = '${region}');
 `,
-    (res: any[]) => expect(res.length).toBe(0),
+    (res: any[]) => expect(res.length).toBe(1),
   ),
 );
-
-it('starts a transaction', begin());
-
-it(
-  'delete source_credentials_list',
-  query(
-    `
-  DELETE FROM source_credentials_list
-  WHERE source_type = 'GITHUB';
-`,
-    undefined,
-    true,
-    () => ({ username, password }),
-  ),
-);
-
-it('apply delete', commit());
 
 describe('Move deployments to another region', () => {
   it('should fail moving just the deployment group', done =>
@@ -827,7 +793,7 @@ describe('AwsCodedeploy install/uninstall', () => {
 
   it('installs all modules', installAll());
 
-  it('uninstalls the codedeploy module', uninstall(['aws_codedeploy', 'aws_codepipeline', 'aws_codebuild']));
+  it('uninstalls the codedeploy module', uninstall(['aws_codedeploy', 'aws_codepipeline']));
 
   it('installs the codedeploy module', install(['aws_codedeploy']));
 
