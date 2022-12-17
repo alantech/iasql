@@ -27,9 +27,8 @@ YYYY-MM-DD
 ## Summary
 
 Eng teams move over from using cloud UIs to IaC because cloud infrastructure changes can lead to outages more often than business logic changes. As a result, it is considered a DevOps best practice to code review infrastructure changes using IaC tools and show the `preview` of the resulting change in pull requests to raise the quality bar and reduce the possibility of mistakes. Cloud infrastructure can be code reviewed with IaSQL using any migration system that supports non-schema, or data, migrations (some ORMs like Prisma only support schema changes) by wrapping each migration in an IaSQL transaction. However, through our research and dogfood efforts of IaSQL we have not found a migration system that fulfills the requirements needed to code review changes with IaSQL:
-- Allow data-only migrations
-- Allow plain SQL or an introspective ORM
-- Be able 
+- Allow data-only, `up` migrations
+- Allow plain SQL or have an introspective ORM
 - Free and ideally open source
 - Baseline/ignore certain migrations
 
