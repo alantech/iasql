@@ -9,6 +9,7 @@ import {
   runCommit,
   runInstall,
   runQuery,
+  runUninstall,
 } from '../helpers';
 
 const prefix = getPrefix();
@@ -46,6 +47,7 @@ const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
+const uninstall = runUninstall.bind(null, dbAlias);
 const region = defaultRegion();
 const modules = ['aws_lambda'];
 
@@ -154,8 +156,12 @@ describe('Lambda Integration Testing', () => {
     'adds a new lambda function',
     query(
       `
-        INSERT INTO lambda_function (name, zip_b64, handler, runtime, subnets, role_name)
-        VALUES ('${lambdaFunctionName}', '${lambdaFunctionCode}', '${lambdaFunctionHandler}', '${lambdaFunctionRuntime14}', (select array(select subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true and vpc.region = '${region}' limit 3)), '${lambdaFunctionRoleName}');
+        BEGIN;
+          INSERT INTO lambda_function (name, zip_b64, handler, runtime, subnets, role_name)
+          VALUES ('${lambdaFunctionName}', '${lambdaFunctionCode}', '${lambdaFunctionHandler}', '${lambdaFunctionRuntime14}', (select array(select subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true and vpc.region = '${region}' limit 3)), '${lambdaFunctionRoleName}');
+          INSERT INTO lambda_function_security_groups (lambda_function_id, security_group_id)
+          VALUES ((SELECT id FROM lambda_function WHERE name = '${lambdaFunctionName}'), (select id from security_group where group_name = 'default' and region = '${region}' limit 1));
+        COMMIT;
       `,
       undefined,
       true,
@@ -176,6 +182,8 @@ describe('Lambda Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(1),
     ),
   );
+
+  it('uninstalls the lambda module', uninstall(modules));
 
   it('starts a transaction', begin());
 
@@ -216,6 +224,8 @@ describe('Lambda Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(0),
     ),
   );
+
+  it('installs the lambda module', install(modules));
 
   it('starts a transaction', begin());
 
