@@ -33,7 +33,13 @@ import { Context, RpcBase, RpcResponseObject } from '../../interfaces';
  *
  * @example
  * ```sql TheButton[Deploy CodeDeploy application]="Deploy CodeDeploy application"
- *   SELECT * FROM start_deploy('application_name', 'deployment_group_name', 'revision');
+ *   select * from start_deployment('test', 'test', '{
+ * "revisionType": "GitHub",
+ * "gitHubLocation": {
+ *   "repository": "iasql/iasql-codedeploy-example",
+ *   "commitId": "cf6aa63cbd2502a5d1064363c2af5c56cc2107cc"
+ * }
+ * }', 'us-east-2');
  * ```
  *
  * @see https://github.com/iasql/iasql-engine/blob/main/test/modules/aws-codebuild-integration.ts#L313
@@ -72,7 +78,7 @@ export class StartDeployRPC extends RpcBase {
       return [
         {
           id: '',
-          status: 'ERROR',
+          status: 'KO',
           message: 'Please provide the name of the CodeDeploy application to deploy',
         },
       ];
@@ -81,7 +87,7 @@ export class StartDeployRPC extends RpcBase {
       return [
         {
           id: '',
-          status: 'ERROR',
+          status: 'KO',
           message: 'Please provide the name of the DeploymentGroup to use',
         },
       ];
@@ -90,7 +96,7 @@ export class StartDeployRPC extends RpcBase {
       return [
         {
           id: '',
-          status: 'ERROR',
+          status: 'KO',
           message: 'Please provide the specification of the RevisionLocation to use',
         },
       ];
@@ -99,7 +105,7 @@ export class StartDeployRPC extends RpcBase {
       return [
         {
           id: '',
-          status: 'ERROR',
+          status: 'KO',
           message: 'Please provide the region of the CodeDeploy application to deploy',
         },
       ];
@@ -120,8 +126,8 @@ export class StartDeployRPC extends RpcBase {
       return [
         {
           id: '',
-          status: 'CodeDeploy application not found',
-          message: '',
+          status: 'KO',
+          message: 'CodeDeploy application not found',
         },
       ];
     }
@@ -142,13 +148,14 @@ export class StartDeployRPC extends RpcBase {
         return [
           {
             id: '',
-            status: 'CodeDeploy deployment group not found',
-            message: '',
+            status: 'KO',
+            message: 'CodeDeploy deployment group not found',
           },
         ];
       }
     }
 
+    console.log('before create');
     const client = (await ctx.getAwsClient(region)) as AWS;
     const revisionObj: RevisionLocation = JSON.parse(revision);
     const input: CreateDeploymentCommandInput = {
@@ -157,8 +164,11 @@ export class StartDeployRPC extends RpcBase {
       revision: revisionObj,
     };
     const deploymentId = await this.startDeploy(client.cdClient, input);
+    console.log('deployment is');
+    console.log(deploymentId);
 
     if (!deploymentId) {
+      console.log('error in create');
       return [
         {
           id: '',
@@ -169,6 +179,7 @@ export class StartDeployRPC extends RpcBase {
     }
 
     // wait until deployment is succeeded
+    console.log('before wait');
     const result = await waitUntilDeploymentSuccessful(
       {
         client: client.cdClient,
@@ -180,13 +191,19 @@ export class StartDeployRPC extends RpcBase {
       { deploymentId },
     );
 
+    console.log('result is');
+    console.log(result);
+
     // get latest status of the deploy
     const currentDeploy = await this.module.deployment.cloud.read(
       ctx,
       this.module.deployment.generateId({ deploymentId, region }),
     );
+    console.log('current is');
+    console.log(currentDeploy);
 
     if (!currentDeploy) {
+      console.log('error in status');
       return [
         {
           id: deploymentId,
@@ -196,19 +213,23 @@ export class StartDeployRPC extends RpcBase {
       ];
     }
 
+    console.log('before db');
     const dbDeploy = await this.module.deployment.deploymentMapper(currentDeploy, region, ctx);
+    console.log(dbDeploy);
     if (!dbDeploy) {
+      console.log('error in mapping');
       return [
         {
           id: deploymentId,
           status: 'KO',
-          message: 'Error starting deployment',
+          message: 'Error getting updated deployment',
         },
       ];
     }
 
     // create the deploy in the database
     await this.module.deployment.db.create(dbDeploy, ctx);
+    console.log('ok');
 
     return [
       {
