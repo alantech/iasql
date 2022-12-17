@@ -109,16 +109,44 @@ describe('Lambda Integration Testing', () => {
     'adds a new lambda role',
     query(
       `
-      INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
-      VALUES ('${lambdaFunctionRoleName}', '${attachAssumeLambdaPolicy}', array['${lambdaFunctionRoleTaskPolicyArn}', '${lambdaVpcFunctionRoleTaskPolicyArn}']);
-  `,
+        INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
+        VALUES ('${lambdaFunctionRoleName}', '${attachAssumeLambdaPolicy}', array['${lambdaFunctionRoleTaskPolicyArn}', '${lambdaVpcFunctionRoleTaskPolicyArn}']);
+      `,
       undefined,
       true,
       () => ({ username, password }),
     ),
   );
 
+  it(
+    'check lambda function role does not exist',
+    query(
+      `
+    SELECT *
+    FROM iam_role 
+    WHERE role_name = '${lambdaFunctionRoleName}';
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
   it('applies the iam role creation', commit());
+
+  it(
+    'check lambda function role does not exist',
+    query(
+      `
+    SELECT *
+    FROM iam_role 
+    WHERE role_name = '${lambdaFunctionRoleName}';
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it('give it some time for the role to propagate', async () => {
+    await new Promise(r => setTimeout(r, 5000));
+  });
 
   it('starts a transaction', begin());
 
@@ -126,27 +154,25 @@ describe('Lambda Integration Testing', () => {
     'adds a new lambda function',
     query(
       `
-    BEGIN;
-      INSERT INTO lambda_function (name, zip_b64, handler, runtime, subnets, role_name)
-      VALUES ('${lambdaFunctionName}', '${lambdaFunctionCode}', '${lambdaFunctionHandler}', '${lambdaFunctionRuntime14}', (select array(select subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true and vpc.region = '${region}' limit 3)), '${lambdaFunctionRoleName}');
-    COMMIT;
-  `,
+        INSERT INTO lambda_function (name, zip_b64, handler, runtime, subnets, role_name)
+        VALUES ('${lambdaFunctionName}', '${lambdaFunctionCode}', '${lambdaFunctionHandler}', '${lambdaFunctionRuntime14}', (select array(select subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true and vpc.region = '${region}' limit 3)), '${lambdaFunctionRoleName}');
+      `,
       undefined,
       true,
       () => ({ username, password }),
     ),
   );
 
-  it('applies the lambda function change', commit());
+  it('creates new lambda', commit());
 
   it(
     'check function insertion',
     query(
       `
-    SELECT *
-    FROM lambda_function 
-    WHERE name = '${lambdaFunctionName}';
-  `,
+        SELECT *
+        FROM lambda_function 
+        WHERE name = '${lambdaFunctionName}';
+      `,
       (res: any[]) => expect(res.length).toBe(1),
     ),
   );
@@ -157,8 +183,8 @@ describe('Lambda Integration Testing', () => {
     'deletes the lambda function role before the lambda',
     query(
       `
-    DELETE FROM iam_role WHERE role_name = '${lambdaFunctionRoleName}';
-  `,
+        DELETE FROM iam_role WHERE role_name = '${lambdaFunctionRoleName}';
+      `,
       undefined,
       true,
       () => ({ username, password }),
@@ -169,10 +195,10 @@ describe('Lambda Integration Testing', () => {
     'check lambda function role does not exists',
     query(
       `
-    SELECT *
-    FROM iam_role 
-    WHERE role_name = '${lambdaFunctionRoleName}';
-  `,
+        SELECT *
+        FROM iam_role 
+        WHERE role_name = '${lambdaFunctionRoleName}';
+      `,
       (res: any[]) => expect(res.length).toBe(0),
     ),
   );
@@ -183,10 +209,10 @@ describe('Lambda Integration Testing', () => {
     'check lambda function role does not exist',
     query(
       `
-    SELECT *
-    FROM iam_role 
-    WHERE role_name = '${lambdaFunctionRoleName}';
-  `,
+        SELECT *
+        FROM iam_role 
+        WHERE role_name = '${lambdaFunctionRoleName}';
+      `,
       (res: any[]) => expect(res.length).toBe(0),
     ),
   );
@@ -197,8 +223,8 @@ describe('Lambda Integration Testing', () => {
     'deletes the lambda function',
     query(
       `
-    DELETE FROM lambda_function WHERE name = '${lambdaFunctionName}';
-  `,
+        DELETE FROM lambda_function WHERE name = '${lambdaFunctionName}';
+      `,
       undefined,
       true,
       () => ({ username, password }),
@@ -209,10 +235,10 @@ describe('Lambda Integration Testing', () => {
     'check lambda function does not exist',
     query(
       `
-    SELECT *
-    FROM lambda_function 
-    WHERE name = '${lambdaFunctionName}';
-  `,
+        SELECT *
+        FROM lambda_function 
+        WHERE name = '${lambdaFunctionName}';
+      `,
       (res: any[]) => expect(res.length).toBe(0),
     ),
   );
@@ -223,10 +249,10 @@ describe('Lambda Integration Testing', () => {
     'check lambda function does not exist',
     query(
       `
-    SELECT *
-    FROM lambda_function 
-    WHERE name = '${lambdaFunctionName}';
-  `,
+        SELECT *
+        FROM lambda_function 
+        WHERE name = '${lambdaFunctionName}';
+      `,
       (res: any[]) => expect(res.length).toBe(0),
     ),
   );
