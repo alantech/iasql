@@ -5,16 +5,19 @@ date: 2022-11-23
 authors: [yrobla]
 ---
 
-# Deploy <a href="https://ghost.org/">Ghost</a> with one click
+# Deploy <a href="https://ghost.org/">Ghost</a> to AWS with one click
 
 Ghost is a powerful app for new-media creators to publish, share, and grow a business around their content. It comes with modern tools to build a website, publish content, send newsletters & offer paid
 subscriptions to members.
 
-Ghost is a software as a service product, but it is totally built on open source and offers a self-hosted, installable version. This version can be hosted on AWS using several approaches, and one of them
-is to host on an EC2 instance.
+Ghost is a software as a service product, but it is built totally on open source and offers a self-hosted, self-serve version. This version can be hosted on AWS using several approaches, and one of them.
 
 Starting an EC2 instance and manually triggering the installation commands is a procedure that can be done manually, but there are also another dependencies involved, such as the creation of proper security groups.
 It is time-consuming task, specially if you need to install several instances. This article will offer a way to install Ghost with one-click on IaSQL using an EC2 instance on Ubuntu as highlighted <a href="https://ghost.org/docs/install/ubuntu/">here</a>.
+
+_This approach uses <a href="https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/user-data.html">EC2 user data</a> functionality - to run an startup script that will configure Ghost
+as soon as the instance is started - and <a href="https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instancedata-data-retrieval.html">EC2 instance metadata</a> - to retrieve
+the public IP of the instance, and assign it dynamically to Ghost installation script._
 
 ```sql TheButton[Install Ghost]="Install Ghost"
  -- Install modules
@@ -27,7 +30,7 @@ FROM
 INSERT INTO
   security_group (description, group_name)
 VALUES
-  ('Ghost security group', 'ghost_sg_group');
+  ('Ghost security group', 'ghost_sg');
 
 INSERT INTO
   security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
@@ -40,12 +43,14 @@ SELECT
   t.description,
   security_group.id
 FROM
-  security_group, (VALUES
-    (FALSE, 'tcp', 22, 22, '0.0.0.0/0', 'ghost_sg_group_rule_ssh'),
-    (FALSE, 'tcp', 80, 80, '0.0.0.0/0', 'ghost_sg_group_rule_http'),
-    (FALSE, 'tcp', 443, 443, '0.0.0.0/0', 'ghost_sg_group_rule_https'),
-    (TRUE, 'tcp', 1, 65535, '0.0.0.0/0', 'ghost_sg_group_rule_egress')
-  ) as t (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description)
+  security_group,
+  (
+    VALUES
+      (FALSE, 'tcp', 22, 22, '0.0.0.0/0', 'ghost_sg_group_rule_ssh'),
+      (FALSE, 'tcp', 80, 80, '0.0.0.0/0', 'ghost_sg_group_rule_http'),
+      (FALSE, 'tcp', 443, 443, '0.0.0.0/0', 'ghost_sg_group_rule_https'),
+      (TRUE, 'tcp', 1, 65535, '0.0.0.0/0', 'ghost_sg_group_rule_egress')
+  ) AS t (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description)
 WHERE
   security_group.group_name = 'ghost_sg_group';
 
@@ -54,7 +59,7 @@ INSERT INTO
   instance (ami, instance_type, subnet_id, tags, user_data, region)
 SELECT
   'resolve:ssm:/aws/service/canonical/ubuntu/server/22.04/stable/current/amd64/hvm/ebs-gp2/ami-id',
-  't2.small',
+  't2.micro',
   subnet.id,
   '{"name":"ghost-blog"}',
   '#!/bin/bash
@@ -116,7 +121,7 @@ SELECT
 SELECT
   *
 FROM
-  iasql_commit ();
+  iasql_commit();
 ```
 
 After the process finishes (it will take over 10-15 minutes), you will have your Ghost instance installed, publicly accessible through the public IP of the spinned instance.
@@ -126,7 +131,7 @@ You can get the details of the public IP of your instance querying for the metad
 SELECT
   *
 FROM
-  iasql_commit ();
+  iasql_commit();
 
 SELECT
   public_ip_address
