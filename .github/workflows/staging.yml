@@ -61,7 +61,7 @@ jobs:
             sudo docker pull $DOCKER_URL
             sudo docker container stop iasql
             sudo docker container rm iasql
-            sudo docker run --env-file=.env -p 5432:5432 -v /iasqldb:/var/lib/postgresql/14 --name iasql $DOCKER_URL
+            sudo docker run --env-file=.env -p 5432:5432 -v /iasqldb:/var/lib/postgresql/14 --name iasql $DOCKER_URL &
             sudo docker image prune -af
           "
           rm staging.pem
