@@ -32,7 +32,7 @@ Eng teams move over from using cloud UIs to IaC because cloud infrastructure cha
 - Free and ideally open source
 - Baseline/ignore certain migrations
 
-Data migrations are needed for IaSQL, more so than the traditional schema migrations, and require baselining migrations to avoid duplicate record violations when IaSQL databases are recreated from scratch (e.g. connected and disconnected to the same cloud account) or when changes happen outside of IaSQL and are “synced” from the cloud by the cron job. Flyway comes closest to meeting all our requirements. However, it is not possible to baseline/ignore existing migrations on their free product.
+Data migrations are needed for IaSQL, more so than the traditional schema migrations, and require baselining migrations to avoid duplicate record violations when IaSQL databases are recreated from scratch (e.g. connected and disconnected to the same cloud account). Flyway comes closest to meeting all our requirements. However, it is not possible to baseline/ignore existing migrations on their free product.
 
 ## Proposal
 
