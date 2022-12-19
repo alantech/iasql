@@ -57,7 +57,7 @@ jobs:
           chmod 700 staging.pem
           # TODO: Figure out a secure way to log in to ghcr.io
           ssh -i staging.pem -o "StrictHostKeyChecking no" ubuntu@pg-staging.iasql.com "
-            sudo apt update && sudo apt upgrade
+            sudo apt update && sudo apt upgrade -y
             sudo docker pull $DOCKER_URL
             sudo docker container stop iasql
             sudo docker container rm iasql
