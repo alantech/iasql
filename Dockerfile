@@ -4,7 +4,7 @@ WORKDIR /engine/
 COPY package.json /engine/package.json
 COPY yarn.lock /engine/yarn.lock
 RUN apt update
-RUN apt install curl ca-certificates gnupg -y
+RUN apt install curl ca-certificates gnupg build-essential -y
 RUN ["bash", "-c", "curl -fsSL https://deb.nodesource.com/setup_16.x | bash -"]
 RUN apt install nodejs -y
 RUN npm install -g yarn
