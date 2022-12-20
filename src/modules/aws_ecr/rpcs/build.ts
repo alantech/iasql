@@ -47,8 +47,8 @@ export class EcrBuildRpc extends RpcBase {
    * @internal
    */
   call = async (
-    _dbId: string,
-    _dbUser: string,
+    dbId: string,
+    dbUser: string,
     ctx: Context,
     githubRepoUrl: string,
     ecrRepositoryId: string,
@@ -56,7 +56,7 @@ export class EcrBuildRpc extends RpcBase {
     githubRef: string,
     githubPersonalAccessToken: string,
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
-    await this.ensureModules(_dbId);
+    await this.ensureModules(dbId);
 
     const ecrRepository = await this.getEcrRepoById(ctx, ecrRepositoryId);
     const region = ecrRepository.region;
@@ -66,8 +66,8 @@ export class EcrBuildRpc extends RpcBase {
     let credentialsArn;
     if (githubPersonalAccessToken) {
       const importCredentialResult = await awsCodebuildModule.importSourceCredential.call(
-        _dbId,
-        _dbUser,
+        dbId,
+        dbUser,
         ctx,
         region,
         githubPersonalAccessToken,
@@ -101,8 +101,8 @@ export class EcrBuildRpc extends RpcBase {
 
     // start build and wait for it to complete
     const buildResult = await awsCodebuildModule.startBuild.call(
-      _dbId,
-      _dbUser,
+      dbId,
+      dbUser,
       ctx,
       codeBuildProjectName,
       region,

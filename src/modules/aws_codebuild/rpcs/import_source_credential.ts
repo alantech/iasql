@@ -5,6 +5,18 @@ import { AWS, crudBuilderFormat } from '../../../services/aws_macros';
 import { Context, RpcBase, RpcResponseObject } from '../../interfaces';
 import { AwsCodebuildModule } from '../index';
 
+export enum ValidServerTypes {
+  BITBUCKET = 'BITBUCKET',
+  GITHUB = 'GITHUB',
+  GITHUB_ENTERPRISE = 'GITHUB_ENTERPRISE',
+}
+
+export enum ValidAuthTypes {
+  BASIC_AUTH = 'BASIC_AUTH',
+  OAUTH = 'OAUTH',
+  PERSONAL_ACCESS_TOKEN = 'PERSONAL_ACCESS_TOKEN',
+}
+
 export class ImportSourceCredentialRpc extends RpcBase {
   /** @internal */
   module: AwsCodebuildModule;
@@ -22,9 +34,6 @@ export class ImportSourceCredentialRpc extends RpcBase {
     input => input,
     res => res?.arn,
   );
-
-  validServerTypes = ['BITBUCKET', 'GITHUB', 'GITHUB_ENTERPRISE'];
-  validAuthTypes = ['BASIC_AUTH', 'OAUTH', 'PERSONAL_ACCESS_TOKEN'];
 
   private makeError(message: string) {
     return [
@@ -58,10 +67,10 @@ export class ImportSourceCredentialRpc extends RpcBase {
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
     if (!serverType) serverType = 'GITHUB';
     if (!authType) authType = 'PERSONAL_ACCESS_TOKEN';
-    if (!this.validServerTypes.includes(serverType))
-      return this.makeError(`serverType must be one of ${this.validServerTypes.join(', ')}`);
-    if (!this.validAuthTypes.includes(authType))
-      return this.makeError(`authType must be one of ${this.validAuthTypes.join(', ')}`);
+    if (!(serverType in ValidServerTypes))
+      return this.makeError(`serverType must be one of ${Object.keys(ValidServerTypes).join(', ')}`);
+    if (!(authType in ValidAuthTypes))
+      return this.makeError(`authType must be one of ${Object.keys(ValidAuthTypes).join(', ')}`);
 
     const client = (await ctx.getAwsClient(region)) as AWS;
     const input: ImportSourceCredentialsInput = {
