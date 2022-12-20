@@ -622,11 +622,11 @@ class RepositoryPolicyMapper extends MapperBase<RepositoryPolicy> {
     update: (es: RepositoryPolicy[], ctx: Context) => ctx.orm.save(RepositoryPolicy, es),
     delete: (es: RepositoryPolicy[], ctx: Context) => ctx.orm.remove(RepositoryPolicy, es),
     read: async (ctx: Context, id?: string) => {
-      const [repositoryId, region] = id?.split('|') ?? [undefined, undefined];
-      const opts = repositoryId
+      const [repositoryName, region] = id?.split('|') ?? [undefined, undefined];
+      const opts = repositoryName
         ? {
             where: {
-              repository: { id: repositoryId },
+              repositoryName,
               region,
             },
           }
