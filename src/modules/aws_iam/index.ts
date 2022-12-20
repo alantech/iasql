@@ -1,5 +1,5 @@
 import { ModuleBase } from '../interfaces';
-import { RoleMapper, UserMapper } from './mappers';
+import { AccessKeyMapper, RoleMapper, UserMapper } from './mappers';
 
 export class AwsIamModule extends ModuleBase {
   /** @internal */
@@ -8,10 +8,14 @@ export class AwsIamModule extends ModuleBase {
   /** @internal */
   user: UserMapper;
 
+  /** @internal */
+  accessKey: AccessKeyMapper;
+
   constructor() {
     super();
     this.role = new RoleMapper(this);
     this.user = new UserMapper(this);
+    this.accessKey = new AccessKeyMapper(this);
     super.init();
   }
 }

@@ -1,6 +1,7 @@
-import { Column, CreateDateColumn, Entity, PrimaryColumn } from 'typeorm';
+import { Column, CreateDateColumn, Entity, OneToMany, PrimaryColumn } from 'typeorm';
 
 import { cloudId } from '../../../services/cloud-id';
+import { AccessKey } from './access_key';
 
 /**
  * Table to manage AWS IAM users. An AWS Identity and Access Management (IAM) user is an entity that you create in AWS to represent the person
@@ -81,4 +82,15 @@ export class IamUser {
     nullable: true,
   })
   attachedPoliciesArns?: string[];
+
+  /**
+   * @public
+   * Access Keys associated to an specific user
+   * @see https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html
+   */
+  @OneToMany(() => AccessKey, accessKeys => accessKeys.user, {
+    nullable: true,
+    cascade: true,
+  })
+  accessKeys?: AccessKey[];
 }

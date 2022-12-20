@@ -1,4 +1,4 @@
-import { Column, CreateDateColumn, Entity, ManyToOne, PrimaryColumn, Unique } from 'typeorm';
+import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, PrimaryColumn, Unique } from 'typeorm';
 
 import { cloudId } from '../../../services/cloud-id';
 import { IamUser } from './user';
@@ -37,7 +37,7 @@ export class AccessKey {
    */
   @PrimaryColumn()
   @cloudId
-  accessKeyId?: string;
+  accessKeyId: string;
 
   /**
    * @public
@@ -63,9 +63,12 @@ export class AccessKey {
    * @public
    * The IAM user owning the Access Key
    */
-  @ManyToOne(() => IamUser, {
-    eager: true,
-    nullable: true,
+  @Column({
+    type: 'character varying',
+    nullable: false,
   })
+  @ManyToOne(() => IamUser, { nullable: false })
+  @JoinColumn({ name: 'user' })
+  @cloudId
   user: IamUser;
 }
