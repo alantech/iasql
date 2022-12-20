@@ -1,4 +1,5 @@
-name: Release Newest Version
+# TODO: Legacy workflow
+name: 'Version: Release Newest'
 
 on:
   workflow_dispatch:

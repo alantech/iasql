@@ -1,4 +1,4 @@
-name: DOCS RELEASE
+name: Docs Release
 
 on:
   # Allows you to run this workflow manually from the Actions tab

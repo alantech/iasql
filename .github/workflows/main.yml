@@ -1,4 +1,4 @@
-name: MAIN
+name: Dispatch to iasql-on-iasql
 
 on:
   push:
