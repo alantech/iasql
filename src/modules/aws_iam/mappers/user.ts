@@ -51,6 +51,14 @@ export class UserMapper extends MapperBase<IamUser> {
 
   getAllUsers = paginateBuilder<IAM>(paginateListUsers, 'Users');
 
+  getUserKeys = paginateBuilder<IAM>(
+    paginateListAccessKeys,
+    'AccessKeyMetadata',
+    undefined,
+    undefined,
+    UserName => ({ UserName }),
+  );
+
   updateUserPath = crudBuilder2<IAM, 'updateUser'>('updateUser', (UserName, NewPath) => ({
     UserName,
     NewPath,
@@ -70,6 +78,18 @@ export class UserMapper extends MapperBase<IamUser> {
     } catch (e) {
       if (e instanceof NoSuchEntityException) return;
       else throw new Error('Error deleting user login profile');
+    }
+  }
+
+  async deleteUserKeys(client: IAM, username: string) {
+    // list all keys for an user
+    const keys = (await this.getUserKeys(client, username)) ?? [];
+    for (const key of keys) {
+      // just delete the key
+      await client.deleteAccessKey({
+        UserName: key.UserName,
+        AccessKeyId: key.AccessKeyId,
+      });
     }
   }
 
@@ -242,6 +262,7 @@ export class UserMapper extends MapperBase<IamUser> {
         if (e.userName) {
           await this.detachUserPolicies(client.iamClient, e.userName, e.attachedPoliciesArns ?? []);
           await this.waitForAttachedUserPolicies(client.iamClient, e.userName, []);
+          await this.deleteUserKeys(client.iamClient, e.userName);
           await this.deleteUserLoginProfile(client.iamClient, e.userName);
           await this.deleteUser(client.iamClient, e.userName);
         }
