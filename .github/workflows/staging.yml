@@ -6,6 +6,12 @@ on:
     paths: ['src/**', 'test/**', 'package.json', 'yarn.lock', 'examples/**', '.github/workflows/staging.yml']
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: Commit SHA
+        required: false
+        default: $GITHUB_SHA
+        type: string
 
 jobs:
   setup-build:
@@ -17,7 +23,7 @@ jobs:
       - run: yarn --prefer-offline
       - id: set-registry-image-tag
         name: Set registry image tag
-        run: echo "::set-output name=registry-image-tag::ghcr.io/iasql/iasql-engine:$GITHUB_SHA"
+        run: echo "::set-output name=registry-image-tag::ghcr.io/iasql/iasql-engine:${{inputs.commit_sha}}"
 
   build-and-push:
     runs-on: ubuntu-latest
