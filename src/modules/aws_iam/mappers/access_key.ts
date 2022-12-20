@@ -1,8 +1,8 @@
-import isEqual from 'lodash.isequal';
-
 import {
+  AccessKey as AwsAccessKey,
   AccessKeyMetadata,
   IAM,
+  IAMClient,
   paginateListAccessKeys,
   UpdateAccessKeyCommandInput,
 } from '@aws-sdk/client-iam';
