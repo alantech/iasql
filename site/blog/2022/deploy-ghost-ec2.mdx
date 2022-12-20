@@ -46,13 +46,13 @@ FROM
   security_group,
   (
     VALUES
-      (FALSE, 'tcp', 22, 22, '0.0.0.0/0', 'ghost_sg_group_rule_ssh'),
-      (FALSE, 'tcp', 80, 80, '0.0.0.0/0', 'ghost_sg_group_rule_http'),
-      (FALSE, 'tcp', 443, 443, '0.0.0.0/0', 'ghost_sg_group_rule_https'),
-      (TRUE, 'tcp', 1, 65535, '0.0.0.0/0', 'ghost_sg_group_rule_egress')
+      (FALSE, 'tcp', 22, 22, '0.0.0.0/0', 'ghost_sg_rule_ssh'),
+      (FALSE, 'tcp', 80, 80, '0.0.0.0/0', 'ghost_sg_rule_http'),
+      (FALSE, 'tcp', 443, 443, '0.0.0.0/0', 'ghost_sg_rule_https'),
+      (TRUE, 'tcp', 1, 65535, '0.0.0.0/0', 'ghost_sg_rule_egress')
   ) AS t (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description)
 WHERE
-  security_group.group_name = 'ghost_sg_group';
+  security_group.group_name = 'ghost_sg';
 
 -- insert instance with the right userdata
 INSERT INTO
@@ -112,7 +112,7 @@ SELECT
     FROM
       security_group
     WHERE
-      group_name = 'ghost_sg_group'
+      group_name = 'ghost_sg'
       AND region = 'us-east-2'
     LIMIT
       1
