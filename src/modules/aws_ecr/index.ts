@@ -626,7 +626,7 @@ class RepositoryPolicyMapper extends MapperBase<RepositoryPolicy> {
       const opts = repositoryName
         ? {
             where: {
-              repositoryName,
+              repository: { repositoryName },
               region,
             },
           }
