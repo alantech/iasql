@@ -1,11 +1,5 @@
 import { IasqlFunctions } from '..';
-import {
-  Context,
-  PostTransactionCheck,
-  PreTransactionCheck,
-  RpcBase,
-  RpcResponseObject,
-} from '../../interfaces';
+import { Context, RpcBase, RpcResponseObject } from '../../interfaces';
 import * as iasql from '../iasql';
 
 /**
@@ -25,10 +19,7 @@ import * as iasql from '../iasql';
 export class IasqlBegin extends RpcBase {
   /** @internal */
   module: IasqlFunctions;
-  /** @internal */
-  preTransactionCheck = PreTransactionCheck.WAIT_FOR_LOCK;
-  /** @internal */
-  postTransactionCheck = PostTransactionCheck.NO_CHECK;
+
   /** @internal */
   outputTable = {
     message: 'varchar',
@@ -38,8 +29,9 @@ export class IasqlBegin extends RpcBase {
   call = async (
     _dbId: string,
     _dbUser: string,
-    _ctx: Context,
+    ctx: Context,
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
+    await iasql.maybeOpenTransaction(ctx.orm);
     const message = 'Transaction started';
     return [{ message }];
   };

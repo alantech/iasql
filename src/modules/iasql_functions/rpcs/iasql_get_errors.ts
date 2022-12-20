@@ -1,12 +1,6 @@
 import { IasqlFunctions } from '..';
 import { TypeormWrapper } from '../../../services/typeorm';
-import {
-  Context,
-  PostTransactionCheck,
-  PreTransactionCheck,
-  RpcBase,
-  RpcResponseObject,
-} from '../../interfaces';
+import { Context, RpcBase, RpcResponseObject } from '../../interfaces';
 
 /**
  * Method to list the error messages produced by `iasql_commit` or `iasql_rollback`
@@ -28,14 +22,6 @@ export class IasqlGetErrors extends RpcBase {
    * @internal
    */
   module: IasqlFunctions;
-  /**
-   * @internal
-   */
-  preTransactionCheck = PreTransactionCheck.NO_CHECK;
-  /**
-   * @internal
-   */
-  postTransactionCheck = PostTransactionCheck.NO_CHECK;
   /**
    * @internal
    */

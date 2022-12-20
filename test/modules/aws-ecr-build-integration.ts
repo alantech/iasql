@@ -96,6 +96,8 @@ describe('AwsEcrBuild Integration Testing', () => {
 
   it('applies the creation of ecr repository', commit());
 
+  it('starts a transaction', begin());
+
   it(
     'builds hello world image and pushes to the new ecr repo',
     query(`
@@ -111,6 +113,23 @@ describe('AwsEcrBuild Integration Testing', () => {
 
   it(
     'checks if the image is created in the database',
+    query(
+      `
+      SELECT image_tag
+      FROM repository_image
+      WHERE private_repository_id = (SELECT id FROM repository WHERE repository_name = '${repositoryName}');
+  `,
+      (res: any) => {
+        expect(res.length).toBe(1);
+        expect(res[0].image_tag === 'latest');
+      },
+    ),
+  );
+
+  it('syncs the cloud state', commit());
+
+  it(
+    'checks if the image is still there after sync',
     query(
       `
       SELECT image_tag
@@ -165,8 +184,6 @@ describe('AwsEcrBuild Integration Testing', () => {
     ),
   );
 
-  it('applies the deletion of resources', commit());
-
   it(
     'builds hello world image and pushes to the new ecr repo without Github personal access token',
     query(`
@@ -194,8 +211,6 @@ describe('AwsEcrBuild Integration Testing', () => {
       },
     ),
   );
-
-  it('starts a transaction', begin());
 
   it(
     'deletes the image',

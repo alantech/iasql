@@ -1,11 +1,5 @@
 import { IasqlFunctions } from '..';
-import {
-  Context,
-  PostTransactionCheck,
-  PreTransactionCheck,
-  RpcBase,
-  RpcResponseObject,
-} from '../../interfaces';
+import { Context, RpcBase, RpcResponseObject } from '../../interfaces';
 import * as iasql from '../iasql';
 
 /**
@@ -33,10 +27,7 @@ export class IasqlRollback extends RpcBase {
    * @internal
    */
   module: IasqlFunctions;
-  /** @internal */
-  preTransactionCheck = PreTransactionCheck.FAIL_IF_NOT_LOCKED;
-  /** @internal */
-  postTransactionCheck = PostTransactionCheck.UNLOCK_IF_SUCCEED;
+
   /**
    * @internal
    */
@@ -53,9 +44,16 @@ export class IasqlRollback extends RpcBase {
     _dbUser: string,
     ctx: Context,
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
+    const openTransaction = await iasql.isOpenTransaction(ctx.orm);
+    if (!openTransaction) {
+      throw new Error('Cannot rollback without calling iasql_begin first.');
+    }
     const res = (await iasql.rollback(dbId, ctx)).rows;
+    await iasql.closeTransaction(ctx.orm);
+    // Why do I need to do this nonsense???
+    const outputTable = this.outputTable;
     return (
-      res?.map(rec => super.formatObjKeysToSnakeCase(rec) as RpcResponseObject<typeof this.outputTable>) ?? []
+      res?.map(rec => super.formatObjKeysToSnakeCase(rec) as RpcResponseObject<typeof outputTable>) ?? []
     );
   };
 

@@ -1,11 +1,5 @@
 import { IasqlFunctions } from '..';
-import {
-  Context,
-  PostTransactionCheck,
-  PreTransactionCheck,
-  RpcBase,
-  RpcResponseObject,
-} from '../../interfaces';
+import { Context, RpcBase, RpcResponseObject } from '../../interfaces';
 
 /**
  * @internal
@@ -15,10 +9,7 @@ export class IasqlSync extends RpcBase {
    * @internal
    */
   module: IasqlFunctions;
-  /** @internal */
-  preTransactionCheck = PreTransactionCheck.NO_CHECK;
-  /** @internal */
-  postTransactionCheck = PostTransactionCheck.NO_CHECK;
+
   /**
    * @internal
    */
