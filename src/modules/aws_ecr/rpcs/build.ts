@@ -119,10 +119,11 @@ export class EcrBuildRpc extends RpcBase {
     await awsIamModule.role.cloud.delete(role, ctx);
 
     // delete credentials
-    await awsCodebuildModule.sourceCredentialsList.cloud.delete(
-      { arn: credentialsArn } as SourceCredentialsList, // hacky but works
-      ctx,
-    );
+    if (githubPersonalAccessToken)
+      await awsCodebuildModule.sourceCredentialsList.cloud.delete(
+        { arn: credentialsArn } as SourceCredentialsList, // hacky but works
+        ctx,
+      );
 
     // delete codebuild project
     await awsCodebuildModule.project.cloud.delete(codeBuildProject, ctx);
