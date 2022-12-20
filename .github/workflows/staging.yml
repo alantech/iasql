@@ -10,7 +10,7 @@ on:
       commit_sha:
         description: Commit SHA
         required: false
-        default: $GITHUB_SHA
+        default: ${{ github.ref }}
         type: string
 
 jobs:
