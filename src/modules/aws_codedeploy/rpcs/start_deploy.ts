@@ -58,6 +58,28 @@ export class StartDeployRPC extends RpcBase {
   } as const;
 
   /** @internal */
+  private makeError(message: string, deploymentId?: string | undefined) {
+    return [
+      {
+        id: deploymentId ?? '',
+        status: 'KO',
+        message,
+      },
+    ];
+  }
+
+  /** @internal */
+  private makeSuccess(deploymentId: string) {
+    return [
+      {
+        id: deploymentId,
+        status: 'OK',
+        message: '',
+      },
+    ];
+  }
+
+  /** @internal */
   startDeploy = crudBuilderFormat<CodeDeploy, 'createDeployment', string | undefined>(
     'createDeployment',
     input => input,
@@ -74,42 +96,11 @@ export class StartDeployRPC extends RpcBase {
     revision: string,
     region: string,
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
-    if (!applicationName) {
-      return [
-        {
-          id: '',
-          status: 'KO',
-          message: 'Please provide the name of the CodeDeploy application to deploy',
-        },
-      ];
-    }
-    if (!deploymentGroupName) {
-      return [
-        {
-          id: '',
-          status: 'KO',
-          message: 'Please provide the name of the DeploymentGroup to use',
-        },
-      ];
-    }
-    if (!revision) {
-      return [
-        {
-          id: '',
-          status: 'KO',
-          message: 'Please provide the specification of the RevisionLocation to use',
-        },
-      ];
-    }
-    if (!region) {
-      return [
-        {
-          id: '',
-          status: 'KO',
-          message: 'Please provide the region of the CodeDeploy application to deploy',
-        },
-      ];
-    }
+    if (!applicationName)
+      return this.makeError('Please provide the name of the CodeDeploy application to deploy');
+    if (!deploymentGroupName) return this.makeError('Please provide the name of the DeploymentGroup to use');
+    if (!revision) return this.makeError('Please provide the specification of the RevisionLocation to use');
+    if (!region) return this.makeError('Please provide the region of the CodeDeploy application to deploy');
 
     // validate if application name exists
     const appObj =
@@ -122,15 +113,7 @@ export class StartDeployRPC extends RpcBase {
         this.module.application.generateId({ name: applicationName, region }),
       ));
 
-    if (!appObj) {
-      return [
-        {
-          id: '',
-          status: 'KO',
-          message: 'CodeDeploy application not found',
-        },
-      ];
-    }
+    if (!appObj) return this.makeError('CodeDeploy application not found');
 
     // validate if deployment group name exists
     if (deploymentGroupName) {
@@ -144,15 +127,7 @@ export class StartDeployRPC extends RpcBase {
           this.module.deploymentGroup.generateId({ deploymentGroupName, applicationName, region }),
         ));
 
-      if (!dgObj) {
-        return [
-          {
-            id: '',
-            status: 'KO',
-            message: 'CodeDeploy deployment group not found',
-          },
-        ];
-      }
+      if (!dgObj) return this.makeError('CodeDeploy deployment group not found');
     }
 
     const client = (await ctx.getAwsClient(region)) as AWS;
@@ -164,15 +139,7 @@ export class StartDeployRPC extends RpcBase {
     };
     const deploymentId = await this.startDeploy(client.cdClient, input);
 
-    if (!deploymentId) {
-      return [
-        {
-          id: '',
-          status: 'KO',
-          message: 'Error creating deployment',
-        },
-      ];
-    }
+    if (!deploymentId) return this.makeError('Error creating deployment');
 
     // wait until deployment is succeeded
     const result = await waitUntilDeploymentSuccessful(
@@ -186,28 +153,7 @@ export class StartDeployRPC extends RpcBase {
       { deploymentId },
     );
 
-    // update
-    const dbDeploy = await this.module.deployment.deploymentMapper(result.reason.deploymentInfo, region, ctx);
-    if (!dbDeploy) {
-      return [
-        {
-          id: deploymentId,
-          status: 'KO',
-          message: 'Error getting updated deployment',
-        },
-      ];
-    }
-
-    // create the deploy in the database
-    await this.module.deployment.db.create(dbDeploy, ctx);
-
-    return [
-      {
-        id: deploymentId,
-        status: 'OK',
-        message: '',
-      },
-    ];
+    return this.makeSuccess(deploymentId);
   };
 
   constructor(module: AwsCodedeployModule) {
