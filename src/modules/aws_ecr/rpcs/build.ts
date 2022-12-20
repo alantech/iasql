@@ -99,7 +99,6 @@ export class EcrBuildRpc extends RpcBase {
       ctx,
     );
 
-    console.log('just before startBuild');
     // start build and wait for it to complete
     const buildResult = await awsCodebuildModule.startBuild.call(
       _dbId,
@@ -108,7 +107,6 @@ export class EcrBuildRpc extends RpcBase {
       codeBuildProjectName,
       region,
     );
-    console.log('just after startBuild');
     if (!buildResult.length || buildResult[0].status !== 'OK') {
       throw new Error(`Error when starting codebuild project: ${buildResult[0].message}`);
     }

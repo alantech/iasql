@@ -130,11 +130,6 @@ export class StartBuildRPC extends RpcBase {
       ];
     }
 
-    // create the builds in the database
-    console.log('maybe the db create is failing?');
-    await this.module.buildList.db.create(dbBuild, ctx);
-    console.log('one more log to make sure this is the case');
-
     return [
       {
         name,
