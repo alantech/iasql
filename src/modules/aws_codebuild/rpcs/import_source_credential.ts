@@ -17,6 +17,25 @@ export enum ValidAuthTypes {
   PERSONAL_ACCESS_TOKEN = 'PERSONAL_ACCESS_TOKEN',
 }
 
+/**
+ * Method for importing a credentials used for pulling sources in codebuild
+ *
+ * Returns following columns:
+ *
+ * - arn: the aws resource name for the credential saved
+ *
+ * - status: OK if the build was started successfully
+ *
+ * - message: Error message in case of failure
+ *
+ * @example
+ * ```sql TheButton[Import Github credentials to CodeBuild]="Import Github credentials to CodeBuild"
+ *   SELECT * FROM import_source_credential('us-east-1', 'ghp_XXX', 'GITHUB', 'PERSONAL_ACCESS_TOKEN');
+ * ```
+ *
+ * @see https://docs.aws.amazon.com/cli/latest/reference/codebuild/import-source-credentials.html
+ *
+ */
 export class ImportSourceCredentialRpc extends RpcBase {
   /** @internal */
   module: AwsCodebuildModule;
@@ -35,6 +54,7 @@ export class ImportSourceCredentialRpc extends RpcBase {
     res => res?.arn,
   );
 
+  /** @internal */
   private makeError(message: string) {
     return [
       {
@@ -45,6 +65,7 @@ export class ImportSourceCredentialRpc extends RpcBase {
     ];
   }
 
+  /** @internal */
   private makeSuccess(arn: string) {
     return [
       {
