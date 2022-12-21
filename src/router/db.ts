@@ -249,8 +249,8 @@ async function rpcCall(
   postTransaction?: PostTransactionCheck,
 ): Promise<any[] | undefined> {
   let rpcRes: any[] | undefined;
-  let rpcErr;
-  let commitErr;
+  let rpcErr: any;
+  let commitErr: any;
   switch (preTransaction) {
     case PreTransactionCheck.NO_CHECK:
       break;
@@ -296,6 +296,11 @@ async function rpcCall(
         commitErr = e;
       }
       break;
+  }
+  if (rpcErr && commitErr) {
+    const errMessage = [rpcErr.message, commitErr.message].join('\n');
+    rpcErr.message = errMessage;
+    throw rpcErr;
   }
   if (rpcErr) throw rpcErr;
   if (commitErr) throw commitErr;
