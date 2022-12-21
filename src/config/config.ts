@@ -30,7 +30,7 @@ export interface ConfigInterface {
     // Not including this sub-object implies it is not enabled
     dsn: string;
     environment: string;
-    release: string;
+    release?: string; // Make it nullable so we can attach it later
   };
 }
 
