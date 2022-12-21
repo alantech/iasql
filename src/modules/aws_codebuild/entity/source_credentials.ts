@@ -1,4 +1,4 @@
-import { Column, Entity, PrimaryGeneratedColumn, PrimaryColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Column, Entity, PrimaryColumn, ManyToOne, JoinColumn } from 'typeorm';
 
 import { cloudId } from '../../../services/cloud-id';
 import { AwsRegions } from '../../aws_account/entity';
@@ -65,66 +65,5 @@ export class SourceCredentialsList {
   @ManyToOne(() => AwsRegions, { nullable: false })
   @JoinColumn({ name: 'region' })
   @cloudId
-  region: string;
-}
-
-/**
- * Table to create the internal credentials used to access internal repositories from Codebuild.
- *
- * @example
- * ```sql
- * INSERT INTO source_credentials_import (token, source_type, auth_type) VALUES ('<personal_access_token>', 'GITHUB', 'PERSONAL_ACCESS_TOKEN');
- * ```
- * @see https://github.com/iasql/iasql-engine/blob/main/test/modules/aws-codebuild-integration.ts#L161
- * @see https://docs.aws.amazon.com/codebuild/latest/userguide/access-tokens.html
- */
-@Entity()
-export class SourceCredentialsImport {
-  /**
-   * @private
-   * Auto-incremented ID field
-   */
-  @PrimaryGeneratedColumn()
-  id: number;
-
-  /**
-   * @public
-   * Token for the specific credential that wants to be created
-   */
-  @Column()
-  token: string;
-
-  /**
-   * @public
-   * Type of source where this credential will be used
-   * TODO implement for BASIC_AUTH with Bitbucket: // @Column() // username: string;
-   */
-  @Column({
-    type: 'enum',
-    enum: SourceType,
-  })
-  sourceType: SourceType;
-
-  /**
-   * @public
-   * Type of authentication that is used in this credential
-   */
-  @Column({
-    type: 'enum',
-    enum: AuthType,
-  })
-  authType: AuthType;
-
-  /**
-   * @public
-   * Region for the Codebuild project
-   */
-  @Column({
-    type: 'character varying',
-    nullable: false,
-    default: () => 'default_aws_region()',
-  })
-  @ManyToOne(() => AwsRegions, { nullable: false })
-  @JoinColumn({ name: 'region' })
   region: string;
 }

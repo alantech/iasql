@@ -154,4 +154,13 @@ export class TypeormWrapper {
   async getEntityMetadata(entity: EntityTarget<any>): Promise<EntityMetadata> {
     return this.connection.getMetadata(entity);
   }
+
+  async newWithDefaults(entity: EntityTarget<any>): Promise<any> {
+    const item = this.connection.getRepository(entity).create();
+    this.connection.getRepository(entity).metadata.columns.map(col => {
+      // checking if not function for `region` column which its default value is a function
+      if (col.default != null && typeof col.default !== 'function') item[col.propertyName] = col.default;
+    });
+    return item;
+  }
 }

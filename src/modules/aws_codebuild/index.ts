@@ -1,11 +1,6 @@
 import { ModuleBase } from '../interfaces';
-import {
-  CodebuildProjectMapper,
-  SourceCredentialsImportMapper,
-  SourceCredentialsListMapper,
-  CodebuildBuildListMapper,
-} from './mappers';
-import { StartBuildRPC } from './rpcs';
+import { CodebuildProjectMapper, SourceCredentialsListMapper, CodebuildBuildListMapper } from './mappers';
+import { StartBuildRPC, ImportSourceCredentialRpc } from './rpcs';
 
 export class AwsCodebuildModule extends ModuleBase {
   /** @internal */
@@ -15,7 +10,7 @@ export class AwsCodebuildModule extends ModuleBase {
   sourceCredentialsList: SourceCredentialsListMapper;
 
   /** @internal */
-  sourceCredentialsImport: SourceCredentialsImportMapper;
+  importSourceCredential: ImportSourceCredentialRpc;
   startBuild: StartBuildRPC;
   buildList: CodebuildBuildListMapper;
 
@@ -23,10 +18,11 @@ export class AwsCodebuildModule extends ModuleBase {
     super();
     this.project = new CodebuildProjectMapper(this);
     this.sourceCredentialsList = new SourceCredentialsListMapper(this);
-    this.sourceCredentialsImport = new SourceCredentialsImportMapper(this);
+    this.importSourceCredential = new ImportSourceCredentialRpc(this);
     this.buildList = new CodebuildBuildListMapper(this);
     this.startBuild = new StartBuildRPC(this);
     super.init();
   }
 }
+
 export const awsCodebuildModule = new AwsCodebuildModule();
