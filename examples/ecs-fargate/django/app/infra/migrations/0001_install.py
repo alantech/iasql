@@ -14,12 +14,12 @@ class Migration(migrations.Migration):
         migrations.RunSQL(
             """
             SELECT * FROM iasql_install(
-                'aws_ecs_simplified'
+                'aws_ecs_simplified', 'aws_codebuild'
             );
             """,
             """
             SELECT * FROM iasql_uninstall(
-                'aws_ecs_simplified'
+                'aws_ecs_simplified', 'aws_codebuild'
             );
             """
         )

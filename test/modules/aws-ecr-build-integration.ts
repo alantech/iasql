@@ -21,7 +21,7 @@ const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
-const modules = ['aws_ecr', 'aws_iam'];
+const modules = ['aws_ecr', 'aws_iam', 'aws_codebuild'];
 
 jest.setTimeout(360000);
 beforeAll(async () => await execComposeUp());
