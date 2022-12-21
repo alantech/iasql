@@ -52,7 +52,7 @@ jobs:
     steps:
       - name: SSH into Production and Deploy
         env:
-          STAGING_PEM_B64: ${{ secrets.PRODUCTION_PEM_B64 }}
+          PRODUCTION_PEM_B64: ${{ secrets.PRODUCTION_PEM_B64 }}
           DOCKER_URL: ${{ needs.setup-build.outputs.registry-image-tag }}
         run: |
           echo $PRODUCTION_PEM_B64 | base64 -d > production.pem
