@@ -1,3 +1,5 @@
+import isEqual from 'lodash.isequal';
+
 import {
   AccessKey as AwsAccessKey,
   AccessKeyMetadata,
@@ -16,7 +18,7 @@ export class AccessKeyMapper extends MapperBase<AccessKey> {
   module: AwsIamModule;
   entity = AccessKey;
   equals = (a: AccessKey, b: AccessKey) =>
-    Object.is(a.createDate, b.createDate) && Object.is(a.status, b.status);
+    isEqual(a.createDate, b.createDate) && Object.is(a.status, b.status);
 
   async accessKeyMapper(e: AccessKeyMetadata, ctx: Context) {
     const out = new AccessKey();

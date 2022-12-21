@@ -126,7 +126,7 @@ afterAll(async () => await execComposeDown());
 
 let username: string, password: string;
 
-describe('IAM Role Integration Testing', () => {
+/*describe('IAM Role Integration Testing', () => {
   it('creates a new test db', done => {
     (async () => {
       try {
@@ -757,7 +757,7 @@ describe('IAM Role Integration Testing', () => {
   });
 
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
-});
+});*/
 
 describe('IAM User Integration Testing', () => {
   it('creates a new test db', done => {
@@ -952,6 +952,97 @@ describe('IAM User Integration Testing', () => {
     ),
   );
 
+  // generate access keys
+  it(
+    'generates a new access key',
+    query(
+      `
+    SELECT *
+    FROM access_key_request('${userName}');
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it(
+    'check new access key added',
+    query(
+      `
+    SELECT *
+    FROM access_key
+    WHERE user_name = '${userName}' AND status='Active';
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it('starts a transaction', begin());
+  it(
+    'updates access key status',
+    query(
+      `
+    UPDATE access_key SET status='Inactive'
+    WHERE user_name = '${userName}';
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it('applies the access key update', commit());
+
+  it(
+    'check access key updated',
+    query(
+      `
+    SELECT *
+    FROM access_key
+    WHERE user_name = '${userName}' AND status='Active';
+  `,
+      (res: any[]) => expect(res.length).toBe(0),
+    ),
+  );
+  it(
+    'check access key updated',
+    query(
+      `
+    SELECT *
+    FROM access_key
+    WHERE user_name = '${userName}' AND status='Inactive';
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it('starts a transaction', begin());
+  it(
+    'deletes the access key',
+    query(
+      `
+    DELETE FROM access_key
+    WHERE user_name = '${userName}';
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it('applies the access key deletion', commit());
+
+  it(
+    'check new access key deleted',
+    query(
+      `
+    SELECT *
+    FROM access_key
+    WHERE user_name = '${userName}';
+  `,
+      (res: any[]) => expect(res.length).toBe(0),
+    ),
+  );
+
   it('starts a transaction', begin());
 
   it(
@@ -983,7 +1074,7 @@ describe('IAM User Integration Testing', () => {
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 });
 
-describe('IAM install/uninstall', () => {
+/*describe('IAM install/uninstall', () => {
   it('creates a new test db', done => {
     (async () => {
       try {
@@ -1053,4 +1144,4 @@ describe('IAM install/uninstall', () => {
   it('installs the IAM module', install(modules));
 
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
-});
+});*/
