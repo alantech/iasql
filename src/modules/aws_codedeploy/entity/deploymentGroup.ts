@@ -14,6 +14,15 @@ export enum DeploymentConfigType {
   ALL_AT_ONCE = 'CodeDeployDefault.AllAtOnce',
   HALF_AT_A_TIME = 'CodeDeployDefault.HalfAtATime',
   ONE_AT_A_TIME = 'CodeDeployDefault.OneAtATime',
+  LAMBDA_CANARY_5 = 'CodeDeployDefault.LambdaCanary10Percent5Minutes',
+  LAMBDA_CANARY_10 = 'CodeDeployDefault.LambdaCanary10Percent10Minutes',
+  LAMBDA_CANARY_15 = 'CodeDeployDefault.LambdaCanary10Percent15Minutes',
+  LAMBDA_CANARY_30 = 'CodeDeployDefault.LambdaCanary10Percent30Minutes',
+  LAMBDA_LINEAR_1 = 'CodeDeployDefault.LambdaLinear10Percent1Minute',
+  LAMBDA_LINEAR_2 = 'CodeDeployDefault.LambdaLinear10Percent2Minutes',
+  LAMBDA_LINEAR_3 = 'CodeDeployDefault.LambdaLinear10Percent3Minutes',
+  LAMBDA_LINEAR_10 = 'CodeDeployDefault.LambdaLinear10Percent10Minutes',
+  LAMBDA_ALL_AT_ONCE = 'CodeDeployDefault.LambdaAllAtOnce',
 }
 
 /**

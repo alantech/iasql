@@ -108,6 +108,14 @@ const ec2FilterTags = JSON.stringify([
 
 const sgGroupName = `${prefix}sgcodedeploy`;
 
+const revisionLocation = JSON.stringify({
+  revisionType: 'GitHub',
+  gitHubLocation: {
+    repository: 'iasql/iasql-codedeploy-example',
+    commitId: 'cf6aa63cbd2502a5d1064363c2af5c56cc2107cc',
+  },
+});
+
 let availabilityZone: string;
 let instanceType: string;
 
@@ -118,7 +126,7 @@ const uninstall = runUninstall.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const installAll = runInstallAll.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
-const modules = ['aws_codedeploy', 'aws_iam', 'aws_ec2'];
+const modules = ['aws_codedeploy', 'aws_iam', 'aws_ec2', 'aws_codebuild'];
 
 jest.setTimeout(560000);
 beforeAll(async () => {
@@ -468,6 +476,59 @@ describe('AwsCodedeploy Integration Testing', () => {
   );
 });
 
+// triggers a deployment
+it(
+  'start and wait for deployment',
+  query(
+    `
+    SELECT * FROM start_deployment('${applicationNameForDeployment}', '${deploymentGroupName}', '${revisionLocation}', '${region}');
+`,
+    (res: any[]) => {
+      expect(res.length).toBe(1);
+      expect(res[0].status).toBe('OK');
+    },
+  ),
+);
+
+it(
+  'check deployment exists in list',
+  query(
+    `
+  SELECT * FROM codedeploy_deployment
+  WHERE application_id = (SELECT id FROM codedeploy_application WHERE codedeploy_application.name='${applicationNameForDeployment}') and region = '${region}';
+`,
+    (res: any[]) => expect(res.length).toBe(1),
+  ),
+);
+
+it('starts a transaction', begin());
+
+it(
+  'delete deployments',
+  query(
+    `
+    DELETE FROM codedeploy_deployment
+    WHERE application_id IN (SELECT id FROM codedeploy_application WHERE codedeploy_application.name='${applicationNameForDeployment}' AND region='${region}');
+  `,
+    undefined,
+    true,
+    () => ({ username, password }),
+  ),
+);
+
+it('applies deployment deletion', commit());
+
+it(
+  'check deployment could not be deleted',
+  query(
+    `
+  SELECT * FROM codedeploy_deployment
+  WHERE application_id = (SELECT id FROM codedeploy_application WHERE codedeploy_application.name='${applicationNameForDeployment}' and region = '${region}');
+`,
+    (res: any[]) => expect(res.length).toBe(1),
+  ),
+);
+
 describe('Move deployments to another region', () => {
   it('should fail moving just the deployment group', done =>
     void query(
@@ -547,7 +608,7 @@ describe('Move deployments to another region', () => {
 });
 
 // cleanup
-describe('deployment cleanup', () => {
+describe('application cleanup', () => {
   it('starts a transaction', begin());
 
   it(
