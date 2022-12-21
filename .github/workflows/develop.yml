@@ -1,4 +1,5 @@
-name: Develop New Version
+# TODO: Legacy workflow
+name: 'Version: Start New Development'
 
 on:
   workflow_dispatch:

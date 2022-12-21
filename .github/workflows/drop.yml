@@ -1,4 +1,5 @@
-name: Drop Old Version
+# TODO: Legacy workflow
+name: 'Version: Drop Old'
 
 on:
   workflow_dispatch:
