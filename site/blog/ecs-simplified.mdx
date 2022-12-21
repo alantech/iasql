@@ -29,7 +29,7 @@ Let's say we are going to deploy [this simple Express.js app](https://github.com
 
 Let's go and deploy the above app to your AWS account. Don't worry if you don't have an IaSQL database already, you can create one for free when you click the "Deploy Now" button.
 ```sql title="Deploy a simple Express.js app from a Github repository to ECS" showLineNumbers TheButton="Deploy Now"
-SELECT iasql_install('aws_ecs_simplified');
+SELECT iasql_install('aws_ecs_simplified', 'aws_codebuild');
 INSERT INTO ecs_simplified(app_name, app_port, image_tag, public_ip) VALUES(
   'simple-express',
   8088,
@@ -50,7 +50,7 @@ SELECT ecr_build(
 ```
 That's it! Now wait for some time and your app is deployed! While your app is being deployed, let's go through the commands we executed in more depth:
 ```sql
-SELECT iasql_install('aws_ecs_simplified');
+SELECT iasql_install('aws_ecs_simplified', 'aws_codebuild');
 ```
 - This command installs the `aws_ecs_simplified` high-level module. We– at IaSQL– have created that module to make it easy to deploy containerized apps to ECS. The code for it is [here](https://github.com/iasql/iasql-engine/blob/v0.0.22/src/modules/0.0.23/aws_ecs_simplified/sql/after_install.sql). But IaSQL is so flexible that anyone can create their own high-level (and of course, low-level) modules and add it to IaSQL.
 ```sql

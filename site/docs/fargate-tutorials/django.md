@@ -42,7 +42,7 @@ Make sure to copy the PostgreSQL connection string as you will not see it again.
 SELECT
   *
 FROM
-  iasql_install ('aws_ecs_simplified');
+  iasql_install ('aws_ecs_simplified', 'aws_codebuild');
 ```
 
 If the function call is successful, it will return a virtual table with a record for each new table in your database under `created_table_name` and the number of existing resources or records imported from the account under `record_count`.

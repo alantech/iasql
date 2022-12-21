@@ -45,6 +45,6 @@ psql $CONNSTR -c "
 echo "\nInstalling modules in iasql db..."
 psql $CONNSTR -c "
   SELECT iasql_install(
-    'aws_ecs_simplified'
+    'aws_ecs_simplified', 'aws_codebuild'
   );
 ";

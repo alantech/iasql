@@ -1,3 +1,4 @@
+import { ImportSourceCredentialRpc } from '../../src/modules/aws_codebuild/rpcs';
 import * as iasql from '../../src/services/iasql';
 import {
   defaultRegion,
@@ -91,32 +92,19 @@ describe('AwsCodebuild Multi-region Integration Testing', () => {
 
   it('installs the codebuild module', install(modules));
 
-  it('starts a transaction', begin());
-
   it(
-    'adds a new source_credentials_import',
+    'imports a new source credential',
     query(
       `
-    INSERT INTO source_credentials_import (token, source_type, auth_type, region)
-    VALUES ('${process.env.GH_PAT}', 'GITHUB', 'PERSONAL_ACCESS_TOKEN', '${nonDefaultRegion}')
+    SELECT * FROM import_source_credential('${nonDefaultRegion}', '${process.env.GH_PAT}', 'GITHUB', 'PERSONAL_ACCESS_TOKEN')
   `,
-      undefined,
+      (res: any[]) => {
+        expect(res.length).toBe(1);
+        expect(res[0].status).toBe('SUCCESS');
+        expect(res[0].arn.length).toBeGreaterThan(1);
+      },
       false,
       () => ({ username, password }),
-    ),
-  );
-
-  it('apply import', commit());
-
-  it(
-    'check source_credentials_import is empty',
-    query(
-      `
-    SELECT *
-    FROM source_credentials_import
-    WHERE source_type = 'GITHUB' and region = '${nonDefaultRegion}';
-  `,
-      (res: any[]) => expect(res.length).toBe(0),
     ),
   );
 
