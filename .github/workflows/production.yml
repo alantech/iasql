@@ -1,15 +1,12 @@
-name: Deploy to Staging
+name: Deploy to Production
 
 on:
-  push:
-    branches: [main]
-    paths: ['src/**', 'test/**', 'package.json', 'yarn.lock', 'examples/**', '.github/workflows/staging.yml']
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
     inputs:
-      commit_sha:
-        description: Commit SHA
-        required: false
+      deploy_tag:
+        description: Tag to Deploy
+        required: true
         type: string
 
 jobs:
@@ -21,8 +18,8 @@ jobs:
       - id: set-registry-image-tag
         name: Set registry image tag
         run: |
-          COMMIT_SHA=${{inputs.commit_sha}}
-          echo "::set-output name=registry-image-tag::ghcr.io/iasql/iasql-engine:$(echo ${COMMIT_SHA:-$GITHUB_SHA})"
+          DEPLOY_TAG=${{inputs.deploy_tag}}
+          echo "::set-output name=registry-image-tag::ghcr.io/iasql/iasql-engine:$DEPLOY_TAG"
 
   build-and-push:
     runs-on: ubuntu-latest
@@ -53,15 +50,15 @@ jobs:
       - setup-build
       - build-and-push
     steps:
-      - name: SSH into Staging and Deploy
+      - name: SSH into Production and Deploy
         env:
-          STAGING_PEM_B64: ${{ secrets.STAGING_PEM_B64 }}
+          PRODUCTION_PEM_B64: ${{ secrets.PRODUCTION_PEM_B64 }}
           DOCKER_URL: ${{ needs.setup-build.outputs.registry-image-tag }}
         run: |
-          echo $STAGING_PEM_B64 | base64 -d > staging.pem
-          chmod 700 staging.pem
+          echo $PRODUCTION_PEM_B64 | base64 -d > production.pem
+          chmod 700 production.pem
           # TODO: Figure out a secure way to log in to ghcr.io
-          ssh -i staging.pem -o "StrictHostKeyChecking no" ubuntu@pg-staging.iasql.com "
+          ssh -i production.pem -o "StrictHostKeyChecking no" ubuntu@pg.iasql.com "
             sudo apt update && sudo apt upgrade -y
             sudo docker pull $DOCKER_URL
             sudo docker container stop iasql
@@ -69,4 +66,4 @@ jobs:
             sudo docker run -d --env-file=.env -p 5432:5432 -v /iasqldb:/var/lib/postgresql/14 --name iasql $DOCKER_URL
             sudo docker image prune -af
           "
-          rm staging.pem
+          rm production.pem
