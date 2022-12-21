@@ -1,4 +1,13 @@
-import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, PrimaryColumn, Unique } from 'typeorm';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  PrimaryColumn,
+  PrimaryGeneratedColumn,
+  Unique,
+} from 'typeorm';
 
 import { cloudId } from '../../../services/cloud-id';
 import { IamUser } from './user';
@@ -32,10 +41,17 @@ export enum accessKeyStatusEnum {
 @Entity()
 export class AccessKey {
   /**
+   * @internal
+   * Internal ID field for storing access keys
+   */
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  /**
    * @public
    * AWS generated ID for the access key
    */
-  @PrimaryColumn()
+  @Column({ nullable: false })
   @cloudId
   accessKeyId: string;
 
@@ -61,14 +77,14 @@ export class AccessKey {
 
   /**
    * @public
-   * The IAM user owning the Access Key
+   * Reference to the user for this record
    */
-  @Column({
-    type: 'character varying',
-    nullable: false,
+  @ManyToOne(() => IamUser, {
+    cascade: true,
+    eager: true,
   })
-  @ManyToOne(() => IamUser, { nullable: false })
-  @JoinColumn({ name: 'user' })
-  @cloudId
+  @JoinColumn({
+    name: 'user_name',
+  })
   user: IamUser;
 }

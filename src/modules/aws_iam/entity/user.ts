@@ -90,7 +90,6 @@ export class IamUser {
    */
   @OneToMany(() => AccessKey, accessKeys => accessKeys.user, {
     nullable: true,
-    cascade: true,
   })
   accessKeys?: AccessKey[];
 }

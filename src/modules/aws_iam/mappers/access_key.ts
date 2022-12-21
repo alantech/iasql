@@ -16,7 +16,7 @@ export class AccessKeyMapper extends MapperBase<AccessKey> {
   module: AwsIamModule;
   entity = AccessKey;
   equals = (a: AccessKey, b: AccessKey) =>
-    Object.is(a.createDate, b.createDate) && Object.is(a.status, b.status) && Object.is(a.user, b.user);
+    Object.is(a.createDate, b.createDate) && Object.is(a.status, b.status);
 
   async accessKeyMapper(e: AccessKeyMetadata, ctx: Context) {
     const out = new AccessKey();
@@ -65,11 +65,7 @@ export class AccessKeyMapper extends MapperBase<AccessKey> {
       const client = (await ctx.getAwsClient()) as AWS;
 
       if (id) {
-        console.log('i have id');
-        console.log(id);
         const { keyId, user } = this.idFields(id);
-        console.log('user is');
-        console.log(user);
         const keys = await this.getUserKeys(client.iamClient, user);
 
         if (!keys || keys.length === 0) return undefined;
@@ -95,7 +91,6 @@ export class AccessKeyMapper extends MapperBase<AccessKey> {
             }
           }
         }
-        console.log(out);
         return out;
       }
     },
