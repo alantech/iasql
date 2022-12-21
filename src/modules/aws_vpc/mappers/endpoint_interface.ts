@@ -280,9 +280,13 @@ export class EndpointInterfaceMapper extends MapperBase<EndpointInterface> {
             // VPC endpoint route tables update
             const input: ModifyVpcEndpointCommandInput = {
               VpcEndpointId: e.vpcEndpointId,
-              RemoveSubnetIds: oldSubnetIds,
-              AddSubnetIds: newSubnetIds,
             };
+            if (oldSubnetIds.length) {
+              input.RemoveSubnetIds = oldSubnetIds;
+            }
+            if (oldSubnetIds.length) {
+              input.AddSubnetIds = newSubnetIds;
+            }
             await modifyVpcEndpoint(client.ec2client, input);
             update = true;
           }
