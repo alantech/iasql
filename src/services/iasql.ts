@@ -6,6 +6,7 @@ import { createConnection } from 'typeorm';
 import { promisify } from 'util';
 
 import { IasqlDatabase } from '../entity';
+import { maybeOpenTransaction } from '../modules/iasql_functions/iasql';
 import * as dbMan from './db-manager';
 import logger from './logger';
 import MetadataRepo from './repositories/metadata';
@@ -93,12 +94,14 @@ export async function disconnect(dbAlias: string, uid: string) {
   try {
     const db: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
     conn = await createConnection(dbMan.baseConnConfig);
-    conn2 = await createConnection({
+    conn2 = await TypeormWrapper.createConn(db.pgName, {
       ...dbMan.baseConnConfig,
       name: db.pgName,
       database: db.pgName,
     });
     try {
+      // Try to open a transaction to avoid issues with running cron job
+      await maybeOpenTransaction(conn2);
       await conn2.query(`SELECT * FROM query_cron('unschedule');`);
       await conn2.query(`SELECT * FROM query_cron('unschedule_purge');`);
     } catch (e) {
@@ -115,7 +118,7 @@ export async function disconnect(dbAlias: string, uid: string) {
     throw e;
   } finally {
     conn?.close();
-    conn2?.close();
+    conn2?.dropConn();
   }
 }
 
