@@ -11,7 +11,7 @@ git pull origin main
 VERSION=$1
 
 # Update the config version
-CONFIGVERSION="$(cat src/config/index.ts | sed "s/version:.*/version: '${VERSION}-beta',/")" && echo "${CONFIGVERSION}" > src/config/index.ts
+CONFIGVERSION="$(cat src/config/index.ts | sed "s/^  version:.*/version: '${VERSION}-beta',/")" && echo "${CONFIGVERSION}" > src/config/index.ts
 
 # Update the package metadata with the specified version
 PACKAGEJSON="$(jq ".version = \"${VERSION}-beta\"" package.json)" && echo "${PACKAGEJSON}" > package.json
