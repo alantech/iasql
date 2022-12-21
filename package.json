@@ -1,6 +1,6 @@
 {
   "name": "iasql",
-  "version": "0.0.22",
+  "version": "0.0.23-beta",
   "description": "Infrastructure as SQL",
   "main": "dist/index.js",
   "scripts": {
@@ -23,7 +23,6 @@
     "docker-run": "docker run -e IASQL_ENV=local -p 5432:5432 --name iasql iasql:latest",
     "docker-run-vol": "docker run -e IASQL_ENV=local -p 5432:5432 -v $(dirname $PWD)/db:/var/lib/postgresql/14/main --name iasql iasql:latest",
     "version": "./.version.sh",
-    "drop": "./.drop.sh",
     "develop": "./.develop.sh",
     "style": "npx prettier --config .prettierrc 'src/**/*[.ts, .sql]' 'test/**/*.ts' --check",
     "format": "npx prettier --config .prettierrc 'src/**/*[.ts, .sql]' 'test/**/*.ts' --write"
