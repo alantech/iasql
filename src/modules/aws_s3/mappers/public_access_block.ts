@@ -46,9 +46,10 @@ export class PublicAccessBlockMapper extends MapperBase<PublicAccessBlock> {
     },
     read: async (ctx: Context, id?: string) => {
       const out: PublicAccessBlock[] = [];
-      const buckets = Object.values(ctx.memo?.cloud?.Bucket)
-        ? Object.values(ctx.memo?.cloud?.Bucket)
-        : await this.module.bucket.cloud.read(ctx);
+      const buckets =
+        ctx.memo?.cloud?.Bucket && Object.values(ctx.memo?.cloud?.Bucket).length
+          ? Object.values(ctx.memo?.cloud?.Bucket)
+          : await this.module.bucket.cloud.read(ctx);
 
       if (!!id) {
         const bucket = buckets.find((b: Bucket) => b.name === id);
