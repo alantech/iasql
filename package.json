@@ -21,6 +21,7 @@
     "gen-module": "IASQL_ENV=ci ./.module_migration.sh",
     "docker-build": "docker build -t iasql:latest .",
     "docker-run": "docker run -e IASQL_ENV=local -p 5432:5432 --name iasql iasql:latest",
+    "docker-run:detach": "docker run -d -e IASQL_ENV=local -p 5432:5432 --name iasql iasql:latest",
     "docker-run-vol": "docker run -e IASQL_ENV=local -p 5432:5432 -v $(dirname $PWD)/db:/var/lib/postgresql/14/main --name iasql iasql:latest",
     "version": "./.version.sh",
     "develop": "./.develop.sh",
