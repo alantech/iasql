@@ -58,8 +58,13 @@ export class PublicAccessBlockMapper extends MapperBase<PublicAccessBlock> {
 
       await Promise.all(
         buckets.map(async (bucket: Bucket) => {
-          const publicAccessBlock = await this.getPublicAccessBlockForBucket(ctx, bucket);
-          out.push(publicAccessBlock);
+          let publicAccessBlock;
+          try {
+            publicAccessBlock = await this.getPublicAccessBlockForBucket(ctx, bucket);
+            out.push(publicAccessBlock);
+          } catch (_) {
+            // it'll raise in case there's no public access block
+          }
         }),
       );
       return out;
