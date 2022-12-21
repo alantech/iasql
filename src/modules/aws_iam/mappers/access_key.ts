@@ -70,29 +70,32 @@ export class AccessKeyMapper extends MapperBase<AccessKey> {
         const { keyId, user } = this.idFields(id);
         console.log('user is');
         console.log(user);
-        const keys = await this.getUserKeys(client.iamClient, { UserName: user });
+        const keys = await this.getUserKeys(client.iamClient, user);
 
         if (!keys || keys.length === 0) return undefined;
 
         // search for the matching key
         for (const key of keys) {
-          if (Object.is(key.AccessKeyMetadata.AccessKeyId, keyId))
-            return await this.accessKeyMapper(key, ctx);
+          if (Object.is(key.AccessKeyId, keyId)) return await this.accessKeyMapper(key, ctx);
         }
         return undefined;
       } else {
-        const keys = await this.getAllKeys(client.iamClient);
-        const out = [];
-        if (keys && keys.length > 0) {
-          // add keys
-          for (const key of keys) {
-            if (key.UserName) {
-              // only list the keys associated to an user
+        // list all possible users
+        const users: IamUser[] | undefined = await awsIamModule.user.cloud.read(ctx);
+        if (!users || users.length === 0) return undefined;
+
+        const out: AccessKey[] = [];
+        for (const user of users) {
+          const keys = await this.getUserKeys(client.iamClient, user.userName);
+          if (keys && keys.length > 0) {
+            // add keys
+            for (const key of keys) {
               const mappedKey = await this.accessKeyMapper(key, ctx);
               if (mappedKey) out.push(mappedKey);
             }
           }
         }
+        console.log(out);
         return out;
       }
     },

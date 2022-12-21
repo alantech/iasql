@@ -16,7 +16,7 @@ import { Context, RpcBase, RpcResponseObject } from '../../interfaces';
  *
  * @example
  * ```sql TheButton[Request an IAM User Access Key]="Request an IAM User Access Key"
- * SELECT * FROM access_key_request ('user');
+ * SELECT * FROM access_key_request('user');
  * ```
  *
  * @see https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html
