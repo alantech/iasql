@@ -99,9 +99,9 @@ export async function disconnect(dbAlias: string, uid: string) {
       name: db.pgName,
       database: db.pgName,
     });
+    // Try to open a transaction to avoid issues with running cron job
+    await maybeOpenTransaction(conn2);
     try {
-      // Try to open a transaction to avoid issues with running cron job
-      await maybeOpenTransaction(conn2);
       await conn2.query(`SELECT * FROM query_cron('unschedule');`);
       await conn2.query(`SELECT * FROM query_cron('unschedule_purge');`);
     } catch (e) {
