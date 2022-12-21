@@ -65,8 +65,6 @@ export class AccessKeyMapper extends MapperBase<AccessKey> {
       const client = (await ctx.getAwsClient()) as AWS;
 
       if (id) {
-        console.log('i have id');
-        console.log(id);
         const { keyId, user } = this.idFields(id);
         const keys = await this.getUserKeys(client.iamClient, user);
 
@@ -93,6 +91,7 @@ export class AccessKeyMapper extends MapperBase<AccessKey> {
             }
           }
         }
+        console.log(out);
         return out;
       }
     },
