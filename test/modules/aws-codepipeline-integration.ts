@@ -123,7 +123,7 @@ const stages = JSON.stringify([
           Owner: 'iasql',
           Repo: 'iasql-codedeploy-example',
           Branch: 'main',
-          OAuthToken: `${process.env.GH_PAT}`,
+          // OAuthToken: `${process.env.GH_PAT}`,
         },
         outputArtifacts: [
           {
