@@ -135,7 +135,7 @@ describe('RouteTable Integration Testing', () => {
     query(
       `
       INSERT INTO subnet (availability_zone, vpc_id, cidr_block, region)
-      SELECT '${region}a', id, '10.${randIPBlock}.1.0/24', '${region}'
+      SELECT (SELECT name FROM availability_zone WHERE region = '${region}' ORDER BY 1 DESC LIMIT 1), id, '10.${randIPBlock}.1.0/24', '${region}'
       FROM vpc
       WHERE tags ->> 'name' = '${prefix}';
   `,
@@ -200,7 +200,7 @@ describe('RouteTable Integration Testing', () => {
               (SELECT id
                FROM subnet
                WHERE cidr_block = '10.${randIPBlock}.1.0/24'
-                 AND availability_zone = '${region}a'));
+                 AND availability_zone = (SELECT name FROM availability_zone WHERE region = '${region}' ORDER BY 1 DESC LIMIT 1)));
   `,
       undefined,
       true,
