@@ -7,8 +7,8 @@ export const IASQL_ENV = process.env.IASQL_ENV;
 // needs to be dynamically `require`d.
 if (!['production', 'staging', 'local', 'test', 'ci', 'bootstrap'].includes(IASQL_ENV ?? ''))
   throwError(`Invalid environment ${IASQL_ENV}`);
-// tslint:disable-next-line:no-var-requires
 const config: ConfigObj = {
+  // tslint:disable-next-line:no-var-requires
   ...require(`./${IASQL_ENV}`).default,
   version: '0.0.23-beta',
 };
