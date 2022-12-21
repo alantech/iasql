@@ -284,7 +284,7 @@ export class EndpointInterfaceMapper extends MapperBase<EndpointInterface> {
             if (oldSubnetIds.length) {
               input.RemoveSubnetIds = oldSubnetIds;
             }
-            if (oldSubnetIds.length) {
+            if (newSubnetIds.length) {
               input.AddSubnetIds = newSubnetIds;
             }
             await modifyVpcEndpoint(client.ec2client, input);
