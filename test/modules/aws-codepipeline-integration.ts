@@ -123,7 +123,7 @@ const stages = JSON.stringify([
           Owner: 'iasql',
           Repo: 'iasql-codedeploy-example',
           Branch: 'main',
-          // OAuthToken: `${process.env.GH_PAT}`,
+          OAuthToken: `${process.env.GH_PAT}`,
         },
         outputArtifacts: [
           {
@@ -458,9 +458,9 @@ describe('AwsCodepipeline Integration Testing', () => {
     }
   });
 
-  it('uninstalls the codepipeline module', uninstall(modules));
+  // it('uninstalls the codepipeline module', uninstall(modules));
 
-  it('installs the codepipeline module', install(modules));
+  // it('installs the codepipeline module', install(modules));
 
   it('starts a transaction', begin());
 
@@ -572,39 +572,35 @@ describe('AwsCodepipeline Integration Testing', () => {
 
   it('apply deletions', commit());
 
-  describe('delete security groups and rules', () => {
-    it('starts a transaction', begin());
+  // describe('delete security groups and rules', () => {
+  //   it('starts a transaction', begin());
 
-    it(
-      'deletes security group rules',
-      query(
-        `
-        DELETE FROM security_group_rule WHERE description='${prefix}codedeploy_rule_ssh' or description='${prefix}codedeploy_rule_http' or description='${prefix}codedeploy_rule_egress';
-      `,
-        undefined,
-        true,
-        () => ({ username, password }),
-      ),
-    );
+  //   it(
+  //     'deletes security group rules',
+  //     query(
+  //       `
+  //       DELETE FROM security_group_rule WHERE description='${prefix}codedeploy_rule_ssh' or description='${prefix}codedeploy_rule_http' or description='${prefix}codedeploy_rule_egress';
+  //     `,
+  //       undefined,
+  //       true,
+  //       () => ({ username, password }),
+  //     ),
+  //   );
 
-    it(
-      'deletes security group',
-      query(
-        `
-        DELETE FROM security_group WHERE group_name = '${sgGroupName}';
-      `,
-        undefined,
-        true,
-        () => ({ username, password }),
-      ),
-    );
+  //   it(
+  //     'deletes security group',
+  //     query(
+  //       `
+  //       DELETE FROM security_group WHERE group_name = '${sgGroupName}';
+  //     `,
+  //       undefined,
+  //       true,
+  //       () => ({ username, password }),
+  //     ),
+  //   );
 
-    it('applies the security group deletion', commit());
-  });
-
-  it('starts a transaction', begin());
-
-  it('apply delete', commit());
+  //   it('applies the security group deletion', commit());
+  // });
 
   it(
     'check pipeline list is empty',
@@ -631,61 +627,61 @@ describe('AwsCodepipeline Integration Testing', () => {
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 });
 
-describe('AwsCodepipeline install/uninstall', () => {
-  it('creates a new test db', done => {
-    (async () => {
-      try {
-        const { user, password: pgPassword } = await iasql.connect(dbAlias, 'not-needed', 'not-needed');
-        username = user;
-        password = pgPassword;
-        if (!username || !password) throw new Error('Did not fetch pg credentials');
-        done();
-      } catch (e) {
-        done(e);
-      }
-    })();
-  });
+// describe('AwsCodepipeline install/uninstall', () => {
+//   it('creates a new test db', done => {
+//     (async () => {
+//       try {
+//         const { user, password: pgPassword } = await iasql.connect(dbAlias, 'not-needed', 'not-needed');
+//         username = user;
+//         password = pgPassword;
+//         if (!username || !password) throw new Error('Did not fetch pg credentials');
+//         done();
+//       } catch (e) {
+//         done(e);
+//       }
+//     })();
+//   });
 
-  it('installs the aws_account module', install(['aws_account']));
+//   it('installs the aws_account module', install(['aws_account']));
 
-  it(
-    'inserts aws credentials',
-    query(
-      `
-    INSERT INTO aws_credentials (access_key_id, secret_access_key)
-    VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
-  `,
-      undefined,
-      false,
-      () => ({ username, password }),
-    ),
-  );
+//   it(
+//     'inserts aws credentials',
+//     query(
+//       `
+//     INSERT INTO aws_credentials (access_key_id, secret_access_key)
+//     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
+//   `,
+//       undefined,
+//       false,
+//       () => ({ username, password }),
+//     ),
+//   );
 
-  it('starts a transaction', begin());
+//   it('starts a transaction', begin());
 
-  it('syncs the regions', commit());
+//   it('syncs the regions', commit());
 
-  it(
-    'sets the default region',
-    query(
-      `
-    UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
-  `,
-      undefined,
-      true,
-      () => ({ username, password }),
-    ),
-  );
+//   it(
+//     'sets the default region',
+//     query(
+//       `
+//     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
+//   `,
+//       undefined,
+//       true,
+//       () => ({ username, password }),
+//     ),
+//   );
 
-  it('installs the codepipeline module', install(modules));
+//   it('installs the codepipeline module', install(modules));
 
-  it('uninstalls the codepipeline module', uninstall(modules));
+//   it('uninstalls the codepipeline module', uninstall(modules));
 
-  it('installs all modules', installAll());
+//   it('installs all modules', installAll());
 
-  it('uninstalls the codepipeline module', uninstall(['aws_codepipeline']));
+//   it('uninstalls the codepipeline module', uninstall(['aws_codepipeline']));
 
-  it('installs the codepipeline module', install(modules));
+//   it('installs the codepipeline module', install(modules));
 
-  it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
-});
+//   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
+// });
