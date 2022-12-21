@@ -63,7 +63,6 @@ const uninstall = runUninstall.bind(null, dbAlias);
 const region = defaultRegion();
 const modules = ['aws_lambda'];
 
-const availabilityZone = `${region}a`;
 const randIPBlock = Math.floor(Math.random() * 254) + 1; // 0 collides with the default CIDR block
 
 jest.setTimeout(480000);
@@ -360,7 +359,7 @@ describe('Lambda Integration Testing', () => {
     query(
       `
     INSERT INTO subnet (availability_zone, vpc_id, cidr_block, region)
-    SELECT '${availabilityZone}', id, '192.${randIPBlock}.0.0/16', '${region}'
+    SELECT (SELECT name FROM availability_zone WHERE region = '${region}' LIMIT 1), id, '192.${randIPBlock}.0.0/16', '${region}'
     FROM vpc
     WHERE cidr_block = '192.${randIPBlock}.0.0/16' and region='${region}' limit 1;
   `,
