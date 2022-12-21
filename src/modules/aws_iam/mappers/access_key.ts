@@ -48,6 +48,8 @@ export class AccessKeyMapper extends MapperBase<AccessKey> {
     UserName => ({ UserName }),
   );
 
+  getAllKeys = paginateBuilder<IAM>(paginateListAccessKeys, 'AccessKeyMetadata');
+
   async deleteAccessKey(client: IAM, userName: string, keyId: string) {
     await client.deleteAccessKey({ UserName: userName, AccessKeyId: keyId });
   }
@@ -63,7 +65,11 @@ export class AccessKeyMapper extends MapperBase<AccessKey> {
       const client = (await ctx.getAwsClient()) as AWS;
 
       if (id) {
+        console.log('i have id');
+        console.log(id);
         const { keyId, user } = this.idFields(id);
+        console.log('user is');
+        console.log(user);
         const keys = await this.getUserKeys(client.iamClient, { UserName: user });
 
         if (!keys || keys.length === 0) return undefined;
@@ -71,21 +77,18 @@ export class AccessKeyMapper extends MapperBase<AccessKey> {
         // search for the matching key
         for (const key of keys) {
           if (Object.is(key.AccessKeyMetadata.AccessKeyId, keyId))
-            return await this.accessKeyMapper(key.AccessKeyMetadata, ctx);
+            return await this.accessKeyMapper(key, ctx);
         }
         return undefined;
       } else {
-        // list all possible users
-        const users: IamUser[] | undefined = await awsIamModule.user.cloud.read(ctx);
-        if (!users || users.length === 0) return undefined;
-
-        const out: AccessKey[] = [];
-        for (const user of users) {
-          const keys = await this.getUserKeys(client.iamClient, { UserName: user.userName });
-          if (keys && keys.length > 0) {
-            // add keys
-            for (const key of keys) {
-              const mappedKey = await this.accessKeyMapper(key.AccessKeyMetadata, ctx);
+        const keys = await this.getAllKeys(client.iamClient);
+        const out = [];
+        if (keys && keys.length > 0) {
+          // add keys
+          for (const key of keys) {
+            if (key.UserName) {
+              // only list the keys associated to an user
+              const mappedKey = await this.accessKeyMapper(key, ctx);
               if (mappedKey) out.push(mappedKey);
             }
           }
