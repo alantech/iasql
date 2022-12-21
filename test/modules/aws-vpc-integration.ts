@@ -50,7 +50,6 @@ const region = defaultRegion();
 // since the `aws_vpc` module creates a `default` security group automatically.
 const modules = ['aws_vpc', 'aws_security_group'];
 
-const availabilityZone = `${region}a`;
 const randIPBlock = Math.floor(Math.random() * 254) + 1; // 0 collides with the default CIDR block
 
 jest.setTimeout(360000);
@@ -198,7 +197,7 @@ describe('VPC Integration Testing', () => {
     query(
       `
     INSERT INTO subnet (availability_zone, vpc_id, cidr_block)
-    SELECT '${availabilityZone}', id, '192.${randIPBlock}.0.0/16'
+    SELECT (SELECT name FROM availability_zone WHERE region = '${region}' LIMIT 1), id, '192.${randIPBlock}.0.0/16'
     FROM vpc
     WHERE is_default = false
     AND cidr_block = '192.${randIPBlock}.0.0/16';
