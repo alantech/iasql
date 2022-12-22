@@ -79,7 +79,7 @@ export class AccessKey {
    * @public
    * Reference to the user for this record
    */
-  @ManyToOne(() => IamUser, { nullable: false })
+  @ManyToOne(() => IamUser, { nullable: false, eager: true })
   @JoinColumn({
     name: 'user_name',
   })
