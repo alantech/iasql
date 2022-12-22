@@ -2,8 +2,8 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
 
 import config from '../config';
 
-export class newRecords1670356536231 implements MigrationInterface {
-  name = 'newRecords1670356536231';
+export class newRecords1670956536231 implements MigrationInterface {
+  name = 'newRecords1670956536231';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`ALTER TABLE "iasql_database" DROP COLUMN "operation_count"`);
