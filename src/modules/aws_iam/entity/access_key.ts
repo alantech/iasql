@@ -86,5 +86,6 @@ export class AccessKey {
   @JoinColumn({
     name: 'user_name',
   })
+  @cloudId
   user: IamUser;
 }
