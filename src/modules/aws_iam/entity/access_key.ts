@@ -79,10 +79,7 @@ export class AccessKey {
    * @public
    * Reference to the user for this record
    */
-  @ManyToOne(() => IamUser, {
-    cascade: true,
-    eager: true,
-  })
+  @ManyToOne(() => IamUser, { nullable: false })
   @JoinColumn({
     name: 'user_name',
   })

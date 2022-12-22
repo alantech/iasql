@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class awsIam1671659720979 implements MigrationInterface {
-  name = 'awsIam1671659720979';
+export class awsIam1671701535684 implements MigrationInterface {
+  name = 'awsIam1671701535684';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
@@ -9,7 +9,7 @@ export class awsIam1671659720979 implements MigrationInterface {
     );
     await queryRunner.query(`CREATE TYPE "public"."access_key_status_enum" AS ENUM('Active', 'Inactive')`);
     await queryRunner.query(
-      `CREATE TABLE "access_key" ("id" SERIAL NOT NULL, "access_key_id" character varying NOT NULL, "create_date" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "status" "public"."access_key_status_enum", "user_name" character varying, CONSTRAINT "PK_8bff331b150893bb5833f6e5675" PRIMARY KEY ("id"))`,
+      `CREATE TABLE "access_key" ("id" SERIAL NOT NULL, "access_key_id" character varying NOT NULL, "create_date" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "status" "public"."access_key_status_enum", "user_name" character varying NOT NULL, CONSTRAINT "PK_8bff331b150893bb5833f6e5675" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
       `CREATE TABLE "iam_user" ("arn" character varying, "user_name" character varying NOT NULL, "create_date" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "path" character varying, "user_id" character varying, "attached_policies_arns" text array, CONSTRAINT "PK_3c2bdde602dd518cb7495880609" PRIMARY KEY ("user_name"))`,
