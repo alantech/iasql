@@ -6,7 +6,7 @@ import { createConnection } from 'typeorm';
 import { promisify } from 'util';
 
 import { IasqlDatabase } from '../entity';
-import { maybeOpenTransaction } from '../modules/iasql_functions/iasql';
+import { isCommitRunning, maybeOpenTransaction } from '../modules/iasql_functions/iasql';
 import * as dbMan from './db-manager';
 import logger from './logger';
 import MetadataRepo from './repositories/metadata';
@@ -96,15 +96,18 @@ export async function disconnect(dbAlias: string, uid: string) {
     conn = await createConnection(dbMan.baseConnConfig);
     conn2 = await TypeormWrapper.createConn(db.pgName, {
       ...dbMan.baseConnConfig,
-      name: db.pgName,
       database: db.pgName,
     });
-    // Try to open a transaction to avoid issues with running cron job
-    await maybeOpenTransaction(conn2);
     try {
+      // If commit is running we should try to wait until it finish to avoid misconfigurations in the cloud
+      // but it is not a blocker to disconnect
+      const commitRunning = await isCommitRunning(conn2);
+      if (commitRunning) {
+        await maybeOpenTransaction(conn2);
+      }
       await conn2.query(`SELECT * FROM query_cron('unschedule');`);
       await conn2.query(`SELECT * FROM query_cron('unschedule_purge');`);
-    } catch (e) {
+    } catch (_) {
       /** Do nothing */
     }
     await conn.query(`
