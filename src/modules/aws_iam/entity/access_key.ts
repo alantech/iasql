@@ -32,8 +32,8 @@ export enum accessKeyStatusEnum {
  *
  * @example
  * ```sql TheButton[Manage Access Keys]="Manage Access Keys"
- * SELECT * FROM access_key WHERE user='user';
- * DELETE FROM access_key WHERE name = 'user';
+ * SELECT * FROM access_key WHERE user_name='user';
+ * DELETE FROM access_key WHERE user_name = 'user';
  * ```
  *
  * @see https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html
