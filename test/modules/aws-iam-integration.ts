@@ -865,6 +865,48 @@ describe('IAM User Integration Testing', () => {
     ),
   );
 
+  it(
+    'generates an user password',
+    query(
+      `
+    SELECT *
+    FROM set_user_password('${userName}', 'P4ssP4ss', 'true');
+  `,
+      (res: any[]) => {
+        expect(res.length).toBe(1);
+        expect(res[0].status).toBe('OK');
+      },
+    ),
+  );
+
+  it(
+    'updates an user password',
+    query(
+      `
+    SELECT *
+    FROM set_user_password('${userName}', 'P4ssp4ss', 'false');
+  `,
+      (res: any[]) => {
+        expect(res.length).toBe(1);
+        expect(res[0].status).toBe('OK');
+      },
+    ),
+  );
+
+  it(
+    'deletes an user password',
+    query(
+      `
+    SELECT *
+    FROM set_user_password('${userName}', '');
+  `,
+      (res: any[]) => {
+        expect(res.length).toBe(1);
+        expect(res[0].status).toBe('OK');
+      },
+    ),
+  );
+
   it('starts a transaction', begin());
 
   it(
