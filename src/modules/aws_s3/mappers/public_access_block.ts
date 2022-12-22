@@ -40,9 +40,12 @@ export class PublicAccessBlockMapper extends MapperBase<PublicAccessBlock> {
 
   cloud = new Crud2<PublicAccessBlock>({
     create: async (es: PublicAccessBlock[], ctx: Context) => {
-      // can't create two public access blocks for a bucket
-      await this.module.publicAccessBlock.db.delete(es, ctx);
-      return [];
+      const out = [];
+      for (const e of es) {
+        await this.savePublicAccessBlock(ctx, e);
+        out.push(e);
+      }
+      return out;
     },
     read: async (ctx: Context, id?: string) => {
       const out: PublicAccessBlock[] = [];
@@ -58,9 +61,8 @@ export class PublicAccessBlockMapper extends MapperBase<PublicAccessBlock> {
 
       await Promise.all(
         buckets.map(async (bucket: Bucket) => {
-          let publicAccessBlock;
           try {
-            publicAccessBlock = await this.getPublicAccessBlockForBucket(ctx, bucket);
+            const publicAccessBlock = await this.getPublicAccessBlockForBucket(ctx, bucket);
             out.push(publicAccessBlock);
           } catch (_) {
             // it'll raise in case there's no public access block
@@ -73,27 +75,36 @@ export class PublicAccessBlockMapper extends MapperBase<PublicAccessBlock> {
     update: async (es: PublicAccessBlock[], ctx: Context) => {
       const out = [];
       for (const e of es) {
-        const client = (await ctx.getAwsClient(e.bucket.region)) as AWS;
-        await client.s3Client.putPublicAccessBlock({
-          Bucket: e.bucketName,
-          PublicAccessBlockConfiguration: {
-            BlockPublicAcls: e.BlockPublicAcls,
-            IgnorePublicAcls: e.IgnorePublicAcls,
-            BlockPublicPolicy: e.BlockPublicPolicy,
-            RestrictPublicBuckets: e.RestrictPublicBuckets,
-          },
-        });
+        await this.savePublicAccessBlock(ctx, e);
         out.push(e);
       }
       return out;
     },
     delete: async (es: PublicAccessBlock[], ctx: Context) => {
-      // can't delete it manually, the bucket should be removed
-      const out = await this.module.publicAccessBlock.db.create(es, ctx);
-      if (!out || out instanceof Array) return out;
-      return [out];
+      const out: PublicAccessBlock[] = [];
+      for (const e of es) {
+        const client = (await ctx.getAwsClient(e.bucket.region)) as AWS;
+        await client.s3Client.deletePublicAccessBlock({
+          Bucket: e.bucketName,
+        });
+        out.push(e);
+      }
+      return out;
     },
   });
+
+  private async savePublicAccessBlock(ctx: Context, e: PublicAccessBlock) {
+    const client = (await ctx.getAwsClient(e.bucket.region)) as AWS;
+    await client.s3Client.putPublicAccessBlock({
+      Bucket: e.bucketName,
+      PublicAccessBlockConfiguration: {
+        BlockPublicAcls: e.BlockPublicAcls,
+        IgnorePublicAcls: e.IgnorePublicAcls,
+        BlockPublicPolicy: e.BlockPublicPolicy,
+        RestrictPublicBuckets: e.RestrictPublicBuckets,
+      },
+    });
+  }
 
   constructor(module: AwsS3Module) {
     super();
