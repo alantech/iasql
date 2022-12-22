@@ -24,6 +24,8 @@ import { SecretsManager } from '@aws-sdk/client-secrets-manager';
 import { SSM } from '@aws-sdk/client-ssm';
 import { defaultRetryDecider, StandardRetryStrategy } from '@aws-sdk/middleware-retry';
 
+import { IASQL_ENV } from '../config';
+
 type AWSCreds = {
   accessKeyId: string;
   secretAccessKey: string;
@@ -81,17 +83,19 @@ export class AWS {
   codeBuildRetryStrategy: StandardRetryStrategy;
 
   constructor(config: AWSConfig) {
-    // declare an specific slow retry strategy, to reuse in slow apis
+    // declare a specific slow retry strategy, to reuse in slow apis
     this.slowRetryStrategy = new StandardRetryStrategy(async () => SLOW_STRATEGY_RETRIES, {
       retryDecider: error => {
         // copied the default behavior from aws-sdk to fix the problem caused by Jest on isRetryableByTrait
         if (!error) {
           return false;
         }
-        if (!error.message.includes('AWS SDK error wrapper'))
-          // default behavior when running outside Jest
-          return defaultRetryDecider(error);
-        else return true; // jest has messed the error object
+        if (IASQL_ENV === 'test' && error.message.includes('AWS SDK error wrapper')) {
+          // jest has messed the error object
+          return true;
+        }
+        // default behavior when running outside Jest
+        return defaultRetryDecider(error);
       },
       delayDecider: (_, attempts) =>
         Math.floor(
