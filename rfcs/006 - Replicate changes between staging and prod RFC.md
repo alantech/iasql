@@ -64,7 +64,7 @@ The new import sync functionality described in #3 would expand the mapper defini
 
 ### 3. Interactive `git rebase` style sync
 
-Similar to option 2, but when conflict arises prompt the user to handle the merge conflicts between the two cloud accounts or databases interactively. The PostgreSQL REPL doesn't allow interactive input so that would have to happen using a two-phase process via an interim table or the dashboard. This option requires a lot of resources to implement out of the gate. The current proposal and if this workflow proves to be primordial to users we can eventually prioritize it.
+Similar to option 2, but when conflict arises prompt the user to handle the merge conflicts between the two cloud accounts or databases interactively. The PostgreSQL REPL doesn't allow interactive input so that would have to happen using a two-phase process via an interim table or the dashboard. This option requires a lot of resources to implement out of the gate. The current proposal and this workflow are compatible, so if this proves to be important to users we can eventually prioritize it.
 
 ### 4. Use existing PostgreSQL data synchronization tools
 
