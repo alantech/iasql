@@ -19,7 +19,7 @@ import * as iasql from '../iasql';
  * SELECT * FROM iasql_uninstall('aws_ec2');
  * ```
  *
- * @see https://github.com/iasql/iasql-engine/blob/main/site/docs/reference/function.md
+ * @see https://iasql.com/docs/module/
  *
  */
 export class IasqlUninstall extends RpcBase {

@@ -19,7 +19,7 @@ import * as iasql from '../iasql';
  * SELECT * FROM iasql_install('aws_ec2');
  * ```
  *
- * @see https://iasql.com/docs/function/
+ * @see https://iasql.com/docs/module/
  *
  */
 export class IasqlInstall extends RpcBase {
