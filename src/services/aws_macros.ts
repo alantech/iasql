@@ -81,22 +81,28 @@ export class AWS {
   memoryDBClient: MemoryDB;
   slowRetryStrategy: StandardRetryStrategy;
   codeBuildRetryStrategy: StandardRetryStrategy;
+  defaultRetryStrategy: StandardRetryStrategy;
 
   constructor(config: AWSConfig) {
+    const jestTunedRetryDecider = (error: any) => {
+      // copied the default behavior from aws-sdk to fix the problem caused by Jest on isRetryableByTrait
+      if (!error) {
+        return false;
+      }
+      if (IASQL_ENV === 'test' && error.message.includes('AWS SDK error wrapper')) {
+        // jest has messed the error object
+        return true;
+      }
+      // default behavior when running outside Jest
+      return defaultRetryDecider(error);
+    };
     // declare a specific slow retry strategy, to reuse in slow apis
+    this.defaultRetryStrategy = new StandardRetryStrategy(async () => 3, {
+      retryDecider: jestTunedRetryDecider,
+    });
+
     this.slowRetryStrategy = new StandardRetryStrategy(async () => SLOW_STRATEGY_RETRIES, {
-      retryDecider: error => {
-        // copied the default behavior from aws-sdk to fix the problem caused by Jest on isRetryableByTrait
-        if (!error) {
-          return false;
-        }
-        if (IASQL_ENV === 'test' && error.message.includes('AWS SDK error wrapper')) {
-          // jest has messed the error object
-          return true;
-        }
-        // default behavior when running outside Jest
-        return defaultRetryDecider(error);
-      },
+      retryDecider: jestTunedRetryDecider,
       delayDecider: (_, attempts) =>
         Math.floor(
           Math.min(
@@ -128,23 +134,23 @@ export class AWS {
       ...config,
       retryStrategy: this.slowRetryStrategy,
     });
-    this.appSyncClient = new AppSync(config);
+    this.appSyncClient = new AppSync({ ...config, retryStrategy: this.defaultRetryStrategy });
     this.cloudfrontClient = new CloudFront(config);
     this.cbClient = new CodeBuild({
       credentials: config.credentials,
       region: config.region,
       retryStrategy: this.codeBuildRetryStrategy,
     });
-    this.cdClient = new CodeDeploy(config);
-    this.cpClient = new CodePipeline(config);
-    this.cwClient = new CloudWatchLogs(config);
+    this.cdClient = new CodeDeploy({ ...config, retryStrategy: this.defaultRetryStrategy });
+    this.cpClient = new CodePipeline({ ...config, retryStrategy: this.defaultRetryStrategy });
+    this.cwClient = new CloudWatchLogs({ ...config, retryStrategy: this.defaultRetryStrategy });
     this.cloudwatchClient = new CloudWatch(config);
-    this.dynamoClient = new DynamoDB(config);
-    this.elasticacheClient = new ElastiCache(config);
-    this.ec2client = new EC2(config);
-    this.ecrClient = new ECR(config);
-    this.ecsClient = new ECS(config);
-    this.elbClient = new ElasticLoadBalancingV2(config);
+    this.dynamoClient = new DynamoDB({ ...config, retryStrategy: this.defaultRetryStrategy });
+    this.elasticacheClient = new ElastiCache({ ...config, retryStrategy: this.defaultRetryStrategy });
+    this.ec2client = new EC2({ ...config, retryStrategy: this.defaultRetryStrategy });
+    this.ecrClient = new ECR({ ...config, retryStrategy: this.defaultRetryStrategy });
+    this.ecsClient = new ECS({ ...config, retryStrategy: this.defaultRetryStrategy });
+    this.elbClient = new ElasticLoadBalancingV2({ ...config, retryStrategy: this.defaultRetryStrategy });
     this.iamClient = new IAM({
       credentials: config.credentials,
       region: config.region,
@@ -154,14 +160,18 @@ export class AWS {
       ...config,
       retryStrategy: this.slowRetryStrategy,
     });
-    this.rdsClient = new RDS(config);
-    this.route53Client = new Route53(config);
-    this.secretsClient = new SecretsManager(config);
-    this.ssmClient = new SSM(config);
-    this.memoryDBClient = new MemoryDB(config);
-    this.s3Client = new S3(config);
+    this.rdsClient = new RDS({ ...config, retryStrategy: this.defaultRetryStrategy });
+    this.route53Client = new Route53({ ...config, retryStrategy: this.defaultRetryStrategy });
+    this.secretsClient = new SecretsManager({ ...config, retryStrategy: this.defaultRetryStrategy });
+    this.ssmClient = new SSM({ ...config, retryStrategy: this.defaultRetryStrategy });
+    this.memoryDBClient = new MemoryDB({ ...config, retryStrategy: this.defaultRetryStrategy });
+    this.s3Client = new S3({ ...config, retryStrategy: this.defaultRetryStrategy });
     // Service endpoint only available in 'us-east-1' https://docs.aws.amazon.com/general/latest/gr/ecr-public.html
-    this.ecrPubClient = new ECRPUBLIC({ credentials: config.credentials, region: 'us-east-1' });
+    this.ecrPubClient = new ECRPUBLIC({
+      credentials: config.credentials,
+      region: 'us-east-1',
+      retryStrategy: this.defaultRetryStrategy,
+    });
   }
 }
 
