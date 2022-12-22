@@ -1,5 +1,5 @@
 import { ModuleBase } from '../interfaces';
-import { BucketMapper, BucketObjectMapper, PublicAccessBlockMapper } from './mappers';
+import { BucketMapper, BucketObjectMapper, BucketWebsiteMapper, PublicAccessBlockMapper } from './mappers';
 import { S3UploadObjectRpc } from './rpcs';
 
 export class AwsS3Module extends ModuleBase {
@@ -15,12 +15,16 @@ export class AwsS3Module extends ModuleBase {
   /** @internal */
   publicAccessBlock: PublicAccessBlockMapper;
 
+  /** @internal */
+  bucketWebsite: BucketWebsiteMapper;
+
   constructor() {
     super();
     this.bucket = new BucketMapper(this);
     this.bucketObject = new BucketObjectMapper(this);
     this.s3UploadObject = new S3UploadObjectRpc(this);
     this.publicAccessBlock = new PublicAccessBlockMapper(this);
+    this.bucketWebsite = new BucketWebsiteMapper(this);
     super.init();
   }
 }
