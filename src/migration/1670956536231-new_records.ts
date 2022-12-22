@@ -51,7 +51,7 @@ export class newRecords1670956536231 implements MigrationInterface {
           return query select
             s."user", s."password", s.recordCount as record_count, s.recordsApplied as records_applied, s.recordsSynced as records_synced, s.alias, s.id
           from json_to_record(_content::json) as s(
-            "user" varchar, "password" varchar, recordCount int, recordsSynced int, recordsSynced int, alias varchar, id varchar
+            "user" varchar, "password" varchar, recordCount int, recordsApplied int, recordsSynced int, alias varchar, id varchar
           );
         else
           raise exception 'Bad response %', _content;

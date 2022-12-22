@@ -46,8 +46,8 @@ export async function logEvent(uid: string, event: string, dbProps: DbProps, eve
             event !== DISCONNECT
               ? {
                   [`record_count__${dbProps.dbAlias}`]: dbProps.recordCount,
-                  [`records_applied__${dbProps.dbAlias}`]: dbProps.recordCount,
-                  [`records_synced__${dbProps.dbAlias}`]: dbProps.recordCount,
+                  [`records_applied__${dbProps.dbAlias}`]: dbProps.recordsApplied,
+                  [`records_synced__${dbProps.dbAlias}`]: dbProps.recordsSynced,
                   [`version__${dbProps.dbAlias}`]: dbProps.dbVersion,
                 }
               : {},
