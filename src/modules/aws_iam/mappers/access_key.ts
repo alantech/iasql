@@ -105,7 +105,7 @@ export class AccessKeyMapper extends MapperBase<AccessKey> {
       const client = (await ctx.getAwsClient()) as AWS;
 
       for (const e of es) {
-        const cloudRecord = ctx?.memo?.cloud?.accessKey?.[this.entityId(e)];
+        const cloudRecord = ctx?.memo?.cloud?.AccessKey?.[this.entityId(e)];
 
         const isUpdate = this.module.accessKey.cloud.updateOrReplace(cloudRecord, e) === 'update';
         if (isUpdate) {

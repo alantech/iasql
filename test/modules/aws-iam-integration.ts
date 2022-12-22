@@ -126,7 +126,7 @@ afterAll(async () => await execComposeDown());
 
 let username: string, password: string;
 
-/*describe('IAM Role Integration Testing', () => {
+describe('IAM Role Integration Testing', () => {
   it('creates a new test db', done => {
     (async () => {
       try {
@@ -757,7 +757,7 @@ let username: string, password: string;
   });
 
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
-});*/
+});
 
 describe('IAM User Integration Testing', () => {
   it('creates a new test db', done => {
@@ -1074,7 +1074,7 @@ describe('IAM User Integration Testing', () => {
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 });
 
-/*describe('IAM install/uninstall', () => {
+describe('IAM install/uninstall', () => {
   it('creates a new test db', done => {
     (async () => {
       try {
@@ -1144,4 +1144,4 @@ describe('IAM User Integration Testing', () => {
   it('installs the IAM module', install(modules));
 
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
-});*/
+});
