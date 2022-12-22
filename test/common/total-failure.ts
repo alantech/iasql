@@ -124,19 +124,6 @@ describe('Testing failure path', () => {
     }); // Ignore failure
   });
 
-  it(
-    'delete instances created and close the transaction',
-    query(
-      `
-        DELETE FROM instance;
-        SELECT * FROM iasql_commit();
-      `,
-      undefined,
-      true,
-      () => ({ username, password }),
-    ),
-  );
-
   // Fail on upgrade
   /* it('fails to upgrade database (as it is up-to-date already)', done => {
     query(`
