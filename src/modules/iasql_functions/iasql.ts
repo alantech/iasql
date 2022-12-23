@@ -752,6 +752,8 @@ async function realRollback(
   for (const q of inverseQueries) {
     try {
       await orm.query(q);
+      const res = await orm.query('select * from instance;');
+      console.log(`+-+ is inserting with a new id, I'm sure ${JSON.stringify(res)}`);
     } catch (e) {
       console.log(`+-+ is the query execution failing with ${JSON.stringify(e)}`);
     }
