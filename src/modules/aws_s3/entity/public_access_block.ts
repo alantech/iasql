@@ -24,7 +24,7 @@ export class PublicAccessBlock {
   @Column({
     default: true,
   })
-  BlockPublicAcls?: boolean;
+  blockPublicAcls?: boolean;
 
   /**
    * @public
@@ -33,7 +33,7 @@ export class PublicAccessBlock {
   @Column({
     default: true,
   })
-  IgnorePublicAcls?: boolean;
+  ignorePublicAcls?: boolean;
 
   /**
    * @public
@@ -42,7 +42,7 @@ export class PublicAccessBlock {
   @Column({
     default: true,
   })
-  BlockPublicPolicy?: boolean;
+  blockPublicPolicy?: boolean;
 
   /**
    * @public
@@ -51,7 +51,7 @@ export class PublicAccessBlock {
   @Column({
     default: true,
   })
-  RestrictPublicBuckets?: boolean;
+  restrictPublicBuckets?: boolean;
 
   /**
    * @public

@@ -21,20 +21,20 @@ export class PublicAccessBlockMapper extends MapperBase<PublicAccessBlock> {
 
   publicAccessBlockMapper(rawPublicAccessBlock: AwsPublicAccessBlock, bucket: Bucket) {
     const out: PublicAccessBlock = new PublicAccessBlock();
-    out.BlockPublicAcls = rawPublicAccessBlock.BlockPublicAcls;
-    out.IgnorePublicAcls = rawPublicAccessBlock.IgnorePublicAcls;
-    out.BlockPublicPolicy = rawPublicAccessBlock.BlockPublicPolicy;
-    out.RestrictPublicBuckets = rawPublicAccessBlock.RestrictPublicBuckets;
+    out.blockPublicAcls = rawPublicAccessBlock.BlockPublicAcls;
+    out.ignorePublicAcls = rawPublicAccessBlock.IgnorePublicAcls;
+    out.blockPublicPolicy = rawPublicAccessBlock.BlockPublicPolicy;
+    out.restrictPublicBuckets = rawPublicAccessBlock.RestrictPublicBuckets;
     out.bucket = bucket;
     out.bucketName = bucket.name;
     return out;
   }
 
   equals = (a: PublicAccessBlock, b: PublicAccessBlock) =>
-    a.BlockPublicAcls === b.BlockPublicAcls &&
-    a.IgnorePublicAcls === b.IgnorePublicAcls &&
-    a.BlockPublicPolicy === b.BlockPublicPolicy &&
-    a.RestrictPublicBuckets === b.RestrictPublicBuckets;
+    a.blockPublicAcls === b.blockPublicAcls &&
+    a.ignorePublicAcls === b.ignorePublicAcls &&
+    a.blockPublicPolicy === b.blockPublicPolicy &&
+    a.restrictPublicBuckets === b.restrictPublicBuckets;
 
   getPublicAccessBlock = crudBuilder2<S3, 'getPublicAccessBlock'>('getPublicAccessBlock', input => input);
 
@@ -98,10 +98,10 @@ export class PublicAccessBlockMapper extends MapperBase<PublicAccessBlock> {
     await client.s3Client.putPublicAccessBlock({
       Bucket: e.bucketName,
       PublicAccessBlockConfiguration: {
-        BlockPublicAcls: e.BlockPublicAcls,
-        IgnorePublicAcls: e.IgnorePublicAcls,
-        BlockPublicPolicy: e.BlockPublicPolicy,
-        RestrictPublicBuckets: e.RestrictPublicBuckets,
+        BlockPublicAcls: e.blockPublicAcls,
+        IgnorePublicAcls: e.ignorePublicAcls,
+        BlockPublicPolicy: e.blockPublicPolicy,
+        RestrictPublicBuckets: e.restrictPublicBuckets,
       },
     });
   }
