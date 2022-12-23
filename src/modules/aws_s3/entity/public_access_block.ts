@@ -6,7 +6,7 @@ import { Bucket } from './bucket';
 /**
  * Table to manage AWS S3 bucket public access.
  *
- * A bucket is a container for objects stored in Amazon S3. You can store any number of objects in a bucket and can have up to 100 buckets in your account.
+ * The Amazon S3 Block Public Access feature provides settings for access points, buckets, and accounts to help you manage public access to Amazon S3 resources
  *
  * @example
  * ```sql TheButton[Make the S3 Bucket Public]="Make the S3 Bucket Public"
