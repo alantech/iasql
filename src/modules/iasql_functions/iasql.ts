@@ -926,7 +926,7 @@ async function commitApply(
       }),
       dbId,
     );
-    // Every time we read from db we get possible changes that occured after this commit started
+    // Every time we read from db we get possible changes that occurred after this commit started
     const changesAfterCommitByEntity = await getChangesAfterCommitStartedByEntity(
       context.orm,
       context,
