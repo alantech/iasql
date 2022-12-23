@@ -747,15 +747,15 @@ async function realRollback(
 ) {
   // TODO: TRACK ROLLBACK EVENTS IN AUDIT LOGS
   const changeLogs: IasqlAuditLog[] = await getChangeLogsSinceLastBegin(orm);
-  console.log(`+-+ CHANGE LOGS ${JSON.stringify(changeLogs)}`)
+  console.log(`+-+ ${JSON.stringify(changeLogs)}`);
   const inverseQueries: string[] = await getInverseQueries(changeLogs);
-  console.log(`+-+ inverse query ${inverseQueries.join('\n')}`)
+  console.log(`+-+ inverse query ${inverseQueries.join('\n')}`);
   for (const q of inverseQueries) {
-    console.log(`+-+ inverse query ${q}`)
+    console.log(`+-+ inverse query ${q}`);
     await orm.query(q);
   }
   const changeLogs2: IasqlAuditLog[] = await getChangeLogsSinceLastBegin(orm);
-  console.log(`+-+ CHANGE LOGS 2 ${JSON.stringify(changeLogs2)}`)
+  console.log(`+-+ 2 ${JSON.stringify(changeLogs2)}`);
   await commitApply(dbId, installedModules, ctx, true, crupdes, false);
 }
 
@@ -787,7 +787,7 @@ function getInverseQueries(changeLogs: IasqlAuditLog[]): string[] {
         inverseQuery = `
           DELETE FROM ${cl.tableName}
           WHERE ${Object.entries(cl.change?.change ?? {})
-            .map(([k, v]: [string, any]) => `${k} = ${v}`)
+            .map(([k, v]: [string, any]) => getCondition(k, v))
             .join(' AND ')};
         `;
         break;
@@ -797,7 +797,7 @@ function getInverseQueries(changeLogs: IasqlAuditLog[]): string[] {
           .map((k: string) => k)
           .join(', ')})
           VALUES (${Object.values(cl.change?.original ?? {})
-            .map((v: any) => `${v}`)
+            .map((v: any) => getValue(v))
             .join(', ')});
         `;
         break;
@@ -805,10 +805,10 @@ function getInverseQueries(changeLogs: IasqlAuditLog[]): string[] {
         inverseQuery = `
           UPDATE ${cl.tableName}
           SET ${Object.entries(cl.change?.original ?? {})
-            .map(([k, v]: [string, any]) => `${k} = ${v}`)
+            .map(([k, v]: [string, any]) => `${k} = ${getValue(v)}`)
             .join(', ')}
           WHERE ${Object.entries(cl.change?.change ?? {})
-            .map(([k, v]: [string, any]) => `${k} = ${v}`)
+            .map(([k, v]: [string, any]) => getCondition(k, v))
             .join(' AND ')};
         `;
         break;
@@ -818,6 +818,20 @@ function getInverseQueries(changeLogs: IasqlAuditLog[]): string[] {
     if (inverseQuery) inverseQueries.push(inverseQuery);
   }
   return inverseQueries;
+}
+
+// todo: how to make sure this handle all possible cases?
+function getCondition(k: string, v: any): string {
+  if (typeof v === 'string') return `${k} = '${v}'`;
+  if (v && typeof v === 'object') return `${k}::jsonb = '${v}'::jsonb`;
+  return `${k} = ${v}`;
+}
+
+// todo: how to make sure this handle all possible cases?
+function getValue(v: any): string {
+  if (v && (typeof v === 'string' || (typeof v === 'object' && !Array.isArray(v)))) return `'${v}'`;
+  if (v && typeof v === 'object' && Array.isArray(v)) return `'{${v.join(',')}}'`;
+  return `${v}`;
 }
 
 // TODO: rename
