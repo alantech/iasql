@@ -55,160 +55,153 @@ VALUES ('app_role', '{
 }', array['arn:aws:iam::aws:policy/AWSCodeDeployFullAccess', 'arn:aws:iam::aws:policy/AmazonS3FullAccess', 'arn:aws:iam::aws:policy/AWSCodeDeployFullAccess']);
 
 
-    INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
-    VALUES ('ec2_role', '{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "",
-      "Effect": "Allow",
-      "Principal": {
-        "Service": "ec2.amazonaws.com"
-      },
-      "Action": "sts:AssumeRole"
-    }
-  ]
+INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
+VALUES ('ec2_role', '{
+"Version": "2012-10-17",
+"Statement": [
+{
+  "Sid": "",
+  "Effect": "Allow",
+  "Principal": {
+    "Service": "ec2.amazonaws.com"
+  },
+  "Action": "sts:AssumeRole"
+}
+]
 }', array['arn:aws:iam::aws:policy/AmazonEC2FullAccess', 'arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore', 'arn:aws:iam::aws:policy/AWSCodeDeployFullAccess', 'arn:aws:iam::aws:policy/AmazonS3FullAccess']);
 
-    INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
-    VALUES ('codedeploy_role', '{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "",
-      "Effect": "Allow",
-      "Principal": {
-        "Service": ["codedeploy.amazonaws.com"]
-      },
-      "Action": "sts:AssumeRole"
-    }
-  ]
+INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
+VALUES ('codedeploy_role', '{
+"Version": "2012-10-17",
+"Statement": [
+{
+  "Sid": "",
+  "Effect": "Allow",
+  "Principal": {
+    "Service": ["codedeploy.amazonaws.com"]
+  },
+  "Action": "sts:AssumeRole"
+}
+]
 }', array['arn:aws:iam::aws:policy/AWSCodeDeployFullAccess', 'arn:aws:iam::aws:policy/AmazonEC2FullAccess', 'arn:aws:iam::aws:policy/AmazonS3FullAccess']);
 
-    INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
-    VALUES ('codepipeline_role', '{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "",
-      "Effect": "Allow",
-      "Principal": {
-        "Service": "codepipeline.amazonaws.com"
-      },
-      "Action": "sts:AssumeRole"
-    }
-  ]
+INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
+VALUES ('codepipeline_role', '{
+"Version": "2012-10-17",
+"Statement": [
+{
+  "Sid": "",
+  "Effect": "Allow",
+  "Principal": {
+    "Service": "codepipeline.amazonaws.com"
+  },
+  "Action": "sts:AssumeRole"
+}
+]
 }', array['arn:aws:iam::aws:policy/AWSCodePipeline_FullAccess', 'arn:aws:iam::aws:policy/AmazonS3FullAccess', 'arn:aws:iam::aws:policy/AWSCodeDeployFullAccess']);
 
-    INSERT INTO bucket (name) VALUES ('codedeploy-app-iasql');
+INSERT INTO bucket (name) VALUES ('codedeploy-app-iasql');
 
-
-    INSERT INTO security_group (description, group_name)
-    VALUES ('CodedeploySecurity Group', 'codedeploy');
-
+INSERT INTO security_group (description, group_name)
+VALUES ('CodedeploySecurity Group', 'codedeploy');
     
-    INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
-    SELECT false, 'tcp', 22, 22, '0.0.0.0/0', 'codedeploy_rule_ssh', id
-    FROM security_group
-    WHERE group_name = 'codedeploy';
-    INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
-    SELECT false, 'tcp', 80, 80, '0.0.0.0/0', 'codedeploy_rule_http', id
-    FROM security_group
-    WHERE group_name = 'codedeploy';
-    INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
-    SELECT true, 'tcp', 1, 65335, '0.0.0.0/0', 'codedeploy_rule_egress', id
-    FROM security_group
-    WHERE group_name = 'codedeploy';
+INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
+SELECT false, 'tcp', 22, 22, '0.0.0.0/0', 'codedeploy_rule_ssh', id
+FROM security_group
+WHERE group_name = 'codedeploy';
+INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
+SELECT false, 'tcp', 80, 80, '0.0.0.0/0', 'codedeploy_rule_http', id
+FROM security_group
+WHERE group_name = 'codedeploy';
+INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
+SELECT true, 'tcp', 1, 65335, '0.0.0.0/0', 'codedeploy_rule_egress', id
+FROM security_group
+WHERE group_name = 'codedeploy';
 
+INSERT INTO instance (ami, instance_type, tags, subnet_id, role_name, user_data)
+  SELECT 'resolve:ssm:/aws/service/canonical/ubuntu/server/20.04/stable/current/amd64/hvm/ebs-gp2/ami-id', 't2.micro', '{"name":"codedeploy-app"}', id, 'ec2_role', (SELECT generate_codedeploy_agent_install_script('us-east-1', 'ubuntu'))
+  FROM subnet
+  WHERE availability_zone = 'us-east-1a'
+  LIMIT 1;
 
-        INSERT INTO instance (ami, instance_type, tags, subnet_id, role_name, user_data)
-          SELECT 'resolve:ssm:/aws/service/canonical/ubuntu/server/20.04/stable/current/amd64/hvm/ebs-gp2/ami-id', 't2.micro', '{"name":"codedeploy-app"}', id, 'ec2_role', (SELECT generate_codedeploy_agent_install_script('us-east-1', 'ubuntu'))
-          FROM subnet
-          WHERE availability_zone = 'us-east-1a'
-          LIMIT 1;
+INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
+  (SELECT id FROM instance WHERE tags ->> 'name' = 'codedeploy-app'),
+  (SELECT id FROM security_group WHERE group_name='codedeploy');
 
-        INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
-          (SELECT id FROM instance WHERE tags ->> 'name' = 'codedeploy-app'),
-          (SELECT id FROM security_group WHERE group_name='codedeploy');
-
-          select * from iasql_commit();
+  select * from iasql_commit();
 
 ```
 
 This fragment will install the required modules, and all the infrastructure needed to deploy the pipeline, including the needed Roles, Security Rules, Storage and Compute on EC2. After this process finishes, the pipeline is ready to go. It can be launched in another query (please remember to replace the _token_ with your current one):
 
 ```sql TheButton[Trigger CodePipeline]="Trigger CodePipeline"
-          select * from iasql_begin();
+select * from iasql_begin();
 
+INSERT INTO codedeploy_application (name, compute_platform)
+VALUES ('codedeploy-app', 'Server');
 
-    INSERT INTO codedeploy_application (name, compute_platform)
-    VALUES ('codedeploy-app', 'Server');
-
-    INSERT INTO codedeploy_deployment_group (application_id, name, role_name, ec2_tag_filters)
-    VALUES ((SELECT id FROM codedeploy_application WHERE name = 'codedeploy-app'), 'dg-name', 'codedeploy_role', '[
-  {
-    "Type": "KEY_AND_VALUE",
-    "Key": "name",
-    "Value": "codedeploy-app"
-  }
+INSERT INTO codedeploy_deployment_group (application_id, name, role_name, ec2_tag_filters)
+VALUES ((SELECT id FROM codedeploy_application WHERE name = 'codedeploy-app'), 'dg-name', 'codedeploy_role', '[
+{
+"Type": "KEY_AND_VALUE",
+"Key": "name",
+"Value": "codedeploy-app"
+}
 ]');
 
-
-    INSERT INTO pipeline_declaration (name, service_role_name, stages, artifact_store)
-    VALUES ('codedeploy_pipeline', 'codepipeline_role', '[
+INSERT INTO pipeline_declaration (name, service_role_name, stages, artifact_store)
+VALUES ('codedeploy_pipeline', 'codepipeline_role', '[
+{
+"name": "Source",
+"actions": [
   {
-    "name": "Source",
-    "actions": [
+    "name": "SourceAction",
+    "actionTypeId": {
+      "category": "Source",
+      "owner": "ThirdParty",
+      "version": "1",
+      "provider": "GitHub"
+    },
+    "configuration": {
+      "Owner": "iasql",
+      "Repo": "iasql-code-example-node",
+      "Branch": "main",
+      "OAuthToken": "<your_personal_token>"
+    },
+    "outputArtifacts": [
       {
-        "name": "SourceAction",
-        "actionTypeId": {
-          "category": "Source",
-          "owner": "ThirdParty",
-          "version": "1",
-          "provider": "GitHub"
-        },
-        "configuration": {
-          "Owner": "iasql",
-          "Repo": "iasql-code-example-node",
-          "Branch": "main",
-          "OAuthToken": "<your_personal_token>"
-        },
-        "outputArtifacts": [
-          {
-            "name": "Source"
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "name": "Deploy",
-    "actions": [
-      {
-        "name": "DeployApp",
-        "actionTypeId": {
-          "category": "Deploy",
-          "owner": "AWS",
-          "version": "1",
-          "provider": "CodeDeploy"
-        },
-        "configuration": {
-          "ApplicationName": "codedeploy-app",
-          "DeploymentGroupName": "dg-name"
-        },
-        "inputArtifacts": [
-          {
-            "name": "Source"
-          }
-        ]
+        "name": "Source"
       }
     ]
   }
+]
+},
+{
+"name": "Deploy",
+"actions": [
+  {
+    "name": "DeployApp",
+    "actionTypeId": {
+      "category": "Deploy",
+      "owner": "AWS",
+      "version": "1",
+      "provider": "CodeDeploy"
+    },
+    "configuration": {
+      "ApplicationName": "codedeploy-app",
+      "DeploymentGroupName": "dg-name"
+    },
+    "inputArtifacts": [
+      {
+        "name": "Source"
+      }
+    ]
+  }
+]
+}
 ]', '{ "type": "S3", "location": "codedeploy-app-iasql" }');
 
-
 select * from iasql_commit();
-
 ```
 
 This pipeline is describing all the needed steps to deploy the application:
