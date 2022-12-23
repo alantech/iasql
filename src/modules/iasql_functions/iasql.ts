@@ -713,7 +713,7 @@ export async function commit(
     if (applyErr || syncErr) {
       let rollbackErr;
       try {
-        await realRollback(dbId, context, orm);
+        await realRollback(dbId, context, orm, installedModulesSorted, crupdes);
       } catch (e) {
         rollbackErr = e;
       }
@@ -738,15 +738,21 @@ export async function commit(
 }
 
 // TODO: rename
-async function realRollback(dbId: string, ctx: Context, orm: TypeormWrapper) {
+async function realRollback(
+  dbId: string,
+  ctx: Context,
+  orm: TypeormWrapper,
+  modules: ModuleInterface[],
+  crupdes: { toCreate: Crupde; toUpdate: Crupde; toReplace: Crupde; toDelete: Crupde },
+) {
   // TODO: TRACK ROLLBACK EVENTS IN AUDIT LOGS
   const changeLogs: IasqlAuditLog[] = await getChangeLogsSinceLastBegin(orm);
   const inverseQueries: string[] = await getInverseQueries(changeLogs);
   for (const q of inverseQueries) {
-    logger.info(`+-+ rollback query ${q}`)
+    logger.info(`+-+ rollback query ${q}`);
     await orm.query(q);
   }
-  await commit(dbId, false, ctx, true, orm);
+  await commitApply(dbId, modules, ctx, true, crupdes, false);
 }
 
 async function getChangeLogsSinceLastBegin(orm: TypeormWrapper): Promise<IasqlAuditLog[]> {
