@@ -50,3 +50,22 @@ UPDATE
   )
 EXECUTE
   FUNCTION block_s3_object_primary_key_update ();
+
+CREATE
+    OR REPLACE FUNCTION get_bucket_website_endpoint(bucket_name TEXT) RETURNS TEXT AS
+$$
+DECLARE
+    _region text;
+BEGIN
+    SELECT region INTO _region FROM bucket WHERE name = bucket_name;
+    IF bucket_name IN -- https://docs.aws.amazon.com/general/latest/gr/s3.html#s3_website_region_endpoints
+       ('us-east-2', 'af-south-1', 'ap-east-1', 'ap-south-2', 'ap-southeast-3', 'ap-south-1', 'ap-northeast-3',
+        'ap-northeast-2', 'ca-central-1', 'cn-northwest-1', 'eu-central-1', 'eu-west-2', 'eu-south-1', 'eu-west-3',
+        'eu-north-1', 'eu-south-2', 'eu-central-2', 'me-south-1', 'me-central-1')
+    THEN
+        RETURN bucket_name || '.' ||  _region || '.amazonaws.com';
+    ELSE
+        RETURN bucket_name || '-' ||  _region || '.amazonaws.com';
+    END IF;
+END
+$$ LANGUAGE plpgsql;
