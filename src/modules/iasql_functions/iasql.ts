@@ -635,7 +635,7 @@ export async function commit(
     context.orm = orm;
 
     const isRunning = await isCommitRunning(orm);
-    if (isRunning) throw new Error('Another execution is in process. Please try again later.');
+    if (!force && isRunning) throw new Error('Another execution is in process. Please try again later.');
 
     const newStartCommit: IasqlAuditLog = await insertLog(orm, dryRun ? 'preview_start' : 'start');
     if (dryRun) context.previewStartCommit = newStartCommit;
@@ -711,11 +711,15 @@ export async function commit(
       syncErr = e;
     }
     if (applyErr || syncErr) {
-      // TODO: Full rollback
       let rollbackErr;
-      // Throw
+      try {
+        await realRollback(dbId, context, orm);
+      } catch (e) {
+        rollbackErr = e;
+      }
       const errMessage = mergeErrorMessages([rollbackErr, syncErr, applyErr]);
-      const err: any | Error = applyErr ?? syncErr ?? rollbackErr ?? new Error(`Something went wrong. ${errMessage}`);
+      const err: any | Error =
+        applyErr ?? syncErr ?? rollbackErr ?? new Error(`Something went wrong. ${errMessage}`);
       err.message = errMessage;
       throw err;
     }
@@ -733,6 +737,80 @@ export async function commit(
   }
 }
 
+// TODO: rename
+async function realRollback(dbId: string, ctx: Context, orm: TypeormWrapper) {
+  const changeLogs: IasqlAuditLog[] = await getChangeLogsSinceLastBegin(orm);
+  const inverseQueries: string[] = await getInverseQueries(changeLogs);
+  for (const q of inverseQueries) {
+    await orm.query(q);
+  }
+  await commit(dbId, false, ctx, true, orm);
+}
+
+async function getChangeLogsSinceLastBegin(orm: TypeormWrapper): Promise<IasqlAuditLog[]> {
+  const transaction: IasqlAuditLog = await orm.findOne(IasqlAuditLog, {
+    order: { ts: 'DESC' },
+    skip: 0,
+    take: 1,
+    where: {
+      changeType: AuditLogChangeType.OPEN_TRANSACTION,
+    },
+  });
+  if (!transaction) throw new Error('No open transaction');
+  return await orm.find(IasqlAuditLog, {
+    order: { ts: 'DESC' },
+    skip: 0,
+    take: 1,
+    where: {
+      changeType: In([AuditLogChangeType.INSERT, AuditLogChangeType.UPDATE, AuditLogChangeType.DELETE]),
+      ts: MoreThan(transaction.ts),
+    },
+  });
+}
+
+function getInverseQueries(changeLogs: IasqlAuditLog[]): string[] {
+  const inverseQueries: string[] = [];
+  for (const cl of changeLogs) {
+    let inverseQuery: string = '';
+    switch (cl.changeType) {
+      case AuditLogChangeType.INSERT:
+        inverseQuery = `
+          DELETE FROM ${cl.tableName}
+          WHERE ${Object.entries(cl.change?.change ?? {})
+            .map(([k, v]: [string, any]) => `${k} = ${v}`)
+            .join(' AND ')};
+        `;
+        break;
+      case AuditLogChangeType.DELETE:
+        inverseQuery = `
+          INSERT INTO ${cl.tableName} (${Object.keys(cl.change?.original ?? {})
+          .map((k: string) => k)
+          .join(', ')})
+          VALUES (${Object.values(cl.change?.original ?? {})
+            .map((v: any) => `${v}`)
+            .join(', ')});
+        `;
+        break;
+      case AuditLogChangeType.UPDATE:
+        inverseQuery = `
+          UPDATE ${cl.tableName}
+          SET ${Object.entries(cl.change?.original ?? {})
+            .map(([k, v]: [string, any]) => `${k} = ${v}`)
+            .join(', ')}
+          WHERE ${Object.entries(cl.change?.change ?? {})
+            .map(([k, v]: [string, any]) => `${k} = ${v}`)
+            .join(' AND ')};
+        `;
+        break;
+      default:
+        break;
+    }
+    if (inverseQuery) inverseQueries.push(inverseQuery);
+  }
+  return inverseQueries;
+}
+
+// TODO: rename
 export async function rollback(dbId: string, context: Context, force = false, ormOpt?: TypeormWrapper) {
   const t1 = Date.now();
   logger.scope({ dbId }).info(`Sync to ${dbId}`);
@@ -914,6 +992,7 @@ function getModulesWithChanges(
   return [...modulesDirectlyAffected, ...modulesIndirectlyAffected];
 }
 
+// TODO: rename
 async function commitApply(
   dbId: string,
   relevantModules: ModuleInterface[],
@@ -1178,6 +1257,7 @@ async function commitApply(
   return output;
 }
 
+// TODO: rename
 async function commitSync(
   dbId: string,
   relevantModules: ModuleInterface[],
