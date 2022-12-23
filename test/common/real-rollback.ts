@@ -14,7 +14,7 @@ import {
 } from '../helpers';
 
 const prefix = getPrefix();
-const dbAlias = `${prefix}-rollbacktest`;
+const dbAlias = `${prefix}rollbacktest`;
 const sgName = `${prefix}-rb-sg`;
 const amznAmiId = 'resolve:ssm:/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2';
 
