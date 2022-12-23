@@ -1,5 +1,6 @@
 import { S3 } from '@aws-sdk/client-s3';
 import { GetBucketWebsiteCommandInput } from '@aws-sdk/client-s3/dist-types/commands/GetBucketWebsiteCommand';
+import { PutBucketWebsiteCommandInput } from '@aws-sdk/client-s3/dist-types/commands/PutBucketWebsiteCommand';
 import { GetBucketWebsiteOutput } from '@aws-sdk/client-s3/dist-types/models/models_0';
 
 import { AwsS3Module } from '..';
@@ -10,6 +11,9 @@ import { Bucket, BucketWebsite } from '../entity';
 export class BucketWebsiteMapper extends MapperBase<BucketWebsite> {
   module: AwsS3Module;
   entity = BucketWebsite;
+
+  equals = (a: BucketWebsite, b: BucketWebsite) =>
+    a.indexDocument === b.indexDocument && a.errorDocument === b.errorDocument;
 
   private async getBucketWebsiteForBucket(ctx: Context, bucket: Bucket) {
     const client = (await ctx.getAwsClient(bucket.region)) as AWS;
@@ -29,16 +33,31 @@ export class BucketWebsiteMapper extends MapperBase<BucketWebsite> {
     return out;
   }
 
-  equals = (a: BucketWebsite, b: BucketWebsite) =>
-    a.indexDocument === b.indexDocument && a.errorDocument === b.errorDocument;
-
   getBucketWebsite = crudBuilder2<S3, 'getBucketWebsite'>('getBucketWebsite', input => input);
+
+  putBucketWebsite = crudBuilder2<S3, 'putBucketWebsite'>('putBucketWebsite', (bucketName, index, error) => {
+    const input: PutBucketWebsiteCommandInput = {
+      Bucket: bucketName,
+      WebsiteConfiguration: {
+        IndexDocument: {
+          Suffix: index,
+        },
+      },
+    };
+    if (!!error) {
+      input.WebsiteConfiguration!.ErrorDocument = {
+        Key: error,
+      };
+    }
+    return input;
+  });
 
   cloud = new Crud2<BucketWebsite>({
     create: async (es: BucketWebsite[], ctx: Context) => {
       const out = [];
       for (const e of es) {
-        await this.saveBucketWebsite(ctx, e);
+        const client = (await ctx.getAwsClient(e.bucket.region)) as AWS;
+        await this.putBucketWebsite(client.s3Client, e.bucketName, e.indexDocument, e.errorDocument);
         out.push(e);
       }
       return out;
@@ -46,12 +65,13 @@ export class BucketWebsiteMapper extends MapperBase<BucketWebsite> {
     read: async (ctx: Context, id?: string) => {
       const out: BucketWebsite[] = [];
       const buckets =
-        ctx.memo?.cloud?.Bucket && Object.values(ctx.memo?.cloud?.Bucket).length
+        ctx.memo?.cloud?.Bucket && Object.values(ctx.memo.cloud.Bucket).length
           ? Object.values(ctx.memo?.cloud?.Bucket)
           : await this.module.bucket.cloud.read(ctx);
 
       if (!!id) {
         const bucket = buckets.find((b: Bucket) => b.name === id);
+        if (!bucket) throw new Error('No such bucket was found');
         return await this.getBucketWebsiteForBucket(ctx, bucket);
       }
 
@@ -71,7 +91,8 @@ export class BucketWebsiteMapper extends MapperBase<BucketWebsite> {
     update: async (es: BucketWebsite[], ctx: Context) => {
       const out = [];
       for (const e of es) {
-        await this.saveBucketWebsite(ctx, e);
+        const client = (await ctx.getAwsClient(e.bucket.region)) as AWS;
+        await this.putBucketWebsite(client.s3Client, e.bucketName, e.indexDocument, e.errorDocument);
         out.push(e);
       }
       return out;
@@ -88,21 +109,6 @@ export class BucketWebsiteMapper extends MapperBase<BucketWebsite> {
       return out;
     },
   });
-
-  private async saveBucketWebsite(ctx: Context, e: BucketWebsite) {
-    const client = (await ctx.getAwsClient(e.bucket.region)) as AWS;
-    await client.s3Client.putBucketWebsite({
-      Bucket: e.bucketName,
-      WebsiteConfiguration: {
-        IndexDocument: {
-          Suffix: e.indexDocument,
-        },
-        ErrorDocument: {
-          Key: e.errorDocument,
-        },
-      },
-    });
-  }
 
   constructor(module: AwsS3Module) {
     super();
