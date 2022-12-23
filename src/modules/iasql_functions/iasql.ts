@@ -747,15 +747,15 @@ async function realRollback(
 ) {
   // TODO: TRACK ROLLBACK EVENTS IN AUDIT LOGS
   const changeLogs: IasqlAuditLog[] = await getChangeLogsSinceLastBegin(orm);
-  console.log(`+-+ ${JSON.stringify(changeLogs)}`);
   const inverseQueries: string[] = await getInverseQueries(changeLogs);
-  console.log(`+-+ inverse query ${inverseQueries.join('\n')}`);
+  console.log(`+-+ inverse queries ${inverseQueries.join('\n')}`);
   for (const q of inverseQueries) {
-    console.log(`+-+ inverse query ${q}`);
-    await orm.query(q);
+    try {
+      await orm.query(q);
+    } catch (e) {
+      console.log(`+-+ is the query execution failing with ${JSON.stringify(e)}`);
+    }
   }
-  const changeLogs2: IasqlAuditLog[] = await getChangeLogsSinceLastBegin(orm);
-  console.log(`+-+ 2 ${JSON.stringify(changeLogs2)}`);
   await commitApply(dbId, installedModules, ctx, true, crupdes, false);
 }
 
