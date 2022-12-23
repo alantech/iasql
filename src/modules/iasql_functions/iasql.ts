@@ -823,13 +823,14 @@ function getInverseQueries(changeLogs: IasqlAuditLog[]): string[] {
 // todo: how to make sure this handle all possible cases?
 function getCondition(k: string, v: any): string {
   if (typeof v === 'string') return `${k} = '${v}'`;
-  if (v && typeof v === 'object') return `${k}::jsonb = '${v}'::jsonb`;
+  if (v && typeof v === 'object') return `${k}::jsonb = '${JSON.stringify(v)}'::jsonb`;
   return `${k} = ${v}`;
 }
 
 // todo: how to make sure this handle all possible cases?
 function getValue(v: any): string {
-  if (v && (typeof v === 'string' || (typeof v === 'object' && !Array.isArray(v)))) return `'${v}'`;
+  if (typeof v === 'string') return `'${v}'`;
+  if (v && typeof v === 'object' && !Array.isArray(v)) return `'${JSON.stringify(v)}'`;
   if (v && typeof v === 'object' && Array.isArray(v)) return `'{${v.join(',')}}'`;
   return `${v}`;
 }
