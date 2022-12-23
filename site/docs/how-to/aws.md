@@ -25,11 +25,11 @@ aws_secret_access_key = <YOUR_SECRET_ACCESS_KEY>
 
 ## Add the necessary cloud services to the hosted database
 
-Connect to your database and use the `iasql_install` IaSQL PostgreSQL [function](../sql/sql_reference.md#iasql_functions) which is already loaded into your database to install different [modules](../concepts/module.md) and start managing different parts of your cloud account. Many different clients can be used to [connect](../how-to/connect.md) to a PostgreSQL database.
+Connect to your database and use the `iasql_install` IaSQL PostgreSQL [function](../reference/sql.md#iasql_functions) which is already loaded into your database to install different [modules](../concepts/module.md) and start managing different parts of your cloud account. Many different clients can be used to [connect](../how-to/connect.md) to a PostgreSQL database.
 
 :::note
 
-To see the available modules use the `modules_list` [function](../sql/sql_reference.md#iasql_functions) which will return a virtual table
+To see the available modules use the `modules_list` [function](../reference/sql.md#iasql_functions) which will return a virtual table
 
 :::
 
