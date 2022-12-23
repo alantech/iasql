@@ -30,7 +30,7 @@ export class IasqlCommit extends RpcBase {
   /** @internal */
   preTransactionCheck = PreTransactionCheck.FAIL_IF_NOT_LOCKED;
   /** @internal */
-  postTransactionCheck = PostTransactionCheck.UNLOCK_IF_SUCCEED;
+  postTransactionCheck = PostTransactionCheck.UNLOCK_ALWAYS;
   /** @internal */
   outputTable = {
     action: 'varchar',
@@ -45,7 +45,7 @@ export class IasqlCommit extends RpcBase {
     _dbUser: string,
     ctx: Context,
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
-    const res = (await iasql.commit(dbId, false, ctx)).rows;
+    const res = (await iasql.commit(dbId, false, ctx))?.rows ?? [];
     return (
       res?.map(rec => super.formatObjKeysToSnakeCase(rec) as RpcResponseObject<typeof this.outputTable>) ?? []
     );
