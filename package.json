@@ -8,7 +8,7 @@
     "clean": "rm -rf dist",
     "lint": "tslint --project .",
     "changes-in-version": "IASQL_ENV=ci ./src/scripts/check_changes_in_right_version.sh",
-    "test": "IASQL_ENV=test jest -i",
+    "test": "IASQL_ENV=test jest -b -i",
     "test:local": "IASQL_ENV=test export $(cat .env | xargs) && yarn test",
     "coverage": "IASQL_ENV=test jest -i --coverage --forceExit",
     "coverage:local": "IASQL_ENV=test export $(cat .env | xargs) && yarn coverage",
