@@ -9,14 +9,15 @@ import {
   runInstall,
   runBegin,
   defaultRegion,
+  runCommit,
 } from '../helpers';
 
 const dbAlias = 'rollbacktest';
 const sgName = 'rb-sg';
 const amznAmiId = 'resolve:ssm:/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2';
-let availabilityZone: string, instanceType: string;
 
 const begin = runBegin.bind(null, dbAlias);
+const commit = runCommit.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uid = '12345';
@@ -59,6 +60,22 @@ describe('rollback functionality', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
+  it('syncs the regions', commit());
+
+  it(
+    'sets the default region',
+    query(
+      `
+    UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
   it('installs the module', install(['aws_ec2']));
 
   it('starts a transaction', begin());
@@ -67,18 +84,20 @@ describe('rollback functionality', () => {
     'insert a log group',
     query(
       `
-        INSERT INTO security_group (description, group_name)
-        VALUES ('${sgName} security group', '${sgName}');
+        BEGIN;
+          INSERT INTO security_group (description, group_name, region)
+          VALUES ('${sgName} security group', '${sgName}', '${region}');
 
-        INSERT INTO instance (ami, instance_type, tags, subnet_id)
-          SELECT '${amznAmiId}', 'fake-instance-type', '{"name":"${dbAlias}"}', id
-          FROM subnet
-          WHERE availability_zone = (SELECT name FROM availability_zone WHERE region = '${region}' ORDER BY 1 DESC LIMIT 1)
-          LIMIT 1;
+          INSERT INTO instance (ami, instance_type, tags, subnet_id)
+            SELECT '${amznAmiId}', 'fake-instance-type', '{"name":"${dbAlias}"}', id
+            FROM subnet
+            WHERE availability_zone = (SELECT name FROM availability_zone WHERE region = '${region}' ORDER BY 1 DESC LIMIT 1)
+            LIMIT 1;
 
-        INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
-          (SELECT id FROM instance WHERE tags ->> 'name' = '${dbAlias}'),
-          (SELECT id FROM security_group WHERE group_name='${sgName}' AND region = '${region}');
+          INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
+            (SELECT id FROM instance WHERE tags ->> 'name' = '${dbAlias}'),
+            (SELECT id FROM security_group WHERE group_name='${sgName}' AND region = '${region}');
+        COMMIT;
       `,
       undefined,
       true,
@@ -140,7 +159,7 @@ describe('rollback functionality', () => {
     'checks the instance',
     query(
       `
-        select * from instance where WHERE tags ->> 'name' = '${dbAlias}';
+        select * from instance where tags ->> 'name' = '${dbAlias}';
       `,
       (res: any) => {
         expect(res.length).toBe(0);
