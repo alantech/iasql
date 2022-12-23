@@ -53,14 +53,14 @@ An `export` route in the engine implemented using `pgdump` with logic to attempt
 
 ### 2. Sync a database to a different cloud account than the one it is connected to
 
-An IaSQL function that takes the alias of another dataabse owned by the same user as input. `iasql_import(‘staging’)` will return the same data structure as `iasql_commit` or `iasql_preview`. This function can reuse parts of the mappers and existing IaSQL functions to run diffs across two different databases or accounts. There could have an optional `dry_run` parameter or another function to preview the changes: `iasql_preview_import(‘staging’)` or `iasql_import(‘staging’, true)`.
+An IaSQL function that takes the alias of another database owned by the same user as input. `iasql_import(‘staging’)` will return the same data structure as `iasql_commit` or `iasql_preview`. This function can reuse parts of the mappers and existing IaSQL functions to run diffs across two different databases or accounts. There could have an optional `dry_run` parameter or another function to preview the changes: `iasql_preview_import(‘staging’)` or `iasql_import(‘staging’, true)`.
 
 The steps to replicate recent database/account A changes in database/account B when calling `iasql_import('A')` from within database B:
 1) Regular sync database A to cloud account A
 2) Regular sync database B to cloud account B
 3) New import sync functionality where database B is pointed to cloud account A directly
 
-The new import sync functionality described in #3 would expand the mapper definitions to include a new `import` function and laxer equality function for each module.
+The new import sync functionality described in #3 would expand the mapper definitions to include a new `import` function and laxer equality function for each module. Capacity differences between production and staging, and AWS-provided cloud IDs would make automatically identifying "equivalent" records from one cloud to fill in for the other very difficult, if not impossible.
 
 ### 3. Interactive `git rebase` style sync
 
