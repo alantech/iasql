@@ -14,14 +14,12 @@ import * as iasql from '../iasql';
  * transaction using the provided PostgreSQL function `iasql_begin`. This lets you batch, or stage, changes together and
  * then calling `iasql_commit` to mark the end of the transaction and propagate the changes from the database to the cloud account.
  *
- * @see http://localhost:3000/docs/transaction
+ * @see https://iasql.com/docs/transaction
  *
  * @example
  * ```sql
  * SELECT * FROM iasql_begin();
  * ```
- *
- * @see https://iasql.com/docs/function/
  *
  */
 export class IasqlCommit extends RpcBase {

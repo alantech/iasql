@@ -6,20 +6,17 @@ import {
   RpcBase,
   RpcResponseObject,
 } from '../../interfaces';
-import * as iasql from '../iasql';
 
 /**
  * Method that starts a transaction. It marks the start of a set
  * of changes that can be then applied into the database.
  *
- * @see http://localhost:3000/docs/next/apply-and-sync/
+ * @see https://iasql.com/docs/transaction
  *
  * @example
  * ```sql
  * SELECT * FROM iasql_begin();
  * ```
- *
- * @see https://iasql.com/docs/function/
  *
  */
 export class IasqlBegin extends RpcBase {

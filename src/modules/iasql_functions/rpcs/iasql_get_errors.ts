@@ -9,7 +9,9 @@ import {
 } from '../../interfaces';
 
 /**
- * Method to list the error messages produced by `iasql_commit` or `iasql_rollback`
+ * Method to list the error messages produced in a transaction by `iasql_commit` or `iasql_rollback`
+ *
+ * @see https://iasql.com/docs/transaction
  *
  * Returns following columns:
  * - ts: Error message timestamp
@@ -19,8 +21,6 @@ import {
  * ```sql
  * SELECT * FROM iasql_get_errors();
  * ```
- *
- * @see https://iasql.com/docs/function/
  *
  */
 export class IasqlGetErrors extends RpcBase {
