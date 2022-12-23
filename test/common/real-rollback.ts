@@ -134,7 +134,7 @@ describe('rollback functionality', () => {
       SELECT * FROM iasql_commit();
     `)((e?: any) => {
       try {
-        expect(e?.message).toContain('Another transaction is open');
+        expect(e?.message).toContain('Instance cloud create error');
       } catch (err) {
         done(err);
         return {};
