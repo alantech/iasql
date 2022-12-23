@@ -11,7 +11,7 @@ import { Context, MapperInterface, ModuleInterface, MapperBase } from '../../mod
 import * as dbMan from '../../services/db-manager';
 import { findDiff } from '../../services/diff';
 import { DepError, lazyLoader } from '../../services/lazy-dep';
-import logger, { debugObj, logErrSentry } from '../../services/logger';
+import logger, { debugObj, logErrSentry, mergeErrorMessages } from '../../services/logger';
 import { sortModules } from '../../services/mod-sort';
 import MetadataRepo from '../../services/repositories/metadata';
 import * as telemetry from '../../services/telemetry';
@@ -673,10 +673,10 @@ export async function commit(
       toReplace: {},
       toDelete: {},
     };
-
+    let applyErr;
     try {
       if (modulesWithChanges.length) {
-        logger.scope({ dbId }).info('Starting commit apply phase for modules with changes');
+        logger.scope({ dbId }).info('Starting apply phase for modules with changes');
         const applyRes = await commitApply(
           dbId,
           modulesWithChangesSorted,
@@ -689,11 +689,37 @@ export async function commit(
         if (dryRun) return applyRes;
       }
     } catch (e) {
-      logger.scope({ dbId }).info('Something failed. Starting commit apply phase for all modules');
-      return await commitApply(dbId, installedModulesSorted, context, force, crupdes, dryRun);
+      logger.scope({ dbId }).warn(`Something failed applying for modules with changes.\n${e}`);
+      applyErr = e;
     }
-    logger.scope({ dbId }).info('Starting commit sync phase for all modules');
-    return await commitSync(dbId, installedModulesSorted, context, force, crupdes, dryRun);
+    if (applyErr) {
+      try {
+        logger.scope({ dbId }).info(`Starting apply phase for all modules`);
+        await commitApply(dbId, installedModulesSorted, context, force, crupdes, dryRun);
+        applyErr = null;
+      } catch (e) {
+        logger.scope({ dbId }).warn(`Something failed applying for all modules.\n${e}`);
+        applyErr = e;
+      }
+    }
+    let syncRes, syncErr;
+    try {
+      logger.scope({ dbId }).info('Starting sync phase for all modules');
+      syncRes = await commitSync(dbId, installedModulesSorted, context, force, crupdes, dryRun);
+    } catch (e) {
+      logger.scope({ dbId }).warn(`Something failed during sync phase for all modules\n${e}`);
+      syncErr = e;
+    }
+    if (applyErr || syncErr) {
+      // TODO: Full rollback
+      let rollbackErr;
+      // Throw
+      const errMessage = mergeErrorMessages([rollbackErr, syncErr, applyErr]);
+      const err: any | Error = applyErr ?? syncErr ?? rollbackErr ?? new Error(`Something went wrong. ${errMessage}`);
+      err.message = errMessage;
+      throw err;
+    }
+    return syncRes;
   } catch (e: any) {
     debugObj(e);
     await insertErrorLog(orm, logErrSentry(e));
