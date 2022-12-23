@@ -747,11 +747,14 @@ async function realRollback(
 ) {
   // TODO: TRACK ROLLBACK EVENTS IN AUDIT LOGS
   const changeLogs: IasqlAuditLog[] = await getChangeLogsSinceLastBegin(orm);
+  console.log(`+-+ CHANGE LOGS ${changeLogs}`)
   const inverseQueries: string[] = await getInverseQueries(changeLogs);
   for (const q of inverseQueries) {
     await logger.info(`+-+ rollback query ${q}`);
     await orm.query(q);
   }
+  const changeLogs2: IasqlAuditLog[] = await getChangeLogsSinceLastBegin(orm);
+  console.log(`+-+ CHANGE LOGS 2 ${changeLogs2}`)
   await commitApply(dbId, installedModules, ctx, true, crupdes, false);
 }
 
@@ -767,8 +770,6 @@ async function getChangeLogsSinceLastBegin(orm: TypeormWrapper): Promise<IasqlAu
   if (!transaction) throw new Error('No open transaction');
   return await orm.find(IasqlAuditLog, {
     order: { ts: 'DESC' },
-    skip: 0,
-    take: 1,
     where: {
       changeType: In([AuditLogChangeType.INSERT, AuditLogChangeType.UPDATE, AuditLogChangeType.DELETE]),
       ts: MoreThan(transaction.ts),
