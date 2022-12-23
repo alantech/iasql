@@ -1,0 +1,226 @@
+---
+slug: deploy-nodejs-app-with-codepipeline
+title: Deploy a NodeJS App on AWS using CodePipeline
+date: 2022-12-23
+authors: [yrobla]
+---
+
+# Deploy a NodeJS app to AWS with one click using CodePipeline
+
+Codepipeline is a service provided by AWS to provide a fully automated Continuous delivery service. It allows to fully manage all the steps in the code delivery lifecycle, from checking the source code and building it, testing and deploying to production. The whole process is managed by CodePipeline using specific configuration files without manual intervention, offering a safe and reliable way to deploy to the cloud.
+
+The following example will showcase the automated build and deployment of a NodeJS app. The testing part is intentionally not covered by this scope, but would be an important part to cover when deploying to production.
+
+## The NodeJS application
+
+In this example, we are going to build and deploy a very simple NodeJS application, that simply will output **Hello World!** to the browser. The application will be served to port 80 by Nginx, that will be acting as a reverse proxy for the node app. The application is hosted on a public github repository: https://github.com/iasql/iasql-code-example-node
+
+The indications for building and deploying the whole application are defined in the `appspec.yml` file: https://github.com/iasql/iasql-code-example-node/blob/main/appspec.yml . This file contains all the information needed by CodeDeploy to manage the whole lifecycle of the application (Complete reference can be seen at https://docs.aws.amazon.com/codedeploy/latest/userguide/reference-appspec-file-example.html#appspec-file-example-server).
+
+This sample configuration is divided in two steps: **files** and **hooks**. 
+**Files** section allows to specify where to copy the contents of the application. The contents of this application are divided between main content of the app, and specific nginx configuration.
+**Hooks** section allows to define scripts to tackle every step of the app's lifecycle. In this case those steps are covered:
+- BeforeInstall: script to install all needed dependencies to run the application. It is used to install all packages and dependencies
+- AfterInstalll: script triggered after all the dependencies have been installed but before the app is receiving any traffic. It is the best place to perform additional installation steps of the application, such as `npm install`
+- ApplicationStart: script that is actually managing the start of the application, with command like `npm start`
+
+For this specific example the deployment of the application will be performed into an EC2 instance, and content will just be exposed via the **public ip**. Additional steps such as using Autoscaling groups, or Load Balancers would improve the availability of the application, but are not covered on this post.
+
+## Pre-requisites
+
+The source code and configuration of this sample is using GitHub on IaSQL organization account. In order to run the example, please fork the https://github.com/iasql/iasql-code-example-node repository under an account you can control, as it needs some additional permissions to connect with AWS Codepipeline.
+
+Next step is to grant AWS permissions to the forked repo. One way of doing that is by using personal tokens. Please follow this documentation to create the token: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token. Please ensure that the token has **repo** and **repo_hook** permissions. Copy the generated token, as it will be used later when configuring the pipeline.
+
+## Initial steps
+
+Before actually creating the deployment pipeline, we need to install several dependencies in AWS to be able to install, deploy and serve the application. The following installation script will cover those steps:
+
+```sql TheButton[Install CodePipeline dependencies]="Install CodePipeline dependencies"
+SELECT * FROM iasql_install('aws_codepipeline', 'aws_s3', 'aws_ec2_metadata');
+select * from iasql_begin();
+
+INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
+VALUES ('app_role', '{
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "codepipeline.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ],
+  "Version": "2012-10-17"
+}', array['arn:aws:iam::aws:policy/AWSCodeDeployFullAccess', 'arn:aws:iam::aws:policy/AmazonS3FullAccess', 'arn:aws:iam::aws:policy/AWSCodeDeployFullAccess']);
+
+
+    INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
+    VALUES ('ec2_role', '{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "",
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "ec2.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}', array['arn:aws:iam::aws:policy/AmazonEC2FullAccess', 'arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore', 'arn:aws:iam::aws:policy/AWSCodeDeployFullAccess', 'arn:aws:iam::aws:policy/AmazonS3FullAccess']);
+
+    INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
+    VALUES ('codedeploy_role', '{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "",
+      "Effect": "Allow",
+      "Principal": {
+        "Service": ["codedeploy.amazonaws.com"]
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}', array['arn:aws:iam::aws:policy/AWSCodeDeployFullAccess', 'arn:aws:iam::aws:policy/AmazonEC2FullAccess', 'arn:aws:iam::aws:policy/AmazonS3FullAccess']);
+
+    INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
+    VALUES ('codepipeline_role', '{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "",
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "codepipeline.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}', array['arn:aws:iam::aws:policy/AWSCodePipeline_FullAccess', 'arn:aws:iam::aws:policy/AmazonS3FullAccess', 'arn:aws:iam::aws:policy/AWSCodeDeployFullAccess']);
+
+    INSERT INTO bucket (name) VALUES ('codedeploy-app-iasql');
+
+
+    INSERT INTO security_group (description, group_name)
+    VALUES ('CodedeploySecurity Group', 'codedeploy');
+
+    
+    INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
+    SELECT false, 'tcp', 22, 22, '0.0.0.0/0', 'codedeploy_rule_ssh', id
+    FROM security_group
+    WHERE group_name = 'codedeploy';
+    INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
+    SELECT false, 'tcp', 80, 80, '0.0.0.0/0', 'codedeploy_rule_http', id
+    FROM security_group
+    WHERE group_name = 'codedeploy';
+    INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
+    SELECT true, 'tcp', 1, 65335, '0.0.0.0/0', 'codedeploy_rule_egress', id
+    FROM security_group
+    WHERE group_name = 'codedeploy';
+
+
+        INSERT INTO instance (ami, instance_type, tags, subnet_id, role_name, user_data)
+          SELECT 'resolve:ssm:/aws/service/canonical/ubuntu/server/20.04/stable/current/amd64/hvm/ebs-gp2/ami-id', 't2.micro', '{"name":"codedeploy-app"}', id, 'ec2_role', (SELECT generate_codedeploy_agent_install_script('us-east-1', 'ubuntu'))
+          FROM subnet
+          WHERE availability_zone = 'us-east-1a'
+          LIMIT 1;
+
+        INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
+          (SELECT id FROM instance WHERE tags ->> 'name' = 'codedeploy-app'),
+          (SELECT id FROM security_group WHERE group_name='codedeploy');
+
+          select * from iasql_commit();
+
+```
+
+This fragment will install the required modules, and all the infrastructure needed to deploy the pipeline, including the needed Roles, Security Rules, Storage and Compute on EC2. After this process finishes, the pipeline is ready to go. It can be launched in another query (please remember to replace the _token_ with your current one):
+
+```sql TheButton[Trigger CodePipeline]="Trigger CodePipeline"
+          select * from iasql_begin();
+
+
+    INSERT INTO codedeploy_application (name, compute_platform)
+    VALUES ('codedeploy-app', 'Server');
+
+    INSERT INTO codedeploy_deployment_group (application_id, name, role_name, ec2_tag_filters)
+    VALUES ((SELECT id FROM codedeploy_application WHERE name = 'codedeploy-app'), 'dg-name', 'codedeploy_role', '[
+  {
+    "Type": "KEY_AND_VALUE",
+    "Key": "name",
+    "Value": "codedeploy-app"
+  }
+]');
+
+
+    INSERT INTO pipeline_declaration (name, service_role_name, stages, artifact_store)
+    VALUES ('codedeploy_pipeline', 'codepipeline_role', '[
+  {
+    "name": "Source",
+    "actions": [
+      {
+        "name": "SourceAction",
+        "actionTypeId": {
+          "category": "Source",
+          "owner": "ThirdParty",
+          "version": "1",
+          "provider": "GitHub"
+        },
+        "configuration": {
+          "Owner": "iasql",
+          "Repo": "iasql-code-example-node",
+          "Branch": "main",
+          "OAuthToken": "<your_personal_token>"
+        },
+        "outputArtifacts": [
+          {
+            "name": "Source"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Deploy",
+    "actions": [
+      {
+        "name": "DeployApp",
+        "actionTypeId": {
+          "category": "Deploy",
+          "owner": "AWS",
+          "version": "1",
+          "provider": "CodeDeploy"
+        },
+        "configuration": {
+          "ApplicationName": "codedeploy-app",
+          "DeploymentGroupName": "dg-name"
+        },
+        "inputArtifacts": [
+          {
+            "name": "Source"
+          }
+        ]
+      }
+    ]
+  }
+]', '{ "type": "S3", "location": "codedeploy-app-iasql" }');
+
+
+select * from iasql_commit();
+
+```
+
+This pipeline is describing all the needed steps to deploy the application:
+- **Source** defines where to pick the source code from, and where to store it. It will pick from the defined GitHub repo, and it will store on the S3 bucket defined in the artifact configuration
+- ** Deploy ** defines the action to take. It will trigger a deployment based on the created application and the specific deployment group.
+
+After an small amount of time the pipeline will run and the application will be ready to go. It will be exposed on the EC2 public ip, that can be extracted with:
+
+```sql TheButton[Trigger CodePipeline]="Trigger CodePipeline"
+select public_ip_address from instance_metadata where id=(select id from instance where tags->>'name' = 'codedeploy-app');
+```
+
+Then please check that the application runs successfully in your browser:
+
+<img src="/img/nodejs_app.png" style={{ maxWidth: 600 }} />
