@@ -1,6 +1,15 @@
 import { EC2 } from '@aws-sdk/client-ec2';
+
 import * as iasql from '../../src/services/iasql';
-import { runQuery, finish, execComposeUp, execComposeDown, runInstall, runBegin, defaultRegion, runCommit } from '../helpers';
+import {
+  runQuery,
+  finish,
+  execComposeUp,
+  execComposeDown,
+  runInstall,
+  runBegin,
+  defaultRegion,
+} from '../helpers';
 
 const dbAlias = 'rollbacktest';
 const sgName = 'rb-sg';
@@ -53,14 +62,14 @@ const getInstanceTypeOffering = async (availabilityZones: string[]) => {
 
 jest.setTimeout(360000);
 beforeAll(async () => {
-  console.log('getting az')
+  console.log('getting az');
   const availabilityZones =
     (await getAvailabilityZones())?.AvailabilityZones?.map(az => az.ZoneName ?? '') ?? [];
   availabilityZone = availabilityZones.pop() ?? '';
-  console.log('getting it')
+  console.log('getting it');
   const instanceTypesByAz = await getInstanceTypeOffering([availabilityZone]);
   instanceType = instanceTypesByAz.InstanceTypeOfferings?.pop()?.InstanceType ?? '';
-  console.log('starting')
+  console.log('starting');
   await execComposeUp();
 });
 afterAll(async () => await execComposeDown());
@@ -187,6 +196,6 @@ describe('rollback functionality', () => {
   );
 
   it('confirm you can start a transaction', begin());
-  
+
   it('deletes the test db', done => void iasql.disconnect(dbAlias, uid).then(...finish(done)));
 });
