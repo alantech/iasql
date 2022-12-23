@@ -76,7 +76,7 @@ module.exports = {
             {
               type: 'doc',
               label: 'SQL reference',
-              id: 'sql/sql_reference',
+              id: 'reference/sql',
             },
           ],
         },
