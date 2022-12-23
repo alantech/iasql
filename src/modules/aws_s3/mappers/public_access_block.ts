@@ -12,10 +12,7 @@ export class PublicAccessBlockMapper extends MapperBase<PublicAccessBlock> {
 
   private async getPublicAccessBlockForBucket(ctx: Context, bucket: Bucket) {
     const client = (await ctx.getAwsClient(bucket.region)) as AWS;
-    const input: GetPublicAccessBlockCommandInput = {
-      Bucket: bucket.name,
-    };
-    const result = await this.getPublicAccessBlock(client.s3Client, input);
+    const result = await this.getPublicAccessBlock(client.s3Client, bucket.name);
     return this.publicAccessBlockMapper(result!.PublicAccessBlockConfiguration!, bucket);
   }
 
@@ -36,7 +33,9 @@ export class PublicAccessBlockMapper extends MapperBase<PublicAccessBlock> {
     a.blockPublicPolicy === b.blockPublicPolicy &&
     a.restrictPublicBuckets === b.restrictPublicBuckets;
 
-  getPublicAccessBlock = crudBuilder2<S3, 'getPublicAccessBlock'>('getPublicAccessBlock', input => input);
+  getPublicAccessBlock = crudBuilder2<S3, 'getPublicAccessBlock'>('getPublicAccessBlock', bucketName => ({
+    Bucket: bucketName,
+  }));
 
   cloud = new Crud2<PublicAccessBlock>({
     create: async (es: PublicAccessBlock[], ctx: Context) => {
@@ -51,11 +50,12 @@ export class PublicAccessBlockMapper extends MapperBase<PublicAccessBlock> {
       const out: PublicAccessBlock[] = [];
       const buckets =
         ctx.memo?.cloud?.Bucket && Object.values(ctx.memo?.cloud?.Bucket).length
-          ? Object.values(ctx.memo?.cloud?.Bucket)
+          ? Object.values(ctx.memo.cloud.Bucket)
           : await this.module.bucket.cloud.read(ctx);
 
       if (!!id) {
         const bucket = buckets.find((b: Bucket) => b.name === id);
+        if (!bucket) throw new Error('No such bucket was found');
         return await this.getPublicAccessBlockForBucket(ctx, bucket);
       }
 
