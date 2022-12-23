@@ -1,4 +1,4 @@
-import { S3, _Object, paginateListObjectsV2, waitUntilObjectNotExists } from '@aws-sdk/client-s3';
+import { _Object, paginateListObjectsV2, S3, waitUntilObjectNotExists } from '@aws-sdk/client-s3';
 import { WaiterOptions } from '@aws-sdk/util-waiter';
 
 import { AwsS3Module } from '..';
@@ -44,7 +44,7 @@ export class BucketObjectMapper extends MapperBase<BucketObject> {
 
   cloud = new Crud2<BucketObject>({
     create: async (es: BucketObject[], ctx: Context) => {
-      // we cannot create buckets, remove the existing ones
+      // we cannot create bucket objects, remove the existing ones
       await this.module.bucketObject.db.delete(es, ctx);
 
       const out: any = [];
@@ -60,10 +60,8 @@ export class BucketObjectMapper extends MapperBase<BucketObject> {
           const regionClient = (await ctx.getAwsClient(region)) as AWS;
 
           const bucketObjects = await this.getBucketObjects(regionClient.s3Client, bucketName, key);
-          for (const o of bucketObjects) {
-            const finalObject = await this.bucketObjectMapper(o, ctx, bucketName, region);
-            return finalObject;
-          }
+          if (bucketObjects.length)
+            return await this.bucketObjectMapper(bucketObjects[0], ctx, bucketName, region);
         }
       } else {
         const out: BucketObject[] = [];
