@@ -747,14 +747,15 @@ async function realRollback(
 ) {
   // TODO: TRACK ROLLBACK EVENTS IN AUDIT LOGS
   const changeLogs: IasqlAuditLog[] = await getChangeLogsSinceLastBegin(orm);
-  console.log(`+-+ CHANGE LOGS ${changeLogs}`)
+  console.log(`+-+ CHANGE LOGS ${JSON.stringify(changeLogs)}`)
   const inverseQueries: string[] = await getInverseQueries(changeLogs);
+  console.log(`+-+ inverse query ${inverseQueries.join('\n')}`)
   for (const q of inverseQueries) {
-    await logger.info(`+-+ rollback query ${q}`);
+    console.log(`+-+ inverse query ${q}`)
     await orm.query(q);
   }
   const changeLogs2: IasqlAuditLog[] = await getChangeLogsSinceLastBegin(orm);
-  console.log(`+-+ CHANGE LOGS 2 ${changeLogs2}`)
+  console.log(`+-+ CHANGE LOGS 2 ${JSON.stringify(changeLogs2)}`)
   await commitApply(dbId, installedModules, ctx, true, crupdes, false);
 }
 
@@ -780,7 +781,6 @@ async function getChangeLogsSinceLastBegin(orm: TypeormWrapper): Promise<IasqlAu
 function getInverseQueries(changeLogs: IasqlAuditLog[]): string[] {
   const inverseQueries: string[] = [];
   for (const cl of changeLogs) {
-    console.log(`+-+ CHANGES ${JSON.stringify(cl)}`)
     let inverseQuery: string = '';
     switch (cl.changeType) {
       case AuditLogChangeType.INSERT:
