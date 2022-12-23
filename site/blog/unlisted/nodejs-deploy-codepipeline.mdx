@@ -208,12 +208,15 @@ This pipeline is describing all the needed steps to deploy the application:
 - **Source** defines where to pick the source code from, and where to store it. It will pick from the defined GitHub repo, and it will store on the S3 bucket defined in the artifact configuration
 - ** Deploy ** defines the action to take. It will trigger a deployment based on the created application and the specific deployment group.
 
+The status of the pipeline can be checked via AWS console:
+
+<img src="/img/codepipeline_status.png" style={{ maxWidth: 600 }} />
+
+
 After an small amount of time the pipeline will run and the application will be ready to go. It will be exposed on the EC2 public ip, that can be extracted with:
 
-```sql TheButton[Trigger CodePipeline]="Trigger CodePipeline"
+```sql TheButton[Get public IP]="Get public IP"
 select public_ip_address from instance_metadata where id=(select id from instance where tags->>'name' = 'codedeploy-app');
 ```
 
-Then please check that the application runs successfully in your browser:
-
-<img src="/img/nodejs_app.png" style={{ maxWidth: 600 }} />
+Then please check that the application runs successfully in your browser by visiting `http://<public_ip_address>`:
