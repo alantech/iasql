@@ -789,7 +789,7 @@ function getInverseQueries(changeLogs: IasqlAuditLog[]): string[] {
         inverseQuery = `
           DELETE FROM ${cl.tableName}
           WHERE ${Object.entries(cl.change?.change ?? {})
-            .filter(([_, v]: [string, any]) => v !== null)
+            .filter(([k, v]: [string, any]) => k === 'id' || v !== null)
             .map(([k, v]: [string, any]) => getCondition(k, v))
             .join(' AND ')};
         `;
@@ -797,7 +797,7 @@ function getInverseQueries(changeLogs: IasqlAuditLog[]): string[] {
       case AuditLogChangeType.DELETE:
         inverseQuery = `
           INSERT INTO ${cl.tableName} (${Object.keys(cl.change?.original ?? {})
-          .filter((k: string) => cl.change?.original[k] !== null)
+          .filter((k: string) => k === 'id' || cl.change?.original[k] !== null)
           .join(', ')})
           VALUES (${Object.values(cl.change?.original ?? {})
             .filter((v: any) => v !== null)
