@@ -22,56 +22,9 @@ const install = runInstall.bind(null, dbAlias);
 const uid = '12345';
 const email = 'test@example.com';
 const region = defaultRegion();
-const accessKeyId = process.env.AWS_ACCESS_KEY_ID ?? '';
-const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY ?? '';
-
-const ec2client = new EC2({
-  credentials: {
-    accessKeyId,
-    secretAccessKey,
-  },
-  region,
-});
-
-const getAvailabilityZones = async () => {
-  return await ec2client.describeAvailabilityZones({
-    Filters: [
-      {
-        Name: 'region-name',
-        Values: [region],
-      },
-    ],
-  });
-};
-
-const getInstanceTypeOffering = async (availabilityZones: string[]) => {
-  return await ec2client.describeInstanceTypeOfferings({
-    LocationType: 'availability-zone',
-    Filters: [
-      {
-        Name: 'location',
-        Values: availabilityZones,
-      },
-      {
-        Name: 'instance-type',
-        Values: ['t2.micro', 't3.micro'],
-      },
-    ],
-  });
-};
 
 jest.setTimeout(360000);
-beforeAll(async () => {
-  console.log('getting az');
-  const availabilityZones =
-    (await getAvailabilityZones())?.AvailabilityZones?.map(az => az.ZoneName ?? '') ?? [];
-  availabilityZone = availabilityZones.pop() ?? '';
-  console.log('getting it');
-  const instanceTypesByAz = await getInstanceTypeOffering([availabilityZone]);
-  instanceType = instanceTypesByAz.InstanceTypeOfferings?.pop()?.InstanceType ?? '';
-  console.log('starting');
-  await execComposeUp();
-});
+beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown());
 
 let username: string, password: string;
@@ -120,7 +73,7 @@ describe('rollback functionality', () => {
         INSERT INTO instance (ami, instance_type, tags, subnet_id)
           SELECT '${amznAmiId}', 'fake-instance-type', '{"name":"${dbAlias}"}', id
           FROM subnet
-          WHERE availability_zone = ${availabilityZone}
+          WHERE availability_zone = (SELECT name FROM availability_zone WHERE region = '${region}' ORDER BY 1 DESC LIMIT 1)
           LIMIT 1;
 
         INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
@@ -149,7 +102,7 @@ describe('rollback functionality', () => {
     'checks the instance',
     query(
       `
-        select * from instance where WHERE tags ->> 'name' = '${dbAlias}';
+        select * from instance where tags ->> 'name' = '${dbAlias}';
       `,
       (res: any) => {
         expect(res.length).toBe(1);
