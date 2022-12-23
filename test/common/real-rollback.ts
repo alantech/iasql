@@ -10,10 +10,12 @@ import {
   runBegin,
   defaultRegion,
   runCommit,
+  getPrefix,
 } from '../helpers';
 
-const dbAlias = 'rollbacktest';
-const sgName = 'rb-sg';
+const prefix = getPrefix();
+const dbAlias = `${prefix}-rollbacktest`;
+const sgName = `${prefix}-rb-sg`;
 const amznAmiId = 'resolve:ssm:/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2';
 
 const begin = runBegin.bind(null, dbAlias);
