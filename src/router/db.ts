@@ -39,7 +39,6 @@ async function connectHandler(req: Request, res: Response) {
         dbId,
         email,
         recordCount: database.recordCount,
-        rpcCount: database.operationCount,
         dbVersion: config.version,
       },
       {},
@@ -89,7 +88,6 @@ db.post('/export', async (req: Request, res: Response) => {
         email,
         dbId,
         recordCount: database.recordCount,
-        rpcCount: database.operationCount,
       },
       { dataOnly: !!dataOnly },
     );
@@ -204,11 +202,10 @@ db.post('/rpc', async (req: Request, res: Response) => {
     } finally {
       try {
         const recordCount = await iasql.getDbRecCount(conn);
-        const rpcCount = 0;
-        await MetadataRepo.updateDbCounts(dbId, recordCount, undefined, rpcCount);
+        await MetadataRepo.updateRecordCount(dbId, recordCount);
         // list is called by us and has no dbAlias so ignore
-        // TODO: refactor properly this condition if (uid && modulename !== 'iasqlFunctions' && methodname !== 'modulesList')
-        if (uid)
+        // log RPC calls outside iasql functions which have their own telemetry
+        if (uid && modulename !== 'iasqlFunctions')
           telemetry.logRpc(
             uid,
             modulename,
@@ -218,7 +215,6 @@ db.post('/rpc', async (req: Request, res: Response) => {
               email: email ?? '',
               dbAlias,
               recordCount,
-              rpcCount,
               dbVersion: versionString,
             },
             {
