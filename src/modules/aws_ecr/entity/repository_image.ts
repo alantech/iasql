@@ -64,6 +64,26 @@ export class RepositoryImage {
 
   /**
    * @public
+   * Date the image was pushed into the repository
+   */
+  @Column({
+    nullable: true,
+    type: 'timestamp with time zone',
+  })
+  pushedAt: Date;
+
+  /**
+   * @public
+   * Size of the image in MB
+   */
+  @Column({
+    nullable: true,
+    type: 'int',
+  })
+  sizeInMB: number;
+
+  /**
+   * @public
    * Reference to the private repository that is containing the image
    */
   @ManyToOne(() => Repository, { nullable: true })
