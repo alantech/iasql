@@ -742,7 +742,7 @@ async function realRollback(
   dbId: string,
   ctx: Context,
   orm: TypeormWrapper,
-  modules: ModuleInterface[],
+  installedModules: ModuleInterface[],
   crupdes: { toCreate: Crupde; toUpdate: Crupde; toReplace: Crupde; toDelete: Crupde },
 ) {
   // TODO: TRACK ROLLBACK EVENTS IN AUDIT LOGS
@@ -752,7 +752,7 @@ async function realRollback(
     logger.info(`+-+ rollback query ${q}`);
     await orm.query(q);
   }
-  await commitApply(dbId, modules, ctx, true, crupdes, false);
+  await commitApply(dbId, installedModules, ctx, true, crupdes, false);
 }
 
 async function getChangeLogsSinceLastBegin(orm: TypeormWrapper): Promise<IasqlAuditLog[]> {
