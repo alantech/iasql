@@ -739,9 +739,11 @@ export async function commit(
 
 // TODO: rename
 async function realRollback(dbId: string, ctx: Context, orm: TypeormWrapper) {
+  // TODO: TRACK ROLLBACK EVENTS IN AUDIT LOGS
   const changeLogs: IasqlAuditLog[] = await getChangeLogsSinceLastBegin(orm);
   const inverseQueries: string[] = await getInverseQueries(changeLogs);
   for (const q of inverseQueries) {
+    logger.info(`+-+ rollback query ${q}`)
     await orm.query(q);
   }
   await commit(dbId, false, ctx, true, orm);
