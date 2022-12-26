@@ -149,7 +149,7 @@ describe('rollback functionality', () => {
     'checks the security group',
     query(
       `
-        select * from security_group where group_name = '${sgName}';
+        select * from security_group;
       `,
       (res: any) => {
         expect(res.length).toBe(0);
@@ -161,7 +161,7 @@ describe('rollback functionality', () => {
     'checks the instance',
     query(
       `
-        select * from instance where tags ->> 'name' = '${dbAlias}';
+        select * from instance;
       `,
       (res: any) => {
         expect(res.length).toBe(0);
