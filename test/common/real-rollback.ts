@@ -152,6 +152,7 @@ describe('rollback functionality', () => {
         select * from security_group;
       `,
       (res: any) => {
+        console.log(`+-+ sgs = ${JSON.stringify(res)}`)
         expect(res.length).toBe(0);
       },
     ),
@@ -164,6 +165,7 @@ describe('rollback functionality', () => {
         select * from instance;
       `,
       (res: any) => {
+        console.log(`+-+ instances = ${JSON.stringify(res)}`)
         expect(res.length).toBe(0);
       },
     ),
