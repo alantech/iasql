@@ -749,7 +749,7 @@ async function realRollback(
   const changeLogs: IasqlAuditLog[] = await getChangeLogsSinceLastBegin(orm);
   const modsIndexedByTable = indexModsByTable(installedModules);
   const inverseQueries: string[] = await getInverseQueries(changeLogs, modsIndexedByTable, orm);
-  console.log(`+-+ INVERSE QUERIES = ${inverseQueries}`)
+  console.log(`+-+ INVERSE QUERIES = ${inverseQueries}`);
   for (const q of inverseQueries) {
     await orm.query(q);
   }
@@ -789,7 +789,7 @@ async function getInverseQueries(
         inverseQuery = `
           DELETE FROM ${cl.tableName}
           WHERE ${Object.entries(cl.change?.change ?? {})
-            .filter(([k, v]: [string, any]) => k === 'id' || v !== null)
+            .filter(([k, v]: [string, any]) => k !== 'id' || v !== null)
             .map(([k, v]: [string, any]) => getCondition(k, v))
             .join(' AND ')};
         `;
@@ -797,12 +797,12 @@ async function getInverseQueries(
       case AuditLogChangeType.DELETE:
         values = await Promise.all(
           Object.entries(cl.change?.original ?? {})
-            .filter(([k, v]: [string, any]) => k === 'id' || v !== null)
+            .filter(([k, v]: [string, any]) => k !== 'id' || v !== null)
             .map(async ([k, v]: [string, any]) => await getValue(cl.tableName, k, v, mbt[cl.tableName], orm)),
         );
         inverseQuery = `
           INSERT INTO ${cl.tableName} (${Object.keys(cl.change?.original ?? {})
-          .filter((k: string) => k === 'id' || cl.change?.original[k] !== null)
+          .filter((k: string) => k !== 'id' || cl.change?.original[k] !== null)
           .join(', ')})
           VALUES (${values.join(', ')});
         `;
@@ -816,11 +816,9 @@ async function getInverseQueries(
         inverseQuery = `
           UPDATE ${cl.tableName}
           SET ${Object.entries(cl.change?.original ?? {})
-            .filter(([_, v]: [string, any]) => v !== null)
             .map(([k, _]: [string, any], i) => `${k} = ${values[i]}`)
             .join(', ')}
           WHERE ${Object.entries(cl.change?.change ?? {})
-            .filter(([_, v]: [string, any]) => v !== null)
             .map(([k, v]: [string, any]) => getCondition(k, v))
             .join(' AND ')};
         `;
