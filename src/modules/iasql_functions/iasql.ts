@@ -845,6 +845,7 @@ async function getValue(
   mod: ModuleInterface,
   orm: TypeormWrapper,
 ): Promise<string> {
+  if (v === undefined) return `${null}`;
   if (typeof v === 'string') return `'${v}'`;
   if (v && typeof v === 'object' && Array.isArray(v)) {
     const mappers = Object.values(mod).filter(val => val instanceof MapperBase);
