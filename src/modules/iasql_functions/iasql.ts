@@ -747,7 +747,9 @@ async function realRollback(
 ) {
   // TODO: TRACK ROLLBACK EVENTS IN AUDIT LOGS
   const changeLogs: IasqlAuditLog[] = await getChangeLogsSinceLastBegin(orm);
-  const inverseQueries: string[] = await getInverseQueries(changeLogs);
+  const modsIndexedByTable = indexModsByTable(installedModules);
+  const inverseQueries: string[] = await getInverseQueries(changeLogs, modsIndexedByTable, orm);
+  console.log(`+-+ INVERSE QUERIES = ${inverseQueries}`)
   for (const q of inverseQueries) {
     await orm.query(q);
   }
@@ -773,8 +775,13 @@ async function getChangeLogsSinceLastBegin(orm: TypeormWrapper): Promise<IasqlAu
   });
 }
 
-function getInverseQueries(changeLogs: IasqlAuditLog[]): string[] {
+async function getInverseQueries(
+  changeLogs: IasqlAuditLog[],
+  mbt: { [key: string]: ModuleInterface },
+  orm: TypeormWrapper,
+): Promise<string[]> {
   const inverseQueries: string[] = [];
+  let values: any[];
   for (const cl of changeLogs) {
     let inverseQuery: string = '';
     switch (cl.changeType) {
@@ -788,22 +795,29 @@ function getInverseQueries(changeLogs: IasqlAuditLog[]): string[] {
         `;
         break;
       case AuditLogChangeType.DELETE:
+        values = await Promise.all(
+          Object.entries(cl.change?.original ?? {})
+            .filter(([k, v]: [string, any]) => k === 'id' || v !== null)
+            .map(async ([k, v]: [string, any]) => await getValue(cl.tableName, k, v, mbt[cl.tableName], orm)),
+        );
         inverseQuery = `
           INSERT INTO ${cl.tableName} (${Object.keys(cl.change?.original ?? {})
           .filter((k: string) => k === 'id' || cl.change?.original[k] !== null)
           .join(', ')})
-          VALUES (${Object.values(cl.change?.original ?? {})
-            .filter((v: any) => v !== null)
-            .map((v: any) => getValue(v))
-            .join(', ')});
+          VALUES (${values.join(', ')});
         `;
         break;
       case AuditLogChangeType.UPDATE:
+        values = await Promise.all(
+          Object.entries(cl.change?.original ?? {})
+            .filter(([_, v]: [string, any]) => v !== null)
+            .map(async ([k, v]: [string, any]) => await getValue(cl.tableName, k, v, mbt[cl.tableName], orm)),
+        );
         inverseQuery = `
           UPDATE ${cl.tableName}
           SET ${Object.entries(cl.change?.original ?? {})
             .filter(([_, v]: [string, any]) => v !== null)
-            .map(([k, v]: [string, any]) => `${k} = ${getValue(v)}`)
+            .map(([k, _]: [string, any], i) => `${k} = ${values[i]}`)
             .join(', ')}
           WHERE ${Object.entries(cl.change?.change ?? {})
             .filter(([_, v]: [string, any]) => v !== null)
@@ -819,7 +833,6 @@ function getInverseQueries(changeLogs: IasqlAuditLog[]): string[] {
   return inverseQueries;
 }
 
-// todo: how to make sure this handle all possible cases?
 function getCondition(k: string, v: any): string {
   if (typeof v === 'string') return `${k} = '${v}'`;
   if (v && typeof v === 'object') return `${k}::jsonb = '${JSON.stringify(v)}'::jsonb`;
@@ -827,10 +840,30 @@ function getCondition(k: string, v: any): string {
 }
 
 // todo: how to make sure this handle all possible cases?
-function getValue(v: any): string {
+async function getValue(
+  tableName: string,
+  k: string,
+  v: any,
+  mod: ModuleInterface,
+  orm: TypeormWrapper,
+): Promise<string> {
   if (typeof v === 'string') return `'${v}'`;
-  if (v && typeof v === 'object' && !Array.isArray(v)) return `'${JSON.stringify(v)}'`;
-  if (v && typeof v === 'object' && Array.isArray(v)) return `'{${v.join(',')}}'`;
+  if (v && typeof v === 'object' && Array.isArray(v)) {
+    const mappers = Object.values(mod).filter(val => val instanceof MapperBase);
+    for (const m of mappers) {
+      const metadata = await orm.getEntityMetadata((m as MapperBase<any>).entity);
+      if (
+        metadata.tableName === tableName &&
+        metadata.ownerColumns
+          .filter(oc => oc.isArray)
+          .map(oc => oc.databaseName)
+          .includes(k)
+      ) {
+        return `'{${v.join(',')}}'`;
+      }
+    }
+  }
+  if (v && typeof v === 'object') return `'${JSON.stringify(v)}'`;
   return `${v}`;
 }
 
