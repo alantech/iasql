@@ -88,6 +88,7 @@ describe('rollback functionality', () => {
       `
         BEGIN;
           DELETE FROM instance_security_groups;
+          DELETE FROM general_purpose_volume;
           DELETE FROM instance;
           DELETE FROM security_group;
         COMMIT;
