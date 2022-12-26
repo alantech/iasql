@@ -789,7 +789,7 @@ async function getInverseQueries(
         inverseQuery = `
           DELETE FROM ${cl.tableName}
           WHERE ${Object.entries(cl.change?.change ?? {})
-            .filter(([k, v]: [string, any]) => k !== 'id' || v !== null)
+            .filter(([k, v]: [string, any]) => k !== 'id' && v !== null)
             .map(([k, v]: [string, any]) => getCondition(k, v))
             .join(' AND ')};
         `;
@@ -797,12 +797,12 @@ async function getInverseQueries(
       case AuditLogChangeType.DELETE:
         values = await Promise.all(
           Object.entries(cl.change?.original ?? {})
-            .filter(([k, v]: [string, any]) => k !== 'id' || v !== null)
+            .filter(([k, v]: [string, any]) => k !== 'id' && v !== null)
             .map(async ([k, v]: [string, any]) => await getValue(cl.tableName, k, v, mbt[cl.tableName], orm)),
         );
         inverseQuery = `
           INSERT INTO ${cl.tableName} (${Object.keys(cl.change?.original ?? {})
-          .filter((k: string) => k !== 'id' || cl.change?.original[k] !== null)
+          .filter((k: string) => k !== 'id' && cl.change?.original[k] !== null)
           .join(', ')})
           VALUES (${values.join(', ')});
         `;
