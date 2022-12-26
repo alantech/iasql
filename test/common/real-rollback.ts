@@ -83,28 +83,6 @@ describe('rollback functionality', () => {
   it('starts a transaction', begin());
 
   it(
-    'clean',
-    query(
-      `
-        BEGIN;
-          DELETE FROM instance_security_groups;
-          DELETE FROM general_purpose_volume;
-          DELETE FROM instance;
-          DELETE FROM security_group_rule;
-          DELETE FROM security_group;
-        COMMIT;
-      `,
-      undefined,
-      true,
-      () => ({ username, password }),
-    ),
-  );
-
-  it('syncs the regions', commit());
-
-  it('starts a transaction', begin());
-
-  it(
     'insert a log group',
     query(
       `
@@ -171,11 +149,10 @@ describe('rollback functionality', () => {
     'checks the security group',
     query(
       `
-        select * from security_group;
+        select * from security_group where group_name != 'default';
       `,
       (res: any) => {
-        console.log(`+-+ sgs = ${JSON.stringify(res)}`)
-        expect(res.length).toBe(0);
+        expect(res.length).toBe(18);
       },
     ),
   );
