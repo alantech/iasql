@@ -83,6 +83,26 @@ describe('rollback functionality', () => {
   it('starts a transaction', begin());
 
   it(
+    'clean',
+    query(
+      `
+        BEGIN;
+          DELETE FROM instance_security_groups;
+          DELETE FROM instance;
+          DELETE FROM security_group;
+        COMMIT;
+      `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it('syncs the regions', commit());
+
+  it('starts a transaction', begin());
+
+  it(
     'insert a log group',
     query(
       `
