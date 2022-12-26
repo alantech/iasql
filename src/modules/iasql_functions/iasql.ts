@@ -751,8 +751,12 @@ async function realRollback(
   const inverseQueries: string[] = await getInverseQueries(changeLogs, modsIndexedByTable, orm);
   for (const q of inverseQueries) {
     console.log(`+-+ INVERSE QUERY = ${q}`);
-    const r = await orm.query(q);
-    console.log(`+-+ INVERSE QUERY RES= ${JSON.stringify(r)}`);
+    try {
+      const r = await orm.query(q);
+      console.log(`+-+ INVERSE QUERY RES= ${JSON.stringify(r)}`);
+    } catch (e) {
+      console.log(`+-+ Error Inverse query = ${JSON.stringify(e)}`)
+    }
   }
   await commitApply(dbId, installedModules, ctx, true, crupdes, false);
 }
