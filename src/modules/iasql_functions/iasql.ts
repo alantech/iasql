@@ -749,9 +749,10 @@ async function realRollback(
   const changeLogs: IasqlAuditLog[] = await getChangeLogsSinceLastBegin(orm);
   const modsIndexedByTable = indexModsByTable(installedModules);
   const inverseQueries: string[] = await getInverseQueries(changeLogs, modsIndexedByTable, orm);
-  console.log(`+-+ INVERSE QUERIES = ${inverseQueries}`);
   for (const q of inverseQueries) {
-    await orm.query(q);
+    console.log(`+-+ INVERSE QUERY = ${q}`);
+    const r = await orm.query(q);
+    console.log(`+-+ INVERSE QUERY RES= ${JSON.stringify(r)}`);
   }
   await commitApply(dbId, installedModules, ctx, true, crupdes, false);
 }
@@ -810,7 +811,6 @@ async function getInverseQueries(
       case AuditLogChangeType.UPDATE:
         values = await Promise.all(
           Object.entries(cl.change?.original ?? {})
-            .filter(([_, v]: [string, any]) => v !== null)
             .map(async ([k, v]: [string, any]) => await getValue(cl.tableName, k, v, mbt[cl.tableName], orm)),
         );
         inverseQuery = `
@@ -819,6 +819,8 @@ async function getInverseQueries(
             .map(([k, _]: [string, any], i) => `${k} = ${values[i]}`)
             .join(', ')}
           WHERE ${Object.entries(cl.change?.change ?? {})
+            // We need to add an special case for AMIs since we know the revolve string can be used and it will not match with the actual AMI assigned
+            .filter(([k, _]: [string, any]) => k !== 'ami')
             .map(([k, v]: [string, any]) => getCondition(k, v))
             .join(' AND ')};
         `;
