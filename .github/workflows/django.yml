@@ -12,144 +12,144 @@ on:
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  setup:
-    runs-on: ubuntu-latest
-    outputs:
-      region: ${{ steps['set-region'].outputs['region'] }}
-    steps:
-      - name: Set AWS region
-        id: set-region
-        run: |
-          # pick aws region at random and append it to the repository name
-          # since public ecr always works out of us-east-1
-          regions=("ap-northeast-1" "ap-northeast-2" "ap-northeast-3" "ap-south-1" "ap-southeast-1" "ap-southeast-2" "ca-central-1" "eu-central-1" "eu-north-1" "eu-west-1" "eu-west-2" "eu-west-3" "sa-east-1" "us-east-1" "us-east-2" "us-west-1" "us-west-2")
-          regionslen=${#regions[@]}
-          index=$(($RANDOM % $regionslen))
-          echo "::set-output name=region::$(echo ${regions[$index]})"
+  # setup:
+  #   runs-on: ubuntu-latest
+  #   outputs:
+  #     region: ${{ steps['set-region'].outputs['region'] }}
+  #   steps:
+  #     - name: Set AWS region
+  #       id: set-region
+  #       run: |
+  #         # pick aws region at random and append it to the repository name
+  #         # since public ecr always works out of us-east-1
+  #         regions=("ap-northeast-1" "ap-northeast-2" "ap-northeast-3" "ap-south-1" "ap-southeast-1" "ap-southeast-2" "ca-central-1" "eu-central-1" "eu-north-1" "eu-west-1" "eu-west-2" "eu-west-3" "sa-east-1" "us-east-1" "us-east-2" "us-west-1" "us-west-2")
+  #         regionslen=${#regions[@]}
+  #         index=$(($RANDOM % $regionslen))
+  #         echo "::set-output name=region::$(echo ${regions[$index]})"
 
-  deploy:
-    runs-on: ubuntu-latest
-    needs:
-      - setup
-    steps:
-      - uses: actions/checkout@v3
+  # deploy:
+  #   runs-on: ubuntu-latest
+  #   needs:
+  #     - setup
+  #   steps:
+  #     - uses: actions/checkout@v3
 
-      - name: Use Python 3.9
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.9'
+  #     - name: Use Python 3.9
+  #       uses: actions/setup-python@v4
+  #       with:
+  #         python-version: '3.9'
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+  #     - name: Set up Docker Buildx
+  #       uses: docker/setup-buildx-action@v2
 
-      - name: Build and push
-        uses: docker/build-push-action@v3
-        with:
-          context: .
-          push: false
-          load: true
-          cache-from: type=gha
-          cache-to: type=gha
-          tags: iasql:latest
+  #     - name: Build and push
+  #       uses: docker/build-push-action@v3
+  #       with:
+  #         context: .
+  #         push: false
+  #         load: true
+  #         cache-from: type=gha
+  #         cache-to: type=gha
+  #         tags: iasql:latest
 
-      - name: Start local iasql engine
-        run: |
-          # Temporarily export the engine port until it's only the Postgres port needed
-          docker run -p 5432:5432 -e IASQL_ENV=ci --name iasql iasql &
-          while ! psql postgres://postgres:test@localhost:5432/iasql_metadata -b -q -c "SELECT iasql_engine_health()"; do sleep 1 && echo -n .; done;
+  #     - name: Start local iasql engine
+  #       run: |
+  #         # Temporarily export the engine port until it's only the Postgres port needed
+  #         docker run -p 5432:5432 -e IASQL_ENV=ci --name iasql iasql &
+  #         while ! psql postgres://postgres:test@localhost:5432/iasql_metadata -b -q -c "SELECT iasql_engine_health()"; do sleep 1 && echo -n .; done;
 
-      - name: Determine Test Account To Use
-        id: determine-test-account
-        env:
-          SECRET_HEADER: ${{ secrets.SECRET_HEADER }}
-        run: |
-          RESPONSE=$(curl -X POST -H "Content-Type: text/plain" -H "${SECRET_HEADER}" -d '1' https://fkk3xlyad5tobhmezx4onpvele0zyehu.lambda-url.us-east-2.on.aws/ 2>/dev/null)
-          echo $RESPONSE
-          ACCOUNT_INDEX=$(echo $RESPONSE | jq '.[0]' || exit 1)
-          echo "::set-output name=account_index::$(echo ${ACCOUNT_INDEX})"
+  #     - name: Determine Test Account To Use
+  #       id: determine-test-account
+  #       env:
+  #         SECRET_HEADER: ${{ secrets.SECRET_HEADER }}
+  #       run: |
+  #         RESPONSE=$(curl -X POST -H "Content-Type: text/plain" -H "${SECRET_HEADER}" -d '1' https://fkk3xlyad5tobhmezx4onpvele0zyehu.lambda-url.us-east-2.on.aws/ 2>/dev/null)
+  #         echo $RESPONSE
+  #         ACCOUNT_INDEX=$(echo $RESPONSE | jq '.[0]' || exit 1)
+  #         echo "::set-output name=account_index::$(echo ${ACCOUNT_INDEX})"
 
-      - name: Setup IaSQL database
-        id: set-up-database
-        if: always()
-        run: |
-          export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
-          export AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
-          source ./src/scripts/setup-iasql-db.sh
-          echo "iasql_username=$IASQL_USERNAME" >> $GITHUB_ENV
-          echo "iasql_password=$IASQL_PASSWORD" >> $GITHUB_ENV
-        env:
-          ACCOUNT_INDEX: ${{ steps['determine-test-account'].outputs['account_index'] }}
-          AWS_REGION: ${{ needs.setup.outputs['region'] }}
-          ACCESS_KEY_IDS: ${{ secrets.ACCESS_KEY_IDS }}
-          SECRET_ACCESS_KEYS: ${{ secrets.SECRET_ACCESS_KEYS }}
+  #     - name: Setup IaSQL database
+  #       id: set-up-database
+  #       if: always()
+  #       run: |
+  #         export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
+  #         export AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
+  #         source ./src/scripts/setup-iasql-db.sh
+  #         echo "iasql_username=$IASQL_USERNAME" >> $GITHUB_ENV
+  #         echo "iasql_password=$IASQL_PASSWORD" >> $GITHUB_ENV
+  #       env:
+  #         ACCOUNT_INDEX: ${{ steps['determine-test-account'].outputs['account_index'] }}
+  #         AWS_REGION: ${{ needs.setup.outputs['region'] }}
+  #         ACCESS_KEY_IDS: ${{ secrets.ACCESS_KEY_IDS }}
+  #         SECRET_ACCESS_KEYS: ${{ secrets.SECRET_ACCESS_KEYS }}
 
-      - name: Pre-clean with cleaning script
-        if: always()
-        run: |
-          export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
-          export AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
-          echo "\nStart transaction..."
-          psql "postgres://$IASQL_USERNAME:$IASQL_PASSWORD@localhost:5432/iasql" -c "select * from iasql_begin();"
-          echo "\nDelete all records..."
-          psql "postgres://$IASQL_USERNAME:$IASQL_PASSWORD@localhost:5432/iasql" -c "select * from delete_all_records();"
-          echo "\nApply..."
-          psql $PSQL_CONN -c "select * from iasql_commit();"
-        env:
-          ACCOUNT_INDEX: ${{ steps['determine-test-account'].outputs['account_index'] }}
-          AWS_REGION: ${{ needs.setup.outputs['region'] }}
-          ACCESS_KEY_IDS: ${{ secrets.ACCESS_KEY_IDS }}
-          SECRET_ACCESS_KEYS: ${{ secrets.SECRET_ACCESS_KEYS }}
-          IASQL_USERNAME: ${{ env.iasql_username }}
-          IASQL_PASSWORD: ${{ env.iasql_password }}
-          PSQL_CONN: postgres://postgres:test@localhost:5432/iasql
+  #     - name: Pre-clean with cleaning script
+  #       if: always()
+  #       run: |
+  #         export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
+  #         export AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
+  #         echo "\nStart transaction..."
+  #         psql "postgres://$IASQL_USERNAME:$IASQL_PASSWORD@localhost:5432/iasql" -c "select * from iasql_begin();"
+  #         echo "\nDelete all records..."
+  #         psql "postgres://$IASQL_USERNAME:$IASQL_PASSWORD@localhost:5432/iasql" -c "select * from delete_all_records();"
+  #         echo "\nApply..."
+  #         psql $PSQL_CONN -c "select * from iasql_commit();"
+  #       env:
+  #         ACCOUNT_INDEX: ${{ steps['determine-test-account'].outputs['account_index'] }}
+  #         AWS_REGION: ${{ needs.setup.outputs['region'] }}
+  #         ACCESS_KEY_IDS: ${{ secrets.ACCESS_KEY_IDS }}
+  #         SECRET_ACCESS_KEYS: ${{ secrets.SECRET_ACCESS_KEYS }}
+  #         IASQL_USERNAME: ${{ env.iasql_username }}
+  #         IASQL_PASSWORD: ${{ env.iasql_password }}
+  #         PSQL_CONN: postgres://postgres:test@localhost:5432/iasql
 
-      - name: Run deploy script
-        run: |
-          export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
-          export AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
-          ./test/tutorials/django-ci.sh
-        env:
-          ACCOUNT_INDEX: ${{ steps['determine-test-account'].outputs['account_index'] }}
-          AWS_REGION: ${{ needs.setup.outputs['region'] }}
-          ACCESS_KEY_IDS: ${{ secrets.ACCESS_KEY_IDS }}
-          SECRET_ACCESS_KEYS: ${{ secrets.SECRET_ACCESS_KEYS }}
-          DB_NAME: iasql
-          DB_USER: ${{ env.iasql_username }}
-          DB_PASSWORD: ${{ env.iasql_password }}
-          DB_HOST: '127.0.0.1'
-          DB_PORT: 5432
-          GH_PAT: ${{ secrets.GH_PAT }}
-          IASQL_USERNAME: ${{ env.iasql_username }}
-          IASQL_PASSWORD: ${{ env.iasql_password }}
+  #     - name: Run deploy script
+  #       run: |
+  #         export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
+  #         export AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
+  #         ./test/tutorials/django-ci.sh
+  #       env:
+  #         ACCOUNT_INDEX: ${{ steps['determine-test-account'].outputs['account_index'] }}
+  #         AWS_REGION: ${{ needs.setup.outputs['region'] }}
+  #         ACCESS_KEY_IDS: ${{ secrets.ACCESS_KEY_IDS }}
+  #         SECRET_ACCESS_KEYS: ${{ secrets.SECRET_ACCESS_KEYS }}
+  #         DB_NAME: iasql
+  #         DB_USER: ${{ env.iasql_username }}
+  #         DB_PASSWORD: ${{ env.iasql_password }}
+  #         DB_HOST: '127.0.0.1'
+  #         DB_PORT: 5432
+  #         GH_PAT: ${{ secrets.GH_PAT }}
+  #         IASQL_USERNAME: ${{ env.iasql_username }}
+  #         IASQL_PASSWORD: ${{ env.iasql_password }}
 
-      - name: Run cleaning script
-        if: always()
-        run: |
-          export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
-          export AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
-          echo "\nStart transaction..."
-          psql "postgres://$IASQL_USERNAME:$IASQL_PASSWORD@localhost:5432/iasql" -c "select * from iasql_begin();"
-          echo "\nDelete all records..."
-          psql "postgres://$IASQL_USERNAME:$IASQL_PASSWORD@localhost:5432/iasql" -c "select * from delete_all_records();"
-          echo "\nApply..."
-          psql $PSQL_CONN -c "select * from iasql_commit();"
-        env:
-          ACCOUNT_INDEX: ${{ steps['determine-test-account'].outputs['account_index'] }}
-          AWS_REGION: ${{ needs.setup.outputs['region'] }}
-          ACCESS_KEY_IDS: ${{ secrets.ACCESS_KEY_IDS }}
-          SECRET_ACCESS_KEYS: ${{ secrets.SECRET_ACCESS_KEYS }}
-          IASQL_USERNAME: ${{ env.iasql_username }}
-          IASQL_PASSWORD: ${{ env.iasql_password }}
-          PSQL_CONN: postgres://postgres:test@localhost:5432/iasql
+  #     - name: Run cleaning script
+  #       if: always()
+  #       run: |
+  #         export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
+  #         export AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
+  #         echo "\nStart transaction..."
+  #         psql "postgres://$IASQL_USERNAME:$IASQL_PASSWORD@localhost:5432/iasql" -c "select * from iasql_begin();"
+  #         echo "\nDelete all records..."
+  #         psql "postgres://$IASQL_USERNAME:$IASQL_PASSWORD@localhost:5432/iasql" -c "select * from delete_all_records();"
+  #         echo "\nApply..."
+  #         psql $PSQL_CONN -c "select * from iasql_commit();"
+  #       env:
+  #         ACCOUNT_INDEX: ${{ steps['determine-test-account'].outputs['account_index'] }}
+  #         AWS_REGION: ${{ needs.setup.outputs['region'] }}
+  #         ACCESS_KEY_IDS: ${{ secrets.ACCESS_KEY_IDS }}
+  #         SECRET_ACCESS_KEYS: ${{ secrets.SECRET_ACCESS_KEYS }}
+  #         IASQL_USERNAME: ${{ env.iasql_username }}
+  #         IASQL_PASSWORD: ${{ env.iasql_password }}
+  #         PSQL_CONN: postgres://postgres:test@localhost:5432/iasql
 
-      - name: Return test account
-        if: always()
-        env:
-          SECRET_HEADER: ${{ secrets.SECRET_HEADER }}
-          ACCOUNT_INDEX: ${{ steps['determine-test-account'].outputs['account_index'] }}
-        run: |
-          curl -X POST -H "Content-Type: application/json" -H "${SECRET_HEADER}" -H "x-iasql-drop: true" -d "[${ACCOUNT_INDEX}]" https://fkk3xlyad5tobhmezx4onpvele0zyehu.lambda-url.us-east-2.on.aws/
+  #     - name: Return test account
+  #       if: always()
+  #       env:
+  #         SECRET_HEADER: ${{ secrets.SECRET_HEADER }}
+  #         ACCOUNT_INDEX: ${{ steps['determine-test-account'].outputs['account_index'] }}
+  #       run: |
+  #         curl -X POST -H "Content-Type: application/json" -H "${SECRET_HEADER}" -H "x-iasql-drop: true" -d "[${ACCOUNT_INDEX}]" https://fkk3xlyad5tobhmezx4onpvele0zyehu.lambda-url.us-east-2.on.aws/
 
-      - name: Local engine logs
-        if: always()
-        run: docker logs iasql
+  #     - name: Local engine logs
+  #       if: always()
+  #       run: docker logs iasql
