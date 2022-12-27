@@ -1,4 +1,9 @@
-import { IAM, LoginProfile, NoSuchEntityException } from '@aws-sdk/client-iam';
+import {
+  EntityTemporarilyUnmodifiableException,
+  IAM,
+  LoginProfile,
+  NoSuchEntityException,
+} from '@aws-sdk/client-iam';
 
 import { AwsIamModule } from '..';
 import { AWS, crudBuilder2, crudBuilderFormat } from '../../../services/aws_macros';
@@ -105,18 +110,27 @@ export class SetUserPasswordRequestRpc extends RpcBase {
         await this.deleteLoginProfile(client.iamClient, { UserName: userName });
         return this.makeSuccess();
       } else {
-        console.log('in update pass');
-        await this.updateLoginProfile(client.iamClient, {
-          UserName: userName,
-          Password: password,
-          PasswordResetRequired: resetPassword == 'true',
-        });
+        let i = 0;
+        do {
+          try {
+            await this.updateLoginProfile(client.iamClient, {
+              UserName: userName,
+              Password: password,
+              PasswordResetRequired: resetPassword == 'true',
+            });
+            break;
+          } catch (e) {
+            if (e instanceof EntityTemporarilyUnmodifiableException) {
+              // check if we need to wait
+              await new Promise(r => setTimeout(r, 10000)); // Sleep for 10s
+              i++;
+            } else break;
+          }
+        } while (i < 30);
       }
       // it's ok
       return this.makeSuccess();
     } catch (e) {
-      console.log('error is');
-      console.log(e);
       // if password is not set and user does not exist, do nothing
       if (!password) return this.makeSuccess();
 
