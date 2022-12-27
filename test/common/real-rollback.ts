@@ -149,10 +149,10 @@ describe('rollback functionality', () => {
     'checks the security group',
     query(
       `
-        select * from security_group where group_name != 'default';
+        select * from security_group where group_name = '${sgName}';
       `,
       (res: any) => {
-        expect(res.length).toBe(18);
+        expect(res.length).toBe(0);
       },
     ),
   );
@@ -161,10 +161,9 @@ describe('rollback functionality', () => {
     'checks the instance',
     query(
       `
-        select * from instance;
+        select * from instance where tags ->> 'name' = '${dbAlias}';
       `,
       (res: any) => {
-        console.log(`+-+ instances = ${JSON.stringify(res)}`)
         expect(res.length).toBe(0);
       },
     ),
