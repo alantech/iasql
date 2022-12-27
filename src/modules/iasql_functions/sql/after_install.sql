@@ -78,6 +78,7 @@ begin
   return query select
     x.name, x.signature, x.description, x.sample_usage
   from json_to_recordset('[
+    {"name": "begin", "signature": "iasql_begin()", "description": "Starts a new IaSQL transaction. It marks the start of a set of changes that can be then applied into the database.", "sample_usage": "SELECT * FROM iasql_begin()"},
     {"name": "preview", "signature": "iasql_preview()", "description": "Preview of the resources in the db to be modified on the next `commit`", "sample_usage": "SELECT * FROM iasql_preview()"},
     {"name": "commit", "signature": "iasql_commit()", "description": "Commit changes done to the database by creating, updating or deleting cloud resources", "sample_usage": "SELECT * FROM iasql_commit()"},
     {"name": "restore", "signature": "iasql_restore()", "description": "Restore database by synchronizing cloud resources", "sample_usage": "SELECT * FROM iasql_restore()"},
