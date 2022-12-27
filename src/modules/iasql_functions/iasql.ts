@@ -842,7 +842,6 @@ function getCondition(k: string, v: any): string {
   return `${k} = ${v}`;
 }
 
-// todo: how to make sure this handle all possible cases?
 async function getValue(
   tableName: string,
   k: string,
