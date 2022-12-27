@@ -718,7 +718,7 @@ export async function commit(
     if (applyErr || syncErr) {
       let rollbackErr;
       try {
-        await rollback(dbId, context, orm, installedModulesSorted, crupdes);
+        await rollback(dbId, context, installedModulesSorted, crupdes);
       } catch (e) {
         rollbackErr = e;
       }
@@ -745,17 +745,16 @@ export async function commit(
 async function rollback(
   dbId: string,
   ctx: Context,
-  orm: TypeormWrapper,
   installedModules: ModuleInterface[],
   crupdes: CrupdeOperations,
 ) {
-  await insertLog(orm, AuditLogChangeType.START_ROLLBACK);
-  const changeLogs: IasqlAuditLog[] = await getChangeLogsSinceLastBegin(orm);
+  await insertLog(ctx.orm, AuditLogChangeType.START_ROLLBACK);
+  const changeLogs: IasqlAuditLog[] = await getChangeLogsSinceLastBegin(ctx.orm);
   const modsIndexedByTable = indexModsByTable(installedModules);
-  const inverseQueries: string[] = await getInverseQueries(changeLogs, modsIndexedByTable, orm);
+  const inverseQueries: string[] = await getInverseQueries(changeLogs, modsIndexedByTable, ctx.orm);
   for (const q of inverseQueries) {
     try {
-      await orm.query(q);
+      await ctx.orm.query(q);
     } catch (e) {
       logger.scope({ dbId }).warn(`Error applying inverse query: ${JSON.stringify(e)}`);
     }
@@ -765,7 +764,7 @@ async function rollback(
   } catch (e) {
     throw e;
   } finally {
-    await insertLog(orm, AuditLogChangeType.END_ROLLBACK);
+    await insertLog(ctx.orm, AuditLogChangeType.END_ROLLBACK);
   }
 }
 
