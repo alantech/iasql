@@ -63,7 +63,7 @@ const uninstall = runUninstall.bind(null, dbAlias);
 const region = defaultRegion();
 const modules = ['aws_cloudfront', 'aws_s3'];
 
-jest.setTimeout(620000);
+jest.setTimeout(840000);
 
 beforeAll(async () => {
   // create a test s3 bucket
