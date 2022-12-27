@@ -18,7 +18,7 @@ import * as iasql from '../iasql';
  *
  * @example
  * ```sql
- * SELECT * FROM iasql_begin();
+ * SELECT * FROM iasql_commit();
  * ```
  *
  * @see https://iasql.com/docs/function/
