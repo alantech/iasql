@@ -747,7 +747,7 @@ async function rollback(
   installedModules: ModuleInterface[],
   crupdes: { toCreate: Crupde; toUpdate: Crupde; toReplace: Crupde; toDelete: Crupde },
 ) {
-  // TODO: TRACK ROLLBACK EVENTS IN AUDIT LOGS
+  await insertLog(orm, AuditLogChangeType.START_ROLLBACK);
   const changeLogs: IasqlAuditLog[] = await getChangeLogsSinceLastBegin(orm);
   const modsIndexedByTable = indexModsByTable(installedModules);
   const inverseQueries: string[] = await getInverseQueries(changeLogs, modsIndexedByTable, orm);
@@ -758,7 +758,13 @@ async function rollback(
       logger.scope({ dbId }).warn(`Error applying inverse query: ${JSON.stringify(e)}`);
     }
   }
-  await apply(dbId, installedModules, ctx, true, crupdes, false);
+  try {
+    await apply(dbId, installedModules, ctx, true, crupdes, false);
+  } catch (e) {
+    throw e;
+  } finally {
+    await insertLog(orm, AuditLogChangeType.END_ROLLBACK);
+  }
 }
 
 async function getChangeLogsSinceLastBegin(orm: TypeormWrapper): Promise<IasqlAuditLog[]> {
