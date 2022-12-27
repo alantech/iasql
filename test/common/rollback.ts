@@ -24,7 +24,7 @@ const uid = '12345';
 const email = 'test@example.com';
 const region = defaultRegion();
 
-jest.setTimeout(360000);
+jest.setTimeout(420000);
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown());
 
