@@ -750,12 +750,10 @@ async function realRollback(
   const modsIndexedByTable = indexModsByTable(installedModules);
   const inverseQueries: string[] = await getInverseQueries(changeLogs, modsIndexedByTable, orm);
   for (const q of inverseQueries) {
-    console.log(`+-+ INVERSE QUERY = ${q}`);
     try {
-      const r = await orm.query(q);
-      console.log(`+-+ INVERSE QUERY RES= ${JSON.stringify(r)}`);
+      await orm.query(q);
     } catch (e) {
-      console.log(`+-+ Error Inverse query = ${JSON.stringify(e)}`)
+      logger.scope({ dbId }).warn(`Error applying inverse query: ${JSON.stringify(e)}`);
     }
   }
   await commitApply(dbId, installedModules, ctx, true, crupdes, false);
@@ -814,8 +812,9 @@ async function getInverseQueries(
         break;
       case AuditLogChangeType.UPDATE:
         values = await Promise.all(
-          Object.entries(cl.change?.original ?? {})
-            .map(async ([k, v]: [string, any]) => await getValue(cl.tableName, k, v, mbt[cl.tableName], orm)),
+          Object.entries(cl.change?.original ?? {}).map(
+            async ([k, v]: [string, any]) => await getValue(cl.tableName, k, v, mbt[cl.tableName], orm),
+          ),
         );
         inverseQuery = `
           UPDATE ${cl.tableName}
