@@ -9,7 +9,7 @@ import {
   runCommit,
   runInstall,
   runQuery,
-  runRollback,
+  runRestore,
 } from '../helpers';
 
 const prefix = getPrefix();
@@ -20,7 +20,7 @@ const apiName = `${dbAlias}testApiRegion`;
 
 const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
-const rollback = runRollback.bind(null, dbAlias);
+const restore = runRestore.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 // the AWS website lied, API gateway also has restricted regions
@@ -111,7 +111,7 @@ describe('Api Gateway Multi-region Integration Testing', () => {
     ),
   );
 
-  it('undo changes', rollback());
+  it('undo changes', restore());
 
   it(
     'checks it has been removed',

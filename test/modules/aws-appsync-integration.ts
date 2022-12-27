@@ -11,7 +11,7 @@ import {
   runInstall,
   runInstallAll,
   runQuery,
-  runRollback,
+  runRestore,
   runUninstall,
 } from '../helpers';
 
@@ -20,7 +20,7 @@ const dbAlias = `${prefix}appsynctest`;
 
 const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
-const rollback = runRollback.bind(null, dbAlias);
+const restore = runRestore.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const installAll = runInstallAll.bind(null, dbAlias);
@@ -101,7 +101,7 @@ describe('App Sync Integration Testing', () => {
     ),
   );
 
-  it('undo changes', rollback());
+  it('undo changes', restore());
 
   it('starts a transaction', begin());
 

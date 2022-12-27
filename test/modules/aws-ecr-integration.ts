@@ -12,7 +12,7 @@ import {
   runInstall,
   runInstallAll,
   runQuery,
-  runRollback,
+  runRestore,
   runUninstall,
 } from '../helpers';
 
@@ -28,7 +28,7 @@ const updatePolicyMock =
   '{ "Version": "2012-10-17", "Statement": [ { "Sid": "DenyPull", "Effect": "Deny", "Principal": "*", "Action": [ "ecr:BatchGetImage" ] } ]}';
 const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
-const rollback = runRollback.bind(null, dbAlias);
+const restore = runRestore.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const installAll = runInstallAll.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
@@ -119,7 +119,7 @@ describe('ECR Integration Testing', () => {
       ),
     );
 
-    it('undo changes', rollback());
+    it('undo changes', restore());
 
     it(
       'check adds a new repository',
@@ -438,7 +438,7 @@ describe('ECR Integration Testing', () => {
       ),
     );
 
-    it('undo changes', rollback());
+    it('undo changes', restore());
 
     it(
       'check adds a new public repository',

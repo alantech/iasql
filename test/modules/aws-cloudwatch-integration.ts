@@ -10,7 +10,7 @@ import {
   runInstall,
   runInstallAll,
   runQuery,
-  runRollback,
+  runRestore,
   runUninstall,
 } from '../helpers';
 
@@ -20,7 +20,7 @@ const logGroupName = `${prefix}lgtest`;
 
 const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
-const rollback = runRollback.bind(null, dbAlias);
+const restore = runRestore.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const installAll = runInstallAll.bind(null, dbAlias);
@@ -97,7 +97,7 @@ describe('AwsCloudwatch Integration Testing', () => {
     ),
   );
 
-  it('sync before apply', rollback());
+  it('sync before apply', restore());
 
   it(
     'check no new log group',
@@ -257,7 +257,7 @@ describe('AwsCloudwatch Integration Testing', () => {
     ),
   );
 
-  it('syncs the state with the cloud to make sure it gets the resource from non-default region', rollback());
+  it('syncs the state with the cloud to make sure it gets the resource from non-default region', restore());
 
   it(
     'checks if the log group from the non-default region is back',

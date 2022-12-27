@@ -12,7 +12,7 @@ import {
   runInstall,
   runInstallAll,
   runQuery,
-  runRollback,
+  runRestore,
   runUninstall,
 } from '../helpers';
 
@@ -40,7 +40,7 @@ const testPolicy = JSON.stringify({
 
 const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
-const rollback = runRollback.bind(null, dbAlias);
+const restore = runRestore.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const installAll = runInstallAll.bind(null, dbAlias);
@@ -131,7 +131,7 @@ describe('VPC Integration Testing', () => {
     ),
   );
 
-  it('undo changes', rollback());
+  it('undo changes', restore());
 
   it('starts a transaction', begin());
 
@@ -1362,7 +1362,7 @@ describe('VPC Integration Testing', () => {
   it('applies the change of peering connection state', commit());
 
   it(
-    'verifies the rollback of the peering connection state change',
+    'verifies the restore of the peering connection state change',
     query(
       `
       SELECT state

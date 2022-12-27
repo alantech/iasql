@@ -75,10 +75,10 @@ describe('basic restore functionality', () => {
   );
 
   it(
-    'calls iasql_rollback should delete',
+    'calls iasql_restore should delete',
     query(
       `
-    select * from iasql_rollback();
+    select * from iasql_restore();
   `,
       (res: any) => {
         expect(res[0]['action']).toBe('delete');

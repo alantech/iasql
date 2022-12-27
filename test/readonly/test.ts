@@ -8,7 +8,7 @@ import {
   runUninstallAll,
   runQuery,
   runCommit,
-  runRollback,
+  runRestore,
   runBegin,
 } from '../helpers';
 
@@ -18,7 +18,7 @@ const installAll = runInstallAll.bind(null, dbAlias);
 const uninstallAll = runUninstallAll.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
-const rollback = runRollback.bind(null, dbAlias);
+const restore = runRestore.bind(null, dbAlias);
 const begin = runBegin.bind(null, dbAlias);
 
 jest.setTimeout(600000);
@@ -94,7 +94,7 @@ describe('Aws read only Integration Testing', () => {
     ),
   );
 
-  it('undo changes', rollback());
+  it('undo changes', restore());
 
   it(
     'check adds a new repository',
@@ -132,7 +132,7 @@ describe('Aws read only Integration Testing', () => {
     }); // Ignore failure
   });
 
-  it('does a rollback to end the transaction', rollback());
+  it('does a restore to end the transaction', restore());
 
   it('uninstalls all modules', uninstallAll());
 

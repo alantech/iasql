@@ -10,7 +10,7 @@ import {
   runInstall,
   runInstallAll,
   runQuery,
-  runRollback,
+  runRestore,
   runUninstall,
 } from '../helpers';
 
@@ -55,7 +55,7 @@ const s3behaviorString = JSON.stringify(s3behavior);
 
 const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
-const rollback = runRollback.bind(null, dbAlias);
+const restore = runRestore.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const installAll = runInstallAll.bind(null, dbAlias);
@@ -154,7 +154,7 @@ describe('Cloudfront Integration Testing', () => {
     ),
   );
 
-  it('undo changes', rollback());
+  it('undo changes', restore());
 
   it('starts a transaction', begin());
 

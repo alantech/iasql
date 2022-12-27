@@ -10,7 +10,7 @@ import {
   runCommit,
   runInstall,
   runQuery,
-  runRollback,
+  runRestore,
 } from '../helpers';
 
 const prefix = getPrefix();
@@ -22,7 +22,7 @@ const authType = AuthenticationType.API_KEY;
 
 const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
-const rollback = runRollback.bind(null, dbAlias);
+const restore = runRestore.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const region = defaultRegion();
@@ -97,7 +97,7 @@ describe('App Sync Multi-region Integration Testing', () => {
     ),
   );
 
-  it('undo changes', rollback());
+  it('undo changes', restore());
 
   it(
     'checks it has been removed',
