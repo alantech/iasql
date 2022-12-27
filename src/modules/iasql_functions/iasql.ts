@@ -637,7 +637,10 @@ export async function commit(
     const isRunning = await isCommitRunning(orm);
     if (!force && isRunning) throw new Error('Another execution is in process. Please try again later.');
 
-    const newStartCommit: IasqlAuditLog = await insertLog(orm, dryRun ? 'preview_start' : 'start');
+    const newStartCommit: IasqlAuditLog = await insertLog(
+      orm,
+      dryRun ? AuditLogChangeType.PREVIEW_START_COMMIT : AuditLogChangeType.START_COMMIT,
+    );
     if (dryRun) context.previewStartCommit = newStartCommit;
     else context.startCommit = newStartCommit;
     const previousStartCommit = await getPreviousStartCommit(orm, newStartCommit.ts);
@@ -730,7 +733,7 @@ export async function commit(
     throw e;
   } finally {
     // Create end commit object
-    await insertLog(orm, dryRun ? 'preview_end' : 'end');
+    await insertLog(orm, dryRun ? AuditLogChangeType.PREVIEW_END_COMMIT : AuditLogChangeType.END_COMMIT);
     // do not drop the conn if it was provided
     if (orm !== ormOpt) orm?.dropConn();
     if (parentOrm) context.orm = parentOrm;
@@ -885,7 +888,7 @@ export async function restore(dbId: string, context: Context, force = false, orm
     const isRunning = await isCommitRunning(orm);
     if (isRunning) throw new Error('Another execution is in process. Please try again later.');
 
-    const newStartCommit = await insertLog(orm, 'start');
+    const newStartCommit = await insertLog(orm, AuditLogChangeType.START_COMMIT);
     context.startCommit = newStartCommit;
 
     const installedModulesNames = (await orm.find(IasqlModule)).map((m: any) => m.name);
@@ -910,7 +913,7 @@ export async function restore(dbId: string, context: Context, force = false, orm
     throw e;
   } finally {
     // Create end commit object
-    await insertLog(orm, 'end');
+    await insertLog(orm, AuditLogChangeType.END_COMMIT);
     // do not drop the conn if it was provided
     if (orm !== ormOpt) orm?.dropConn();
     if (parentOrm) context.orm = parentOrm;
@@ -949,35 +952,11 @@ export async function isCommitRunning(orm: TypeormWrapper): Promise<boolean> {
   );
 }
 
-async function insertLog(
-  orm: TypeormWrapper | null,
-  type: 'start' | 'preview_start' | 'end' | 'preview_end' | 'open' | 'close',
-): Promise<IasqlAuditLog> {
+async function insertLog(orm: TypeormWrapper | null, changeType: AuditLogChangeType): Promise<IasqlAuditLog> {
   const commitLog = new IasqlAuditLog();
   commitLog.user = config.db.user;
   commitLog.change = {};
-  switch (type) {
-    case 'start':
-      commitLog.changeType = AuditLogChangeType.START_COMMIT;
-      break;
-    case 'preview_start':
-      commitLog.changeType = AuditLogChangeType.PREVIEW_START_COMMIT;
-      break;
-    case 'end':
-      commitLog.changeType = AuditLogChangeType.END_COMMIT;
-      break;
-    case 'preview_end':
-      commitLog.changeType = AuditLogChangeType.PREVIEW_END_COMMIT;
-      break;
-    case 'open':
-      commitLog.changeType = AuditLogChangeType.OPEN_TRANSACTION;
-      break;
-    case 'close':
-      commitLog.changeType = AuditLogChangeType.CLOSE_TRANSACTION;
-      break;
-    default:
-      break;
-  }
+  commitLog.changeType = changeType;
   commitLog.tableName = 'iasql_audit_log';
   commitLog.ts = new Date();
   await orm?.save(IasqlAuditLog, commitLog);
@@ -1749,7 +1728,7 @@ export async function maybeOpenTransaction(orm: TypeormWrapper): Promise<void> {
   do {
     const [isRunning, openTransaction] = await Promise.all([isCommitRunning(orm), isOpenTransaction(orm)]);
     if (!isRunning && !openTransaction) {
-      await insertLog(orm, 'open');
+      await insertLog(orm, AuditLogChangeType.OPEN_TRANSACTION);
       addedTransaction = true;
     } else {
       await new Promise(r => setTimeout(r, 1000)); // Sleep for a sec
@@ -1760,7 +1739,7 @@ export async function maybeOpenTransaction(orm: TypeormWrapper): Promise<void> {
 }
 
 export async function closeTransaction(orm: TypeormWrapper): Promise<void> {
-  await insertLog(orm, 'close');
+  await insertLog(orm, AuditLogChangeType.CLOSE_TRANSACTION);
 }
 
 export async function isOpenTransaction(orm: TypeormWrapper): Promise<boolean> {
