@@ -12958,10 +12958,10 @@ postgres-interval@^1.1.0:
   dependencies:
     xtend "^4.0.0"
 
-posthog-node@^2.1.0:
-  version "2.1.0"
-  resolved "https://registry.yarnpkg.com/posthog-node/-/posthog-node-2.1.0.tgz#d99acda28b208cbeefed2e6cd0ddfa8cc2d79910"
-  integrity sha512-xr56mZRQo7rnL2YdwbipcxTZeyi5dcI6IM4++wIN7JLYwinrJYcQv01nan4gU4kMy33Qz5qT6boWMQRwpKZJVQ==
+posthog-node@^2.2.3:
+  version "2.2.3"
+  resolved "https://registry.yarnpkg.com/posthog-node/-/posthog-node-2.2.3.tgz#9fda0dfe92dedc0716b87a68a26c05eed95bdd5a"
+  integrity sha512-dYlLZhrDus+uRov/Hh+EiRlMoMhRKchNjNa7mNE2iWmKg/ryOTipf0XYKS9UKdki7aU1NzWFhnLe11HF615XuA==
   dependencies:
     axios "^0.27.0"
 
