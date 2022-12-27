@@ -677,7 +677,7 @@ export async function commit(
     try {
       if (modulesWithChanges.length) {
         logger.scope({ dbId }).info('Starting apply phase for modules with changes');
-        const applyRes = await commitApply(
+        const applyRes = await apply(
           dbId,
           modulesWithChangesSorted,
           context,
@@ -695,7 +695,7 @@ export async function commit(
     if (applyErr) {
       try {
         logger.scope({ dbId }).info(`Starting apply phase for all modules`);
-        await commitApply(dbId, installedModulesSorted, context, force, crupdes, dryRun);
+        await apply(dbId, installedModulesSorted, context, force, crupdes, dryRun);
         applyErr = null;
       } catch (e) {
         logger.scope({ dbId }).warn(`Something failed applying for all modules.\n${e}`);
@@ -705,7 +705,7 @@ export async function commit(
     let syncRes, syncErr;
     try {
       logger.scope({ dbId }).info('Starting sync phase for all modules');
-      syncRes = await commitSync(dbId, installedModulesSorted, context, force, crupdes, dryRun);
+      syncRes = await sync(dbId, installedModulesSorted, context, force, crupdes, dryRun);
     } catch (e) {
       logger.scope({ dbId }).warn(`Something failed during sync phase for all modules\n${e}`);
       syncErr = e;
@@ -713,7 +713,7 @@ export async function commit(
     if (applyErr || syncErr) {
       let rollbackErr;
       try {
-        await realRollback(dbId, context, orm, installedModulesSorted, crupdes);
+        await rollback(dbId, context, orm, installedModulesSorted, crupdes);
       } catch (e) {
         rollbackErr = e;
       }
@@ -737,8 +737,7 @@ export async function commit(
   }
 }
 
-// TODO: rename
-async function realRollback(
+async function rollback(
   dbId: string,
   ctx: Context,
   orm: TypeormWrapper,
@@ -756,7 +755,7 @@ async function realRollback(
       logger.scope({ dbId }).warn(`Error applying inverse query: ${JSON.stringify(e)}`);
     }
   }
-  await commitApply(dbId, installedModules, ctx, true, crupdes, false);
+  await apply(dbId, installedModules, ctx, true, crupdes, false);
 }
 
 async function getChangeLogsSinceLastBegin(orm: TypeormWrapper): Promise<IasqlAuditLog[]> {
@@ -870,8 +869,7 @@ async function getValue(
   return `${v}`;
 }
 
-// TODO: rename
-export async function rollback(dbId: string, context: Context, force = false, ormOpt?: TypeormWrapper) {
+export async function restore(dbId: string, context: Context, force = false, ormOpt?: TypeormWrapper) {
   const t1 = Date.now();
   logger.scope({ dbId }).info(`Sync to ${dbId}`);
   await throwIfUpgrading(dbId, force);
@@ -905,7 +903,7 @@ export async function rollback(dbId: string, context: Context, force = false, or
       toReplace: {},
       toDelete: {},
     };
-    return await commitSync(dbId, installedModulesSorted, context, force, crupdes, false);
+    return await sync(dbId, installedModulesSorted, context, force, crupdes, false);
   } catch (e: any) {
     debugObj(e);
     await insertErrorLog(orm, logErrSentry(e));
@@ -1052,8 +1050,7 @@ function getModulesWithChanges(
   return [...modulesDirectlyAffected, ...modulesIndirectlyAffected];
 }
 
-// TODO: rename
-async function commitApply(
+async function apply(
   dbId: string,
   relevantModules: ModuleInterface[],
   context: Context,
@@ -1317,8 +1314,7 @@ async function commitApply(
   return output;
 }
 
-// TODO: rename
-async function commitSync(
+async function sync(
   dbId: string,
   relevantModules: ModuleInterface[],
   context: Context,

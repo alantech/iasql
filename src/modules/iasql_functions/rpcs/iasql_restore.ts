@@ -10,7 +10,7 @@ import * as iasql from '../iasql';
 
 /**
  * Method to abort an IaSQL transaction if you want to discard the changes done since calling `iasql_begin` by
- * calling `iasql_rollback`. This will re-enable regular behaviour of IaSQL in which changes are propagated
+ * calling `iasql_restore`. This will sync from your cloud and re-enable regular behaviour of IaSQL in which changes are propagated
  * both ways in an eventually consistent way without any special syntax other than
  * `SELECT/INSERT/UPDATE/DELETE` records normally.
  *
@@ -22,13 +22,13 @@ import * as iasql from '../iasql';
  *
  * @example
  * ```sql
- * SELECT * FROM iasql_rollback();
+ * SELECT * FROM iasql_restore();
  * ```
  *
  * @see https://iasql.com/docs/transaction/
  *
  */
-export class IasqlRollback extends RpcBase {
+export class IasqlRestore extends RpcBase {
   /**
    * @internal
    */
@@ -53,7 +53,7 @@ export class IasqlRollback extends RpcBase {
     _dbUser: string,
     ctx: Context,
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
-    const res = (await iasql.rollback(dbId, ctx)).rows;
+    const res = (await iasql.restore(dbId, ctx)).rows;
     return (
       res?.map(rec => super.formatObjKeysToSnakeCase(rec) as RpcResponseObject<typeof this.outputTable>) ?? []
     );

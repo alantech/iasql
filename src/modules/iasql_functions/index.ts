@@ -10,7 +10,7 @@ import {
   IasqlPreviewSync,
   IasqlSync,
   IasqlUninstall,
-  IasqlRollback,
+  IasqlRestore,
   IasqlBegin,
   IasqlGetErrors,
 } from './rpcs';
@@ -28,7 +28,7 @@ export class IasqlFunctions extends ModuleBase {
   iasqlUninstall: IasqlUninstall;
   iasqlCommit: IasqlCommit;
   iasqlPreview: IasqlPreview;
-  iasqlRollback: IasqlRollback;
+  iasqlRestore: IasqlRestore;
   iasqlBegin: IasqlBegin;
   iasqlGetErrors: IasqlGetErrors;
 
@@ -43,7 +43,7 @@ export class IasqlFunctions extends ModuleBase {
     this.iasqlUninstall = new IasqlUninstall(this);
     this.iasqlCommit = new IasqlCommit(this);
     this.iasqlPreview = new IasqlPreview(this);
-    this.iasqlRollback = new IasqlRollback(this);
+    this.iasqlRestore = new IasqlRestore(this);
     this.iasqlBegin = new IasqlBegin(this);
     this.iasqlGetErrors = new IasqlGetErrors(this);
     super.loadBasics();
