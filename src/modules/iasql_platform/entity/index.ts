@@ -65,8 +65,6 @@ export enum AuditLogChangeType {
   ERROR = 'ERROR',
   START_ROLLBACK = 'START_ROLLBACK',
   END_ROLLBACK = 'END_ROLLBACK',
-  START_RESTORE = 'START_RESTORE',
-  END_RESTORE = 'END_RESTORE',
 }
 
 @Entity()
