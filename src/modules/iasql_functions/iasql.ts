@@ -20,6 +20,8 @@ import { AuditLogChangeType, IasqlAuditLog, IasqlModule } from '../iasql_platfor
 
 // Crupde = CR-UP-DE, Create/Update/Delete
 type Crupde = { [key: string]: { id: string; description: string }[] };
+type CrupdeOperations = { toCreate: Crupde; toUpdate: Crupde; toReplace: Crupde; toDelete: Crupde };
+
 export function recordCount(records: { [key: string]: any }[]): [number, number, number] {
   const dbCount = records.reduce((cumu, r) => cumu + r.diff.entitiesInDbOnly.length, 0);
   const cloudCount = records.reduce((cumu, r) => cumu + r.diff.entitiesInAwsOnly.length, 0);
@@ -670,7 +672,7 @@ export async function commit(
     const t2 = Date.now();
     logger.scope({ dbId }).info(`Setup took ${t2 - t1}ms`);
 
-    const crupdes: { toCreate: Crupde; toUpdate: Crupde; toReplace: Crupde; toDelete: Crupde } = {
+    const crupdes: CrupdeOperations = {
       toCreate: {},
       toUpdate: {},
       toReplace: {},
@@ -745,7 +747,7 @@ async function rollback(
   ctx: Context,
   orm: TypeormWrapper,
   installedModules: ModuleInterface[],
-  crupdes: { toCreate: Crupde; toUpdate: Crupde; toReplace: Crupde; toDelete: Crupde },
+  crupdes: CrupdeOperations,
 ) {
   await insertLog(orm, AuditLogChangeType.START_ROLLBACK);
   const changeLogs: IasqlAuditLog[] = await getChangeLogsSinceLastBegin(orm);
@@ -906,7 +908,7 @@ export async function restore(dbId: string, context: Context, force = false, orm
     const t2 = Date.now();
     logger.scope({ dbId }).info(`Setup took ${t2 - t1}ms`);
 
-    const crupdes: { toCreate: Crupde; toUpdate: Crupde; toReplace: Crupde; toDelete: Crupde } = {
+    const crupdes: CrupdeOperations = {
       toCreate: {},
       toUpdate: {},
       toReplace: {},
@@ -1040,7 +1042,7 @@ async function apply(
   relevantModules: ModuleInterface[],
   context: Context,
   force: boolean,
-  crupdes: { toCreate: Crupde; toUpdate: Crupde; toReplace: Crupde; toDelete: Crupde },
+  crupdes: CrupdeOperations,
   dryRun: boolean,
   changesToCommit?: IasqlAuditLog[],
 ): Promise<{ iasqlPlanVersion: number; rows: any[] }> {
@@ -1304,7 +1306,7 @@ async function sync(
   relevantModules: ModuleInterface[],
   context: Context,
   force: boolean,
-  crupdes: { toCreate: Crupde; toUpdate: Crupde; toReplace: Crupde; toDelete: Crupde },
+  crupdes: CrupdeOperations,
   dryRun: boolean,
 ): Promise<{ iasqlPlanVersion: number; rows: any[] }> {
   const oldOrm = context.orm;
