@@ -1074,7 +1074,7 @@ async function apply(
       }),
       dbId,
     );
-    // Every time we read from db we get possible changes that occured after this commit started
+    // Every time we read from db we get possible changes that occurred after this commit started
     const changesAfterCommitByEntity = await getChangesAfterCommitStartedByEntity(
       context.orm,
       context,
@@ -1201,7 +1201,7 @@ async function apply(
           if (r.diff.entitiesInDbOnly.length > 0) {
             logger
               .scope({ dbId })
-              .info(`${name} has records to create`, { records: r.diff.entitiesInDbOnly });
+              .info(`${name} has records to create - apply`, { records: r.diff.entitiesInDbOnly });
             outArr.push(
               r.diff.entitiesInDbOnly.map((e: any) => async () => {
                 const out = await r.mapper.cloud.create(e, context);
@@ -1218,7 +1218,9 @@ async function apply(
           }
           recordsApplied += r.diff.entitiesChanged.length;
           if (r.diff.entitiesChanged.length > 0) {
-            logger.scope({ dbId }).info(`${name} has records to update`, { records: r.diff.entitiesChanged });
+            logger
+              .scope({ dbId })
+              .info(`${name} has records to update - apply`, { records: r.diff.entitiesChanged });
             outArr.push(
               r.diff.entitiesChanged.map((ec: any) => async () => {
                 const out = await r.mapper.cloud.update(ec.db, context); // Assuming SoT is the DB
@@ -1246,7 +1248,7 @@ async function apply(
           if (r.diff.entitiesInAwsOnly.length > 0) {
             logger
               .scope({ dbId })
-              .info(`${name} has records to delete`, { records: r.diff.entitiesInAwsOnly });
+              .info(`${name} has records to delete - apply`, { records: r.diff.entitiesInAwsOnly });
             outArr.push(
               r.diff.entitiesInAwsOnly.map((e: any) => async () => {
                 await r.mapper.cloud.delete(e, context);
@@ -1434,7 +1436,7 @@ async function sync(
           if (r.diff.entitiesInAwsOnly.length > 0) {
             logger
               .scope({ dbId })
-              .info(`${name} has records to create`, { records: r.diff.entitiesInAwsOnly });
+              .info(`${name} has records to create - sync`, { records: r.diff.entitiesInAwsOnly });
             outArr.push(
               r.diff.entitiesInAwsOnly.map((e: any) => async () => {
                 const out = await r.mapper.db.create(e, context);
@@ -1451,7 +1453,9 @@ async function sync(
           }
           recordsSynced += r.diff.entitiesChanged.length;
           if (r.diff.entitiesChanged.length > 0) {
-            logger.scope({ dbId }).info(`${name} has records to update`, { records: r.diff.entitiesChanged });
+            logger
+              .scope({ dbId })
+              .info(`${name} has records to update - sync`, { records: r.diff.entitiesChanged });
             outArr.push(
               r.diff.entitiesChanged.map((ec: any) => async () => {
                 if (ec.db.id) ec.cloud.id = ec.db.id;
@@ -1480,7 +1484,7 @@ async function sync(
           if (r.diff.entitiesInDbOnly.length > 0) {
             logger
               .scope({ dbId })
-              .info(`${name} has records to delete`, { records: r.diff.entitiesInDbOnly });
+              .info(`${name} has records to delete - sync`, { records: r.diff.entitiesInDbOnly });
             outArr.push(
               r.diff.entitiesInDbOnly.map((e: any) => async () => {
                 await r.mapper.db.delete(e, context);

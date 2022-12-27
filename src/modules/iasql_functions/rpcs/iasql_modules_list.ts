@@ -22,7 +22,7 @@ import * as iasql from '../iasql';
  * SELECT * FROM iasql_modules_list();
  * ```
  *
- * @see https://github.com/iasql/iasql-engine/blob/main/site/docs/reference/function.md
+ * @see https://iasql.com/docs/module/
  *
  */
 export class IasqlModulesList extends RpcBase {
