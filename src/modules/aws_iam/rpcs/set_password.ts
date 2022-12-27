@@ -116,7 +116,7 @@ export class SetUserPasswordRequestRpc extends RpcBase {
             await this.updateLoginProfile(client.iamClient, {
               UserName: userName,
               Password: password,
-              PasswordResetRequired: resetPassword == 'true',
+              PasswordResetRequired: resetPassword === 'true',
             });
             break;
           } catch (e) {
@@ -139,7 +139,7 @@ export class SetUserPasswordRequestRpc extends RpcBase {
         const result = await this.createLoginProfile(client.iamClient, {
           UserName: userName,
           Password: password,
-          PasswordResetRequired: resetPassword == 'true',
+          PasswordResetRequired: resetPassword === 'true',
         });
         if (result && result.LoginProfile) return [{ status: 'OK', message: '' }];
         else return this.makeError('Error generating password for the user');
