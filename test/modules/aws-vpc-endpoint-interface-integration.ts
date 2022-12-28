@@ -184,87 +184,6 @@ describe('VPC Endpoint interface Integration Testing', () => {
   it('starts a transaction', begin());
 
   it(
-    'updates vpc state',
-    query(
-      `
-    UPDATE vpc
-    SET state='pending' WHERE cidr_block='192.${randIPBlock}.0.0/16';
-  `,
-      undefined,
-      true,
-      () => ({ username, password }),
-    ),
-  );
-
-  it('applies the state change of the vpc', commit());
-
-  it(
-    'checks that state has not been modified',
-    query(
-      `
-    SELECT * FROM vpc WHERE cidr_block='192.${randIPBlock}.0.0/16'
-    AND state='pending';
-  `,
-      (res: any) => expect(res.length).toBe(0),
-    ),
-  );
-
-  it('starts a transaction', begin());
-
-  it(
-    'tries to update vpc tags',
-    query(
-      `
-  UPDATE vpc SET tags = '{"name": "${prefix}-2"}' WHERE cidr_block='192.${randIPBlock}.0.0/16';
-  `,
-      undefined,
-      true,
-      () => ({ username, password }),
-    ),
-  );
-
-  it('applies the vpc tags update', commit());
-
-  it(
-    'checks that tags have been modified',
-    query(
-      `
-    SELECT * FROM vpc WHERE cidr_block='192.${randIPBlock}.0.0/16' AND tags ->> 'name' = '${prefix}-2';
-  `,
-      (res: any) => expect(res.length).toBe(1),
-    ),
-  );
-
-  it('starts a transaction', begin());
-
-  it(
-    'tries to update vpc cidr',
-    query(
-      `
-    UPDATE subnet SET cidr_block='191.${randIPBlock}.0.0/16' WHERE cidr_block='192.${randIPBlock}.0.0/16';
-    UPDATE vpc SET cidr_block='191.${randIPBlock}.0.0/16' WHERE cidr_block='192.${randIPBlock}.0.0/16';
-  `,
-      undefined,
-      true,
-      () => ({ username, password }),
-    ),
-  );
-
-  it('applies the vpc cidr update', commit());
-
-  it(
-    'checks that cidr have been modified',
-    query(
-      `
-  SELECT * FROM vpc WHERE cidr_block='191.${randIPBlock}.0.0/16';
-`,
-      (res: any) => expect(res.length).toBe(1),
-    ),
-  );
-
-  it('starts a transaction', begin());
-
-  it(
     'adds a new lambda endpoint interface',
     query(
       `
@@ -272,7 +191,7 @@ describe('VPC Endpoint interface Integration Testing', () => {
     SELECT 'lambda', id, '{"Name": "${lambdaVpcEndpoint}"}'
     FROM vpc
     WHERE is_default = false
-    AND cidr_block = '191.${randIPBlock}.0.0/16';
+    AND cidr_block = '192.${randIPBlock}.0.0/16';
   `,
       undefined,
       true,
@@ -329,7 +248,7 @@ describe('VPC Endpoint interface Integration Testing', () => {
     'queries the vpcs to confirm the record is present',
     query(
       `
-    SELECT * FROM vpc WHERE cidr_block = '191.${randIPBlock}.0.0/16'
+    SELECT * FROM vpc WHERE cidr_block = '192.${randIPBlock}.0.0/16'
   `,
       (res: any) => expect(res.length).toBeGreaterThan(0),
     ),
@@ -551,7 +470,7 @@ describe('VPC Endpoint interface Integration Testing', () => {
       SELECT id
       FROM vpc
       WHERE is_default = false
-      AND cidr_block = '191.${randIPBlock}.0.0/16'
+      AND cidr_block = '192.${randIPBlock}.0.0/16'
     )
     DELETE FROM subnet
     USING vpc
@@ -578,32 +497,32 @@ describe('VPC Endpoint interface Integration Testing', () => {
       WHERE vpc_id = (
         SELECT id
         FROM vpc
-        WHERE cidr_block = '191.${randIPBlock}.0.0/16' AND tags ->> 'name' = '${prefix}-2'
+        WHERE cidr_block = '192.${randIPBlock}.0.0/16' AND tags ->> 'name' = '${prefix}-2'
       )
     );
     DELETE FROM route_table_association
     WHERE vpc_id = (
         SELECT id
         FROM vpc
-        WHERE cidr_block = '191.${randIPBlock}.0.0/16' AND tags ->> 'name' = '${prefix}-2'
+        WHERE cidr_block = '192.${randIPBlock}.0.0/16' AND tags ->> 'name' = '${prefix}-2'
     );
     DELETE FROM route_table
     WHERE vpc_id = (
         SELECT id
         FROM vpc
-        WHERE cidr_block = '191.${randIPBlock}.0.0/16' AND tags ->> 'name' = '${prefix}-2'
+        WHERE cidr_block = '192.${randIPBlock}.0.0/16' AND tags ->> 'name' = '${prefix}-2'
     );
     WITH vpc as (
       SELECT id
       FROM vpc
-      WHERE cidr_block = '191.${randIPBlock}.0.0/16' AND tags ->> 'name' = '${prefix}-2'
+      WHERE cidr_block = '192.${randIPBlock}.0.0/16' AND tags ->> 'name' = '${prefix}-2'
     )
     DELETE FROM security_group
     USING vpc
     WHERE vpc_id = vpc.id;
 
     DELETE FROM vpc
-    WHERE cidr_block = '191.${randIPBlock}.0.0/16';
+    WHERE cidr_block = '192.${randIPBlock}.0.0/16';
   `,
       undefined,
       true,

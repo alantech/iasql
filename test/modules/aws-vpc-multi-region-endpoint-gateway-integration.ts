@@ -266,43 +266,6 @@ describe('VPC Multi-region Endpoint Gateway Integration Testing', () => {
 
     DELETE FROM vpc
     WHERE cidr_block='192.${randIPBlock}.0.0/16' AND tags ->> 'name' = '${prefix}-1' AND region = '${region}';
-
-    DELETE FROM security_group_rule
-    WHERE security_group_id = (
-      SELECT id
-      FROM security_group
-      WHERE vpc_id = (
-        SELECT id
-        FROM vpc
-        WHERE cidr_block='191.${randIPBlock}.0.0/16' AND region = 'us-east-1'
-      )
-    );
-    DELETE FROM route_table_association
-    WHERE vpc_id = (
-        SELECT id
-        FROM vpc
-        WHERE cidr_block='191.${randIPBlock}.0.0/16' AND region = 'us-east-1'
-    );
-    DELETE FROM route_table
-    WHERE vpc_id = (
-        SELECT id
-        FROM vpc
-        WHERE cidr_block='191.${randIPBlock}.0.0/16' AND region = 'us-east-1'
-    );
-    WITH vpc as (
-      SELECT id
-      FROM vpc
-      WHERE cidr_block='191.${randIPBlock}.0.0/16' AND region = 'us-east-1'
-    )
-    DELETE FROM security_group
-    USING vpc
-    WHERE vpc_id = vpc.id;
-
-    DELETE FROM subnet
-    WHERE cidr_block='191.${randIPBlock}.0.0/16' AND region = 'us-east-1';
-
-    DELETE FROM vpc
-    WHERE cidr_block='191.${randIPBlock}.0.0/16' AND region = 'us-east-1';
   `,
       undefined,
       true,

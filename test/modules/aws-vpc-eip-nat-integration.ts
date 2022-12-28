@@ -218,7 +218,7 @@ describe('VPC Elastic IP Integration Testing', () => {
     INSERT INTO nat_gateway (connectivity_type, subnet_id, tags)
     SELECT 'private', id, '{"Name":"${ng}"}'
     FROM subnet
-    WHERE cidr_block = '191.${randIPBlock}.0.0/16';
+    WHERE cidr_block = '192.${randIPBlock}.0.0/16';
   `,
       undefined,
       true,
@@ -247,7 +247,7 @@ describe('VPC Elastic IP Integration Testing', () => {
     INSERT INTO nat_gateway (connectivity_type, subnet_id, tags, elastic_ip_id)
     SELECT 'public', subnet.id, '{"Name":"${pubNg1}"}', elastic_ip.id
     FROM subnet, elastic_ip
-    WHERE cidr_block = '191.${randIPBlock}.0.0/16' AND elastic_ip.tags ->> 'name' = '${eip}';
+    WHERE cidr_block = '192.${randIPBlock}.0.0/16' AND elastic_ip.tags ->> 'name' = '${eip}';
   `,
       undefined,
       true,
@@ -276,7 +276,7 @@ describe('VPC Elastic IP Integration Testing', () => {
     INSERT INTO nat_gateway (connectivity_type, subnet_id, tags)
     SELECT 'public', subnet.id, '{"Name":"${pubNg2}"}'
     FROM subnet
-    WHERE cidr_block = '191.${randIPBlock}.0.0/16';
+    WHERE cidr_block = '192.${randIPBlock}.0.0/16';
   `,
       undefined,
       true,
@@ -345,7 +345,7 @@ describe('VPC Elastic IP Integration Testing', () => {
     'queries the vpcs to confirm the record is present',
     query(
       `
-    SELECT * FROM vpc WHERE cidr_block = '191.${randIPBlock}.0.0/16'
+    SELECT * FROM vpc WHERE cidr_block = '192.${randIPBlock}.0.0/16'
   `,
       (res: any) => expect(res.length).toBeGreaterThan(0),
     ),
@@ -622,7 +622,7 @@ describe('VPC Elastic IP Integration Testing', () => {
       SELECT id
       FROM vpc
       WHERE is_default = false
-      AND cidr_block = '191.${randIPBlock}.0.0/16'
+      AND cidr_block = '192.${randIPBlock}.0.0/16'
     )
     DELETE FROM subnet
     USING vpc
@@ -649,32 +649,32 @@ describe('VPC Elastic IP Integration Testing', () => {
       WHERE vpc_id = (
         SELECT id
         FROM vpc
-        WHERE cidr_block = '191.${randIPBlock}.0.0/16' AND tags ->> 'name' = '${prefix}-2'
+        WHERE cidr_block = '192.${randIPBlock}.0.0/16' AND tags ->> 'name' = '${prefix}-2'
       )
     );
     DELETE FROM route_table_association
     WHERE vpc_id = (
         SELECT id
         FROM vpc
-        WHERE cidr_block = '191.${randIPBlock}.0.0/16' AND tags ->> 'name' = '${prefix}-2'
+        WHERE cidr_block = '192.${randIPBlock}.0.0/16' AND tags ->> 'name' = '${prefix}-2'
     );
     DELETE FROM route_table
     WHERE vpc_id = (
         SELECT id
         FROM vpc
-        WHERE cidr_block = '191.${randIPBlock}.0.0/16' AND tags ->> 'name' = '${prefix}-2'
+        WHERE cidr_block = '192.${randIPBlock}.0.0/16' AND tags ->> 'name' = '${prefix}-2'
     );
     WITH vpc as (
       SELECT id
       FROM vpc
-      WHERE cidr_block = '191.${randIPBlock}.0.0/16' AND tags ->> 'name' = '${prefix}-2'
+      WHERE cidr_block = '192.${randIPBlock}.0.0/16' AND tags ->> 'name' = '${prefix}-2'
     )
     DELETE FROM security_group
     USING vpc
     WHERE vpc_id = vpc.id;
 
     DELETE FROM vpc
-    WHERE cidr_block = '191.${randIPBlock}.0.0/16';
+    WHERE cidr_block = '192.${randIPBlock}.0.0/16';
   `,
       undefined,
       true,
