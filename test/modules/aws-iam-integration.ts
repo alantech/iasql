@@ -865,6 +865,48 @@ describe('IAM User Integration Testing', () => {
     ),
   );
 
+  it(
+    'generates an user password',
+    query(
+      `
+    SELECT *
+    FROM set_user_password('${userName}', 'P4ssP4ss', 'true');
+  `,
+      (res: any[]) => {
+        expect(res.length).toBe(1);
+        expect(res[0].status).toBe('OK');
+      },
+    ),
+  );
+
+  it(
+    'updates an user password',
+    query(
+      `
+    SELECT *
+    FROM set_user_password('${userName}', 'P4ssp4ss', 'false');
+  `,
+      (res: any[]) => {
+        expect(res.length).toBe(1);
+        expect(res[0].status).toBe('OK');
+      },
+    ),
+  );
+
+  it(
+    'deletes an user password',
+    query(
+      `
+    SELECT *
+    FROM set_user_password('${userName}', '');
+  `,
+      (res: any[]) => {
+        expect(res.length).toBe(1);
+        expect(res[0].status).toBe('OK');
+      },
+    ),
+  );
+
   it('starts a transaction', begin());
 
   it(
@@ -949,6 +991,97 @@ describe('IAM User Integration Testing', () => {
         expect(res.length).toBe(1),
           expect(res[0].attached_policies_arns).toStrictEqual([`${supportUserPolicyArn}`]);
       },
+    ),
+  );
+
+  // generate access keys
+  it(
+    'generates a new access key',
+    query(
+      `
+    SELECT *
+    FROM access_key_request('${userName}');
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it(
+    'check new access key added',
+    query(
+      `
+    SELECT *
+    FROM access_key
+    WHERE user_name = '${userName}' AND status='Active';
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it('starts a transaction', begin());
+  it(
+    'updates access key status',
+    query(
+      `
+    UPDATE access_key SET status='Inactive'
+    WHERE user_name = '${userName}';
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it('applies the access key update', commit());
+
+  it(
+    'check access key updated',
+    query(
+      `
+    SELECT *
+    FROM access_key
+    WHERE user_name = '${userName}' AND status='Active';
+  `,
+      (res: any[]) => expect(res.length).toBe(0),
+    ),
+  );
+  it(
+    'check access key updated',
+    query(
+      `
+    SELECT *
+    FROM access_key
+    WHERE user_name = '${userName}' AND status='Inactive';
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it('starts a transaction', begin());
+  it(
+    'deletes the access key',
+    query(
+      `
+    DELETE FROM access_key
+    WHERE user_name = '${userName}';
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it('applies the access key deletion', commit());
+
+  it(
+    'check new access key deleted',
+    query(
+      `
+    SELECT *
+    FROM access_key
+    WHERE user_name = '${userName}';
+  `,
+      (res: any[]) => expect(res.length).toBe(0),
     ),
   );
 

@@ -69,14 +69,14 @@ module.exports = {
         },
         {
           type: 'category',
-          label: 'SQL reference',
+          label: 'Reference',
           collapsible: true,
           collapsed: true,
           items: [
             {
               type: 'doc',
               label: 'SQL reference',
-              id: 'sql/sql_reference',
+              id: 'reference/sql',
             },
           ],
         },

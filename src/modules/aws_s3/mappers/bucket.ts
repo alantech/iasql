@@ -1,8 +1,8 @@
 import {
-  S3,
   Bucket as BucketAWS,
   GetBucketPolicyCommandInput,
   PutBucketPolicyCommandInput,
+  S3,
 } from '@aws-sdk/client-s3';
 
 import { AwsS3Module } from '..';
@@ -24,12 +24,9 @@ export class BucketMapper extends MapperBase<Bucket> {
     return b;
   }
 
-  equals = (a: Bucket, b: Bucket) => {
-    const res =
-      Object.is(a.createdAt?.toISOString(), b.createdAt?.toISOString()) &&
-      policiesAreSame(a.policyDocument, b.policyDocument);
-    return res;
-  };
+  equals = (a: Bucket, b: Bucket) =>
+    Object.is(a.createdAt?.toISOString(), b.createdAt?.toISOString()) &&
+    policiesAreSame(a.policyDocument, b.policyDocument);
 
   getBuckets = crudBuilderFormat<S3, 'listBuckets', BucketAWS[]>(
     'listBuckets',
@@ -66,6 +63,7 @@ export class BucketMapper extends MapperBase<Bucket> {
       return null;
     }
   }
+
   updateBucketPolicy = crudBuilder2<S3, 'putBucketPolicy'>('putBucketPolicy', input => input);
 
   async createBucketPolicy(client: S3, bucket: Bucket, ctx: Context) {
@@ -135,7 +133,7 @@ export class BucketMapper extends MapperBase<Bucket> {
             };
 
             const bucketPolicy = await this.getBucketPolicy(client.s3Client, input);
-            const b: Bucket = this.module.bucket.bucketMapper(foundBucket, region);
+            const b: Bucket = this.bucketMapper(foundBucket, region);
 
             if (bucketPolicy && bucketPolicy.Policy) {
               b.policyDocument = JSON.parse(bucketPolicy.Policy);
@@ -167,7 +165,7 @@ export class BucketMapper extends MapperBase<Bucket> {
             };
 
             const bucketPolicy = await this.getBucketPolicy(client.s3Client, input);
-            const b: Bucket = this.module.bucket.bucketMapper(rawBucket, location);
+            const b: Bucket = this.bucketMapper(rawBucket, location);
 
             if (bucketPolicy && bucketPolicy.Policy) {
               b.policyDocument = JSON.parse(bucketPolicy.Policy);

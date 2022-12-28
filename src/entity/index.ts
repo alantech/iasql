@@ -31,13 +31,13 @@ export class IasqlDatabase {
     type: 'int',
     default: 0,
   })
-  operationCount: number;
+  recordsApplied: number;
 
   @Column({
     type: 'int',
     default: 0,
   })
-  rpcCount: number;
+  recordsSynced: number;
 
   @Column({
     type: 'boolean',

@@ -314,7 +314,6 @@ export class InstanceMapper extends MapperBase<Instance> {
           if (without.length > 0) continue;
 
           const sgIds = instance.securityGroups.map(sg => sg.groupId).filter(id => !!id) as string[];
-          const region = instance.region;
 
           const userData = instance.userData ? Buffer.from(instance.userData).toString('base64') : undefined;
           const iamInstanceProfile = instance.role?.arn
@@ -328,7 +327,6 @@ export class InstanceMapper extends MapperBase<Instance> {
             InstanceType: instance.instanceType,
             MinCount: 1,
             MaxCount: 1,
-            SecurityGroupIds: sgIds,
             TagSpecifications: [
               {
                 ResourceType: 'instance',
@@ -340,6 +338,10 @@ export class InstanceMapper extends MapperBase<Instance> {
             IamInstanceProfile: iamInstanceProfile,
             SubnetId: instance.subnet?.subnetId,
           };
+          // Add security groups if any
+          if (sgIds?.length) {
+            instanceParams.SecurityGroupIds = sgIds;
+          }
           if (instance.hibernationEnabled) {
             let amiId;
             // Resolve amiId if necessary

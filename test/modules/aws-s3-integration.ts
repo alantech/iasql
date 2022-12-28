@@ -387,6 +387,203 @@ describe('S3 Integration Testing', () => {
     );
   });
 
+  it('starts a transaction', begin());
+
+  it(
+    'adds a new public access block entry',
+    query(
+      `
+      INSERT INTO public_access_block (bucket_name, block_public_acls, ignore_public_acls, block_public_policy,
+                                       restrict_public_buckets)
+      VALUES ('${s3Name}', false, false, false, false)
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it('applies creation of public access block', commit());
+
+  it(
+    'checks the public access block exists',
+    query(
+      `
+              SELECT *
+              FROM public_access_block
+              WHERE bucket_name = '${s3Name}'
+                AND block_public_acls = FALSE
+                AND ignore_public_acls = FALSE
+                AND block_public_policy = FALSE
+                AND restrict_public_buckets = FALSE
+    `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it('checks can not add another public access block', () => {
+    try {
+      query(
+        `
+                  INSERT INTO public_access_block (bucket_name)
+                  VALUES ('${s3Name}');
+        `,
+        undefined,
+        true,
+        () => ({ username, password }),
+      );
+    } catch (e) {
+      expect(e).toBeTruthy();
+    }
+  });
+
+  it('starts a transaction', begin());
+
+  it(
+    'change the public access block',
+    query(
+      `
+      UPDATE public_access_block
+      SET block_public_acls = true
+      WHERE bucket_name = '${s3Name}'
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it('applies update of public access block', commit());
+
+  it(
+    'checks public access block is updated',
+    query(
+      `
+      SELECT *
+      FROM public_access_block
+      WHERE bucket_name = '${s3Name}'
+        AND block_public_acls = TRUE
+        AND ignore_public_acls = FALSE
+        AND block_public_policy = FALSE
+        AND restrict_public_buckets = FALSE
+    `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it('starts a transaction', begin());
+
+  it(
+    'removes the public block entry',
+    query(
+      `
+      DELETE
+      FROM public_access_block
+      WHERE bucket_name = '${s3Name}'
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it('applies deletion of public access block', commit());
+
+  it('starts a transaction', begin());
+
+  it(
+    'adds a static website to bucket',
+    query(
+      `
+      INSERT INTO bucket_website (bucket_name, index_document)
+      VALUES ('${s3Name}', 'index.html')
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it('applies creation of static website', commit());
+
+  it(
+    'checks the static website exists',
+    query(
+      `
+              SELECT *
+              FROM bucket_website
+              WHERE bucket_name = '${s3Name}'
+                AND index_document = 'index.html'
+    `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it('checks can not add another static website', () => {
+    try {
+      query(
+        `
+                  INSERT INTO bucket_website (bucket_name, index_document)
+                  VALUES ('${s3Name}', 'test.html');
+        `,
+        undefined,
+        true,
+        () => ({ username, password }),
+      );
+    } catch (e) {
+      expect(e).toBeTruthy();
+    }
+  });
+
+  it('starts a transaction', begin());
+
+  it(
+    'change the static website',
+    query(
+      `
+      UPDATE bucket_website
+      SET error_document = 'error.html'
+      WHERE bucket_name = '${s3Name}'
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it('applies update of static website', commit());
+
+  it(
+    'checks static website is updated',
+    query(
+      `
+      SELECT *
+      FROM bucket_website
+      WHERE bucket_name = '${s3Name}'
+        AND index_document = 'index.html' AND error_document = 'error.html'
+    `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it('starts a transaction', begin());
+
+  it(
+    'removes the static website',
+    query(
+      `
+      DELETE
+      FROM bucket_website
+      WHERE bucket_name = '${s3Name}'
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it('applies deletion of static website', commit());
+
   it('should fail when changing the region', () => {
     try {
       query(
@@ -398,7 +595,7 @@ describe('S3 Integration Testing', () => {
         () => ({ username, password }),
       );
     } catch (e) {
-      expect(e).toBeTruthy;
+      expect(e).toBeTruthy();
     }
   });
 
@@ -555,7 +752,7 @@ describe('S3 install/uninstall', () => {
     select * from iasql_install('aws_s3');
   `,
       (res: any[]) => {
-        expect(res.length).toBe(2);
+        expect(res.length).toBe(4);
       },
     ),
   );
@@ -567,7 +764,7 @@ describe('S3 install/uninstall', () => {
     select * from iasql_uninstall('aws_s3');
   `,
       (res: any[]) => {
-        expect(res.length).toBe(2);
+        expect(res.length).toBe(4);
       },
     ),
   );

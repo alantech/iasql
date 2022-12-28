@@ -62,17 +62,13 @@ export async function connect(dbAlias: string, uid: string, email: string, dbId 
     await conn2.query(dbMan.grantPostgresGroupRoleQuery(dbUser, dbId));
     roleGranted = true;
     const recCount = await getDbRecCount(conn2);
-    const opCount = 0;
-    // TODO: UPDATE BY THE TIME 0.0.20 BECOMES UNSUPPORTED
-    // TODO: Update what? I don't understand this TODO
-    await MetadataRepo.updateDbCounts(dbId, recCount, opCount);
+    await MetadataRepo.updateRecordCount(dbId, recCount);
     logger.info('Done!');
     // Return custom IasqlDatabase object since we need to return the password
     return {
       user: dbUser,
       password: dbPass,
       recordCount: recCount,
-      operationCount: opCount,
       alias: dbAlias,
       id: dbId,
     };

@@ -32,7 +32,7 @@ jobs:
       - name: Format Version For Doc Generation
         id: format-version
         run: |
-          VERSION="$(./node_modules/.bin/ts-node src/scripts/latestVersion.ts)"
+          VERSION="$(jq -r '.version' package.json)"
           echo ::set-output name=version::${VERSION}
 
       - name: Emit doc generation

@@ -14,6 +14,7 @@ import { DepError, lazyLoader } from '../../services/lazy-dep';
 import logger, { debugObj, logErrSentry } from '../../services/logger';
 import { sortModules } from '../../services/mod-sort';
 import MetadataRepo from '../../services/repositories/metadata';
+import * as telemetry from '../../services/telemetry';
 import { TypeormWrapper } from '../../services/typeorm';
 import { AuditLogChangeType, IasqlAuditLog, IasqlModule } from '../iasql_platform/entity';
 
@@ -322,6 +323,22 @@ ${Object.keys(tableCollisions)
         dbId,
       );
     }
+    (async () => {
+      const user = await MetadataRepo.getUserFromDbId(dbId);
+      if (user && (moduleNames.length > 0 || moduleNames[0] !== 'aws_account')) {
+        // ignore installing of aws_account only on connect
+        telemetry.logInstall(
+          user?.id,
+          {
+            dbId,
+          },
+          {
+            params: moduleNames,
+            output: 'Done!',
+          },
+        );
+      }
+    })();
     return 'Done!';
   } catch (e: any) {
     throw e;
@@ -433,6 +450,21 @@ export async function uninstall(moduleList: string[], dbId: string, force = fals
   } finally {
     await queryRunner.release();
   }
+  (async () => {
+    const user = await MetadataRepo.getUserFromDbId(dbId);
+    if (user) {
+      telemetry.logUninstall(
+        user?.id,
+        {
+          dbId,
+        },
+        {
+          params: moduleList,
+          output: 'Done!',
+        },
+      );
+    }
+  })();
   return 'Done!';
 }
 
@@ -880,6 +912,7 @@ async function commitApply(
   let cloudCount = -1;
   let bothCount = -1;
   let spinCount = 0;
+  let recordsApplied = 0;
   const { toCreate, toUpdate, toReplace, toDelete } = crupdes;
   do {
     const t2 = Date.now();
@@ -893,7 +926,7 @@ async function commitApply(
       }),
       dbId,
     );
-    // Every time we read from db we get possible changes that occured after this commit started
+    // Every time we read from db we get possible changes that occurred after this commit started
     const changesAfterCommitByEntity = await getChangesAfterCommitStartedByEntity(
       context.orm,
       context,
@@ -1016,10 +1049,11 @@ async function commitApply(
           const name = r.table;
           logger.scope({ dbId }).info(`Checking ${name}`);
           const outArr = [];
+          recordsApplied += r.diff.entitiesInDbOnly.length;
           if (r.diff.entitiesInDbOnly.length > 0) {
             logger
               .scope({ dbId })
-              .info(`${name} has records to create`, { records: r.diff.entitiesInDbOnly });
+              .info(`${name} has records to create - apply`, { records: r.diff.entitiesInDbOnly });
             outArr.push(
               r.diff.entitiesInDbOnly.map((e: any) => async () => {
                 const out = await r.mapper.cloud.create(e, context);
@@ -1034,8 +1068,11 @@ async function commitApply(
               }),
             );
           }
+          recordsApplied += r.diff.entitiesChanged.length;
           if (r.diff.entitiesChanged.length > 0) {
-            logger.scope({ dbId }).info(`${name} has records to update`, { records: r.diff.entitiesChanged });
+            logger
+              .scope({ dbId })
+              .info(`${name} has records to update - apply`, { records: r.diff.entitiesChanged });
             outArr.push(
               r.diff.entitiesChanged.map((ec: any) => async () => {
                 const out = await r.mapper.cloud.update(ec.db, context); // Assuming SoT is the DB
@@ -1059,10 +1096,11 @@ async function commitApply(
           const name = r.table;
           logger.scope({ dbId }).info(`Checking ${name}`);
           const outArr = [];
+          recordsApplied += r.diff.entitiesInAwsOnly.length;
           if (r.diff.entitiesInAwsOnly.length > 0) {
             logger
               .scope({ dbId })
-              .info(`${name} has records to delete`, { records: r.diff.entitiesInAwsOnly });
+              .info(`${name} has records to delete - apply`, { records: r.diff.entitiesInAwsOnly });
             outArr.push(
               r.diff.entitiesInAwsOnly.map((e: any) => async () => {
                 await r.mapper.cloud.delete(e, context);
@@ -1090,9 +1128,30 @@ async function commitApply(
   } while (ranFullUpdate);
   const t7 = Date.now();
   logger.scope({ dbId }).info(`${dbId} applied and synced, total time: ${t7 - t1}ms`);
+  const output = iasqlPlanV3(toCreate, toUpdate, toReplace, toDelete);
+  if (recordsApplied > 0) {
+    (async () => {
+      const totalRecordsApplied = await MetadataRepo.incrementRecordsApplied(dbId, recordsApplied);
+      if (totalRecordsApplied) {
+        const user = await MetadataRepo.getUserFromDbId(dbId);
+        if (user) {
+          telemetry.logCommitApply(
+            user?.id,
+            {
+              recordsApplied: totalRecordsApplied,
+              dbId,
+            },
+            {
+              output: output.rows.toString(),
+            },
+          );
+        }
+      }
+    })();
+  }
   await context.orm.dropConn();
   context.orm = oldOrm;
-  return iasqlPlanV3(toCreate, toUpdate, toReplace, toDelete);
+  return output;
 }
 
 async function commitSync(
@@ -1117,6 +1176,7 @@ async function commitSync(
   let cloudCount = -1;
   let bothCount = -1;
   let spinCount = 0;
+  let recordsSynced = 0;
   const { toCreate, toUpdate, toReplace, toDelete } = crupdes;
   do {
     const t2 = Date.now();
@@ -1224,10 +1284,11 @@ async function commitSync(
           const name = r.table;
           logger.scope({ dbId }).info(`Checking ${name}`);
           const outArr = [];
+          recordsSynced += r.diff.entitiesInAwsOnly.length;
           if (r.diff.entitiesInAwsOnly.length > 0) {
             logger
               .scope({ dbId })
-              .info(`${name} has records to create`, { records: r.diff.entitiesInAwsOnly });
+              .info(`${name} has records to create - sync`, { records: r.diff.entitiesInAwsOnly });
             outArr.push(
               r.diff.entitiesInAwsOnly.map((e: any) => async () => {
                 const out = await r.mapper.db.create(e, context);
@@ -1242,8 +1303,11 @@ async function commitSync(
               }),
             );
           }
+          recordsSynced += r.diff.entitiesChanged.length;
           if (r.diff.entitiesChanged.length > 0) {
-            logger.scope({ dbId }).info(`${name} has records to update`, { records: r.diff.entitiesChanged });
+            logger
+              .scope({ dbId })
+              .info(`${name} has records to update - sync`, { records: r.diff.entitiesChanged });
             outArr.push(
               r.diff.entitiesChanged.map((ec: any) => async () => {
                 if (ec.db.id) ec.cloud.id = ec.db.id;
@@ -1268,10 +1332,11 @@ async function commitSync(
           const name = r.table;
           logger.scope({ dbId }).info(`Checking ${name}`);
           const outArr = [];
+          recordsSynced += r.diff.entitiesInDbOnly.length;
           if (r.diff.entitiesInDbOnly.length > 0) {
             logger
               .scope({ dbId })
-              .info(`${name} has records to delete`, { records: r.diff.entitiesInDbOnly });
+              .info(`${name} has records to delete - sync`, { records: r.diff.entitiesInDbOnly });
             outArr.push(
               r.diff.entitiesInDbOnly.map((e: any) => async () => {
                 await r.mapper.db.delete(e, context);
@@ -1299,9 +1364,29 @@ async function commitSync(
   } while (ranFullUpdate);
   const t7 = Date.now();
   logger.scope({ dbId }).info(`${dbId} synced, total time: ${t7 - t1}ms`);
+  const output = iasqlPlanV3(toCreate, toUpdate, toReplace, toDelete);
+  if (recordsSynced > 0) {
+    (async () => {
+      const totalRecordsSynced = await MetadataRepo.incrementRecordsSynced(dbId, recordsSynced);
+      if (totalRecordsSynced) {
+        const user = await MetadataRepo.getUserFromDbId(dbId);
+        if (user) {
+          telemetry.logCommitSync(
+            user?.id,
+            {
+              recordsSynced: totalRecordsSynced,
+            },
+            {
+              output: output.rows.toString(),
+            },
+          );
+        }
+      }
+    })();
+  }
   await context.orm.dropConn();
   context.orm = oldOrm;
-  return iasqlPlanV3(toCreate, toUpdate, toReplace, toDelete);
+  return output;
 }
 
 function updateCommitPlan(crupde: Crupde, entityName: string, mapper: MapperInterface<any>, es: any[]) {
