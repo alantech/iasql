@@ -8,21 +8,21 @@ import {
   runBegin,
   runCommit,
   runInstall,
-  runInstallAll,
   runQuery,
-  runRollback,
   runUninstall,
 } from '../helpers';
 
 const prefix = getPrefix();
 const dbAlias = 'vpctest';
+const ng = `${prefix}${dbAlias}-ng`;
+const pubNg1 = `${prefix}${dbAlias}-pub-ng1`;
+const pubNg2 = `${prefix}${dbAlias}-pub-ng2`;
+const eip = `${prefix}${dbAlias}-eip`;
 
 const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
-const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
-const installAll = runInstallAll.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const region = defaultRegion();
 // We have to install the `aws_security_group` to test fully the integration even though is not being used,
@@ -37,7 +37,7 @@ afterAll(async () => await execComposeDown());
 
 let username: string, password: string;
 
-describe('VPC Integration Testing', () => {
+describe('VPC Elastic IP Integration Testing', () => {
   it('creates a new test db', done => {
     (async () => {
       try {
@@ -94,23 +94,6 @@ describe('VPC Integration Testing', () => {
       (res: any[]) => expect(res.length).toBeGreaterThan(0),
     ),
   );
-
-  it('starts a transaction', begin());
-
-  it(
-    'adds a new vpc',
-    query(
-      `  
-    INSERT INTO vpc (cidr_block)
-    VALUES ('192.${randIPBlock}.0.0/16');
-  `,
-      undefined,
-      true,
-      () => ({ username, password }),
-    ),
-  );
-
-  it('undo changes', rollback());
 
   it('starts a transaction', begin());
 
@@ -192,11 +175,11 @@ describe('VPC Integration Testing', () => {
   it('starts a transaction', begin());
 
   it(
-    'updates vpc state',
+    'adds a new elastic ip',
     query(
       `
-    UPDATE vpc
-    SET state='pending' WHERE cidr_block='192.${randIPBlock}.0.0/16';
+    INSERT INTO elastic_ip (tags)
+    VALUES ('{"name": "${eip}"}');
   `,
       undefined,
       true,
@@ -204,40 +187,23 @@ describe('VPC Integration Testing', () => {
     ),
   );
 
-  it('applies the state change of the vpc', commit());
-
   it(
-    'checks that state has not been modified',
+    'check elastic ip count',
     query(
       `
-    SELECT * FROM vpc WHERE cidr_block='192.${randIPBlock}.0.0/16'
-    AND state='pending';
+    SELECT * FROM elastic_ip WHERE tags ->> 'name' = '${eip}';
   `,
-      (res: any) => expect(res.length).toBe(0),
+      (res: any) => expect(res.length).toBe(1),
     ),
   );
 
-  it('starts a transaction', begin());
+  it('applies the elastic ip change', commit());
 
   it(
-    'tries to update vpc tags',
+    'check elastic ip count',
     query(
       `
-  UPDATE vpc SET tags = '{"name": "${prefix}-2"}' WHERE cidr_block='192.${randIPBlock}.0.0/16';
-  `,
-      undefined,
-      true,
-      () => ({ username, password }),
-    ),
-  );
-
-  it('applies the vpc tags update', commit());
-
-  it(
-    'checks that tags have been modified',
-    query(
-      `
-    SELECT * FROM vpc WHERE cidr_block='192.${randIPBlock}.0.0/16' AND tags ->> 'name' = '${prefix}-2';
+    SELECT * FROM elastic_ip WHERE tags ->> 'name' = '${eip}';
   `,
       (res: any) => expect(res.length).toBe(1),
     ),
@@ -246,11 +212,13 @@ describe('VPC Integration Testing', () => {
   it('starts a transaction', begin());
 
   it(
-    'tries to update vpc cidr',
+    'adds a private nat gateway',
     query(
       `
-    UPDATE subnet SET cidr_block='191.${randIPBlock}.0.0/16' WHERE cidr_block='192.${randIPBlock}.0.0/16';
-    UPDATE vpc SET cidr_block='191.${randIPBlock}.0.0/16' WHERE cidr_block='192.${randIPBlock}.0.0/16';
+    INSERT INTO nat_gateway (connectivity_type, subnet_id, tags)
+    SELECT 'private', id, '{"Name":"${ng}"}'
+    FROM subnet
+    WHERE cidr_block = '191.${randIPBlock}.0.0/16';
   `,
       undefined,
       true,
@@ -258,14 +226,83 @@ describe('VPC Integration Testing', () => {
     ),
   );
 
-  it('applies the vpc cidr update', commit());
+  it('applies the private nat gateway change', commit());
 
   it(
-    'checks that cidr have been modified',
+    'checks private nat gateway count',
     query(
       `
-  SELECT * FROM vpc WHERE cidr_block='191.${randIPBlock}.0.0/16';
-`,
+    SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${ng}';
+  `,
+      (res: any) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it('starts a transaction', begin());
+
+  it(
+    'adds a public nat gateway with existing elastic ip',
+    query(
+      `
+    INSERT INTO nat_gateway (connectivity_type, subnet_id, tags, elastic_ip_id)
+    SELECT 'public', subnet.id, '{"Name":"${pubNg1}"}', elastic_ip.id
+    FROM subnet, elastic_ip
+    WHERE cidr_block = '191.${randIPBlock}.0.0/16' AND elastic_ip.tags ->> 'name' = '${eip}';
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it('applies the public nat gateway with existing elastic ip change', commit());
+
+  it(
+    'checks public nat gateway with existing elastic ip count',
+    query(
+      `
+    SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${pubNg1}';
+  `,
+      (res: any) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it('starts a transaction', begin());
+
+  it(
+    'adds a public nat gateway with no existing elastic ip',
+    query(
+      `
+    INSERT INTO nat_gateway (connectivity_type, subnet_id, tags)
+    SELECT 'public', subnet.id, '{"Name":"${pubNg2}"}'
+    FROM subnet
+    WHERE cidr_block = '191.${randIPBlock}.0.0/16';
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it('applies the public nat gateway with no existing elastic ip change', commit());
+
+  it(
+    'checks public nat gateway with no existing elastic ip count',
+    query(
+      `
+    SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${pubNg2}';
+  `,
+      (res: any) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it(
+    'checks elastic IP count',
+    query(
+      `
+
+    SELECT * FROM elastic_ip WHERE tags ->> 'Name' = '${pubNg2}';
+  `,
       (res: any) => expect(res.length).toBe(1),
     ),
   );
@@ -273,6 +310,36 @@ describe('VPC Integration Testing', () => {
   it('uninstalls the vpc module', uninstall(modules));
 
   it('installs the vpc module again (to make sure it reloads stuff)', install(modules));
+
+  it(
+    'checks private nat gateway count',
+    query(
+      `
+    SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${ng}';
+  `,
+      (res: any) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it(
+    'checks public nat gateway with existing elastic ip count',
+    query(
+      `
+    SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${pubNg1}';
+  `,
+      (res: any) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it(
+    'checks public nat gateway with no existing elastic ip count',
+    query(
+      `
+    SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${pubNg2}';
+  `,
+      (res: any) => expect(res.length).toBe(1),
+    ),
+  );
 
   it(
     'queries the vpcs to confirm the record is present',
@@ -285,143 +352,52 @@ describe('VPC Integration Testing', () => {
   );
 
   it('starts a transaction', begin());
+
   it(
-    'creates a second vpc in another region',
+    'updates a elastic ip',
     query(
       `
-      INSERT INTO vpc (cidr_block, tags, enable_dns_hostnames, enable_dns_support, region)
-      VALUES ('176.${randIPBlock}.0.0/16', '{"name":"${prefix}-peering-vpc"}', true, true, 'us-east-1');
+    UPDATE elastic_ip
+    SET tags = '{"name": "${eip}", "updated": "true"}'
+    WHERE tags ->> 'name' = '${eip}';
   `,
       undefined,
       true,
       () => ({ username, password }),
     ),
   );
-  it(
-    'adds a subnet to the vpc',
-    query(
-      `
-      INSERT INTO subnet (availability_zone, vpc_id, cidr_block, region)
-      SELECT 'us-east-1a', id, '176.${randIPBlock}.1.0/24', 'us-east-1'
-      FROM vpc
-      WHERE tags ->> 'name' = '${prefix}-peering-vpc';
-  `,
-      undefined,
-      true,
-      () => ({ username, password }),
-    ),
-  );
-  it('applies the creation of the second vpc', commit());
 
-  it('starts a transaction', begin());
-  it(
-    'creates a peering connection between the first and second vpc',
-    query(
-      `
-      INSERT INTO peering_connection (requester_id, accepter_id, tags)
-      VALUES ((SELECT id FROM vpc WHERE tags ->> 'name' = '${prefix}-2'),
-              (SELECT id FROM vpc WHERE tags ->> 'name' = '${prefix}-peering-vpc'),
-              '{"name": "${prefix}-peering-connection-test"}');
-  `,
-      undefined,
-      true,
-      () => ({ username, password }),
-    ),
-  );
-  it('applies creation of the peering connection', commit());
+  it('applies the elastic ip change', commit());
 
   it(
-    'checks the state for peering connection is active',
+    'check elastic ip count',
     query(
       `
-      SELECT state
-      FROM peering_connection
-      WHERE tags ->> 'name' = '${prefix}-peering-connection-test';
-  `,
-      (res: any) => expect(res[0].state).toBe('active'),
-    ),
-  );
-
-  it(
-    'checks if routes from requester to accepter is added',
-    query(
-      `
-          SELECT destination_cidr_block
-          FROM route
-          WHERE vpc_peering_connection_id = (SELECT peering_connection_id
-                                             FROM peering_connection
-                                             WHERE tags ->> 'name' = '${prefix}-peering-connection-test');
-      `,
-      (res: { destination_cidr_block: string }[]) => {
-        expect(res.length).toBe(2);
-      },
-    ),
-  );
-
-  it('starts a transaction', begin());
-  it(
-    'changes the tags for the peering connection',
-    query(
-      `
-      UPDATE peering_connection
-      SET tags = '{"name": "${prefix}-peering-connection-test-changed"}'
-      WHERE tags ->> 'name' = '${prefix}-peering-connection-test';
-  `,
-      undefined,
-      true,
-      () => ({ username, password }),
-    ),
-  );
-  it('applies creation of the peering connection', commit());
-
-  it(
-    'checks the peering connection tags are changed',
-    query(
-      `
-      SELECT *
-      FROM peering_connection
-      WHERE tags ->> 'name' = '${prefix}-peering-connection-test-changed';
+    SELECT * FROM elastic_ip WHERE tags ->> 'name' = '${eip}';
   `,
       (res: any) => expect(res.length).toBe(1),
     ),
   );
 
-  it('starts a transaction', begin());
   it(
-    'tries to change the peering connection state',
+    'checks elastic ip update',
     query(
       `
-      UPDATE peering_connection
-      SET state = 'expired'
-      WHERE tags ->> 'name' = '${prefix}-peering-connection-test-changed';
+    SELECT * FROM elastic_ip WHERE tags ->> 'name' = '${eip}';
   `,
-      undefined,
-      true,
-      () => ({ username, password }),
-    ),
-  );
-  it('applies the change of peering connection state', commit());
-
-  it(
-    'verifies the rollback of the peering connection state change',
-    query(
-      `
-      SELECT state
-      FROM peering_connection
-      WHERE tags ->> 'name' = '${prefix}-peering-connection-test-changed';
-  `,
-      (res: any) => expect(res[0].state).toBe('active'),
+      (res: any) => expect(res[0]['tags']['updated']).toBe('true'),
     ),
   );
 
   it('starts a transaction', begin());
+
   it(
-    'deletes the peering connection',
+    'updates a public nat gateway with existing elastic ip to be private',
     query(
       `
-      DELETE
-      FROM peering_connection
-      WHERE tags ->> 'name' = '${prefix}-peering-connection-test-changed';
+    UPDATE nat_gateway
+    SET elastic_ip_id = NULL, connectivity_type = 'private'
+    WHERE nat_gateway.tags ->> 'Name' = '${pubNg1}';
   `,
       undefined,
       true,
@@ -429,58 +405,208 @@ describe('VPC Integration Testing', () => {
     ),
   );
 
+  it('applies the public nat gateway with existing elastic ip to be private change', commit());
+
   it(
-    'deletes the second vpc',
+    'checks public nat gateway with existing elastic ip to be private count',
     query(
       `
-      DELETE FROM security_group_rule
-      WHERE security_group_id = (
-          SELECT id
-          FROM security_group
-          WHERE vpc_id = (
-              SELECT id
-              FROM vpc
-              WHERE cidr_block = '176.${randIPBlock}.0.0/16'
-                AND tags ->> 'name' = '${prefix}-peering-vpc'
-          )
-      );
-      WITH vpc as (SELECT id
-                   FROM vpc
-                   WHERE cidr_block = '176.${randIPBlock}.0.0/16'
-                     AND tags ->> 'name' = '${prefix}-peering-vpc')
-      DELETE
-      FROM security_group
-          USING vpc
-      WHERE vpc_id = vpc.id;
+    SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${pubNg1}';
+  `,
+      (res: any) => expect(res.length).toBe(1),
+    ),
+  );
 
-      WITH vpc as (
-          SELECT id
-          FROM vpc
-          WHERE cidr_block = '176.${randIPBlock}.0.0/16'
-            AND tags ->> 'name' = '${prefix}-peering-vpc'
-      )
-      DELETE FROM subnet
-          USING vpc
-      WHERE vpc_id = vpc.id;
+  it(
+    'checks public nat gateway with existing elastic ip to be private update',
+    query(
+      `
+    SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${pubNg1}';
+  `,
+      (res: any) => expect(res[0]['connectivity_type']).toBe('private'),
+    ),
+  );
 
-      DELETE
-      FROM vpc
-      WHERE cidr_block = '176.${randIPBlock}.0.0/16';
+  it('starts a transaction', begin());
+
+  it(
+    'updates a public nat gateway with no existing elastic ip',
+    query(
+      `
+    UPDATE nat_gateway
+    SET elastic_ip_id = elastic_ip.id, tags = '{"Name": "${pubNg2}", "updated": "true"}'
+    FROM elastic_ip
+    WHERE nat_gateway.tags ->> 'Name' = '${pubNg2}' AND elastic_ip.tags ->> 'name' = '${eip}';
   `,
       undefined,
       true,
       () => ({ username, password }),
     ),
   );
-  it('applies the deletion of the second vpc and peering connection', commit());
+
+  it('applies the public nat gateway with no existing elastic ip change', commit());
 
   it(
-    'checks deletion of the peering connection',
+    'checks public nat gateway with no existing elastic ip count',
     query(
       `
-      SELECT *
-      FROM peering_connection
-      WHERE tags ->> 'name' = '${prefix}-peering-connection-test';
+    SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${pubNg2}';
+  `,
+      (res: any) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it(
+    'checks public nat gateway with no existing elastic ip update',
+    query(
+      `
+    SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${pubNg2}';
+  `,
+      (res: any) => expect(res[0]['tags']['updated']).toBe('true'),
+    ),
+  );
+
+  it('starts a transaction', begin());
+
+  it(
+    'deletes a public nat gateways',
+    query(
+      `
+    DELETE FROM nat_gateway
+    WHERE tags ->> 'Name' = '${pubNg1}' OR tags ->> 'Name' = '${pubNg2}';
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it('applies the public nat gateways change', commit());
+
+  it(
+    'checks public nat gateways count',
+    query(
+      `
+    SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${pubNg1}' OR tags ->> 'Name' = '${pubNg2}'
+  `,
+      (res: any) => expect(res.length).toBe(0),
+    ),
+  );
+
+  it('starts a transaction', begin());
+
+  it(
+    'deletes a elastic ip created by the nat gateway',
+    query(
+      `
+    DELETE FROM elastic_ip
+    WHERE tags ->> 'Name' = '${pubNg2}';
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it('applies the elastic ip created by the nat gateway change', commit());
+
+  it(
+    'check elastic ip created by the nat gateway count',
+    query(
+      `
+    SELECT * FROM elastic_ip WHERE tags ->> 'Name' = '${pubNg2}';
+  `,
+      (res: any) => expect(res.length).toBe(0),
+    ),
+  );
+
+  it('starts a transaction', begin());
+
+  it(
+    'deletes a elastic ip',
+    query(
+      `
+    DELETE FROM elastic_ip
+    WHERE tags ->> 'name' = '${eip}';
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it('applies the elastic ip change', commit());
+
+  it(
+    'check elastic ip count',
+    query(
+      `
+    SELECT * FROM elastic_ip WHERE tags ->> 'name' = '${eip}';
+  `,
+      (res: any) => expect(res.length).toBe(0),
+    ),
+  );
+
+  it('starts a transaction', begin());
+
+  it(
+    'updates a private nat gateway',
+    query(
+      `
+    UPDATE nat_gateway
+    SET state = 'failed'
+    WHERE tags ->> 'Name' = '${ng}';
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it('applies the private nat gateway change', commit());
+
+  it(
+    'checks private nat gateway count',
+    query(
+      `
+    SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${ng}';
+  `,
+      (res: any) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it(
+    'checks private nat gateway state',
+    query(
+      `
+    SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${ng}';
+  `,
+      (res: any) => expect(res[0]['state']).toBe('available'),
+    ),
+  );
+
+  it('starts a transaction', begin());
+
+  it(
+    'deletes a private nat gateway',
+    query(
+      `
+    DELETE FROM nat_gateway
+    WHERE tags ->> 'Name' = '${ng}';
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it('applies the private nat gateway change', commit());
+
+  it(
+    'checks private nat gateway count',
+    query(
+      `
+    SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${ng}';
   `,
       (res: any) => expect(res.length).toBe(0),
     ),
@@ -557,83 +683,6 @@ describe('VPC Integration Testing', () => {
   );
 
   it('applies the vpc removal', commit());
-
-  it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
-});
-
-describe('VPC install/uninstall', () => {
-  it('creates a new test db', done => {
-    (async () => {
-      try {
-        const { user, password: pgPassword } = await iasql.connect(dbAlias, 'not-needed', 'not-needed');
-        username = user;
-        password = pgPassword;
-        if (!username || !password) throw new Error('Did not fetch pg credentials');
-        done();
-      } catch (e) {
-        done(e);
-      }
-    })();
-  });
-
-  it('installs the aws_account module', install(['aws_account']));
-
-  it(
-    'inserts aws credentials',
-    query(
-      `
-    INSERT INTO aws_credentials (access_key_id, secret_access_key)
-    VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
-  `,
-      undefined,
-      false,
-      () => ({ username, password }),
-    ),
-  );
-
-  it('starts a transaction', begin());
-
-  it('syncs the regions', commit());
-
-  it(
-    'sets the default region',
-    query(
-      `
-    UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
-  `,
-      undefined,
-      true,
-      () => ({ username, password }),
-    ),
-  );
-
-  it('installs the VPC module', install(modules));
-
-  it('uninstalls the VPC module', uninstall(modules));
-
-  it('installs all modules', installAll());
-
-  it(
-    'uninstalls the VPC module',
-    uninstall([
-      'aws_vpc',
-      'aws_ecs_fargate',
-      'aws_ecs_simplified',
-      'aws_security_group',
-      'aws_rds',
-      'aws_elb',
-      'aws_ec2',
-      'aws_ec2_metadata',
-      'aws_route53',
-      'aws_memory_db',
-      'aws_acm',
-      'aws_codedeploy',
-      'aws_codepipeline',
-      'aws_lambda',
-    ]),
-  );
-
-  it('installs the VPC module', install(['aws_vpc']));
 
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 });
