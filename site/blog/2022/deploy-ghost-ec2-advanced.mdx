@@ -1,0 +1,43 @@
+---
+slug: deploy-ghost-ec2-advanced
+title: Advanced configuration for deploying Ghost on EC2
+date: 2022-12-28
+authors: [yrobla]
+---
+
+# Advanced configuration for deploying <a href="https://ghost.org/">Ghost</a> on EC2
+
+In our previous <a href="https://iasql.com/blog/deploy-ghost-ec2/">blogpost</a> we showed how to install <a href="https://ghost.org/">Ghost</a> in an EC2 instance, using a simple configuration. While it is ok
+for testing and development purposes, it was not ready for production. In order to be ready, it needs some essential features, that we will be illustrating on this new post.
+
+## Associate a domain
+
+The initial deployment was just serving Ghost on the public IP of the instance, which is something not suitable for end use. As an initial step, we will be associating that instance with a domain.
+In order to achieve that, we will be relying on AWS Route 53 to create hosted zones and recordsets, and associate them to the instance:
+
+```sql TheButton[Generate keypair]="Import keypair"
+ -- Install modules
+SELECT
+  *
+FROM
+  iasql_install ('aws_route53');
+
+SELECT * FROM iasql_begin();
+INSERT INTO hosted_zone (domain_name) VALUES ('test-ghost.com.');
+INSERT INTO resource_record_set (name, parent_hosted_zone_id, record_type, record, ttl) 
+select 'blog.test-ghost.com.', id , 'A', '<instance_public_ip>', 300
+from hosted_zone where domain_name='test-ghost.com.';
+SELECT * FROM iasql_commit();
+```
+
+After some period of time, and assuming that the domain is properly pointing to <a href="https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/migrate-dns-domain-in-use.html#migrate-dns-change-name-servers-with-provider">AWS nameservers</a>,
+the domain should be pointing to the EC2 instance.
+
+Finally, Ghost needs to be configured to serve this new domain. This can be achieved by connecting by SSH to the instance:
+
+```console
+ssh ubuntu@<instance_public_ip>
+sudo su ghostuser
+ghost config http://blog.test-ghost.com
+ghost setup nginx
+```
