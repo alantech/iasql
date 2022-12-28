@@ -17,15 +17,37 @@ It is time-consuming task, specially if you need to install several instances. T
 
 _This approach uses <a href="https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/user-data.html">EC2 user data</a> functionality - to run an startup script that will configure Ghost
 as soon as the instance is started - and <a href="https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instancedata-data-retrieval.html">EC2 instance metadata</a> - to retrieve
-the public IP of the instance, and assign it dynamically to Ghost installation script._
+the public IP of the instance, and assign it dynamically to Ghost installation script.
 
-```sql TheButton[Install Ghost]="Install Ghost"
+## Pre-requisites
+
+This post is going to rely on EC2 to install the Ghost content. In order to access to the instance, it is recommended to setup some SSH keys, to later be able to access it for modifications and maintenance. So we will be generating some keys
+and importing them to later associate with the EC2 instance. If you do not have an existing key, please generate one. The output of the public key will be the one imported into the system:
+
+```bash
+ssh-keygen -t rsa -f /tmp/key
+PUBKEY=$(cat /tmp/key.pub)
+```
+
+The public key will be then imported into the system:
+
+```sql TheButton[Generate keypair]="Import keypair"
  -- Install modules
 SELECT
   *
 FROM
   iasql_install ('aws_ec2', 'aws_ec2_metadata');
 
+-- Request a keypair
+SELECT * FROM key_pair_import ('ghost', '<your_pubkey_content>', 'us-east-2');
+```
+
+## Ghost installation
+
+After the keypair has been imported, we can proceed with the installation of the instance itself, associating the created key to allow SSH access after it is created.
+
+
+```sql TheButton[Install Ghost]="Install Ghost"
 -- start transaction
 SELECT * FROM iasql_begin();
 
@@ -59,10 +81,10 @@ WHERE
 
 -- insert instance with the right userdata
 INSERT INTO
-  instance (ami, instance_type, subnet_id, tags, user_data, region)
+  instance (ami, instance_type, subnet_id, tags, user_data, key_pair_name, region)
 SELECT
   'resolve:ssm:/aws/service/canonical/ubuntu/server/22.04/stable/current/amd64/hvm/ebs-gp2/ami-id',
-  't2.micro',
+  't2.small',
   subnet.id,
   '{"name":"ghost-blog"}',
   '#!/bin/bash
@@ -83,7 +105,7 @@ sudo -E chown ghostuser /var/www/ghost
 sudo chmod 775 /var/www/ghost
 cd /var/www/ghost/
 sudo -u ghostuser ghost install --url http://$(curl http://169.254.169.254/latest/meta-data/public-ipv4) --db mysql --dbpass ghost --no-prompt --start --enable
-',
+', 'ghost',
   'us-east-2'
 FROM
   subnet
@@ -126,6 +148,8 @@ SELECT
 FROM
   iasql_commit();
 ```
+
+## Accessing Ghost
 
 After the process finishes (it will take over 10-15 minutes), you will have your Ghost instance installed, publicly accessible through the public IP of the spinned instance.
 You can get the details of the public IP of your instance querying for the metadata:
