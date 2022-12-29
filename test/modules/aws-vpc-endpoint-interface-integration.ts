@@ -382,18 +382,6 @@ describe('VPC Endpoint interface Integration Testing', () => {
     ),
   );
 
-  it(
-    'AUDIT',
-    query(
-      `
-    select * from iasql_audit_log order by ts desc limit 5;
-  `,
-      (res: any) => {
-        expect(res.length).toBe(5);
-      },
-    ),
-  );
-
   it('applies the endpoint_interface subnet removal', commit());
 
   it(
@@ -413,7 +401,7 @@ describe('VPC Endpoint interface Integration Testing', () => {
     query(
       `
     INSERT INTO endpoint_interface_subnets (endpoint_interface_id, subnet_id) VALUES ((SELECT id FROM endpoint_interface WHERE tags ->> 'Name' = '${lambdaVpcEndpoint}' LIMIT 1),
-    (SELECT subnet.id FROM subnet INNER JOIN vpc ON vpc.id=subnet.vpc_id WHERE subnet.cidr_block='191.${randIPBlock}.0.0/16' AND vpc.tags ->> 'name' = '${prefix}-2' LIMIT 1))
+    (SELECT subnet.id FROM subnet INNER JOIN vpc ON vpc.id=subnet.vpc_id WHERE subnet.cidr_block='192.${randIPBlock}.0.0/16' LIMIT 1))
   `,
       undefined,
       true,
