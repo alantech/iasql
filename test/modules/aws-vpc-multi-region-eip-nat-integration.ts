@@ -198,7 +198,7 @@ describe('VPC Multi-region EIP and NAT Gateway Integration Testing', () => {
         UPDATE nat_gateway
         SET
           region = '${nonDefaultRegion}',
-          subnet_id = (SELECT id FROM subnet WHERE cidr_block = '192.${randIPBlock}.0.0/16')
+          subnet_id = (SELECT id FROM subnet WHERE cidr_block = '192.${randIPBlock}.0.0/16' AND region = '${nonDefaultRegion}')
         WHERE tags ->> 'Name' = '${ng}';
       `,
       undefined,
