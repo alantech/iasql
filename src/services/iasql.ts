@@ -87,14 +87,20 @@ export async function connect(dbAlias: string, uid: string, email: string, dbId 
 }
 
 export async function disconnect(dbAlias: string, uid: string) {
-  let conn;
+  let conn, conn2;
   try {
     const db: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
     conn = await createConnection(dbMan.baseConnConfig);
+    conn2 = await TypeormWrapper.createConn(db.pgName, {
+      ...dbMan.baseConnConfig,
+      database: db.pgName,
+    });
+    // Try to hold a transaction
+    await maybeHoldTransaction(conn2);
+    // Unschedule cron jobs
+    await unscheduleJobs(conn2);
     // Cancel all connections
     await conn.query(`REVOKE CONNECT ON DATABASE ${db.pgName} FROM PUBLIC, ${config.db.user}, ${db.pgUser};`);
-    // Unschedule cron jobs
-    await unscheduleJobs(db.pgName);
     // Kill all open connections.
     // `pg_terminate_backend` forces any currently running transactions in the terminated session to release all locks and roll back the transaction.
     // `pg_cancel_backend` cancels a query currently being run.
@@ -121,28 +127,29 @@ export async function disconnect(dbAlias: string, uid: string) {
     throw e;
   } finally {
     conn?.close();
+    conn2?.dropConn();
   }
 }
 
-async function unscheduleJobs(dbId: string) {
-  let conn;
+async function maybeHoldTransaction(conn: TypeormWrapper) {
   try {
-    conn = await TypeormWrapper.createConn(dbId, {
-      ...dbMan.baseConnConfig,
-      database: dbId,
-    });
     // If commit is running we should try to wait until it finish to avoid misconfigurations in the cloud
     // but it is not a blocker
     const commitRunning = await isCommitRunning(conn);
     if (commitRunning) {
       await maybeOpenTransaction(conn);
     }
+  } catch (_) {
+    /** Do nothing */
+  }
+}
+
+async function unscheduleJobs(conn: TypeormWrapper) {
+  try {
     await conn.query(`SELECT * FROM query_cron('unschedule');`);
     await conn.query(`SELECT * FROM query_cron('unschedule_purge');`);
-  } catch (e) {
+  } catch (_) {
     /** Do nothing */
-  } finally {
-    conn?.dropConn();
   }
 }
 
