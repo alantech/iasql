@@ -649,25 +649,25 @@ describe('VPC Elastic IP Integration Testing', () => {
       WHERE vpc_id = (
         SELECT id
         FROM vpc
-        WHERE cidr_block = '192.${randIPBlock}.0.0/16' AND tags ->> 'name' = '${prefix}-2'
+        WHERE cidr_block = '192.${randIPBlock}.0.0/16'
       )
     );
     DELETE FROM route_table_association
     WHERE vpc_id = (
         SELECT id
         FROM vpc
-        WHERE cidr_block = '192.${randIPBlock}.0.0/16' AND tags ->> 'name' = '${prefix}-2'
+        WHERE cidr_block = '192.${randIPBlock}.0.0/16'
     );
     DELETE FROM route_table
     WHERE vpc_id = (
         SELECT id
         FROM vpc
-        WHERE cidr_block = '192.${randIPBlock}.0.0/16' AND tags ->> 'name' = '${prefix}-2'
+        WHERE cidr_block = '192.${randIPBlock}.0.0/16'
     );
     WITH vpc as (
       SELECT id
       FROM vpc
-      WHERE cidr_block = '192.${randIPBlock}.0.0/16' AND tags ->> 'name' = '${prefix}-2'
+      WHERE cidr_block = '192.${randIPBlock}.0.0/16'
     )
     DELETE FROM security_group
     USING vpc

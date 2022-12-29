@@ -15,7 +15,6 @@ const prefix = getPrefix();
 const dbAlias = 'vpctest';
 const region = defaultRegion();
 const nonDefaultRegion = 'us-east-1';
-const nonDefaultRegionAvailabilityZone = 'us-east-1a';
 const s3VpcEndpoint = `${prefix}${dbAlias}-s3-vpce`;
 
 const begin = runBegin.bind(null, dbAlias);
@@ -55,9 +54,9 @@ describe('VPC Multi-region Endpoint Gateway Integration Testing', () => {
     'inserts aws credentials',
     query(
       `
-    INSERT INTO aws_credentials (access_key_id, secret_access_key)
-    VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
-  `,
+        INSERT INTO aws_credentials (access_key_id, secret_access_key)
+        VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
+      `,
       undefined,
       false,
       () => ({ username, password }),
@@ -72,8 +71,8 @@ describe('VPC Multi-region Endpoint Gateway Integration Testing', () => {
     'sets the default region',
     query(
       `
-    UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
-  `,
+        UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
+      `,
       undefined,
       true,
       () => ({ username, password }),
@@ -88,9 +87,9 @@ describe('VPC Multi-region Endpoint Gateway Integration Testing', () => {
     'adds a new vpc',
     query(
       `  
-    INSERT INTO vpc (cidr_block, tags, region)
-    VALUES ('192.${randIPBlock}.0.0/16', '{"name":"${prefix}-1"}', '${nonDefaultRegion}');
-  `,
+        INSERT INTO vpc (cidr_block)
+        VALUES ('192.${randIPBlock}.0.0/16');
+      `,
       undefined,
       true,
       () => ({ username, password }),
@@ -101,12 +100,12 @@ describe('VPC Multi-region Endpoint Gateway Integration Testing', () => {
     'adds a subnet',
     query(
       `
-    INSERT INTO subnet (availability_zone, vpc_id, cidr_block, region)
-    SELECT '${nonDefaultRegionAvailabilityZone}', id, '192.${randIPBlock}.0.0/16', '${nonDefaultRegion}'
-    FROM vpc
-    WHERE is_default = false
-    AND cidr_block = '192.${randIPBlock}.0.0/16' AND region = '${nonDefaultRegion}';
-  `,
+        INSERT INTO subnet (availability_zone, vpc_id, cidr_block)
+        SELECT (SELECT name FROM availability_zone WHERE region = '${region}' ORDER BY 1 DESC LIMIT 1), id, '192.${randIPBlock}.0.0/16'
+        FROM vpc
+        WHERE is_default = false
+        AND cidr_block = '192.${randIPBlock}.0.0/16' AND region = '${region}';
+      `,
       undefined,
       true,
       () => ({ username, password }),
@@ -119,9 +118,9 @@ describe('VPC Multi-region Endpoint Gateway Integration Testing', () => {
     'check vpc is available',
     query(
       `
-  SELECT * FROM vpc 
-  WHERE cidr_block='192.${randIPBlock}.0.0/16' AND state='available' AND tags ->> 'name' = '${prefix}-1' AND region = '${nonDefaultRegion}';
-  `,
+        SELECT * FROM vpc 
+        WHERE cidr_block='192.${randIPBlock}.0.0/16' AND state='available' AND region = '${region}';
+      `,
       (res: any) => expect(res.length).toBe(1),
     ),
   );
@@ -132,12 +131,12 @@ describe('VPC Multi-region Endpoint Gateway Integration Testing', () => {
     'adds a new s3 endpoint gateway',
     query(
       `
-    INSERT INTO endpoint_gateway (service, vpc_id, tags)
-    SELECT 's3', id, '{"Name": "${s3VpcEndpoint}"}'
-    FROM vpc
-    WHERE is_default = false
-    AND cidr_block = '192.${randIPBlock}.0.0/16';
-  `,
+        INSERT INTO endpoint_gateway (service, vpc_id, tags)
+        SELECT 's3', id, '{"Name": "${s3VpcEndpoint}"}'
+        FROM vpc
+        WHERE is_default = false
+        AND cidr_block = '192.${randIPBlock}.0.0/16';
+      `,
       undefined,
       true,
       () => ({ username, password }),
@@ -148,8 +147,8 @@ describe('VPC Multi-region Endpoint Gateway Integration Testing', () => {
     'checks endpoint gateway count',
     query(
       `
-    SELECT * FROM endpoint_gateway WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
-  `,
+        SELECT * FROM endpoint_gateway WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
+      `,
       (res: any) => expect(res.length).toBe(1),
     ),
   );
@@ -160,8 +159,8 @@ describe('VPC Multi-region Endpoint Gateway Integration Testing', () => {
     'checks endpoint gateway count',
     query(
       `
-    SELECT * FROM endpoint_gateway WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
-  `,
+        SELECT * FROM endpoint_gateway WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
+      `,
       (res: any) => expect(res.length).toBe(1),
     ),
   );
@@ -172,13 +171,13 @@ describe('VPC Multi-region Endpoint Gateway Integration Testing', () => {
     'moves the endpoint gateway to another region',
     query(
       `
-    UPDATE endpoint_gateway
-    SET
-      region = 'us-east-1',
-      route_table_ids = NULL, -- TODO: Handle this in the mapper instead?
-      vpc_id = (SELECT id from vpc WHERE is_default = true AND region='us-east-1')
-    WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
-  `,
+        UPDATE endpoint_gateway
+        SET
+          region = '${nonDefaultRegion}',
+          route_table_ids = NULL, -- TODO: Handle this in the mapper instead?
+          vpc_id = (SELECT id from vpc WHERE is_default = true AND region='${nonDefaultRegion}')
+        WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
+      `,
       undefined,
       true,
       () => ({ username, password }),
@@ -191,8 +190,8 @@ describe('VPC Multi-region Endpoint Gateway Integration Testing', () => {
     'checks endpoint gateway count',
     query(
       `
-    SELECT * FROM endpoint_gateway WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
-  `,
+        SELECT * FROM endpoint_gateway WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
+      `,
       (res: any) => expect(res.length).toBe(1),
     ),
   );
@@ -203,9 +202,9 @@ describe('VPC Multi-region Endpoint Gateway Integration Testing', () => {
     'deletes a endpoint_gateway',
     query(
       `
-    DELETE FROM endpoint_gateway
-    WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
-  `,
+        DELETE FROM endpoint_gateway
+        WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
+      `,
       undefined,
       true,
       () => ({ username, password }),
@@ -218,8 +217,8 @@ describe('VPC Multi-region Endpoint Gateway Integration Testing', () => {
     'checks endpoint_gateway count',
     query(
       `
-    SELECT * FROM endpoint_gateway WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
-  `,
+        SELECT * FROM endpoint_gateway WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
+      `,
       (res: any) => expect(res.length).toBe(0),
     ),
   );
@@ -230,43 +229,43 @@ describe('VPC Multi-region Endpoint Gateway Integration Testing', () => {
     'deletes the vpcs',
     query(
       `
-    DELETE FROM security_group_rule
-    WHERE security_group_id = (
-      SELECT id
-      FROM security_group
-      WHERE vpc_id = (
-        SELECT id
-        FROM vpc
-        WHERE cidr_block='192.${randIPBlock}.0.0/16' AND tags ->> 'name' = '${prefix}-1' AND region = '${region}'
-      )
-    );
-    DELETE FROM route_table_association
-    WHERE vpc_id = (
-        SELECT id
-        FROM vpc
-        WHERE cidr_block='192.${randIPBlock}.0.0/16' AND tags ->> 'name' = '${prefix}-1' AND region = '${region}'
-    );
-    DELETE FROM route_table
-    WHERE vpc_id = (
-      SELECT id
-      FROM vpc
-      WHERE cidr_block='192.${randIPBlock}.0.0/16' AND tags ->> 'name' = '${prefix}-1' AND region = '${region}'
-    );
-    WITH vpc as (
-      SELECT id
-      FROM vpc
-      WHERE cidr_block='192.${randIPBlock}.0.0/16' AND tags ->> 'name' = '${prefix}-1' AND region = '${region}'
-    )
-    DELETE FROM security_group
-    USING vpc
-    WHERE vpc_id = vpc.id;
+        DELETE FROM security_group_rule
+        WHERE security_group_id = (
+          SELECT id
+          FROM security_group
+          WHERE vpc_id = (
+            SELECT id
+            FROM vpc
+            WHERE cidr_block='192.${randIPBlock}.0.0/16' AND region = '${region}'
+          )
+        );
+        DELETE FROM route_table_association
+        WHERE vpc_id = (
+            SELECT id
+            FROM vpc
+            WHERE cidr_block='192.${randIPBlock}.0.0/16' AND region = '${region}'
+        );
+        DELETE FROM route_table
+        WHERE vpc_id = (
+          SELECT id
+          FROM vpc
+          WHERE cidr_block='192.${randIPBlock}.0.0/16' AND region = '${region}'
+        );
+        WITH vpc as (
+          SELECT id
+          FROM vpc
+          WHERE cidr_block='192.${randIPBlock}.0.0/16' AND region = '${region}'
+        )
+        DELETE FROM security_group
+        USING vpc
+        WHERE vpc_id = vpc.id;
 
-    DELETE FROM subnet
-    WHERE cidr_block='192.${randIPBlock}.0.0/16' AND region = '${region}';
+        DELETE FROM subnet
+        WHERE cidr_block='192.${randIPBlock}.0.0/16' AND region = '${region}';
 
-    DELETE FROM vpc
-    WHERE cidr_block='192.${randIPBlock}.0.0/16' AND tags ->> 'name' = '${prefix}-1' AND region = '${region}';
-  `,
+        DELETE FROM vpc
+        WHERE cidr_block='192.${randIPBlock}.0.0/16' AND region = '${region}';
+      `,
       undefined,
       true,
       () => ({ username, password }),

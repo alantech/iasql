@@ -15,7 +15,6 @@ const prefix = getPrefix();
 const dbAlias = 'vpctest';
 const region = defaultRegion();
 const nonDefaultRegion = 'us-east-1';
-const nonDefaultRegionAvailabilityZone = 'us-east-1a';
 const ng = `${prefix}${dbAlias}-ng`;
 const pubNg = `${prefix}${dbAlias}-pub-ng1`;
 const eip = `${prefix}${dbAlias}-eip`;
@@ -57,9 +56,9 @@ describe('VPC Multi-region EIP and NAT Gateway Integration Testing', () => {
     'inserts aws credentials',
     query(
       `
-    INSERT INTO aws_credentials (access_key_id, secret_access_key)
-    VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
-  `,
+        INSERT INTO aws_credentials (access_key_id, secret_access_key)
+        VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
+      `,
       undefined,
       false,
       () => ({ username, password }),
@@ -74,8 +73,8 @@ describe('VPC Multi-region EIP and NAT Gateway Integration Testing', () => {
     'sets the default region',
     query(
       `
-    UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
-  `,
+        UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
+      `,
       undefined,
       true,
       () => ({ username, password }),
@@ -90,9 +89,9 @@ describe('VPC Multi-region EIP and NAT Gateway Integration Testing', () => {
     'adds a new vpc',
     query(
       `  
-    INSERT INTO vpc (cidr_block, tags, region)
-    VALUES ('192.${randIPBlock}.0.0/16', '{"name":"${prefix}-1"}', '${nonDefaultRegion}');
-  `,
+        INSERT INTO vpc (cidr_block)
+        VALUES ('192.${randIPBlock}.0.0/16');
+      `,
       undefined,
       true,
       () => ({ username, password }),
@@ -103,12 +102,12 @@ describe('VPC Multi-region EIP and NAT Gateway Integration Testing', () => {
     'adds a subnet',
     query(
       `
-    INSERT INTO subnet (availability_zone, vpc_id, cidr_block, region)
-    SELECT '${nonDefaultRegionAvailabilityZone}', id, '192.${randIPBlock}.0.0/16', '${nonDefaultRegion}'
-    FROM vpc
-    WHERE is_default = false
-    AND cidr_block = '192.${randIPBlock}.0.0/16' AND region = '${nonDefaultRegion}';
-  `,
+        INSERT INTO subnet (availability_zone, vpc_id, cidr_block)
+        SELECT (SELECT name FROM availability_zone WHERE region = '${region}' ORDER BY 1 DESC LIMIT 1), id, '192.${randIPBlock}.0.0/16'
+        FROM vpc
+        WHERE is_default = false
+        AND cidr_block = '192.${randIPBlock}.0.0/16' AND region = '${region}';
+      `,
       undefined,
       true,
       () => ({ username, password }),
@@ -121,9 +120,9 @@ describe('VPC Multi-region EIP and NAT Gateway Integration Testing', () => {
     'check vpc is available',
     query(
       `
-  SELECT * FROM vpc 
-  WHERE cidr_block='192.${randIPBlock}.0.0/16' AND state='available' AND tags ->> 'name' = '${prefix}-1' AND region = '${nonDefaultRegion}';
-  `,
+        SELECT * FROM vpc 
+        WHERE cidr_block='192.${randIPBlock}.0.0/16' AND state='available' AND region = '${region}';
+      `,
       (res: any) => expect(res.length).toBe(1),
     ),
   );
@@ -134,9 +133,9 @@ describe('VPC Multi-region EIP and NAT Gateway Integration Testing', () => {
     'adds a new elastic ip',
     query(
       `
-    INSERT INTO elastic_ip (tags)
-    VALUES ('{"name": "${eip}"}');
-  `,
+        INSERT INTO elastic_ip (tags)
+        VALUES ('{"name": "${eip}"}');
+      `,
       undefined,
       true,
       () => ({ username, password }),
@@ -149,8 +148,8 @@ describe('VPC Multi-region EIP and NAT Gateway Integration Testing', () => {
     'check elastic ip count',
     query(
       `
-    SELECT * FROM elastic_ip WHERE tags ->> 'name' = '${eip}';
-  `,
+        SELECT * FROM elastic_ip WHERE tags ->> 'name' = '${eip}';
+      `,
       (res: any) => expect(res.length).toBe(1),
     ),
   );
@@ -161,11 +160,11 @@ describe('VPC Multi-region EIP and NAT Gateway Integration Testing', () => {
     'adds a private nat gateway',
     query(
       `
-    INSERT INTO nat_gateway (connectivity_type, subnet_id, tags)
-    SELECT 'private', id, '{"Name":"${ng}"}'
-    FROM subnet
-    WHERE cidr_block = '192.${randIPBlock}.0.0/16';
-  `,
+        INSERT INTO nat_gateway (connectivity_type, subnet_id, tags)
+        SELECT 'private', id, '{"Name":"${ng}"}'
+        FROM subnet
+        WHERE cidr_block = '192.${randIPBlock}.0.0/16' AND region = '${region}';
+      `,
       undefined,
       true,
       () => ({ username, password }),
@@ -178,8 +177,8 @@ describe('VPC Multi-region EIP and NAT Gateway Integration Testing', () => {
     'checks private nat gateway count',
     query(
       `
-    SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${ng}';
-  `,
+        SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${ng}';
+      `,
       (res: any) => expect(res.length).toBe(1),
     ),
   );
@@ -190,18 +189,18 @@ describe('VPC Multi-region EIP and NAT Gateway Integration Testing', () => {
     'updates the private nat gateway to another region',
     query(
       `
-    INSERT INTO vpc (cidr_block, region)
-    VALUES ('191.${randIPBlock}.0.0/16', 'us-east-1');
-    INSERT INTO subnet (availability_zone, vpc_id, cidr_block, region)
-    SELECT 'us-east-1a', id, '191.${randIPBlock}.0.0/16', 'us-east-1'
-    FROM vpc
-    WHERE is_default = false AND region = 'us-east-1' AND cidr_block = '191.${randIPBlock}.0.0/16';
-    UPDATE nat_gateway
-    SET
-      region = 'us-east-1',
-      subnet_id = (SELECT id FROM subnet WHERE cidr_block = '191.${randIPBlock}.0.0/16')
-    WHERE tags ->> 'Name' = '${ng}';
-  `,
+        INSERT INTO vpc (cidr_block, region)
+        VALUES ('192.${randIPBlock}.0.0/16', '${nonDefaultRegion}');
+        INSERT INTO subnet (availability_zone, vpc_id, cidr_block, region)
+        SELECT (SELECT name FROM availability_zone WHERE region = '${nonDefaultRegion}' ORDER BY 1 DESC LIMIT 1), id, '192.${randIPBlock}.0.0/16', '${nonDefaultRegion}'
+        FROM vpc
+        WHERE is_default = false AND region = '${nonDefaultRegion}' AND cidr_block = '192.${randIPBlock}.0.0/16';
+        UPDATE nat_gateway
+        SET
+          region = '${nonDefaultRegion}',
+          subnet_id = (SELECT id FROM subnet WHERE cidr_block = '192.${randIPBlock}.0.0/16')
+        WHERE tags ->> 'Name' = '${ng}';
+      `,
       undefined,
       true,
       () => ({ username, password }),
@@ -226,11 +225,11 @@ describe('VPC Multi-region EIP and NAT Gateway Integration Testing', () => {
     'adds a public nat gateway with existing elastic ip',
     query(
       `
-    INSERT INTO nat_gateway (connectivity_type, subnet_id, tags, elastic_ip_id)
-    SELECT 'public', subnet.id, '{"Name":"${pubNg}"}', elastic_ip.id
-    FROM subnet, elastic_ip
-    WHERE cidr_block = '192.${randIPBlock}.0.0/16' AND elastic_ip.tags ->> 'name' = '${eip}';
-  `,
+        INSERT INTO nat_gateway (connectivity_type, subnet_id, tags, elastic_ip_id)
+        SELECT 'public', subnet.id, '{"Name":"${pubNg}"}', elastic_ip.id
+        FROM subnet, elastic_ip
+        WHERE cidr_block = '192.${randIPBlock}.0.0/16' AND elastic_ip.tags ->> 'name' = '${eip}';
+      `,
       undefined,
       true,
       () => ({ username, password }),
@@ -243,8 +242,8 @@ describe('VPC Multi-region EIP and NAT Gateway Integration Testing', () => {
     'checks public nat gateway with existing elastic ip count',
     query(
       `
-    SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${pubNg}';
-  `,
+        SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${pubNg}';
+      `,
       (res: any) => expect(res.length).toBe(1),
     ),
   );
@@ -255,19 +254,19 @@ describe('VPC Multi-region EIP and NAT Gateway Integration Testing', () => {
     'moves the nat gateway and elastic IP to another region',
     query(
       `
-    -- Detaching and re-attaching the elastic IP record to avoid join issues
-    UPDATE nat_gateway
-    SET 
-      elastic_ip_id = NULL,
-      region = 'us-east-1',
-      subnet_id = (SELECT id FROM subnet WHERE cidr_block = '191.${randIPBlock}.0.0/16')
-    WHERE tags ->> 'Name' = '${pubNg}';
-    UPDATE elastic_ip SET region='us-east-1' WHERE tags ->> 'name' = '${eip}';
-    UPDATE nat_gateway
-    SET
-      elastic_ip_id = (SELECT id from elastic_ip WHERE tags ->> 'name' = '${eip}')
-    WHERE tags ->> 'Name' = '${pubNg}';
-  `,
+        -- Detaching and re-attaching the elastic IP record to avoid join issues
+        UPDATE nat_gateway
+        SET 
+          elastic_ip_id = NULL,
+          region = '${nonDefaultRegion}',
+          subnet_id = (SELECT id FROM subnet WHERE cidr_block = '192.${randIPBlock}.0.0/16' AND region = '${nonDefaultRegion}')
+        WHERE tags ->> 'Name' = '${pubNg}';
+        UPDATE elastic_ip SET region='${nonDefaultRegion}' WHERE tags ->> 'name' = '${eip}';
+        UPDATE nat_gateway
+        SET
+          elastic_ip_id = (SELECT id from elastic_ip WHERE tags ->> 'name' = '${eip}')
+        WHERE tags ->> 'Name' = '${pubNg}';
+      `,
       undefined,
       true,
       () => ({ username, password }),
@@ -280,8 +279,8 @@ describe('VPC Multi-region EIP and NAT Gateway Integration Testing', () => {
     'checks public nat gateway with existing elastic ip count',
     query(
       `
-    SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${pubNg}';
-  `,
+        SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${pubNg}';
+      `,
       (res: any) => expect(res.length).toBe(1),
     ),
   );
@@ -292,9 +291,9 @@ describe('VPC Multi-region EIP and NAT Gateway Integration Testing', () => {
     'deletes a public nat gateway',
     query(
       `
-    DELETE FROM nat_gateway
-    WHERE tags ->> 'Name' = '${pubNg}';
-  `,
+        DELETE FROM nat_gateway
+        WHERE tags ->> 'Name' = '${pubNg}';
+      `,
       undefined,
       true,
       () => ({ username, password }),
@@ -305,9 +304,9 @@ describe('VPC Multi-region EIP and NAT Gateway Integration Testing', () => {
     'deletes a elastic ip',
     query(
       `
-    DELETE FROM elastic_ip
-    WHERE tags ->> 'name' = '${eip}';
-  `,
+        DELETE FROM elastic_ip
+        WHERE tags ->> 'name' = '${eip}';
+      `,
       undefined,
       true,
       () => ({ username, password }),
@@ -318,9 +317,9 @@ describe('VPC Multi-region EIP and NAT Gateway Integration Testing', () => {
     'deletes a private nat gateway',
     query(
       `
-    DELETE FROM nat_gateway
-    WHERE tags ->> 'Name' = '${ng}';
-  `,
+        DELETE FROM nat_gateway
+        WHERE tags ->> 'Name' = '${ng}';
+      `,
       undefined,
       true,
       () => ({ username, password }),
@@ -333,8 +332,8 @@ describe('VPC Multi-region EIP and NAT Gateway Integration Testing', () => {
     'checks public nat gateways count',
     query(
       `
-    SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${pubNg}';
-  `,
+        SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${pubNg}';
+      `,
       (res: any) => expect(res.length).toBe(0),
     ),
   );
@@ -343,8 +342,8 @@ describe('VPC Multi-region EIP and NAT Gateway Integration Testing', () => {
     'check elastic ip count',
     query(
       `
-    SELECT * FROM elastic_ip WHERE tags ->> 'name' = '${eip}';
-  `,
+        SELECT * FROM elastic_ip WHERE tags ->> 'name' = '${eip}';
+      `,
       (res: any) => expect(res.length).toBe(0),
     ),
   );
@@ -353,8 +352,8 @@ describe('VPC Multi-region EIP and NAT Gateway Integration Testing', () => {
     'checks private nat gateway count',
     query(
       `
-    SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${ng}';
-  `,
+        SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${ng}';
+      `,
       (res: any) => expect(res.length).toBe(0),
     ),
   );
@@ -365,80 +364,80 @@ describe('VPC Multi-region EIP and NAT Gateway Integration Testing', () => {
     'deletes the vpcs',
     query(
       `
-    DELETE FROM security_group_rule
-    WHERE security_group_id = (
-      SELECT id
-      FROM security_group
-      WHERE vpc_id = (
-        SELECT id
-        FROM vpc
-        WHERE cidr_block='192.${randIPBlock}.0.0/16' AND tags ->> 'name' = '${prefix}-1' AND region = '${region}'
-      )
-    );
-    DELETE FROM route_table_association
-    WHERE vpc_id = (
-        SELECT id
-        FROM vpc
-        WHERE cidr_block='192.${randIPBlock}.0.0/16' AND tags ->> 'name' = '${prefix}-1' AND region = '${region}'
-    );
-    DELETE FROM route_table
-    WHERE vpc_id = (
-      SELECT id
-      FROM vpc
-      WHERE cidr_block='192.${randIPBlock}.0.0/16' AND tags ->> 'name' = '${prefix}-1' AND region = '${region}'
-    );
-    WITH vpc as (
-      SELECT id
-      FROM vpc
-      WHERE cidr_block='192.${randIPBlock}.0.0/16' AND tags ->> 'name' = '${prefix}-1' AND region = '${region}'
-    )
-    DELETE FROM security_group
-    USING vpc
-    WHERE vpc_id = vpc.id;
+        DELETE FROM security_group_rule
+        WHERE security_group_id = (
+          SELECT id
+          FROM security_group
+          WHERE vpc_id = (
+            SELECT id
+            FROM vpc
+            WHERE cidr_block='192.${randIPBlock}.0.0/16' AND region = '${region}'
+          )
+        );
+        DELETE FROM route_table_association
+        WHERE vpc_id = (
+            SELECT id
+            FROM vpc
+            WHERE cidr_block='192.${randIPBlock}.0.0/16' AND region = '${region}'
+        );
+        DELETE FROM route_table
+        WHERE vpc_id = (
+          SELECT id
+          FROM vpc
+          WHERE cidr_block='192.${randIPBlock}.0.0/16' AND region = '${region}'
+        );
+        WITH vpc as (
+          SELECT id
+          FROM vpc
+          WHERE cidr_block='192.${randIPBlock}.0.0/16' AND region = '${region}'
+        )
+        DELETE FROM security_group
+        USING vpc
+        WHERE vpc_id = vpc.id;
 
-    DELETE FROM subnet
-    WHERE cidr_block='192.${randIPBlock}.0.0/16' AND region = '${region}';
+        DELETE FROM subnet
+        WHERE cidr_block='192.${randIPBlock}.0.0/16' AND region = '${region}';
 
-    DELETE FROM vpc
-    WHERE cidr_block='192.${randIPBlock}.0.0/16' AND tags ->> 'name' = '${prefix}-1' AND region = '${region}';
+        DELETE FROM vpc
+        WHERE cidr_block='192.${randIPBlock}.0.0/16' AND region = '${region}';
 
-    DELETE FROM security_group_rule
-    WHERE security_group_id = (
-      SELECT id
-      FROM security_group
-      WHERE vpc_id = (
-        SELECT id
-        FROM vpc
-        WHERE cidr_block='191.${randIPBlock}.0.0/16' AND region = 'us-east-1'
-      )
-    );
-    DELETE FROM route_table_association
-    WHERE vpc_id = (
-        SELECT id
-        FROM vpc
-        WHERE cidr_block='191.${randIPBlock}.0.0/16' AND region = 'us-east-1'
-    );
-    DELETE FROM route_table
-    WHERE vpc_id = (
-        SELECT id
-        FROM vpc
-        WHERE cidr_block='191.${randIPBlock}.0.0/16' AND region = 'us-east-1'
-    );
-    WITH vpc as (
-      SELECT id
-      FROM vpc
-      WHERE cidr_block='191.${randIPBlock}.0.0/16' AND region = 'us-east-1'
-    )
-    DELETE FROM security_group
-    USING vpc
-    WHERE vpc_id = vpc.id;
+        DELETE FROM security_group_rule
+        WHERE security_group_id = (
+          SELECT id
+          FROM security_group
+          WHERE vpc_id = (
+            SELECT id
+            FROM vpc
+            WHERE cidr_block='192.${randIPBlock}.0.0/16' AND region = '${nonDefaultRegion}'
+          )
+        );
+        DELETE FROM route_table_association
+        WHERE vpc_id = (
+            SELECT id
+            FROM vpc
+            WHERE cidr_block='192.${randIPBlock}.0.0/16' AND region = '${nonDefaultRegion}'
+        );
+        DELETE FROM route_table
+        WHERE vpc_id = (
+            SELECT id
+            FROM vpc
+            WHERE cidr_block='192.${randIPBlock}.0.0/16' AND region = '${nonDefaultRegion}'
+        );
+        WITH vpc as (
+          SELECT id
+          FROM vpc
+          WHERE cidr_block='192.${randIPBlock}.0.0/16' AND region = '${nonDefaultRegion}'
+        )
+        DELETE FROM security_group
+        USING vpc
+        WHERE vpc_id = vpc.id;
 
-    DELETE FROM subnet
-    WHERE cidr_block='191.${randIPBlock}.0.0/16' AND region = 'us-east-1';
+        DELETE FROM subnet
+        WHERE cidr_block='192.${randIPBlock}.0.0/16' AND region = '${nonDefaultRegion}';
 
-    DELETE FROM vpc
-    WHERE cidr_block='191.${randIPBlock}.0.0/16' AND region = 'us-east-1';
-  `,
+        DELETE FROM vpc
+        WHERE cidr_block='192.${randIPBlock}.0.0/16' AND region = '${nonDefaultRegion}';
+      `,
       undefined,
       true,
       () => ({ username, password }),
