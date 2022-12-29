@@ -228,7 +228,7 @@ describe('VPC Multi-region EIP and NAT Gateway Integration Testing', () => {
         INSERT INTO nat_gateway (connectivity_type, subnet_id, tags, elastic_ip_id)
         SELECT 'public', subnet.id, '{"Name":"${pubNg}"}', elastic_ip.id
         FROM subnet, elastic_ip
-        WHERE cidr_block = '192.${randIPBlock}.0.0/16' AND elastic_ip.tags ->> 'name' = '${eip}';
+        WHERE cidr_block = '192.${randIPBlock}.0.0/16' AND elastic_ip.tags ->> 'name' = '${eip}' AND subnet.region = '${nonDefaultRegion}';
       `,
       undefined,
       true,
