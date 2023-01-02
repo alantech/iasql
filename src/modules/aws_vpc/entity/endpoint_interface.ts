@@ -51,7 +51,7 @@ export enum EndpointInterfaceService {
  * DELETE FROM endpoint_interface WHERE tags ->> 'Name' = 'lambda_vpc_endpoint';
  * ```
  *
- * @see https://github.com/iasql/iasql-engine/blob/main/test/modules/aws-vpc-integration.ts#L479
+ * @see https://github.com/iasql/iasql-engine/blob/main/test/modules/aws-vpc-endpoint-interface-integration.ts#L190L194
  * @see https://docs.aws.amazon.com/vpc/latest/privatelink/create-interface-endpoint.html
  */
 @Entity()
