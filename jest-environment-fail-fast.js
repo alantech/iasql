@@ -1,3 +1,5 @@
+// Based on https://github.com/facebook/jest/issues/6527#issuecomment-760092817
+
 const ParentEnvironment = require('jest-environment-node');
 
 class JestEnvironmentFailFast extends ParentEnvironment {
