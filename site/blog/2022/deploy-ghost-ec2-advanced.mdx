@@ -22,6 +22,7 @@ SELECT
 FROM
   iasql_install ('aws_route53');
 
+-- Create recordset
 SELECT * FROM iasql_begin();
 INSERT INTO hosted_zone (domain_name) VALUES ('test-ghost.com.');
 INSERT INTO resource_record_set (name, parent_hosted_zone_id, record_type, record, ttl) 
@@ -106,6 +107,7 @@ select * from iasql_commit();
 Once the ALB is created, we will associate the Ghost EC2 instance with the matching target group:
 
 ```sql TheButton[Associate instance to target group]="Associate instance to target group"
+-- register ec2 instance
 select * from iasql_begin();
 INSERT INTO registered_instance (instance, target_group_id)
 SELECT (SELECT id FROM instance WHERE tags ->> 'name' = 'ghost-blog'), (SELECT id FROM target_group WHERE target_group_name = 'ghost');
@@ -117,12 +119,14 @@ The final step is to point the domain to the load balancer that has been created
 can be setup automatically:
 
 ```sql TheButton[Delete old recordset]="Delete old recordset"
+-- delete old recordset
 select * from iasql_begin();
 delete from resource_record_set where name='blog.test-ghost.com.';
 select * from iasql_commit();
 ```
 
 ```sql TheButton[Create recordset]="Create recordset"
+-- create alias recordset
 select * from iasql_begin();
 insert into alias_target (evaluate_target_health, load_balancer_id) select true, id from load_balancer where load_balancer_name='ghost' limit 1;
 insert into resource_record_set (name, record_type, alias_target_id, parent_hosted_zone_id) values ('blog.test-ghost.com.', 'A',
@@ -146,17 +150,19 @@ ghost restart
 
 ## Use an AWS managed database
 
-The current approach was using an internal mySQL database hosted on the same EC2 instance. This could lead to unstability if the database goes
-down and will be a problem for scaling if several EC2 instances are needed. A more recommendable approach could be to use an externally
+The current approach was using an internal mySQL database hosted on the same EC2 instance. This could lead to unstability and availability problems,
+depending on the traffic and capacity of the hosting EC2 instances. A more recommendable approach could be to use an externally
 managed AWS database. We can rely on <a href="https://aws.amazon.com/rds/">AWS RDS</a> for it.
 
 ```sql TheButton[Create database]="Create database"
 select * from iasql_begin();
+-- create security group and rules
 INSERT INTO security_group (description, group_name) VALUES ('RDS security Group', 'rds');
 
 INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
 SELECT false, 'tcp', 3306, 3306, '0.0.0.0/0', 'rds_mysql', id FROM security_group WHERE group_name = 'rds';
 
+-- create database
 insert into rds (db_instance_identifier, allocated_storage, db_instance_class, engine, master_user_password, master_username, availability_zone) values
 ('ghost', 20, 'db.t3.micro', 'mysql', 'admin2022', 'admin', 'us-east-2a');
 
@@ -186,6 +192,8 @@ ghost config set database.connection.password admin2022
 ghost config set database.connection.port <endpoint_port>
 ghost config set database.connection.database ghost
 ghost config set database.connection.charset utf8
+ghost config set database.connection.ssl "Amazon RDS"
 ghost restart
 ```
 
+** With all these additions, your Ghost deployment will be suitable for production, being able to manage traffic securely and reliably. **
