@@ -116,11 +116,18 @@ select * from iasql_commit();
 The final step is to point the domain to the load balancer that has been created. If the domain is managed via Route 53 it
 can be setup automatically:
 
-```sql TheButton[Create recordset]="Create recordset"
+```sql TheButton[Delete old recordset]="Delete old recordset"
 select * from iasql_begin();
 delete from resource_record_set where name='blog.test-ghost.com.';
-insert into resource_record_set (name, record_type, record, ttl, parent_hosted_zone_id) values ('blog.test-ghost.com.', 'A', (select dns_name from load_balancer where load_balancer_name='ghost'),
-(select id from hosted_zone where domain_name='test-ghost.com.'));
+select * from iasql_commit();
+```
+
+```sql TheButton[Create recordset]="Create recordset"
+select * from iasql_begin();
+insert into alias_target (evaluate_target_health, load_balancer_id) select true, id from load_balancer where load_balancer_name='ghost' limit 1;
+insert into resource_record_set (name, record_type, alias_target_id, parent_hosted_zone_id) values ('blog.test-ghost.com.', 'A',
+(select id FROM alias_target WHERE load_balancer_id=(SELECT id FROM load_balancer WHERE load_balancer_name='ghost') LIMIT 1),
+(select id from hosted_zone where domain_name='test-ghost.com.' limit 1));
 select * from iasql_commit();
 ```
 
@@ -136,3 +143,49 @@ ghost config url https://blog.test-ghost.com
 ghost setup nginx
 ghost restart
 ```
+
+## Use an AWS managed database
+
+The current approach was using an internal mySQL database hosted on the same EC2 instance. This could lead to unstability if the database goes
+down and will be a problem for scaling if several EC2 instances are needed. A more recommendable approach could be to use an externally
+managed AWS database. We can rely on <a href="https://aws.amazon.com/rds/">AWS RDS</a> for it.
+
+```sql TheButton[Create database]="Create database"
+select * from iasql_begin();
+INSERT INTO security_group (description, group_name) VALUES ('RDS security Group', 'rds');
+
+INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
+SELECT false, 'tcp', 3306, 3306, '0.0.0.0/0', 'rds_mysql', id FROM security_group WHERE group_name = 'rds';
+
+insert into rds (db_instance_identifier, allocated_storage, db_instance_class, engine, master_user_password, master_username, availability_zone) values
+('ghost', 20, 'db.t3.micro', 'mysql', 'admin2022', 'admin', 'us-east-2a');
+
+INSERT INTO rds_security_groups (rds_id, security_group_id) SELECT
+  (SELECT id FROM rds WHERE db_instance_identifier='ghost'),
+  (SELECT id FROM security_group WHERE group_name='rds' AND region = 'us-east-2');
+
+select * from iasql_commit();
+```
+
+Once the database has been created, the endpoint and ports can be retrieved, so they can be connected to the Ghost instance:
+
+```sql TheButton[Retrieve database details]="Retrieve database details"
+select endpoint_addr, endpoint_port from rds;
+```
+
+The database can be associated via Ghost configuration. Then the local database can be removed:
+
+```console
+ssh ubuntu@<instance_public_ip>
+sudo su ghostuser
+cd /var/www/ghost
+ghost config set database.client mysql
+ghost config set database.connection.host <endpoint_addr>
+ghost config set database.connection.user admin
+ghost config set database.connection.password admin2022
+ghost config set database.connection.port <endpoint_port>
+ghost config set database.connection.database ghost
+ghost config set database.connection.charset utf8
+ghost restart
+```
+
