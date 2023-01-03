@@ -9,7 +9,7 @@ import {
   MapperBase,
   ModuleInterface,
   PostTransactionCheck,
-  PreTransactionCheck, 
+  PreTransactionCheck,
   RpcBase,
   RpcResponseObject,
 } from '../../interfaces';
@@ -45,16 +45,16 @@ export class IasqlGetSqlSince extends RpcBase {
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
     const queries: string[] = [];
     try {
-      await ctx.orm.query(`SELECT try_cast('${limitDate}', NULL::timestamp with time zone);`)
-    } catch (e) {
-      console.log(`+-+ Error casting ${JSON.stringify(e)}`);
-      throw e;
-    }
-    try {
       const whereClause: any = {
         changeType: In([AuditLogChangeType.INSERT, AuditLogChangeType.UPDATE, AuditLogChangeType.DELETE]),
       };
-      if (limitDate) whereClause.ts = MoreThan(`'${limitDate}'::timestamp with time zone`);
+      if (limitDate) {
+        const castedValue = await ctx.orm.query(
+          `SELECT try_cast('${limitDate}', NULL::timestamp with time zone);`,
+        );
+        if (!castedValue) throw new Error(`Cannot cast ${limitDate} to timestamp with time zone`);
+        whereClause.ts = MoreThan(new Date(castedValue));
+      }
       const changeLogs = await ctx.orm.find(IasqlAuditLog, {
         order: { ts: 'ASC' },
         where: whereClause,
@@ -77,7 +77,6 @@ export class IasqlGetSqlSince extends RpcBase {
     super.init();
   }
 }
-
 
 //** TODO: REUSE FUNCTIONS FROM ROLLBACK PR */
 
