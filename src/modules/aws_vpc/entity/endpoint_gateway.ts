@@ -27,7 +27,7 @@ export enum EndpointGatewayService {
  * DELETE FROM endpoint_gateway WHERE tags ->> 'name' = 's3_gateway';
  * ```
  *
- * @see https://github.com/iasql/iasql-engine/blob/main/test/modules/aws-vpc-integration.ts#L437
+ * @see https://github.com/iasql/iasql-engine/blob/main/test/modules/aws-vpc-endpoint-gateway-integration.ts#L191L195
  * @see https://docs.aws.amazon.com/vpc/latest/privatelink/gateway-endpoints.html
  */
 @Entity()

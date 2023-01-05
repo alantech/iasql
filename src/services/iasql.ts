@@ -5,7 +5,9 @@ import { exec as execNode } from 'child_process';
 import { createConnection } from 'typeorm';
 import { promisify } from 'util';
 
+import config from '../config';
 import { IasqlDatabase } from '../entity';
+import { isCommitRunning, maybeOpenTransaction } from '../modules/iasql_functions/iasql';
 import * as dbMan from './db-manager';
 import logger from './logger';
 import MetadataRepo from './repositories/metadata';
@@ -89,17 +91,31 @@ export async function disconnect(dbAlias: string, uid: string) {
   try {
     const db: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
     conn = await createConnection(dbMan.baseConnConfig);
-    conn2 = await createConnection({
+    conn2 = await TypeormWrapper.createConn(db.pgName, {
       ...dbMan.baseConnConfig,
-      name: db.pgName,
       database: db.pgName,
     });
-    try {
-      await conn2.query(`SELECT * FROM query_cron('unschedule');`);
-      await conn2.query(`SELECT * FROM query_cron('unschedule_purge');`);
-    } catch (e) {
-      /** Do nothing */
-    }
+    // Try to hold a transaction
+    await maybeHoldTransaction(conn2);
+    // Unschedule cron jobs
+    await unscheduleJobs(conn2);
+    // Cancel all connections
+    await conn.query(`REVOKE CONNECT ON DATABASE ${db.pgName} FROM PUBLIC, ${config.db.user}, ${db.pgUser};`);
+    // Kill all open connections.
+    // `pg_terminate_backend` forces any currently running transactions in the terminated session to release all locks and roll back the transaction.
+    // `pg_cancel_backend` cancels a query currently being run.
+    // https://stackoverflow.com/questions/5108876/kill-a-postgresql-session-connection
+    await conn.query(`
+      SELECT
+        pg_terminate_backend(pid), pg_cancel_backend(pid)
+      FROM
+        pg_stat_activity
+      WHERE
+        -- don't kill my own connection!
+        pid <> pg_backend_pid()
+        -- don't kill the connections to other databases
+        AND datname = '${db.pgName}';
+    `);
     await conn.query(`
       DROP DATABASE IF EXISTS ${db.pgName} WITH (FORCE);
     `);
@@ -111,7 +127,29 @@ export async function disconnect(dbAlias: string, uid: string) {
     throw e;
   } finally {
     conn?.close();
-    conn2?.close();
+    conn2?.dropConn();
+  }
+}
+
+async function maybeHoldTransaction(conn: TypeormWrapper) {
+  try {
+    // If commit is running we should try to wait until it finish to avoid misconfigurations in the cloud
+    // but it is not a blocker
+    const commitRunning = await isCommitRunning(conn);
+    if (commitRunning) {
+      await maybeOpenTransaction(conn);
+    }
+  } catch (_) {
+    /** Do nothing */
+  }
+}
+
+async function unscheduleJobs(conn: TypeormWrapper) {
+  try {
+    await conn.query(`SELECT * FROM query_cron('unschedule');`);
+    await conn.query(`SELECT * FROM query_cron('unschedule_purge');`);
+  } catch (_) {
+    /** Do nothing */
   }
 }
 
