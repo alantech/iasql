@@ -66,7 +66,7 @@ const theButton = require('./src/rehype/thebutton');
           // other options are passed to posthog-js init as is
         },
       ],
-      ['docusaurus-plugin-iasql', { usedSidebar: 'docs' }],
+      ['docusaurus-plugin-iasql', { sidebar: { usedSidebar: 'docs' } }],
     ],
 
     themeConfig:
