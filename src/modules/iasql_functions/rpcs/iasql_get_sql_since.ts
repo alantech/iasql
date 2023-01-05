@@ -49,10 +49,11 @@ export class IasqlGetSqlSince extends RpcBase {
         changeType: In([AuditLogChangeType.INSERT, AuditLogChangeType.UPDATE, AuditLogChangeType.DELETE]),
       };
       if (limitDate) {
-        const castedValue = await ctx.orm.query(
+        const castRes = await ctx.orm.query(
           `SELECT try_cast('${limitDate}', NULL::timestamp with time zone);`,
         );
-        if (!castedValue) throw new Error(`Cannot cast ${limitDate} to timestamp with time zone`);
+        const castedValue = castRes?.pop()?.try_cast;
+        if (castedValue === null) throw new Error(`Cannot cast ${limitDate} to timestamp with time zone`);
         whereClause.ts = MoreThan(new Date(castedValue));
       }
       const changeLogs = await ctx.orm.find(IasqlAuditLog, {
