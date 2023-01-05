@@ -2,6 +2,7 @@ import { In, MoreThan } from 'typeorm';
 
 import { IasqlFunctions } from '..';
 import * as AllModules from '../../../modules';
+import { getCloudId } from '../../../services/cloud-id';
 import { TypeormWrapper } from '../../../services/typeorm';
 import { AuditLogChangeType, IasqlAuditLog, IasqlModule } from '../../iasql_platform/entity';
 import {
@@ -89,17 +90,17 @@ async function getInstalledModules(orm: TypeormWrapper): Promise<ModuleInterface
   );
 }
 
-//** TODO: REUSE FUNCTIONS FROM ROLLBACK PR */
-
+//** TODO: REUSE FUNCTIONS FROM ROLLBACK PR ? */
+/** @internal */
 async function getQueries(
   changeLogs: IasqlAuditLog[],
   mbt: { [key: string]: ModuleInterface },
   orm: TypeormWrapper,
 ): Promise<string[]> {
-  const inverseQueries: string[] = [];
+  const queries: string[] = [];
   let values: any[];
   for (const cl of changeLogs) {
-    let inverseQuery: string = '';
+    let query: string = '';
     switch (cl.changeType) {
       case AuditLogChangeType.INSERT:
         values = await Promise.all(
@@ -107,7 +108,7 @@ async function getQueries(
             .filter(([k, v]: [string, any]) => k !== 'id' && v !== null)
             .map(async ([k, v]: [string, any]) => await getValue(cl.tableName, k, v, mbt[cl.tableName], orm)),
         );
-        inverseQuery = `
+        query = `
           INSERT INTO ${cl.tableName} (${Object.keys(cl.change?.change ?? {})
           .filter((k: string) => k !== 'id' && cl.change?.change[k] !== null)
           .join(', ')})
@@ -115,7 +116,7 @@ async function getQueries(
         `;
         break;
       case AuditLogChangeType.DELETE:
-        inverseQuery = `
+        query = `
           DELETE FROM ${cl.tableName}
           WHERE ${Object.entries(cl.change?.original ?? {})
             .filter(([k, v]: [string, any]) => k !== 'id' && v !== null)
@@ -129,7 +130,7 @@ async function getQueries(
             async ([k, v]: [string, any]) => await getValue(cl.tableName, k, v, mbt[cl.tableName], orm),
           ),
         );
-        inverseQuery = `
+        query = `
           UPDATE ${cl.tableName}
           SET ${Object.entries(cl.change?.change ?? {})
             .map(([k, _]: [string, any], i) => `${k} = ${values[i]}`)
@@ -144,17 +145,18 @@ async function getQueries(
       default:
         break;
     }
-    if (inverseQuery) inverseQueries.push(inverseQuery);
+    if (query) queries.push(query);
   }
-  return inverseQueries;
+  return queries;
 }
-
+/** @internal */
 function getCondition(k: string, v: any): string {
   if (typeof v === 'string') return `${k} = '${v}'`;
   if (v && typeof v === 'object') return `${k}::jsonb = '${JSON.stringify(v)}'::jsonb`;
   return `${k} = ${v}`;
 }
 
+/** @internal */
 async function getValue(
   tableName: string,
   k: string,
@@ -164,21 +166,58 @@ async function getValue(
 ): Promise<string> {
   if (v === undefined) return `${null}`;
   if (typeof v === 'string') return `'${v}'`;
-  if (v && typeof v === 'object' && Array.isArray(v)) {
-    const mappers = Object.values(mod).filter(val => val instanceof MapperBase);
-    for (const m of mappers) {
-      const metadata = await orm.getEntityMetadata((m as MapperBase<any>).entity);
-      if (
-        metadata.tableName === tableName &&
-        metadata.ownerColumns
-          .filter(oc => oc.isArray)
-          .map(oc => oc.databaseName)
-          .includes(k)
-      ) {
-        return `'{${v.join(',')}}'`;
-      }
+  if (v && typeof v === 'object' && !Array.isArray(v)) return `'${JSON.stringify(v)}'`;
+
+  const mappers = Object.values(mod).filter(val => val instanceof MapperBase);
+  let tableMetadata, tableEntity;
+  for (const m of mappers) {
+    tableEntity = (m as MapperBase<any>).entity;
+    const metadata = await orm.getEntityMetadata(tableEntity);
+    if (metadata.tableName === tableName) {
+      tableMetadata = metadata;
+      break;
     }
   }
-  if (v && typeof v === 'object') return `'${JSON.stringify(v)}'`;
+
+  if (
+    v &&
+    typeof v === 'object' &&
+    Array.isArray(v) &&
+    tableMetadata?.ownColumns
+      .filter(oc => oc.isArray)
+      .map(oc => oc.databaseName)
+      .includes(k)
+  ) {
+    return `'{${v.join(',')}}'`;
+  }
+
+  if (v && typeof v === 'number') {
+    const relations = tableMetadata?.ownColumns
+      .filter(
+        oc =>
+          oc.databaseName === k &&
+          oc.referencedColumn?.databaseName === 'id' &&
+          !!oc.relationMetadata?.isEager,
+      )
+      .map(oc => ({
+        referencedDatabaseName: oc.referencedColumn?.databaseName,
+        metadata: oc.relationMetadata,
+      }));
+    const relation = relations?.pop();
+    const targetEntityMetadata = relation?.metadata?.inverseEntityMetadata;
+    const cloudColumns = getCloudId(tableEntity);
+    if (cloudColumns && !(cloudColumns instanceof Error)) {
+      const ccVal = await orm.findOne(targetEntityMetadata?.target ?? '', { where: { id: v } });
+      return `(SELECT ${relation?.referencedDatabaseName} FROM ${
+        targetEntityMetadata?.tableName
+      } WHERE ${cloudColumns.map(
+        (cc, i) =>
+          `${cc} = ${ccVal && ccVal[cc] !== undefined ? ccVal[cc] : '<unknown value>'} ${
+            i === cloudColumns.length - 1 ? '' : 'AND'
+          }`,
+      )})`;
+    }
+  }
+
   return `${v}`;
 }
