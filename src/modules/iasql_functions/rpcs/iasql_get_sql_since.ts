@@ -1,4 +1,5 @@
 import { In, MoreThan } from 'typeorm';
+import { snakeCase } from 'typeorm/util/StringUtils';
 
 import { IasqlFunctions } from '..';
 import * as AllModules from '../../../modules';
@@ -15,6 +16,7 @@ import {
   RpcResponseObject,
 } from '../../interfaces';
 import { indexModsByTable } from '../iasql';
+import logger from '../../../services/logger';
 
 /**
  * Method that generates SQL from the audit log from a given point in time.
@@ -204,18 +206,27 @@ async function getValue(
         metadata: oc.relationMetadata,
       }));
     const relation = relations?.pop();
-    const targetEntityMetadata = relation?.metadata?.inverseEntityMetadata;
-    const cloudColumns = getCloudId(tableEntity);
-    if (cloudColumns && !(cloudColumns instanceof Error)) {
-      const ccVal = await orm.findOne(targetEntityMetadata?.target ?? '', { where: { id: v } });
-      return `(SELECT ${relation?.referencedDatabaseName} FROM ${
-        targetEntityMetadata?.tableName
-      } WHERE ${cloudColumns.map(
-        (cc, i) =>
-          `${cc} = ${ccVal && ccVal[cc] !== undefined ? ccVal[cc] : '<unknown value>'} ${
-            i === cloudColumns.length - 1 ? '' : 'AND'
-          }`,
-      )})`;
+    if (relation) {
+      const targetEntityMetadata = relation?.metadata?.inverseEntityMetadata;
+      const cloudColumns = getCloudId(tableEntity);
+      if (cloudColumns && !(cloudColumns instanceof Error)) {
+        let ccVal: any;
+        try {
+          ccVal =  await orm.findOne(relation?.metadata?.inverseEntityMetadata?.targetName ?? '', { where: { id: v } });
+        } catch (e: any) {
+          logger.warn(e.message ?? 'Error finding relation');
+          ccVal = null;
+        }
+        console.log(`+-+ ${relation?.metadata?.inverseEntityMetadata?.targetName}`);
+        console.log(`+-+ ${JSON.stringify(ccVal)}`);
+        // TODO: fix values type
+        return `(SELECT ${relation?.referencedDatabaseName} FROM ${
+          targetEntityMetadata?.tableName
+        } WHERE ${cloudColumns.map(
+          cc =>
+            `${snakeCase(cc)} = ${ccVal && ccVal[cc] !== undefined ? ccVal[cc] : '<unknown value>'}`,
+        ).join(' AND ')})`;
+      }
     }
   }
 
