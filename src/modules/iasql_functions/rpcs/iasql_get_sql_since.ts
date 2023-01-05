@@ -47,25 +47,8 @@ export class IasqlGetSqlSince extends RpcBase {
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
     const queries: string[] = [];
     try {
-      const whereClause: any = {
-        changeType: In([AuditLogChangeType.INSERT, AuditLogChangeType.UPDATE, AuditLogChangeType.DELETE]),
-      };
-      if (limitDate) {
-        const castRes = await ctx.orm.query(
-          `SELECT try_cast('${limitDate}', NULL::timestamp with time zone);`,
-        );
-        const castedValue = castRes?.pop()?.try_cast;
-        if (castedValue === null) throw new Error(`Cannot cast ${limitDate} to timestamp with time zone`);
-        whereClause.ts = MoreThan(new Date(castedValue));
-      }
-      const changeLogs = await ctx.orm.find(IasqlAuditLog, {
-        order: { ts: 'ASC' },
-        where: whereClause,
-      });
-      const installedModulesNames = (await ctx.orm.find(IasqlModule)).map((m: any) => m.name);
-      const installedModules: ModuleInterface[] = (Object.values(AllModules) as ModuleInterface[]).filter(
-        mod => installedModulesNames.includes(`${mod.name}@${mod.version}`),
-      );
+      const changeLogs = await getChangeLogs(limitDate, ctx.orm);
+      const installedModules = await getInstalledModules(ctx.orm);
       const modsIndexedByTable = indexModsByTable(installedModules);
       queries.push(...(await getQueries(changeLogs, modsIndexedByTable, ctx.orm)));
     } catch (e) {
@@ -79,6 +62,31 @@ export class IasqlGetSqlSince extends RpcBase {
     this.module = module;
     super.init();
   }
+}
+
+/** @internal */
+async function getChangeLogs(limitDate: string, orm: TypeormWrapper): Promise<IasqlAuditLog[]> {
+  const whereClause: any = {
+    changeType: In([AuditLogChangeType.INSERT, AuditLogChangeType.UPDATE, AuditLogChangeType.DELETE]),
+  };
+  if (limitDate) {
+    const castRes = await orm.query(`SELECT try_cast('${limitDate}', NULL::timestamp with time zone);`);
+    const castedValue = castRes?.pop()?.try_cast;
+    if (castedValue === null) throw new Error(`Cannot cast ${limitDate} to timestamp with time zone`);
+    whereClause.ts = MoreThan(new Date(castedValue));
+  }
+  return orm.find(IasqlAuditLog, {
+    order: { ts: 'ASC' },
+    where: whereClause,
+  });
+}
+
+/** @internal */
+async function getInstalledModules(orm: TypeormWrapper): Promise<ModuleInterface[]> {
+  const installedModulesNames = (await orm.find(IasqlModule)).map((m: any) => m.name);
+  return (Object.values(AllModules) as ModuleInterface[]).filter(mod =>
+    installedModulesNames.includes(`${mod.name}@${mod.version}`),
+  );
 }
 
 //** TODO: REUSE FUNCTIONS FROM ROLLBACK PR */
