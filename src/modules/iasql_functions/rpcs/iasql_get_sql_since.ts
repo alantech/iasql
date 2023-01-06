@@ -17,6 +17,7 @@ import {
 } from '../../interfaces';
 import { indexModsByTable } from '../iasql';
 import logger from '../../../services/logger';
+import { RelationMetadata } from 'typeorm/metadata/RelationMetadata';
 
 /**
  * Method that generates SQL from the audit log from a given point in time.
@@ -108,7 +109,7 @@ async function getQueries(
         values = await Promise.all(
           Object.entries(cl.change?.change ?? {})
             .filter(([k, v]: [string, any]) => k !== 'id' && v !== null)
-            .map(async ([k, v]: [string, any]) => await getValue(cl.tableName, k, v, mbt[cl.tableName], orm)),
+            .map(async ([k, v]: [string, any]) => await getValue(cl.tableName, k, v, mbt, orm)),
         );
         query = `
           INSERT INTO ${cl.tableName} (${Object.keys(cl.change?.change ?? {})
@@ -129,7 +130,7 @@ async function getQueries(
       case AuditLogChangeType.UPDATE:
         values = await Promise.all(
           Object.entries(cl.change?.change ?? {}).map(
-            async ([k, v]: [string, any]) => await getValue(cl.tableName, k, v, mbt[cl.tableName], orm),
+            async ([k, v]: [string, any]) => await getValue(cl.tableName, k, v, mbt, orm),
           ),
         );
         query = `
@@ -163,14 +164,14 @@ async function getValue(
   tableName: string,
   k: string,
   v: any,
-  mod: ModuleInterface,
+  mbt: { [key: string]: ModuleInterface },
   orm: TypeormWrapper,
 ): Promise<string> {
   if (v === undefined) return `${null}`;
   if (typeof v === 'string') return `'${v}'`;
   if (v && typeof v === 'object' && !Array.isArray(v)) return `'${JSON.stringify(v)}'`;
 
-  const mappers = Object.values(mod).filter(val => val instanceof MapperBase);
+  const mappers = Object.values(mbt[tableName]).filter(val => val instanceof MapperBase);
   let tableMetadata, tableEntity;
   for (const m of mappers) {
     tableEntity = (m as MapperBase<any>).entity;
@@ -194,41 +195,49 @@ async function getValue(
   }
 
   if (v && typeof v === 'number') {
-    const relations = tableMetadata?.ownColumns
+    const relationsMetadata = tableMetadata?.ownColumns
       .filter(
         oc =>
           oc.databaseName === k &&
           oc.referencedColumn?.databaseName === 'id' &&
           !!oc.relationMetadata?.isEager,
       )
-      .map(oc => ({
-        referencedDatabaseName: oc.referencedColumn?.databaseName,
-        metadata: oc.relationMetadata,
-      }));
-    const relation = relations?.pop();
-    if (relation) {
-      const targetEntityMetadata = relation?.metadata?.inverseEntityMetadata;
-      const cloudColumns = getCloudId(tableEntity);
-      if (cloudColumns && !(cloudColumns instanceof Error)) {
-        let ccVal: any;
-        try {
-          ccVal =  await orm.findOne(relation?.metadata?.inverseEntityMetadata?.targetName ?? '', { where: { id: v } });
-        } catch (e: any) {
-          logger.warn(e.message ?? 'Error finding relation');
-          ccVal = null;
-        }
-        console.log(`+-+ ${relation?.metadata?.inverseEntityMetadata?.targetName}`);
-        console.log(`+-+ ${JSON.stringify(ccVal)}`);
-        // TODO: fix values type
-        return `(SELECT ${relation?.referencedDatabaseName} FROM ${
-          targetEntityMetadata?.tableName
-        } WHERE ${cloudColumns.map(
-          cc =>
-            `${snakeCase(cc)} = ${ccVal && ccVal[cc] !== undefined ? ccVal[cc] : '<unknown value>'}`,
-        ).join(' AND ')})`;
-      }
+      .map(oc => oc.relationMetadata);
+    const relationMetadata = relationsMetadata?.pop();
+    if (relationMetadata) {
+      const subQuery = await getValueSubQuery(v, relationMetadata, orm, mbt);
+      if (subQuery) return subQuery;
     }
   }
 
   return `${v}`;
+}
+
+async function getValueSubQuery(id: number, relationMetadata: RelationMetadata, orm: TypeormWrapper, 
+  mbt: { [key: string]: ModuleInterface },
+  
+  ): Promise<string | undefined> {
+  const targetEntityMetadata = relationMetadata.inverseEntityMetadata;
+  const cloudColumns = getCloudId(relationMetadata.inverseEntityMetadata?.target);
+  console.log(`+-+ ${JSON.stringify(cloudColumns)}`);
+  if (cloudColumns && !(cloudColumns instanceof Error)) {
+    let ccVal: any;
+    console.log(`+-+ ${relationMetadata.inverseEntityMetadata?.targetName}`);
+    try {
+      ccVal =  await orm.findOne(relationMetadata.inverseEntityMetadata?.targetName ?? '', { where: { id } });
+    } catch (e: any) {
+      logger.warn(e.message ?? 'Error finding relation');
+      ccVal = null;
+    }
+    console.log(`+-+ ${JSON.stringify(ccVal)}`);
+    const values = await Promise.all(
+      cloudColumns.map(async (k: string) => await getValue(relationMetadata.inverseEntityMetadata.tableName, k, ccVal[k], mbt, orm)),
+    );
+    return `(SELECT id FROM ${
+      targetEntityMetadata?.tableName
+    } WHERE ${cloudColumns.map(
+      (cc, i) =>
+        `${snakeCase(cc)} = ${values[i] !== undefined ? values[i] : '<unknown value>'}`,
+    ).join(' AND ')})`;
+  }
 }
