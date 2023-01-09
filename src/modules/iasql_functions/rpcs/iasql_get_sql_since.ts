@@ -193,6 +193,36 @@ async function getValue(
         metadata = entityMetadata.ownRelations.find(or => or.joinTableName === tableName);
         break;
       }
+      if (
+        entityMetadata.ownRelations
+          .filter(or => !!or.joinTableName)
+          .map(or => or.joinTableName)
+          .includes(tableName)
+      ) {
+        console.log(`+-+ JOIN TABLE ${tableName} ENTITY NAME ${entityMetadata.name}`);
+        metadata = entityMetadata.ownRelations.find(or => or.joinTableName === tableName);
+        break;
+      }
+    }
+  }
+
+  // todo: add explanation for this second loop
+  if (!metadata) {
+    for (const m of mappers) {
+      const tableEntity = (m as MapperBase<any>).entity;
+      const entityMetadata = await orm.getEntityMetadata(tableEntity);
+      if (
+        entityMetadata.ownRelations
+          .filter(or => !!or.inverseEntityMetadata.tableName)
+          .map(or => or.inverseEntityMetadata.tableName)
+          .includes(tableName)
+      ) {
+        metadata = entityMetadata.ownRelations.find(
+          or => or.inverseEntityMetadata.tableName === tableName,
+        )?.inverseEntityMetadata;
+        console.log(`+-+ entity metadata found ${metadata?.name}`);
+        break;
+      }
     }
   }
 
@@ -216,10 +246,22 @@ async function getValue(
         const subQuery = await getValueSubQuery(v, inverseRelationMetadata.inverseEntityMetadata, orm, mbt);
         return subQuery;
       }
-      console.log(`+-+ no relation found for key = ${k}`);
+      console.log(`+-+ no relation relation found for key = ${k}`);
     } else {
       relationsMetadata = metadata?.ownColumns
-        .filter(oc => oc.databaseName === k && oc.referencedColumn?.databaseName === 'id')
+        .filter(oc => {
+          console.log(`+-+ k = ${k}`);
+          console.log(`+-+ oc.databaseName = ${oc.databaseName}`);
+          console.log(`+-+ oc.referencedColumn?.databaseName = ${oc.referencedColumn?.databaseName}`);
+          console.log(
+            `+-+ filter condition = ${oc.databaseName === k && oc.referencedColumn?.databaseName === 'id'}`,
+          );
+          console.log(
+            `+-+ relation metadata inverse entity = ${oc.relationMetadata?.inverseEntityMetadata.name}`,
+          );
+          console.log(`+-+ relation metadata entity = ${oc.relationMetadata?.entityMetadata.name}`);
+          return oc.databaseName === k && oc.referencedColumn?.databaseName === 'id';
+        })
         .map(oc => oc.relationMetadata);
       const relationMetadata = relationsMetadata?.pop();
       if (relationMetadata) {
