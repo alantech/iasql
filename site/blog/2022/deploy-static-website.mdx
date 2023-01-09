@@ -5,7 +5,7 @@ date: 2022-12-21
 unlisted: true
 authors: [mtp1376]
 ---
-Did you know you can deploy a static website without leaving your SQL REPL? In this post we'll show you how to leverage IaSQL's capabilities to simply deploy a static website from your Github repository to AWS using only SQL commands.
+Did you know you can deploy a static website without leaving your SQL REPL? In this post we'll show you how to leverage IaSQL's capabilities to simply deploy a static website from your GitHub repository to AWS using only SQL commands.
 
 ## Overview
 First, we will create a S3 bucket which will hold our static files. Then we'll enable S3 static website hosting to be able to access our website using a S3 endpoint. We'll also need to enable public access to our S3 files. After that we will create a new CloudFront distribution because S3 static website hosting doesn't support HTTPS, and we're done. Let's dive in to see how IaSQL can deploy a static website using simple SQL commands.
@@ -16,7 +16,7 @@ To be able to work with S3, we should first install corresponding IaSQL module.
 select iasql_install('aws_s3');
 ```
 
-Now that we have access to `aws_s3` provided tables and RPCs, let's deploy our static website. To do so, first we need to create a S3 bucket.
+Installing a module gives us ability to use tables and RPCs provided by it. `aws_s3` module gives us ability to manage a S3 bucket, S3 static website hosting and other related stuff. So let's create a S3 bucket first.
 ```sql TheButton[Create a S3 bucket]="Create a S3 Bucket"
 SELECT iasql_begin();
 INSERT INTO bucket (name, policy_document, region) VALUES ('<bucket-name>', '{
@@ -46,7 +46,7 @@ SELECT * FROM s3_upload_object('<bucket-name>', 'hello.txt', 'Hello IaSQL!', 'te
 This is going to upload a file named `hello.txt` in our bucket whose content is `Hello IaSQL!`.
 
 :::note
-You can read the code for [`s3_upload_object` RPC](https://github.com/iasql/iasql-engine/blob/c70f068c7520baf00cea9ddd3a76b8c6dbd2b23b/src/modules/aws_s3/rpcs/s3_upload_object.ts#L27-L33) as well as all other IaSQL modules and RPCs in [our Github repository](https://github.com/iasql/iasql-engine/) to see how they work.
+You can read the code for [`s3_upload_object` RPC](https://github.com/iasql/iasql-engine/blob/c70f068c7520baf00cea9ddd3a76b8c6dbd2b23b/src/modules/aws_s3/rpcs/s3_upload_object.ts#L27-L33) as well as all other IaSQL modules and RPCs in [our GitHub repository](https://github.com/iasql/iasql-engine/) to see how they work.
 :::
 
 Let's see if we can access our file using the S3 bucket URL. It should be as follows:
@@ -56,7 +56,14 @@ https://<bucket-name>.s3.amazonaws.com/hello.txt
 But we're unable to access the file directly because S3 blocks the public access by default.
 <img src="/img/s3-access-denied.png" />
 
-So we need to enable public access to our bucket files in order to be able to directly access the files.
+## Make The Bucket Public
+
+So we need to enable public access to our bucket files in order to be able to directly access the files. We can use `public_access_block` table provided by `aws_s3` module to allow for public requests to reach our objects.
+
+:::note
+If you want to know which resources (via tables) an IaSQL module handles, you can visit our documentation page. It also provides a list and explanation of all the RPCs that are provided by a module. In our case we can visit [this link](https://iasql.com/docs/next/reference/sql/#aws_s3) to get a list of tables and RPCs available for `aws_s3` module.
+:::
+
 ```sql TheButton[Enable Public Access to S3 Bucket]="Enable Public Access to The Bucket"
 SELECT iasql_begin();
 INSERT INTO public_access_block (
@@ -73,6 +80,8 @@ https://<bucket-name>.s3.amazonaws.com/hello.txt
 ```
 <img src="/img/hello-iasql.png" />
 
+## Use S3 Static Website Hosting
+
 But simply serving the files doesn't mean we can host a static website. We need to enable [static website hosting](https://docs.aws.amazon.com/AmazonS3/latest/userguide/WebsiteHosting.html) for our bucket to be able to deploy a React codebase. So let's enable it.
 ```sql TheButton[Enable S3 Static Website Hosting]="Enable S3 Static Website Hosting"
 SELECT iasql_begin();
@@ -81,7 +90,12 @@ INSERT INTO bucket_website (bucket_name, index_document) VALUES (
 );
 SELECT iasql_commit();
 ```
-So we'll use this functionality to route all the requests to `index.html` file. This way we can deploy a sample React application and serve it through S3.
+So we'll use this functionality to route all the requests to `index.html` file. This way we can deploy a sample React application and serve it through S3. To get the link for our S3 bucket's static website, we can use `get_bucket_website_endpoint` function.
+```sql
+SELECT * FROM get_bucket_website_endpoint('<bucket-name>');
+```
+
+## Build The Project And Sync To S3
 
 Now that everything is set, we just need to build our React app and deploy it to S3. We have already pushed a sample app to this repository:
 ```
@@ -90,7 +104,7 @@ https://github.com/iasql/sample-react-app
 But you can use whatever codebase you'd like by changing the URLs so that they point to your own codebase.
 
 Now it's the time to create a CodeBuild project that does the following:
-- Pull the codebase from the Github repository
+- Pull the codebase from the GitHub repository
 - Build the app
 - Copy the resulting files (`build/*`) to the S3 bucket
 
@@ -99,7 +113,18 @@ To do so, we can run the following SQL command:
 SELECT iasql_begin();
 -- create the needed role for codebuild
 INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns) VALUES (
-    'deploy-static-website-role', '{"Statement":[{"Effect":"Allow","Principal":{"Service":"codebuild.amazonaws.com"},"Action":"sts:AssumeRole"}],"Version":"2012-10-17"}', array['arn:aws:iam::aws:policy/AWSCodeBuildAdminAccess', 'arn:aws:iam::aws:policy/CloudWatchLogsFullAccess', 'arn:aws:iam::aws:policy/AmazonS3FullAccess']
+    'deploy-static-website-role', '{
+    "Statement": [
+      {
+        "Effect": "Allow",
+        "Principal": {
+          "Service": "codebuild.amazonaws.com"
+        },
+        "Action": "sts:AssumeRole"
+      }
+    ],
+    "Version": "2012-10-17"
+  }', array['arn:aws:iam::aws:policy/AWSCodeBuildAdminAccess', 'arn:aws:iam::aws:policy/CloudWatchLogsFullAccess', 'arn:aws:iam::aws:policy/AmazonS3FullAccess']
 );
 -- create the codebuild project
 INSERT INTO codebuild_project (project_name, build_spec, source_type, privileged_mode, service_role_name, region) VALUES (
@@ -126,8 +151,43 @@ The above SQL command first creates a role that is needed for CodeBuild to opera
 ```sql TheButton[Trigger The CodeBuild Project]="Trigger The CodeBuild Project"
 SELECT * FROM start_build('deploy-static-website', 'us-east-1');
 ```
-This will trigger the CodeBuild project to start. After a while we should be able to see the files appearing in our S3 bucket. We can access our React app using the endpoint for the S3 static website hosting. To get the endpoint, we can use `get_bucket_website_endpoint` helper function.
+This will trigger the CodeBuild project to start. After a while we should be able to see the files appearing in our S3 bucket. We can access our React app using the endpoint for the S3 static website hosting. As we already mentioned, to get the endpoint we can use `get_bucket_website_endpoint` helper function.
 ```sql TheButton[Get The Bucket Website Endpoint]="Get The Bucket Website Endpoint"
 SELECT get_bucket_website_endpoint('<bucket-name>');
 ```
 By visiting the link returned by the above function, you can see our sample app has been deployed. The problem is that S3 static website hosting does not support HTTPS, and therefore we need to use a CloudFront distribution in order to have HTTPS connection.
+
+## Create a CloudFront Distribution
+Serving files in a bucket to the public using pure S3 isn't a good idea. In our case because the S3 static website hosting does not provide an HTTPS endpoint, but in most cases because the [data transfer rates for S3](https://aws.amazon.com/s3/pricing/) aren't cheap and can grow out of control. Also, the speed in which the users can access to the bucket objects will increase if you use a CDN because they'll be delivered to the users from the nearest edge server.
+
+With the above in mind, let's create a CloudFront distribution for our S3 bucket. But first, we need to install the `aws_cloudfront` module to be able to leverage its abilities.
+```sql TheButton[]=""
+SELECT iasql_install('aws_cloudfront');
+```
+Then create the distribution:
+```sql TheButton[Create a CloudFront Distribution]="Create a Distribution For Bucket Website"
+SELECT iasql_begin();
+INSERT INTO distribution (caller_reference, origins, default_cache_behavior)
+VALUES ('my-website', '[
+  {
+    "DomainName": "' || (SELECT get_bucket_website_endpoint('<bucket-name>')) || '",
+    "Id": "my-website-origin",
+    "CustomOriginConfig": {
+      "HTTPPort": 80,
+      "HTTPSPort": 443,
+      "OriginProtocolPolicy": "http-only"
+    }
+  }
+]', '{
+  "TargetOriginId": "my-website-origin",
+  "ViewerProtocolPolicy": "allow-all",
+  "CachePolicyId": "658327ea-f89d-4fab-a63d-7e88639e58f6"
+}');
+SELECT iasql_commit();
+```
+
+We can access our website through the CloudFront distribution domain name. To get it, we can simply run the following query:
+```sql TheButton[Get the Distribution Domain Name]="Get the Distribution Domain Name"
+SELECT domain_name FROM distribution WHERE caller_reference = 'my-website';
+```
+It supports HTTPS, it's fast, it's cheaper than directly serving on S3, and it can be easily connected to a Route53 domain.

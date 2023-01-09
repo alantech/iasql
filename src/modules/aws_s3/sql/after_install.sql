@@ -52,8 +52,7 @@ EXECUTE
   FUNCTION block_s3_object_primary_key_update ();
 
 CREATE
-    OR REPLACE FUNCTION get_bucket_website_endpoint(bucket_name TEXT) RETURNS TEXT AS
-$$
+OR REPLACE FUNCTION get_bucket_website_endpoint (bucket_name TEXT) RETURNS TEXT AS $$
 DECLARE
     _region text;
 BEGIN

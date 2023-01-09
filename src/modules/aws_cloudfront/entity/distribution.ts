@@ -75,6 +75,15 @@ export class Distribution {
 
   /**
    * @public
+   * Domain name assigned to the distribution by CloudFront
+   */
+  @Column({
+    nullable: true,
+  })
+  domainName?: string;
+
+  /**
+   * @public
    * An unique value to identify the CloudFront distribution
    */
   @Column({
