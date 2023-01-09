@@ -472,7 +472,7 @@ describe('AwsCodepipeline Integration Testing', () => {
     query(
       `
     INSERT INTO pipeline_declaration (name, service_role_name, stages, artifact_store)
-    VALUES ('${prefix}-${dbAlias}', '${codePipelineRoleName}', '${buggyStages}', '${artifactStore}');
+    VALUES ('${prefix}-buggy-${dbAlias}', '${codePipelineRoleName}', '${buggyStages}', '${artifactStore}');
   `,
       undefined,
       true,
@@ -487,7 +487,7 @@ describe('AwsCodepipeline Integration Testing', () => {
     query(
       `
     SELECT * FROM pipeline_declaration
-    WHERE name = '${prefix}-${dbAlias}';
+    WHERE name = '${prefix}-buggy-${dbAlias}';
   `,
       (res: any[]) => expect(res.length).toBe(1),
     ),
