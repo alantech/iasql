@@ -547,7 +547,7 @@ describe('AwsCodepipeline Integration Testing', () => {
     query(
       `
     DELETE FROM pipeline_declaration
-    WHERE name = '${prefix}-${dbAlias}';
+    WHERE name = '${prefix}-${dbAlias}' OR name = '${prefix}-buggy-${dbAlias}';
   `,
       undefined,
       true,

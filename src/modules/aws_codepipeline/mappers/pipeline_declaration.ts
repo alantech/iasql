@@ -110,13 +110,17 @@ export class PipelineDeclarationMapper extends MapperBase<PipelineDeclaration> {
         let pipelinePending = true;
         try {
           const data = await cl.getPipelineState(cmd);
+          console.log(data);
           if (data.stageStates && data.stageStates.length > 0) {
             for (const state of data.stageStates) {
               const latest = state.latestExecution;
+              console.log('latest is');
+              console.log(latest);
               if (
                 latest?.status &&
-                ['Cancelled', 'Stopoped', 'Succeeded', 'Superseeded', 'Failed'].includes(latest.status)
+                ['Cancelled', 'Stopped', 'Succeeded', 'Superseeded', 'Failed'].includes(latest.status)
               ) {
+                console.log('pipeline finished');
                 pipelinePending = false;
                 break;
               }
