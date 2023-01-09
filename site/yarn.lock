@@ -3422,9 +3422,10 @@ dns-packet@^5.2.2:
   dependencies:
     "@leichtgewicht/ip-codec" "^2.0.1"
 
-"docusaurus-plugin-iasql@https://github.com/iasql/docusaurus-plugin-iasql#v1.0.0":
-  version "0.1.1"
-  resolved "https://github.com/iasql/docusaurus-plugin-iasql#6cc9ce5389072ac175f3d25f3f4cc99939943a70"
+"docusaurus-plugin-iasql@https://github.com/iasql/docusaurus-plugin-iasql#v1.0.1":
+  version "1.0.1"
+  uid "7d64d3128c52ce744682119686871a57d4c19e45"
+  resolved "https://github.com/iasql/docusaurus-plugin-iasql#7d64d3128c52ce744682119686871a57d4c19e45"
   dependencies:
     "@supercharge/strings" "^1.29.1"
     fs "^0.0.1-security"
