@@ -101,7 +101,6 @@ async function getQueries(
 ): Promise<string[]> {
   const queries: string[] = [];
   for (const cl of changeLogs) {
-    console.log(`+-+ GETTING QUERY FOR ${cl.tableName}`);
     let query: string = '';
     switch (cl.changeType) {
       case AuditLogChangeType.INSERT:
@@ -189,7 +188,6 @@ async function getValue(
           .map(or => or.joinTableName)
           .includes(tableName)
       ) {
-        console.log(`+-+ JOIN TABLE ${tableName} ENTITY NAME ${entityMetadata.name}`);
         metadata = entityMetadata.ownRelations.find(or => or.joinTableName === tableName);
         break;
       }
@@ -199,7 +197,6 @@ async function getValue(
           .map(or => or.joinTableName)
           .includes(tableName)
       ) {
-        console.log(`+-+ JOIN TABLE ${tableName} ENTITY NAME ${entityMetadata.name}`);
         metadata = entityMetadata.ownRelations.find(or => or.joinTableName === tableName);
         break;
       }
@@ -220,14 +217,12 @@ async function getValue(
         metadata = entityMetadata.ownRelations.find(
           or => or.inverseEntityMetadata.tableName === tableName,
         )?.inverseEntityMetadata;
-        console.log(`+-+ entity metadata found ${metadata?.name}`);
         break;
       }
     }
   }
 
   if (v && typeof v === 'number') {
-    console.log(`+-+ checking integer value for key ${k}`);
     let relationsMetadata;
     if (metadata && metadata instanceof RelationMetadata) {
       relationsMetadata = metadata.joinColumns
@@ -246,29 +241,15 @@ async function getValue(
         const subQuery = await getValueSubQuery(v, inverseRelationMetadata.inverseEntityMetadata, orm, mbt);
         return subQuery;
       }
-      console.log(`+-+ no relation relation found for key = ${k}`);
     } else {
       relationsMetadata = metadata?.ownColumns
-        .filter(oc => {
-          console.log(`+-+ k = ${k}`);
-          console.log(`+-+ oc.databaseName = ${oc.databaseName}`);
-          console.log(`+-+ oc.referencedColumn?.databaseName = ${oc.referencedColumn?.databaseName}`);
-          console.log(
-            `+-+ filter condition = ${oc.databaseName === k && oc.referencedColumn?.databaseName === 'id'}`,
-          );
-          console.log(
-            `+-+ relation metadata inverse entity = ${oc.relationMetadata?.inverseEntityMetadata.name}`,
-          );
-          console.log(`+-+ relation metadata entity = ${oc.relationMetadata?.entityMetadata.name}`);
-          return oc.databaseName === k && oc.referencedColumn?.databaseName === 'id';
-        })
+        .filter(oc => oc.databaseName === k && oc.referencedColumn?.databaseName === 'id')
         .map(oc => oc.relationMetadata);
       const relationMetadata = relationsMetadata?.pop();
       if (relationMetadata) {
         const subQuery = await getValueSubQuery(v, relationMetadata.inverseEntityMetadata, orm, mbt);
         return subQuery;
       }
-      console.log(`+-+ no relation found for key = ${k}`);
     }
   }
 
@@ -290,17 +271,14 @@ async function getValueSubQuery(
   mbt: { [key: string]: ModuleInterface },
 ): Promise<string> {
   const cloudColumns = getCloudId(entityMetadata?.target);
-  console.log(`+-+ cloud columns for entity ${entityMetadata?.targetName} = ${JSON.stringify(cloudColumns)}`);
   if (cloudColumns && !(cloudColumns instanceof Error)) {
     let ccVal: any;
-    console.log(`+-+ ${entityMetadata?.targetName}`);
     try {
       ccVal = await orm.findOne(entityMetadata?.targetName ?? '', { where: { id } });
     } catch (e: any) {
       logger.warn(e.message ?? 'Error finding relation');
       ccVal = null;
     }
-    console.log(`+-+ ${JSON.stringify(ccVal)}`);
     const values = await Promise.all(
       cloudColumns.map(async (k: string) => await getValue(entityMetadata.tableName, k, ccVal[k], mbt, orm)),
     );
