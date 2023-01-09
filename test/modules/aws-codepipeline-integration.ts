@@ -157,6 +157,56 @@ const stages = JSON.stringify([
     ],
   },
 ]);
+const buggyStages = JSON.stringify([
+  {
+    name: 'Source',
+    actions: [
+      {
+        name: 'SourceAction',
+        actionTypeId: {
+          category: 'Source',
+          owner: 'ThirdParty',
+          version: '1',
+          provider: 'GitHub',
+        },
+        configuration: {
+          Owner: 'iasql',
+          Repo: 'iasql-codedeploy-nonexisting-example',
+          Branch: 'main',
+          OAuthToken: `${process.env.GH_PAT}`,
+        },
+        outputArtifacts: [
+          {
+            name: 'Source',
+          },
+        ],
+      },
+    ],
+  },
+  {
+    name: 'Deploy',
+    actions: [
+      {
+        name: 'DeployApp',
+        actionTypeId: {
+          category: 'Deploy',
+          owner: 'AWS',
+          version: '1',
+          provider: 'CodeDeploy',
+        },
+        configuration: {
+          ApplicationName: `${prefix}${dbAlias}applicationForDeployment`,
+          DeploymentGroupName: deploymentGroupName,
+        },
+        inputArtifacts: [
+          {
+            name: 'Source',
+          },
+        ],
+      },
+    ],
+  },
+]);
 
 const codedeployRolePolicy = JSON.stringify({
   Version: '2012-10-17',
@@ -414,6 +464,34 @@ describe('AwsCodepipeline Integration Testing', () => {
   );
 
   it('applies the deployment group creation', commit());
+
+  it('starts a transaction', begin());
+
+  it(
+    'adds a new buggy pipeline',
+    query(
+      `
+    INSERT INTO pipeline_declaration (name, service_role_name, stages, artifact_store)
+    VALUES ('${prefix}-${dbAlias}', '${codePipelineRoleName}', '${buggyStages}', '${artifactStore}');
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it('apply buggy pipeline creation', commit());
+
+  it(
+    'check pipeline is created',
+    query(
+      `
+    SELECT * FROM pipeline_declaration
+    WHERE name = '${prefix}-${dbAlias}';
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
 
   it('starts a transaction', begin());
 
