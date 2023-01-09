@@ -78,7 +78,7 @@
     "@aws-sdk/client-codepipeline": "^3.241.0",
     "@aws-sdk/client-dynamodb": "^3.241.0",
     "@aws-sdk/client-ec2": "^3.235.0",
-    "@aws-sdk/client-ecr": "^3.181.0",
+    "@aws-sdk/client-ecr": "^3.245.0",
     "@aws-sdk/client-ecr-public": "^3.168.0",
     "@aws-sdk/client-ecs": "^3.204.0",
     "@aws-sdk/client-elastic-load-balancing-v2": "^3.209.0",
