@@ -171,8 +171,56 @@ async function getValue(
   orm: TypeormWrapper,
 ): Promise<string> {
   if (v === undefined || typeof v === 'string' || typeof v === 'object') {
-    return getVal(v);
+    return getPrimitiveValue(v);
   }
+  const metadata = await getMetadata(tableName, mbt, orm);
+  if (v && typeof v === 'number' && metadata) {
+    if (metadata instanceof EntityMetadata) {
+      const keyRelationMetadata = metadata.ownColumns
+        .filter(oc => oc.databaseName === k && oc.referencedColumn?.databaseName === 'id')
+        .map(oc => oc.relationMetadata)
+        ?.pop();
+      if (keyRelationMetadata) {
+        return await getIdSubQuery(v, keyRelationMetadata.inverseEntityMetadata, orm, mbt);
+      }
+    }
+    // Join table case
+    if (metadata instanceof RelationMetadata) {
+      const keyRelationMetadata = metadata.joinColumns
+        .filter(jc => jc.databaseName === k && jc.referencedColumn?.databaseName === 'id')
+        .map(jc => jc.relationMetadata)
+        ?.pop();
+      if (keyRelationMetadata) {
+        return await getIdSubQuery(v, keyRelationMetadata.entityMetadata, orm, mbt);
+      }
+      const keyInverseRelationMetadata = metadata.inverseJoinColumns
+        .filter(jc => jc.databaseName === k && jc.referencedColumn?.databaseName === 'id')
+        .map(jc => jc.relationMetadata)
+        ?.pop();
+      if (keyInverseRelationMetadata) {
+        return await getIdSubQuery(v, keyInverseRelationMetadata.inverseEntityMetadata, orm, mbt);
+      }
+    }
+  }
+  return `${v}`;
+}
+
+/** @internal */
+function getPrimitiveValue(v: any): string {
+  if (v === undefined) return `${null}`;
+  if (typeof v === 'string') return `'${v}'`;
+  if (v && typeof v === 'object' && !Array.isArray(v)) return `'${JSON.stringify(v)}'`;
+  if (v && typeof v === 'object' && Array.isArray(v))
+    return `'{${v.map(o => getPrimitiveValue(o)).join(',')}}'`;
+  return `${v}`;
+}
+
+/** @internal */
+async function getMetadata(
+  tableName: string,
+  mbt: { [key: string]: ModuleInterface },
+  orm: TypeormWrapper,
+): Promise<EntityMetadata | RelationMetadata | undefined> {
   const mappers = Object.values(mbt[tableName] ?? {}).filter(val => val instanceof MapperBase);
   let metadata: EntityMetadata | RelationMetadata | undefined;
   for (const m of mappers) {
@@ -193,8 +241,8 @@ async function getValue(
       }
     }
   }
-
-  // todo: add explanation for this second loop
+  // If no metadata found, we need to do a second pass over the mappers because it could be the case of an
+  // Entity that does not have it's own mapper but it is managed by another Entity Mapper.
   if (!metadata) {
     for (const m of mappers) {
       const tableEntity = (m as MapperBase<any>).entity;
@@ -212,50 +260,11 @@ async function getValue(
       }
     }
   }
-
-  if (v && typeof v === 'number') {
-    let relationsMetadata;
-    if (metadata && metadata instanceof RelationMetadata) {
-      relationsMetadata = metadata.joinColumns
-        .filter(jc => jc.databaseName === k && jc.referencedColumn?.databaseName === 'id')
-        .map(jc => jc.relationMetadata);
-      const relationMetadata = relationsMetadata?.pop();
-      if (relationMetadata) {
-        const subQuery = await getValueSubQuery(v, relationMetadata.entityMetadata, orm, mbt);
-        return subQuery;
-      }
-      relationsMetadata = metadata.inverseJoinColumns
-        .filter(jc => jc.databaseName === k && jc.referencedColumn?.databaseName === 'id')
-        .map(jc => jc.relationMetadata);
-      const inverseRelationMetadata = relationsMetadata?.pop();
-      if (inverseRelationMetadata) {
-        const subQuery = await getValueSubQuery(v, inverseRelationMetadata.inverseEntityMetadata, orm, mbt);
-        return subQuery;
-      }
-    } else {
-      relationsMetadata = metadata?.ownColumns
-        .filter(oc => oc.databaseName === k && oc.referencedColumn?.databaseName === 'id')
-        .map(oc => oc.relationMetadata);
-      const relationMetadata = relationsMetadata?.pop();
-      if (relationMetadata) {
-        const subQuery = await getValueSubQuery(v, relationMetadata.inverseEntityMetadata, orm, mbt);
-        return subQuery;
-      }
-    }
-  }
-
-  return `${v}`;
+  return metadata;
 }
 
-function getVal(v: any): string {
-  if (v === undefined) return `${null}`;
-  if (typeof v === 'string') return `'${v}'`;
-  if (v && typeof v === 'object' && !Array.isArray(v)) return `'${JSON.stringify(v)}'`;
-  if (v && typeof v === 'object' && Array.isArray(v)) return `'{${v.map(o => getVal(o)).join(',')}}'`;
-  return `${v}`;
-}
-
-async function getValueSubQuery(
+/** @internal */
+async function getIdSubQuery(
   id: number,
   entityMetadata: EntityMetadata,
   orm: TypeormWrapper,
