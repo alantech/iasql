@@ -5,6 +5,8 @@ import {
   CodePipeline,
   CreatePipelineCommandInput,
   GetPipelineStateCommandInput,
+  paginateListActionExecutions,
+  paginateListPipelineExecutions,
   paginateListPipelines,
   PipelineDeclaration as AWSPipelineDeclaration,
   StageDeclaration as AWSStageDeclaration,
@@ -91,7 +93,6 @@ export class PipelineDeclarationMapper extends MapperBase<PipelineDeclaration> {
   );
 
   listPipelineDeclarations = paginateBuilder<CodePipeline>(paginateListPipelines, 'pipelines');
-
   deletePipelineDeclaration = crudBuilder2<CodePipeline, 'deletePipeline'>('deletePipeline', input => input);
 
   async waitForPipelineExecution(client: CodePipeline, name: string) {
@@ -110,22 +111,30 @@ export class PipelineDeclarationMapper extends MapperBase<PipelineDeclaration> {
         let pipelinePending = true;
         try {
           const data = await cl.getPipelineState(cmd);
-          console.log(data);
+          let succeededStates = 0;
           if (data.stageStates && data.stageStates.length > 0) {
             for (const state of data.stageStates) {
-              const latest = state.latestExecution;
-              console.log('latest is');
-              console.log(latest);
-              if (
-                latest?.status &&
-                ['Cancelled', 'Stopped', 'Succeeded', 'Superseeded', 'Failed'].includes(latest.status)
-              ) {
-                console.log('pipeline finished');
-                pipelinePending = false;
-                break;
+              // first we check if there is any failure
+              if (state && state.actionStates) {
+                for (const action of state.actionStates) {
+                  const latestStatus = action.latestExecution?.status;
+                  if (
+                    latestStatus &&
+                    ['Cancelled', 'Stopped', 'Superseeded', 'Failed'].includes(latestStatus)
+                  ) {
+                    // pipeline has failed, we can stop it
+                    pipelinePending = false;
+                    break;
+                  }
+                }
               }
+              // then we check if the stage completed successfully
+              if (state.latestExecution?.status === 'Succeeded') succeededStates++;
             }
           }
+          // all stages have succeeded, we are ok
+          if (succeededStates === data.stageStates?.length) pipelinePending = false;
+
           if (!pipelinePending) return { state: WaiterState.SUCCESS };
           else return { state: WaiterState.RETRY };
         } catch (e: any) {
