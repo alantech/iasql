@@ -132,23 +132,24 @@ async function getQueries(
         break;
       case AuditLogChangeType.UPDATE:
         const updatedValues = await Promise.all(
-          Object.entries(cl.change?.change ?? {}).map(
-            async ([k, v]: [string, any]) => await getValue(cl.tableName, k, v, mbt, orm),
-          ),
+          Object.entries(cl.change?.change ?? {})
+            .filter(([k, _]: [string, any]) => k !== 'id')
+            .map(async ([k, v]: [string, any]) => await getValue(cl.tableName, k, v, mbt, orm)),
         );
         const conditionValues = await Promise.all(
           Object.entries(cl.change?.original ?? {})
-            .filter(([k, _]: [string, any]) => k !== 'ami')
+            .filter(([k, _]: [string, any]) => k !== 'ami' && k !== 'id')
             .map(async ([k, v]: [string, any]) => await getValue(cl.tableName, k, v, mbt, orm)),
         );
         query = `
           UPDATE ${cl.tableName}
           SET ${Object.entries(cl.change?.change ?? {})
+            .filter(([k, _]: [string, any]) => k !== 'id')
             .map(([k, _]: [string, any], i) => `${k} = ${updatedValues[i]}`)
             .join(', ')}
           WHERE ${Object.entries(cl.change?.original ?? {})
             // We need to add an special case for AMIs since we know the revolve string can be used and it will not match with the actual AMI assigned
-            .filter(([k, _]: [string, any]) => k !== 'ami')
+            .filter(([k, _]: [string, any]) => k !== 'ami' && k !== 'id')
             .map(([k, _]: [string, any], i) => `${k} = ${conditionValues[i]}`)
             .join(' AND ')};
         `;
@@ -172,8 +173,7 @@ async function getValue(
   if (v === undefined || typeof v === 'string' || typeof v === 'object') {
     return getVal(v);
   }
-
-  const mappers = Object.values(mbt[tableName]).filter(val => val instanceof MapperBase);
+  const mappers = Object.values(mbt[tableName] ?? {}).filter(val => val instanceof MapperBase);
   let metadata: EntityMetadata | RelationMetadata | undefined;
   for (const m of mappers) {
     const tableEntity = (m as MapperBase<any>).entity;
@@ -182,15 +182,6 @@ async function getValue(
       metadata = entityMetadata;
       break;
     } else {
-      if (
-        entityMetadata.ownRelations
-          .filter(or => !!or.joinTableName)
-          .map(or => or.joinTableName)
-          .includes(tableName)
-      ) {
-        metadata = entityMetadata.ownRelations.find(or => or.joinTableName === tableName);
-        break;
-      }
       if (
         entityMetadata.ownRelations
           .filter(or => !!or.joinTableName)
