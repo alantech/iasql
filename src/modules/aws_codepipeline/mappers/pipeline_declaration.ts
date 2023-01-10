@@ -5,8 +5,6 @@ import {
   CodePipeline,
   CreatePipelineCommandInput,
   GetPipelineStateCommandInput,
-  paginateListActionExecutions,
-  paginateListPipelineExecutions,
   paginateListPipelines,
   PipelineDeclaration as AWSPipelineDeclaration,
   StageDeclaration as AWSStageDeclaration,
