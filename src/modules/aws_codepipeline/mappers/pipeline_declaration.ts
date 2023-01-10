@@ -110,36 +110,27 @@ export class PipelineDeclarationMapper extends MapperBase<PipelineDeclaration> {
         try {
           const data = await cl.getPipelineState(cmd);
           let succeededStates = 0;
-          console.log('succeeded is');
-          console.log(succeededStates);
           if (data.stageStates && data.stageStates.length > 0) {
             for (const state of data.stageStates) {
               // first we check if there is any failure
               if (state && state.actionStates) {
                 for (const action of state.actionStates) {
                   const latestStatus = action.latestExecution?.status;
-                  console.log('in action state');
-                  console.log(latestStatus);
                   if (
                     latestStatus &&
                     ['Cancelled', 'Stopped', 'Superseeded', 'Failed'].includes(latestStatus)
                   ) {
                     // pipeline has failed, we can stop it
-                    console.log('no pipeline');
                     pipelinePending = false;
                     break;
                   }
                 }
               }
               // then we check if the stage completed successfully
-              console.log('state is');
-              console.log(state.latestExecution?.status);
               if (state.latestExecution?.status === 'Succeeded') succeededStates++;
             }
           }
           // all stages have succeeded, we are ok
-          console.log('total states are');
-          console.log(succeededStates);
           if (succeededStates === data.stageStates?.length) pipelinePending = false;
 
           if (!pipelinePending) return { state: WaiterState.SUCCESS };
