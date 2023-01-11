@@ -118,6 +118,7 @@ jobs:
         with:
           max_attempts: 1
           retry_on: error
+          timeout_minutes: 30
           command: yarn coverage $(echo $COMMONS | jq -r '."${{matrix.common}}"')
         env:
           IASQL_ENV: test
@@ -146,6 +147,7 @@ jobs:
         with:
           max_attempts: 1
           retry_on: error
+          timeout_minutes: 40
           command: yarn coverage **/readonly/*
         env:
           IASQL_ENV: test
@@ -172,6 +174,7 @@ jobs:
         uses: nick-fields/retry@v2
         with:
           max_attempts: 1
+          timeout_minutes: 30
           retry_on: error
           command: ./test/upgrade/run-upgrade.sh
         env:
@@ -251,6 +254,7 @@ jobs:
         with:
           max_attempts: 1
           retry_on: error
+          timeout_minutes: 5
           command: |
             RESPONSE=$(curl -X POST -H "Content-Type: text/plain" -H "${SECRET_HEADER}" -d '1' https://fkk3xlyad5tobhmezx4onpvele0zyehu.lambda-url.us-east-2.on.aws/ 2>/dev/null)
             echo $RESPONSE
@@ -279,6 +283,7 @@ jobs:
         with:
           max_attempts: 1
           retry_on: error
+          timeout_minutes: 30
           command: |
             # Establish needed secrets
             export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
@@ -360,6 +365,7 @@ jobs:
         with:
           max_attempts: 1
           retry_on: error
+          timeout_minutes: 60
           command: |
             export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
             export AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
