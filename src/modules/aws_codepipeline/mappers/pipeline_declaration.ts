@@ -126,6 +126,7 @@ export class PipelineDeclarationMapper extends MapperBase<PipelineDeclaration> {
                   }
                 }
               }
+              if (!pipelinePending) break;
               // then we check if the stage completed successfully
               if (state.latestExecution?.status === 'Succeeded') succeededStates++;
             }
