@@ -119,12 +119,12 @@ jobs:
           max_attempts: 1
           retry_on: error
           command: yarn coverage $(echo $COMMONS | jq -r '."${{matrix.common}}"')
-          env:
-            IASQL_ENV: test
-            COMMONS: ${{ needs.setup-common-test.outputs['common-tests'] }}
-            AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID_TESTING }}
-            AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY_TESTING }}
-            A0_IASQL_API_TOKEN: ${{ secrets.A0_IASQL_API_TOKEN }}
+        env:
+          IASQL_ENV: test
+          COMMONS: ${{ needs.setup-common-test.outputs['common-tests'] }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID_TESTING }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY_TESTING }}
+          A0_IASQL_API_TOKEN: ${{ secrets.A0_IASQL_API_TOKEN }}
 
   readonly-test:
     runs-on: ubuntu-latest
@@ -147,11 +147,11 @@ jobs:
           max_attempts: 1
           retry_on: error
           command: yarn coverage **/readonly/*
-          env:
-            IASQL_ENV: test
-            AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID_READONLY_TESTING }}
-            AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY_READONLY_TESTING }}
-            A0_IASQL_API_TOKEN: ${{ secrets.A0_IASQL_API_TOKEN }}
+        env:
+          IASQL_ENV: test
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID_READONLY_TESTING }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY_READONLY_TESTING }}
+          A0_IASQL_API_TOKEN: ${{ secrets.A0_IASQL_API_TOKEN }}
 
   upgrade-test:
     runs-on: ubuntu-latest
@@ -174,11 +174,11 @@ jobs:
           max_attempts: 1
           retry_on: error
           command: ./test/upgrade/run-upgrade.sh
-          env:
-            IASQL_ENV: test
-            AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID_TESTING }}
-            AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY_TESTING }}
-            A0_IASQL_API_TOKEN: ${{ secrets.A0_IASQL_API_TOKEN }}
+        env:
+          IASQL_ENV: test
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID_TESTING }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY_TESTING }}
+          A0_IASQL_API_TOKEN: ${{ secrets.A0_IASQL_API_TOKEN }}
 
   setup-module-test:
     runs-on: ubuntu-latest
@@ -270,15 +270,15 @@ jobs:
       - name: Pre-clean Test Account
         id: pre-clean-test-account
         uses: nick-fields/retry@v2
+        env:
+          IASQL_ENV: ci
+          ACCOUNT_INDEX: ${{ steps['determine-test-account'].outputs['account_index'] }}
+          ACCESS_KEY_IDS: ${{ secrets.ACCESS_KEY_IDS }}
+          SECRET_ACCESS_KEYS: ${{ secrets.SECRET_ACCESS_KEYS }}
+          PSQL_CONN: postgres://postgres:test@localhost:5432/iasql
         with:
           max_attempts: 1
           retry_on: error
-          env:
-            IASQL_ENV: ci
-            ACCOUNT_INDEX: ${{ steps['determine-test-account'].outputs['account_index'] }}
-            ACCESS_KEY_IDS: ${{ secrets.ACCESS_KEY_IDS }}
-            SECRET_ACCESS_KEYS: ${{ secrets.SECRET_ACCESS_KEYS }}
-            PSQL_CONN: postgres://postgres:test@localhost:5432/iasql
           command: |
             # Establish needed secrets
             export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
