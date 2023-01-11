@@ -34,11 +34,11 @@ Next step is to grant AWS permissions to the forked repo. One way of doing that 
 
 ## Initial steps
 
-Before actually creating the deployment pipeline, we need to install several dependencies in AWS to be able to install, deploy and serve the application. The following installation script will cover those steps:
+Before actually creating the deployment pipeline, we need to install several dependencies in IaSQL to be able to install, deploy and serve the application. The following installation script will cover those steps:
 
 ```sql TheButton[Install CodePipeline dependencies]="Install CodePipeline dependencies"
 SELECT * FROM iasql_install('aws_codepipeline', 'aws_s3', 'aws_ec2_metadata');
-select * from iasql_begin();
+SELECT * FROM iasql_begin();
 
 INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
 VALUES ('app_role', '{
@@ -52,7 +52,7 @@ VALUES ('app_role', '{
     }
   ],
   "Version": "2012-10-17"
-}', array['arn:aws:iam::aws:policy/AWSCodeDeployFullAccess', 'arn:aws:iam::aws:policy/AmazonS3FullAccess', 'arn:aws:iam::aws:policy/AWSCodeDeployFullAccess']);
+}', ARRAY['arn:aws:iam::aws:policy/AWSCodeDeployFullAccess', 'arn:aws:iam::aws:policy/AmazonS3FullAccess', 'arn:aws:iam::aws:policy/AWSCodeDeployFullAccess']);
 
 
 INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
@@ -68,7 +68,7 @@ VALUES ('ec2_role', '{
   "Action": "sts:AssumeRole"
 }
 ]
-}', array['arn:aws:iam::aws:policy/AmazonEC2FullAccess', 'arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore', 'arn:aws:iam::aws:policy/AWSCodeDeployFullAccess', 'arn:aws:iam::aws:policy/AmazonS3FullAccess']);
+}', ARRAY['arn:aws:iam::aws:policy/AmazonEC2FullAccess', 'arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore', 'arn:aws:iam::aws:policy/AWSCodeDeployFullAccess', 'arn:aws:iam::aws:policy/AmazonS3FullAccess']);
 
 INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
 VALUES ('codedeploy_role', '{
@@ -83,7 +83,7 @@ VALUES ('codedeploy_role', '{
   "Action": "sts:AssumeRole"
 }
 ]
-}', array['arn:aws:iam::aws:policy/AWSCodeDeployFullAccess', 'arn:aws:iam::aws:policy/AmazonEC2FullAccess', 'arn:aws:iam::aws:policy/AmazonS3FullAccess']);
+}', ARRAY['arn:aws:iam::aws:policy/AWSCodeDeployFullAccess', 'arn:aws:iam::aws:policy/AmazonEC2FullAccess', 'arn:aws:iam::aws:policy/AmazonS3FullAccess']);
 
 INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
 VALUES ('codepipeline_role', '{
@@ -98,7 +98,7 @@ VALUES ('codepipeline_role', '{
   "Action": "sts:AssumeRole"
 }
 ]
-}', array['arn:aws:iam::aws:policy/AWSCodePipeline_FullAccess', 'arn:aws:iam::aws:policy/AmazonS3FullAccess', 'arn:aws:iam::aws:policy/AWSCodeDeployFullAccess']);
+}', ARRAY['arn:aws:iam::aws:policy/AWSCodePipeline_FullAccess', 'arn:aws:iam::aws:policy/AmazonS3FullAccess', 'arn:aws:iam::aws:policy/AWSCodeDeployFullAccess']);
 
 INSERT INTO bucket (name) VALUES ('codedeploy-app-iasql');
 
@@ -128,14 +128,13 @@ INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
   (SELECT id FROM instance WHERE tags ->> 'name' = 'codedeploy-app'),
   (SELECT id FROM security_group WHERE group_name='codedeploy');
 
-  select * from iasql_commit();
-
+  SELECT * FROM iasql_commit();
 ```
 
 This fragment will install the required modules, and all the infrastructure needed to deploy the pipeline, including the needed Roles, Security Rules, Storage and Compute on EC2. After this process finishes, the pipeline is ready to go. It can be launched in another query (please remember to replace the _token_ with your current one):
 
 ```sql TheButton[Trigger CodePipeline]="Trigger CodePipeline"
-select * from iasql_begin();
+SELECT * FROM iasql_begin();
 
 INSERT INTO codedeploy_application (name, compute_platform)
 VALUES ('codedeploy-app', 'Server');
@@ -201,7 +200,7 @@ VALUES ('codedeploy_pipeline', 'codepipeline_role', '[
 }
 ]', '{ "type": "S3", "location": "codedeploy-app-iasql" }');
 
-select * from iasql_commit();
+SELECT * FROM iasql_commit();
 ```
 
 This pipeline is describing all the needed steps to deploy the application:
