@@ -6,11 +6,29 @@ name: CI Engine
 # events but only for the main branch.
 on:
   push:
-    branches: [ main ]
-    paths: [ '.github/workflows/ci.yml', 'src/**', 'test/**', 'package.json', 'yarn.lock', 'jest.config.js', 'jest-environment-fail-fast.js' ]
+    branches: [main]
+    paths:
+      [
+        '.github/workflows/ci.yml',
+        'src/**',
+        'test/**',
+        'package.json',
+        'yarn.lock',
+        'jest.config.js',
+        'jest-environment-fail-fast.js',
+      ]
   pull_request:
-    branches: [ main ]
-    paths: [ '.github/workflows/ci.yml', 'src/**', 'test/**', 'package.json', 'yarn.lock', 'jest.config.js', 'jest-environment-fail-fast.js' ]
+    branches: [main]
+    paths:
+      [
+        '.github/workflows/ci.yml',
+        'src/**',
+        'test/**',
+        'package.json',
+        'yarn.lock',
+        'jest.config.js',
+        'jest-environment-fail-fast.js',
+      ]
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -96,6 +114,10 @@ jobs:
         run: yarn --prefer-offline
 
       - name: Run common tests
+        uses: nick-fields/retry@v2
+        with:
+          max_attempts: 1
+          retry_on: error
         run: yarn coverage $(echo $COMMONS | jq -r '."${{matrix.common}}"')
         env:
           IASQL_ENV: test
@@ -120,6 +142,10 @@ jobs:
         run: yarn --prefer-offline
 
       - name: Run read-only tests
+        uses: nick-fields/retry@v2
+        with:
+          max_attempts: 1
+          retry_on: error
         run: yarn coverage **/readonly/*
         env:
           IASQL_ENV: test
@@ -143,6 +169,10 @@ jobs:
         run: yarn --prefer-offline
 
       - name: Run common tests
+        uses: nick-fields/retry@v2
+        with:
+          max_attempts: 1
+          retry_on: error
         run: ./test/upgrade/run-upgrade.sh
         env:
           IASQL_ENV: test
@@ -217,6 +247,10 @@ jobs:
         id: determine-test-account
         env:
           SECRET_HEADER: ${{ secrets.SECRET_HEADER }}
+        uses: nick-fields/retry@v2
+        with:
+          max_attempts: 1
+          retry_on: error
         run: |
           RESPONSE=$(curl -X POST -H "Content-Type: text/plain" -H "${SECRET_HEADER}" -d '1' https://fkk3xlyad5tobhmezx4onpvele0zyehu.lambda-url.us-east-2.on.aws/ 2>/dev/null)
           echo $RESPONSE
@@ -235,6 +269,10 @@ jobs:
 
       - name: Pre-clean Test Account
         id: pre-clean-test-account
+        uses: nick-fields/retry@v2
+        with:
+          max_attempts: 1
+          retry_on: error
         env:
           IASQL_ENV: ci
           ACCOUNT_INDEX: ${{ steps['determine-test-account'].outputs['account_index'] }}
@@ -318,6 +356,10 @@ jobs:
           STAGING_ACCESS_KEY_ID: ${{ secrets.STAGING_ACCESS_KEY_ID }}
           STAGING_SECRET_ACCESS_KEY: ${{ secrets.STAGING_SECRET_ACCESS_KEY }}
           GH_PAT: ${{ secrets.GH_PAT }}
+        uses: nick-fields/retry@v2
+        with:
+          max_attempts: 1
+          retry_on: error
         run: |
           export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
           export AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
