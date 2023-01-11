@@ -93,20 +93,62 @@ describe('iasql_get_sql_since functionality', () => {
       return {};
     }));
 
-  // todo: test insert, update and delete with all different datatypes
+  it(
+    'manual inserts on iasql audit logs',
+    query(
+      `
+        insert into iasql_audit_log (ts, table_name, "user", change_type, change)
+        values (now(), 'iasql_audit_log', session_user, 'INSERT',  ('${JSON.stringify({ change: { a_number: 42, a_string: 'foo', a_json: { foo: 'bar' }, a_list: [1,2,3] } })}')::json)
+      `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
 
-  // it(
-  //   'manual inserts on iasql audit logs',
-  //   query(
-  //     `
-  //       insert into iasql_audit_log (ts, table_name, user, change_type, change)
-  //       values (now(), 'iasql_audit_log', session_user, 'INSERT',  ('{"change": ${}}')::json)
-  //     `,
-  //     undefined,
-  //     true,
-  //     () => ({ username, password }),
-  //   ),
-  // );
+  it(
+    'checks insert sql',
+    query(
+      `
+        select * from iasql_get_sql_since();
+      `,
+      (res: any) => {
+        expect(res[res.length - 1].sql).toContain(`INSERT INTO iasql_audit_log (a_number, a_string, a_json, a_list)`);
+        expect(res[res.length - 1].sql).toContain(`VALUES (42, 'foo', '{"foo":"bar"}', '{1,2,3}')`);
+      },
+    ),
+  );
+
+  it(
+    'manual update on iasql audit logs',
+    query(
+      `
+        insert into iasql_audit_log (ts, table_name, "user", change_type, change)
+        values (now(), 'iasql_audit_log', session_user, 'UPDATE',  ('${JSON.stringify({ original: { id: 1, a_number: 42, a_string: 'foo', a_json: { foo: 'bar' }, a_list: [1,2,3] }, change: { id: 1, a_number: 42, a_string: 'bar', a_json: { foo: 'bar' }, a_list: [1,2,3] } })}')::json)
+      `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it(
+    'checks update sql',
+    query(
+      `
+        select * from iasql_get_sql_since();
+      `,
+      (res: any) => {
+        expect(res[res.length - 1].sql).toContain(`UPDATE iasql_audit_log`);
+        expect(res[res.length - 1].sql).toContain(`SET a_number = 42, a_string = 'bar', a_json = '{"foo":"bar"}', a_list = '{1,2,3}'`);
+        expect(res[res.length - 1].sql).toContain(`WHERE a_number = 42 AND a_string = 'foo' AND a_json = '{"foo":"bar"}' AND a_list = '{1,2,3}'`);
+      },
+    ),
+  );
+
+  // todo: test delete with all different datatypes
+
+  // todo: test sub query generation
 
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 });
