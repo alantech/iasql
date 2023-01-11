@@ -116,7 +116,7 @@ jobs:
       - name: Run common tests
         uses: nick-fields/retry@v2
         with:
-          max_attempts: 1
+          max_attempts: 2
           retry_on: error
           timeout_minutes: 30
           command: yarn coverage $(echo $COMMONS | jq -r '."${{matrix.common}}"')
@@ -145,7 +145,7 @@ jobs:
       - name: Run read-only tests
         uses: nick-fields/retry@v2
         with:
-          max_attempts: 1
+          max_attempts: 2
           retry_on: error
           timeout_minutes: 40
           command: yarn coverage **/readonly/*
@@ -173,7 +173,7 @@ jobs:
       - name: Run common tests
         uses: nick-fields/retry@v2
         with:
-          max_attempts: 1
+          max_attempts: 2
           timeout_minutes: 30
           retry_on: error
           command: ./test/upgrade/run-upgrade.sh
@@ -252,7 +252,7 @@ jobs:
           SECRET_HEADER: ${{ secrets.SECRET_HEADER }}
         uses: nick-fields/retry@v2
         with:
-          max_attempts: 1
+          max_attempts: 2
           retry_on: error
           timeout_minutes: 5
           command: |
@@ -281,7 +281,7 @@ jobs:
           SECRET_ACCESS_KEYS: ${{ secrets.SECRET_ACCESS_KEYS }}
           PSQL_CONN: postgres://postgres:test@localhost:5432/iasql
         with:
-          max_attempts: 1
+          max_attempts: 2
           retry_on: error
           timeout_minutes: 30
           command: |
@@ -363,7 +363,7 @@ jobs:
           STAGING_SECRET_ACCESS_KEY: ${{ secrets.STAGING_SECRET_ACCESS_KEY }}
           GH_PAT: ${{ secrets.GH_PAT }}
         with:
-          max_attempts: 1
+          max_attempts: 2
           retry_on: error
           timeout_minutes: 60
           command: |
