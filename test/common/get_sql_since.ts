@@ -98,7 +98,9 @@ describe('iasql_get_sql_since functionality', () => {
     query(
       `
         insert into iasql_audit_log (ts, table_name, "user", change_type, change)
-        values (now(), 'iasql_audit_log', session_user, 'INSERT',  ('${JSON.stringify({ change: { a_number: 42, a_string: 'foo', a_json: { foo: 'bar' }, a_list: [1,2,3] } })}')::json)
+        values (now(), 'iasql_audit_log', session_user, 'INSERT',  ('${JSON.stringify({
+          change: { a_number: 42, a_string: 'foo', a_json: { foo: 'bar' }, a_list: [1, 2, 3] },
+        })}')::json)
       `,
       undefined,
       true,
@@ -113,7 +115,9 @@ describe('iasql_get_sql_since functionality', () => {
         select * from iasql_get_sql_since();
       `,
       (res: any) => {
-        expect(res[res.length - 1].sql).toContain(`INSERT INTO iasql_audit_log (a_number, a_string, a_json, a_list)`);
+        expect(res[res.length - 1].sql).toContain(
+          `INSERT INTO iasql_audit_log (a_number, a_string, a_json, a_list)`,
+        );
         expect(res[res.length - 1].sql).toContain(`VALUES (42, 'foo', '{"foo":"bar"}', '{1,2,3}')`);
       },
     ),
@@ -124,7 +128,10 @@ describe('iasql_get_sql_since functionality', () => {
     query(
       `
         insert into iasql_audit_log (ts, table_name, "user", change_type, change)
-        values (now(), 'iasql_audit_log', session_user, 'UPDATE',  ('${JSON.stringify({ original: { id: 1, a_number: 42, a_string: 'foo', a_json: { foo: 'bar' }, a_list: [1,2,3] }, change: { id: 1, a_number: 42, a_string: 'bar', a_json: { foo: 'bar' }, a_list: [1,2,3] } })}')::json)
+        values (now(), 'iasql_audit_log', session_user, 'UPDATE',  ('${JSON.stringify({
+          original: { id: 1, a_number: 42, a_string: 'foo', a_json: { foo: 'bar' }, a_list: [1, 2, 3] },
+          change: { id: 1, a_number: 42, a_string: 'bar', a_json: { foo: 'bar' }, a_list: [1, 2, 3] },
+        })}')::json)
       `,
       undefined,
       true,
@@ -140,15 +147,64 @@ describe('iasql_get_sql_since functionality', () => {
       `,
       (res: any) => {
         expect(res[res.length - 1].sql).toContain(`UPDATE iasql_audit_log`);
-        expect(res[res.length - 1].sql).toContain(`SET a_number = 42, a_string = 'bar', a_json = '{"foo":"bar"}', a_list = '{1,2,3}'`);
-        expect(res[res.length - 1].sql).toContain(`WHERE a_number = 42 AND a_string = 'foo' AND a_json = '{"foo":"bar"}' AND a_list = '{1,2,3}'`);
+        expect(res[res.length - 1].sql).toContain(
+          `SET a_number = 42, a_string = 'bar', a_json = '{"foo":"bar"}', a_list = '{1,2,3}'`,
+        );
+        expect(res[res.length - 1].sql).toContain(
+          `WHERE a_number = 42 AND a_string = 'foo' AND a_json = '{"foo":"bar"}' AND a_list = '{1,2,3}'`,
+        );
       },
     ),
   );
 
-  // todo: test delete with all different datatypes
+  it(
+    'manual delete on iasql audit logs',
+    query(
+      `
+        insert into iasql_audit_log (ts, table_name, "user", change_type, change)
+        values (now(), 'iasql_audit_log', session_user, 'DELETE',  ('${JSON.stringify({
+          original: { id: 1, a_number: 42, a_string: 'bar', a_json: { foo: 'bar' }, a_list: [1, 2, 3] },
+        })}')::json)
+      `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
 
-  // todo: test sub query generation
+  it(
+    'checks delete sql',
+    query(
+      `
+        select * from iasql_get_sql_since();
+      `,
+      (res: any) => {
+        expect(res[res.length - 1].sql).toContain(`DELETE FROM iasql_audit_log`);
+        expect(res[res.length - 1].sql).toContain(
+          `WHERE a_number = 42 AND a_string = 'bar' AND a_json = '{"foo":"bar"}' AND a_list = '{1,2,3}'`,
+        );
+      },
+    ),
+  );
+
+  it('installs the aws_elb module', install(['aws_elb']));
+
+  it(
+    'checks sql sub query generation for a join table',
+    query(
+      `
+        select * from iasql_get_sql_since();
+      `,
+      (res: any) => {
+        expect(
+          res.find((o: { sql: string }) => o.sql.includes('load_balancer_security_group')).sql,
+        ).toContain(`FROM load_balancer`);
+        expect(
+          res.find((o: { sql: string }) => o.sql.includes('load_balancer_security_group')).sql,
+        ).toContain(`FROM security_group`);
+      },
+    ),
+  );
 
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 });
