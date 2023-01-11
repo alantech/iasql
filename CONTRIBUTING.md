@@ -275,4 +275,22 @@ This section will change much more frequently compared to the other sections.
 
 There are probably many other footguns at the moment, feel free to update this with any you can think of!
 
-<!-- TODO: Revive Postgres function explanation for the new HTTP-based RPC approach -->
+## How IaSQL PostgreSQL functions work
+
+IaSQL container consists of two components:
+- IaSQL Engine which is listening via an Express.js server on 8088 port (only accessible from within the container, therefore no direct access from outside)
+- IaSQL Postgres database which is listening on port 5432. This port is also exposed to the public so that the users are able to connect to their databases.
+
+The database-engine communication takes place via the Express.js server that the engine is listening on it. Whenever an IaSQL RPC command is called on the database (`SELECT iasql_install(...)`, `SELECT iasql_commit()`, or more generally `iasql_*`), an HTTP post request is sent from the Postgres database to the Express.js server. [We're using](https://github.com/iasql/iasql-engine/blob/c12d773402ad60d3c848743ced400584c08fcf8e/src/modules/interfaces.ts#L467-L482) [`pg_http` Postgres extension](https://github.com/pramsey/pgsql-http) to send HTTP requests from our Postgres database to the Express.js server.
+
+<img alt="IaSQL Container" src="assets/IaSQL-container.png" width="300"/>
+
+The Express.js server is trusting the input that it gets from the HTTP requests because they're all coming from the database and the `pg_http` calls in the database are configured in a pseudo-fixed structure that should not allow arbitrary requests.
+
+### How Is IaSQL Front-End Communicating The Database?
+
+If the only thing the IaSQL container exposes is the `5432` port which is a Postgres port, how does the IaSQL dashboard communicate with it?
+
+We have created a `run` service (listening on `https://run.iasql.com/`) which is taking the requests from the users and communicating with the IaSQL container's Postgres port. It's basically an "HTTP to Postgres" service with a bit of additional spices.
+
+<img alt="IaSQL Run" src="assets/IaSQL-run.png" width="300"/>
