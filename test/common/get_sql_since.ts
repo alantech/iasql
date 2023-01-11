@@ -190,7 +190,7 @@ describe('iasql_get_sql_since functionality', () => {
   it('installs the aws_elb module', install(['aws_elb']));
 
   it(
-    'checks sql sub query generation for a join table',
+    'checks sql sub-query tables load_balancer and security_group for load_balancer_security_group join table',
     query(
       `
         select * from iasql_get_sql_since();
@@ -198,10 +198,10 @@ describe('iasql_get_sql_since functionality', () => {
       (res: any) => {
         expect(
           res.find((o: { sql: string }) => o.sql.includes('load_balancer_security_group')).sql,
-        ).toContain(`FROM load_balancer`);
+        ).toContain(`SELECT id FROM load_balancer`);
         expect(
           res.find((o: { sql: string }) => o.sql.includes('load_balancer_security_group')).sql,
-        ).toContain(`FROM security_group`);
+        ).toContain(`SELECT id FROM security_group`);
       },
     ),
   );
