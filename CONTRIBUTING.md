@@ -278,8 +278,8 @@ There are probably many other footguns at the moment, feel free to update this w
 ## How IaSQL PostgreSQL functions work
 
 IaSQL container consists of two components:
-- IaSQL Engine which is listening via an Express.js server on 8088 port (only accessible from within the container, therefore no direct access from outside)
-- IaSQL Postgres database which is listening on port 5432. This port is also exposed to the public so that the users are able to connect to their databases.
+- IaSQL Engine which is listening via [an Express.js server](https://github.com/iasql/iasql-engine/blob/c12d773402ad60d3c848743ced400584c08fcf8e/src/index.ts#L73-L77) on 8088 port (only accessible from within the container, therefore no direct access from outside)
+- IaSQL [Postgres database](https://github.com/iasql/iasql-engine/blob/c12d773402ad60d3c848743ced400584c08fcf8e/docker-entrypoint.sh#L47) which is listening on port 5432. This port is also exposed to the public so that the users are able to connect to their databases.
 
 The database-engine communication takes place via the Express.js server that the engine is listening on it. Whenever an IaSQL RPC command is called on the database (`SELECT iasql_install(...)`, `SELECT iasql_commit()`, or more generally `iasql_*`), an HTTP post request is sent from the Postgres database to the Express.js server. [We're using](https://github.com/iasql/iasql-engine/blob/c12d773402ad60d3c848743ced400584c08fcf8e/src/modules/interfaces.ts#L467-L482) [`pg_http` Postgres extension](https://github.com/pramsey/pgsql-http) to send HTTP requests from our Postgres database to the Express.js server.
 
@@ -293,4 +293,4 @@ If the only thing the IaSQL container exposes is the `5432` port which is a Post
 
 We have created a `run` service (listening on `https://run.iasql.com/`) which is taking the requests from the users and communicating with the IaSQL container's Postgres port. It's basically an "HTTP to Postgres" service with a bit of additional spices.
 
-<img alt="IaSQL Run" src="assets/IaSQL-run.png" width="300"/>
+<img alt="IaSQL Run" src="assets/IaSQL-run.png" width="450"/>
