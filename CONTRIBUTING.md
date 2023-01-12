@@ -275,4 +275,14 @@ This section will change much more frequently compared to the other sections.
 
 There are probably many other footguns at the moment, feel free to update this with any you can think of!
 
-<!-- TODO: Revive Postgres function explanation for the new HTTP-based RPC approach -->
+## How IaSQL PostgreSQL functions work
+
+The IaSQL container consists of two components:
+- IaSQL Engine which is listening via [an Express.js server](https://github.com/iasql/iasql-engine/blob/c12d773402ad60d3c848743ced400584c08fcf8e/src/index.ts#L73-L77) on 8088 port (only accessible from within the container, therefore no direct access from outside)
+- IaSQL [Postgres database](https://github.com/iasql/iasql-engine/blob/c12d773402ad60d3c848743ced400584c08fcf8e/docker-entrypoint.sh#L47) which is listening on port 5432. This port is also exposed to the public so that the users are able to connect to their databases.
+
+The database-engine communication takes place via HTTP requests to the Express.js server. Whenever an IaSQL RPC command is called on the database (`SELECT iasql_install(...)`, `SELECT iasql_commit()`, or more generally `iasql_*`), an HTTP post request is sent from the Postgres database to the Express.js server. [Using](https://github.com/iasql/iasql-engine/blob/c12d773402ad60d3c848743ced400584c08fcf8e/src/modules/interfaces.ts#L467-L482) the [`pgsql-http` Postgres extension](https://github.com/pramsey/pgsql-http) to send HTTP requests from the Postgres database to the Express.js server.
+
+<img alt="IaSQL Container" src="assets/IaSQL-container.png" width="300"/>
+
+The Express.js server is trusting the input that it gets from the HTTP requests because they're all coming from the database and the `pg_http` calls in the database are configured in a pseudo-fixed structure that should not allow arbitrary requests.
