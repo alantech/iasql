@@ -188,6 +188,13 @@ jobs:
           SECRET_ACCESS_KEYS: ${{ secrets.SECRET_ACCESS_KEYS }}
           A0_IASQL_API_TOKEN: ${{ secrets.A0_IASQL_API_TOKEN }}
 
+      - name: Return test account
+        if: always()
+        env:
+          SECRET_HEADER: ${{ secrets.SECRET_HEADER }}
+          ACCOUNT_INDEX: ${{ steps['determine-test-account'].outputs['account_index'] }}
+        run: |
+          curl -X POST -H "Content-Type: application/json" -H "${SECRET_HEADER}" -H "x-iasql-drop: true" -d "[${ACCOUNT_INDEX}]" https://fkk3xlyad5tobhmezx4onpvele0zyehu.lambda-url.us-east-2.on.aws/
 
   readonly-test:
     runs-on: ubuntu-latest
