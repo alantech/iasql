@@ -167,7 +167,7 @@ describe('basic rollback functionality', () => {
     ),
   );
 
-  it('confirm you can start a transaction', begin());
+  it('confirm you can start a transaction after the rollback', begin());
 
   it('deletes the test db', done => void iasql.disconnect(dbAlias, uid).then(...finish(done)));
 });
