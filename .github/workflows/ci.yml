@@ -6,11 +6,29 @@ name: CI Engine
 # events but only for the main branch.
 on:
   push:
-    branches: [ main ]
-    paths: [ '.github/workflows/ci.yml', 'src/**', 'test/**', 'package.json', 'yarn.lock', 'jest.config.js', 'jest-environment-fail-fast.js' ]
+    branches: [main]
+    paths:
+      [
+        '.github/workflows/ci.yml',
+        'src/**',
+        'test/**',
+        'package.json',
+        'yarn.lock',
+        'jest.config.js',
+        'jest-environment-fail-fast.js',
+      ]
   pull_request:
-    branches: [ main ]
-    paths: [ '.github/workflows/ci.yml', 'src/**', 'test/**', 'package.json', 'yarn.lock', 'jest.config.js', 'jest-environment-fail-fast.js' ]
+    branches: [main]
+    paths:
+      [
+        '.github/workflows/ci.yml',
+        'src/**',
+        'test/**',
+        'package.json',
+        'yarn.lock',
+        'jest.config.js',
+        'jest-environment-fail-fast.js',
+      ]
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -96,7 +114,12 @@ jobs:
         run: yarn --prefer-offline
 
       - name: Run common tests
-        run: yarn coverage $(echo $COMMONS | jq -r '."${{matrix.common}}"')
+        uses: nick-fields/retry@v2
+        with:
+          max_attempts: 2
+          retry_on: error
+          timeout_minutes: 30
+          command: yarn coverage $(echo $COMMONS | jq -r '."${{matrix.common}}"')
         env:
           IASQL_ENV: test
           COMMONS: ${{ needs.setup-common-test.outputs['common-tests'] }}
@@ -182,7 +205,12 @@ jobs:
         run: yarn --prefer-offline
 
       - name: Run read-only tests
-        run: yarn coverage **/readonly/*
+        uses: nick-fields/retry@v2
+        with:
+          max_attempts: 2
+          retry_on: error
+          timeout_minutes: 40
+          command: yarn coverage **/readonly/*
         env:
           IASQL_ENV: test
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID_READONLY_TESTING }}
@@ -205,7 +233,12 @@ jobs:
         run: yarn --prefer-offline
 
       - name: Run common tests
-        run: ./test/upgrade/run-upgrade.sh
+        uses: nick-fields/retry@v2
+        with:
+          max_attempts: 2
+          timeout_minutes: 30
+          retry_on: error
+          command: ./test/upgrade/run-upgrade.sh
         env:
           IASQL_ENV: test
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID_TESTING }}
@@ -279,11 +312,16 @@ jobs:
         id: determine-test-account
         env:
           SECRET_HEADER: ${{ secrets.SECRET_HEADER }}
-        run: |
-          RESPONSE=$(curl -X POST -H "Content-Type: text/plain" -H "${SECRET_HEADER}" -d '1' https://fkk3xlyad5tobhmezx4onpvele0zyehu.lambda-url.us-east-2.on.aws/ 2>/dev/null)
-          echo $RESPONSE
-          ACCOUNT_INDEX=$(echo $RESPONSE | jq '.[0]' || exit 1)
-          echo "::set-output name=account_index::$(echo ${ACCOUNT_INDEX})"
+        uses: nick-fields/retry@v2
+        with:
+          max_attempts: 2
+          retry_on: error
+          timeout_minutes: 5
+          command: |
+            RESPONSE=$(curl -X POST -H "Content-Type: text/plain" -H "${SECRET_HEADER}" -d '1' https://fkk3xlyad5tobhmezx4onpvele0zyehu.lambda-url.us-east-2.on.aws/ 2>/dev/null)
+            echo $RESPONSE
+            ACCOUNT_INDEX=$(echo $RESPONSE | jq '.[0]' || exit 1)
+            echo "::set-output name=account_index::$(echo ${ACCOUNT_INDEX})"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
@@ -297,80 +335,86 @@ jobs:
 
       - name: Pre-clean Test Account
         id: pre-clean-test-account
+        uses: nick-fields/retry@v2
         env:
           IASQL_ENV: ci
           ACCOUNT_INDEX: ${{ steps['determine-test-account'].outputs['account_index'] }}
           ACCESS_KEY_IDS: ${{ secrets.ACCESS_KEY_IDS }}
           SECRET_ACCESS_KEYS: ${{ secrets.SECRET_ACCESS_KEYS }}
           PSQL_CONN: postgres://postgres:test@localhost:5432/iasql
-        run: |
-          # Establish needed secrets
-          export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
-          export AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
+        with:
+          max_attempts: 2
+          retry_on: error
+          timeout_minutes: 30
+          command: |
+            # Establish needed secrets
+            export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
+            export AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
 
-          # Spin up the engine and a postgres instance
-          # Temporarily export the engine port until it's only the Postgres port needed
-          docker run -p 5432:5432 -e IASQL_ENV=ci --name iasql ghcr.io/iasql/iasql-engine:$GITHUB_SHA &
-          while ! psql postgres://postgres:test@localhost:5432/iasql_metadata -b -q -c "SELECT iasql_engine_health()"; do sleep 1 && echo -n .; done;
+            # Spin up the engine and a postgres instance
+            # Temporarily export the engine port until it's only the Postgres port needed
+            docker run -p 5432:5432 -e IASQL_ENV=ci --name iasql ghcr.io/iasql/iasql-engine:$GITHUB_SHA &
+            while ! psql postgres://postgres:test@localhost:5432/iasql_metadata -b -q -c "SELECT iasql_engine_health()"; do sleep 1 && echo -n .; done;
 
-          # connect `iasql` db to aws account for `apply`
-          echo "\nCreating an iasql db..."
-          connectres=$(psql "postgres://postgres:test@localhost:5432/iasql_metadata" -t -c "SELECT json_agg(c)->0 FROM iasql_connect('iasql') as c;")
-          username=$(jq -r '.user' <<<"$connectres")
-          password=$(jq -r '.password' <<<"$connectres")
+            # connect `iasql` db to aws account for `apply`
+            echo "\nCreating an iasql db..."
+            connectres=$(psql "postgres://postgres:test@localhost:5432/iasql_metadata" -t -c "SELECT json_agg(c)->0 FROM iasql_connect('iasql') as c;")
+            username=$(jq -r '.user' <<<"$connectres")
+            password=$(jq -r '.password' <<<"$connectres")
 
-          # Setup Account
-          echo "\nInstalling aws_account..."
-          psql $PSQL_CONN -c "
-            select iasql_install(
-              'aws_account'
-            );
-          ";
+            # Setup Account
+            echo "\nInstalling aws_account..."
+            psql $PSQL_CONN -c "
+              select iasql_install(
+                'aws_account'
+              );
+            ";
 
-          echo "\nAttaching credentials..."
-          psql $PSQL_CONN -c "
-            INSERT INTO aws_credentials (access_key_id, secret_access_key)
-            VALUES ('${AWS_ACCESS_KEY_ID}', '${AWS_SECRET_ACCESS_KEY}');
-          ";
+            echo "\nAttaching credentials..."
+            psql $PSQL_CONN -c "
+              INSERT INTO aws_credentials (access_key_id, secret_access_key)
+              VALUES ('${AWS_ACCESS_KEY_ID}', '${AWS_SECRET_ACCESS_KEY}');
+            ";
 
-          # Start transaction
-          echo "\nStarting transaction..."
-          psql $PSQL_CONN -c "
-            select * from iasql_begin();
-          ";
+            # Start transaction
+            echo "\nStarting transaction..."
+            psql $PSQL_CONN -c "
+              select * from iasql_begin();
+            ";
 
-          # Start transaction
-          echo "\nSynchronizing..."
-          psql $PSQL_CONN -c "
-            SELECT * FROM iasql_commit();
-          ";
+            # Start transaction
+            echo "\nSynchronizing..."
+            psql $PSQL_CONN -c "
+              SELECT * FROM iasql_commit();
+            ";
 
-          echo "\nInstalling all modules in iasql db..."
-          psql $PSQL_CONN -c "
-            select iasql_install(
-              variadic array(select module_name from iasql_modules_list())
-            );
-          ";
+            echo "\nInstalling all modules in iasql db..."
+            psql $PSQL_CONN -c "
+              select iasql_install(
+                variadic array(select module_name from iasql_modules_list())
+              );
+            ";
 
-          # Start transaction
-          echo "\nStarting transaction..."
-          psql postgres://$username:$password@localhost:5432/iasql -c "select * from iasql_begin();"
+            # Start transaction
+            echo "\nStarting transaction..."
+            psql postgres://$username:$password@localhost:5432/iasql -c "select * from iasql_begin();"
 
-          # Delete all records
-          echo "\nDelete all records..."
-          psql "postgres://$username:$password@localhost:5432/iasql" -c "select * from delete_all_records();"
+            # Delete all records
+            echo "\nDelete all records..."
+            psql "postgres://$username:$password@localhost:5432/iasql" -c "select * from delete_all_records();"
 
-          echo "\nApply..."
-          psql $PSQL_CONN -c "select * from iasql_commit();" ; docker logs $(docker ps -a --filter "name=iasql" --format "{{.Names}}")
+            echo "\nApply..."
+            psql $PSQL_CONN -c "select * from iasql_commit();" ; docker logs $(docker ps -a --filter "name=iasql" --format "{{.Names}}")
 
-          # Shut down the engine
-          docker container stop iasql
+            # Shut down the engine
+            docker container stop iasql
 
       - name: Install dependencies
         run: yarn --prefer-offline
 
       - name: Run modules tests
         timeout-minutes: 90
+        uses: nick-fields/retry@v2
         env:
           IASQL_ENV: test
           MODULES: ${{ needs.setup-module-test.outputs['test-modules'] }}
@@ -380,10 +424,14 @@ jobs:
           STAGING_ACCESS_KEY_ID: ${{ secrets.STAGING_ACCESS_KEY_ID }}
           STAGING_SECRET_ACCESS_KEY: ${{ secrets.STAGING_SECRET_ACCESS_KEY }}
           GH_PAT: ${{ secrets.GH_PAT }}
-        run: |
-          export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
-          export AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
-          yarn test $(echo $MODULES | jq -r '."${{matrix.module}}"')
+        with:
+          max_attempts: 3
+          retry_on: error
+          timeout_minutes: 90
+          command: |
+            export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
+            export AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
+            yarn test $(echo $MODULES | jq -r '."${{matrix.module}}"')
 
       - name: Return test account
         if: always()
