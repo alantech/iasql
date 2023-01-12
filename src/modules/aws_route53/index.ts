@@ -398,9 +398,13 @@ class ResourceRecordSetMapper extends MapperBase<ResourceRecordSet> {
       const client = (await ctx.getAwsClient()) as AWS;
       for (const e of rrs) {
         // default non-deletable cases
-        if (e.recordType === RecordType.SOA) continue;
-        if (e.recordType === RecordType.NS && this.equalDomains(e.name, e.parentHostedZone.domainName))
+        if (
+          e.recordType === RecordType.SOA ||
+          (e.recordType === RecordType.NS && this.equalDomains(e.name, e.parentHostedZone.domainName))
+        ) {
+          await this.module.resourceRecordSet.db.create(e, ctx);
           continue;
+        }
 
         const resourceRecordSet = this.dbRecordToAwsObject(e);
         await deleteResourceRecordSet(
