@@ -20,7 +20,7 @@ const install = runInstall.bind(null, dbAlias);
 const installAll = runInstallAll.bind(null, dbAlias);
 const region = defaultRegion();
 
-jest.setTimeout(420000);
+jest.setTimeout(360000);
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown());
 
