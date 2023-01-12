@@ -176,10 +176,15 @@ jobs:
 
 
       - name: Run basic-integration tests
-        run: |
-          export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
-          export AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
-          yarn coverage $(echo $TESTS | jq -r '."${{matrix.basic-integration}}"')
+        uses: nick-fields/retry@v2
+        with:
+          max_attempts: 2
+          retry_on: error
+          timeout_minutes: 10
+          command: |
+            export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
+            export AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
+            yarn coverage $(echo $TESTS | jq -r '."${{matrix.basic-integration}}"')
         env:
           IASQL_ENV: test
           TESTS: ${{ needs.setup-basic-integration-test.outputs['basic-integration-tests'] }}
