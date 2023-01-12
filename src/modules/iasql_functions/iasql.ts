@@ -866,7 +866,7 @@ async function getValue(
       const metadata = await orm.getEntityMetadata((m as MapperBase<any>).entity);
       if (
         metadata.tableName === tableName &&
-        metadata.ownerColumns
+        metadata.ownColumns
           .filter(oc => oc.isArray)
           .map(oc => oc.databaseName)
           .includes(k)
