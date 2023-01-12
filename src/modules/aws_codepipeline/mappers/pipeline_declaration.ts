@@ -91,7 +91,6 @@ export class PipelineDeclarationMapper extends MapperBase<PipelineDeclaration> {
   );
 
   listPipelineDeclarations = paginateBuilder<CodePipeline>(paginateListPipelines, 'pipelines');
-
   deletePipelineDeclaration = crudBuilder2<CodePipeline, 'deletePipeline'>('deletePipeline', input => input);
 
   async waitForPipelineExecution(client: CodePipeline, name: string) {
@@ -107,19 +106,35 @@ export class PipelineDeclarationMapper extends MapperBase<PipelineDeclaration> {
         name,
       },
       async (cl, cmd) => {
-        let allSuccess = true;
+        let pipelinePending = true;
         try {
           const data = await cl.getPipelineState(cmd);
+          let succeededStates = 0;
           if (data.stageStates && data.stageStates.length > 0) {
             for (const state of data.stageStates) {
-              const latest = state.latestExecution;
-              if (latest?.status !== 'Succeeded') {
-                allSuccess = false;
-                break;
+              // first we check if there is any failure
+              if (state && state.actionStates) {
+                for (const action of state.actionStates) {
+                  const latestStatus = action.latestExecution?.status;
+                  if (
+                    latestStatus &&
+                    ['Cancelled', 'Stopped', 'Superseeded', 'Failed'].includes(latestStatus)
+                  ) {
+                    // pipeline has failed, we can stop it
+                    pipelinePending = false;
+                    break;
+                  }
+                }
               }
+              if (!pipelinePending) break;
+              // then we check if the stage completed successfully
+              if (state.latestExecution?.status === 'Succeeded') succeededStates++;
             }
           }
-          if (allSuccess) return { state: WaiterState.SUCCESS };
+          // all stages have succeeded, we are ok
+          if (succeededStates === data.stageStates?.length) pipelinePending = false;
+
+          if (!pipelinePending) return { state: WaiterState.SUCCESS };
           else return { state: WaiterState.RETRY };
         } catch (e: any) {
           throw e;
