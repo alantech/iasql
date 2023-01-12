@@ -1,11 +1,30 @@
+import {
+  IpAddressType,
+  LoadBalancerSchemeEnum,
+  LoadBalancerTypeEnum,
+} from '../../src/modules/aws_elb/entity';
 import * as iasql from '../../src/services/iasql';
-import { runQuery, finish, execComposeUp, execComposeDown, runInstall, runBegin } from '../helpers';
+import {
+  runQuery,
+  finish,
+  execComposeUp,
+  execComposeDown,
+  runInstall,
+  runBegin,
+  defaultRegion,
+} from '../helpers';
 
 const dbAlias = 'getsqlsince';
+const region = defaultRegion();
 
 const begin = runBegin.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
+
+const lbName = `${dbAlias}lb`;
+const lbScheme = LoadBalancerSchemeEnum.INTERNET_FACING;
+const lbType = LoadBalancerTypeEnum.APPLICATION;
+const lbIPAddressType = IpAddressType.IPV4;
 
 jest.setTimeout(360000);
 beforeAll(async () => await execComposeUp());
@@ -188,6 +207,51 @@ describe('iasql_get_sql_since functionality', () => {
   );
 
   it('installs the aws_elb module', install(['aws_elb']));
+
+  it('begin a transaction', begin());
+
+  it(
+    'adds a new load balancer',
+    query(
+      `
+        BEGIN;
+          INSERT INTO load_balancer (load_balancer_name, scheme, vpc, load_balancer_type, ip_address_type)
+          VALUES ('${lbName}', '${lbScheme}', null, '${lbType}', '${lbIPAddressType}');
+
+          INSERT INTO load_balancer_security_groups(load_balancer_id, security_group_id)
+          SELECT (SELECT id FROM load_balancer WHERE load_balancer_name = '${lbName}'),
+                (SELECT id FROM security_group WHERE group_name = 'default' AND region = '${region}');
+        COMMIT;
+      `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it(
+    'checks load_balancer insertion',
+    query(
+      `
+        SELECT *
+        FROM load_balancer
+        WHERE load_balancer_name = '${lbName}';
+      `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it(
+    'check load_balancer_security_groups insertion',
+    query(
+      `
+        SELECT *
+        FROM load_balancer_security_groups
+        WHERE load_balancer_id = (SELECT id FROM load_balancer WHERE load_balancer_name = '${lbName}');
+      `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
 
   it(
     'checks sql sub-query tables load_balancer and security_group for load_balancer_security_group join table',
