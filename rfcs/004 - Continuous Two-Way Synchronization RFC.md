@@ -63,7 +63,7 @@ SELECT * FROM iasql_preview(); -- Because there's no distinction between apply a
 
 -- If we don't like what we saw
 
-CALL iasql_restore(); -- Executes `iasql_sync`, then re-enables the cron
+CALL iasql_rollback(); -- Executes `iasql_sync`, then re-enables the cron
 
 -- If we like what we saw
 
@@ -81,7 +81,7 @@ There are two ways the background processing could be implemented: we could have
 
 Most of the failure modes when using the cron approach lead to delays in eventual consistency between the database and the cloud, while the event-based approach can lead to more catastrophic failures.
 
-Backing the cron approach would be a minor addition to the existing audit log to go with the graphile worker job creation. If we have the new cron logic and the restore/commit calls add rows to the audit log when it starts and ends, they can check if the most recent of these records is a `start` one, implying that the engine is currently working on applying and synchronizing changes with the cloud, and would alter their behavior slightly. The `cron` would simply early exit in this case, as it implies there is an existing cron that has gone overtime, and so it should wait until the next execution of the cron to try again. `iasql_begin` would block until a paired `end` record exists and then continue with its work. `iasql_restore` and `iasql_commit` should therefore never see this state after `iasql_begin` is called, but for defensiveness they should as well block until an `end` record exists and then do their own work.
+Backing the cron approach would be a minor addition to the existing audit log to go with the graphile worker job creation. If we have the new cron logic and the rollback/commit calls add rows to the audit log when it starts and ends, they can check if the most recent of these records is a `start` one, implying that the engine is currently working on applying and synchronizing changes with the cloud, and would alter their behavior slightly. The `cron` would simply early exit in this case, as it implies there is an existing cron that has gone overtime, and so it should wait until the next execution of the cron to try again. `iasql_begin` would block until a paired `end` record exists and then continue with its work. `iasql_rollback` and `iasql_commit` should therefore never see this state after `iasql_begin` is called, but for defensiveness they should as well block until an `end` record exists and then do their own work.
 
 These checks should also pay attention to the timestamp and ignore the missing `end` record condition if it has been "too long" and therefore the engine was likely restarted in the meantime. The exact time will depend on what limit we ourselves put on the new commit logic, but perhaps 45 minutes (the current apply/sync timeout time).
 
