@@ -49,16 +49,16 @@ export class IasqlGetSqlSince extends RpcBase {
     ctx: Context,
     limitDate: string,
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
-    const queries: string[] = [];
+    let queries: string[];
     try {
       const changeLogs = await getChangeLogs(limitDate, ctx.orm);
       const installedModules = await getInstalledModules(ctx.orm);
       const modsIndexedByTable = indexModsByTable(installedModules);
-      queries.push(...(await getQueries(changeLogs, modsIndexedByTable, ctx.orm)));
+      queries = await recreateQueries(changeLogs, modsIndexedByTable, ctx.orm);
     } catch (e) {
       throw e;
     }
-    return queries.map(q => ({ sql: q }));
+    return (queries ?? []).map(q => ({ sql: q }));
   };
 
   constructor(module: IasqlFunctions) {
@@ -68,15 +68,21 @@ export class IasqlGetSqlSince extends RpcBase {
   }
 }
 
-/** @internal */
+/**
+ * @internal
+ * Returns the relevant `IasqlAuditLog`s order by timestamp with the older logs first.
+ */
 async function getChangeLogs(limitDate: string, orm: TypeormWrapper): Promise<IasqlAuditLog[]> {
   const whereClause: any = {
     changeType: In([AuditLogChangeType.INSERT, AuditLogChangeType.UPDATE, AuditLogChangeType.DELETE]),
   };
   if (limitDate) {
+    // `try_cast` will try to return the `limitDate` casted as `timestamp with time zone` or `null`if the cast fails
     const castRes = await orm.query(`SELECT try_cast('${limitDate}', NULL::timestamp with time zone);`);
     const castedValue = castRes?.pop()?.try_cast;
-    if (castedValue === null) throw new Error(`Cannot cast ${limitDate} to timestamp with time zone`);
+    if (castedValue === undefined || castedValue === null) {
+      throw new Error(`Cannot cast ${limitDate} to timestamp with time zone`);
+    }
     whereClause.ts = MoreThan(new Date(castedValue));
   }
   return orm.find(IasqlAuditLog, {
@@ -93,10 +99,13 @@ async function getInstalledModules(orm: TypeormWrapper): Promise<ModuleInterface
   );
 }
 
-/** @internal */
-async function getQueries(
+/**
+ * @internal
+ * Returns the queries recreated from the change logs.
+ * */
+async function recreateQueries(
   changeLogs: IasqlAuditLog[],
-  mbt: { [key: string]: ModuleInterface },
+  modsIndexedByTable: { [key: string]: ModuleInterface },
   orm: TypeormWrapper,
 ): Promise<string[]> {
   const queries: string[] = [];
@@ -107,7 +116,10 @@ async function getQueries(
         const valuesToInsert = await Promise.all(
           Object.entries(cl.change?.change ?? {})
             .filter(([k, v]: [string, any]) => k !== 'id' && v !== null)
-            .map(async ([k, v]: [string, any]) => await getValue(cl.tableName, k, v, mbt, orm)),
+            .map(
+              async ([k, v]: [string, any]) =>
+                await jsonValueToDbString(cl.tableName, k, v, modsIndexedByTable, orm),
+            ),
         );
         query = `
           INSERT INTO ${cl.tableName} (${Object.keys(cl.change?.change ?? {})
@@ -117,16 +129,19 @@ async function getQueries(
         `;
         break;
       case AuditLogChangeType.DELETE:
-        const valuesToDelete = await Promise.all(
+        const valuesDeleted = await Promise.all(
           Object.entries(cl.change?.original ?? {})
             .filter(([k, v]: [string, any]) => k !== 'id' && v !== null)
-            .map(async ([k, v]: [string, any]) => await getValue(cl.tableName, k, v, mbt, orm)),
+            .map(
+              async ([k, v]: [string, any]) =>
+                await jsonValueToDbString(cl.tableName, k, v, modsIndexedByTable, orm),
+            ),
         );
         query = `
           DELETE FROM ${cl.tableName}
           WHERE ${Object.entries(cl.change?.original ?? {})
             .filter(([k, v]: [string, any]) => k !== 'id' && v !== null)
-            .map(([k, _]: [string, any], i) => `${k} = ${valuesToDelete[i]}`)
+            .map(([k, _]: [string, any], i) => `${k} = ${valuesDeleted[i]}`)
             .join(' AND ')};
         `;
         break;
@@ -134,12 +149,19 @@ async function getQueries(
         const updatedValues = await Promise.all(
           Object.entries(cl.change?.change ?? {})
             .filter(([k, _]: [string, any]) => k !== 'id')
-            .map(async ([k, v]: [string, any]) => await getValue(cl.tableName, k, v, mbt, orm)),
+            .map(
+              async ([k, v]: [string, any]) =>
+                await jsonValueToDbString(cl.tableName, k, v, modsIndexedByTable, orm),
+            ),
         );
-        const conditionValues = await Promise.all(
+        const oldValues = await Promise.all(
           Object.entries(cl.change?.original ?? {})
+            // We need to add an special case for AMIs since we know the revolve string can be used and it will not match with the actual AMI assigned
             .filter(([k, _]: [string, any]) => k !== 'ami' && k !== 'id')
-            .map(async ([k, v]: [string, any]) => await getValue(cl.tableName, k, v, mbt, orm)),
+            .map(
+              async ([k, v]: [string, any]) =>
+                await jsonValueToDbString(cl.tableName, k, v, modsIndexedByTable, orm),
+            ),
         );
         query = `
           UPDATE ${cl.tableName}
@@ -150,7 +172,7 @@ async function getQueries(
           WHERE ${Object.entries(cl.change?.original ?? {})
             // We need to add an special case for AMIs since we know the revolve string can be used and it will not match with the actual AMI assigned
             .filter(([k, _]: [string, any]) => k !== 'ami' && k !== 'id')
-            .map(([k, _]: [string, any], i) => `${k} = ${conditionValues[i]}`)
+            .map(([k, _]: [string, any], i) => `${k} = ${oldValues[i]}`)
             .join(' AND ')};
         `;
         break;
@@ -162,66 +184,88 @@ async function getQueries(
   return queries;
 }
 
-/** @internal */
-async function getValue(
+/**
+ * @internal
+ * The changes from iasql_audit_log are stored as JSON, so we need to transform them and return a valid value for the query.
+ * */
+async function jsonValueToDbString(
   tableName: string,
-  k: string,
-  v: any,
-  mbt: { [key: string]: ModuleInterface },
+  key: string,
+  value: any,
+  modsIndexedByTable: { [key: string]: ModuleInterface },
   orm: TypeormWrapper,
 ): Promise<string> {
-  if (v === undefined || typeof v === 'string' || typeof v === 'object') {
-    return getPrimitiveValue(v);
+  if (value === undefined || typeof value === 'string' || typeof value === 'object') {
+    return getDbString(value);
   }
-  const metadata = await getMetadata(tableName, mbt, orm);
-  if (v && typeof v === 'number' && metadata) {
+  // If `value`'s type is `number` we might need to recreate a sub-query because it could be an `id` referencing other table.
+  // In this case we need to get Typeorm metadata for this `tableName` and inspect columns and relations and recreate the sub-query if necessary.
+  // We need to recreate the sub-query because database `id` columns will not be the same across databases connected to the same cloud account.
+  const metadata = await getMetadata(tableName, modsIndexedByTable, orm);
+  if (value && typeof value === 'number' && metadata) {
+    // If `metadata instanceof EntityMetadata` means that there's an Entity in Typeorm which it's table name is `tableName`
     if (metadata instanceof EntityMetadata) {
       const keyRelationMetadata = metadata.ownColumns
-        .filter(oc => oc.databaseName === k && oc.referencedColumn?.databaseName === 'id')
+        .filter(oc => oc.databaseName === key && oc.referencedColumn?.databaseName === 'id')
         .map(oc => oc.relationMetadata)
         ?.pop();
       if (keyRelationMetadata) {
-        return await getIdSubQuery(v, keyRelationMetadata.inverseEntityMetadata, orm, mbt);
+        return await recreateSubQuery(
+          value,
+          keyRelationMetadata.inverseEntityMetadata,
+          modsIndexedByTable,
+          orm,
+        );
       }
     }
-    // Join table case
+    // If `metadata instanceof RelationMetadata` means that there's no Entity in Typeorm which it's table name is `tableName`,
+    // but theres a join table linking entities and `tableName` is that join table. In this case we need to check `joinColumns`
+    // which will have the columns from the owner of the relationship and `inverseJoinColumns` will have the columns coming from
+    // the other entities in the relationship.
     if (metadata instanceof RelationMetadata) {
       const keyRelationMetadata = metadata.joinColumns
-        .filter(jc => jc.databaseName === k && jc.referencedColumn?.databaseName === 'id')
+        .filter(jc => jc.databaseName === key && jc.referencedColumn?.databaseName === 'id')
         .map(jc => jc.relationMetadata)
         ?.pop();
       if (keyRelationMetadata) {
-        return await getIdSubQuery(v, keyRelationMetadata.entityMetadata, orm, mbt);
+        return await recreateSubQuery(value, keyRelationMetadata.entityMetadata, modsIndexedByTable, orm);
       }
       const keyInverseRelationMetadata = metadata.inverseJoinColumns
-        .filter(jc => jc.databaseName === k && jc.referencedColumn?.databaseName === 'id')
+        .filter(jc => jc.databaseName === key && jc.referencedColumn?.databaseName === 'id')
         .map(jc => jc.relationMetadata)
         ?.pop();
       if (keyInverseRelationMetadata) {
-        return await getIdSubQuery(v, keyInverseRelationMetadata.inverseEntityMetadata, orm, mbt);
+        return await recreateSubQuery(
+          value,
+          keyInverseRelationMetadata.inverseEntityMetadata,
+          modsIndexedByTable,
+          orm,
+        );
       }
     }
   }
-  return `${v}`;
+  return `${value}`;
 }
 
 /** @internal */
-function getPrimitiveValue(v: any): string {
+function getDbString(v: any): string {
   if (v === undefined) return `${null}`;
   if (typeof v === 'string') return `'${v}'`;
   if (v && typeof v === 'object' && !Array.isArray(v)) return `'${JSON.stringify(v)}'`;
-  if (v && typeof v === 'object' && Array.isArray(v))
-    return `'{${v.map(o => getPrimitiveValue(o)).join(',')}}'`;
+  if (v && typeof v === 'object' && Array.isArray(v)) return `'{${v.map(o => getDbString(o)).join(',')}}'`;
   return `${v}`;
 }
 
-/** @internal */
+/**
+ * @internal
+ * Returns Typeorm metadata related to `tableName`
+ * */
 async function getMetadata(
   tableName: string,
-  mbt: { [key: string]: ModuleInterface },
+  modsIndexedByTable: { [key: string]: ModuleInterface },
   orm: TypeormWrapper,
 ): Promise<EntityMetadata | RelationMetadata | undefined> {
-  const mappers = Object.values(mbt[tableName] ?? {}).filter(val => val instanceof MapperBase);
+  const mappers = Object.values(modsIndexedByTable[tableName] ?? {}).filter(val => val instanceof MapperBase);
   let metadata: EntityMetadata | RelationMetadata | undefined;
   for (const m of mappers) {
     const tableEntity = (m as MapperBase<any>).entity;
@@ -263,24 +307,32 @@ async function getMetadata(
   return metadata;
 }
 
-/** @internal */
-async function getIdSubQuery(
+/**
+ * @internal
+ * Returns sub-query based on `id` relation.
+ * The related entity will be found using the cloud columns decorators.
+ * */
+async function recreateSubQuery(
   id: number,
   entityMetadata: EntityMetadata,
+  modsIndexedByTable: { [key: string]: ModuleInterface },
   orm: TypeormWrapper,
-  mbt: { [key: string]: ModuleInterface },
 ): Promise<string> {
+  // Get cloud columns of the entity we want to look for.
   const cloudColumns = getCloudId(entityMetadata?.target);
   if (cloudColumns && !(cloudColumns instanceof Error)) {
-    let ccVal: any;
+    let e: any;
     try {
-      ccVal = await orm.findOne(entityMetadata?.targetName ?? '', { where: { id } });
+      e = await orm.findOne(entityMetadata?.targetName ?? '', { where: { id } });
     } catch (e: any) {
       logger.warn(e.message ?? 'Error finding relation');
-      ccVal = null;
+      e = null;
     }
     const values = await Promise.all(
-      cloudColumns.map(async (k: string) => await getValue(entityMetadata.tableName, k, ccVal[k], mbt, orm)),
+      cloudColumns.map(
+        async (cc: string) =>
+          await jsonValueToDbString(entityMetadata.tableName, cc, e[cc], modsIndexedByTable, orm),
+      ),
     );
     return `(SELECT id FROM ${entityMetadata?.tableName} WHERE ${cloudColumns
       .map((cc, i) => `${snakeCase(cc)} = ${values[i] !== undefined ? values[i] : '<unknown value>'}`)
