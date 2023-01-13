@@ -79,20 +79,30 @@ jobs:
         id: determine-test-account
         env:
           SECRET_HEADER: ${{ secrets.SECRET_HEADER }}
-        run: |
-          RESPONSE=$(curl -X POST -H "Content-Type: text/plain" -H "${SECRET_HEADER}" -d '1' https://fkk3xlyad5tobhmezx4onpvele0zyehu.lambda-url.us-east-2.on.aws/ 2>/dev/null)
-          echo $RESPONSE
-          ACCOUNT_INDEX=$(echo $RESPONSE | jq '.[0]' || exit 1)
-          echo "::set-output name=account_index::$(echo ${ACCOUNT_INDEX})"
+        uses: nick-fields/retry@v2
+        with:
+          max_attempts: 2
+          retry_on: error
+          timeout_minutes: 5
+          command: |
+            RESPONSE=$(curl -X POST -H "Content-Type: text/plain" -H "${SECRET_HEADER}" -d '1' https://fkk3xlyad5tobhmezx4onpvele0zyehu.lambda-url.us-east-2.on.aws/ 2>/dev/null)
+            echo $RESPONSE
+            ACCOUNT_INDEX=$(echo $RESPONSE | jq '.[0]' || exit 1)
+            echo "::set-output name=account_index::$(echo ${ACCOUNT_INDEX})"
 
       - name: Setup IaSQL database
         if: always()
-        run: |
-          export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
-          export AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
-          source ./src/scripts/setup-iasql-db.sh
-          echo "iasql_username=$IASQL_USERNAME" >> $GITHUB_ENV
-          echo "iasql_password=$IASQL_PASSWORD" >> $GITHUB_ENV
+        uses: nick-fields/retry@v2
+        with:
+          max_attempts: 2
+          retry_on: error
+          timeout_minutes: 5
+          command: |
+            export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
+            export AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
+            source ./src/scripts/setup-iasql-db.sh
+            echo "iasql_username=$IASQL_USERNAME" >> $GITHUB_ENV
+            echo "iasql_password=$IASQL_PASSWORD" >> $GITHUB_ENV
         env:
           ACCOUNT_INDEX: ${{ steps['determine-test-account'].outputs['account_index'] }}
           AWS_REGION: ${{ needs.setup.outputs['region'] }}
@@ -101,15 +111,20 @@ jobs:
 
       - name: Pre-clean with cleaning script
         if: always()
-        run: |
-          export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
-          export AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
-          echo "\nStart transaction..."
-          psql "postgres://$IASQL_USERNAME:$IASQL_PASSWORD@localhost:5432/iasql" -c "select * from iasql_begin();"
-          echo "\nDelete all records..."
-          psql "postgres://$IASQL_USERNAME:$IASQL_PASSWORD@localhost:5432/iasql" -c "select * from delete_all_records();"
-          echo "\nApply..."
-          psql $PSQL_CONN -c "select * from iasql_commit();"
+        uses: nick-fields/retry@v2
+        with:
+          max_attempts: 2
+          retry_on: error
+          timeout_minutes: 5
+          command: |
+            export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
+            export AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
+            echo "\nStart transaction..."
+            psql "postgres://$IASQL_USERNAME:$IASQL_PASSWORD@localhost:5432/iasql" -c "select * from iasql_begin();"
+            echo "\nDelete all records..."
+            psql "postgres://$IASQL_USERNAME:$IASQL_PASSWORD@localhost:5432/iasql" -c "select * from delete_all_records();"
+            echo "\nApply..."
+            psql $PSQL_CONN -c "select * from iasql_commit();"
         env:
           ACCOUNT_INDEX: ${{ steps['determine-test-account'].outputs['account_index'] }}
           AWS_REGION: ${{ needs.setup.outputs['region'] }}
@@ -120,10 +135,15 @@ jobs:
           PSQL_CONN: postgres://postgres:test@localhost:5432/iasql
 
       - name: Run deploy script
-        run: |
-          export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
-          export AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
-          ./test/tutorials/prisma-ci.sh
+        uses: nick-fields/retry@v2
+        with:
+          max_attempts: 2
+          retry_on: error
+          timeout_minutes: 30
+          command: |
+            export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
+            export AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
+            ./test/tutorials/prisma-ci.sh
         env:
           ACCOUNT_INDEX: ${{ steps['determine-test-account'].outputs['account_index'] }}
           AWS_REGION: ${{ needs.setup.outputs['region'] }}
@@ -134,15 +154,20 @@ jobs:
 
       - name: Run cleaning script
         if: always()
-        run: |
-          export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
-          export AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
-          echo "\nStart transaction..."
-          psql "postgres://$IASQL_USERNAME:$IASQL_PASSWORD@localhost:5432/iasql" -c "select * from iasql_begin();"
-          echo "\nDelete all records..."
-          psql "postgres://$IASQL_USERNAME:$IASQL_PASSWORD@localhost:5432/iasql" -c "select * from delete_all_records();"
-          echo "\nApply..."
-          psql $PSQL_CONN -c "select * from iasql_commit();"
+        uses: nick-fields/retry@v2
+        with:
+          max_attempts: 2
+          retry_on: error
+          timeout_minutes: 30
+          command: |
+            export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
+            export AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
+            echo "\nStart transaction..."
+            psql "postgres://$IASQL_USERNAME:$IASQL_PASSWORD@localhost:5432/iasql" -c "select * from iasql_begin();"
+            echo "\nDelete all records..."
+            psql "postgres://$IASQL_USERNAME:$IASQL_PASSWORD@localhost:5432/iasql" -c "select * from delete_all_records();"
+            echo "\nApply..."
+            psql $PSQL_CONN -c "select * from iasql_commit();"
         env:
           ACCOUNT_INDEX: ${{ steps['determine-test-account'].outputs['account_index'] }}
           AWS_REGION: ${{ needs.setup.outputs['region'] }}
