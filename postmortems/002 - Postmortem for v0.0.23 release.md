@@ -14,7 +14,7 @@ We have been unable to release v0.0.23, a significant rearchitecting and feature
 
 - **2022-12-20**: Staging cannot load docker container images because it has run out of disk space. Increased boot volume to 16GB.
 - **2022-12-27**: Staging deploys fail complaining about lack of disk space, again. Dropping `stdout/err` in favor of LogDNA recommended.
-- **2023-01-03**: Staging `run` service crashed, cannot be deployed automatically. Deployment code written, better logging and auto-restart added to `run` service. Discord altering on staging/production status revived.
+- **2023-01-03**: Staging `run` service crashed, cannot be deployed automatically. Deployment code written, better logging and auto-restart added to `run` service. Discord alerting on staging/production status revived.
 - **2023-01-08**: Staging instance becomes unreachable. Somehow the DHCP daemon failed to get an IP address assigned by AWS. Manually stopping and starting the server revived it.
 - **2023-01-11**: Staging cannot deploy. Authorization to ghcr.io failed. Replaced Github Personal Access Token. Recommend monthly calendar task to replace the token until ghcr.io is replaced with dockerhub (potentially).
 
