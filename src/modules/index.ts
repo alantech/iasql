@@ -24,6 +24,7 @@ export * from './aws_route53';
 export * from './aws_s3';
 export * from './aws_secrets_manager';
 export * from './aws_security_group';
+export * from './aws_sns';
 export * from './aws_vpc';
 export * from './iasql_functions';
 export * from './iasql_platform';
