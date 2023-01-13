@@ -102,14 +102,15 @@ export enum treatMissingDataEnum {
  *
  * @example
  * ```sql TheButton[Manage a CloudWatch Metric alarm entry]="Manage a CloudWatch Metric alarm entry"
- * INSERT INTO log_group (log_group_name) VALUES ('log_name');
+ *  INSERT INTO metric_alarm (alarm_name, alarm_description, actions_enabled, comparison_operator, datapoints_to_alarm, dimensions, metric_name, namespace, period, statistic, threshold, evaluation_periods)
+ * VALUES ('alarm_name', 'Metric alarm description', true, 'GreaterThanThreshold', 1, '[{"Name": "InstanceId", "Value": "test"}]', 'CPUUtilization', 'AWS/EC2', 60, 'Average', 10, 1);
  *
- * SELECT * FROM log_group WHERE log_group_name = 'log_name';
+ * SELECT * FROM metric_alarm where alarm_name='alarm_name';
  *
- * DELETE FROM log_group WHERE log_group_name = 'log_name';
+ * DELETE FROM metric_alarm wheer alarm_name='alarm_name';
  * ```
  *
- * @see https://github.com/iasql/iasql-engine/blob/main/test/modules/aws-cloudwatch-integration.ts#L309
+ * @see https://github.com/iasql/iasql-engine/blob/main/test/modules/aws-cloudwatch-integration.ts#L436
  * @see https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/AlarmThatSendsEmail.html
  *
  */
