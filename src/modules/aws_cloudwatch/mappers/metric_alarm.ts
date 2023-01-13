@@ -40,7 +40,8 @@ export class MetricAlarmMapper extends MapperBase<MetricAlarm> {
     isEqual(a.statistic, b.statistic) &&
     Object.is(a.threshold, b.threshold) &&
     Object.is(a.thresholdMetricId, b.thresholdMetricId) &&
-    isEqual(a.treatMissingData, b.treatMissingData);
+    isEqual(a.treatMissingData, b.treatMissingData) &&
+    Object.is(a.alarmArn, b.alarmArn);
 
   putMetricAlarm = crudBuilder2<CloudWatch, 'putMetricAlarm'>('putMetricAlarm', input => input);
 
@@ -156,7 +157,7 @@ export class MetricAlarmMapper extends MapperBase<MetricAlarm> {
       const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const m of mas) {
-        const cloudRecord = ctx?.memo?.cloud?.MetricAlarm?.[m.id ?? ''];
+        const cloudRecord = ctx?.memo?.cloud?.MetricAlarm?.[this.entityId(m)];
         const isUpdate = Object.is(this.module.metricAlarm.cloud.updateOrReplace(cloudRecord, m), 'update');
         if (isUpdate) {
           // in the case of objects being modified, restore them

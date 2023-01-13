@@ -163,7 +163,7 @@ export class MetricAlarm {
    * The actions to execute when this alarm transitions to the ALARM state from any other state.
    * Each action is specified as an Amazon Resource Name (ARN).
    */
-  @Column('text', { array: true })
+  @Column({ type: 'json', nullable: true })
   alarmActions?: string[];
 
   /**
@@ -195,7 +195,7 @@ export class MetricAlarm {
    */
   @Column({
     type: 'json',
-    nullable: false,
+    nullable: true,
   })
   dimensions: {
     Name: string | undefined;
@@ -239,7 +239,7 @@ export class MetricAlarm {
    * The actions to execute when this alarm transitions to the INSUFFICIENT_DATA state from any other state.
    * @see https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-cloudwatch/interfaces/putmetricalarminput.html#insufficientdataactions
    */
-  @Column('text', { array: true })
+  @Column({ type: 'json', nullable: true })
   insufficientDataActions?: string[];
 
   /**
@@ -258,7 +258,7 @@ export class MetricAlarm {
    */
   @Column({
     type: 'json',
-    nullable: false,
+    nullable: true,
   })
   metrics: {
     Id: string | undefined;
@@ -297,7 +297,7 @@ export class MetricAlarm {
    * @public
    * The actions to execute when this alarm transitions to an OK state from any other state.
    */
-  @Column('text', { array: true })
+  @Column({ type: 'json', nullable: true })
   okActions?: string[];
 
   /**
