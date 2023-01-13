@@ -102,7 +102,7 @@ async function getInstalledModules(orm: TypeormWrapper): Promise<ModuleInterface
 /**
  * @internal
  * Returns the queries recreated from the change logs.
- * */
+ */
 async function recreateQueries(
   changeLogs: IasqlAuditLog[],
   modsIndexedByTable: { [key: string]: ModuleInterface },
@@ -187,7 +187,7 @@ async function recreateQueries(
 /**
  * @internal
  * The changes from iasql_audit_log are stored as JSON, so we need to transform them and return a valid value for the query.
- * */
+ */
 async function jsonValueToDbString(
   tableName: string,
   key: string,
@@ -259,7 +259,7 @@ function getDbString(v: any): string {
 /**
  * @internal
  * Returns Typeorm metadata related to `tableName`
- * */
+ */
 async function getMetadata(
   tableName: string,
   modsIndexedByTable: { [key: string]: ModuleInterface },
@@ -311,7 +311,7 @@ async function getMetadata(
  * @internal
  * Returns sub-query based on `id` relation.
  * The related entity will be found using the cloud columns decorators.
- * */
+ */
 async function recreateSubQuery(
   id: number,
   entityMetadata: EntityMetadata,
