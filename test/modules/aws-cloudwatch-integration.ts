@@ -397,6 +397,22 @@ describe('AwsCloudwatch Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
+  it(
+    'deletes all the log groups for the last time',
+    query(
+      `
+        DELETE FROM log_group WHERE log_group_name = '${logGroupName}';
+      `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it('applies deletion of all records', commit());
+
   // alarms
   it('starts a transaction', begin());
 
@@ -540,9 +556,6 @@ describe('AwsCloudwatch Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(0),
     ),
   );
-
-  // cleanup
-  it('applies deletion of all records', commit());
 
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 });
