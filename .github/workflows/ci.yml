@@ -42,7 +42,7 @@ jobs:
       - id: set-test-modules
         name: Set all numbers
         run: >
-          echo "::test-accounts name=test-accounts::$(console.log([...Array(101).keys()].slice(1)))"
+          echo "::test-accounts name=test-accounts::$(node -e 'console.log([...Array(101).keys()].slice(1))')"
 
   build-and-push:
     runs-on: ubuntu-latest
