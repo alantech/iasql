@@ -1,11 +1,7 @@
-import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn, Unique } from 'typeorm';
-
-import { AttachmentStatus } from '@aws-sdk/client-ec2/dist-types/models/models_0';
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 
 import { cloudId } from '../../../services/cloud-id';
 import { AwsRegions } from '../../aws_account/entity';
-import { Route } from './route';
-import { RouteTableAssociation } from './route_table_association';
 import { Vpc } from './vpc';
 
 /**

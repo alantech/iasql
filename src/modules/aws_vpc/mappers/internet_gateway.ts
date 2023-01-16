@@ -7,7 +7,7 @@ import {
 
 import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
 import { Context, Crud2, MapperBase } from '../../interfaces';
-import { InternetGateway } from '../entity/internet_gateway';
+import { InternetGateway } from '../entity';
 import { awsVpcModule, AwsVpcModule } from '../index';
 import { convertTagsForAws, convertTagsFromAws, eqTags } from './tags';
 
