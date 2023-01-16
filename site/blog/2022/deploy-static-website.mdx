@@ -66,13 +66,17 @@ If you want to know which resources (via tables) an IaSQL module handles, you ca
 
 ```sql TheButton[Enable Public Access to S3 Bucket]="Enable Public Access to The Bucket"
 SELECT iasql_begin();
-INSERT INTO public_access_block (
-    bucket_name, block_public_acls, ignore_public_acls, block_public_policy, restrict_public_buckets
-) VALUES (
-    '<bucket-name>', false, false, false, false
-);
+INSERT INTO public_access_block (bucket_name, block_public_acls, ignore_public_acls, block_public_policy,
+                                 restrict_public_buckets)
+VALUES ('<bucket-name>', false, false, false, false)
+ON CONFLICT (bucket_name) DO UPDATE SET block_public_acls       = excluded.block_public_acls,
+                                        ignore_public_acls      = excluded.ignore_public_acls,
+                                        block_public_policy     = excluded.block_public_policy,
+                                        restrict_public_buckets = excluded.restrict_public_buckets;
 SELECT iasql_commit();
 ```
+
+There's a 1-1 relationship between the bucket and bucket public access block, therefore we're using Postgres [`ON CONFLICT`](https://www.postgresql.org/docs/current/sql-insert.html#SQL-ON-CONFLICT) syntax so that when there's a record already, we can replace it without hassle.
 
 Now we should be able to directly access our file through the web browser.
 ```
@@ -168,7 +172,7 @@ Then create the distribution:
 ```sql TheButton[Create a CloudFront Distribution]="Create a Distribution For Bucket Website"
 SELECT iasql_begin();
 INSERT INTO distribution (caller_reference, origins, default_cache_behavior)
-VALUES ('my-website', '[
+VALUES ('my-website', ('[
   {
     "DomainName": "' || (SELECT get_bucket_website_endpoint('<bucket-name>')) || '",
     "Id": "my-website-origin",
@@ -178,7 +182,7 @@ VALUES ('my-website', '[
       "OriginProtocolPolicy": "http-only"
     }
   }
-]', '{
+]')::json, '{
   "TargetOriginId": "my-website-origin",
   "ViewerProtocolPolicy": "allow-all",
   "CachePolicyId": "658327ea-f89d-4fab-a63d-7e88639e58f6"

@@ -2,7 +2,7 @@ CREATE
 OR REPLACE FUNCTION block_s3_primary_key_update () RETURNS TRIGGER AS $block_s3_primary_key_update$
     BEGIN
         RAISE EXCEPTION 'Bucket name or region cannot be modified'
-        USING detail = 'A bucket cannot be renamed or moved to another region', 
+        USING detail = 'A bucket cannot be renamed or moved to another region',
         hint = 'If you want to rename or change bucket region, first remove it, and if re-using the same name then you must wait about 2 hours before creating again.';
         RETURN OLD;
     END;
@@ -62,9 +62,9 @@ BEGIN
         'ap-northeast-2', 'ca-central-1', 'cn-northwest-1', 'eu-central-1', 'eu-west-2', 'eu-south-1', 'eu-west-3',
         'eu-north-1', 'eu-south-2', 'eu-central-2', 'me-south-1', 'me-central-1')
     THEN
-        RETURN bucket_name || '.' ||  _region || '.amazonaws.com';
+        RETURN bucket_name || '.' || 's3-website.' ||  _region || '.amazonaws.com';
     ELSE
-        RETURN bucket_name || '-' ||  _region || '.amazonaws.com';
+        RETURN bucket_name || '.' || 's3-website-' ||  _region || '.amazonaws.com';
     END IF;
 END
 $$ LANGUAGE plpgsql;

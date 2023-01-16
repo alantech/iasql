@@ -96,22 +96,24 @@ export class Distribution {
    * Internal comments to describe the distribution
    */
   @Column({
-    nullable: true,
+    nullable: false,
+    default: '',
   })
   comment?: string;
 
   /**
    * @public
-   * Wether the distribution is enabled or not
+   * Whether the distribution is enabled or not
    */
   @Column({
-    nullable: true,
+    nullable: false,
+    default: true,
   })
   enabled?: boolean;
 
   /**
    * @public
-   * Wether to enable IPV6 for this distribution
+   * Whether to enable IPV6 for this distribution
    */
   @Column({
     nullable: true,
