@@ -1,6 +1,6 @@
 ---
 slug: deploy-static-website
-title: Deploy a Static Website Using SQL
+title: Deploy a Static Website Using SQL on AWS
 date: 2022-12-21
 unlisted: true
 authors: [mtp1376]
@@ -8,7 +8,7 @@ authors: [mtp1376]
 Did you know you can deploy a static website without leaving your SQL REPL? In this post we'll show you how to leverage IaSQL's capabilities to simply deploy a static website from your GitHub repository to AWS using only SQL commands.
 
 ## Overview
-First, we will create a S3 bucket which will hold our static files. Then we'll enable S3 static website hosting to be able to access our website using a S3 endpoint. We'll also need to enable public access to our S3 files. After that we will create a new CloudFront distribution because S3 static website hosting doesn't support HTTPS, and we're done. Let's dive in to see how IaSQL can deploy a static website using simple SQL commands.
+We will create and configure a S3 bucket to serve our static website. To enable support for HTTPS, we'll also add a CloudFront distribution. We will also leverage CodeBuild to automatically build the files for our project and copy them to the S3 bucket created already.
 
 ## Create a S3 Bucket
 To be able to work with S3, we should first install corresponding IaSQL module.
