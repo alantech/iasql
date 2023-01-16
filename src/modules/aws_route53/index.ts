@@ -2,18 +2,17 @@ import {
   ChangeInfo,
   HostedZone as AwsHostedZone,
   ListResourceRecordSetsCommandInput,
+  paginateListHostedZones,
   ResourceRecord,
   ResourceRecordSet as AwsResourceRecordSet,
   Route53,
-  paginateListHostedZones,
 } from '@aws-sdk/client-route-53';
 
-import { AWS, crudBuilderFormat, paginateBuilder, crudBuilder2 } from '../../services/aws_macros';
+import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../services/aws_macros';
 import { awsElbModule } from '../aws_elb';
 import { LoadBalancerTypeEnum } from '../aws_elb/entity';
 import { Context, Crud2, IdFields, MapperBase, ModuleBase } from '../interfaces';
-import { AliasTarget, HostedZone } from './entity';
-import { RecordType, ResourceRecordSet } from './entity/resource_records_set';
+import { AliasTarget, HostedZone, RecordType, ResourceRecordSet } from './entity';
 
 const createHostedZone = crudBuilderFormat<Route53, 'createHostedZone', AwsHostedZone | undefined>(
   'createHostedZone',
@@ -76,6 +75,7 @@ async function getRecords(client: Route53, hostedZoneId: string) {
   } while (res?.IsTruncated);
   return records;
 }
+
 const getRecord = async (client: Route53, hostedZoneId: string, recordName: string, recordType: string) => {
   const records = await getRecords(client, hostedZoneId);
   return records.find(r => Object.is(r.Type, recordType) && Object.is(r.Name, recordName));
@@ -228,6 +228,14 @@ class ResourceRecordSetMapper extends MapperBase<ResourceRecordSet> {
     Object.is(a.aliasTarget?.loadBalancer?.loadBalancerArn, b.aliasTarget?.loadBalancer?.loadBalancerArn) &&
     Object.is(a.aliasTarget?.evaluateTargetHealth, b.aliasTarget?.evaluateTargetHealth);
 
+  equalDomains(d1: string, d2: string) {
+    // domains might have a trailing dot
+    if (d1[d1.length - 1] === '.') d1 = d1.slice(0, -1);
+    if (d2[d2.length - 1] === '.') d2 = d2.slice(0, -1);
+
+    return d1 === d2;
+  }
+
   async resourceRecordSetMapper(rrs: AwsResourceRecordSet & { HostedZoneId: string }, ctx: Context) {
     const out = new ResourceRecordSet();
     if (!(rrs.Name && rrs.Type)) return undefined;
@@ -283,17 +291,6 @@ class ResourceRecordSetMapper extends MapperBase<ResourceRecordSet> {
     return out;
   }
 
-  resourceRecordSetName(rrs: ResourceRecordSet) {
-    const name =
-      rrs.name && rrs.name[rrs.name.length - 1]
-        ? rrs.name[rrs.name.length - 1] === '.'
-          ? rrs.name
-          : `${rrs.name}.`
-        : '';
-    const domainName = rrs.parentHostedZone.domainName;
-    return `${name}${domainName}`;
-  }
-
   db = new Crud2<ResourceRecordSet>({
     create: (es: ResourceRecordSet[], ctx: Context) => ctx.orm.save(ResourceRecordSet, es),
     update: (es: ResourceRecordSet[], ctx: Context) => ctx.orm.save(ResourceRecordSet, es),
@@ -324,23 +321,7 @@ class ResourceRecordSetMapper extends MapperBase<ResourceRecordSet> {
       const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const e of rrs) {
-        const resourceRecordSet: AwsResourceRecordSet = {
-          Name: e.name,
-          Type: e.recordType,
-          TTL: e.ttl,
-        };
-        if (e.record) {
-          resourceRecordSet.ResourceRecords = e.record.split('\n').map(r => ({ Value: r }));
-        } else if (e.aliasTarget) {
-          resourceRecordSet.AliasTarget = {
-            HostedZoneId: e.aliasTarget.loadBalancer?.canonicalHostedZoneId,
-            EvaluateTargetHealth: e.aliasTarget.evaluateTargetHealth,
-            DNSName:
-              e.aliasTarget?.loadBalancer?.loadBalancerType === LoadBalancerTypeEnum.APPLICATION
-                ? `dualstack.${e.aliasTarget.loadBalancer?.dnsName}`
-                : e.aliasTarget.loadBalancer?.dnsName,
-          };
-        }
+        const resourceRecordSet = this.dbRecordToAwsObject(e);
         await createResourceRecordSet(
           client.route53Client,
           e.parentHostedZone.hostedZoneId,
@@ -416,53 +397,16 @@ class ResourceRecordSetMapper extends MapperBase<ResourceRecordSet> {
     delete: async (rrs: ResourceRecordSet[], ctx: Context) => {
       const client = (await ctx.getAwsClient()) as AWS;
       for (const e of rrs) {
-        // AWS required to have at least one NS and one SOA record.
-        // On a new hosted zone creation it creates them automatically if not defined
-        // So we have to check if at least one of each in database before trying to delete.
-        const dbHostedZone = await this.module.hostedZone.db.read(ctx, e.parentHostedZone.hostedZoneId);
-        if (!!dbHostedZone && (Object.is(e.recordType, 'SOA') || Object.is(e.recordType, 'NS'))) {
-          const recordsSet: ResourceRecordSet[] | undefined = await this.module.resourceRecordSet.db.read(
-            ctx,
-          );
-          let hasRecord;
-          if (Object.is(e.recordType, 'SOA'))
-            hasRecord = recordsSet?.some(
-              r =>
-                Object.is(r.parentHostedZone.hostedZoneId, e.parentHostedZone.hostedZoneId) &&
-                Object.is(r.recordType, 'SOA'),
-            );
-          if (Object.is(e.recordType, 'NS'))
-            hasRecord = recordsSet?.some(
-              r =>
-                Object.is(r.parentHostedZone.hostedZoneId, e.parentHostedZone.hostedZoneId) &&
-                Object.is(r.recordType, 'NS'),
-            );
-          // If theres no record we have to created it in database instead of delete it from cloud
-          if (!hasRecord) {
-            await this.module.resourceRecordSet.db.create(e, ctx);
-            continue;
-          }
-        } else if (!dbHostedZone && (Object.is(e.recordType, 'SOA') || Object.is(e.recordType, 'NS'))) {
-          // Do nothing if SOA or NS records but hosted zone have been deleted
+        // default non-deletable cases
+        if (
+          e.recordType === RecordType.SOA ||
+          (e.recordType === RecordType.NS && this.equalDomains(e.name, e.parentHostedZone.domainName))
+        ) {
+          await this.module.resourceRecordSet.db.create(e, ctx);
           continue;
         }
-        const resourceRecordSet: AwsResourceRecordSet = {
-          Name: e.name,
-          Type: e.recordType,
-          TTL: e.ttl,
-        };
-        if (e.record) {
-          resourceRecordSet.ResourceRecords = e.record.split('\n').map(r => ({ Value: r }));
-        } else if (e.aliasTarget) {
-          resourceRecordSet.AliasTarget = {
-            HostedZoneId: e.aliasTarget.loadBalancer?.canonicalHostedZoneId,
-            EvaluateTargetHealth: e.aliasTarget.evaluateTargetHealth,
-            DNSName:
-              e.aliasTarget?.loadBalancer?.loadBalancerType === LoadBalancerTypeEnum.APPLICATION
-                ? `dualstack.${e.aliasTarget.loadBalancer?.dnsName}`
-                : e.aliasTarget.loadBalancer?.dnsName,
-          };
-        }
+
+        const resourceRecordSet = this.dbRecordToAwsObject(e);
         await deleteResourceRecordSet(
           client.route53Client,
           e.parentHostedZone.hostedZoneId,
@@ -471,6 +415,27 @@ class ResourceRecordSetMapper extends MapperBase<ResourceRecordSet> {
       }
     },
   });
+
+  private dbRecordToAwsObject(e: ResourceRecordSet): AwsResourceRecordSet {
+    const resourceRecordSet: AwsResourceRecordSet = {
+      Name: e.name,
+      Type: e.recordType,
+      TTL: e.ttl,
+    };
+    if (e.record) {
+      resourceRecordSet.ResourceRecords = e.record.split('\n').map(r => ({ Value: r }));
+    } else if (e.aliasTarget) {
+      resourceRecordSet.AliasTarget = {
+        HostedZoneId: e.aliasTarget.loadBalancer?.canonicalHostedZoneId,
+        EvaluateTargetHealth: e.aliasTarget.evaluateTargetHealth,
+        DNSName:
+          e.aliasTarget?.loadBalancer?.loadBalancerType === LoadBalancerTypeEnum.APPLICATION
+            ? `dualstack.${e.aliasTarget.loadBalancer?.dnsName}`
+            : e.aliasTarget.loadBalancer?.dnsName,
+      };
+    }
+    return resourceRecordSet;
+  }
 
   constructor(module: AwsRoute53Module) {
     super();
@@ -490,4 +455,5 @@ class AwsRoute53Module extends ModuleBase {
     super.init();
   }
 }
+
 export const awsRoute53Module = new AwsRoute53Module();
