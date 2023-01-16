@@ -150,22 +150,31 @@ export class TopicMapper extends MapperBase<Topic> {
 
           // check if the attributes are different and get the modified ones
           if (!isEqual(e.attributes, cloudRecord.attributes)) {
-            const diff = getObjectDiff(e.attributes as Record<string, string>, cloudRecord.attributes);
-            for (const key of diff) {
-              // check if the key is on cloudRecord and use that, otherwise set as null
-              let value;
-              if (cloudRecord.hasOwnProperty(key)) value = cloudRecord[key];
+            // check if we do not have updated attributes
+            if (!e.attributes) {
+              // need to update the values from cloud record
+              e.attributes = cloudRecord.attributes;
+              await this.module.topic.db.update(e, ctx);
+              out.push(e);
+              continue;
+            } else {
+              const diff = getObjectDiff(e.attributes as Record<string, string>, cloudRecord.attributes);
+              for (const key of diff) {
+                // check if the key is on cloudRecord and use that, otherwise set as null
+                let value;
+                if (cloudRecord.hasOwnProperty(key)) value = cloudRecord[key];
 
-              // update attribute
-              await this.setTopicAttributes(client.snsClient, {
-                AttributeName: key,
-                AttributeValue: value,
-                TopicArn: cloudRecord.arn,
-              });
+                // update attribute
+                await this.setTopicAttributes(client.snsClient, {
+                  AttributeName: key,
+                  AttributeValue: value,
+                  TopicArn: cloudRecord.arn,
+                });
+              }
             }
           }
           if (!isEqual(e.dataProtectionPolicy, cloudRecord.dataProtectionPolicy)) {
-            // update tye policy
+            // update the policy
             await this.putDataProtectionPolicy(client.snsClient, {
               ResourceArn: cloudRecord.arn,
               DataProtectionPolicy: cloudRecord.dataProtectionPolicy,
