@@ -2,6 +2,7 @@ import { ACM } from '@aws-sdk/client-acm';
 import { ApiGatewayV2 } from '@aws-sdk/client-apigatewayv2';
 import { AppSync } from '@aws-sdk/client-appsync';
 import { CloudFront } from '@aws-sdk/client-cloudfront';
+import { CloudWatch } from '@aws-sdk/client-cloudwatch';
 import { CloudWatchLogs } from '@aws-sdk/client-cloudwatch-logs';
 import { CodeBuild } from '@aws-sdk/client-codebuild';
 import { CodeDeploy } from '@aws-sdk/client-codedeploy';
@@ -58,6 +59,7 @@ export class AWS {
   cdClient: CodeDeploy;
   cpClient: CodePipeline;
   cwClient: CloudWatchLogs;
+  cloudwatchClient: CloudWatch; // need to add a different wording as cwClient is taken
   ec2client: EC2;
   ecrClient: ECR;
   ecrPubClient: ECRPUBLIC;
@@ -122,6 +124,7 @@ export class AWS {
     this.cdClient = new CodeDeploy(config);
     this.cpClient = new CodePipeline(config);
     this.cwClient = new CloudWatchLogs(config);
+    this.cloudwatchClient = new CloudWatch(config);
     this.dynamoClient = new DynamoDB(config);
     this.elasticacheClient = new ElastiCache(config);
     this.ec2client = new EC2(config);
