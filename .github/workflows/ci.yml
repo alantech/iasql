@@ -36,7 +36,7 @@ jobs:
   setup-module-test:
     runs-on: ubuntu-latest
     outputs:
-      test-accounts: ${{ steps['set-test-modules'].outputs['test-modules'] }}
+      test-accounts: ${{ steps['set-test-modules'].outputs['test-accounts'] }}
       registry-image-tag: ${{ steps['set-registry-image-tag'].outputs['registry-image-tag'] }}
     steps:
       - uses: actions/checkout@v3
