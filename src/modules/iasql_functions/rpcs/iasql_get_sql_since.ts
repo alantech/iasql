@@ -1,5 +1,6 @@
 import format from 'pg-format';
 import { EntityMetadata, In, MoreThan } from 'typeorm';
+import { ColumnMetadata } from 'typeorm/metadata/ColumnMetadata';
 import { RelationMetadata } from 'typeorm/metadata/RelationMetadata';
 import { snakeCase } from 'typeorm/util/StringUtils';
 
@@ -128,7 +129,8 @@ async function recreateQueries(
           INSERT INTO %I (${insertedEntries.map(_ => '%I').join(', ')})
           VALUES (${insertedEntries
             .map(
-              ([_, v]: [string, any]) => `${typeof v === 'object' && Array.isArray(v) ? 'array[%s]' : '%s'}`,
+              // ([_, v]: [string, any]) => `${typeof v === 'object' && Array.isArray(v) ? 'array[%s]' : '%s'}`,
+              ([_, v]: [string, any]) => `${typeof v === 'object' && Array.isArray(v) ? '%s' : '%s'}`,
             )
             .join(', ')});
         `,
@@ -155,10 +157,11 @@ async function recreateQueries(
                 ([_, v]: [string, any]) =>
                   `${
                     typeof v === 'object' && !Array.isArray(v)
-                      ? '%I::jsonb = %s'
+                      ? '%I::jsonb = %s::jsonb'
                       : typeof v === 'object' && Array.isArray(v)
-                      ? '%I = array[%s]'
-                      : '%I = %s'
+                      ? '%I = %s'
+                      : // ? '%I = array[%s]'
+                        '%I = %s'
                   }`,
               )
               .join(' AND ')};
@@ -194,9 +197,10 @@ async function recreateQueries(
               ([_, v]: [string, any]) =>
                 `${
                   typeof v === 'object' && !Array.isArray(v)
-                    ? '%I::jsonb = %s'
+                    ? '%I::jsonb = %s::jsonb'
                     : typeof v === 'object' && Array.isArray(v)
-                    ? '%I = array[%s]'
+                    ? // ? '%I = array[%s]'
+                      '%I = %s'
                     : '%I = %s'
                 }`,
             )
@@ -206,10 +210,11 @@ async function recreateQueries(
               ([_, v]: [string, any]) =>
                 `${
                   typeof v === 'object' && !Array.isArray(v)
-                    ? '%I::jsonb = %s'
+                    ? '%I::jsonb = %s::jsonb'
                     : typeof v === 'object' && Array.isArray(v)
-                    ? '%I = array[%s]'
-                    : '%I = %s'
+                    ? '%I = %s'
+                    : // ? '%I = array[%s]'
+                      '%I = %s'
                 }`,
             )
             .join(' AND ')};
@@ -243,14 +248,15 @@ async function findRelationOrReturnValue(
   // In this case we need to get Typeorm metadata for this `tableName` and inspect columns and relations and recreate the sub-query if necessary.
   // We need to recreate the sub-query because database `id` columns will not be the same across databases connected to the same cloud account.
   const metadata = await getMetadata(tableName, modsIndexedByTable, orm);
+  let columnMetadata: ColumnMetadata | undefined;
   if (value && metadata) {
     // If `metadata instanceof EntityMetadata` means that there's an Entity in Typeorm which it's table name is `tableName`
     if (metadata instanceof EntityMetadata) {
-      const columnMetadata = metadata.ownColumns
-        .filter(oc => oc.databaseName === key && !!oc.relationMetadata)
+      columnMetadata = metadata.ownColumns
+        .filter(oc => oc.databaseName === key)
         .map(oc => oc)
         ?.pop();
-      if (columnMetadata) {
+      if (!!columnMetadata?.relationMetadata) {
         return await recreateSubQuery(
           columnMetadata.referencedColumn?.databaseName ?? 'unknown_key',
           value,
@@ -265,33 +271,42 @@ async function findRelationOrReturnValue(
     // which will have the columns from the owner of the relationship and `inverseJoinColumns` will have the columns coming from
     // the other entities in the relationship.
     if (metadata instanceof RelationMetadata) {
-      const joinColumnMetadata = metadata.joinColumns
-        .filter(jc => jc.databaseName === key && !!jc.relationMetadata)
+      columnMetadata = metadata.joinColumns
+        .filter(jc => jc.databaseName === key)
         .map(jc => jc)
         ?.pop();
-      if (joinColumnMetadata) {
+      if (!!columnMetadata?.relationMetadata) {
         return await recreateSubQuery(
-          joinColumnMetadata.referencedColumn?.databaseName ?? 'unknown_key',
+          columnMetadata.referencedColumn?.databaseName ?? 'unknown_key',
           value,
-          joinColumnMetadata.relationMetadata?.entityMetadata,
+          columnMetadata.relationMetadata?.entityMetadata,
           modsIndexedByTable,
           orm,
         );
       }
-      const inverseJoinColumnMetadata = metadata.inverseJoinColumns
-        .filter(jc => jc.databaseName === key && !!jc.relationMetadata)
+      columnMetadata = metadata.inverseJoinColumns
+        .filter(jc => jc.databaseName === key)
         .map(jc => jc)
         ?.pop();
-      if (inverseJoinColumnMetadata) {
+      if (!!columnMetadata?.relationMetadata) {
         return await recreateSubQuery(
-          inverseJoinColumnMetadata.referencedColumn?.databaseName ?? 'unknown_key',
+          columnMetadata.referencedColumn?.databaseName ?? 'unknown_key',
           value,
-          inverseJoinColumnMetadata.relationMetadata?.inverseEntityMetadata,
+          columnMetadata.relationMetadata?.inverseEntityMetadata,
           modsIndexedByTable,
           orm,
         );
       }
     }
+  }
+  if (columnMetadata && columnMetadata.isArray) {
+    return typeof columnMetadata.type === 'string'
+      ? format('array[%L]::%I[]', value, columnMetadata.type)
+      : format('array[%L]', value);
+  } else if (columnMetadata && typeof value === 'object' && Array.isArray(value)) {
+    return typeof columnMetadata.type === 'string'
+      ? format('%L::%I', JSON.stringify(value), columnMetadata.type)
+      : format('%L', JSON.stringify(value));
   }
   return format('%L', value);
 }
