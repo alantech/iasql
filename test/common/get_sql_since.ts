@@ -169,7 +169,7 @@ describe('iasql_get_sql_since functionality', () => {
       (res: any) => {
         expect(res[res.length - 1].sql).toContain(`UPDATE iasql_audit_log`);
         expect(res[res.length - 1].sql).toContain(
-          `SET a_number = 42, a_string = 'bar', a_json = '{"foo":"bar"}', a_list = '{1,2,3}'`,
+          `SET a_number = '42', a_string = 'bar', a_json::jsonb = '{"foo":"bar"}', a_list = '{''1'',''2'',''3''}'`,
         );
         expect(res[res.length - 1].sql).toContain(
           `WHERE a_number = '42' AND a_string = 'foo' AND a_json:jsonb = '{"foo":"bar"}'::jsonb AND a_list = '{''1'',''2'',''3''}'`,
