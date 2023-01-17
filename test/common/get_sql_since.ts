@@ -137,7 +137,9 @@ describe('iasql_get_sql_since functionality', () => {
         expect(res[res.length - 1].sql).toContain(
           `INSERT INTO iasql_audit_log (a_number, a_string, a_json, a_list)`,
         );
-        expect(res[res.length - 1].sql).toContain(`VALUES ('42', 'foo', '{\"foo\":\"bar\"}'::jsonb, '{''1'',''2'',''3''}')`);
+        expect(res[res.length - 1].sql).toContain(
+          `VALUES ('42', 'foo', '{\"foo\":\"bar\"}'::jsonb, '{''1'',''2'',''3''}')`,
+        );
       },
     ),
   );
