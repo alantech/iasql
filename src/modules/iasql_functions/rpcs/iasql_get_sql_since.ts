@@ -190,7 +190,13 @@ async function recreateQueries(
           SET ${updatedEntries
             .map(
               ([_, v]: [string, any]) =>
-                `${typeof v === 'object' && Array.isArray(v) ? '%I = %L' : '%I = %s'}`,
+                `${
+                  typeof v === 'object' && !Array.isArray(v)
+                    ? '%I::jsonb = %s'
+                    : typeof v === 'object' && Array.isArray(v)
+                    ? '%I = %L'
+                    : '%I = %s'
+                }`,
             )
             .join(', ')}
           WHERE ${originalEntries
