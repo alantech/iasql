@@ -43,7 +43,7 @@ jobs:
       - id: set-test-modules
         name: Set all numbers
         run: >
-          echo "::test-accounts name=test-accounts::$(node -e 'console.log(JSON.stringify([...Array(101).keys()].slice(1)))')"
+          echo "::test-accounts name=test-accounts::$(node -e 'console.log([...Array(101).keys()].slice(1))')"
       - id: set-registry-image-tag
         name: Set registry image tag
         run: echo "::set-output name=registry-image-tag::ghcr.io/iasql/iasql-engine:$GITHUB_SHA"
