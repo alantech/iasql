@@ -127,7 +127,9 @@ async function recreateQueries(
           `
           INSERT INTO %I (${insertedEntries.map(_ => '%I').join(', ')})
           VALUES (${insertedEntries
-            .map(([_, v]: [string, any]) => `${typeof v === 'object' && Array.isArray(v) ? '%L' : '%s'}`)
+            .map(
+              ([_, v]: [string, any]) => `${typeof v === 'object' && Array.isArray(v) ? 'array[%s]' : '%s'}`,
+            )
             .join(', ')});
         `,
           cl.tableName,
@@ -155,7 +157,7 @@ async function recreateQueries(
                     typeof v === 'object' && !Array.isArray(v)
                       ? '%I::jsonb = %s'
                       : typeof v === 'object' && Array.isArray(v)
-                      ? '%I = %L'
+                      ? '%I = array[%s]'
                       : '%I = %s'
                   }`,
               )
@@ -194,7 +196,7 @@ async function recreateQueries(
                   typeof v === 'object' && !Array.isArray(v)
                     ? '%I::jsonb = %s'
                     : typeof v === 'object' && Array.isArray(v)
-                    ? '%I = %L'
+                    ? '%I = array[%s]'
                     : '%I = %s'
                 }`,
             )
@@ -206,7 +208,7 @@ async function recreateQueries(
                   typeof v === 'object' && !Array.isArray(v)
                     ? '%I::jsonb = %s'
                     : typeof v === 'object' && Array.isArray(v)
-                    ? '%I = %L'
+                    ? '%I = array[%s]'
                     : '%I = %s'
                 }`,
             )
@@ -291,7 +293,6 @@ async function findRelationOrReturnValue(
       }
     }
   }
-  if (typeof value === 'object' && Array.isArray(value)) return format(`{%L}`, value);
   return format('%L', value);
 }
 
@@ -381,7 +382,7 @@ async function recreateSubQuery(
       ),
     );
     const subQuery = format(
-      `SELECT %I FROM %I WHERE ${cloudColumns.map(_ => '%I = %L').join(' AND ')}`,
+      `SELECT %I FROM %I WHERE ${cloudColumns.map(_ => '%I = %s').join(' AND ')}`,
       referencedKey,
       entityMetadata?.tableName,
       ...cloudColumns.flatMap((cc, i) => [
