@@ -11,7 +11,7 @@ import { AwsRegions } from '../../aws_account/entity';
  *
  * ```
  *
- * @see https://github.com/iasql/iasql-engine/blob/main/test/modules/aws-codepipeline-integration.ts#L424
+ * @see https://github.com/iasql/iasql-engine/blob/main/test/modules/aws-sns-integration.ts#L120
  * @see https://docs.aws.amazon.com/sns/latest/dg/welcome.html
  *
  */
