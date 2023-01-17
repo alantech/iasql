@@ -202,8 +202,6 @@ describe('ECR Integration Testing', () => {
       WHERE private_repository_id = (select id from repository where repository_name = '${repositoryName}');
     `,
         (res: any[]) => {
-          console.dir(res)
-          console.log('burts')
           expect(res.length).toBe(3);
           expect(res.filter(i => i['image_tag'] === '<untagged>').length).toBe(1);
         },

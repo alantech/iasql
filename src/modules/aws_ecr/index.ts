@@ -192,13 +192,17 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
                 );
                 if (ri?.imageDetails) {
                   for (const imageDetail of ri.imageDetails) {
-                    if (
-                      imageDetail.imageDigest &&
-                      imageDetail.repositoryName
-                    ) {
+                    if (imageDetail.imageDigest && imageDetail.repositoryName) {
                       if (imageDetail.imageTags && imageDetail.imageTags.length > 0) {
                         for (const imageTag of imageDetail.imageTags) {
-                          out.push(await this.repositoryImageMapper({...imageDetail, imageTags:[imageTag]}, ctx, 'private', region));
+                          out.push(
+                            await this.repositoryImageMapper(
+                              { ...imageDetail, imageTags: [imageTag] },
+                              ctx,
+                              'private',
+                              region,
+                            ),
+                          );
                         }
                       } else {
                         out.push(await this.repositoryImageMapper(imageDetail, ctx, 'private', region));
@@ -228,10 +232,18 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
           );
           if (ri?.imageDetails) {
             for (const imageDetail of ri.imageDetails) {
-              if (
-                imageDetail.imageDigest &&
-                imageDetail.repositoryName
-              ) {
+              if (imageDetail.imageTags && imageDetail.imageTags.length > 0) {
+                for (const imageTag of imageDetail.imageTags) {
+                  out.push(
+                    await this.repositoryImageMapper(
+                      { ...imageDetail, imageTags: [imageTag] },
+                      ctx,
+                      'public',
+                      undefined,
+                    ),
+                  );
+                }
+              } else {
                 out.push(await this.repositoryImageMapper(imageDetail, ctx, 'public', undefined));
               }
             }
