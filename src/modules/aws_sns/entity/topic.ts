@@ -45,7 +45,7 @@ export class Topic {
     nullable: true,
     type: 'varchar',
   })
-  deliveryPolicy?: string | undefined | null;
+  deliveryPolicy?: string | undefined;
 
   /**
    * @public
@@ -56,7 +56,7 @@ export class Topic {
     nullable: true,
     type: 'varchar',
   })
-  displayName?: string | undefined | null;
+  displayName?: string | undefined;
 
   /**
    * @public
@@ -67,7 +67,7 @@ export class Topic {
     nullable: true,
     type: 'varchar',
   })
-  policy?: string | undefined | null;
+  policy?: string | undefined;
 
   /**
    * @public
@@ -78,7 +78,7 @@ export class Topic {
     nullable: true,
     type: 'varchar',
   })
-  tracingConfig?: string | undefined | null;
+  tracingConfig?: string | undefined;
 
   /**
    * @public
@@ -90,7 +90,7 @@ export class Topic {
     nullable: true,
     type: 'varchar',
   })
-  kmsMasterKeyId?: string | undefined | null;
+  kmsMasterKeyId?: string | undefined;
 
   /**
    * @public
@@ -102,7 +102,7 @@ export class Topic {
     nullable: true,
     type: 'varchar',
   })
-  signatureVersion?: string | undefined | null;
+  signatureVersion?: string | undefined;
 
   /**
    * @public
@@ -114,7 +114,7 @@ export class Topic {
     nullable: true,
     type: 'varchar',
   })
-  contentBasedDeduplication?: string | undefined | null;
+  contentBasedDeduplication?: string | undefined;
 
   /**
    * @public
@@ -136,7 +136,7 @@ export class Topic {
     type: 'json',
     nullable: true,
   })
-  dataProtectionPolicy?: string | undefined | null;
+  dataProtectionPolicy?: string | undefined;
 
   /**
    * @public

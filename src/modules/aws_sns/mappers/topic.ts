@@ -19,36 +19,15 @@ export class TopicMapper extends MapperBase<Topic> {
   equals = (a: Topic, b: Topic) => {
     return (
       Object.is(a.arn, b.arn) &&
-      isEqual(
-        a.contentBasedDeduplication == null ? undefined : a.contentBasedDeduplication,
-        b.contentBasedDeduplication == null ? undefined : a.contentBasedDeduplication,
-      ) &&
-      isEqual(
-        a.deliveryPolicy == null ? undefined : a.deliveryPolicy,
-        b.deliveryPolicy == null ? undefined : a.deliveryPolicy,
-      ) &&
-      isEqual(
-        a.displayName == null ? undefined : a.displayName,
-        b.displayName == null ? undefined : b.displayName,
-      ) &&
+      isEqual(a.contentBasedDeduplication, b.contentBasedDeduplication) &&
+      isEqual(a.deliveryPolicy, b.deliveryPolicy) &&
+      isEqual(a.displayName, b.displayName) &&
       isEqual(a.fifoTopic, b.fifoTopic) &&
-      isEqual(
-        a.kmsMasterKeyId == null ? undefined : a.kmsMasterKeyId,
-        b.kmsMasterKeyId == null ? undefined : b.kmsMasterKeyId,
-      ) &&
-      isEqual(a.policy == null ? undefined : a.policy, b.policy == null ? undefined : b.policy) &&
-      isEqual(
-        a.signatureVersion == null ? undefined : a.signatureVersion,
-        b.signatureVersion == null ? undefined : b.signatureVersion,
-      ) &&
-      isEqual(
-        a.tracingConfig == null ? undefined : a.tracingConfig,
-        b.tracingConfig == null ? undefined : b.tracingConfig,
-      ) &&
-      isEqual(
-        a.dataProtectionPolicy == null ? undefined : a.dataProtectionPolicy,
-        b.dataProtectionPolicy == null ? undefined : b.dataProtectionPolicy,
-      )
+      isEqual(a.kmsMasterKeyId, b.kmsMasterKeyId) &&
+      isEqual(a.policy, b.policy) &&
+      isEqual(a.signatureVersion, b.signatureVersion) &&
+      isEqual(a.tracingConfig, b.tracingConfig) &&
+      isEqual(a.dataProtectionPolicy, b.dataProtectionPolicy)
     );
   };
 
@@ -114,7 +93,7 @@ export class TopicMapper extends MapperBase<Topic> {
           out = Object.assign(out, newValues);
         } else {
           const newValues = {
-            [key]: null,
+            [key]: undefined,
           };
           out = Object.assign(out, newValues);
         }
@@ -124,7 +103,7 @@ export class TopicMapper extends MapperBase<Topic> {
 
     const dataProtection = await this.getTopicDataProtection(client.snsClient, t);
     if (dataProtection) out.dataProtectionPolicy = dataProtection;
-    else out.dataProtectionPolicy = null;
+    else out.dataProtectionPolicy = undefined;
 
     out.arn = t;
     out.region = region;
@@ -147,7 +126,7 @@ export class TopicMapper extends MapperBase<Topic> {
         const input: CreateTopicCommandInput = {
           Name: e.name,
           Attributes: Object.fromEntries(attr),
-          DataProtectionPolicy: e.dataProtectionPolicy == null ? undefined : e.dataProtectionPolicy,
+          DataProtectionPolicy: e.dataProtectionPolicy,
         };
         const result = await this.createTopic(client.snsClient, input);
         if (!result) throw new Error('Error creating SNS topic');
@@ -216,12 +195,7 @@ export class TopicMapper extends MapperBase<Topic> {
 
           for (const key of this.attributeKeys) {
             const dynamicKey = key as keyof Topic;
-            if (
-              !isEqual(
-                e[dynamicKey] == null ? undefined : e[dynamicKey],
-                cloudRecord[dynamicKey] == null ? undefined : cloudRecord[dynamicKey],
-              )
-            ) {
+            if (!isEqual(e[dynamicKey], cloudRecord[dynamicKey])) {
               // if record value is undefined we need to update the DB. If not,
               // update the cloud
               if (!e[dynamicKey]) {
