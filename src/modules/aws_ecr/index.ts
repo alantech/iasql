@@ -196,8 +196,13 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
                       imageDetail.imageDigest &&
                       imageDetail.repositoryName
                     ) {
-                      console.log('garbanzo', imageDetail.imageTags)
-                      out.push(await this.repositoryImageMapper(imageDetail, ctx, 'private', region));
+                      if (imageDetail.imageTags && imageDetail.imageTags.length > 0) {
+                        for (const imageTag of imageDetail.imageTags) {
+                          out.push(await this.repositoryImageMapper({...imageDetail, imageTags:[imageTag]}, ctx, 'private', region));
+                        }
+                      } else {
+                        out.push(await this.repositoryImageMapper(imageDetail, ctx, 'private', region));
+                      }
                     }
                   }
                 }
