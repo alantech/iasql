@@ -1,3 +1,4 @@
+import format from 'pg-format';
 import { EntityMetadata, In, MoreThan } from 'typeorm';
 import { RelationMetadata } from 'typeorm/metadata/RelationMetadata';
 import { snakeCase } from 'typeorm/util/StringUtils';
@@ -113,68 +114,102 @@ async function recreateQueries(
     let query: string = '';
     switch (cl.changeType) {
       case AuditLogChangeType.INSERT:
-        const valuesToInsert = await Promise.all(
-          Object.entries(cl.change?.change ?? {})
-            .filter(([k, v]: [string, any]) => k !== 'id' && v !== null)
-            .map(
-              async ([k, v]: [string, any]) =>
-                await jsonValueToDbString(cl.tableName, k, v, modsIndexedByTable, orm),
-            ),
+        const insertedEntries = Object.entries(cl.change?.change ?? {}).filter(
+          ([k, v]: [string, any]) => k !== 'id' && v !== null,
         );
-        query = `
-          INSERT INTO ${cl.tableName} (${Object.keys(cl.change?.change ?? {})
-          .filter((k: string) => k !== 'id' && cl.change?.change[k] !== null)
-          .join(', ')})
-          VALUES (${valuesToInsert.join(', ')});
-        `;
+        const valuesToInsert = await Promise.all(
+          insertedEntries.map(
+            async ([k, v]: [string, any]) =>
+              await findRelationOrReturnValue(cl.tableName, k, v, modsIndexedByTable, orm),
+          ),
+        );
+        query = format(
+          `
+          INSERT INTO %I (${insertedEntries.map(_ => '%I').join(', ')})
+          VALUES (${insertedEntries
+            .map(([_, v]: [string, any]) => `${typeof v === 'object' && Array.isArray(v) ? '%L' : '%s'}`)
+            .join(', ')});
+        `,
+          cl.tableName,
+          ...insertedEntries.map(([k, _]: [string, any]) => k),
+          ...valuesToInsert,
+        );
         break;
       case AuditLogChangeType.DELETE:
-        const valuesDeleted = await Promise.all(
-          Object.entries(cl.change?.original ?? {})
-            .filter(([k, v]: [string, any]) => k !== 'id' && v !== null)
-            .map(
-              async ([k, v]: [string, any]) =>
-                await jsonValueToDbString(cl.tableName, k, v, modsIndexedByTable, orm),
-            ),
+        const relevantEntries = Object.entries(cl.change?.original ?? {}).filter(
+          ([k, v]: [string, any]) => k !== 'id' && v !== null,
         );
-        query = `
-          DELETE FROM ${cl.tableName}
-          WHERE ${Object.entries(cl.change?.original ?? {})
-            .filter(([k, v]: [string, any]) => k !== 'id' && v !== null)
-            .map(([k, _]: [string, any], i) => `${k} = ${valuesDeleted[i]}`)
-            .join(' AND ')};
-        `;
+        const valuesDeleted = await Promise.all(
+          relevantEntries.map(
+            async ([k, v]: [string, any]) =>
+              await findRelationOrReturnValue(cl.tableName, k, v, modsIndexedByTable, orm),
+          ),
+        );
+        query = format(
+          `
+            DELETE FROM %I
+            WHERE ${relevantEntries
+              .map(
+                ([_, v]: [string, any]) =>
+                  `${
+                    typeof v === 'object' && !Array.isArray(v)
+                      ? '%I::jsonb = %s'
+                      : typeof v === 'object' && Array.isArray(v)
+                      ? '%I = %L'
+                      : '%I = %s'
+                  }`,
+              )
+              .join(' AND ')};
+          `,
+          cl.tableName,
+          ...relevantEntries.flatMap(([k, _]: [string, any], i) => [k, valuesDeleted[i]]),
+        );
         break;
       case AuditLogChangeType.UPDATE:
+        const originalEntries = Object.entries(cl.change?.original ?? {})
+          // We need to add an special case for AMIs since we know the revolve string can be used and it will not match with the actual AMI assigned
+          .filter(([k, _]: [string, any]) => k !== 'ami' && k !== 'id');
+        const updatedEntries = Object.entries(cl.change?.change ?? {}).filter(
+          ([k, _]: [string, any]) => k !== 'id',
+        );
         const updatedValues = await Promise.all(
-          Object.entries(cl.change?.change ?? {})
-            .filter(([k, _]: [string, any]) => k !== 'id')
-            .map(
-              async ([k, v]: [string, any]) =>
-                await jsonValueToDbString(cl.tableName, k, v, modsIndexedByTable, orm),
-            ),
+          updatedEntries.map(
+            async ([k, v]: [string, any]) =>
+              await findRelationOrReturnValue(cl.tableName, k, v, modsIndexedByTable, orm),
+          ),
         );
         const oldValues = await Promise.all(
-          Object.entries(cl.change?.original ?? {})
-            // We need to add an special case for AMIs since we know the revolve string can be used and it will not match with the actual AMI assigned
-            .filter(([k, _]: [string, any]) => k !== 'ami' && k !== 'id')
-            .map(
-              async ([k, v]: [string, any]) =>
-                await jsonValueToDbString(cl.tableName, k, v, modsIndexedByTable, orm),
-            ),
+          originalEntries.map(
+            async ([k, v]: [string, any]) =>
+              await findRelationOrReturnValue(cl.tableName, k, v, modsIndexedByTable, orm),
+          ),
         );
-        query = `
-          UPDATE ${cl.tableName}
-          SET ${Object.entries(cl.change?.change ?? {})
-            .filter(([k, _]: [string, any]) => k !== 'id')
-            .map(([k, _]: [string, any], i) => `${k} = ${updatedValues[i]}`)
+        query = format(
+          `
+          UPDATE %I
+          SET ${updatedEntries
+            .map(
+              ([_, v]: [string, any]) =>
+                `${typeof v === 'object' && Array.isArray(v) ? '%I = %L' : '%I = %s'}`,
+            )
             .join(', ')}
-          WHERE ${Object.entries(cl.change?.original ?? {})
-            // We need to add an special case for AMIs since we know the revolve string can be used and it will not match with the actual AMI assigned
-            .filter(([k, _]: [string, any]) => k !== 'ami' && k !== 'id')
-            .map(([k, _]: [string, any], i) => `${k} = ${oldValues[i]}`)
+          WHERE ${originalEntries
+            .map(
+              ([_, v]: [string, any]) =>
+                `${
+                  typeof v === 'object' && !Array.isArray(v)
+                    ? '%I::jsonb = %s'
+                    : typeof v === 'object' && Array.isArray(v)
+                    ? '%I = %L'
+                    : '%I = %s'
+                }`,
+            )
             .join(' AND ')};
-        `;
+        `,
+          cl.tableName,
+          ...updatedEntries.flatMap(([k, _]: [string, any], i) => [k, updatedValues[i]]),
+          ...originalEntries.flatMap(([k, _]: [string, any], i) => [k, oldValues[i]]),
+        );
         break;
       default:
         break;
@@ -188,31 +223,30 @@ async function recreateQueries(
  * @internal
  * The changes from iasql_audit_log are stored as JSON, so we need to transform them and return a valid value for the query.
  */
-async function jsonValueToDbString(
+async function findRelationOrReturnValue(
   tableName: string,
   key: string,
   value: any,
   modsIndexedByTable: { [key: string]: ModuleInterface },
   orm: TypeormWrapper,
 ): Promise<string> {
-  if (value === undefined || typeof value === 'string' || typeof value === 'object') {
-    return getDbString(value);
-  }
+  // Todo: update comment
   // If `value`'s type is `number` we might need to recreate a sub-query because it could be an `id` referencing other table.
   // In this case we need to get Typeorm metadata for this `tableName` and inspect columns and relations and recreate the sub-query if necessary.
   // We need to recreate the sub-query because database `id` columns will not be the same across databases connected to the same cloud account.
   const metadata = await getMetadata(tableName, modsIndexedByTable, orm);
-  if (value && typeof value === 'number' && metadata) {
+  if (value && metadata) {
     // If `metadata instanceof EntityMetadata` means that there's an Entity in Typeorm which it's table name is `tableName`
     if (metadata instanceof EntityMetadata) {
-      const keyRelationMetadata = metadata.ownColumns
-        .filter(oc => oc.databaseName === key && oc.referencedColumn?.databaseName === 'id')
-        .map(oc => oc.relationMetadata)
+      const columnMetadata = metadata.ownColumns
+        .filter(oc => oc.databaseName === key && !!oc.relationMetadata)
+        .map(oc => oc)
         ?.pop();
-      if (keyRelationMetadata) {
+      if (columnMetadata) {
         return await recreateSubQuery(
+          columnMetadata.referencedColumn?.databaseName ?? 'unknown_key',
           value,
-          keyRelationMetadata.inverseEntityMetadata,
+          columnMetadata.relationMetadata?.inverseEntityMetadata,
           modsIndexedByTable,
           orm,
         );
@@ -223,37 +257,36 @@ async function jsonValueToDbString(
     // which will have the columns from the owner of the relationship and `inverseJoinColumns` will have the columns coming from
     // the other entities in the relationship.
     if (metadata instanceof RelationMetadata) {
-      const keyRelationMetadata = metadata.joinColumns
-        .filter(jc => jc.databaseName === key && jc.referencedColumn?.databaseName === 'id')
-        .map(jc => jc.relationMetadata)
+      const joinColumnMetadata = metadata.joinColumns
+        .filter(jc => jc.databaseName === key && !!jc.relationMetadata)
+        .map(jc => jc)
         ?.pop();
-      if (keyRelationMetadata) {
-        return await recreateSubQuery(value, keyRelationMetadata.entityMetadata, modsIndexedByTable, orm);
-      }
-      const keyInverseRelationMetadata = metadata.inverseJoinColumns
-        .filter(jc => jc.databaseName === key && jc.referencedColumn?.databaseName === 'id')
-        .map(jc => jc.relationMetadata)
-        ?.pop();
-      if (keyInverseRelationMetadata) {
+      if (joinColumnMetadata) {
         return await recreateSubQuery(
+          joinColumnMetadata.referencedColumn?.databaseName ?? 'unknown_key',
           value,
-          keyInverseRelationMetadata.inverseEntityMetadata,
+          joinColumnMetadata.relationMetadata?.entityMetadata,
+          modsIndexedByTable,
+          orm,
+        );
+      }
+      const inverseJoinColumnMetadata = metadata.inverseJoinColumns
+        .filter(jc => jc.databaseName === key && !!jc.relationMetadata)
+        .map(jc => jc)
+        ?.pop();
+      if (inverseJoinColumnMetadata) {
+        return await recreateSubQuery(
+          inverseJoinColumnMetadata.referencedColumn?.databaseName ?? 'unknown_key',
+          value,
+          inverseJoinColumnMetadata.relationMetadata?.inverseEntityMetadata,
           modsIndexedByTable,
           orm,
         );
       }
     }
   }
-  return `${value}`;
-}
-
-/** @internal */
-function getDbString(v: any): string {
-  if (v === undefined) return `${null}`;
-  if (typeof v === 'string') return `'${v}'`;
-  if (v && typeof v === 'object' && !Array.isArray(v)) return `'${JSON.stringify(v)}'`;
-  if (v && typeof v === 'object' && Array.isArray(v)) return `'{${v.map(o => getDbString(o)).join(',')}}'`;
-  return `${v}`;
+  if (typeof value === 'object' && Array.isArray(value)) return format(`{%L}`, value);
+  return format('%L', value);
 }
 
 /**
@@ -313,8 +346,9 @@ async function getMetadata(
  * The related entity will be found using the cloud columns decorators.
  */
 async function recreateSubQuery(
-  id: number,
-  entityMetadata: EntityMetadata,
+  referencedKey: string,
+  value: any,
+  entityMetadata: EntityMetadata | undefined,
   modsIndexedByTable: { [key: string]: ModuleInterface },
   orm: TypeormWrapper,
 ): Promise<string> {
@@ -323,7 +357,7 @@ async function recreateSubQuery(
   if (cloudColumns && !(cloudColumns instanceof Error)) {
     let e: any;
     try {
-      e = await orm.findOne(entityMetadata?.targetName ?? '', { where: { id } });
+      e = await orm.findOne(entityMetadata?.targetName ?? '', { where: { [referencedKey]: value } });
     } catch (e: any) {
       logger.warn(e.message ?? 'Error finding relation');
       e = null;
@@ -331,12 +365,25 @@ async function recreateSubQuery(
     const values = await Promise.all(
       cloudColumns.map(
         async (cc: string) =>
-          await jsonValueToDbString(entityMetadata.tableName, cc, e[cc], modsIndexedByTable, orm),
+          await findRelationOrReturnValue(
+            entityMetadata?.tableName ?? 'unknown_table',
+            cc,
+            e[cc],
+            modsIndexedByTable,
+            orm,
+          ),
       ),
     );
-    return `(SELECT id FROM ${entityMetadata?.tableName} WHERE ${cloudColumns
-      .map((cc, i) => `${snakeCase(cc)} = ${values[i] !== undefined ? values[i] : '<unknown value>'}`)
-      .join(' AND ')})`;
+    const subQuery = format(
+      `SELECT %I FROM %I WHERE ${cloudColumns.map(_ => '%I = %L').join(' AND ')}`,
+      referencedKey,
+      entityMetadata?.tableName,
+      ...cloudColumns.flatMap((cc, i) => [
+        snakeCase(cc),
+        values[i] !== undefined ? values[i] : '<unknown value>',
+      ]),
+    );
+    return `(${subQuery})`;
   }
   return '';
 }
