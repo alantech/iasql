@@ -32,11 +32,11 @@ export class NullCheckerSubscriber implements EntitySubscriberInterface {
     updateNulls(event.entity);
   }
 
-  beforeInsert(event: InsertEvent<any>) {
-    updateUndefined(event.entity);
-  }
+  // beforeInsert(event: InsertEvent<any>) {
+  //   updateUndefined(event.entity);
+  // }
 
-  beforeUpdate(event: UpdateEvent<any>) {
-    updateUndefined(event.entity);
-  }
+  // beforeUpdate(event: UpdateEvent<any>) {
+  //   updateUndefined(event.entity);
+  // }
 }
