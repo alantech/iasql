@@ -28,12 +28,13 @@ Please note that our engine can offer this cleanup only for the resources covere
 ```sql TheButton[AWS account cleanup]="Clean your AWS Account"
 -- Installing all IaSQL modules
 SELECT iasql_install(variadic array(select module_name from iasql_modules_list()));
+SELECT iasql_begin();
 -- Deleting all resources from the db
 SELECT * FROM delete_all_records();
--- Previewing changes in your account
-SELECT * FROM iasql_preview_apply();
--- Applying delete changes, please uncomment it to perform the cleanup
---SELECT * FROM iasql_apply();
+-- Rollback the changes
+SELECT iasql_rollback();
+-- To apply the changes please uncomment it to perform the cleanup
+-- SELECT iasql_commit();
 ```
 
 After the initial module install, IaSQL will inspect your cloud and propose the resources to delete.

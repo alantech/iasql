@@ -22,6 +22,7 @@ AWS uses a different AMI id for the same instance type in each region. If you do
 :::
 
 ```sql TheButton
+SELECT iasql_begin();
 INSERT INTO instance (ami, instance_type, tags)
   VALUES ('resolve:ssm:/aws/service/canonical/ubuntu/server/20.04/stable/current/amd64/hvm/ebs-gp2/ami-id', 't2.micro', '{"name":"i-1"}');
 
@@ -35,13 +36,10 @@ INSERT INTO instance (ami, instance_type, tags)
 INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
   (SELECT id FROM instance WHERE tags ->> 'name' = 'i-2'),
   (SELECT id FROM security_group WHERE group_name='default' AND vpc_id = (SELECT id FROM vpc WHERE is_default = true));
+SELECT iasql_commit();
 ```
 
-Apply changes
-
-```sql
-SELECT * FROM iasql_apply();
-```
+The `iasql_begin()` and `iasql_commit()` functions are IaSQL RPCs that are used to start and then end a transaction. We use those two functions to push changes to the cloud.
 
 Query newly created instances. View the table schema [here](https://dbdocs.io/iasql/iasql?table=instance&schema=public&view=table_structure)
 
@@ -59,11 +57,12 @@ SELECT COUNT(*)
 FROM instance;
 ```
 
-Change the instance to the AWS Linux AMI for the previously created `i-1` instance. This will trigger a recreate so the existing instance will be terminated and a new one will be created when `iasql_apply` is called.
+Change the instance to the AWS Linux AMI for the previously created `i-1` instance. This will trigger a recreate so the existing instance will be terminated and a new one will be created when `iasql_commit` is called.
 
 ```sql
+SELECT iasql_begin();
 UPDATE instance SET ami = 'resolve:ssm:/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2' WHERE tags ->> 'name' = 'i-1';
-SELECT * FROM iasql_apply();
+SELECT iasql_commit();
 ```
 
 ## Read-only instance metadata

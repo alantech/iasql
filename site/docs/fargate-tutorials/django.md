@@ -226,6 +226,7 @@ curl ${QUICKSTART_LB_DNS}:8088/health
 Delete the resources created by this tutorial using the following SQL code:
 
 ```sql title="psql postgres://qpp3pzqb:LN6jnHfhRJTBD6ia@db.iasql.com/_3ba201e349a11daf -c"
+SELECT iasql_begin();
 DELETE FROM
   repository_image
 WHERE
@@ -242,16 +243,10 @@ DELETE FROM
   ecs_simplified
 WHERE
   app_name = 'quickstart';
+SELECT iasql_commit();
 ```
 
-Apply the changes described in the hosted db to your cloud account
-
-```sql title="psql postgres://qpp3pzqb:LN6jnHfhRJTBD6ia@db.iasql.com/_3ba201e349a11daf -c"
-SELECT
-  *
-FROM
-  iasql_apply ();
-```
+The `iasql_begin()` and `iasql_commit()` functions are IaSQL RPCs that are used to start and then end a transaction. We use those two functions to push changes to the cloud.
 
 If the function call is successful, it will return a virtual table with a record for each cloud resource that has been created, deleted or updated.
 

@@ -30,13 +30,14 @@ Let's say we are going to deploy [this simple Express.js app](https://github.com
 Let's go and deploy the above app to your AWS account. Don't worry if you don't have an IaSQL database already, you can create one for free when you click the "Deploy Now" button.
 ```sql title="Deploy a simple Express.js app from a Github repository to ECS" showLineNumbers TheButton="Deploy Now"
 SELECT iasql_install('aws_ecs_simplified', 'aws_codebuild');
+SELECT iasql_begin();
 INSERT INTO ecs_simplified(app_name, app_port, image_tag, public_ip) VALUES(
   'simple-express',
   8088,
   'latest',
   true
 );
-SELECT iasql_apply();
+SELECT iasql_commit();
 
 SELECT ecr_build(
   'https://github.com/iasql/iasql-engine/', -- the Github repo URL
@@ -63,12 +64,9 @@ INSERT INTO ecs_simplified(app_name, app_port, image_tag, public_ip) VALUES(
 ```
 - This command creates a new `ecs_simplified` app by inserting a new row into the `ecs_simplified` table. Seems pretty easy, right? But under the hood, it's creating all the necessary resources like load balancers, security groups, IAM roles, etc.
 - You can manually check the tables to see what resources are being created. For example, looking at the `load_balancer` table you'll see a load balancer named `simple-express-load-balancer` is inserted automatically by running the above insert command.
-```sql
-SELECT iasql_apply();
-```
-- The insert command did create the list for what resources should be created, but they've not yet created on the AWS. You need to call the `iasql_apply()` function to sync the cloud with the data on your database.
-- For more info on the `iasql_apply()` command, check [this guide](https://iasql.com/docs/apply-and-sync/#apply-and-preview_apply) on how it works.
-- After running the `iasql_apply()` function to completion all the necessary resources are now created on the cloud, so their ARNs are populated. You can verify this by looking at different tables, eg. `iam_role`.
+- The `iasql_begin()` and `iasql_commit()` functions are IaSQL RPCs that are used to start and then end a transaction. We use those two functions to push changes to the cloud.
+- For more info on the `iasql_begin()` and `iasql_commit()` commands, check [this guide](https://iasql.com/docs/transaction/) on how it works.
+- After the transaction is finished all the necessary resources are now created on the cloud, so their ARNs are populated. You can verify this by looking at different tables, eg. `iam_role`.
 - To get your load balancer address, you can easily run `SELECT load_balancer_dns FROM ecs_simplified WHERE app_name = 'simple-express'` query and get the URL to access your app.
 - Now ECS is waiting for an image to be pushed to your ECR repository to run it. You can get the URI for the ECR repository by running the `SELECT repository_uri FROM ecs_simplified WHERE app_name = 'simple-express'` query.  You *could* build your docker image locally and then follow [Steps 2 and 4 from this guide](https://docs.aws.amazon.com/AmazonECR/latest/userguide/getting-started-cli.html) to connect your local docker CLI to your ECR repository and push that docker image into your ECR repository, but we have a simpler solution next.
 - In the next step, we'll automatically build an image for the code in Github repo and then push it to this URI (all through SQL and using another high-level function named `ecr_build`).

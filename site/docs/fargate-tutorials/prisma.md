@@ -135,8 +135,9 @@ node index.js
 
 This will run the following [code](https://github.com/iasql/iasql-engine/tree/main/examples/ecs-fargate/prisma/infra/index.js)
 
-```js title="my_project/migrations/index.js"
+```js title="prisma/infra/index.js"
 async function main() {
+  await prisma.$queryRaw`SELECT * FROM iasql_begin();`;
   const data = {
     app_name: APP_NAME,
     public_ip: true,
@@ -149,16 +150,22 @@ async function main() {
     update: data,
   });
 
-  const apply = await prisma.$queryRaw`SELECT *
-                                       from iasql_apply();`;
-  console.dir(apply);
+  const commit = await prisma.$queryRaw`SELECT *
+                                       from iasql_commit();`;
+  console.dir(commit);
 
   console.log('Using ecr_build to build the docker image and push it to ECR...');
   const repoId = (await prisma.repository.findFirst({
     where: { repository_name: `${APP_NAME}-repository` },
     select: { id: true },
   })).id.toString();
-  const repoUri = `${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}`;
+  let repoUri;
+  if (REPO_URI) // manual
+    repoUri = REPO_URI;
+  else if (GITHUB_SERVER_URL && GITHUB_REPOSITORY) // CI
+    repoUri = `${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}`;
+  else
+    repoUri = 'https://github.com/iasql/iasql-engine'
   const image = await prisma.$queryRaw`SELECT ecr_build(
               ${repoUri},
               ${repoId},
@@ -168,17 +175,9 @@ async function main() {
   );`;
   console.log(image);
 }
-
 ```
 
-It'll use the `ecs_simplified` module to create all the necessary AWS resources needed for you app to run (load balancer, ECR repository, IAM role, etc). 
-
-```js title="my_project/migrations/index.js"
-const apply = await prisma.$queryRaw`SELECT * from iasql_apply();`
-console.dir(apply)
-```
-
-If that function call is successful, it will return a virtual table with a record for each cloud resource that has been created, deleted or updated.
+It'll use the `ecs_simplified` module to create all the necessary AWS resources needed for you app to run (load balancer, ECR repository, IAM role, etc). If the function call is successful, it will return a virtual table with a record for each cloud resource that has been created, deleted or updated.
 
 ```sql
  action |    table_name       |   id   |      description      
@@ -235,15 +234,13 @@ curl ${QUICKSTART_LB_DNS}:8088/health
 Delete the resources created by this tutorial using the following SQL code:
 
 ```sql title="psql postgres://qpp3pzqb:LN6jnHfhRJTBD6ia@db.iasql.com/_3ba201e349a11daf -c"
+SELECT iasql_begin();
 DELETE FROM repository_image WHERE private_repository_id = (SELECT id FROM repository WHERE repository_name = 'quickstart-repository');
 DELETE FROM ecs_simplified WHERE app_name = 'quickstart';
+SELECT iasql_commit();
 ```
 
-Apply the changes described in the hosted db to your cloud account
-
-```sql title="psql postgres://qpp3pzqb:LN6jnHfhRJTBD6ia@db.iasql.com/_3ba201e349a11daf -c"
- SELECT * from iasql_apply();
-```
+The `iasql_begin()` and `iasql_commit()` functions are IaSQL RPCs that are used to start and then end a transaction. We use those two functions to push changes to the cloud.
 
 If the function call is successful, it will return a virtual table with a record for each cloud resource that has been created, deleted or updated.
 
