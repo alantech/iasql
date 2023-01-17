@@ -142,6 +142,8 @@ export class InternetGatewayMapper extends MapperBase<InternetGateway> {
       return out;
     },
     delete: async (es: InternetGateway[], ctx: Context) => {
+      for (const e of es) await this.module.internetGateway.db.update(e, ctx);
+      return;
       await Promise.all(
         es.map(async e => {
           const client = (await ctx.getAwsClient(e.region)) as AWS;

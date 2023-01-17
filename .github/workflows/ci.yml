@@ -32,247 +32,18 @@ on:
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  lint:
-    # The type of runner that the job will run on
-    runs-on: ubuntu-latest
-
-    # Steps represent a sequence of tasks that will be executed as part of the job
-    steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v3
-
-      # Set up Node.js
-      - name: Use Node.js 16.x
-        uses: actions/setup-node@v3
-        with:
-          node-version: 16.x
-          cache: 'yarn'
-
-      - name: Install dependencies
-        run: yarn --prefer-offline
-
-      - name: Run linter check
-        run: yarn lint
-
-  style:
-    # The type of runner that the job will run on
-    runs-on: ubuntu-latest
-
-    # Steps represent a sequence of tasks that will be executed as part of the job
-    steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v3
-
-      # Set up Node.js
-      - name: Use Node.js 16.x
-        uses: actions/setup-node@v3
-        with:
-          node-version: 16.x
-          cache: 'yarn'
-
-      - name: Install dependencies
-        run: yarn --prefer-offline
-
-      - name: Run code style check
-        run: yarn style
-
-  setup-common-test:
-    runs-on: ubuntu-latest
-    outputs:
-      common-tests: ${{ steps['set-common-tests'].outputs['common-tests'] }}
-      set-common-test-names: ${{ steps['set-common-test-names'].outputs['common-test-names'] }}
-    steps:
-      - uses: actions/checkout@v3
-      - run: yarn --prefer-offline
-      - id: set-common-tests
-        name: Set common tests
-        run: >
-          echo "::set-output name=common-tests::$(npx jest **/common/* --listTests --json | jq -c 'map({(. | split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring): .}) | add')"
-      - id: set-common-test-names
-        name: Set common test names
-        run: echo "::set-output name=common-test-names::$(npx jest **/common/* --listTests --json | jq -c 'map(split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring)')"
-
-  common-test:
-    runs-on: ubuntu-latest
-    needs:
-      - setup-common-test
-    name: common.test.${{ matrix.common }}
-    strategy:
-      fail-fast: false
-      matrix:
-        common: ${{ fromJson(needs.setup-common-test.outputs['set-common-test-names']) }}
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Use Node.js 16.x
-        uses: actions/setup-node@v3
-        with:
-          node-version: 16.x
-          cache: 'yarn'
-
-      - name: Install dependencies
-        run: yarn --prefer-offline
-
-      - name: Run common tests
-        uses: nick-fields/retry@v2
-        with:
-          max_attempts: 2
-          retry_on: error
-          timeout_minutes: 30
-          command: yarn coverage $(echo $COMMONS | jq -r '."${{matrix.common}}"')
-        env:
-          IASQL_ENV: test
-          COMMONS: ${{ needs.setup-common-test.outputs['common-tests'] }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID_TESTING }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY_TESTING }}
-          A0_IASQL_API_TOKEN: ${{ secrets.A0_IASQL_API_TOKEN }}
-
-  setup-basic-integration-test:
-    runs-on: ubuntu-latest
-    outputs:
-      basic-integration-tests: ${{ steps['set-basic-integration-tests'].outputs['basic-integration-tests'] }}
-      set-basic-integration-test-names: ${{ steps['set-basic-integration-test-names'].outputs['basic-integration-test-names'] }}
-    steps:
-      - uses: actions/checkout@v3
-      - run: yarn --prefer-offline
-      - id: set-basic-integration-tests
-        name: Set basic integration tests
-        run: >
-          echo "::set-output name=basic-integration-tests::$(npx jest **/basic_integration/* --listTests --json | jq -c 'map({(. | split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring): .}) | add')"
-      - id: set-basic-integration-test-names
-        name: Set basic integration test names
-        run: echo "::set-output name=basic-integration-test-names::$(npx jest **/basic_integration/* --listTests --json | jq -c 'map(split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring)')"
-
-  basic-integration-test:
-    runs-on: ubuntu-latest
-    needs:
-      - setup-basic-integration-test
-    name: basic-integration.test.${{ matrix.basic-integration }}
-    strategy:
-      fail-fast: false
-      matrix:
-        basic-integration: ${{ fromJson(needs.setup-basic-integration-test.outputs['set-basic-integration-test-names']) }}
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Use Node.js 16.x
-        uses: actions/setup-node@v3
-        with:
-          node-version: 16.x
-          cache: 'yarn'
-
-      - name: Install dependencies
-        run: yarn --prefer-offline
-
-      - name: Determine Test Account To Use
-        id: determine-test-account
-        env:
-          SECRET_HEADER: ${{ secrets.SECRET_HEADER }}
-        run: |
-          RESPONSE=$(curl -X POST -H "Content-Type: text/plain" -H "${SECRET_HEADER}" -d '1' https://fkk3xlyad5tobhmezx4onpvele0zyehu.lambda-url.us-east-2.on.aws/ 2>/dev/null)
-          echo $RESPONSE
-          ACCOUNT_INDEX=$(echo $RESPONSE | jq '.[0]' || exit 1)
-          echo "::set-output name=account_index::$(echo ${ACCOUNT_INDEX})"
-
-
-      - name: Run basic-integration tests
-        uses: nick-fields/retry@v2
-        with:
-          max_attempts: 2
-          retry_on: error
-          timeout_minutes: 10
-          command: |
-            export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
-            export AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
-            yarn coverage $(echo $TESTS | jq -r '."${{matrix.basic-integration}}"')
-        env:
-          IASQL_ENV: test
-          TESTS: ${{ needs.setup-basic-integration-test.outputs['basic-integration-tests'] }}
-          ACCOUNT_INDEX: ${{ steps['determine-test-account'].outputs['account_index'] }}
-          ACCESS_KEY_IDS: ${{ secrets.ACCESS_KEY_IDS }}
-          SECRET_ACCESS_KEYS: ${{ secrets.SECRET_ACCESS_KEYS }}
-          A0_IASQL_API_TOKEN: ${{ secrets.A0_IASQL_API_TOKEN }}
-
-      - name: Return test account
-        if: always()
-        env:
-          SECRET_HEADER: ${{ secrets.SECRET_HEADER }}
-          ACCOUNT_INDEX: ${{ steps['determine-test-account'].outputs['account_index'] }}
-        run: |
-          curl -X POST -H "Content-Type: application/json" -H "${SECRET_HEADER}" -H "x-iasql-drop: true" -d "[${ACCOUNT_INDEX}]" https://fkk3xlyad5tobhmezx4onpvele0zyehu.lambda-url.us-east-2.on.aws/
-
-  readonly-test:
-    runs-on: ubuntu-latest
-    name: readonly tests
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Use Node.js 16.x
-        uses: actions/setup-node@v3
-        with:
-          node-version: 16.x
-          cache: 'yarn'
-
-      - name: Install dependencies
-        run: yarn --prefer-offline
-
-      - name: Run read-only tests
-        uses: nick-fields/retry@v2
-        with:
-          max_attempts: 2
-          retry_on: error
-          timeout_minutes: 40
-          command: yarn coverage **/readonly/*
-        env:
-          IASQL_ENV: test
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID_READONLY_TESTING }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY_READONLY_TESTING }}
-          A0_IASQL_API_TOKEN: ${{ secrets.A0_IASQL_API_TOKEN }}
-
-  upgrade-test:
-    runs-on: ubuntu-latest
-    name: iasql_upgrade test
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Use Node.js 16.x
-        uses: actions/setup-node@v3
-        with:
-          node-version: 16.x
-          cache: 'yarn'
-
-      - name: Install dependencies
-        run: yarn --prefer-offline
-
-      - name: Run common tests
-        uses: nick-fields/retry@v2
-        with:
-          max_attempts: 2
-          timeout_minutes: 30
-          retry_on: error
-          command: ./test/upgrade/run-upgrade.sh
-        env:
-          IASQL_ENV: test
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID_TESTING }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY_TESTING }}
-          A0_IASQL_API_TOKEN: ${{ secrets.A0_IASQL_API_TOKEN }}
 
   setup-module-test:
     runs-on: ubuntu-latest
     outputs:
-      test-modules: ${{ steps['set-test-modules'].outputs['test-modules'] }}
-      set-test-module-names: ${{ steps['set-test-module-names'].outputs['test-module-names'] }}
+      test-accounts: ${{ steps['set-test-modules'].outputs['test-accounts'] }}
       registry-image-tag: ${{ steps['set-registry-image-tag'].outputs['registry-image-tag'] }}
     steps:
       - uses: actions/checkout@v3
-      - run: yarn --prefer-offline
       - id: set-test-modules
-        name: Set modules tests
+        name: Set all numbers
         run: >
-          echo "::set-output name=test-modules::$(npx jest **/modules/* --listTests --json | jq -c 'map({(. | split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring): .}) | add')"
-      - id: set-test-module-names
-        name: Set modules tests names
-        run: echo "::set-output name=test-module-names::$(npx jest **/modules/* --listTests --json | jq -c 'map(split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring)')"
+          echo "::set-output name=test-accounts::$(node -e 'console.log(JSON.stringify([...Array(101).keys()].slice(1)))')"
       - id: set-registry-image-tag
         name: Set registry image tag
         run: echo "::set-output name=registry-image-tag::ghcr.io/iasql/iasql-engine:$GITHUB_SHA"
@@ -309,7 +80,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        module: ${{ fromJson(needs.setup-module-test.outputs['set-test-module-names']) }}
+        module: ${{ fromJson(needs.setup-module-test.outputs['test-accounts']) }}
 
     steps:
       - uses: actions/checkout@v3
@@ -319,21 +90,6 @@ jobs:
         with:
           node-version: 16.x
           cache: 'yarn'
-
-      - name: Determine Test Account To Use
-        id: determine-test-account
-        env:
-          SECRET_HEADER: ${{ secrets.SECRET_HEADER }}
-        uses: nick-fields/retry@v2
-        with:
-          max_attempts: 2
-          retry_on: error
-          timeout_minutes: 5
-          command: |
-            RESPONSE=$(curl -X POST -H "Content-Type: text/plain" -H "${SECRET_HEADER}" -d '1' https://fkk3xlyad5tobhmezx4onpvele0zyehu.lambda-url.us-east-2.on.aws/ 2>/dev/null)
-            echo $RESPONSE
-            ACCOUNT_INDEX=$(echo $RESPONSE | jq '.[0]' || exit 1)
-            echo "::set-output name=account_index::$(echo ${ACCOUNT_INDEX})"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
@@ -350,7 +106,7 @@ jobs:
         uses: nick-fields/retry@v2
         env:
           IASQL_ENV: ci
-          ACCOUNT_INDEX: ${{ steps['determine-test-account'].outputs['account_index'] }}
+          ACCOUNT_INDEX: ${{ matrix.module }}
           ACCESS_KEY_IDS: ${{ secrets.ACCESS_KEY_IDS }}
           SECRET_ACCESS_KEYS: ${{ secrets.SECRET_ACCESS_KEYS }}
           PSQL_CONN: postgres://postgres:test@localhost:5432/iasql
@@ -421,34 +177,3 @@ jobs:
             # Shut down the engine
             docker container stop iasql
 
-      - name: Install dependencies
-        run: yarn --prefer-offline
-
-      - name: Run modules tests
-        timeout-minutes: 90
-        uses: nick-fields/retry@v2
-        env:
-          IASQL_ENV: test
-          MODULES: ${{ needs.setup-module-test.outputs['test-modules'] }}
-          ACCOUNT_INDEX: ${{ steps['determine-test-account'].outputs['account_index'] }}
-          ACCESS_KEY_IDS: ${{ secrets.ACCESS_KEY_IDS }}
-          SECRET_ACCESS_KEYS: ${{ secrets.SECRET_ACCESS_KEYS }}
-          STAGING_ACCESS_KEY_ID: ${{ secrets.STAGING_ACCESS_KEY_ID }}
-          STAGING_SECRET_ACCESS_KEY: ${{ secrets.STAGING_SECRET_ACCESS_KEY }}
-          GH_PAT: ${{ secrets.GH_PAT }}
-        with:
-          max_attempts: 3
-          retry_on: error
-          timeout_minutes: 90
-          command: |
-            export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
-            export AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
-            yarn test $(echo $MODULES | jq -r '."${{matrix.module}}"')
-
-      - name: Return test account
-        if: always()
-        env:
-          SECRET_HEADER: ${{ secrets.SECRET_HEADER }}
-          ACCOUNT_INDEX: ${{ steps['determine-test-account'].outputs['account_index'] }}
-        run: |
-          curl -X POST -H "Content-Type: application/json" -H "${SECRET_HEADER}" -H "x-iasql-drop: true" -d "[${ACCOUNT_INDEX}]" https://fkk3xlyad5tobhmezx4onpvele0zyehu.lambda-url.us-east-2.on.aws/
