@@ -1,15 +1,11 @@
 import isEqual from 'lodash.isequal';
 
-<<<<<<< HEAD
 import {
   SNS,
   CreateTopicCommandInput,
   paginateListTopics,
   SetTopicAttributesCommandInput,
 } from '@aws-sdk/client-sns';
-=======
-import { SNS, Topic as TopicAws, CreateTopicCommandInput, paginateListTopics } from '@aws-sdk/client-sns';
->>>>>>> 86c3f97c (add initial version)
 import { parse as parseArn } from '@aws-sdk/util-arn-parser';
 
 import { AwsSnsModule } from '..';
@@ -17,7 +13,6 @@ import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../
 import { Context, Crud2, MapperBase } from '../../interfaces';
 import { Topic } from '../entity';
 
-<<<<<<< HEAD
 export class TopicMapper extends MapperBase<Topic> {
   module: AwsSnsModule;
   entity = Topic;
@@ -34,30 +29,6 @@ export class TopicMapper extends MapperBase<Topic> {
       isEqual(a.dataProtectionPolicy, b.dataProtectionPolicy)
     );
   };
-=======
-// compares two objects and get the keys of the values that are different
-function getObjectDiff(obj1: Record<string, string>, obj2: Record<string, string>) {
-  const diff = Object.keys(obj1).reduce((result, key) => {
-    if (!obj2.hasOwnProperty(key)) {
-      result.push(key);
-    } else if (isEqual(obj1[key], obj2[key])) {
-      const resultKeyIndex = result.indexOf(key);
-      result.splice(resultKeyIndex, 1);
-    }
-    return result;
-  }, Object.keys(obj2));
-
-  return diff;
-}
-
-export class TopicMapper extends MapperBase<Topic> {
-  module: AwsSnsModule;
-  entity = Topic;
-  equals = (a: Topic, b: Topic) =>
-    Object.is(a.arn, b.arn) &&
-    isEqual(a.attributes, b.attributes) &&
-    isEqual(a.dataProtectionPolicy, b.dataProtectionPolicy);
->>>>>>> 86c3f97c (add initial version)
 
   getTopicAttributes = crudBuilderFormat<SNS, 'getTopicAttributes', Record<string, string> | undefined>(
     'getTopicAttributes',
@@ -196,7 +167,6 @@ export class TopicMapper extends MapperBase<Topic> {
     },
     updateOrReplace: (prev: Topic, next: Topic) => 'update',
     update: async (es: Topic[], ctx: Context) => {
-<<<<<<< HEAD
       const out = [];
       for (const e of es) {
         let needUpdate = false;
@@ -213,23 +183,12 @@ export class TopicMapper extends MapperBase<Topic> {
             !Object.is(e.fifoTopic, cloudRecord.fifoTopic) ||
             (e.fifoTopic && e.dataProtectionPolicy)
           ) {
-=======
-      const client = (await ctx.getAwsClient()) as AWS;
-      const out = [];
-      for (const e of es) {
-        const cloudRecord = ctx?.memo?.cloud?.Topic?.[this.entityId(e)];
-        const isUpdate = this.module.topic.cloud.updateOrReplace(cloudRecord, e) === 'update';
-        if (isUpdate) {
-          // if arn is different, we restore it
-          if (!Object.is(e.arn, cloudRecord.arn)) {
->>>>>>> 86c3f97c (add initial version)
             cloudRecord.id = e.id;
             await this.module.topic.db.update(cloudRecord, ctx);
             out.push(cloudRecord);
             continue;
           }
 
-<<<<<<< HEAD
           if (!isEqual(e.dataProtectionPolicy, cloudRecord.dataProtectionPolicy) && e.dataProtectionPolicy) {
             // update the policy
             await this.putDataProtectionPolicy(client.snsClient, {
@@ -274,53 +233,13 @@ export class TopicMapper extends MapperBase<Topic> {
               throw new Error('Error updating topic');
             }
           }
-=======
-          // check if the attributes are different and get the modified ones
-          if (!isEqual(e.attributes, cloudRecord.attributes)) {
-            // check if we do not have updated attributes
-            if (!e.attributes) {
-              // need to update the values from cloud record
-              e.attributes = cloudRecord.attributes;
-              await this.module.topic.db.update(e, ctx);
-              out.push(e);
-              continue;
-            } else {
-              const diff = getObjectDiff(e.attributes as Record<string, string>, cloudRecord.attributes);
-              for (const key of diff) {
-                // check if the key is on cloudRecord and use that, otherwise set as null
-                let value;
-                if (cloudRecord.hasOwnProperty(key)) value = cloudRecord[key];
-
-                // update attribute
-                await this.setTopicAttributes(client.snsClient, {
-                  AttributeName: key,
-                  AttributeValue: value,
-                  TopicArn: cloudRecord.arn,
-                });
-              }
-            }
-          }
-          if (!isEqual(e.dataProtectionPolicy, cloudRecord.dataProtectionPolicy)) {
-            // update the policy
-            await this.putDataProtectionPolicy(client.snsClient, {
-              ResourceArn: cloudRecord.arn,
-              DataProtectionPolicy: cloudRecord.dataProtectionPolicy,
-            });
-          }
-          out.push(cloudRecord);
->>>>>>> 86c3f97c (add initial version)
         }
       }
       return out;
     },
     delete: async (es: Topic[], ctx: Context) => {
-<<<<<<< HEAD
       for (const e of es) {
         const client = (await ctx.getAwsClient(e.region)) as AWS;
-=======
-      const client = (await ctx.getAwsClient()) as AWS;
-      for (const e of es) {
->>>>>>> 86c3f97c (add initial version)
         await this.deleteTopic(client.snsClient, e.arn);
       }
     },
