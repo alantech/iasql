@@ -200,7 +200,7 @@ describe('S3 Integration Testing', () => {
     SELECT * FROM iasql_commit();
   `)((e?: any) => {
     try {
-      expect(e?.message).toContain('Error');
+      expect(e?.message).toContain('Bucket cloud update error');
     } catch (err) {
       done(err);
       return {};
