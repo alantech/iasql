@@ -57,7 +57,7 @@ DECLARE
     _region text;
 BEGIN
     SELECT region INTO _region FROM bucket WHERE name = bucket_name;
-    IF bucket_name IN -- https://docs.aws.amazon.com/general/latest/gr/s3.html#s3_website_region_endpoints
+    IF _region IN -- https://docs.aws.amazon.com/general/latest/gr/s3.html#s3_website_region_endpoints
        ('us-east-2', 'af-south-1', 'ap-east-1', 'ap-south-2', 'ap-southeast-3', 'ap-south-1', 'ap-northeast-3',
         'ap-northeast-2', 'ca-central-1', 'cn-northwest-1', 'eu-central-1', 'eu-west-2', 'eu-south-1', 'eu-west-3',
         'eu-north-1', 'eu-south-2', 'eu-central-2', 'me-south-1', 'me-central-1')

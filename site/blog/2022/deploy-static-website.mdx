@@ -37,7 +37,7 @@ INSERT INTO bucket (name, policy_document, region) VALUES ('<bucket-name>', '{
 }', 'us-east-1');
 SELECT iasql_commit();
 ```
-The above command will direct IaSQL to create a new bucket in the `us-east-1` region with the name `<bucket-name>` and with the given policy. The `iasql_begin` and `iasql_commit` functions are RPCs that will start and finish an IaSQL transaction. For more info on this topic you can read [this doc](https://iasql.com/docs/next/transaction/).
+The above command will direct IaSQL to create a new bucket in the `us-east-1` region with the name `<bucket-name>` and with the given policy. The `iasql_begin` and `iasql_commit` functions are RPCs that will start and finish an IaSQL transaction. For more info on this topic you can read [this doc](https://iasql.com/docs/transaction/).
 
 Now that we have a bucket, we can upload a file to it and see if we're able to view it using our web browser. Let's use IaSQL to upload a file to our newly created bucket:
 ```sql TheButton[Upload a File to Bucket]="Upload a File to S3 Bucket"
@@ -61,7 +61,7 @@ But we're unable to access the file directly because S3 blocks the public access
 So we need to enable public access to our bucket files in order to be able to directly access the files. We can use `public_access_block` table provided by `aws_s3` module to allow for public requests to reach our objects.
 
 :::note
-If you want to know which resources (via tables) an IaSQL module handles, you can visit our documentation page. It also provides a list and explanation of all the RPCs that are provided by a module. In our case we can visit [this link](https://iasql.com/docs/next/reference/sql/#aws_s3) to get a list of tables and RPCs available for `aws_s3` module.
+If you want to know which resources (via tables) an IaSQL module handles, you can visit our documentation page. It also provides a list and explanation of all the RPCs that are provided by a module. In our case we can visit [this link](https://iasql.com/docs/reference/sql/#aws_s3) to get a list of tables and RPCs available for `aws_s3` module.
 :::
 
 ```sql TheButton[Enable Public Access to S3 Bucket]="Enable Public Access to The Bucket"
