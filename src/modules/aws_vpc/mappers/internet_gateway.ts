@@ -145,14 +145,8 @@ export class InternetGatewayMapper extends MapperBase<InternetGateway> {
       await Promise.all(
         es.map(async e => {
           const client = (await ctx.getAwsClient(e.region)) as AWS;
-          if (e.vpc && e.vpc.vpcId) {
-            if (e.vpc.isDefault) {
-              // don't delete the internet gateway associated with the default VPC
-              await this.module.internetGateway.db.update(e, ctx);
-              return;
-            }
+          if (e.vpc && e.vpc.vpcId)
             await this.detachVpc(client.ec2client, e.internetGatewayId!, e.vpc?.vpcId);
-          }
           await this.deleteInternetGateway(client.ec2client, e.internetGatewayId);
         }),
       );

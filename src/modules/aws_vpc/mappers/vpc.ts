@@ -13,7 +13,7 @@ import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 import { AwsVpcModule } from '..';
 import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
 import { Context, Crud2, MapperBase } from '../../interfaces';
-import { InternetGateway, Subnet, Vpc, VpcState } from '../entity';
+import { RouteTable, RouteTableAssociation, Subnet, Vpc, VpcState } from '../entity';
 import { eqTags, updateTags } from './tags';
 
 export class VpcMapper extends MapperBase<Vpc> {
@@ -286,9 +286,6 @@ export class VpcMapper extends MapperBase<Vpc> {
           // For delete, we have un-memoed the record, but the record passed in *is* the one
           // we're interested in, which makes it a bit simpler here
           await this.module.vpc.db.update(e, ctx);
-          const ig = await ctx.orm.newWithDefaults(InternetGateway);
-          ig.vpc = e;
-          await this.module.internetGateway.db.create(ig, ctx);
           // Make absolutely sure it shows up in the memo
           ctx.memo.db.Vpc[this.entityId(e)] = e;
           const subnets: Subnet[] = await this.module.subnet.cloud.read(ctx);
