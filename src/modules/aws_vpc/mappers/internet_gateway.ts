@@ -15,7 +15,7 @@ export class InternetGatewayMapper extends MapperBase<InternetGateway> {
   module: AwsVpcModule;
   entity = InternetGateway;
   equals = (a: InternetGateway, b: InternetGateway) =>
-    Object.is(a.vpc?.vpcId, b.vpc?.vpcId) && Object.is(a.region, b.region) && eqTags(a.tags, b.tags);
+    Object.is(a.vpc?.vpcId, b.vpc?.vpcId) && eqTags(a.tags, b.tags);
 
   getInternetGateways = paginateBuilder<EC2>(paginateDescribeInternetGateways, 'InternetGateways');
   getInternetGateway = crudBuilderFormat<EC2, 'describeInternetGateways', AwsInternetGateway | undefined>(
@@ -149,6 +149,8 @@ export class InternetGatewayMapper extends MapperBase<InternetGateway> {
             if (e.vpc.isDefault) {
               // don't delete the internet gateway associated with the default VPC
               await this.module.internetGateway.db.update(e, ctx);
+              // Make absolutely sure it shows up in the memo
+              ctx.memo.db.InternetGateway[this.entityId(e)] = e;
               return;
             }
             await this.detachVpc(client.ec2client, e.internetGatewayId!, e.vpc?.vpcId);

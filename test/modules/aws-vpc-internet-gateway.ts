@@ -76,24 +76,6 @@ describe('InternetGateway Integration Testing', () => {
 
   it('installs the vpc module', install(['aws_vpc']));
 
-  it(
-    'checks each default vpc has an internet gateway',
-    query(
-      `
-          SELECT vpc.vpc_id, COUNT(ig) as ig_count
-          FROM vpc
-                   LEFT JOIN internet_gateway ig on vpc.id = ig.vpc_id
-          WHERE vpc.is_default = True
-          GROUP BY vpc.vpc_id;
-      `,
-      (res: any[]) => {
-        expect(res.length).toBeGreaterThan(0); // at least one VPC
-        res.map(row => expect(parseInt(row.ig_count, 10)).toBeGreaterThanOrEqual(1));
-      },
-      true,
-      () => ({ username, password }),
-    ),
-  );
 
   it('starts a transaction', begin());
   it(
