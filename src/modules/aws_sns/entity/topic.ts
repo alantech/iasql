@@ -38,24 +38,94 @@ export class Topic {
 
   /**
    * @public
-   * A map of attributes with their corresponding values.
-   * @see https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-sns/interfaces/createtopiccommandinput.html#attributes
+   * The policy that defines how Amazon SNS retries failed deliveries to HTTP/S endpoints.
+   * @see https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-sns/interfaces/settopicattributescommandinput.html
    */
   @Column({
-    type: 'json',
     nullable: true,
+    type: 'varchar',
   })
-  attributes?:
-    | {
-        DeliveryPolicy?: string | undefined;
-        DisplayName?: string | undefined;
-        Policy?: string | undefined;
-        TracingConfig?: string | undefined;
-        KmsMasterKeyId?: string | undefined;
-        FifoTopic?: string | undefined;
-        ContentBaseDeduplication?: string | undefined;
-      }
-    | undefined;
+  deliveryPolicy?: string | undefined;
+
+  /**
+   * @public
+   * The display name to use for a topic with SMS subscriptions.
+   * @see https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-sns/interfaces/settopicattributescommandinput.html
+   */
+  @Column({
+    nullable: true,
+    type: 'varchar',
+  })
+  displayName?: string | undefined;
+
+  /**
+   * @public
+   * The policy that defines who can access your topic. By default, only the topic owner can publish or subscribe to the topic.
+   * @see https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-sns/interfaces/settopicattributescommandinput.html
+   */
+  @Column({
+    nullable: true,
+    type: 'varchar',
+  })
+  policy?: string | undefined;
+
+  /**
+   * @public
+   * Tracing mode of an Amazon SNS topic.
+   * @see https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-sns/interfaces/settopicattributescommandinput.html
+   */
+  @Column({
+    nullable: true,
+    type: 'varchar',
+  })
+  tracingConfig?: string | undefined;
+
+  /**
+   * @public
+   * The ID of an Amazon Web Services managed customer master key (CMK) for Amazon SNS or a custom CMK.
+   * Applies only to server-side encryption
+   * @see https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-sns/interfaces/settopicattributescommandinput.html
+   */
+  @Column({
+    nullable: true,
+    type: 'varchar',
+  })
+  kmsMasterKeyId?: string | undefined;
+
+  /**
+   * @public
+   * The signature version corresponds to the hashing algorithm used.
+   * Applies only to server-side encryption
+   * @see https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-sns/interfaces/settopicattributescommandinput.html
+   */
+  @Column({
+    nullable: true,
+    type: 'varchar',
+  })
+  signatureVersion?: string | undefined;
+
+  /**
+   * @public
+   * Enables content-based deduplication for FIFO topics.
+   * Applies only to FIFO topics
+   * @see https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-sns/interfaces/settopicattributescommandinput.html
+   */
+  @Column({
+    nullable: true,
+    type: 'varchar',
+  })
+  contentBasedDeduplication?: string | undefined;
+
+  /**
+   * @public
+   * Set to true to create a FIFO topic
+   * @see https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-sns/interfaces/settopicattributescommandinput.html
+   */
+  @Column({
+    type: 'boolean',
+    default: false,
+  })
+  fifoTopic: boolean;
 
   /**
    * @public
