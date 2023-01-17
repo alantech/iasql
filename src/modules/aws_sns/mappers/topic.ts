@@ -114,7 +114,7 @@ export class TopicMapper extends MapperBase<Topic> {
           out = Object.assign(out, newValues);
         } else {
           const newValues = {
-            [key]: undefined,
+            [key]: null,
           };
           out = Object.assign(out, newValues);
         }
@@ -216,7 +216,12 @@ export class TopicMapper extends MapperBase<Topic> {
 
           for (const key of this.attributeKeys) {
             const dynamicKey = key as keyof Topic;
-            if (!isEqual(e[dynamicKey], cloudRecord[dynamicKey])) {
+            if (
+              !isEqual(
+                e[dynamicKey] == null ? undefined : e[dynamicKey],
+                cloudRecord[dynamicKey] == null ? undefined : cloudRecord[dynamicKey],
+              )
+            ) {
               // if record value is undefined we need to update the DB. If not,
               // update the cloud
               if (!e[dynamicKey]) {
