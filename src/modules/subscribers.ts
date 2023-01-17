@@ -9,6 +9,15 @@ function updateNulls(entity: any) {
   }
 }
 
+function updateUndefined(entity: any) {
+  if (entity) {
+    const that: any = entity;
+    Object.keys(entity).forEach(k => {
+      if (that[k] === undefined) that[k] = null;
+    });
+  }
+}
+
 @EventSubscriber()
 export class NullCheckerSubscriber implements EntitySubscriberInterface {
   afterLoad(entity: any) {
@@ -21,5 +30,13 @@ export class NullCheckerSubscriber implements EntitySubscriberInterface {
 
   afterUpdate(event: UpdateEvent<any>) {
     updateNulls(event.entity);
+  }
+
+  beforeInsert(event: InsertEvent<any>) {
+    updateUndefined(event.entity);
+  }
+
+  beforeUpdate(event: UpdateEvent<any>) {
+    updateUndefined(event.entity);
   }
 }
