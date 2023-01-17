@@ -137,7 +137,7 @@ describe('iasql_get_sql_since functionality', () => {
         expect(res[res.length - 1].sql).toContain(
           `INSERT INTO iasql_audit_log (a_number, a_string, a_json, a_list)`,
         );
-        expect(res[res.length - 1].sql).toContain(`VALUES (42, 'foo', '{"foo":"bar"}', '{1,2,3}')`);
+        expect(res[res.length - 1].sql).toContain(`VALUES ('42', 'foo', '{\"foo\":\"bar\"}'::jsonb, '{''1'',''2'',''3''}')`);
       },
     ),
   );
@@ -170,7 +170,7 @@ describe('iasql_get_sql_since functionality', () => {
           `SET a_number = 42, a_string = 'bar', a_json = '{"foo":"bar"}', a_list = '{1,2,3}'`,
         );
         expect(res[res.length - 1].sql).toContain(
-          `WHERE a_number = 42 AND a_string = 'foo' AND a_json = '{"foo":"bar"}' AND a_list = '{1,2,3}'`,
+          `WHERE a_number = '42' AND a_string = 'foo' AND a_json:jsonb = '{"foo":"bar"}'::jsonb AND a_list = '{''1'',''2'',''3''}'`,
         );
       },
     ),
@@ -200,7 +200,7 @@ describe('iasql_get_sql_since functionality', () => {
       (res: any) => {
         expect(res[res.length - 1].sql).toContain(`DELETE FROM iasql_audit_log`);
         expect(res[res.length - 1].sql).toContain(
-          `WHERE a_number = 42 AND a_string = 'bar' AND a_json = '{"foo":"bar"}' AND a_list = '{1,2,3}'`,
+          `WHERE a_number = '42' AND a_string = 'bar' AND a_json::jsonb = '{"foo":"bar"}'::jsonb AND a_list = '{''1'',''2'',''3''}'`,
         );
       },
     ),
