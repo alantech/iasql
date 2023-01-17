@@ -92,16 +92,25 @@ export class TopicMapper extends MapperBase<Topic> {
             [key]: attributes[transformedKey],
           };
           out = Object.assign(out, newValues);
+        } else {
+          const newValues = {
+            [key]: undefined,
+          };
+          out = Object.assign(out, newValues);
         }
       }
       out.fifoTopic = attributes['FifoTopic'] == 'true';
     }
 
     const dataProtection = await this.getTopicDataProtection(client.snsClient, t);
+    if (dataProtection) out.dataProtectionPolicy = dataProtection;
+    else out.dataProtectionPolicy = undefined;
 
     out.arn = t;
     out.region = region;
     out.name = parseArn(t).resource;
+    console.log('resource is');
+    console.log(out);
     return out;
   }
 
