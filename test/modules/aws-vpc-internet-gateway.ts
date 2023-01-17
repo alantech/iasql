@@ -173,11 +173,17 @@ describe('InternetGateway Integration Testing', () => {
   );
   it('applies creation of the second vpc', commit());
 
-  it('verifies there is no internet gateway associated with the new vpc', query(`
+  it(
+    'verifies there is no internet gateway associated with the new vpc',
+    query(
+      `
       SELECT *
       FROM internet_gateway
       WHERE vpc_id = (SELECT id FROM vpc WHERE tags ->> 'name' = '${prefix}-2')
-  `, (res: any[]) => expect(res.length).toBe(0)));
+  `,
+      (res: any[]) => expect(res.length).toBe(0),
+    ),
+  );
 
   it('starts a transaction', begin());
   it(
@@ -195,17 +201,29 @@ describe('InternetGateway Integration Testing', () => {
   );
   it('applies association of the internet gateway to the new vpc', commit());
 
-  it('checks the internet gateway is associated with the new vpc', query(`
+  it(
+    'checks the internet gateway is associated with the new vpc',
+    query(
+      `
       SELECT *
       FROM internet_gateway
       WHERE vpc_id = (SELECT id FROM vpc WHERE tags ->> 'name' = '${prefix}-2');
-  `, (res: any[]) => expect(res.length).toBe(1)));
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
 
-  it('checks the first vpc does not have any internet gateways', query(`
+  it(
+    'checks the first vpc does not have any internet gateways',
+    query(
+      `
       SELECT *
       FROM internet_gateway
       WHERE vpc_id = (SELECT id FROM vpc WHERE tags ->> 'name' = '${prefix}')
-  `, (res: any[]) => expect(res.length).toBe(0)));
+  `,
+      (res: any[]) => expect(res.length).toBe(0),
+    ),
+  );
 
   it('starts a transaction', begin());
   it(
