@@ -115,9 +115,8 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
     );
     if (images && images.imageDetails) {
       for (const image of images.imageDetails) {
-        if (image.imageDigest) {
-          const imageTag = image.imageTags && image.imageTags.length > 0 ? image.imageTags[0] : '<untagged>';
-          const imageId = { imageDigest: image.imageDigest, imageTag };
+        if (image.imageDigest && image.imageTags && image.imageTags.length > 0) {
+          const imageId = { imageDigest: image.imageDigest, imageTag: image.imageTags[0] };
           await this.deleteRepositoryImage(client, [imageId], repository.repositoryName, image.registryId);
         }
       }
@@ -133,9 +132,8 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
     );
     if (images && images.imageDetails) {
       for (const image of images.imageDetails) {
-        if (image.imageDigest) {
-          const imageTag = image.imageTags && image.imageTags.length > 0 ? image.imageTags[0] : '<untagged>';
-          const imageId = { imageDigest: image.imageDigest, imageTag };
+        if (image.imageDigest && image.imageTags && image.imageTags.length > 0) {
+          const imageId = { imageDigest: image.imageDigest, imageTag: image.imageTags[0] };
           await this.deleteRepositoryImage(client, [imageId], repository.repositoryName, image.registryId);
         }
       }
@@ -161,12 +159,7 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
             const rawImage = await this.listRepositoryImages(client.ecrClient, [imageId], decoded[3]);
             if (rawImage?.imageDetails && rawImage.imageDetails[0]) {
               const imageDetail = rawImage.imageDetails[0];
-              imageDetail.imageTags = imageDetail.imageTags
-                ? imageDetail.imageTags.filter(t => t === decoded[1])
-                : [];
-              if (imageDetail.imageDigest) {
-                return await this.repositoryImageMapper(imageDetail, ctx, type, undefined);
-              }
+              return await this.repositoryImageMapper(imageDetail, ctx, type, undefined);
             }
           }
         } else {
@@ -175,12 +168,7 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
           const rawImage = await this.listPublicRepositoryImages(client.ecrPubClient, [imageId], decoded[3]);
           if (rawImage?.imageDetails && rawImage.imageDetails[0]) {
             const imageDetail = rawImage.imageDetails[0];
-            imageDetail.imageTags = imageDetail.imageTags
-              ? imageDetail.imageTags.filter(t => t === decoded[1])
-              : [];
-            if (imageDetail.imageDigest) {
-              return await this.repositoryImageMapper(imageDetail, ctx, type, undefined);
-            }
+            return await this.repositoryImageMapper(imageDetail, ctx, type, undefined);
           }
           return undefined;
         }
@@ -206,10 +194,9 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
                   for (const imageDetail of ri.imageDetails) {
                     if (
                       imageDetail.imageDigest &&
-                      imageDetail.repositoryName &&
-                      imageDetail.imageTags &&
-                      imageDetail.imageTags.length > 0
+                      imageDetail.repositoryName
                     ) {
+                      console.log('garbanzo', imageDetail.imageTags)
                       out.push(await this.repositoryImageMapper(imageDetail, ctx, 'private', region));
                     }
                   }
@@ -238,9 +225,7 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
             for (const imageDetail of ri.imageDetails) {
               if (
                 imageDetail.imageDigest &&
-                imageDetail.repositoryName &&
-                imageDetail.imageTags &&
-                imageDetail.imageTags.length > 0
+                imageDetail.repositoryName
               ) {
                 out.push(await this.repositoryImageMapper(imageDetail, ctx, 'public', undefined));
               }
