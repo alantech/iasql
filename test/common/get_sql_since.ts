@@ -66,7 +66,7 @@ describe('iasql_get_sql_since functionality', () => {
     'should work with no arguments retrieving all logs',
     query(
       `
-        select * from iasql_get_sql_since();
+        SELECT * FROM iasql_get_sql_since();
       `,
       (res: any) => {
         expect(res.length).toBeGreaterThan(0);
@@ -78,7 +78,7 @@ describe('iasql_get_sql_since functionality', () => {
     'should work with a valid text timestamp',
     query(
       `
-        select * from iasql_get_sql_since('2023-01-01T12:00:00');
+        SELECT * FROM iasql_get_sql_since('2023-01-01T12:00:00');
       `,
       (res: any) => {
         expect(res.length).toBeGreaterThan(0);
@@ -90,7 +90,7 @@ describe('iasql_get_sql_since functionality', () => {
     'should work with a dynamic date',
     query(
       `
-        select * from iasql_get_sql_since((now() + interval '2 seconds')::text);
+        SELECT * FROM iasql_get_sql_since((now() + interval '2 seconds')::text);
       `,
       (res: any) => {
         expect(res.length).toBe(0);
@@ -100,7 +100,7 @@ describe('iasql_get_sql_since functionality', () => {
 
   it('should fail with a string that cannot be casted to timestamp with timezone', done =>
     void query(`
-      select * from iasql_get_sql_since('abcd');
+      SELECT * FROM iasql_get_sql_since('abcd');
     `)((e?: any) => {
       try {
         expect(e?.message).toBe('Cannot cast abcd to timestamp with time zone');
@@ -116,8 +116,8 @@ describe('iasql_get_sql_since functionality', () => {
     'manual inserts on iasql audit logs',
     query(
       `
-        insert into iasql_audit_log (ts, table_name, "user", change_type, change)
-        values (now(), 'iasql_audit_log', session_user, 'INSERT',  ('${JSON.stringify({
+        INSERT INTO iasql_audit_log (ts, table_name, "user", change_type, change)
+        VALUES (NOW(), 'iasql_audit_log', SESSION_USER, 'INSERT',  ('${JSON.stringify({
           change: { a_number: 42, a_string: 'foo', a_json: { foo: 'bar' }, a_list: [1, 2, 3] },
         })}')::json)
       `,
@@ -131,14 +131,14 @@ describe('iasql_get_sql_since functionality', () => {
     'checks insert sql',
     query(
       `
-        select * from iasql_get_sql_since();
+        SELECT * FROM iasql_get_sql_since();
       `,
       (res: any) => {
         expect(res[res.length - 1].sql).toContain(
           `INSERT INTO iasql_audit_log (a_number, a_string, a_json, a_list)`,
         );
         expect(res[res.length - 1].sql).toContain(
-          `VALUES ('42', 'foo', '{\"foo\":\"bar\"}'::jsonb, '{''1'',''2'',''3''}')`,
+          `VALUES ('42', 'foo', '{\"foo\":\"bar\"}'::jsonb, '[1,2,3]')`,
         );
       },
     ),
@@ -148,8 +148,8 @@ describe('iasql_get_sql_since functionality', () => {
     'manual update on iasql audit logs',
     query(
       `
-        insert into iasql_audit_log (ts, table_name, "user", change_type, change)
-        values (now(), 'iasql_audit_log', session_user, 'UPDATE',  ('${JSON.stringify({
+        INSERT INTO iasql_audit_log (ts, table_name, "user", change_type, change)
+        VALUES (NOW(), 'iasql_audit_log', SESSION_USER, 'UPDATE',  ('${JSON.stringify({
           original: { id: 1, a_number: 42, a_string: 'foo', a_json: { foo: 'bar' }, a_list: [1, 2, 3] },
           change: { id: 1, a_number: 42, a_string: 'bar', a_json: { foo: 'bar' }, a_list: [1, 2, 3] },
         })}')::json)
@@ -164,15 +164,15 @@ describe('iasql_get_sql_since functionality', () => {
     'checks update sql',
     query(
       `
-        select * from iasql_get_sql_since();
+        SELECT * FROM iasql_get_sql_since();
       `,
       (res: any) => {
         expect(res[res.length - 1].sql).toContain(`UPDATE iasql_audit_log`);
         expect(res[res.length - 1].sql).toContain(
-          `SET a_number = '42', a_string = 'bar', a_json::jsonb = '{"foo":"bar"}'::jsonb, a_list = '{''1'',''2'',''3''}'`,
+          `SET a_number = '42', a_string = 'bar', a_json::jsonb = '{"foo":"bar"}'::jsonb, a_list = '[1,2,3]'`,
         );
         expect(res[res.length - 1].sql).toContain(
-          `WHERE a_number = '42' AND a_string = 'foo' AND a_json:jsonb = '{"foo":"bar"}'::jsonb AND a_list = '{''1'',''2'',''3''}'`,
+          `WHERE a_number = '42' AND a_string = 'foo' AND a_json::jsonb = '{"foo":"bar"}'::jsonb AND a_list = '[1,2,3]'`,
         );
       },
     ),
@@ -182,8 +182,8 @@ describe('iasql_get_sql_since functionality', () => {
     'manual delete on iasql audit logs',
     query(
       `
-        insert into iasql_audit_log (ts, table_name, "user", change_type, change)
-        values (now(), 'iasql_audit_log', session_user, 'DELETE',  ('${JSON.stringify({
+        INSERT INTO iasql_audit_log (ts, table_name, "user", change_type, change)
+        VALUES (NOW(), 'iasql_audit_log', SESSION_USER, 'DELETE',  ('${JSON.stringify({
           original: { id: 1, a_number: 42, a_string: 'bar', a_json: { foo: 'bar' }, a_list: [1, 2, 3] },
         })}')::json)
       `,
@@ -197,12 +197,12 @@ describe('iasql_get_sql_since functionality', () => {
     'checks delete sql',
     query(
       `
-        select * from iasql_get_sql_since();
+        SELECT * FROM iasql_get_sql_since();
       `,
       (res: any) => {
         expect(res[res.length - 1].sql).toContain(`DELETE FROM iasql_audit_log`);
         expect(res[res.length - 1].sql).toContain(
-          `WHERE a_number = '42' AND a_string = 'bar' AND a_json::jsonb = '{"foo":"bar"}'::jsonb AND a_list = '{''1'',''2'',''3''}'`,
+          `WHERE a_number = '42' AND a_string = 'bar' AND a_json::jsonb = '{"foo":"bar"}'::jsonb AND a_list = '[1,2,3]'`,
         );
       },
     ),
@@ -259,7 +259,7 @@ describe('iasql_get_sql_since functionality', () => {
     'checks sql sub-query tables load_balancer and security_group for load_balancer_security_group join table',
     query(
       `
-        select * from iasql_get_sql_since();
+        SELECT * FROM iasql_get_sql_since();
       `,
       (res: any) => {
         expect(
