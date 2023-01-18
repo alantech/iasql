@@ -54,6 +54,8 @@ export class SubscriptionMapper extends MapperBase<Subscription> {
     topicArn => ({ TopicArn: topicArn }),
   );
 
+  listSubscriptions = paginateBuilder<SNS>(paginateListSubscriptions, 'Subscriptions');
+
   deleteSubscription = crudBuilder2<SNS, 'unsubscribe'>('unsubscribe', SubscriptionArn => ({
     SubscriptionArn,
   }));
@@ -67,7 +69,7 @@ export class SubscriptionMapper extends MapperBase<Subscription> {
         const result = await this.createSubscription(client.snsClient, {
           Endpoint: e.endpoint,
           Protocol: e.protocol,
-          ReturnsSubscriptionArn: false,
+          ReturnsSubscriptionArn: true,
           TopicArn: e.topic.arn,
         });
         if (!result) throw new Error('Error creating SNS subscription');
@@ -98,29 +100,24 @@ export class SubscriptionMapper extends MapperBase<Subscription> {
         }
       } else {
         const out: Subscription[] = [];
-        console.log('i need to read all topics');
-
-        // we need to get a list of all topics
-        const topics = await this.module.topic.cloud.read(ctx);
-        console.log(topics);
-        for (const topic of topics) {
-          if (topic) {
-            const client = (await ctx.getAwsClient(topic.region)) as AWS;
-
-            // read all subscriptions for that topic
-            const subscriptions = await this.listSubscriptionsByTopic(client.snsClient, topic.arn);
-            console.log('in subscription');
-            for (const subscription of subscriptions) {
-              console.log('here');
-              const entry = await this.subscriptionMapper(subscription, topic.region, ctx);
-              if (entry) out.push(entry);
+        await Promise.all(
+          enabledRegions.map(async region => {
+            const client = (await ctx.getAwsClient(region)) as AWS;
+            const subs = (await this.listSubscriptions(client.snsClient)) ?? [];
+            for (const s of subs) {
+              const mappedSubscription = await this.subscriptionMapper(s, region, ctx);
+              if (mappedSubscription) out.push(mappedSubscription);
             }
-          }
-        }
+          }),
+        );
+
         return out;
       }
     },
-    updateOrReplace: (prev: Subscription, next: Subscription) => 'update',
+    updateOrReplace: (prev: Subscription, next: Subscription) => {
+      if (!Object.is(prev.arn, next.arn) || prev.arn == 'PendingConfirmation') return 'update';
+      else return 'replace';
+    },
     update: async (es: Subscription[], ctx: Context) => {
       const out = [];
       for (const e of es) {
@@ -134,12 +131,22 @@ export class SubscriptionMapper extends MapperBase<Subscription> {
           cloudRecord.id = e.id;
           await this.module.subscription.db.update(cloudRecord, ctx);
           out.push(cloudRecord);
+        } else {
+          // we create a new entry
+          const newSubscription = await this.module.subscription.cloud.create(e, ctx);
+          await this.module.subscription.cloud.delete(cloudRecord, ctx);
+          out.push(newSubscription);
         }
       }
       return out;
     },
     delete: async (es: Subscription[], ctx: Context) => {
       for (const e of es) {
+        if (e.arn == 'PendingConfirmation') {
+          throw new Error(
+            'Cannot delete a subscription pending from confirmation. You either need to confirm it, or it will be removed automatically after 3 days.',
+          );
+        } // cannot delete those as they need to be confirmed
         const client = (await ctx.getAwsClient(e.region)) as AWS;
         await this.deleteSubscription(client.snsClient, e.arn);
       }

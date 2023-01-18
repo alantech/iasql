@@ -86,7 +86,6 @@ export class Subscription {
    */
   @Column({
     nullable: true,
-    unique: true,
   })
   arn?: string;
 }
