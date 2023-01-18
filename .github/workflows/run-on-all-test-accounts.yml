@@ -127,7 +127,7 @@ jobs:
               SELECT * FROM iasql_commit();
             ";
 
-            ./${{inputs.script_address}}
+            ./src/scripts/add-internet-gateways-to-default-vpcs.sh
             
             # Shut down the engine
             docker container stop iasql
