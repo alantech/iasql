@@ -196,18 +196,18 @@ describe('S3 Integration Testing', () => {
   );
 
   it('commit should fail', done =>
-  void query(`
+    void query(`
     SELECT * FROM iasql_commit();
   `)((e?: any) => {
-    try {
-      expect(e?.message).toContain('Bucket cloud update error');
-    } catch (err) {
-      done(err);
+      try {
+        expect(e?.message).toContain('Bucket cloud update error');
+      } catch (err) {
+        done(err);
+        return {};
+      }
+      done();
       return {};
-    }
-    done();
-    return {};
-  }));
+    }));
 
   it('restores cloud state', rollback());
 
