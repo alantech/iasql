@@ -286,7 +286,7 @@ describe('iasql_get_sql_since functionality', () => {
         UPDATE iasql_audit_log
         SET ts = load_balancer_ts.ts
         FROM load_balancer_ts
-        WHERE change_type = 'INSERT' AND table_name = 'load_balancer_security_group'
+        WHERE change_type = 'INSERT' AND table_name = 'load_balancer_security_groups'
       `,
       undefined,
       true,
@@ -300,10 +300,9 @@ describe('iasql_get_sql_since functionality', () => {
       `
         SELECT *
         FROM iasql_audit_log
-        WHERE change_type = 'INSERT' AND table_name IN ('load_balancer_security_group', 'load_balancer');
+        WHERE change_type = 'INSERT' AND table_name IN ('load_balancer_security_groups', 'load_balancer');
       `,
       (res: any) => {
-        console.log(`+-+ RES = ${JSON.stringify(res)}`)
         expect(res.length).toBe(2);
         expect(res[0].ts).toBe(res[1].ts);
       },
