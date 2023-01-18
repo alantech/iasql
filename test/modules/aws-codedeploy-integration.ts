@@ -57,7 +57,7 @@ const getInstanceTypeOffering = async (availabilityZones: string[]) => {
       },
       {
         Name: 'instance-type',
-        Values: ['t2.micro', 't3.micro'],
+        Values: ['t*.medium', 't*.large'],
       },
     ],
   });
@@ -134,7 +134,7 @@ beforeAll(async () => {
     (await getAvailabilityZones())?.AvailabilityZones?.map(az => az.ZoneName ?? '') ?? [];
   availabilityZone = availabilityZones.pop() ?? '';
   const instanceTypesByAz1 = await getInstanceTypeOffering([availabilityZone]);
-  instanceType = instanceTypesByAz1.InstanceTypeOfferings?.pop()?.InstanceType ?? '';
+  instanceType = instanceTypesByAz1.InstanceTypeOfferings?.map(ito => ito.InstanceType)?.sort()[0] ?? '';
 
   await execComposeUp();
 });
