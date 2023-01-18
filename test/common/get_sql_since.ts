@@ -298,11 +298,12 @@ describe('iasql_get_sql_since functionality', () => {
     'checks timestamp update',
     query(
       `
-        SELECT ts
+        SELECT *
         FROM iasql_audit_log
         WHERE change_type = 'INSERT' AND table_name IN ('load_balancer_security_group', 'load_balancer');
       `,
       (res: any) => {
+        console.log(`+-+ RES = ${res}`)
         expect(res.length).toBe(2);
         expect(res[0].ts).toBe(res[1].ts);
       },
