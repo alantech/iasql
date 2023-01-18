@@ -273,16 +273,50 @@ describe('iasql_get_sql_since functionality', () => {
   );
 
   it(
+    'Force latest inserts to have the same timestamp (this would be the case if on install we bring some load balancers from the cloud)',
+    query(
+      `
+        WITH load_balancer_ts (
+          SELECT ts
+          FROM iasql_audit_log
+          WHERE change_type = 'INSERT' AND table_name = 'load_balancer'
+          ORDER BY ts DESC
+          LIMIT 1
+        )
+        UPDATE iasql_audit_log
+        SET ts = load_balancer_ts.ts
+        WHERE change_type = 'INSERT' AND table_name = 'load_balancer_security_group'
+      `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it(
+    'checks timestamp update',
+    query(
+      `
+        SELECT ts
+        FROM iasql_audit_log
+        WHERE change_type = 'INSERT' AND table_name IN ('load_balancer_security_group', 'load_balancer');
+      `,
+      (res: any) => {
+        expect(res.length).toBe(2);
+        expect(res[0].ts).toBe(res[1].ts);
+      },
+    ),
+  );
+
+  it(
     'checks correct order of sql statements',
     query(
       `
         SELECT * FROM iasql_get_sql_since();
       `,
       (res: any) => {
-        expect(res[res.length - 1].sql).toContain(`INSERT INTO listener (`);
-        expect(res[res.length - 2].sql).toContain(`INSERT INTO target_group (`);
-        expect(res[res.length - 3].sql).toContain(`INSERT INTO load_balancer_security_groups (`);
-        expect(res[res.length - 4].sql).toContain(`INSERT INTO load_balancer (`);
+        expect(res[res.length - 1].sql).toContain(`INSERT INTO load_balancer_security_groups (`);
+        expect(res[res.length - 2].sql).toContain(`INSERT INTO load_balancer (`);
       },
     ),
   );
