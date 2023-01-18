@@ -42,4 +42,5 @@ ARG DB_PASSWORD=test
 ENV DB_PASSWORD=$DB_PASSWORD
 
 EXPOSE 5432
+EXPOSE 9229
 ENTRYPOINT ["/engine/docker-entrypoint-dev.sh"]
