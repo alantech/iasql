@@ -157,7 +157,7 @@ async function recreateQueries(
                 ([_, v]: [string, any]) =>
                   `${
                     typeof v === 'object' && !Array.isArray(v)
-                      ? '%I::jsonb = %s::jsonb'
+                      ? '%I::jsonb = %s'
                       : typeof v === 'object' && Array.isArray(v)
                       ? '%I = %s'
                       : // ? '%I = array[%s]'
@@ -197,7 +197,7 @@ async function recreateQueries(
               ([_, v]: [string, any]) =>
                 `${
                   typeof v === 'object' && !Array.isArray(v)
-                    ? '%I::jsonb = %s::jsonb'
+                    ? '%I::jsonb = %s'
                     : typeof v === 'object' && Array.isArray(v)
                     ? // ? '%I = array[%s]'
                       '%I = %s'
@@ -210,7 +210,7 @@ async function recreateQueries(
               ([_, v]: [string, any]) =>
                 `${
                   typeof v === 'object' && !Array.isArray(v)
-                    ? '%I::jsonb = %s::jsonb'
+                    ? '%I::jsonb = %s'
                     : typeof v === 'object' && Array.isArray(v)
                     ? '%I = %s'
                     : // ? '%I = array[%s]'
