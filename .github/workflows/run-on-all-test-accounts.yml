@@ -47,12 +47,12 @@ jobs:
           cache-to: type=gha
           tags: ${{ needs.setup-variables.outputs.registry-image-tag }}
 
-  run-test:
+  run-command:
     runs-on: ubuntu-latest
     needs:
       - setup-variables
       - build-and-push
-    name: module test ${{ matrix.module }}
+    name: run on account ${{ matrix.module }}
     strategy:
       fail-fast: false
       matrix:
@@ -74,8 +74,8 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Pre-clean Test Account
-        id: pre-clean-test-account
+      - name: Run command on accounts
+        id: run-command-on-account
         uses: nick-fields/retry@v2
         env:
           IASQL_ENV: ci
