@@ -76,7 +76,6 @@ describe('InternetGateway Integration Testing', () => {
 
   it('installs the vpc module', install(['aws_vpc']));
 
-
   it('starts a transaction', begin());
   it(
     'creates a new vpc',
@@ -229,8 +228,12 @@ describe('InternetGateway Integration Testing', () => {
     query(
       `
           DELETE
+          FROM subnet
+          WHERE vpc_id IN (SELECT id FROM vpc WHERE tags ->> 'name' IN ('${prefix}', '${prefix}-2'));
+
+          DELETE
           FROM vpc
-          WHERE tags ->> 'name' IN ('${prefix}', '${prefix}-2')
+          WHERE tags ->> 'name' IN ('${prefix}', '${prefix}-2');
       `,
       undefined,
       true,

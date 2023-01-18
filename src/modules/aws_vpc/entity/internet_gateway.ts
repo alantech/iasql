@@ -1,4 +1,4 @@
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
 
 import { cloudId } from '../../../services/cloud-id';
 import { AwsRegions } from '../../aws_account/entity';
@@ -37,7 +37,7 @@ export class InternetGateway {
    * @public
    * Reference to the VPC associated with this internet gateway
    */
-  @ManyToOne(() => Vpc, {
+  @OneToOne(() => Vpc, {
     nullable: true,
     eager: true,
     onDelete: 'CASCADE',
