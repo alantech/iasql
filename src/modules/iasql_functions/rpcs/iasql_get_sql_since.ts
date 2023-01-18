@@ -88,7 +88,7 @@ async function getChangeLogs(limitDate: string, orm: TypeormWrapper): Promise<Ia
     whereClause.ts = MoreThan(new Date(castedValue));
   }
   return orm.find(IasqlAuditLog, {
-    order: { ts: 'ASC' },
+    order: { ts: 'ASC', id: 'ASC' },
     where: whereClause,
   });
 }
