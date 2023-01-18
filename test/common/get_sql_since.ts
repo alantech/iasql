@@ -304,7 +304,7 @@ describe('iasql_get_sql_since functionality', () => {
       `,
       (res: any) => {
         expect(res.length).toBe(2);
-        expect(res[0].ts).toBe(res[1].ts);
+        expect(res[0].ts).toStrictEqual(res[1].ts);
       },
     ),
   );
