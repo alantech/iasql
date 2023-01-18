@@ -62,7 +62,7 @@ export class InternetGatewayMapper extends MapperBase<InternetGateway> {
     const out = new InternetGateway();
     out.internetGatewayId = ig.InternetGatewayId;
     out.tags = convertTagsFromAws(ig.Tags);
-    if (!!ig.Attachments && ig.Attachments.length)
+    if (!!ig.Attachments && ig.Attachments.length) {
       out.vpc =
         (await awsVpcModule.vpc.db.read(
           ctx,
@@ -72,6 +72,7 @@ export class InternetGatewayMapper extends MapperBase<InternetGateway> {
           ctx,
           awsVpcModule.vpc.generateId({ vpcId: ig.Attachments[0].VpcId!, region }),
         ));
+    }
     out.region = region;
 
     return out;
