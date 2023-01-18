@@ -38,10 +38,10 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
     if (!image.imageDigest) {
       throw new Error('Invalid repository image');
     }
-    const imageTag = image.imageTags && image.imageTags.length > 0 ? image.imageTags[0] : '<untagged>';
+    const imageTag = image.imageTags?.[0] ?? '<untagged>';
     out.imageDigest = image.imageDigest;
     out.imageTag = imageTag;
-    if (image.imageSizeInBytes) out.sizeInMB = Math.round(image.imageSizeInBytes * 0.000001);
+    if (image.imageSizeInBytes) out.sizeInMB = Math.round(image.imageSizeInBytes / 1024 / 1024);
     if (image.imagePushedAt) out.pushedAt = image.imagePushedAt;
     (out.privateRepository = undefined), (out.publicRepository = undefined);
     if (type === 'private') {
