@@ -100,18 +100,12 @@ export class TopicMapper extends MapperBase<Topic> {
       out.fifoTopic = attributes.FifoTopic === 'true';
     }
 
-<<<<<<< HEAD
     // if not fifo, get data protection
     out.dataProtectionPolicy = undefined;
     if (!out.fifoTopic) {
       const dataProtection = await this.getTopicDataProtection(client.snsClient, arn);
       if (dataProtection) out.dataProtectionPolicy = dataProtection;
     }
-=======
-    const dataProtection = await this.getTopicDataProtection(client.snsClient, t);
-    if (dataProtection) out.dataProtectionPolicy = dataProtection;
-    else out.dataProtectionPolicy = undefined;
->>>>>>> 64a6f0bd (go back to original code, relying in subscribers to handle with null)
 
     out.arn = arn;
     out.region = region;
