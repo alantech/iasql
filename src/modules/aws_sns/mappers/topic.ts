@@ -101,9 +101,12 @@ export class TopicMapper extends MapperBase<Topic> {
       out.fifoTopic = attributes.FifoTopic === 'true';
     }
 
-    const dataProtection = await this.getTopicDataProtection(client.snsClient, arn);
-    if (dataProtection) out.dataProtectionPolicy = dataProtection;
-    else out.dataProtectionPolicy = undefined;
+    // if not fifo, get data protection
+    out.dataProtectionPolicy = undefined;
+    if (!out.fifoTopic) {
+      const dataProtection = await this.getTopicDataProtection(client.snsClient, arn);
+      if (dataProtection) out.dataProtectionPolicy = dataProtection;
+    }
 
     out.arn = arn;
     out.region = region;
@@ -118,7 +121,10 @@ export class TopicMapper extends MapperBase<Topic> {
         if (!e.name || !e.region) continue; // cannot create topic without name or region
         const client = (await ctx.getAwsClient(e.region)) as AWS;
         const attr = new Map();
-        if (e.fifoTopic) attr.set('FifoTopic', 'true');
+        if (e.fifoTopic) {
+          attr.set('FifoTopic', 'true');
+          e.dataProtectionPolicy = undefined;
+        }
         for (const key of this.attributeKeys) {
           if (e.hasOwnProperty(key)) attr.set(this.capitalize(key), e[key as keyof Topic]);
         }
@@ -176,14 +182,18 @@ export class TopicMapper extends MapperBase<Topic> {
           const client = (await ctx.getAwsClient(e.region)) as AWS;
 
           // if arn or fifo topic is different, we restore it
-          if (!Object.is(e.arn, cloudRecord.arn) || !Object.is(e.fifoTopic, cloudRecord.fifoTopic)) {
+          // if data protection policy is set and is fifo topic, we restore it
+          if (
+            !Object.is(e.arn, cloudRecord.arn) ||
+            !Object.is(e.fifoTopic, cloudRecord.fifoTopic) ||
+            (e.fifoTopic && e.dataProtectionPolicy)
+          ) {
             cloudRecord.id = e.id;
             await this.module.topic.db.update(cloudRecord, ctx);
             out.push(cloudRecord);
             break;
           }
 
-          // update data protection policy
           if (!isEqual(e.dataProtectionPolicy, cloudRecord.dataProtectionPolicy) && e.dataProtectionPolicy) {
             // update the policy
             await this.putDataProtectionPolicy(client.snsClient, {
