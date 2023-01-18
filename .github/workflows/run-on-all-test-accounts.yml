@@ -1,7 +1,5 @@
 name: Run On All Test Accounts
 on:
-  push:
-    branches: [ add-run-on-all-test-accounts-job ]
   workflow_dispatch:
     inputs:
       script_address:
@@ -83,6 +81,7 @@ jobs:
           ACCESS_KEY_IDS: ${{ secrets.ACCESS_KEY_IDS }}
           SECRET_ACCESS_KEYS: ${{ secrets.SECRET_ACCESS_KEYS }}
           PSQL_CONN: postgres://postgres:test@localhost:5432/iasql
+          SCRIPT_ADDRESS: ${{ inputs.script_address }}
         with:
           max_attempts: 2
           retry_on: error
@@ -127,7 +126,7 @@ jobs:
               SELECT * FROM iasql_commit();
             ";
 
-            ./src/scripts/add-internet-gateways-to-default-vpcs.sh
+            ./$(echo $SCRIPT_ADDRESS)
             
             # Shut down the engine
             docker container stop iasql
