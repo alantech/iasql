@@ -17,6 +17,7 @@ import { AwsRegions } from '../../aws_account/entity';
  */
 @Entity()
 @Unique('uq_topic_name_region', ['name', 'region'])
+@Unique('uq_topic_arn', ['arn'])
 export class Topic {
   /**
    * @private

@@ -2,8 +2,6 @@ import {
   paginateListSubscriptions,
   paginateListSubscriptionsByTopic,
   SNS,
-  SNSClient,
-  SubscribeCommandInput,
   Subscription as SubscriptionAWS,
 } from '@aws-sdk/client-sns';
 
@@ -56,8 +54,6 @@ export class SubscriptionMapper extends MapperBase<Subscription> {
     topicArn => ({ TopicArn: topicArn }),
   );
 
-  listSubscriptions = paginateBuilder<SNS>(paginateListSubscriptions, 'listSubscriptions');
-
   deleteSubscription = crudBuilder2<SNS, 'unsubscribe'>('unsubscribe', SubscriptionArn => ({
     SubscriptionArn,
   }));
@@ -102,16 +98,25 @@ export class SubscriptionMapper extends MapperBase<Subscription> {
         }
       } else {
         const out: Subscription[] = [];
-        await Promise.all(
-          enabledRegions.map(async region => {
-            const client = (await ctx.getAwsClient(region)) as AWS;
-            const subscriptions = (await this.listSubscriptions(client.snsClient)) ?? [];
+        console.log('i need to read all topics');
+
+        // we need to get a list of all topics
+        const topics = await this.module.topic.cloud.read(ctx);
+        console.log(topics);
+        for (const topic of topics) {
+          if (topic) {
+            const client = (await ctx.getAwsClient(topic.region)) as AWS;
+
+            // read all subscriptions for that topic
+            const subscriptions = await this.listSubscriptionsByTopic(client.snsClient, topic.arn);
+            console.log('in subscription');
             for (const subscription of subscriptions) {
-              const mappedSubscription = await this.subscriptionMapper(subscription, region, ctx);
-              if (mappedSubscription) out.push(mappedSubscription);
+              console.log('here');
+              const entry = await this.subscriptionMapper(subscription, topic.region, ctx);
+              if (entry) out.push(entry);
             }
-          }),
-        );
+          }
+        }
         return out;
       }
     },
