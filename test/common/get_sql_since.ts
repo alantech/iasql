@@ -276,7 +276,7 @@ describe('iasql_get_sql_since functionality', () => {
     'Force latest inserts to have the same timestamp (this would be the case if on install we bring some load balancers from the cloud)',
     query(
       `
-        WITH load_balancer_ts (
+        WITH load_balancer_ts AS (
           SELECT ts
           FROM iasql_audit_log
           WHERE change_type = 'INSERT' AND table_name = 'load_balancer'
