@@ -41,7 +41,7 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
     const imageTag = image.imageTags?.[0] ?? '<untagged>';
     out.imageDigest = image.imageDigest;
     out.imageTag = imageTag;
-    if (image.imageSizeInBytes) out.sizeInMB = Math.round(image.imageSizeInBytes / 1024 / 1024);
+    if (image.imageSizeInBytes) out.sizeInMB = Math.round((image.imageSizeInBytes ?? 0) / 1024 / 1024);
     if (image.imagePushedAt) out.pushedAt = image.imagePushedAt;
     (out.privateRepository = undefined), (out.publicRepository = undefined);
     if (type === 'private') {
@@ -113,13 +113,10 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
       repository.repositoryName,
       repository.registryId,
     );
-    if (images && images.imageDetails) {
-      for (const image of images.imageDetails) {
-        if (image.imageDigest && image.imageTags && image.imageTags.length > 0) {
-          const imageId = { imageDigest: image.imageDigest, imageTag: image.imageTags[0] };
-          await this.deleteRepositoryImage(client, [imageId], repository.repositoryName, image.registryId);
-        }
-      }
+    for (const image of images?.imageDetails ?? []) {
+      if (!image.imageDigest || !image.imageTags || image.imageTags.length === 0) continue;
+      const imageId = { imageDigest: image.imageDigest, imageTag: image.imageTags[0] };
+      await this.deleteRepositoryImage(client, [imageId], repository.repositoryName, image.registryId);
     }
   }
 
@@ -130,13 +127,10 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
       repository.repositoryName,
       repository.registryId,
     );
-    if (images && images.imageDetails) {
-      for (const image of images.imageDetails) {
-        if (image.imageDigest && image.imageTags && image.imageTags.length > 0) {
-          const imageId = { imageDigest: image.imageDigest, imageTag: image.imageTags[0] };
-          await this.deleteRepositoryImage(client, [imageId], repository.repositoryName, image.registryId);
-        }
-      }
+    for (const image of images?.imageDetails ?? []) {
+      if (!image.imageDigest || !image.imageTags || image.imageTags.length === 0) continue;
+      const imageId = { imageDigest: image.imageDigest, imageTag: image.imageTags[0] };
+      await this.deleteRepositoryImage(client, [imageId], repository.repositoryName, image.registryId);
     }
   }
 
@@ -192,21 +186,20 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
                 );
                 if (ri?.imageDetails) {
                   for (const imageDetail of ri.imageDetails) {
-                    if (imageDetail.imageDigest && imageDetail.repositoryName) {
-                      if (imageDetail.imageTags && imageDetail.imageTags.length > 0) {
-                        for (const imageTag of imageDetail.imageTags) {
-                          out.push(
-                            await this.repositoryImageMapper(
-                              { ...imageDetail, imageTags: [imageTag] },
-                              ctx,
-                              'private',
-                              region,
-                            ),
-                          );
-                        }
-                      } else {
-                        out.push(await this.repositoryImageMapper(imageDetail, ctx, 'private', region));
+                    if (!imageDetail.imageDigest || !imageDetail.repositoryName) continue;
+                    if (imageDetail.imageTags && imageDetail.imageTags.length > 0) {
+                      for (const imageTag of imageDetail.imageTags) {
+                        out.push(
+                          await this.repositoryImageMapper(
+                            { ...imageDetail, imageTags: [imageTag] },
+                            ctx,
+                            'private',
+                            region,
+                          ),
+                        );
                       }
+                    } else {
+                      out.push(await this.repositoryImageMapper(imageDetail, ctx, 'private', region));
                     }
                   }
                 }
