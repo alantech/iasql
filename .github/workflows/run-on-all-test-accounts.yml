@@ -3,6 +3,10 @@ on:
   push:
     branches: [ add-run-on-all-test-accounts-job ]
   workflow_dispatch:
+    inputs:
+      script_address:
+        required:  true
+        description: 'Specify the script to run on all the accounts'
 
 jobs:
   setup-variables:
@@ -123,7 +127,7 @@ jobs:
               SELECT * FROM iasql_commit();
             ";
 
-            ./src/scripts/add-internet-gateway-to-default-vpcs.sh
+            ./${{inputs.script_address}}
             
             # Shut down the engine
             docker container stop iasql
