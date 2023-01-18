@@ -303,8 +303,8 @@ async function findRelationOrReturnValue(
     return typeof columnMetadata.type === 'string'
       ? format('array[%L]::%I[]', value, columnMetadata.type)
       : format('array[%L]', value);
-  } else if (columnMetadata && typeof value === 'object' && Array.isArray(value)) {
-    return typeof columnMetadata.type === 'string'
+  } else if (typeof value === 'object' && Array.isArray(value)) {
+    return typeof columnMetadata?.type === 'string'
       ? format('%L::%I', JSON.stringify(value), columnMetadata.type)
       : format('%L', JSON.stringify(value));
   }
