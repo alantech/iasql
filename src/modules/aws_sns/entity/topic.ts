@@ -151,7 +151,7 @@ export class Topic {
 
   /**
    * @public
-   * Region for the Codedeploy deployment group
+   * Region for the SNS topic
    */
   @Column({
     type: 'character varying',

@@ -76,13 +76,13 @@ export class TopicMapper extends MapperBase<Topic> {
     return s.charAt(0).toUpperCase() + s.slice(1);
   };
 
-  async topicMapper(t: string, region: string, ctx: Context) {
+  async topicMapper(arn: string, region: string, ctx: Context) {
+    if (!arn) return undefined;
     let out = new Topic();
-    if (!t) return undefined;
 
     // if we have the topic, we can query the attributes and data protection
     const client = (await ctx.getAwsClient(region)) as AWS;
-    const attributes = await this.getTopicAttributes(client.snsClient, t);
+    const attributes = await this.getTopicAttributes(client.snsClient, arn);
     if (attributes) {
       for (const key of this.attributeKeys) {
         const transformedKey = this.capitalize(key);
@@ -101,13 +101,13 @@ export class TopicMapper extends MapperBase<Topic> {
       out.fifoTopic = attributes.FifoTopic === 'true';
     }
 
-    const dataProtection = await this.getTopicDataProtection(client.snsClient, t);
+    const dataProtection = await this.getTopicDataProtection(client.snsClient, arn);
     if (dataProtection) out.dataProtectionPolicy = dataProtection;
     else out.dataProtectionPolicy = undefined;
 
-    out.arn = t;
+    out.arn = arn;
     out.region = region;
-    out.name = parseArn(t).resource;
+    out.name = parseArn(arn).resource;
     return out;
   }
 
