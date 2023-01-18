@@ -72,7 +72,7 @@ export class IasqlGetSqlSince extends RpcBase {
 
 /**
  * @internal
- * Returns the relevant `IasqlAuditLog`s order by timestamp with the older logs first.
+ * Returns the relevant `IasqlAuditLog`s order by timestamp with older logs first.
  */
 async function getChangeLogs(limitDate: string, orm: TypeormWrapper): Promise<IasqlAuditLog[]> {
   const whereClause: any = {
@@ -121,18 +121,13 @@ async function recreateQueries(
         const valuesToInsert = await Promise.all(
           insertedEntries.map(
             async ([k, v]: [string, any]) =>
-              await findRelationOrReturnValue(cl.tableName, k, v, modsIndexedByTable, orm),
+              await findRelationOrReturnFormattedValue(cl.tableName, k, v, modsIndexedByTable, orm),
           ),
         );
         query = format(
           `
           INSERT INTO %I (${insertedEntries.map(_ => '%I').join(', ')})
-          VALUES (${insertedEntries
-            .map(
-              // ([_, v]: [string, any]) => `${typeof v === 'object' && Array.isArray(v) ? 'array[%s]' : '%s'}`,
-              ([_, v]: [string, any]) => `${typeof v === 'object' && Array.isArray(v) ? '%s' : '%s'}`,
-            )
-            .join(', ')});
+          VALUES (${insertedEntries.map(_ => '%s').join(', ')});
         `,
           cl.tableName,
           ...insertedEntries.map(([k, _]: [string, any]) => k),
@@ -146,7 +141,7 @@ async function recreateQueries(
         const valuesDeleted = await Promise.all(
           relevantEntries.map(
             async ([k, v]: [string, any]) =>
-              await findRelationOrReturnValue(cl.tableName, k, v, modsIndexedByTable, orm),
+              await findRelationOrReturnFormattedValue(cl.tableName, k, v, modsIndexedByTable, orm),
           ),
         );
         query = format(
@@ -155,14 +150,7 @@ async function recreateQueries(
             WHERE ${relevantEntries
               .map(
                 ([_, v]: [string, any]) =>
-                  `${
-                    typeof v === 'object' && !Array.isArray(v)
-                      ? '%I::jsonb = %s'
-                      : typeof v === 'object' && Array.isArray(v)
-                      ? '%I = %s'
-                      : // ? '%I = array[%s]'
-                        '%I = %s'
-                  }`,
+                  `${typeof v === 'object' && !Array.isArray(v) ? '%I::jsonb = %s' : '%I = %s'}`,
               )
               .join(' AND ')};
           `,
@@ -180,13 +168,13 @@ async function recreateQueries(
         const updatedValues = await Promise.all(
           updatedEntries.map(
             async ([k, v]: [string, any]) =>
-              await findRelationOrReturnValue(cl.tableName, k, v, modsIndexedByTable, orm),
+              await findRelationOrReturnFormattedValue(cl.tableName, k, v, modsIndexedByTable, orm),
           ),
         );
         const oldValues = await Promise.all(
           originalEntries.map(
             async ([k, v]: [string, any]) =>
-              await findRelationOrReturnValue(cl.tableName, k, v, modsIndexedByTable, orm),
+              await findRelationOrReturnFormattedValue(cl.tableName, k, v, modsIndexedByTable, orm),
           ),
         );
         query = format(
@@ -195,27 +183,13 @@ async function recreateQueries(
           SET ${updatedEntries
             .map(
               ([_, v]: [string, any]) =>
-                `${
-                  typeof v === 'object' && !Array.isArray(v)
-                    ? '%I::jsonb = %s'
-                    : typeof v === 'object' && Array.isArray(v)
-                    ? // ? '%I = array[%s]'
-                      '%I = %s'
-                    : '%I = %s'
-                }`,
+                `${typeof v === 'object' && !Array.isArray(v) ? '%I::jsonb = %s' : '%I = %s'}`,
             )
             .join(', ')}
           WHERE ${originalEntries
             .map(
               ([_, v]: [string, any]) =>
-                `${
-                  typeof v === 'object' && !Array.isArray(v)
-                    ? '%I::jsonb = %s'
-                    : typeof v === 'object' && Array.isArray(v)
-                    ? '%I = %s'
-                    : // ? '%I = array[%s]'
-                      '%I = %s'
-                }`,
+                `${typeof v === 'object' && !Array.isArray(v) ? '%I::jsonb = %s' : '%I = %s'}`,
             )
             .join(' AND ')};
         `,
@@ -234,19 +208,20 @@ async function recreateQueries(
 
 /**
  * @internal
- * The changes from iasql_audit_log are stored as JSON, so we need to transform them and return a valid value for the query.
+ * The changes from iasql_audit_log are stored as JSON.
+ * We need to look if the value is a relation to other table and return the respective sub-query
+ * or return a formatted value for the query.
  */
-async function findRelationOrReturnValue(
+async function findRelationOrReturnFormattedValue(
   tableName: string,
   key: string,
   value: any,
   modsIndexedByTable: { [key: string]: ModuleInterface },
   orm: TypeormWrapper,
 ): Promise<string> {
-  // Todo: update comment
-  // If `value`'s type is `number` we might need to recreate a sub-query because it could be an `id` referencing other table.
-  // In this case we need to get Typeorm metadata for this `tableName` and inspect columns and relations and recreate the sub-query if necessary.
-  // We need to recreate the sub-query because database `id` columns will not be the same across databases connected to the same cloud account.
+  // We might need to recreate a sub-query because it could be column referencing other table.
+  // For this we need to get Typeorm metadata for the `tableName` and inspect the columns and relations in order to recreate the sub-query if necessary.
+  // We need to recreate the sub-query because related columns might not be the same across databases connected to the same cloud account.
   const metadata = await getMetadata(tableName, modsIndexedByTable, orm);
   let columnMetadata: ColumnMetadata | undefined;
   if (value && metadata) {
@@ -299,6 +274,7 @@ async function findRelationOrReturnValue(
       }
     }
   }
+  // Arrays have special behaviour in postgres. We try to cast the right array type when possible.
   if (columnMetadata && columnMetadata.isArray) {
     return typeof columnMetadata.type === 'string'
       ? format('array[%L]::%I[]', value, columnMetadata.type)
@@ -364,7 +340,7 @@ async function getMetadata(
 
 /**
  * @internal
- * Returns sub-query based on `id` relation.
+ * Returns sub-query based on the referenced column in the relation.
  * The related entity will be found using the cloud columns decorators.
  */
 async function recreateSubQuery(
@@ -387,7 +363,7 @@ async function recreateSubQuery(
     const values = await Promise.all(
       cloudColumns.map(
         async (cc: string) =>
-          await findRelationOrReturnValue(
+          await findRelationOrReturnFormattedValue(
             entityMetadata?.tableName ?? 'unknown_table',
             cc,
             e[cc],
