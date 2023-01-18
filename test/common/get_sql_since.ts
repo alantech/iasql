@@ -285,6 +285,7 @@ describe('iasql_get_sql_since functionality', () => {
         )
         UPDATE iasql_audit_log
         SET ts = load_balancer_ts.ts
+        FROM load_balancer_ts
         WHERE change_type = 'INSERT' AND table_name = 'load_balancer_security_group'
       `,
       undefined,
