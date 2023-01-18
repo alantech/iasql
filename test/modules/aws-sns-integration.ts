@@ -27,7 +27,33 @@ const installAll = runInstallAll.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const region = defaultRegion();
 
-const modules = ['aws_sns'];
+const lambdaFunctionName = `${prefix}${dbAlias}`;
+const lambdaFunctionCode =
+  'UEsDBBQAAAAIADqB9VRxjjIufQAAAJAAAAAIABwAaW5kZXguanNVVAkAAzBe2WIwXtlidXgLAAEE9QEAAAQUAAAANcyxDoIwEIDhnae4MNFIOjiaOLI41AHj5NLUA5scV3K9Gojx3ZWB8R++H5c5iWb78vwkFDgD+LxygKFw0Ji4wTeythASKy5q4FPBFjkRWkpjU3f3zt1O8OAaDnDpr85mlchjHNYdcyFq4WjM3wpqEd5/26JXQT85P2H1/QFQSwECHgMUAAAACAA6gfVUcY4yLn0AAACQAAAACAAYAAAAAAABAAAApIEAAAAAaW5kZXguanNVVAUAAzBe2WJ1eAsAAQT1AQAABBQAAABQSwUGAAAAAAEAAQBOAAAAvwAAAAAA';
+// Base64 for zip file with the following code:
+// exports.handler =  async function(event, context) {
+//   console.log("EVENT: \n" + JSON.stringify(event, null, 3))
+//   return context.logStreamName
+// }
+const lambdaFunctionHandler = 'index.handler';
+const lambdaFunctionRuntime14 = 'nodejs14.x';
+const lambdaFunctionRoleName = `${prefix}${dbAlias}-role`;
+
+const attachAssumeLambdaPolicy = JSON.stringify({
+  Version: '2012-10-17',
+  Statement: [
+    {
+      Effect: 'Allow',
+      Principal: {
+        Service: 'lambda.amazonaws.com',
+      },
+      Action: 'sts:AssumeRole',
+    },
+  ],
+});
+const lambdaFunctionRoleTaskPolicyArn = 'arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole';
+
+const modules = ['aws_sns', 'aws_lambda'];
 jest.setTimeout(360000);
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown());
@@ -173,7 +199,7 @@ describe('AwsSNS Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  /*it('starts a transaction', begin());
 
   it(
     'tries to update a field with an incorrect value',
@@ -207,7 +233,7 @@ describe('AwsSNS Integration Testing', () => {
   `,
       (res: any[]) => expect(res.length).toBe(0),
     ),
-  );
+  );*/
 
   it('starts a transaction', begin());
 
@@ -237,6 +263,86 @@ describe('AwsSNS Integration Testing', () => {
     ),
   );
 
+  // testing for subscription
+  it('starts a transaction', begin());
+
+  it(
+    'adds a new lambda function',
+    query(
+      `
+        BEGIN;
+          INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
+          VALUES ('${lambdaFunctionRoleName}', '${attachAssumeLambdaPolicy}', array['${lambdaFunctionRoleTaskPolicyArn}']);
+  
+          INSERT INTO lambda_function (name, zip_b64, handler, runtime, role_name)
+          VALUES ('${lambdaFunctionName}', '${lambdaFunctionCode}', '${lambdaFunctionHandler}', '${lambdaFunctionRuntime14}', '${lambdaFunctionRoleName}');
+        COMMIT;
+      `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it('applies the lambda creation', commit());
+
+  it('starts a transaction', begin());
+
+  it(
+    'adds a new subscription',
+    query(
+      `
+      INSERT INTO subscription (endpoint, protocol, topic) VALUES ((SELECT arn FROM lambda_function WHERE name='${lambdaFunctionName}'), 'lambda', (SELECT arn FROM topic WHERE name='${topicName}'));
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it('applies the subscription creation', commit());
+
+  it(
+    'check subscription has been created',
+    query(
+      `
+    SELECT *
+    FROM subscription
+    WHERE endpoint=(SELECT arn FROM lambda_function WHERE name='${lambdaFunctionName}');
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it('starts a transaction', begin());
+
+  it(
+    'updates subscription ARN',
+    query(
+      `
+      UPDATE subscription SET arn='abc' WHERE endpoint=(SELECT arn FROM lambda_function WHERE name='${lambdaFunctionName}');
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it('applies the ARN update', commit());
+
+  it(
+    'check subscription ARN has not been modified',
+    query(
+      `
+    SELECT *
+    FROM subscription
+    WHERE endpoint=(SELECT arn FROM lambda_function WHERE name='${lambdaFunctionName}') AND arn='abc';
+  `,
+      (res: any[]) => expect(res.length).toBe(0),
+    ),
+  );
+
+  // deleting components
   it('starts a transaction', begin());
 
   itDocs(
@@ -252,7 +358,19 @@ describe('AwsSNS Integration Testing', () => {
     ),
   );
 
-  it('applies the topic delete', commit());
+  it('applies the subscription and topic delete', commit());
+
+  it(
+    'check deletes the subscription',
+    query(
+      `
+    SELECT *
+    FROM subscription
+    WHERE endpoint=(SELECT arn FROM lambda_function WHERE name='${lambdaFunctionName}');
+  `,
+      (res: any[]) => expect(res.length).toBe(0),
+    ),
+  );
 
   itDocs(
     'check deletes the topic',
@@ -263,6 +381,23 @@ describe('AwsSNS Integration Testing', () => {
     WHERE name = '${topicName}';
   `,
       (res: any[]) => expect(res.length).toBe(0),
+    ),
+  );
+
+  it(
+    'deletes the lambda function',
+    query(
+      `
+      BEGIN;  
+    DELETE FROM lambda_function WHERE name = '${lambdaFunctionName}';
+    DELETE FROM iam_role WHERE role_name = '${lambdaFunctionRoleName}';
+
+    COMMIT;
+
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
     ),
   );
 

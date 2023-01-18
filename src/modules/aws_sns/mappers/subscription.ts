@@ -18,7 +18,7 @@ export class SubscriptionMapper extends MapperBase<Subscription> {
   };
 
   async subscriptionMapper(s: SubscriptionAWS, region: string, ctx: Context) {
-    let out = new Subscription();
+    const out = new Subscription();
     if (!s.SubscriptionArn || !s.Protocol || !s.TopicArn) return undefined;
 
     out.arn = s.SubscriptionArn;
@@ -115,7 +115,7 @@ export class SubscriptionMapper extends MapperBase<Subscription> {
       }
     },
     updateOrReplace: (prev: Subscription, next: Subscription) => {
-      if (!Object.is(prev.arn, next.arn) || prev.arn == 'PendingConfirmation') return 'update';
+      if (!Object.is(prev.arn, next.arn) || prev.arn === 'PendingConfirmation') return 'update';
       else return 'replace';
     },
     update: async (es: Subscription[], ctx: Context) => {
@@ -142,7 +142,7 @@ export class SubscriptionMapper extends MapperBase<Subscription> {
     },
     delete: async (es: Subscription[], ctx: Context) => {
       for (const e of es) {
-        if (e.arn == 'PendingConfirmation') {
+        if (e.arn === 'PendingConfirmation') {
           throw new Error(
             'Cannot delete a subscription pending from confirmation. You either need to confirm it, or it will be removed automatically after 3 days.',
           );

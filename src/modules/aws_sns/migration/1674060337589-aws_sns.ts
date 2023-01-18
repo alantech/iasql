@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class awsSns1674045039833 implements MigrationInterface {
-  name = 'awsSns1674045039833';
+export class awsSns1674060337589 implements MigrationInterface {
+  name = 'awsSns1674060337589';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
@@ -14,7 +14,7 @@ export class awsSns1674045039833 implements MigrationInterface {
       `ALTER TABLE "topic" ADD CONSTRAINT "FK_a8a24525e870ae4ec478e78110e" FOREIGN KEY ("region") REFERENCES "aws_regions"("region") ON DELETE NO ACTION ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
-      `ALTER TABLE "subscription" ADD CONSTRAINT "FK_0cfc83592dbf7a0e4fcd12128b5" FOREIGN KEY ("topic") REFERENCES "topic"("arn") ON DELETE CASCADE ON UPDATE NO ACTION`,
+      `ALTER TABLE "subscription" ADD CONSTRAINT "FK_0cfc83592dbf7a0e4fcd12128b5" FOREIGN KEY ("topic") REFERENCES "topic"("arn") ON DELETE NO ACTION ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
       `ALTER TABLE "subscription" ADD CONSTRAINT "FK_4489f38bf18f6903cbe7a80a40d" FOREIGN KEY ("region") REFERENCES "aws_regions"("region") ON DELETE NO ACTION ON UPDATE NO ACTION`,

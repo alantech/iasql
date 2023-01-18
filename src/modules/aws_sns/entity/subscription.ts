@@ -32,7 +32,6 @@ export class Subscription {
   @ManyToOne(() => Topic, {
     eager: true,
     nullable: true,
-    onDelete: 'CASCADE',
   })
   @JoinColumn([
     {
