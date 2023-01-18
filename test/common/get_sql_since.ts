@@ -272,5 +272,20 @@ describe('iasql_get_sql_since functionality', () => {
     ),
   );
 
+  it(
+    'checks correct order of sql statements',
+    query(
+      `
+        SELECT * FROM iasql_get_sql_since();
+      `,
+      (res: any) => {
+        expect(res[res.length - 1].sql).toContain(`INSERT INTO listener (`);
+        expect(res[res.length - 2].sql).toContain(`INSERT INTO target_group (`);
+        expect(res[res.length - 3].sql).toContain(`INSERT INTO load_balancer_security_groups (`);
+        expect(res[res.length - 4].sql).toContain(`INSERT INTO load_balancer (`);
+      },
+    ),
+  );
+
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 });
