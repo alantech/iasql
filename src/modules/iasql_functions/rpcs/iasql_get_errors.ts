@@ -9,7 +9,7 @@ import {
 } from '../../interfaces';
 
 /**
- * Method to list the error messages produced in a transaction by `iasql_commit` or `iasql_restore`
+ * Method to list the error messages produced in a transaction by `iasql_commit` or `iasql_rollback`
  *
  * @see https://iasql.com/docs/transaction
  *

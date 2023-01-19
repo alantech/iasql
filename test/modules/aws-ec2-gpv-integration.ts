@@ -12,7 +12,7 @@ import {
   runInstall,
   runInstallAll,
   runQuery,
-  runRestore,
+  runRollback,
   runUninstall,
 } from '../helpers';
 
@@ -45,7 +45,7 @@ let availabilityZone2: string;
 const prefix = getPrefix();
 const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
-const restore = runRestore.bind(null, dbAlias);
+const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
@@ -147,7 +147,7 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
     ),
   );
 
-  it('sync before apply', restore());
+  it('sync before apply', rollback());
 
   it(
     'checks volume count',

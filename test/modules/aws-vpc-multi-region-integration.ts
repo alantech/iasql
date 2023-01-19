@@ -9,7 +9,7 @@ import {
   runCommit,
   runInstall,
   runQuery,
-  runRestore,
+  runRollback,
   runUninstall,
 } from '../helpers';
 
@@ -21,7 +21,7 @@ const nonDefaultRegionAvailabilityZone = 'us-east-1a';
 
 const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
-const restore = runRestore.bind(null, dbAlias);
+const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
@@ -116,7 +116,7 @@ describe('VPC Multi-region Integration Testing', () => {
     ),
   );
 
-  it('undo changes', restore());
+  it('undo changes', rollback());
 
   it('starts a transaction', begin());
 

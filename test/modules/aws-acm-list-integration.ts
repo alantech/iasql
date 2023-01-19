@@ -10,7 +10,7 @@ import {
   runInstall,
   runInstallAll,
   runQuery,
-  runRestore,
+  runRollback,
   runUninstall,
 } from '../helpers';
 
@@ -20,7 +20,7 @@ const domainName = `${prefix}${dbAlias}.com`;
 
 const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
-const restore = runRestore.bind(null, dbAlias);
+const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const installAll = runInstallAll.bind(null, dbAlias);
@@ -97,7 +97,7 @@ describe('AwsAcm List Integration Testing', () => {
     ),
   );
 
-  it('sync before apply (should restore)', restore());
+  it('sync before apply (should restore)', rollback());
 
   it(
     'check no new certificate',

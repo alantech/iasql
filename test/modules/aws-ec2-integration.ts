@@ -15,7 +15,7 @@ import {
   runCommit,
   runInstall,
   runQuery,
-  runRestore,
+  runRollback,
   runUninstall,
 } from '../helpers';
 
@@ -70,7 +70,7 @@ const instancePort = 1234;
 const prefix = getPrefix();
 const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
-const restore = runRestore.bind(null, dbAlias);
+const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
@@ -246,7 +246,7 @@ describe('EC2 Integration Testing', () => {
     });
   });
 
-  it('Undo changes', restore());
+  it('Undo changes', rollback());
 
   it(
     'check number of instances',

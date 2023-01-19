@@ -10,7 +10,7 @@ import {
   runInstall,
   runInstallAll,
   runQuery,
-  runRestore,
+  runRollback,
   runUninstall,
 } from '../helpers';
 
@@ -19,7 +19,7 @@ const dbAlias = 'dynamotest';
 
 const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
-const restore = runRestore.bind(null, dbAlias);
+const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const installAll = runInstallAll.bind(null, dbAlias);
@@ -101,7 +101,7 @@ describe('Dynamo Integration Testing', () => {
     ),
   );
 
-  it('undo changes', restore());
+  it('undo changes', rollback());
 
   it(
     'checks it has been removed',

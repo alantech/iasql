@@ -718,7 +718,7 @@ export async function commit(
     if (applyErr || syncErr) {
       let rollbackErr;
       try {
-        await rollback(dbId, context, installedModulesSorted, crupdes);
+        await revert(dbId, context, installedModulesSorted, crupdes);
       } catch (e) {
         rollbackErr = e;
       }
@@ -742,7 +742,7 @@ export async function commit(
   }
 }
 
-async function rollback(
+async function revert(
   dbId: string,
   ctx: Context,
   installedModules: ModuleInterface[],
@@ -879,7 +879,7 @@ async function getValue(
   return `${v}`;
 }
 
-export async function restore(dbId: string, context: Context, force = false, ormOpt?: TypeormWrapper) {
+export async function rollback(dbId: string, context: Context, force = false, ormOpt?: TypeormWrapper) {
   const t1 = Date.now();
   logger.scope({ dbId }).info(`Sync to ${dbId}`);
   await throwIfUpgrading(dbId, force);

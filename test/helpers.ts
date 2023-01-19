@@ -71,8 +71,8 @@ export function runCommit(dbAlias: string) {
   return runQuery(dbAlias, 'select iasql_commit();');
 }
 
-export function runRestore(dbAlias: string) {
-  return runQuery(dbAlias, 'select iasql_restore();');
+export function runRollback(dbAlias: string) {
+  return runQuery(dbAlias, 'select iasql_rollback();');
 }
 
 export function runInstall(dbAlias: string, mods: string[]) {

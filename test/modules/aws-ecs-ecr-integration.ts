@@ -10,7 +10,7 @@ import {
   runCommit,
   runInstall,
   runQuery,
-  runRestore,
+  runRollback,
   runUninstall,
 } from '../helpers';
 
@@ -26,7 +26,7 @@ const sidecarQuery = runQuery.bind(null, dbAliasSidecar);
 
 const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
-const restore = runRestore.bind(null, dbAlias);
+const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
@@ -197,7 +197,7 @@ describe('ECS Integration Testing', () => {
     ),
   );
 
-  it('undo changes', restore());
+  it('undo changes', rollback());
 
   it(
     'check cluster insertion',

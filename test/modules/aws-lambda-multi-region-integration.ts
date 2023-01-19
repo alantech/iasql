@@ -9,7 +9,7 @@ import {
   runCommit,
   runInstall,
   runQuery,
-  runRestore,
+  runRollback,
 } from '../helpers';
 
 const prefix = getPrefix();
@@ -42,7 +42,7 @@ const attachAssumeLambdaPolicy = JSON.stringify({
 
 const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
-const restore = runRestore.bind(null, dbAlias);
+const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const region = defaultRegion();
@@ -122,7 +122,7 @@ describe('Lambda Multi-region Integration Testing', () => {
     ),
   );
 
-  it('undo changes', restore());
+  it('undo changes', rollback());
 
   it(
     'checks it has been removed',
