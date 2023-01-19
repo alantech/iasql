@@ -749,18 +749,15 @@ async function revert(
   crupdes: CrupdeOperations,
 ) {
   await insertLog(ctx.orm, AuditLogChangeType.START_REVERT);
-  const changeLogs: IasqlAuditLog[] = await getChangeLogsSinceLastBegin(ctx.orm);
-  const modsIndexedByTable = indexModsByTable(installedModules);
-  const inverseQueries: string[] = await getInverseQueries(changeLogs, modsIndexedByTable, ctx.orm);
-  for (const q of inverseQueries) {
-    try {
-      await ctx.orm.query(q);
-    } catch (e) {
-      logger.scope({ dbId }).warn(`Error applying inverse query: ${JSON.stringify(e)}`);
-    }
-  }
   try {
-    await apply(dbId, installedModules, ctx, true, crupdes, false);
+    const changeLogsSinceLastBegin: IasqlAuditLog[] = await getChangeLogsSinceLastBegin(ctx.orm);
+    const modsIndexedByTable = indexModsByTable(installedModules);
+    const inverseQueries: string[] = await getInverseQueries(
+      changeLogsSinceLastBegin,
+      modsIndexedByTable,
+      ctx.orm,
+    );
+    await applyInverseQueries(inverseQueries, dbId, ctx, installedModules, crupdes);
   } catch (e) {
     throw e;
   } finally {
@@ -877,6 +874,27 @@ async function getValue(
   }
   if (v && typeof v === 'object') return `'${JSON.stringify(v)}'`;
   return `${v}`;
+}
+
+async function applyInverseQueries(
+  inverseQueries: string[],
+  dbId: string,
+  ctx: Context,
+  installedModules: ModuleInterface[],
+  crupdes: CrupdeOperations,
+) {
+  try {
+    for (const q of inverseQueries) {
+      try {
+        await ctx.orm.query(q);
+      } catch (e) {
+        logger.scope({ dbId }).warn(`Error applying inverse query: ${JSON.stringify(e)}`);
+      }
+    }
+    await apply(dbId, installedModules, ctx, true, crupdes, false);
+  } catch (e) {
+    throw e;
+  }
 }
 
 export async function rollback(dbId: string, context: Context, force = false, ormOpt?: TypeormWrapper) {
