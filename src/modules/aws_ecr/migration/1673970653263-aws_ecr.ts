@@ -1,11 +1,11 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class awsEcr1667228211509 implements MigrationInterface {
-  name = 'awsEcr1667228211509';
+export class awsEcr1673970653263 implements MigrationInterface {
+  name = 'awsEcr1673970653263';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
-      `CREATE TABLE "repository_image" ("id" SERIAL NOT NULL, "image_id" character varying NOT NULL, "image_digest" character varying NOT NULL, "image_tag" character varying NOT NULL, "registry_id" character varying, "private_repository_region" character varying, "private_repository_id" integer, "public_repository" character varying, "privateRepositoryRegion" character varying, CONSTRAINT "uq_repository_image_id_region" UNIQUE ("image_id", "private_repository_region"), CONSTRAINT "uq_repository_image_region" UNIQUE ("id", "private_repository_region"), CONSTRAINT "PK_b78ff8649cde8d938a7c25f8333" PRIMARY KEY ("id"))`,
+      `CREATE TABLE "repository_image" ("id" SERIAL NOT NULL, "image_id" character varying NOT NULL, "image_digest" character varying NOT NULL, "image_tag" character varying NOT NULL, "registry_id" character varying, "pushed_at" TIMESTAMP WITH TIME ZONE, "size_in_mb" integer, "private_repository_region" character varying, "private_repository_id" integer, "public_repository" character varying, "privateRepositoryRegion" character varying, CONSTRAINT "uq_repository_image_id_region" UNIQUE ("image_id", "private_repository_region"), CONSTRAINT "uq_repository_image_region" UNIQUE ("id", "private_repository_region"), CONSTRAINT "PK_b78ff8649cde8d938a7c25f8333" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
       `CREATE TABLE "public_repository" ("repository_name" character varying NOT NULL, "repository_arn" character varying, "registry_id" character varying, "repository_uri" character varying, "created_at" TIMESTAMP WITH TIME ZONE, CONSTRAINT "PK_5a7e30211ae44944c8cd65711dd" PRIMARY KEY ("repository_name"))`,
