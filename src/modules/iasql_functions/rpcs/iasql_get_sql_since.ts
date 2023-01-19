@@ -227,10 +227,7 @@ async function findRelationOrReturnFormattedValue(
   if (value && metadata) {
     // If `metadata instanceof EntityMetadata` means that there's an Entity in Typeorm which it's table name is `tableName`
     if (metadata instanceof EntityMetadata) {
-      columnMetadata = metadata.ownColumns
-        .filter(oc => oc.databaseName === key)
-        .map(oc => oc)
-        ?.pop();
+      columnMetadata = metadata.ownColumns.filter(oc => oc.databaseName === key)?.pop();
       if (!!columnMetadata?.relationMetadata) {
         return await recreateSubQuery(
           columnMetadata.referencedColumn?.databaseName ?? 'unknown_key',
@@ -246,10 +243,7 @@ async function findRelationOrReturnFormattedValue(
     // which will have the columns from the owner of the relationship and `inverseJoinColumns` will have the columns coming from
     // the other entities in the relationship.
     if (metadata instanceof RelationMetadata) {
-      columnMetadata = metadata.joinColumns
-        .filter(jc => jc.databaseName === key)
-        .map(jc => jc)
-        ?.pop();
+      columnMetadata = metadata.joinColumns.filter(jc => jc.databaseName === key)?.pop();
       if (!!columnMetadata?.relationMetadata) {
         return await recreateSubQuery(
           columnMetadata.referencedColumn?.databaseName ?? 'unknown_key',
@@ -259,10 +253,7 @@ async function findRelationOrReturnFormattedValue(
           orm,
         );
       }
-      columnMetadata = metadata.inverseJoinColumns
-        .filter(jc => jc.databaseName === key)
-        .map(jc => jc)
-        ?.pop();
+      columnMetadata = metadata.inverseJoinColumns.filter(jc => jc.databaseName === key)?.pop();
       if (!!columnMetadata?.relationMetadata) {
         return await recreateSubQuery(
           columnMetadata.referencedColumn?.databaseName ?? 'unknown_key',
