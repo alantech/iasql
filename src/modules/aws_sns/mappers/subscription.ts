@@ -6,7 +6,7 @@ import {
 } from '@aws-sdk/client-sns';
 
 import { AwsSnsModule } from '..';
-import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
+import { AWS, paginateBuilder } from '../../../services/aws_macros';
 import { Context, Crud2, MapperBase } from '../../interfaces';
 import { Subscription } from '../entity/subscription';
 
@@ -27,24 +27,23 @@ export class SubscriptionMapper extends MapperBase<Subscription> {
     out.region = region;
 
     // read topic from ARN
-    out.topic =
-      (await this.module.topic.db.read(
-        ctx,
-        this.module.topic.generateId({ arn: s.TopicArn ?? '', region }),
-      )) ??
-      (await this.module.topic.cloud.read(
-        ctx,
-        this.module.topic.generateId({ arn: s.TopicArn ?? '', region }),
-      ));
+    try {
+      out.topic =
+        (await this.module.topic.db.read(
+          ctx,
+          this.module.topic.generateId({ arn: s.TopicArn ?? '', region }),
+        )) ??
+        (await this.module.topic.cloud.read(
+          ctx,
+          this.module.topic.generateId({ arn: s.TopicArn ?? '', region }),
+        ));
+    } catch (e) {
+      // for non-confirmed subscriptions, topic may not exist, so do not map it
+      return undefined;
+    }
 
     return out;
   }
-
-  createSubscription = crudBuilderFormat<SNS, 'subscribe', string | undefined>(
-    'subscribe',
-    input => input,
-    res => res?.SubscriptionArn,
-  );
 
   listSubscriptionsByTopic = paginateBuilder<SNS>(
     paginateListSubscriptionsByTopic,
@@ -56,31 +55,8 @@ export class SubscriptionMapper extends MapperBase<Subscription> {
 
   listSubscriptions = paginateBuilder<SNS>(paginateListSubscriptions, 'Subscriptions');
 
-  deleteSubscription = crudBuilder2<SNS, 'unsubscribe'>('unsubscribe', SubscriptionArn => ({
-    SubscriptionArn,
-  }));
-
   cloud: Crud2<Subscription> = new Crud2({
-    create: async (es: Subscription[], ctx: Context) => {
-      const out = [];
-      for (const e of es) {
-        if (!e.protocol || !e.topic || !e.region) continue; // cannot create topic without protocol or topic or region
-        const client = (await ctx.getAwsClient(e.region)) as AWS;
-        const result = await this.createSubscription(client.snsClient, {
-          Endpoint: e.endpoint,
-          Protocol: e.protocol,
-          ReturnsSubscriptionArn: true,
-          TopicArn: e.topic.arn,
-        });
-        if (!result) throw new Error('Error creating SNS subscription');
-
-        // update subscription with the ARN
-        e.arn = result;
-        await this.module.subscription.db.update(e, ctx);
-        out.push(e);
-      }
-      return out;
-    },
+    create: async (es: Subscription[], ctx: Context) => {},
     read: async (ctx: Context, id?: string) => {
       const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
       if (!!id) {
@@ -114,43 +90,8 @@ export class SubscriptionMapper extends MapperBase<Subscription> {
         return out;
       }
     },
-    updateOrReplace: (prev: Subscription, next: Subscription) => {
-      if (!Object.is(prev.arn, next.arn) || prev.arn === 'PendingConfirmation') return 'update';
-      else return 'replace';
-    },
-    update: async (es: Subscription[], ctx: Context) => {
-      const out = [];
-      for (const e of es) {
-        const cloudRecord = ctx?.memo?.cloud?.Subscription?.[this.entityId(e)];
-
-        const isUpdate = this.module.subscription.cloud.updateOrReplace(cloudRecord, e) === 'update';
-        if (isUpdate) {
-          const client = (await ctx.getAwsClient(e.region)) as AWS;
-
-          // we need to restore values, no means of updating a subscription
-          cloudRecord.id = e.id;
-          await this.module.subscription.db.update(cloudRecord, ctx);
-          out.push(cloudRecord);
-        } else {
-          // we create a new entry
-          const newSubscription = await this.module.subscription.cloud.create(e, ctx);
-          await this.module.subscription.cloud.delete(cloudRecord, ctx);
-          out.push(newSubscription);
-        }
-      }
-      return out;
-    },
-    delete: async (es: Subscription[], ctx: Context) => {
-      for (const e of es) {
-        if (e.arn === 'PendingConfirmation') {
-          throw new Error(
-            'Cannot delete a subscription pending from confirmation. You either need to confirm it, or it will be removed automatically after 3 days.',
-          );
-        } // cannot delete those as they need to be confirmed
-        const client = (await ctx.getAwsClient(e.region)) as AWS;
-        await this.deleteSubscription(client.snsClient, e.arn);
-      }
-    },
+    update: async (es: Subscription[], ctx: Context) => {},
+    delete: async (es: Subscription[], ctx: Context) => {},
   });
 
   constructor(module: AwsSnsModule) {

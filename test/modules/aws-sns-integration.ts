@@ -286,21 +286,17 @@ describe('AwsSNS Integration Testing', () => {
 
   it('applies the lambda creation', commit());
 
-  it('starts a transaction', begin());
-
   it(
-    'adds a new subscription',
+    'subscribes to a topic',
     query(
       `
-      INSERT INTO subscription (endpoint, protocol, topic) VALUES ((SELECT arn FROM lambda_function WHERE name='${lambdaFunctionName}'), 'lambda', (SELECT arn FROM topic WHERE name='${topicName}'));
+      SELECT * FROM subscribe((SELECT arn FROM topic WHERE name='${topicName}'), (SELECT arn FROM lambda_function WHERE name='${lambdaFunctionName}'), 'lambda');
   `,
       undefined,
       true,
       () => ({ username, password }),
     ),
   );
-
-  it('applies the subscription creation', commit());
 
   it(
     'check subscription has been created',
@@ -314,13 +310,12 @@ describe('AwsSNS Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
-
+  // unsubscribe
   it(
-    'updates subscription ARN',
+    'unsubscribes',
     query(
       `
-      UPDATE subscription SET arn='abc' WHERE endpoint=(SELECT arn FROM lambda_function WHERE name='${lambdaFunctionName}');
+      SELECT * FROM unsubscribe((SELECT arn FROM subscription WHERE endpoint=(SELECT arn FROM lambda_function WHERE name='${lambdaFunctionName}')));
   `,
       undefined,
       true,
@@ -328,15 +323,13 @@ describe('AwsSNS Integration Testing', () => {
     ),
   );
 
-  it('applies the ARN update', commit());
-
   it(
-    'check subscription ARN has not been modified',
+    'check subscription has been removed',
     query(
       `
     SELECT *
     FROM subscription
-    WHERE endpoint=(SELECT arn FROM lambda_function WHERE name='${lambdaFunctionName}') AND arn='abc';
+    WHERE endpoint=(SELECT arn FROM lambda_function WHERE name='${lambdaFunctionName}');
   `,
       (res: any[]) => expect(res.length).toBe(0),
     ),
@@ -358,19 +351,7 @@ describe('AwsSNS Integration Testing', () => {
     ),
   );
 
-  it('applies the subscription and topic delete', commit());
-
-  it(
-    'check deletes the subscription',
-    query(
-      `
-    SELECT *
-    FROM subscription
-    WHERE endpoint=(SELECT arn FROM lambda_function WHERE name='${lambdaFunctionName}');
-  `,
-      (res: any[]) => expect(res.length).toBe(0),
-    ),
-  );
+  it('applies the topic delete', commit());
 
   itDocs(
     'check deletes the topic',
