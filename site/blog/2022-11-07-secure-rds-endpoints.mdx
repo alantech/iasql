@@ -22,23 +22,14 @@ just using Amazon's private network.
 
 Please use this query to check it:
 
-<!--- https://www.urlencoder.org/ -->
-
-<a href="https://app.iasql.com/#/button/check_rds_endpoints/----%20Installing%20the%20needed%20modules%0ASELECT%20iasql_install%28%27aws_rds%27%29%3B%0ASELECT%20iasql_install%28%27aws_vpc%27%29%3B%0A%0A--%20Perform%20the%20query%20for%20endpoints%0Aselect%20RDS.region%2C%20vpc.is_default%2C%20vpc.cidr_block%2C%0A%28select%20count%28%2A%29%3E0%20from%20endpoint_interface%20where%20endpoint_interface.region%3DRDS.region%20and%20service%3D%27rds%27%20and%20endpoint_interface.vpc_id%3Dvpc.id%29%20as%20has_endpoint_interface%0Afrom%20RDS%20left%20outer%20join%20vpc%20on%20vpc.region%3DRDS.region%3B">
-  <button class="button button--lg button--primary">Run SQL to check your endpoints</button>
-</a>
-
-```
+```sql TheButton[Run SQL to check your endpoints]="Run SQL to check your endpoints"
  ---- Installing the needed modules
 SELECT
-  iasql_install ('aws_rds');
-
-SELECT
-  iasql_install ('aws_vpc');
+  iasql_install ('aws_rds', 'aws_vpc');
 
 -- Perform the query for endpoints
 SELECT
-  RDS.region,
+  rds.region,
   vpc.is_default,
   vpc.cidr_block,
   (
@@ -47,22 +38,20 @@ SELECT
     FROM
       endpoint_interface
     WHERE
-      endpoint_interface.region = RDS.region
+      endpoint_interface.region = rds.region
       AND service = 'rds'
       AND endpoint_interface.vpc_id = vpc.id
   ) AS has_endpoint_interface
 FROM
-  RDS
-  LEFT OUTER JOIN vpc ON vpc.region = RDS.region;
+  rds
+  LEFT OUTER JOIN vpc ON vpc.region = rds.region;
 ```
 
-Have you found missing endpoints? No problem, IaSQL can generate missing Endpoint Interfaces for you.
+Have you found missing endpoints? No problem, IaSQL can generate missing Endpoint Interfaces for you:
 
-<a href="https://app.iasql.com/#/button/add_rds_endpoint_interfaces/--%20Inserts%20the%20missing%20endpoints%0Ainsert%20into%20endpoint_interface%28region%2C%20vpc_id%2C%20service%2C%20private_dns_enabled%29%20select%20RDS.region%2C%20vpc.id%2C%20%27rds%27%2C%20true%20from%20RDS%20inner%20join%20vpc%0Aon%20RDS.region%3Dvpc.region%20where%20not%20exists%20%28select%20id%20from%20endpoint_interface%20where%20endpoint_interface.region%3DRDS.region%20and%20endpoint_interface.vpc_id%3Dvpc.id%29%3B%0A--%20Preview%20the%20changes%0Aselect%20%2A%20from%20iasql_preview_apply%28%29%3B%0A--%20Apply%20the%20changes%0A--select%20%2A%20from%20iasql_apply%28%29%3B">
-  <button class="button button--lg button--primary">Add missing endpoint interfaces</button>
-</a>
+```sql TheButton[Add missing endpoint interfaces]="Add missing endpoint interfaces"
+select * from iasql_begin();
 
-```
  -- Inserts the missing endpoints
 INSERT INTO
   endpoint_interface (region, vpc_id, service, private_dns_enabled)
@@ -70,10 +59,10 @@ SELECT
   RDS.region,
   vpc.id,
   'rds',
-  TRUE
+  true
 FROM
-  RDS
-  INNER JOIN vpc ON RDS.region = vpc.region
+  rds
+  INNER JOIN vpc ON rds.region = vpc.region
 WHERE
   NOT EXISTS (
     SELECT
@@ -81,7 +70,7 @@ WHERE
     FROM
       endpoint_interface
     WHERE
-      endpoint_interface.region = RDS.region
+      endpoint_interface.region = rds.region
       AND endpoint_interface.vpc_id = vpc.id
   );
 
@@ -89,13 +78,19 @@ WHERE
 SELECT
   *
 FROM
-  iasql_preview_apply ();
+  iasql_preview ();
 
 -- Apply the changes
---select * from iasql_apply();
+--select * from iasql_commit();
+
+-- Rollback the changes
+--select * from iasql_rollback();
 ```
 
-By clicking on the button, our engine will auto-generate the missing endpoint interfaces and will allow you to preview the changes to be applied on your cloud. Once you are OK with the results, you can uncomment the `iasql_apply` query and it will create the endpoints for you.
+By clicking on the button, our engine will auto-generate the missing endpoint interfaces and will allow you to preview the changes to be applied on your cloud. Once you are OK with the results,
+you can uncomment the `iasql_commit` query and it will create the endpoints for you.
+
+If the final results in the cloud are not as expected, you can always roll back your changes by calling the `iasql_rollback` command.
 
 ### Testing the result
 
