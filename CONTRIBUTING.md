@@ -218,9 +218,9 @@ This can only happen if a transaction has been opened first. This function execu
 5. When the changes have been applied, we sync from the cloud into the database to keep it up-to-date.
 6. No matter what happened during the commit execution, we insert a new end commit record in the `iasql_audit_log` table.
 
-If the commit operation fails we execute a rollback before closing the transaction. The rollback will recreate all changes in the audit log as "inverse queries" and `apply` them. The inverse queries will handle any `INSERT` statement as a `DELETE` statement and `DELETE`s as `INSERT`s.
+If the commit operation fails we revert all changes before closing the transaction. It will recreate all changes in the audit log table as "inverse queries" and `apply` them. These inverse queries will handle any `INSERT` statement as a `DELETE` statement and `DELETE`s as `INSERT`s.
 
-### `iasql_restore`
+### `iasql_rollback`
 
 This can only happen if a transaction has been opened first. It help us synchronize again the state of the cloud in our database discarding changes done to the DB since `iasql_begin` and that have not been committed. This function executes the following steps:
 
