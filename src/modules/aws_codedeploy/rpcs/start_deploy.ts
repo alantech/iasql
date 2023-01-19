@@ -136,6 +136,7 @@ export class StartDeployRPC extends RpcBase {
       applicationName,
       deploymentGroupName,
       revision: revisionObj,
+      ignoreApplicationStopFailures: true,
     };
     const deploymentId = await this.startDeploy(client.cdClient, input);
 
