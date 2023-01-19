@@ -57,7 +57,7 @@ const getInstanceTypeOffering = async (availabilityZones: string[]) => {
       },
       {
         Name: 'instance-type',
-        Values: ['t*.medium', 't*.large'],
+        Values: ['t*.medium', 't*.large', 'm*.medium', 'm*.large'],
       },
     ],
   });
@@ -134,6 +134,7 @@ beforeAll(async () => {
     (await getAvailabilityZones())?.AvailabilityZones?.map(az => az.ZoneName ?? '') ?? [];
   availabilityZone = availabilityZones.pop() ?? '';
   const instanceTypesByAz1 = await getInstanceTypeOffering([availabilityZone]);
+  console.log(`+-+ INSTANCE TYPE OFFERING ${JSON.stringify(instanceTypesByAz1)}`)
   instanceType = instanceTypesByAz1.InstanceTypeOfferings?.map(ito => ito.InstanceType)?.sort()[0] ?? '';
 
   await execComposeUp();
