@@ -18,7 +18,6 @@ export class TopicMapper extends MapperBase<Topic> {
   entity = Topic;
   equals = (a: Topic, b: Topic) => {
     return (
-      Object.is(a.arn, b.arn) &&
       isEqual(a.contentBasedDeduplication, b.contentBasedDeduplication) &&
       isEqual(a.deliveryPolicy, b.deliveryPolicy) &&
       isEqual(a.displayName, b.displayName) &&
@@ -118,7 +117,6 @@ export class TopicMapper extends MapperBase<Topic> {
     create: async (es: Topic[], ctx: Context) => {
       const out = [];
       for (const e of es) {
-        if (!e.name || !e.region) continue; // cannot create topic without name or region
         const client = (await ctx.getAwsClient(e.region)) as AWS;
         const attr = new Map();
         if (e.fifoTopic) {
@@ -134,11 +132,11 @@ export class TopicMapper extends MapperBase<Topic> {
           Attributes: Object.fromEntries(attr),
           DataProtectionPolicy: e.dataProtectionPolicy,
         };
-        const result = await this.createTopic(client.snsClient, input);
-        if (!result) throw new Error('Error creating SNS topic');
+        const arn = await this.createTopic(client.snsClient, input);
+        if (!arn) throw new Error('Error creating SNS topic');
 
         // update topic with the ARN
-        e.arn = result;
+        e.arn = arn;
         await this.module.topic.db.update(e, ctx);
         out.push(e);
       }
@@ -191,7 +189,7 @@ export class TopicMapper extends MapperBase<Topic> {
             cloudRecord.id = e.id;
             await this.module.topic.db.update(cloudRecord, ctx);
             out.push(cloudRecord);
-            break;
+            continue;
           }
 
           if (!isEqual(e.dataProtectionPolicy, cloudRecord.dataProtectionPolicy) && e.dataProtectionPolicy) {
