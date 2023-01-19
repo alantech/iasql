@@ -69,13 +69,9 @@ export class ConfirmSubscriptionRpc extends RpcBase {
       Token: token,
       TopicArn: arn,
     };
-    console.log('in confirm');
 
     try {
-      console.log('before confirm');
       const res = await this.confirmSubscription(client.snsClient, input);
-      console.log('after confirm');
-      console.log(res);
       if (res && res.SubscriptionArn) {
         // ok, we have confirmed
         return [
@@ -95,7 +91,6 @@ export class ConfirmSubscriptionRpc extends RpcBase {
         ];
       }
     } catch (e) {
-      console.log(e);
       return [
         {
           arn: '',

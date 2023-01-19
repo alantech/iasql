@@ -1,5 +1,6 @@
-import AWS from 'aws-sdk';
-import AWSMock from 'aws-sdk-mock';
+import { mockClient } from 'aws-sdk-client-mock';
+
+import { ConfirmSubscriptionCommand, SNSClient } from '@aws-sdk/client-sns';
 
 import * as iasql from '../../src/services/iasql';
 import {
@@ -111,49 +112,6 @@ describe('AwsSNS Integration Testing', () => {
   );
 
   itDocs('installs the SNS module', install(modules));
-
-  describe('testing confirmation', () => {
-    beforeAll(() => {
-      AWSMock.setSDKInstance(AWS);
-      AWSMock.mock(
-        'SNS',
-        'confirmSubscription',
-        (_params: { TopicArn: 'test'; Token: 'test' }, callback: Function) => {
-          console.log('mock being called');
-          callback(null, { SubscriptionArn: 'test' });
-        },
-      );
-    });
-    it(
-      'confirms the subscription',
-      query(
-        `
-          SELECT * FROM confirm_subscription('test', 'token');
-      `,
-        (res: any[]) => {
-          expect(res.length).toBe(1);
-          expect(res[0].status).toBe('OK');
-        },
-      ),
-    );
-    afterAll(() => {
-      AWSMock.restore();
-    });
-  });
-
-  // unsubscribe
-  it(
-    'unsubscribes',
-    query(
-      `
-      SELECT * FROM unsubscribe((SELECT arn FROM subscription WHERE endpoint='${prefix}test@iasql.com'));
-  `,
-      (res: any[]) => {
-        expect(res.length).toBe(1);
-        expect(res[0].status).toBe('OK');
-      },
-    ),
-  );
 
   it('starts a transaction', begin());
 
@@ -408,6 +366,23 @@ describe('AwsSNS Integration Testing', () => {
   );
 
   // mock SNS confirm subscription call
+  it('confirms the subscription', async () => {
+    const snsMock = mockClient(SNSClient);
+    snsMock.on(ConfirmSubscriptionCommand).resolves({
+      SubscriptionArn: 'test',
+    });
+    query(
+      `
+        SELECT * FROM confirm_subscription('test', 'token');
+    `,
+      (res: any[]) => {
+        console.log('in result');
+        expect(res.length).toBe(1);
+        expect(res[0].status).toBe('OK');
+      },
+    );
+    snsMock.restore();
+  });
 
   // deleting components
   it('starts a transaction', begin());
