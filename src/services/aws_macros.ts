@@ -138,7 +138,7 @@ export class AWS {
     this.cdClient = new CodeDeploy(awsConfig);
     this.cpClient = new CodePipeline(awsConfig);
     this.cwClient = new CloudWatchLogs(awsConfig);
-    this.cloudwatchClient = new CloudWatch(config);
+    this.cloudwatchClient = new CloudWatch(awsConfig);
     this.dynamoClient = new DynamoDB(awsConfig);
     this.elasticacheClient = new ElastiCache(awsConfig);
     this.ec2client = new EC2(awsConfig);
