@@ -1,21 +1,15 @@
-import { EntitySubscriberInterface, EventSubscriber, InsertEvent, LoadEvent, UpdateEvent } from 'typeorm';
+import { EntitySubscriberInterface, EventSubscriber, InsertEvent, UpdateEvent } from 'typeorm';
 
 function updateNulls(entity: any) {
-  if (entity) {
-    const that: any = entity;
-    Object.keys(entity).forEach(k => {
-      if (that[k] === null) that[k] = undefined;
-    });
-  }
+  Object.keys(entity ?? {}).forEach(k => {
+    if (entity[k] === null) entity[k] = undefined;
+  });
 }
 
 function updateUndefined(entity: any) {
-  if (entity) {
-    const that: any = entity;
-    Object.keys(entity).forEach(k => {
-      if (that[k] === undefined) that[k] = null;
-    });
-  }
+  Object.keys(entity ?? {}).forEach(k => {
+    if (entity[k] === undefined) entity[k] = null;
+  });
 }
 
 @EventSubscriber()
