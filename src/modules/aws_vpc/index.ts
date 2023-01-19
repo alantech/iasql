@@ -5,11 +5,12 @@ import {
   EndpointGatewayMapper,
   EndpointInterfaceMapper,
   NatGatewayMapper,
+  PeeringConnectionMapper,
   RouteTableAssociationMapper,
   RouteTableMapper,
   SubnetMapper,
   VpcMapper,
-  PeeringConnectionMapper,
+  InternetGatewayMapper,
 } from './mappers';
 
 export class AwsVpcModule extends ModuleBase {
@@ -43,6 +44,9 @@ export class AwsVpcModule extends ModuleBase {
   /** @internal */
   routeTableAssociation: RouteTableAssociationMapper;
 
+  /** @internal */
+  internetGateway: InternetGatewayMapper;
+
   constructor() {
     super();
     this.subnet = new SubnetMapper(this);
@@ -55,6 +59,7 @@ export class AwsVpcModule extends ModuleBase {
     this.peeringConnection = new PeeringConnectionMapper(this);
     this.routeTable = new RouteTableMapper(this);
     this.routeTableAssociation = new RouteTableAssociationMapper(this);
+    this.internetGateway = new InternetGatewayMapper(this);
     super.init();
   }
 }
