@@ -2,9 +2,9 @@ name: Run On All Test Accounts
 on:
   workflow_dispatch:
     inputs:
-      script_address:
-        required:  true
-        description: 'Specify the script to run on all the accounts'
+      script_path:
+        required: true
+        description: 'Specify the script to run on all the accounts, e.g. src/scripts/add-internet-gateways-to-default-vpcs.sh'
 
 jobs:
   setup-variables:
@@ -50,11 +50,11 @@ jobs:
     needs:
       - setup-variables
       - build-and-push
-    name: run on account ${{ matrix.module }}
+    name: run on account ${{ matrix.index }}
     strategy:
       fail-fast: false
       matrix:
-        module: ${{ fromJson(needs.setup-variables.outputs['test-accounts']) }}
+        index: ${{ fromJson(needs.setup-variables.outputs['test-accounts']) }}
 
     steps:
       - uses: actions/checkout@v3
@@ -77,11 +77,11 @@ jobs:
         uses: nick-fields/retry@v2
         env:
           IASQL_ENV: ci
-          ACCOUNT_INDEX: ${{ matrix.module }}
+          ACCOUNT_INDEX: ${{ matrix.index }}
           ACCESS_KEY_IDS: ${{ secrets.ACCESS_KEY_IDS }}
           SECRET_ACCESS_KEYS: ${{ secrets.SECRET_ACCESS_KEYS }}
           PSQL_CONN: postgres://postgres:test@localhost:5432/iasql
-          SCRIPT_ADDRESS: ${{ inputs.script_address }}
+          SCRIPT_PATH: ${{ inputs.script_PATH }}
         with:
           max_attempts: 2
           retry_on: error
@@ -126,7 +126,7 @@ jobs:
               SELECT * FROM iasql_commit();
             ";
 
-            ./$(echo $SCRIPT_ADDRESS)
+            ./$(echo $SCRIPT_PATH)
             
             # Shut down the engine
             docker container stop iasql
