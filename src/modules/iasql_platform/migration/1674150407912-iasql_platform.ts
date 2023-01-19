@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class iasqlPlatform1672139226487 implements MigrationInterface {
-  name = 'iasqlPlatform1672139226487';
+export class iasqlPlatform1674150407912 implements MigrationInterface {
+  name = 'iasqlPlatform1674150407912';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
@@ -11,7 +11,7 @@ export class iasqlPlatform1672139226487 implements MigrationInterface {
       `CREATE TABLE "iasql_tables" ("table" character varying NOT NULL, "module" character varying NOT NULL, CONSTRAINT "PK_2e2832f9cf90115571eb803a943" PRIMARY KEY ("table", "module"))`,
     );
     await queryRunner.query(
-      `CREATE TYPE "public"."iasql_audit_log_change_type_enum" AS ENUM('INSERT', 'UPDATE', 'DELETE', 'START_COMMIT', 'PREVIEW_START_COMMIT', 'END_COMMIT', 'PREVIEW_END_COMMIT', 'OPEN_TRANSACTION', 'CLOSE_TRANSACTION', 'ERROR', 'START_ROLLBACK', 'END_ROLLBACK')`,
+      `CREATE TYPE "public"."iasql_audit_log_change_type_enum" AS ENUM('INSERT', 'UPDATE', 'DELETE', 'START_COMMIT', 'PREVIEW_START_COMMIT', 'END_COMMIT', 'PREVIEW_END_COMMIT', 'OPEN_TRANSACTION', 'CLOSE_TRANSACTION', 'ERROR', 'START_REVERT', 'END_REVERT')`,
     );
     await queryRunner.query(
       `CREATE TABLE "iasql_audit_log" ("id" SERIAL NOT NULL, "ts" TIMESTAMP WITH TIME ZONE NOT NULL, "user" character varying NOT NULL, "table_name" character varying NOT NULL, "change_type" "public"."iasql_audit_log_change_type_enum" NOT NULL, "change" json NOT NULL, "message" character varying, CONSTRAINT "PK_96a7317761701ced55a158c195d" PRIMARY KEY ("id"))`,

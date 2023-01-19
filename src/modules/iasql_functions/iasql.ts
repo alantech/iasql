@@ -748,7 +748,7 @@ async function revert(
   installedModules: ModuleInterface[],
   crupdes: CrupdeOperations,
 ) {
-  await insertLog(ctx.orm, AuditLogChangeType.START_ROLLBACK);
+  await insertLog(ctx.orm, AuditLogChangeType.START_REVERT);
   const changeLogs: IasqlAuditLog[] = await getChangeLogsSinceLastBegin(ctx.orm);
   const modsIndexedByTable = indexModsByTable(installedModules);
   const inverseQueries: string[] = await getInverseQueries(changeLogs, modsIndexedByTable, ctx.orm);
@@ -764,7 +764,7 @@ async function revert(
   } catch (e) {
     throw e;
   } finally {
-    await insertLog(ctx.orm, AuditLogChangeType.END_ROLLBACK);
+    await insertLog(ctx.orm, AuditLogChangeType.END_REVERT);
   }
 }
 
