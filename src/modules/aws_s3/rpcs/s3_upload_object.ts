@@ -88,7 +88,7 @@ export class S3UploadObjectRpc extends RpcBase {
       if (enabledRegions.includes(region)) {
         const clientRegion = (await ctx.getAwsClient(region)) as AWS;
 
-        const result = await client.s3Client.putObject({
+        const result = await clientRegion.s3Client.putObject({
           Bucket: bucketName,
           Key: bucketKey,
           Body: content,

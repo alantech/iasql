@@ -9,3 +9,6 @@ DROP TRIGGER
 
 DROP FUNCTION
   "block_s3_primary_key_update";
+
+DROP FUNCTION
+  "get_bucket_website_endpoint";

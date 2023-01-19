@@ -1,4 +1,3 @@
-import _ from 'lodash';
 import isEqual from 'lodash.isequal';
 
 import {
@@ -32,7 +31,8 @@ class DistributionMapper extends MapperBase<Distribution> {
       isEqual(a.defaultCacheBehavior, b.defaultCacheBehavior) &&
       isEqual(originsA, originsB) &&
       Object.is(a.eTag, b.eTag) &&
-      Object.is(a.status, b.status)
+      Object.is(a.status, b.status) &&
+      Object.is(a.domainName, b.domainName)
     );
   };
 
@@ -162,6 +162,7 @@ class DistributionMapper extends MapperBase<Distribution> {
     out.webACLId = distribution.Distribution?.DistributionConfig?.WebACLId;
     out.eTag = distribution.ETag;
     out.status = distribution.Distribution?.Status;
+    out.domainName = distribution.Distribution?.DomainName;
 
     if (distribution.Distribution?.DistributionConfig?.DefaultCacheBehavior) {
       out.defaultCacheBehavior = this.transformDefaultCacheBehavior(
