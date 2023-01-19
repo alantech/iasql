@@ -1,3 +1,8 @@
+import AWS from 'aws-sdk';
+import AWSMock from 'aws-sdk-mock';
+
+import { ConfirmSubscriptionCommandInput } from '@aws-sdk/client-sns';
+
 import * as iasql from '../../src/services/iasql';
 import {
   defaultRegion,
@@ -52,8 +57,8 @@ const attachAssumeLambdaPolicy = JSON.stringify({
   ],
 });
 const lambdaFunctionRoleTaskPolicyArn = 'arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole';
-
 const modules = ['aws_sns', 'aws_lambda'];
+
 jest.setTimeout(360000);
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown());
@@ -199,7 +204,7 @@ describe('AwsSNS Integration Testing', () => {
     ),
   );
 
-  /*it('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   it(
     'tries to update a field with an incorrect value',
@@ -233,7 +238,7 @@ describe('AwsSNS Integration Testing', () => {
   `,
       (res: any[]) => expect(res.length).toBe(0),
     ),
-  );*/
+  );
 
   it('starts a transaction', begin());
 
@@ -292,9 +297,10 @@ describe('AwsSNS Integration Testing', () => {
       `
       SELECT * FROM subscribe((SELECT arn FROM topic WHERE name='${topicName}'), (SELECT arn FROM lambda_function WHERE name='${lambdaFunctionName}'), 'lambda');
   `,
-      undefined,
-      true,
-      () => ({ username, password }),
+      (res: any[]) => {
+        expect(res.length).toBe(1);
+        expect(res[0].status).toBe('OK');
+      },
     ),
   );
 
@@ -317,9 +323,10 @@ describe('AwsSNS Integration Testing', () => {
       `
       SELECT * FROM unsubscribe((SELECT arn FROM subscription WHERE endpoint=(SELECT arn FROM lambda_function WHERE name='${lambdaFunctionName}')));
   `,
-      undefined,
-      true,
-      () => ({ username, password }),
+      (res: any[]) => {
+        expect(res.length).toBe(1);
+        expect(res[0].status).toBe('OK');
+      },
     ),
   );
 
@@ -334,6 +341,69 @@ describe('AwsSNS Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(0),
     ),
   );
+
+  it(
+    'subscribes to a topic that needs manual confirmation',
+    query(
+      `
+      SELECT * FROM subscribe((SELECT arn FROM topic WHERE name='${topicName}'), '${prefix}test@iasql.com', 'email');
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it(
+    'check subscription has been created and is pending to confirm',
+    query(
+      `
+    SELECT *
+    FROM subscription
+    WHERE endpoint='${prefix}test@iasql.com' AND arn='PendingConfirmation';
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
+  // mock SNS confirm subscription call
+  AWSMock.setSDKInstance(AWS);
+  AWSMock.mock(
+    'SNS',
+    'confirmSubscription',
+    (params: ConfirmSubscriptionCommandInput, callback: Function) => {
+      callback(true);
+    },
+  );
+
+  it(
+    'confirms the subscription',
+    query(
+      `
+      SELECT * FROM confirm_subscription((SELECT arn FROM subscription WHERE endpoint='${prefix}test@iasql.com'));
+  `,
+      (res: any[]) => {
+        expect(res.length).toBe(1);
+        expect(res[0].status).toBe('OK');
+      },
+    ),
+  );
+
+  // unsubscribe
+  it(
+    'unsubscribes',
+    query(
+      `
+      SELECT * FROM unsubscribe((SELECT arn FROM subscription WHERE endpoint='${prefix}test@iasql.com'));
+  `,
+      (res: any[]) => {
+        expect(res.length).toBe(1);
+        expect(res[0].status).toBe('OK');
+      },
+    ),
+  );
+
+  AWSMock.restore('SNS');
 
   // deleting components
   it('starts a transaction', begin());
