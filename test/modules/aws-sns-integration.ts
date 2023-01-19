@@ -1,8 +1,6 @@
 import AWS from 'aws-sdk';
 import AWSMock from 'aws-sdk-mock';
 
-import { ConfirmSubscriptionCommandInput } from '@aws-sdk/client-sns';
-
 import * as iasql from '../../src/services/iasql';
 import {
   defaultRegion,
@@ -113,6 +111,49 @@ describe('AwsSNS Integration Testing', () => {
   );
 
   itDocs('installs the SNS module', install(modules));
+
+  describe('testing confirmation', () => {
+    beforeAll(() => {
+      AWSMock.setSDKInstance(AWS);
+      AWSMock.mock(
+        'SNS',
+        'confirmSubscription',
+        (_params: { TopicArn: 'test'; Token: 'test' }, callback: Function) => {
+          console.log('mock being called');
+          callback(null, { SubscriptionArn: 'test' });
+        },
+      );
+    });
+    it(
+      'confirms the subscription',
+      query(
+        `
+          SELECT * FROM confirm_subscription('test', 'token');
+      `,
+        (res: any[]) => {
+          expect(res.length).toBe(1);
+          expect(res[0].status).toBe('OK');
+        },
+      ),
+    );
+    afterAll(() => {
+      AWSMock.restore();
+    });
+  });
+
+  // unsubscribe
+  it(
+    'unsubscribes',
+    query(
+      `
+      SELECT * FROM unsubscribe((SELECT arn FROM subscription WHERE endpoint='${prefix}test@iasql.com'));
+  `,
+      (res: any[]) => {
+        expect(res.length).toBe(1);
+        expect(res[0].status).toBe('OK');
+      },
+    ),
+  );
 
   it('starts a transaction', begin());
 
@@ -367,43 +408,6 @@ describe('AwsSNS Integration Testing', () => {
   );
 
   // mock SNS confirm subscription call
-  AWSMock.setSDKInstance(AWS);
-  AWSMock.mock(
-    'SNS',
-    'confirmSubscription',
-    (params: ConfirmSubscriptionCommandInput, callback: Function) => {
-      callback(true);
-    },
-  );
-
-  it(
-    'confirms the subscription',
-    query(
-      `
-      SELECT * FROM confirm_subscription((SELECT arn FROM subscription WHERE endpoint='${prefix}test@iasql.com'));
-  `,
-      (res: any[]) => {
-        expect(res.length).toBe(1);
-        expect(res[0].status).toBe('OK');
-      },
-    ),
-  );
-
-  // unsubscribe
-  it(
-    'unsubscribes',
-    query(
-      `
-      SELECT * FROM unsubscribe((SELECT arn FROM subscription WHERE endpoint='${prefix}test@iasql.com'));
-  `,
-      (res: any[]) => {
-        expect(res.length).toBe(1);
-        expect(res[0].status).toBe('OK');
-      },
-    ),
-  );
-
-  AWSMock.restore('SNS');
 
   // deleting components
   it('starts a transaction', begin());

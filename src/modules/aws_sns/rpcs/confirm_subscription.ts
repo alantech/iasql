@@ -1,9 +1,4 @@
-import {
-  ConfirmSubscriptionCommand,
-  ConfirmSubscriptionCommandInput,
-  ConfirmSubscriptionInput,
-  SNS,
-} from '@aws-sdk/client-sns';
+import { ConfirmSubscriptionCommandInput, ConfirmSubscriptionInput, SNS } from '@aws-sdk/client-sns';
 
 import { AwsSnsModule } from '..';
 import { AWS } from '../../aws_lambda/aws';
@@ -71,13 +66,16 @@ export class ConfirmSubscriptionRpc extends RpcBase {
     const client = (await ctx.getAwsClient(clientRegion)) as AWS;
 
     const input: ConfirmSubscriptionInput = {
-      AuthenticateOnUnsubscribe: undefined,
       Token: token,
       TopicArn: arn,
     };
+    console.log('in confirm');
 
     try {
+      console.log('before confirm');
       const res = await this.confirmSubscription(client.snsClient, input);
+      console.log('after confirm');
+      console.log(res);
       if (res && res.SubscriptionArn) {
         // ok, we have confirmed
         return [
@@ -97,6 +95,7 @@ export class ConfirmSubscriptionRpc extends RpcBase {
         ];
       }
     } catch (e) {
+      console.log(e);
       return [
         {
           arn: '',
