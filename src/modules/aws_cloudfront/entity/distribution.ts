@@ -75,6 +75,15 @@ export class Distribution {
 
   /**
    * @public
+   * Domain name assigned to the distribution by CloudFront
+   */
+  @Column({
+    nullable: true,
+  })
+  domainName?: string;
+
+  /**
+   * @public
    * An unique value to identify the CloudFront distribution
    */
   @Column({
@@ -87,22 +96,24 @@ export class Distribution {
    * Internal comments to describe the distribution
    */
   @Column({
-    nullable: true,
+    nullable: false,
+    default: '',
   })
   comment?: string;
 
   /**
    * @public
-   * Wether the distribution is enabled or not
+   * Whether the distribution is enabled or not
    */
   @Column({
-    nullable: true,
+    nullable: false,
+    default: true,
   })
   enabled?: boolean;
 
   /**
    * @public
-   * Wether to enable IPV6 for this distribution
+   * Whether to enable IPV6 for this distribution
    */
   @Column({
     nullable: true,
