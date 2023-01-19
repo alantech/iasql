@@ -164,7 +164,12 @@ export class BucketMapper extends MapperBase<Bucket> {
               Bucket: rawBucket.Name,
             };
 
-            const bucketPolicy = await this.getBucketPolicy(client.s3Client, input);
+            const bucketPolicy = await this.getBucketPolicy(
+              (
+                await ctx.getAwsClient(location)
+              ).s3Client as S3,
+              input,
+            );
             const b: Bucket = this.bucketMapper(rawBucket, location);
 
             if (bucketPolicy && bucketPolicy.Policy) {

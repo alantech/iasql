@@ -197,8 +197,9 @@ export class NatGatewayMapper extends MapperBase<NatGateway> {
           if (!input.AllocationId) throw new Error('Elastic ip need to be created first');
         } else if (!e.elasticIp && e.connectivityType === ConnectivityType.PUBLIC) {
           const elasticIp = new ElasticIp();
-          // Attach the same tags in case we want to associate them visualy through the AWS Console
+          // Attach the same tags in case we want to associate them visually through the AWS Console
           elasticIp.tags = e.tags;
+          elasticIp.region = e.region;
           const newElasticIp = await this.module.elasticIp.cloud.create(elasticIp, ctx);
           if (!newElasticIp || newElasticIp instanceof Array) continue;
           input.AllocationId = newElasticIp.allocationId;

@@ -954,7 +954,7 @@ describe('Security Group install/uninstall', () => {
     select * from iasql_install('aws_security_group', 'aws_vpc');
   `,
       (res: any[]) => {
-        expect(res.length).toBe(14);
+        expect(res.length).toBe(15);
       },
     ),
   );
@@ -966,7 +966,7 @@ describe('Security Group install/uninstall', () => {
     select * from iasql_uninstall('aws_security_group', 'aws_vpc');
   `,
       (res: any[]) => {
-        expect(res.length).toBe(14);
+        expect(res.length).toBe(15);
       },
     ),
   );

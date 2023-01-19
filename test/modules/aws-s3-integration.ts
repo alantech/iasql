@@ -17,6 +17,7 @@ import {
 const prefix = getPrefix();
 const dbAlias = 's3test';
 const s3Name = `${prefix}${dbAlias}`;
+const s3NameNoPolicy = `${prefix}${dbAlias}nopolicy`;
 const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const restore = runRestore.bind(null, dbAlias);
@@ -144,6 +145,96 @@ describe('S3 Integration Testing', () => {
     SELECT *
     FROM bucket 
     WHERE name = '${s3Name}';
+  `,
+      (res: any[]) => expect(res.length).toBe(0),
+    ),
+  );
+
+  it('starts a transaction', begin());
+
+  it(
+    'adds a new s3 bucket without policy',
+    query(
+      `  
+    INSERT INTO bucket (name)
+    VALUES ('${s3NameNoPolicy}');
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it('applies the s3 bucket change', commit());
+
+  it(
+    'check s3 insertion',
+    query(
+      `
+    SELECT *
+    FROM bucket 
+    WHERE name = '${s3NameNoPolicy}';
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it('starts a transaction', begin());
+
+  it(
+    'update using fake policy',
+    query(
+      `  
+        UPDATE bucket
+        SET policy_document = '{"fake": "policy"}'
+        WHERE name = '${s3NameNoPolicy}';
+      `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it('commit should fail', done =>
+    void query(`
+    SELECT * FROM iasql_commit();
+  `)((e?: any) => {
+      try {
+        expect(e?.message).toContain('Bucket cloud update error');
+      } catch (err) {
+        done(err);
+        return {};
+      }
+      done();
+      return {};
+    }));
+
+  it('restores cloud state', rollback());
+
+  it('starts a transaction', begin());
+
+  it(
+    'deletes new s3 bucket without policy',
+    query(
+      `  
+    DELETE FROM bucket
+    WHERE name = '${s3NameNoPolicy}';
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it('applies the s3 bucket deletion', commit());
+
+  it(
+    'check s3 deletion',
+    query(
+      `
+    SELECT *
+    FROM bucket 
+    WHERE name = '${s3NameNoPolicy}';
   `,
       (res: any[]) => expect(res.length).toBe(0),
     ),
