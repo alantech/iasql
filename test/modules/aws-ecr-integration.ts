@@ -203,7 +203,14 @@ describe('ECR Integration Testing', () => {
     `,
         (res: any[]) => {
           expect(res.length).toBe(3);
+          expect(res.map(i => i['size_in_mb']).reduce((a, b) => a + b, 0)).toBe(0);
           expect(res.filter(i => i['image_tag'] === '<untagged>').length).toBe(1);
+          const now = new Date();
+          const pushedAt = new Date(res[0]['pushed_at']);
+          expect(pushedAt.getDate()).toBe(now.getDate());
+          expect(pushedAt.getMonth()).toBe(now.getMonth());
+          expect(pushedAt.getFullYear()).toBe(now.getFullYear());
+          expect(now.getTime() > pushedAt.getTime()).toBe(true);
         },
       ),
     );
