@@ -61,13 +61,10 @@ In terms of speed, Private Link supports a sustained bandwidth of 10 Gbps per av
 
 This query will find your active S3 buckets for all regions, associated with the existing endpoint gateways or interfaces - if they exist.
 
-```sql
- -- Installing the needed modules
+```sql TheButton[Query for missing endpoints]="Query for missing endpoints"
+-- Installing the needed modules
 SELECT
-  iasql_install ('aws_s3');
-
-SELECT
-  iasql_install ('aws_vpc');
+  iasql_install ('aws_s3', 'aws_vpc');
 
 -- Perform the query for endpoints
 SELECT
@@ -99,8 +96,6 @@ FROM
   LEFT OUTER JOIN vpc ON vpc.region = bucket.region;
 ```
 
-<!--- https://www.urlencoder.org/ -->
-
 <p>
   <a href="https://app.iasql.com/#/button/Check S3 endpoints/https://app.iasql.com/#/button/CheckS3endpoints/--%20Installing%20the%20needed%20modules%0ASELECT%20iasql_install%28%27aws_s3%27%29%3B%0ASELECT%20iasql_install%28%27aws_vpc%27%29%3B%0A--%20Perform%20the%20query%20for%20endpoints%0Aselect%20bucket.region%2C%20vpc.is_default%2C%20vpc.cidr_block%2C%0A%28select%20count%28%2A%29%3E0%20from%20endpoint_gateway%20where%20endpoint_gateway.region%3Dbucket.region%20and%20service%3D%27s3%27%20and%20endpoint_gateway.vpc_id%3Dvpc.id%29%20as%20has_endpoint_gateway%2C%0A%28select%20count%28%2A%29%3E0%20from%20endpoint_interface%20where%20endpoint_interface.region%3Dbucket.region%20and%20service%3D%27s3%27%20and%20endpoint_interface.vpc_id%3Dvpc.id%29%20as%20has_endpoint_interface%0Afrom%20bucket%20left%20outer%20join%20vpc%20on%20vpc.region%3Dbucket.region%3B">
     <button class="button button--lg button--primary">Check your endpoints</button>
@@ -115,7 +110,8 @@ the desired type in an automated way.
 
 An interface endpoint is an elastic network interface with a private IP address that serves as an entry
 point for traffic destined to a supported AWS service. As they use ENIs, they can benefit from security groups
-to control traffic. Policies can also be added to control access to those endpoints.
+to control traffic.
+<a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/access_controlling.html">IAM policies</a>can also be added to control access to those endpoints.
 
 They are regional, meaning they can only be accessed by the same region they are created. However, Multi-region is possible by also using VPC peering, so resources in one region can be accessed from others, though this only supports IPv4
 TCP traffic.
@@ -128,8 +124,10 @@ Get more detail about interface endpoints</a>
 
 This query will auto-generate the missing interface endpoints and will preview the changes to be applied on your cloud. Simply uncomment the final statement and run it to make the changes to your cloud account.
 
-```sql
+```sql TheButton[Insert missing endpoints]="Insert missing endpoints"
  -- Inserts the missing endpoints
+SELECT * FROM iasql_begin();
+
 INSERT INTO
   endpoint_interface (region, vpc_id, service)
 SELECT
@@ -154,10 +152,12 @@ WHERE
 SELECT
   *
 FROM
-  iasql_preview_apply ();
+  iasql_preview();
 
--- Apply the changes
---select * from iasql_apply();
+-- Commit the changes
+-- select * from iasql_commit();
+-- Rollback changes
+-- select * from iasql_rollback();
 ```
 
 <p>
@@ -186,8 +186,10 @@ Gateway endpoints only support S3 and DynamoDB services. <a href="https://docs.a
 
 This query will auto-generate the missing endpoint gateways and will allow you to preview the changes to be applied on your cloud.
 
-```sql
+```sql TheButton[Insert missing Gateway endpoints]="Insert missing Gateway endpoints"
  -- Inserts the missing endpoints
+SELECT * FROM iasql_begin();
+
 INSERT INTO
   endpoint_gateway (region, vpc_id, service)
 SELECT
@@ -208,13 +210,12 @@ WHERE
       AND endpoint_gateway.vpc_id = vpc.id
   )
   -- Preview the changes
-SELECT
-  *
-FROM
-  iasql_preview_apply ();
+SELECT * FROM iasql_preview();
 
--- Apply the changes
---select * from iasql_apply();
+-- Commit the changes
+-- select * from iasql_commit();
+-- Rollback changes
+-- select * from iasql_rollback();
 ```
 
 <a href="https://app.iasql.com/#/button/Add S3 interface endpoints/--%20Inserts%20the%20missing%20endpoints%0Ainsert%20into%20endpoint_gateway%28region%2C%20vpc_id%2C%20service%29%20select%20bucket.region%2C%20vpc.id%2C%20%27s3%27%20from%20bucket%20inner%20join%20vpc%20on%20bucket.region%3Dvpc.region%20where%20not%20exists%20%28select%20id%20from%20endpoint_gateway%20where%20endpoint_gateway.region%3Dbucket.region%20and%20endpoint_gateway.vpc_id%3Dvpc.id%29%0A--%20Preview%20the%20changes%0Aselect%20%2A%20from%20iasql_preview_apply%28%29%3B%0A--%20Apply%20the%20changes%0A--select%20%2A%20from%20iasql_apply%28%29%3B">
