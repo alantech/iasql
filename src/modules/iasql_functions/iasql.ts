@@ -776,7 +776,7 @@ async function getChangeLogsSinceLastBegin(orm: TypeormWrapper): Promise<IasqlAu
   });
   if (!transaction) throw new Error('No open transaction');
   return await orm.find(IasqlAuditLog, {
-    order: { ts: 'DESC' },
+    order: { ts: 'DESC', id: 'DESC' },
     where: {
       changeType: In([AuditLogChangeType.INSERT, AuditLogChangeType.UPDATE, AuditLogChangeType.DELETE]),
       ts: MoreThan(transaction.ts),
