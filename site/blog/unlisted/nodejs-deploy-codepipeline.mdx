@@ -128,7 +128,7 @@ INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
   (SELECT id FROM instance WHERE tags ->> 'name' = 'codedeploy-app'),
   (SELECT id FROM security_group WHERE group_name='codedeploy');
 
-  SELECT * FROM iasql_commit();
+SELECT * FROM iasql_commit();
 ```
 
 This fragment will install the required modules, and all the infrastructure needed to deploy the pipeline, including the needed Roles, Security Rules, Storage and Compute on EC2. After this process finishes, the pipeline is ready to go. It can be launched in another query (please remember to replace the _token_ with your current one):
@@ -215,7 +215,7 @@ The status of the pipeline can be checked via AWS console:
 After an small amount of time the pipeline will run and the application will be ready to go. It will be exposed on the EC2 public ip, that can be extracted with:
 
 ```sql TheButton[Get public IP]="Get public IP"
-select public_ip_address from instance_metadata where id=(select id from instance where tags->>'name' = 'codedeploy-app');
+SELECT public_ip_address FROM instance_metadata WHERE id=(SELECT id FROM instance WHERE tags->>'name' = 'codedeploy-app');
 ```
 
 Then please check that the application runs successfully in your browser by visiting `http://<public_ip_address>`:
