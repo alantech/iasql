@@ -10,6 +10,7 @@ import {
 import { AWS, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
 import { getCloudId } from '../../../services/cloud-id';
 import { findDiff } from '../../../services/diff';
+import logger from '../../../services/logger';
 import { Context, Crud2, MapperBase } from '../../interfaces';
 import { Route, RouteTable } from '../entity';
 import { AwsVpcModule } from '../index';
@@ -69,15 +70,19 @@ export class RouteTableMapper extends MapperBase<RouteTable> {
     out.DestinationPrefixListId = route.DestinationPrefixListId;
     out.EgressOnlyInternetGatewayId = route.EgressOnlyInternetGatewayId;
     if (route.GatewayId !== 'local') {
-      out.GatewayId =
-        (await this.module.internetGateway.db.read(
-          ctx,
-          this.module.internetGateway.generateId({ internetGatewayId: route.GatewayId ?? '', region }),
-        )) ??
-        (await this.module.internetGateway.cloud.read(
-          ctx,
-          this.module.internetGateway.generateId({ internetGatewayId: route.GatewayId ?? '', region }),
-        ));
+      try {
+        out.GatewayId =
+          (await this.module.internetGateway.db.read(
+            ctx,
+            this.module.internetGateway.generateId({ internetGatewayId: route.GatewayId ?? '', region }),
+          )) ??
+          (await this.module.internetGateway.cloud.read(
+            ctx,
+            this.module.internetGateway.generateId({ internetGatewayId: route.GatewayId ?? '', region }),
+          ));
+      } catch (e) {
+        logger.warn(`Error retrieving gateway: ${JSON.stringify(e)}`);
+      }
     }
     out.InstanceId = route.InstanceId;
     out.InstanceOwnerId = route.InstanceOwnerId;
