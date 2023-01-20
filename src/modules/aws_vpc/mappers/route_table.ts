@@ -66,13 +66,13 @@ export class RouteTableMapper extends MapperBase<RouteTable> {
     out.DestinationPrefixListId = route.DestinationPrefixListId;
     out.EgressOnlyInternetGatewayId = route.EgressOnlyInternetGatewayId;
     out.GatewayId =
-      (await this.module.vpc.db.read(
+      (await this.module.internetGateway.db.read(
         ctx,
         this.module.internetGateway.generateId({ internetGatewayId: route.GatewayId ?? '', region }),
       )) ??
       (await this.module.internetGateway.cloud.read(
         ctx,
-        this.module.vpc.generateId({ internetGatewayId: route.GatewayId ?? '', region }),
+        this.module.internetGateway.generateId({ internetGatewayId: route.GatewayId ?? '', region }),
       ));
     out.InstanceId = route.InstanceId;
     out.InstanceOwnerId = route.InstanceOwnerId;
