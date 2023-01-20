@@ -65,15 +65,17 @@ export class RouteTableMapper extends MapperBase<RouteTable> {
     out.DestinationIpv6CidrBlock = route.DestinationIpv6CidrBlock;
     out.DestinationPrefixListId = route.DestinationPrefixListId;
     out.EgressOnlyInternetGatewayId = route.EgressOnlyInternetGatewayId;
-    out.GatewayId =
-      (await this.module.internetGateway.db.read(
-        ctx,
-        this.module.internetGateway.generateId({ internetGatewayId: route.GatewayId ?? '', region }),
-      )) ??
-      (await this.module.internetGateway.cloud.read(
-        ctx,
-        this.module.internetGateway.generateId({ internetGatewayId: route.GatewayId ?? '', region }),
-      ));
+    if (route.GatewayId !== 'local') {
+      out.GatewayId =
+        (await this.module.internetGateway.db.read(
+          ctx,
+          this.module.internetGateway.generateId({ internetGatewayId: route.GatewayId ?? '', region }),
+        )) ??
+        (await this.module.internetGateway.cloud.read(
+          ctx,
+          this.module.internetGateway.generateId({ internetGatewayId: route.GatewayId ?? '', region }),
+        ));
+    }
     out.InstanceId = route.InstanceId;
     out.InstanceOwnerId = route.InstanceOwnerId;
     out.NatGatewayId = route.NatGatewayId;
