@@ -784,6 +784,7 @@ async function getChangeLogsSinceLastBegin(orm: TypeormWrapper): Promise<IasqlAu
   });
 }
 
+// todo: refactor using pg format
 async function getInverseQueries(
   changeLogs: IasqlAuditLog[],
   mbt: { [key: string]: ModuleInterface },
