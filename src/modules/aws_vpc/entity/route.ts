@@ -71,6 +71,7 @@ export class Route {
    */
   @ManyToOne(() => InternetGateway, {
     nullable: true,
+    eager: true,
   })
   @JoinColumn()
   @cloudId
