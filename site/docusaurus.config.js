@@ -41,7 +41,7 @@ const theButton = require('./src/rehype/thebutton');
             showReadingTime: true,
             routeBasePath: '/blog',
             remarkPlugins: [theButton],
-            exclude: ['2022/clean-your-aws-account.mdx'],
+            exclude: ['unlisted/*'],
           },
           theme: {
             customCss: require.resolve('./src/css/custom.css'),

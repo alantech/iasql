@@ -1,12 +1,13 @@
 ---
 sidebar_position: 1
+date: 2022-12-14
 slug: '/fargate'
+tags: [tutorial]
 ---
 
-# Deploy containerized app to AWS ECS Fargate using IaSQL
+# Deploy containerized app to ECS Fargate
 
-In this tutorial, we will run SQL queries on an IaSQL [database](../concepts/db.md) to deploy a Node.js HTTP server within a docker container on your AWS account using Fargate ECS, IAM, ECR, and ELB. The container image will be built locally, hosted within a private repository in ECR, and deployed to ECS using Fargate.
-# IaSQL on SQL
+In this tutorial, we will run SQL queries on an IaSQL [database](/docs/concepts) to deploy a Node.js HTTP server within a docker container on your AWS account using Fargate ECS, IAM, ECR, and ELB. The container image will be built locally, hosted within a private repository in ECR, and deployed to ECS using Fargate.
 
 ## Start managing an AWS account with a hosted IaSQL db
 
@@ -28,11 +29,11 @@ You will be able to see your PostgreSQL connection information when you press Co
 
 <img width={440} src={require('@site/static/screenshots/credentials.png').default} />
 
-If you want to [connect](../how-to/connect.md) to the PostgreSQL database outside of the IaSQL [dashboard](https://app.iasql.com) SQL editor, make sure to copy the PostgreSQL connection string as you will not see it again.
+If you want to [connect](/docs/connect) to the PostgreSQL database outside of the IaSQL [dashboard](https://app.iasql.com) SQL editor, make sure to copy the PostgreSQL connection string as you will not see it again.
 
 ## Add the necessary cloud services to the hosted database
 
-Use the `iasql_install` SQL function to install [modules](../concepts/module.md) into the hosted database.
+Use the `iasql_install` SQL function to install [modules](/docs/module) into the hosted database.
 
 ```sql
 SELECT * from iasql_install(
@@ -69,7 +70,7 @@ If the function call is successful, it will return a virtual table with a record
 
 ## Provision cloud resources in your AWS account
 
-Insert a row into the `ecs_simplified` table within an IaSQL [`transaction`](../concepts/transaction.md) the changes described in the hosted db to your cloud account which will take a few minutes waiting for AWS
+Insert a row into the `ecs_simplified` table within an IaSQL [`transaction`](/docs/transaction) the changes described in the hosted db to your cloud account which will take a few minutes waiting for AWS
 
 
 ```sql
@@ -90,6 +91,7 @@ Previously, you needed to manually build and push your image to the ECR. But rec
 - Push the image to the ECR repository you've provided
 
 All of these steps will be done in a CodeBuild project in your AWS account. To use the `ecr_build` function, you can run:
+
 ```sql
 SELECT ecr_build(
    'https://github.com/iasql/iasql-engine/', -- replace with your own Github repo if you want to use your own codebase

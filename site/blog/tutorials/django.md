@@ -1,9 +1,11 @@
 ---
 sidebar_position: 3
 slug: '/django'
+date: 2022-12-16
+tags: [tutorial]
 ---
 
-# Deploy containerized app to ECS Fargate using IaSQL on Django (Python)
+# Deploy containerized app to ECS Fargate with Django
 
 In this tutorial, we will run [Django SQL migrations](https://docs.djangoproject.com/en/4.0/topics/migrations/) on top of IaSQL to deploy an HTTP server within a docker container on your AWS account using ECS, ECR and ELB. The container image will be hosted as a public repository in ECR and deployed to ECS using Fargate.
 
@@ -34,9 +36,9 @@ Make sure to copy the PostgreSQL connection string as you will not see it again.
 
 ## Add the necessary cloud services to the hosted database
 
-1. Many different clients can be used to [connect](../how-to/connect.md) to a PostgreSQL database. For this tutorial, we'll use the standard `psql` CLI client. If you need to install `psql`, follow the instructions for your corresponding OS [here](https://www.postgresql.org/download/).
+1. Many different clients can be used to [connect](/docs/connect) to a PostgreSQL database. For this tutorial, we'll use the standard `psql` CLI client. If you need to install `psql`, follow the instructions for your corresponding OS [here](https://www.postgresql.org/download/).
 
-2. The first migration calls the `iasql_install` SQL function to install the ECS simplified [module](../concepts/module.md) into the hosted database.
+2. The first migration calls the `iasql_install` SQL function to install the ECS simplified [module](/docs/module) into the hosted database.
 
 ```sql title="psql postgres://d0va6ywg:nfdDh#EP4CyzveFr@db.iasql.com/_4b2bb09a59a411e4 -c"
 SELECT
@@ -151,7 +153,7 @@ In our case you will have to modify the `my_project/app/infra/models.py` file as
 
    :::caution
 
-   If you install or uninstall IaSQL [modules](../concepts/module.md) the database schema will change and you will need to run steps 7 and 8 to
+   If you install or uninstall IaSQL [modules](docs/module) the database schema will change and you will need to run steps 7 and 8 to
    introspect the correct schema once again.
 
    :::

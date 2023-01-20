@@ -1,9 +1,11 @@
 ---
 sidebar_position: 2
+date: 2022-12-15
 slug: '/prisma'
+tags: [tutorial]
 ---
 
-# Deploy containerized app to ECS Fargate using IaSQL on Prisma (Javascript)
+# Deploy containerized app to ECS Fargate with Prisma
 
 In this tutorial, we will use a script that uses [Prisma](https://www.prisma.io) to introspect the schema of an IaSQL database and deploy a Node.js HTTP server within a docker container on your AWS account using Fargate ECS, IAM, ECR and ELB. The container image will be hosted as a private repository in ECR and deployed to ECS using Fargate.
 
@@ -33,7 +35,7 @@ Make sure to copy the PostgreSQL connection string as you will not see it again.
 
 ## Add the necessary cloud services to the hosted database
 
-Use the `iasql_install` SQL function to install [modules](../concepts/module.md) into the hosted database.
+Use the `iasql_install` SQL function to install [modules](/docs/module) into the hosted database.
 
 ```sql
 SELECT * from iasql_install(
@@ -122,7 +124,7 @@ npx prisma generate
 
 :::caution
 
-If you install or uninstall IaSQL [modules](../concepts/module.md) the database schema will change and you will need to run steps 5 through 7 to
+If you install or uninstall IaSQL [modules](/docs/module) the database schema will change and you will need to run steps 5 through 7 to
 introspect the correct schema once again.
 
 :::
