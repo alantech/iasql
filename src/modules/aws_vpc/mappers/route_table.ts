@@ -59,13 +59,21 @@ export class RouteTableMapper extends MapperBase<RouteTable> {
     res => res?.RouteTables?.pop(),
   );
 
-  routeMapper(route: AwsRoute) {
+  async routeMapper(route: AwsRoute, ctx: Context, region: string) {
     const out = new Route();
     out.DestinationCidrBlock = route.DestinationCidrBlock;
     out.DestinationIpv6CidrBlock = route.DestinationIpv6CidrBlock;
     out.DestinationPrefixListId = route.DestinationPrefixListId;
     out.EgressOnlyInternetGatewayId = route.EgressOnlyInternetGatewayId;
-    out.GatewayId = route.GatewayId;
+    out.GatewayId =
+      (await this.module.vpc.db.read(
+        ctx,
+        this.module.internetGateway.generateId({ internetGatewayId: route.GatewayId ?? '', region }),
+      )) ??
+      (await this.module.internetGateway.cloud.read(
+        ctx,
+        this.module.vpc.generateId({ internetGatewayId: route.GatewayId ?? '', region }),
+      ));
     out.InstanceId = route.InstanceId;
     out.InstanceOwnerId = route.InstanceOwnerId;
     out.NatGatewayId = route.NatGatewayId;
@@ -96,7 +104,7 @@ export class RouteTableMapper extends MapperBase<RouteTable> {
     out.routes = [];
     if (routeTable.Routes)
       for (const rawRoute of routeTable.Routes) {
-        const route = await this.routeMapper(rawRoute);
+        const route = await this.routeMapper(rawRoute, ctx, region);
         out.routes.push(route);
       }
 
@@ -137,7 +145,7 @@ export class RouteTableMapper extends MapperBase<RouteTable> {
 
         // create routes
         e.routes?.map(async r => {
-          if (r.GatewayId === 'local') return; // created by AWS, can't be created by the user
+          if (r.GatewayId?.internetGatewayId === 'local') return; // created by AWS, can't be created by the user
           await RouteTableMapper.createRoute(client.ec2client, routeTable, r);
         });
 
@@ -234,7 +242,7 @@ export class RouteTableMapper extends MapperBase<RouteTable> {
         DestinationPrefixListId: r.DestinationPrefixListId,
         // VpcEndpointId: r.VpcEndpointId, // exists in the CreateRouteRequest but not in Route :-?
         EgressOnlyInternetGatewayId: r.EgressOnlyInternetGatewayId,
-        GatewayId: r.GatewayId,
+        GatewayId: r.GatewayId?.internetGatewayId,
         InstanceId: r.InstanceId,
         NatGatewayId: r.NatGatewayId,
         TransitGatewayId: r.TransitGatewayId,

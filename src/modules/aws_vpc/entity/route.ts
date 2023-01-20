@@ -1,6 +1,7 @@
 import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 
 import { cloudId } from '../../../services/cloud-id';
+import { InternetGateway } from './internet_gateway';
 import { RouteTable } from './route_table';
 
 /**
@@ -68,9 +69,12 @@ export class Route {
    * ID for the gateway used to connect to internet
    * @see https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Internet_Gateway.html
    */
-  @Column({ nullable: true })
+  @ManyToOne(() => InternetGateway, {
+    nullable: true,
+  })
+  @JoinColumn()
   @cloudId
-  GatewayId?: string;
+  GatewayId?: InternetGateway;
 
   /**
    * @public
