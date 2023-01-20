@@ -7,7 +7,7 @@ tags: [tutorial]
 
 # Deploy containerized app to ECS Fargate
 
-In this tutorial, we will run SQL queries on an IaSQL [database](/docs/concepts) to deploy a Node.js HTTP server within a docker container on your AWS account using Fargate ECS, IAM, ECR, and ELB. The container image will be built locally, hosted within a private repository in ECR, and deployed to ECS using Fargate.
+In this tutorial, we will run SQL queries on an IaSQL [database](/docs/database) to deploy a Node.js HTTP server within a docker container on your AWS account using Fargate ECS, IAM, ECR, and ELB. The container image will be built locally, hosted within a private repository in ECR, and deployed to ECS using Fargate.
 
 ## Start managing an AWS account with a hosted IaSQL db
 
