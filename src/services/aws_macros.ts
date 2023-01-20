@@ -22,7 +22,9 @@ import { Route53 } from '@aws-sdk/client-route-53';
 import { S3 } from '@aws-sdk/client-s3';
 import { SecretsManager } from '@aws-sdk/client-secrets-manager';
 import { SSM } from '@aws-sdk/client-ssm';
-import { StandardRetryStrategy } from '@aws-sdk/middleware-retry';
+import { defaultRetryDecider, StandardRetryStrategy } from '@aws-sdk/middleware-retry';
+
+import config from '../config';
 
 type AWSCreds = {
   accessKeyId: string;
@@ -80,9 +82,21 @@ export class AWS {
   slowRetryStrategy: StandardRetryStrategy;
   codeBuildRetryStrategy: StandardRetryStrategy;
 
-  constructor(config: AWSConfig) {
-    // declare an specific slow retry strategy, to reuse in slow apis
+  constructor(awsConfig: AWSConfig) {
+    // declare a specific slow retry strategy, to reuse in slow apis
     this.slowRetryStrategy = new StandardRetryStrategy(async () => SLOW_STRATEGY_RETRIES, {
+      retryDecider: error => {
+        // copied the default behavior from aws-sdk to fix the problem caused by Jest on isRetryableByTrait
+        if (!error) {
+          return false;
+        }
+        if (!!config.overrideAwsRetryDecider && error.message.includes('AWS SDK error wrapper')) {
+          // jest has messed the error object
+          return true;
+        }
+        // default behavior when running outside Jest
+        return defaultRetryDecider(error);
+      },
       delayDecider: (_, attempts) =>
         Math.floor(
           Math.min(
@@ -104,50 +118,50 @@ export class AWS {
         ),
     });
 
-    this.region = config.region;
+    this.region = awsConfig.region;
     this.apiGatewayClient = new ApiGatewayV2({
-      credentials: config.credentials,
-      region: config.region,
+      credentials: awsConfig.credentials,
+      region: awsConfig.region,
       retryStrategy: this.slowRetryStrategy,
     });
     this.acmClient = new ACM({
-      ...config,
+      ...awsConfig,
       retryStrategy: this.slowRetryStrategy,
     });
-    this.appSyncClient = new AppSync(config);
-    this.cloudfrontClient = new CloudFront(config);
+    this.appSyncClient = new AppSync(awsConfig);
+    this.cloudfrontClient = new CloudFront(awsConfig);
     this.cbClient = new CodeBuild({
-      credentials: config.credentials,
-      region: config.region,
+      credentials: awsConfig.credentials,
+      region: awsConfig.region,
       retryStrategy: this.codeBuildRetryStrategy,
     });
-    this.cdClient = new CodeDeploy(config);
-    this.cpClient = new CodePipeline(config);
-    this.cwClient = new CloudWatchLogs(config);
-    this.cloudwatchClient = new CloudWatch(config);
-    this.dynamoClient = new DynamoDB(config);
-    this.elasticacheClient = new ElastiCache(config);
-    this.ec2client = new EC2(config);
-    this.ecrClient = new ECR(config);
-    this.ecsClient = new ECS(config);
-    this.elbClient = new ElasticLoadBalancingV2(config);
+    this.cdClient = new CodeDeploy(awsConfig);
+    this.cpClient = new CodePipeline(awsConfig);
+    this.cwClient = new CloudWatchLogs(awsConfig);
+    this.cloudwatchClient = new CloudWatch(awsConfig);
+    this.dynamoClient = new DynamoDB(awsConfig);
+    this.elasticacheClient = new ElastiCache(awsConfig);
+    this.ec2client = new EC2(awsConfig);
+    this.ecrClient = new ECR(awsConfig);
+    this.ecsClient = new ECS(awsConfig);
+    this.elbClient = new ElasticLoadBalancingV2(awsConfig);
     this.iamClient = new IAM({
-      credentials: config.credentials,
-      region: config.region,
+      credentials: awsConfig.credentials,
+      region: awsConfig.region,
       retryStrategy: this.slowRetryStrategy,
     });
     this.lambdaClient = new Lambda({
-      ...config,
+      ...awsConfig,
       retryStrategy: this.slowRetryStrategy,
     });
-    this.rdsClient = new RDS(config);
-    this.route53Client = new Route53(config);
-    this.secretsClient = new SecretsManager(config);
-    this.ssmClient = new SSM(config);
-    this.memoryDBClient = new MemoryDB(config);
-    this.s3Client = new S3(config);
+    this.rdsClient = new RDS(awsConfig);
+    this.route53Client = new Route53(awsConfig);
+    this.secretsClient = new SecretsManager(awsConfig);
+    this.ssmClient = new SSM(awsConfig);
+    this.memoryDBClient = new MemoryDB(awsConfig);
+    this.s3Client = new S3(awsConfig);
     // Service endpoint only available in 'us-east-1' https://docs.aws.amazon.com/general/latest/gr/ecr-public.html
-    this.ecrPubClient = new ECRPUBLIC({ credentials: config.credentials, region: 'us-east-1' });
+    this.ecrPubClient = new ECRPUBLIC({ credentials: awsConfig.credentials, region: 'us-east-1' });
   }
 }
 
