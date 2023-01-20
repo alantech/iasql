@@ -240,7 +240,7 @@ DELETE FROM ecs_simplified WHERE app_name = 'quickstart';
 SELECT iasql_commit();
 ```
 
-The `iasql_begin()` and `iasql_commit()` functions are IaSQL RPCs that are used to start and then end a transaction. We use those two functions to push changes to the cloud.
+The `iasql_begin()` and `iasql_commit()` functions are IaSQL RPCs that are used to start and then end a transaction. We use those two functions to bundle changes to be pushed to the cloud immediately. If you don't wrap the changes in a transaction, they'll be applied to the cloud in an eventually-consistent way.
 
 If the function call is successful, it will return a virtual table with a record for each cloud resource that has been created, deleted or updated.
 

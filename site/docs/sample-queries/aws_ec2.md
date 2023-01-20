@@ -39,7 +39,7 @@ INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
 SELECT iasql_commit();
 ```
 
-The `iasql_begin()` and `iasql_commit()` functions are IaSQL RPCs that are used to start and then end a transaction. We use those two functions to push changes to the cloud.
+The `iasql_begin()` and `iasql_commit()` functions are IaSQL RPCs that are used to start and then end a transaction. We use those two functions to bundle changes to be pushed to the cloud immediately. If you don't wrap the changes in a transaction, they'll be applied to the cloud in an eventually-consistent way.
 
 Query newly created instances. View the table schema [here](https://dbdocs.io/iasql/iasql?table=instance&schema=public&view=table_structure)
 
@@ -60,9 +60,7 @@ FROM instance;
 Change the instance to the AWS Linux AMI for the previously created `i-1` instance. This will trigger a recreate so the existing instance will be terminated and a new one will be created when `iasql_commit` is called.
 
 ```sql
-SELECT iasql_begin();
 UPDATE instance SET ami = 'resolve:ssm:/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2' WHERE tags ->> 'name' = 'i-1';
-SELECT iasql_commit();
 ```
 
 ## Read-only instance metadata

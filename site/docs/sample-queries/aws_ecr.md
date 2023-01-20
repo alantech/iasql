@@ -16,11 +16,8 @@ SELECT * FROM iasql_install('aws_ecr');
 Create a private repository and apply it to the cloud. View the `repository` table schema [here](https://dbdocs.io/iasql/iasql?table=repository&schema=public&view=table_structure). 
 
 ```sql TheButton
-SELECT iasql_begin();
 INSERT INTO repository (repository_name, scan_on_push, image_tag_mutability)
 VALUES ('iasqlsample', false, 'MUTABLE');
-
-SELECT iasql_commit();
 ```
 
 ## Create a public repository
@@ -28,9 +25,6 @@ SELECT iasql_commit();
 Create a public repository and push that change to the cloud. View the `public_repository` table schema [here](https://dbdocs.io/iasql/iasql?table=public_repository&schema=public&view=table_structure)
 
 ```sql TheButton
-SELECT iasql_begin();
 INSERT INTO public_repository (repository_name)
 VALUES ('iasqlsample');
-
-SELECT iasql_commit();
 ```

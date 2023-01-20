@@ -29,6 +29,9 @@ WHERE domain_name = 'iasqlsample.com';
 SELECT iasql_commit();
 ```
 
+The `iasql_begin()` and `iasql_commit()` functions are IaSQL RPCs that are used to start and then end a transaction. We use those two functions to bundle changes to be pushed to the cloud immediately. If you don't wrap the changes in a transaction, they'll be applied to the cloud in an eventually-consistent way.
+
+
 ## Check default record sets have been added
 
 Join over the [`hosted_zone`](https://dbdocs.io/iasql/iasql?table=hosted_zone&schema=public&view=table_structure)
@@ -38,6 +41,6 @@ tables.
 ```sql TheButton
 SELECT *
 FROM resource_record_set
-         INNER JOIN hosted_zone ON hosted_zone.id = parent_hosted_zone_id
+INNER JOIN hosted_zone ON hosted_zone.id = parent_hosted_zone_id
 WHERE domain_name = 'iasqlsample.com';
 ```

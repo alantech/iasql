@@ -64,7 +64,7 @@ INSERT INTO ecs_simplified(app_name, app_port, image_tag, public_ip) VALUES(
 ```
 - This command creates a new `ecs_simplified` app by inserting a new row into the `ecs_simplified` table. Seems pretty easy, right? But under the hood, it's creating all the necessary resources like load balancers, security groups, IAM roles, etc.
 - You can manually check the tables to see what resources are being created. For example, looking at the `load_balancer` table you'll see a load balancer named `simple-express-load-balancer` is inserted automatically by running the above insert command.
-- The `iasql_begin()` and `iasql_commit()` functions are IaSQL RPCs that are used to start and then end a transaction. We use those two functions to push changes to the cloud.
+- The `iasql_begin()` and `iasql_commit()` functions are IaSQL RPCs that are used to start and then end a transaction. We use those two functions to bundle changes to be pushed to the cloud immediately. If you don't wrap the changes in a transaction, they'll be applied to the cloud in an eventually-consistent way.
 - For more info on the `iasql_begin()` and `iasql_commit()` commands, check [this guide](https://iasql.com/docs/transaction/) on how it works.
 - After the transaction is finished all the necessary resources are now created on the cloud, and their cloud-defined values are synced back to the database, so you can see the ARNs in the database. You can verify this by looking at different tables, eg. `iam_role`.
 - To get your load balancer address, you can easily run `SELECT load_balancer_dns FROM ecs_simplified WHERE app_name = 'simple-express'` query and get the URL to access your app.
