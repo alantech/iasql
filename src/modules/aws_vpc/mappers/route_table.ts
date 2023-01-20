@@ -49,7 +49,10 @@ export class RouteTableMapper extends MapperBase<RouteTable> {
   }
 
   eqRoute(a: Route, b: Route) {
-    return _.isEqual(_.omit(a, ['id', 'routeTable']), _.omit(b, ['id', 'routeTable']));
+    return (
+      _.isEqual(_.omit(a, ['id', 'routeTable', 'GatewayId']), _.omit(b, ['id', 'routeTable', 'GatewayId'])) &&
+      a.GatewayId?.internetGatewayId === b.GatewayId?.internetGatewayId
+    );
   }
 
   getRouteTables = paginateBuilder<EC2>(paginateDescribeRouteTables, 'RouteTables');
