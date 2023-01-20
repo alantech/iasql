@@ -197,7 +197,7 @@ export class RouteTableMapper extends MapperBase<RouteTable> {
           // delete and create routes
           const { entitiesInDbOnly, entitiesInAwsOnly } = this.findRoutesDiff(e.routes, cloudRecord.routes);
           for (const r of entitiesInAwsOnly) {
-            if (r.GatewayId === 'local') {
+            if (r?.GatewayId?.internetGatewayId === 'local') {
               // default route, can't be deleted by the user
               await ctx.orm.save(Route, r);
               ctx.memo.db.RouteTable[this.entityId(e)] = await ctx.orm.find(RouteTable, {
