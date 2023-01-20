@@ -73,7 +73,9 @@ export class Route {
     nullable: true,
     eager: true,
   })
-  @JoinColumn()
+  @JoinColumn({
+    name: 'internet_gateway_id',
+  })
   @cloudId
   GatewayId?: InternetGateway;
 
