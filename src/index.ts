@@ -1,17 +1,22 @@
-import * as sentry from '@sentry/node';
 import cluster from 'cluster';
-import express from 'express';
 import { cpus } from 'os';
-import 'reflect-metadata';
 import { inspect } from 'util';
+import { existsSync, readdirSync, readFileSync } from 'fs';
+import { execSync } from 'child_process';
+
+import * as sentry from '@sentry/node';
+import { createConnection } from 'typeorm';
+import express from 'express';
+import 'reflect-metadata';
+import fetch from 'node-fetch';
 
 import config from './config';
 import { v1 } from './router';
 import logger from './services/logger';
+import * as dbMan from './services/db-manager';
 import MetadataRepo from './services/repositories/metadata';
 
-if (cluster.isPrimary) {
-  logger.info(`Using IASQL_ENV: ${process.env.IASQL_ENV}`);
+function startPrimary() {
   const numCpus = cpus().length;
   for (let i = 0; i < numCpus; i++) {
     cluster.fork();
@@ -21,6 +26,96 @@ if (cluster.isPrimary) {
     logger.warn('Child process died, restarting', { code, signal });
     cluster.fork();
   });
+}
+
+async function upgradeThenStartPrimary() {
+  // First, make sure the metadata repo is up-to-date
+  await MetadataRepo.init();
+  const dbs = readdirSync('/tmp/upgrade');
+  for (const db of dbs) {
+    logger.info(`Starting Part 2 of upgrading ${db}`);
+    // Connect to the database and first re-insert the baseline modules
+    const conn = await createConnection({
+      ...dbMan.baseConnConfig,
+      name: db,
+      database: db,
+    });
+    await dbMan.migrate(conn);
+    // Next re-insert the audit log
+    const auditLogLines = JSON.parse(readFileSync(`/tmp/upgrade/${db}/audit_log`, 'utf8'));
+    // It's slower, but safer to insert these records one at a time
+    for (const line of auditLogLines) {
+      await conn.query(`
+        INSERT INTO iasql_audit_log (ts, "user", table_name, change_type, change, message) VALUES
+        ($1, $2, $3, $4, $5, $6);
+      `, [line.ts, line.user, line.table_name, line.change_type, line.change, line.message]);
+    }
+    logger.info(`Part 2 for ${db} complete!`);
+    // Restoring the `aws_account` and other modules requires the engine to be fully started
+    // We can't do that immediately, but we *can* create a polling job to do it as soon as the
+    // engine has finished starting
+    let upgradeRunning = false
+    const upgradeHandle = setInterval(async () => {
+      const started = (await (await fetch(`http://localhost:${config.http.port}/health`)).text()) === 'ok';
+      if (!started || upgradeRunning) return;
+      logger.info(`Starting Part 3 of 3 for ${db}`);
+      upgradeRunning = true;
+      const hasCreds = existsSync(`/tmp/upgrade/${db}/creds`);
+      if (hasCreds) { // Assuming the other two also exist
+        const creds = readFileSync(`/tmp/upgrade/${db}/creds`, 'utf8').trim().split(',');
+        const regionsEnabled = readFileSync(`/tmp/upgrade/${db}/regions_enabled`, 'utf8').trim().split(' ');
+        const defaultRegion = readFileSync(`/tmp/upgrade/${db}/default_region`, 'utf8').trim();
+        await conn.query(`
+          SELECT iasql_install('aws_account');
+        `);
+        await conn.query(`
+          SELECT iasql_begin();
+        `);
+        logger.info('Temporarily log the creds to see what is going on', { creds, });
+        await conn.query(`
+          INSERT INTO aws_credentials (access_key_id, secret_access_key) VALUES
+          ($1, $2);
+        `, creds);
+        await conn.query(`
+          SELECT iasql_commit();
+        `);
+        logger.info('Regions Enabled', { regionsEnabled, });
+        for (const region of regionsEnabled) {
+          await conn.query(`
+            UPDATE aws_regions SET is_enabled = TRUE WHERE region = $1;
+          `, [region]);
+        }
+        await conn.query(`
+          UPDATE aws_regions SET is_default = TRUE WHERE region = $1;
+        `, [defaultRegion]);
+
+      }
+      const moduleList = readFileSync(`/tmp/upgrade/${db}/module_list`, 'utf8').trim().split(' ');
+      logger.info('Module List', { moduleList, });
+      for (const mod of moduleList) {
+        await conn.query(`
+          SELECT iasql_install($1);
+        `, [mod]);
+      }
+      execSync(`rm -rf /tmp/upgrade/${db}`);
+      clearInterval(upgradeHandle);
+      logger.info(`Part 3 of 3 for ${db} complete!`);
+    }, 15000);
+          
+  }
+  startPrimary();
+}
+
+if (cluster.isPrimary) {
+  logger.info(`Using IASQL_ENV: ${process.env.IASQL_ENV}`);
+
+  const dbsToUpgrade = existsSync('/tmp/upgrade');
+
+  if (dbsToUpgrade) {
+    upgradeThenStartPrimary();
+  } else {
+    startPrimary();
+  }
 } else {
   const port = config.http.port;
   const app = express();
