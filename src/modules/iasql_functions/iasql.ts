@@ -955,7 +955,7 @@ function augmentValue(
       typeof columnMetadata?.type === 'string'
         ? format('%L::%I', JSON.stringify(value), columnMetadata.type)
         : format('%L', JSON.stringify(value));
-  } else if (typeof value === 'object' && !Array.isArray(value)) {
+  } else if (value && typeof value === 'object' && !Array.isArray(value)) {
     augmentedValue.isJson = true;
     augmentedValue.formattedValue = format('%L', value);
   } else {
