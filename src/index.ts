@@ -31,6 +31,7 @@ async function upgradeThenStartPrimary() {
   // First, make sure the metadata repo is up-to-date
   await MetadataRepo.init();
   const dbs = readdirSync('/tmp/upgrade');
+  const dbsDone: { [key: string]: boolean } = {};
   for (const db of dbs) {
     logger.info(`Starting Part 2 of upgrading ${db}`);
     // Connect to the database and first re-insert the baseline modules
@@ -112,8 +113,14 @@ async function upgradeThenStartPrimary() {
         );
       }
       execSync(`rm -rf /tmp/upgrade/${db}`);
+      dbsDone[db] = true;
       clearInterval(upgradeHandle);
       logger.info(`Part 3 of 3 for ${db} complete!`);
+      if (Object.keys(dbsDone).sort().join(',') === dbs.sort().join(',')) {
+        logger.info('Final cleanup of upgrade');
+        execSync('rm -rf /tmp/upgrade');
+        logger.info('Upgrade complete');
+      }
     }, 15000);
   }
   startPrimary();
