@@ -56,7 +56,9 @@ export class SubscriptionMapper extends MapperBase<Subscription> {
   listSubscriptions = paginateBuilder<SNS>(paginateListSubscriptions, 'Subscriptions');
 
   cloud: Crud2<Subscription> = new Crud2({
-    create: async (es: Subscription[], ctx: Context) => {},
+    create: async (es: Subscription[], ctx: Context) => {
+      // no action
+    },
     read: async (ctx: Context, id?: string) => {
       const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
       if (!!id) {
@@ -90,8 +92,12 @@ export class SubscriptionMapper extends MapperBase<Subscription> {
         return out;
       }
     },
-    update: async (es: Subscription[], ctx: Context) => {},
-    delete: async (es: Subscription[], ctx: Context) => {},
+    update: async (es: Subscription[], ctx: Context) => {
+      // no action
+    },
+    delete: async (es: Subscription[], ctx: Context) => {
+      // no action
+    },
   });
 
   constructor(module: AwsSnsModule) {
