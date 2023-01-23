@@ -18,6 +18,4 @@ An AWS IAM role controls the access to the cloud resources that it is associated
 ```sql TheButton
 INSERT INTO iam_role (role_name, assume_role_policy_document)
 VALUES ('ecs-assume-role', '{"Version": "2012-10-17", "Statement": [{"Sid": "", "Effect": "Allow", "Principal": {"Service": "ecs-tasks.amazonaws.com"},"Action": "sts:AssumeRole"}]}');
-
-SELECT * FROM iasql_apply();
 ```

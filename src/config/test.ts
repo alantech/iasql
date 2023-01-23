@@ -18,6 +18,7 @@ const config: ConfigInterface = {
     test: true,
     forceLocal: false,
   },
+  overrideAwsRetryDecider: true,
 };
 
 export default config;
