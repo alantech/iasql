@@ -123,7 +123,7 @@ const revisionLocation = JSON.stringify({
 });
 
 // lambda
-const lambdaFunctionName = `${prefix}${dbAlias}`;
+const lambdaFunctionName = `${prefix}-lambda-${dbAlias}`;
 // Base64 for zip file with the following code:
 // exports.handler =  async function(event, context) {
 //   console.log("EVENT: \n" + JSON.stringify(event, null, 2))
@@ -390,6 +390,24 @@ describe('AwsCodedeploy Integration Testing', () => {
   });
 
   it('applies the created instance', commit());
+
+  // adds lambda role
+  it('starts a transaction', begin());
+
+  it(
+    'adds a new role for lambda function',
+    query(
+      `
+    INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
+    VALUES ('${lambdaFunctionRoleName}', '${attachAssumeLambdaPolicy}', array['${lambdaFunctionRoleTaskPolicyArn}']);
+
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+  it('creates the lambda role', commit());
 
   // creates lambda function
   it('starts a transaction', begin());
