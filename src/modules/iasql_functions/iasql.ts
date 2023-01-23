@@ -980,13 +980,13 @@ async function commitApply(
         // Else, only filter changes done after this commit started to avoid overrides.
         if (changesByEntity) {
           r.diff.entitiesInDbOnly = r.diff.entitiesInDbOnly.filter((e: any) =>
-            changesByEntity[r.table]?.find(re => r.idGen(e) === r.idGen(re)),
+            changesByEntity[r.table]?.find(re => r.idGen(e) === r.idGen(re)) || r.table === 'RouteTable',
           );
           r.diff.entitiesInAwsOnly = r.diff.entitiesInAwsOnly.filter((e: any) =>
-            changesByEntity[r.table]?.find(re => r.idGen(e) === r.idGen(re)),
+            changesByEntity[r.table]?.find(re => r.idGen(e) === r.idGen(re)) || r.table === 'RouteTable',
           );
           r.diff.entitiesChanged = r.diff.entitiesChanged.filter((o: any) =>
-            changesByEntity[r.table]?.find(re => r.idGen(o.db) === r.idGen(re)),
+            changesByEntity[r.table]?.find(re => r.idGen(o.db) === r.idGen(re)) || r.table === 'RouteTable',
           );
         } else {
           r.diff.entitiesInAwsOnly = r.diff.entitiesInAwsOnly.filter(
