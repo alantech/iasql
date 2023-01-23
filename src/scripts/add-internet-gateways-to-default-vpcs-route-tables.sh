@@ -13,9 +13,7 @@ ids=$ret_val
 
 query "SELECT iasql_begin();"
 for id in $ids; do
-  IFS='|' read -ra splitarr <<< "$id"
-  ig_id=${splitarr[0]}
-  vpc_id=${splitarr[1]}
+  IFS='|' read -r ig_id vpc_id <<< "$id"
   echo "Attaching internet gateway $ig_id to route table from vpc $vpc_id"
   query "SELECT id FROM route WHERE destination_cidr_block = '0.0.0.0/0' AND internet_gateway_id IS NOT NULL AND route_table_id = (SELECT id FROM route_table WHERE vpc_id = '$vpc_id' LIMIT 1);"
   if [ -z "$ret_val" ]
