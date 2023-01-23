@@ -17,7 +17,7 @@ jobs:
       - id: set-test-modules
         name: Set all numbers
         run: >
-          echo "::set-output name=test-accounts::$(node -e 'console.log(JSON.stringify([...Array(101).keys()].slice(1)))')"
+          echo "::set-output name=test-accounts::$(node -e 'console.log(JSON.stringify([...Array(100).keys()]))')"
       - id: set-registry-image-tag
         name: Set registry image tag
         run: echo "::set-output name=registry-image-tag::ghcr.io/iasql/iasql-engine:$GITHUB_SHA"
@@ -108,25 +108,25 @@ jobs:
               select iasql_install(
                 'aws_account'
               );
-            ";
+            " || exit 1;
 
             echo "\nAttaching credentials..."
             psql $PSQL_CONN -c "
               INSERT INTO aws_credentials (access_key_id, secret_access_key)
               VALUES ('${AWS_ACCESS_KEY_ID}', '${AWS_SECRET_ACCESS_KEY}');
-            ";
+            " || exit 1;
 
             echo "\nStarting transaction..."
             psql $PSQL_CONN -c "
               select * from iasql_begin();
-            ";
+            " || exit 1;
 
             echo "\nSynchronizing..."
             psql $PSQL_CONN -c "
               SELECT * FROM iasql_commit();
-            ";
+            " || exit 1;
 
-            ./$(echo $SCRIPT_PATH)
+            ./$(echo $SCRIPT_PATH) || exit 1
             
             # Shut down the engine
             docker container stop iasql

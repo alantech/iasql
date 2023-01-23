@@ -1,0 +1,110 @@
+---
+slug: ecs-simplified
+title: Deploying to ECS, Simplified!
+date: 2022-11-04
+unlisted: true
+authors: [mtp1376]
+---
+If you have ever tried to deploy your containerized application to ECS, you know that it's not going to be an easy click-to-deploy journey. In order to get your application up and running on ECS, you have to go through a bunch of resource creation. You'll need to:
+- Deploy a load balancer as the point-of-contact for your app
+- Create a target group for the load balancer and register the ECS tasks in it
+- Add a new listener to your load balancer and connect it to the target group
+- Create a security group, and you need to allow the port your app is listening on in that security group
+- Attach the security group above to your load balancer
+- Create a CloudWatch log group for your ECS task
+- Create an ECS cluster, and definitely the task definition as well
+- Oh, and create an ECR repository to push your images to be run on the container
+
+I'm not going to continue this long list, since I've already got a headache. Doing those steps manually is going to give you a headache as well, so why bother doing all those steps yourself and risking different errors you might face when deploying your containerized app? You don't really have the time for the random IAM-related errors AWS is demanding you to resolve. Besides, you already have your codebase ready and the `Dockerfile` is there, so why not just run a simple command doing something that should be simply done?
+
+In this post, we're going to discover an IaSQL module that's built to make deploying to ECS, simplified. Most of the details for deploying a container to ECS are the same (load balancers, security groups, IAM roles, etc), and we have created the `aws_ecs_simplified` module for you so that you can give it any Github repo with a `Dockerfile` and get your app deployed to ECS in the fastest time possible, with scalability available! All the needed resources are going to be created automatically in your AWS account, and you'll have the full access to the details while you're gaining the benefit of a higher-level simple deployment.
+
+## ** An Example Usage of the `aws_ecs_simplified` Module **
+
+Let's say we are going to deploy [this simple Express.js app](https://github.com/iasql/iasql-engine/tree/main/examples/ecs-fargate/prisma/app) to the ECS. It has a `Dockerfile` and `package.json` that installs `express` on `npm install`. `npm start` then starts the Express server which listens on port `8088`.
+
+:::note
+`aws_ecs_simplified` is a high-level module we have created to make scalable ECS deployments easier. For more info on high-level vs low-level modules, you can check [this guide](https://iasql.com/docs/low-level-vs-high-level/).
+:::
+
+Let's go and deploy the above app to your AWS account. Don't worry if you don't have an IaSQL database already, you can create one for free when you click the "Deploy Now" button.
+```sql title="Deploy a simple Express.js app from a Github repository to ECS" showLineNumbers TheButton="Deploy Now"
+SELECT iasql_install('aws_ecs_simplified', 'aws_codebuild');
+SELECT iasql_begin();
+INSERT INTO ecs_simplified(app_name, app_port, image_tag, public_ip) VALUES(
+  'simple-express',
+  8088,
+  'latest',
+  true
+);
+SELECT iasql_commit();
+
+SELECT ecr_build(
+  'https://github.com/iasql/iasql-engine/', -- the Github repo URL
+  (SELECT id
+    FROM repository
+    WHERE repository_name = 'simple-express-repository')::varchar(255), -- ECR repo for the image to be pushed
+  './examples/ecs-fargate/prisma/app', -- the subdirectory in Github repo
+  'main', -- the Github branch or ref
+  NULL -- Github personal access token - can be omitted if public repository
+);
+```
+That's it! Now wait for some time and your app is deployed! While your app is being deployed, let's go through the commands we executed in more depth:
+```sql
+SELECT iasql_install('aws_ecs_simplified', 'aws_codebuild');
+```
+- This command installs the `aws_ecs_simplified` high-level module. We– at IaSQL– have created that module to make it easy to deploy containerized apps to ECS. The code for it is [here](https://github.com/iasql/iasql-engine/blob/v0.0.22/src/modules/0.0.23/aws_ecs_simplified/sql/after_install.sql). But IaSQL is so flexible that anyone can create their own high-level (and of course, low-level) modules and add it to IaSQL.
+```sql
+INSERT INTO ecs_simplified(app_name, app_port, image_tag, public_ip) VALUES(
+  'simple-express',
+  8088,
+  'latest',
+  true
+);
+```
+- This command creates a new `ecs_simplified` app by inserting a new row into the `ecs_simplified` table. Seems pretty easy, right? But under the hood, it's creating all the necessary resources like load balancers, security groups, IAM roles, etc.
+- You can manually check the tables to see what resources are being created. For example, looking at the `load_balancer` table you'll see a load balancer named `simple-express-load-balancer` is inserted automatically by running the above insert command.
+- The `iasql_begin()` and `iasql_commit()` functions are IaSQL RPCs that are used to start and then end a transaction. We use those two functions to bundle changes to be pushed to the cloud immediately. If you don't wrap the changes in a transaction, they'll be applied to the cloud in an eventually-consistent way.
+- For more info on the `iasql_begin()` and `iasql_commit()` commands, check [this guide](https://iasql.com/docs/transaction/) on how it works.
+- After the transaction is finished all the necessary resources are now created on the cloud, and their cloud-defined values are synced back to the database, so you can see the ARNs in the database. You can verify this by looking at different tables, eg. `iam_role`.
+- To get your load balancer address, you can easily run `SELECT load_balancer_dns FROM ecs_simplified WHERE app_name = 'simple-express'` query and get the URL to access your app.
+- Now ECS is waiting for an image to be pushed to your ECR repository to run it. You can get the URI for the ECR repository by running the `SELECT repository_uri FROM ecs_simplified WHERE app_name = 'simple-express'` query.  You *could* build your docker image locally and then follow [Steps 2 and 4 from this guide](https://docs.aws.amazon.com/AmazonECR/latest/userguide/getting-started-cli.html) to connect your local docker CLI to your ECR repository and push that docker image into your ECR repository, but we have a simpler solution next.
+- In the next step, we'll automatically build an image for the code in Github repo and then push it to this URI (all through SQL and using another high-level function named `ecr_build`).
+```sql
+SELECT ecr_build(
+  'https://github.com/iasql/iasql-engine/', -- the Github repo URL
+  (SELECT id
+    FROM repository
+    WHERE repository_name = 'simple-express-repository')::varchar(255), -- ECR repo for the image to be pushed
+  './examples/ecs-fargate/prisma/app', -- the subdirectory in Github repo
+  'main',  -- the Github branch or ref
+  NULL -- Github personal access token - can be omitted if public repository
+);
+```
+- This command tells IaSQL to go clone `iasql-engine` repository, build an image on the subdirectory specified, and then push it to the ECR repository created earlier by the `aws_ecs_simplified` module. Running the above command will automatically create a CodeBuild project and the related roles, etc. Then it'll start a build, and after it's successful all the created resources are deleted to ensure there won't be any additional charges to your AWS account.
+- To access your app on the cloud, get the load balancer address and use your browser to access the live version of it:
+```sql
+SELECT load_balancer_dns
+FROM ecs_simplified
+WHERE app_name = 'simple-express';
+```
+Then you can check if the server is running on the `<load_balancer_dns value>:8088/health` address.
+
+## Low-level Access to Resources
+
+So the `aws_ecs_simplified` module simplifies things, right? But what if you still need the level of control you had when you were doing all the steps manually? The traditional PaaS trade-off is that you can't grow your app beyond the built-in limitations as you don't have access to all the small details. The IaSQL approach is not limited in that way.
+
+Let's say you want your ECS container to be able to use the AWS CLI to provision an EC2 instance, and for that purpose its IAM role needs `AmazonEC2FullAccess` policy to work properly. `aws_ecs_simplified` does not have a column to configure such a thing, but that doesn't mean we're stuck.
+
+The good news is that you still have the full control over all resources in the deepest details. Let's fix your app's IAM role access by attaching the needed policy to its IAM role:
+```sql
+UPDATE iam_role
+SET attached_policies_arns = attached_policies_arns ||
+                             'arn:aws:iam::aws:policy/AmazonEC2FullAccess' -- attached_policies_arns is of text[] type
+WHERE role_name = 'simple-express-ecs-task-exec-role';
+
+```
+
+You want additional rules for the container's security group? No problem! Just write the SQL and execute it, and it will be applied to the cloud within seconds. You want 3 copies of your container to be kept running with a round-robin load balancing on them? It's already there, just do an `UPDATE ecs_simplified SET desired_count = 3 WHERE app_name = 'simple_express';` and it's there for you.
+
+With IaSQL and its flexibility, you can benefit from both the high-level and low-level operations. We have created the `aws_ecs_simplified` module to show the flexibility and power of IaSQL engine, but the possibilities are endless. IaSQL is also an open-source project, meaning that you can use the powerful IaSQL engine and build your own modules on top of that. If you're into the idea of empowering other developers to do complex infrastructure tasks simply, why don't you take a look at our [contributing guide](https://github.com/iasql/iasql-engine/blob/main/CONTRIBUTING.md) and join our [Discord channel](https://discord.com/invite/machGGczea)? We'll thoroughly answer any of your question regarding the usage or development of IaSQL. Looking forward to seeing you in our small, but great community.

@@ -1,0 +1,4 @@
+{
+  "name": "aws_sns",
+  "dependencies": ["iasql_platform", "aws_account"]
+}
