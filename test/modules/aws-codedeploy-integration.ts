@@ -402,8 +402,8 @@ describe('AwsCodedeploy Integration Testing', () => {
     INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
     VALUES ('${lambdaFunctionRoleName}', '${attachAssumeLambdaPolicy}', array['${lambdaFunctionRoleTaskPolicyArn}']);
 
-      INSERT INTO lambda_function (name, zip_b64, handler, runtime, subnets, role_name)
-      VALUES ('${lambdaFunctionName}', '${lambdaFunctionCode}', '${lambdaFunctionHandler}', '${lambdaFunctionRuntime14}', (select array(select subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true and vpc.region = '${region}' limit 3)), '${lambdaFunctionRoleName}');
+      INSERT INTO lambda_function (name, zip_b64, handler, runtime, role_name)
+      VALUES ('${lambdaFunctionName}', '${lambdaFunctionCode}', '${lambdaFunctionHandler}', '${lambdaFunctionRuntime14}', '${lambdaFunctionRoleName}');
 
       INSERT INTO lambda_function_security_groups (lambda_function_id, security_group_id)
       VALUES ((SELECT id FROM lambda_function WHERE name = '${lambdaFunctionName}'), (select id from security_group where group_name = '${lambdaSgGroupName}' and region = '${region}' limit 1));
