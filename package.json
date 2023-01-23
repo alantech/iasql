@@ -101,7 +101,7 @@
     "@sentry/node": "^7.28.1",
     "callsite": "^1.0.0",
     "express": "^4.18.2",
-    "fastest-levenshtein": "^1.0.14",
+    "fastest-levenshtein": "^1.0.16",
     "lodash.clonedeep": "^4.5.0",
     "lodash.isequal": "^4.5.0",
     "lodash.pick": "^4.4.0",
