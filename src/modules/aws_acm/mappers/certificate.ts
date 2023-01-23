@@ -1,8 +1,9 @@
-import { ACM, CertificateDetail, paginateListCertificates } from '@aws-sdk/client-acm';
+import { ACM, CertificateDetail, KeyAlgorithm, paginateListCertificates } from '@aws-sdk/client-acm';
+import { ListCertificatesCommandInput } from '@aws-sdk/client-acm/dist-types/commands/ListCertificatesCommand';
 import { parse as parseArn } from '@aws-sdk/util-arn-parser';
 
 import { AwsAcmModule } from '..';
-import { AWS, crudBuilderFormat, paginateBuilder, mapLin } from '../../../services/aws_macros';
+import { AWS, crudBuilderFormat, mapLin, paginateBuilder } from '../../../services/aws_macros';
 import { Context, Crud2, MapperBase } from '../../interfaces';
 import {
   Certificate,
@@ -29,7 +30,18 @@ export class CertificateMapper extends MapperBase<Certificate> {
     CertificateArn => ({ CertificateArn }),
     res => res?.Certificate,
   );
-  getCertificatesSummary = paginateBuilder<ACM>(paginateListCertificates, 'CertificateSummaryList');
+  getCertificatesSummary = paginateBuilder<ACM>(
+    paginateListCertificates,
+    'CertificateSummaryList',
+    undefined,
+    undefined,
+    () =>
+      ({
+        Includes: {
+          keyTypes: Object.keys(KeyAlgorithm),
+        },
+      } as ListCertificatesCommandInput),
+  );
 
   getCertificates(client: ACM) {
     return mapLin(this.getCertificatesSummary(client), (cert: any) =>
@@ -106,7 +118,7 @@ export class CertificateMapper extends MapperBase<Certificate> {
     },
     read: async (ctx: Context, arn?: string) => {
       const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
-      if (arn) {
+      if (!!arn) {
         const region = parseArn(arn).region;
         if (enabledRegions.includes(region)) {
           const client = (await ctx.getAwsClient(region)) as AWS;

@@ -1,6 +1,7 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 
 import { cloudId } from '../../../services/cloud-id';
+import { Certificate } from '../../aws_acm/entity';
 
 // This is ridiculous. Can we fix this?
 
@@ -169,4 +170,20 @@ export class Distribution {
     nullable: true,
   })
   status?: string;
+
+  /**
+   * @public
+   * Associate a certificate from AWS Certificate Manager. The certificate must be in the US East (N. Virginia) Region (us-east-1).
+   */
+  @ManyToOne(() => Certificate, { nullable: true, eager: true })
+  @JoinColumn()
+  customSslCertificate?: Certificate;
+
+  /**
+   * @public
+   * Add the custom domain names that you use in URLs for the files served by this distribution.
+   * These domain names should be covered by the certificates you've set for this distribution.
+   */
+  @Column('varchar', { array: true, nullable: true })
+  alternateDomainNames?: string[];
 }
