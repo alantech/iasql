@@ -17,11 +17,14 @@ for id in $ids; do
   ig_id=${splitarr[0]}
   vpc_id=${splitarr[1]}
   echo "Attaching internet gateway $ig_id to route table from vpc $vpc_id"
-  query "SELECT id FROM route WHERE destination_cidr_block = '0.0.0.0/0' AND internet_gateway_id IS NOT NULL AND route_table_id = (SELECT id FROM route_table WHERE vpc_id = '$vpc_id');"
+  query "SELECT id FROM route WHERE destination_cidr_block = '0.0.0.0/0' AND internet_gateway_id IS NOT NULL AND route_table_id = (SELECT id FROM route_table WHERE vpc_id = '$vpc_id' LIMIT 1);"
   if [ -z "$ret_val" ]
   then
+    query "DELETE FROM route
+            WHERE route_table_id = (select id from route_table where vpc_id = '$vpc_id') AND internet_gateway_id IS NULL AND destination_cidr_block = '0.0.0.0/0';"
     query "INSERT INTO route (route_table_id, internet_gateway_id, destination_cidr_block)
             VALUES ((SELECT id FROM route_table WHERE vpc_id = '$vpc_id'), '$ig_id', '0.0.0.0/0');"
   fi
 done
-echo query "SELECT iasql_commit();"
+query "SELECT iasql_commit();"
+echo $ret_val
