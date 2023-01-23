@@ -5,7 +5,7 @@
   "excludeExternals": true,
   "excludePrivate": true,
   "excludeInternal": true,
-  "name": "IaSQL documentation",
+  "name": "SQL reference per module",
   "categorizeByGroup": false,
   "disableSources": true,
   "readme": "default",

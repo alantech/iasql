@@ -32,6 +32,8 @@ export interface ConfigInterface {
     environment: string;
     release?: string; // Make it nullable so we can attach it later
   };
+  // For the issue caused by Jest VM and instanceof issues on AWS SDK in test environment
+  overrideAwsRetryDecider?: boolean;
 }
 
 export const throwError = (message: string): never => {

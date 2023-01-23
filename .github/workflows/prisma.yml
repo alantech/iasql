@@ -79,13 +79,14 @@ jobs:
         id: determine-test-account
         env:
           SECRET_HEADER: ${{ secrets.SECRET_HEADER }}
+          LAMBDA_FUNCTION: 'https://22quullhnmsrttacexxc74uium0nndzo.lambda-url.us-east-2.on.aws/'
         uses: nick-fields/retry@v2
         with:
           max_attempts: 2
           retry_on: error
           timeout_minutes: 5
           command: |
-            RESPONSE=$(curl -X POST -H "Content-Type: text/plain" -H "${SECRET_HEADER}" -d '1' https://fkk3xlyad5tobhmezx4onpvele0zyehu.lambda-url.us-east-2.on.aws/ 2>/dev/null)
+            RESPONSE=$(curl -X POST -H "Content-Type: text/plain" -H "${SECRET_HEADER}" -d '1' ${LAMBDA_FUNCTION} 2>/dev/null)
             echo $RESPONSE
             ACCOUNT_INDEX=$(echo $RESPONSE | jq '.[0]' || exit 1)
             echo "::set-output name=account_index::$(echo ${ACCOUNT_INDEX})"
@@ -139,7 +140,7 @@ jobs:
         with:
           max_attempts: 2
           retry_on: error
-          timeout_minutes: 30
+          timeout_minutes: 40
           command: |
             export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
             export AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
