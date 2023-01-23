@@ -1,19 +1,18 @@
-import cluster from 'cluster';
-import { cpus } from 'os';
-import { inspect } from 'util';
-import { existsSync, readdirSync, readFileSync } from 'fs';
-import { execSync } from 'child_process';
-
 import * as sentry from '@sentry/node';
-import { createConnection } from 'typeorm';
+import { execSync } from 'child_process';
+import cluster from 'cluster';
 import express from 'express';
-import 'reflect-metadata';
+import { existsSync, readdirSync, readFileSync } from 'fs';
 import fetch from 'node-fetch';
+import { cpus } from 'os';
+import 'reflect-metadata';
+import { createConnection } from 'typeorm';
+import { inspect } from 'util';
 
 import config from './config';
 import { v1 } from './router';
-import logger from './services/logger';
 import * as dbMan from './services/db-manager';
+import logger from './services/logger';
 import MetadataRepo from './services/repositories/metadata';
 
 function startPrimary() {
@@ -45,23 +44,27 @@ async function upgradeThenStartPrimary() {
     const auditLogLines = JSON.parse(readFileSync(`/tmp/upgrade/${db}/audit_log`, 'utf8'));
     // It's slower, but safer to insert these records one at a time
     for (const line of auditLogLines) {
-      await conn.query(`
+      await conn.query(
+        `
         INSERT INTO iasql_audit_log (ts, "user", table_name, change_type, change, message) VALUES
         ($1, $2, $3, $4, $5, $6);
-      `, [line.ts, line.user, line.table_name, line.change_type, line.change, line.message]);
+      `,
+        [line.ts, line.user, line.table_name, line.change_type, line.change, line.message],
+      );
     }
     logger.info(`Part 2 for ${db} complete!`);
     // Restoring the `aws_account` and other modules requires the engine to be fully started
     // We can't do that immediately, but we *can* create a polling job to do it as soon as the
     // engine has finished starting
-    let upgradeRunning = false
+    let upgradeRunning = false;
     const upgradeHandle = setInterval(async () => {
       const started = (await (await fetch(`http://localhost:${config.http.port}/health`)).text()) === 'ok';
       if (!started || upgradeRunning) return;
       logger.info(`Starting Part 3 of 3 for ${db}`);
       upgradeRunning = true;
       const hasCreds = existsSync(`/tmp/upgrade/${db}/creds`);
-      if (hasCreds) { // Assuming the other two also exist
+      if (hasCreds) {
+        // Assuming the other two also exist
         const creds = readFileSync(`/tmp/upgrade/${db}/creds`, 'utf8').trim().split(',');
         const regionsEnabled = readFileSync(`/tmp/upgrade/${db}/regions_enabled`, 'utf8').trim().split(' ');
         const defaultRegion = readFileSync(`/tmp/upgrade/${db}/default_region`, 'utf8').trim();
@@ -71,37 +74,47 @@ async function upgradeThenStartPrimary() {
         await conn.query(`
           SELECT iasql_begin();
         `);
-        logger.info('Temporarily log the creds to see what is going on', { creds, });
-        await conn.query(`
+        logger.info('Temporarily log the creds to see what is going on', { creds });
+        await conn.query(
+          `
           INSERT INTO aws_credentials (access_key_id, secret_access_key) VALUES
           ($1, $2);
-        `, creds);
+        `,
+          creds,
+        );
         await conn.query(`
           SELECT iasql_commit();
         `);
-        logger.info('Regions Enabled', { regionsEnabled, });
+        logger.info('Regions Enabled', { regionsEnabled });
         for (const region of regionsEnabled) {
-          await conn.query(`
+          await conn.query(
+            `
             UPDATE aws_regions SET is_enabled = TRUE WHERE region = $1;
-          `, [region]);
+          `,
+            [region],
+          );
         }
-        await conn.query(`
+        await conn.query(
+          `
           UPDATE aws_regions SET is_default = TRUE WHERE region = $1;
-        `, [defaultRegion]);
-
+        `,
+          [defaultRegion],
+        );
       }
       const moduleList = readFileSync(`/tmp/upgrade/${db}/module_list`, 'utf8').trim().split(' ');
-      logger.info('Module List', { moduleList, });
+      logger.info('Module List', { moduleList });
       for (const mod of moduleList) {
-        await conn.query(`
+        await conn.query(
+          `
           SELECT iasql_install($1);
-        `, [mod]);
+        `,
+          [mod],
+        );
       }
       execSync(`rm -rf /tmp/upgrade/${db}`);
       clearInterval(upgradeHandle);
       logger.info(`Part 3 of 3 for ${db} complete!`);
     }, 15000);
-          
   }
   startPrimary();
 }
