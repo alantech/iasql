@@ -127,7 +127,7 @@ if (cluster.isPrimary) {
   if (dbsToUpgrade) {
     upgradeThenStartPrimary();
   } else {
-    startPrimary();
+    MetadataRepo.init().then(startPrimary);
   }
 } else {
   const port = config.http.port;
