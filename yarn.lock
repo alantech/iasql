@@ -3010,6 +3010,11 @@
   resolved "https://registry.yarnpkg.com/@types/node/-/node-16.18.11.tgz#cbb15c12ca7c16c85a72b6bdc4d4b01151bb3cae"
   integrity sha512-3oJbGBUWuS6ahSnEq1eN2XrCyf4YsWI8OyCvo7c64zQJNplk3mO84t53o8lfTk+2ji59g5ycfc6qQ3fdHliHuA==
 
+"@types/pg-format@^1.0.2":
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/@types/pg-format/-/pg-format-1.0.2.tgz#3c63fcb3723a6888c8fad740866b1061634d037e"
+  integrity sha512-D3MEO6u3BObw3G4Xewjdx05MF5v/fiog78CedtrXe8BhONM8GvUz2dPfLWtI0BPRBoRd6anPHXe+sbrPReZouQ==
+
 "@types/pg@^8.6.5":
   version "8.6.6"
   resolved "https://registry.yarnpkg.com/@types/pg/-/pg-8.6.6.tgz#21cdf873a3e345a6e78f394677e3b3b1b543cb80"
@@ -5688,6 +5693,11 @@ pg-connection-string@^2.5.0:
   version "2.5.0"
   resolved "https://registry.yarnpkg.com/pg-connection-string/-/pg-connection-string-2.5.0.tgz#538cadd0f7e603fc09a12590f3b8a452c2c0cf34"
   integrity sha512-r5o/V/ORTA6TmUnyWZR9nCj1klXCO2CEKNRlVuJptZe85QuhFayC7WeMic7ndayT5IRIR0S0xFxFi2ousartlQ==
+
+pg-format@^1.0.4:
+  version "1.0.4"
+  resolved "https://registry.yarnpkg.com/pg-format/-/pg-format-1.0.4.tgz#27734236c2ad3f4e5064915a59334e20040a828e"
+  integrity sha512-YyKEF78pEA6wwTAqOUaHIN/rWpfzzIuMh9KdAhc3rSLQ/7zkRFcCgYBAEGatDstLyZw4g0s9SNICmaTGnBVeyw==
 
 pg-int8@1.0.1:
   version "1.0.1"
