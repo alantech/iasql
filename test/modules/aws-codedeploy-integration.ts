@@ -112,7 +112,6 @@ const ec2FilterTags = JSON.stringify([
 ]);
 
 const sgGroupName = `${prefix}sgcodedeploy`;
-const lambdaSgGroupName = `${prefix}sglambda`;
 
 const revisionLocation = JSON.stringify({
   revisionType: 'GitHub',
@@ -327,42 +326,6 @@ describe('AwsCodedeploy Integration Testing', () => {
   );
   it('applies the security group and rules creation', commit());
 
-  // adds security group for lambda
-  it('starts a transaction', begin());
-
-  it(
-    'adds a new security group',
-    query(
-      `  
-    INSERT INTO security_group (description, group_name)
-    VALUES ('Lambda Security Group', '${lambdaSgGroupName}');
-  `,
-      undefined,
-      true,
-      () => ({ username, password }),
-    ),
-  );
-
-  it(
-    'adds security group rules',
-    query(
-      `
-    INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
-    SELECT false, 'tcp', 80, 80, '0.0.0.0/0', '${prefix}lambda_rule_http', id
-    FROM security_group
-    WHERE group_name = '${lambdaSgGroupName}';
-    INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
-    SELECT true, 'tcp', 1, 65335, '0.0.0.0/0', '${prefix}lambda_rule_egress', id
-    FROM security_group
-    WHERE group_name = '${lambdaSgGroupName}';
-  `,
-      undefined,
-      true,
-      () => ({ username, password }),
-    ),
-  );
-  it('applies the security group and rules creation', commit());
-
   // create sample ec2 instance
   it('starts a transaction', begin());
 
@@ -416,17 +379,8 @@ describe('AwsCodedeploy Integration Testing', () => {
     'adds a new lambda function',
     query(
       `
-    BEGIN;
-    INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
-    VALUES ('${lambdaFunctionRoleName}', '${attachAssumeLambdaPolicy}', array['${lambdaFunctionRoleTaskPolicyArn}']);
-
       INSERT INTO lambda_function (name, zip_b64, handler, runtime, role_name)
       VALUES ('${lambdaFunctionName}', '${lambdaFunctionCode}', '${lambdaFunctionHandler}', '${lambdaFunctionRuntime14}', '${lambdaFunctionRoleName}');
-
-      INSERT INTO lambda_function_security_groups (lambda_function_id, security_group_id)
-      VALUES ((SELECT id FROM lambda_function WHERE name = '${lambdaFunctionName}'), (select id from security_group where group_name = '${lambdaSgGroupName}' and region = '${region}' limit 1));
-
-    COMMIT;
   `,
       undefined,
       true,
@@ -437,33 +391,6 @@ describe('AwsCodedeploy Integration Testing', () => {
   it('applies the lambda function change', commit());
 
   it('starts a transaction', begin());
-
-  // creates codedeploy application for Lambda
-  it(
-    'adds a new codedeploy_application',
-    query(
-      `
-    INSERT INTO codedeploy_application (name, compute_platform)
-    VALUES ('${lambdaApplicationName}', 'Server');
-  `,
-      undefined,
-      true,
-      () => ({ username, password }),
-    ),
-  );
-
-  it(
-    'adds a new deployment_group for Lambda',
-    query(
-      `
-    INSERT INTO codedeploy_deployment_group (application_id, name, role_name)
-    VALUES ((SELECT id FROM codedeploy_application WHERE name = '${lambdaDeploymentGroupName}'), '${lambdaDeploymentGroupName}', '${lambdaRoleName}');
-  `,
-      undefined,
-      true,
-      () => ({ username, password }),
-    ),
-  );
 
   // creates codedeploy application for EC2
   it(
@@ -651,6 +578,36 @@ describe('AwsCodedeploy Integration Testing', () => {
     ),
   );
 });
+
+// creates codedeploy application for Lambda
+it('starts a transaction', begin());
+
+it(
+  'adds a new codedeploy_application for lambda',
+  query(
+    `
+    INSERT INTO codedeploy_application (name, compute_platform)
+    VALUES ('${lambdaApplicationName}', 'Lambda');
+  `,
+    undefined,
+    true,
+    () => ({ username, password }),
+  ),
+);
+
+it(
+  'adds a new deployment_group for Lambda',
+  query(
+    `
+    INSERT INTO codedeploy_deployment_group (application_id, name, role_name)
+    VALUES ((SELECT id FROM codedeploy_application WHERE name = '${lambdaApplicationName}'), '${lambdaDeploymentGroupName}', '${lambdaRoleName}');
+  `,
+    undefined,
+    true,
+    () => ({ username, password }),
+  ),
+);
+it('applies lambda deployment app and group creation', commit());
 
 // triggers a lambda deployment
 it(
@@ -941,7 +898,7 @@ SELECT * FROM codedeploy_deployment_group WHERE application_id = (SELECT id FROM
       'deletes security group',
       query(
         `
-        DELETE FROM security_group WHERE group_name = '${sgGroupName}' OR group_name='${lambdaSgGroupName}';
+        DELETE FROM security_group WHERE group_name = '${sgGroupName}';
       `,
         undefined,
         true,
