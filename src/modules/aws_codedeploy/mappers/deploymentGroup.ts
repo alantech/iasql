@@ -4,6 +4,9 @@ import {
   CodeDeploy,
   CreateDeploymentGroupCommandInput,
   DeploymentGroupInfo,
+  DeploymentOption,
+  DeploymentStyle,
+  DeploymentType,
   paginateListDeploymentGroups,
   UpdateDeploymentGroupCommandOutput,
 } from '@aws-sdk/client-codedeploy';
@@ -44,6 +47,7 @@ export class CodedeployDeploymentGroupMapper extends MapperBase<CodedeployDeploy
     Object.is(a.deploymentGroupId, b.deploymentGroupId) &&
     Object.is(a.name, b.name) &&
     isEqual(a.role?.roleName, b.role?.roleName) &&
+    isEqual(a.deploymentStyle, b.deploymentStyle) &&
     isEqual(a.ec2TagFilters ?? [], b.ec2TagFilters ?? []);
 
   async deploymentGroupMapper(group: DeploymentGroupInfo, region: string, ctx: Context) {
@@ -61,6 +65,15 @@ export class CodedeployDeploymentGroupMapper extends MapperBase<CodedeployDeploy
       ));
     out.deploymentConfigName =
       (group.deploymentConfigName as DeploymentConfigType) ?? DeploymentConfigType.ONE_AT_A_TIME;
+
+    if (group.deploymentStyle) {
+      out.deploymentStyle = {
+        deploymentOption:
+          (group.deploymentStyle.deploymentOption as DeploymentOption) ??
+          DeploymentOption.WITHOUT_TRAFFIC_CONTROL,
+        deploymentType: (group.deploymentStyle.deploymentType as DeploymentType) ?? DeploymentType.IN_PLACE,
+      };
+    }
 
     // update ec2 filters
     if (group.ec2TagFilters) {
@@ -143,6 +156,7 @@ export class CodedeployDeploymentGroupMapper extends MapperBase<CodedeployDeploy
           deploymentGroupName: e.name,
           ec2TagFilters: e.ec2TagFilters,
           serviceRoleArn: e.role?.arn,
+          deploymentStyle: e.deploymentStyle,
         };
         const groupId = await this.createDeploymentGroup(client.cdClient, input);
         if (!groupId) continue;
@@ -227,6 +241,8 @@ export class CodedeployDeploymentGroupMapper extends MapperBase<CodedeployDeploy
             currentDeploymentGroupName: group.name,
             ec2TagFilters: group.ec2TagFilters,
             serviceRoleArn: group.role?.arn,
+            deploymentStyle: group.deploymentStyle,
+            deploymentConfigName: group.deploymentConfigName,
           });
 
           // update the db

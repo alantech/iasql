@@ -164,6 +164,11 @@ const attachAssumeLambdaPolicy = JSON.stringify({
   ],
 });
 
+const lambdaDeploymentStyle = JSON.stringify({
+  deploymentOption: 'WITH_TRAFFIC_CONTROL',
+  deploymentType: 'BLUE_GREEN',
+});
+
 const lambdaRevisionLocation = JSON.stringify({
   revisionType: 'AppSpecContent',
   appSpecContent: appSpecContent,
@@ -599,8 +604,8 @@ it(
   'adds a new deployment_group for Lambda',
   query(
     `
-    INSERT INTO codedeploy_deployment_group (application_id, name, role_name)
-    VALUES ((SELECT id FROM codedeploy_application WHERE name = '${lambdaApplicationName}'), '${lambdaDeploymentGroupName}', '${lambdaRoleName}');
+    INSERT INTO codedeploy_deployment_group (application_id, name, role_name, deployment_style)
+    VALUES ((SELECT id FROM codedeploy_application WHERE name = '${lambdaApplicationName}'), '${lambdaDeploymentGroupName}', '${lambdaRoleName}', '${lambdaDeploymentStyle}');
   `,
     undefined,
     true,

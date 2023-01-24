@@ -37,6 +37,26 @@ export enum EC2TagFilterType {
 }
 
 /**
+ * @enum
+ * Indicates whether to route deployment traffic behind a load balancer.
+ * @see https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-codedeploy/interfaces/deploymentstyle.html#deploymentoption
+ */
+export enum DeploymentOption {
+  WITHOUT_TRAFFIC_CONTROL = 'WITHOUT_TRAFFIC_CONTROL',
+  WITH_TRAFFIC_CONTROL = 'WITH_TRAFFIC_CONTROL',
+}
+
+/**
+ * @enum
+ * Indicates whether to run an in-place deployment or a blue/green deployment.
+ * @see https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-codedeploy/interfaces/deploymentstyle.html#deploymenttype
+ */
+export enum DeploymentType {
+  BLUE_GREEN = 'BLUE_GREEN',
+  IN_PLACE = 'IN_PLACE',
+}
+
+/**
  * Table to manage AWS CodeDeploy deployment group entities. You can specify one or more deployment groups
  * for a CodeDeploy application. Each application deployment uses one of its deployment groups.
  * The deployment group contains settings and configurations used during the deployment.
@@ -112,6 +132,19 @@ export class CodedeployDeploymentGroup {
     default: DeploymentConfigType.ONE_AT_A_TIME,
   })
   deploymentConfigName: DeploymentConfigType;
+
+  /**
+   * @public
+   * Information about the type of deployment, in-place or blue/green, that you want to run and whether to route deployment traffic behind a load balancer.
+   */
+  @Column({
+    type: 'json',
+    nullable: true,
+  })
+  deploymentStyle?: {
+    deploymentOption?: DeploymentOption | undefined;
+    deploymentType?: DeploymentType | undefined;
+  };
 
   /**
    * @public
