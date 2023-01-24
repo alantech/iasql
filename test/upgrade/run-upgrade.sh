@@ -20,7 +20,7 @@ CURRENTGITSHA=$(git rev-parse HEAD)
 
 # Clear mutations, if any
 git reset --hard HEAD
-echo "Upgrading from version ${PRIORVERSION} to ${LATESTVERSION}"
+echo "Upgrading from version ${PRIORVERSION} to ${CURRENTVERSION}"
 
 # Check out the older version of the codebase and launch the engine with a local postgres
 git checkout v${PRIORVERSION}
@@ -35,10 +35,10 @@ username=$(jq -r '.user' <<<"$connectres")
 password=$(jq -r '.password' <<<"$connectres")
 CONNSTR="postgres://$username:$password@localhost:5432/to_upgrade"
 psql $CONNSTR -c "
-    select iasql_install(
-      'aws_account'
-    );
-  "
+  select iasql_install(
+    'aws_account'
+  );
+"
 
 psql $CONNSTR -c "
   SELECT iasql_begin();
@@ -56,8 +56,8 @@ psql $CONNSTR -c "
 
 # Add one module that we can use to verify that everything actually comes back up
 psql $CONNSTR -c "
-    SELECT * FROM iasql_install('aws_ec2');
-  "
+  SELECT * FROM iasql_install('aws_ec2');
+"
 
 # Shut down the database and engine, switch back to the current commit, and fire up a new engine
 docker container stop iasql
@@ -76,9 +76,9 @@ UPGRADECHECKCOUNT=90
 ISUPGRADED=false
 while [ ${UPGRADECHECKCOUNT} -gt 0 ]; do
   AWSACCOUNTMODULE=$(psql $CONNSTR -AXqtc "
-      SELECT name FROM iasql_module WHERE name like 'aws_ec2%'
-    ")
-  if [ "${AWSACCOUNTMODULE}" == "aws_ec2@${LATESTVERSION}" ]; then
+    SELECT name FROM iasql_module WHERE name like 'aws_ec2%'
+  " || echo nope)
+  if [ "${AWSACCOUNTMODULE}" == "aws_ec2@${CURRENTVERSION}" ]; then
     ISUPGRADED=true
     UPGRADECHECKCOUNT=0
   fi
@@ -88,9 +88,9 @@ done
 
 # The check that the upgrade successfully loads up the new version for the account
 if [ "${ISUPGRADED}" == "false" ]; then
-  echo "Did not successfully upgrade from version ${availableVersions[$i]} to ${LATESTVERSION}!"
+  echo "Did not successfully upgrade from version ${PRIORVERSION} to ${CURRENTVERSION}!"
   exit 2
 fi
 
-echo "Successfully upgraded from ${PRIORVERSION} to ${LATESTVERSION}!"
+echo "Successfully upgraded from ${PRIORVERSION} to ${CURRENTVERSION}!"
 
