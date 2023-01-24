@@ -156,7 +156,10 @@ export class CodedeployDeploymentGroupMapper extends MapperBase<CodedeployDeploy
           deploymentGroupName: e.name,
           ec2TagFilters: e.ec2TagFilters,
           serviceRoleArn: e.role?.arn,
-          deploymentStyle: e.deploymentStyle,
+          deploymentStyle: e.deploymentStyle ?? {
+            deploymentOption: DeploymentOption.WITHOUT_TRAFFIC_CONTROL,
+            deploymentType: DeploymentType.IN_PLACE,
+          },
         };
         const groupId = await this.createDeploymentGroup(client.cdClient, input);
         if (!groupId) continue;
@@ -241,7 +244,10 @@ export class CodedeployDeploymentGroupMapper extends MapperBase<CodedeployDeploy
             currentDeploymentGroupName: group.name,
             ec2TagFilters: group.ec2TagFilters,
             serviceRoleArn: group.role?.arn,
-            deploymentStyle: group.deploymentStyle,
+            deploymentStyle: group.deploymentStyle ?? {
+              deploymentOption: DeploymentOption.WITHOUT_TRAFFIC_CONTROL,
+              deploymentType: DeploymentType.IN_PLACE,
+            },
             deploymentConfigName: group.deploymentConfigName,
           });
 
