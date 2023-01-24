@@ -219,7 +219,7 @@ class DistributionMapper extends MapperBase<Distribution> {
           WebACLId: e.webACLId,
           Origins: { Quantity: e.origins.length, Items: e.origins },
           DefaultCacheBehavior: e.defaultCacheBehavior,
-          Aliases: { Quantity: e.alternateDomainNames?.length, Items: e.alternateDomainNames },
+          Aliases: { Quantity: e.alternateDomainNames?.length ?? 0, Items: e.alternateDomainNames ?? [] },
         };
         if (!!e.customSslCertificate?.arn) {
           config.ViewerCertificate = {
