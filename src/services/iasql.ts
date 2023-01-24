@@ -283,48 +283,75 @@ export async function upgrade() {
         const creds = readFileSync(`/tmp/upgrade/${db}/creds`, 'utf8').trim().split(',');
         const regionsEnabled = readFileSync(`/tmp/upgrade/${db}/regions_enabled`, 'utf8').trim().split(' ');
         const defaultRegion = readFileSync(`/tmp/upgrade/${db}/default_region`, 'utf8').trim();
-        await conn.query(`
-          SELECT iasql_install('aws_account');
-        `);
-        await conn.query(`
-          SELECT iasql_begin();
-        `);
-        logger.info('Temporarily log the creds to see what is going on', { creds });
-        await conn.query(
-          `
-          INSERT INTO aws_credentials (access_key_id, secret_access_key) VALUES
-          ($1, $2);
-        `,
-          creds,
-        );
-        await conn.query(`
-          SELECT iasql_commit();
-        `);
-        logger.info('Regions Enabled', { regionsEnabled });
-        for (const region of regionsEnabled) {
+        try {
+          await conn.query(`
+            SELECT iasql_install('aws_account');
+          `);
+        } catch (e) {
+          logger.warn('Failed to install aws_account', { e, });
+        }
+        try {
+          await conn.query(`
+            SELECT iasql_begin();
+          `);
+        } catch (e) {
+          logger.warn('Failed to begin an IaSQL transaction?', { e, });
+        }
+        try {
           await conn.query(
             `
-            UPDATE aws_regions SET is_enabled = TRUE WHERE region = $1;
+            INSERT INTO aws_credentials (access_key_id, secret_access_key) VALUES
+            ($1, $2);
           `,
-            [region],
+            creds,
           );
+        } catch (e) {
+          logger.warn('Failed to insert credentials', { e, });
         }
-        await conn.query(
-          `
-          UPDATE aws_regions SET is_default = TRUE WHERE region = $1;
-        `,
-          [defaultRegion],
-        );
+        try {
+          await conn.query(`
+            SELECT iasql_commit();
+          `);
+        } catch (e) {
+          logger.warn('Failed to commit the transaction', { e, });
+        }
+        logger.info('Regions Enabled', { regionsEnabled });
+        for (const region of regionsEnabled) {
+          try {
+            await conn.query(
+              `
+              UPDATE aws_regions SET is_enabled = TRUE WHERE region = $1;
+            `,
+              [region],
+            );
+          } catch (e) {
+            logger.warn('Failed to enable an aws_region', { e, });
+          }
+        }
+        try {
+          await conn.query(
+            `
+            UPDATE aws_regions SET is_default = TRUE WHERE region = $1;
+          `,
+            [defaultRegion],
+          );
+        } catch (e) {
+          logger.warn('Failed to set the default region', { e, });
+        }
       }
       const moduleList = readFileSync(`/tmp/upgrade/${db}/module_list`, 'utf8').trim().split(' ');
       logger.info('Module List', { moduleList });
       for (const mod of moduleList) {
-        await conn.query(
-          `
-          SELECT iasql_install($1);
-        `,
-          [mod],
-        );
+        try {
+          await conn.query(
+            `
+            SELECT iasql_install($1);
+          `,
+            [mod],
+          );
+        } catch (e) {
+          logger.warn('Failed to install a module on upgrade', { e, });
+        }
       }
       execSync(`rm -rf /tmp/upgrade/${db}`);
       dbsDone[db] = true;
