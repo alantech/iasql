@@ -198,8 +198,9 @@ jobs:
         env:
           SECRET_HEADER: ${{ secrets.SECRET_HEADER }}
           ACCOUNT_INDEX: ${{ steps['determine-test-account'].outputs['account_index'] }}
+          LAMBDA_FUNCTION: 'https://22quullhnmsrttacexxc74uium0nndzo.lambda-url.us-east-2.on.aws/'
         run: |
-          curl -X POST -H "Content-Type: application/json" -H "${SECRET_HEADER}" -H "x-iasql-drop: true" -d "[${ACCOUNT_INDEX}]" https://fkk3xlyad5tobhmezx4onpvele0zyehu.lambda-url.us-east-2.on.aws/
+          curl -X POST -H "Content-Type: application/json" -H "${SECRET_HEADER}" -H "x-iasql-drop: true" -d "[${ACCOUNT_INDEX}]" ${LAMBDA_FUNCTION}
 
   readonly-test:
     runs-on: ubuntu-latest
@@ -451,5 +452,6 @@ jobs:
         env:
           SECRET_HEADER: ${{ secrets.SECRET_HEADER }}
           ACCOUNT_INDEX: ${{ steps['determine-test-account'].outputs['account_index'] }}
+          LAMBDA_FUNCTION: 'https://22quullhnmsrttacexxc74uium0nndzo.lambda-url.us-east-2.on.aws/'
         run: |
-          curl -X POST -H "Content-Type: application/json" -H "${SECRET_HEADER}" -H "x-iasql-drop: true" -d "[${ACCOUNT_INDEX}]" https://fkk3xlyad5tobhmezx4onpvele0zyehu.lambda-url.us-east-2.on.aws/
+          curl -X POST -H "Content-Type: application/json" -H "${SECRET_HEADER}" -H "x-iasql-drop: true" -d "[${ACCOUNT_INDEX}]" ${LAMBDA_FUNCTION}
