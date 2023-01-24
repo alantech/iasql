@@ -118,7 +118,7 @@ class DistributionMapper extends MapperBase<Distribution> {
       WebACLId: e.webACLId,
       Origins: { Quantity: e.origins.length, Items: e.origins },
       PriceClass: distributionConfig.DistributionConfig?.PriceClass,
-      Aliases: { Quantity: e.alternateDomainNames?.length, Items: e.alternateDomainNames },
+      Aliases: { Quantity: e.alternateDomainNames?.length ?? 0, Items: e.alternateDomainNames ?? [] },
       Logging: distributionConfig.DistributionConfig?.Logging,
       CacheBehaviors: distributionConfig.DistributionConfig?.CacheBehaviors,
       CustomErrorResponses: distributionConfig.DistributionConfig?.CustomErrorResponses,
