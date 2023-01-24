@@ -138,6 +138,8 @@ class DistributionMapper extends MapperBase<Distribution> {
     else
       req.ViewerCertificate = {
         CloudFrontDefaultCertificate: true,
+        MinimumProtocolVersion: 'TLSv1.2_2021',
+        SSLSupportMethod: 'sni-only',
       };
 
     return req;
