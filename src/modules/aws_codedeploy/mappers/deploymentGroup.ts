@@ -41,14 +41,17 @@ export class CodedeployDeploymentGroupMapper extends MapperBase<CodedeployDeploy
     }
     return `${fields.deploymentGroupName}|${fields.applicationName}|${fields.region}`;
   };
-  equals = (a: CodedeployDeploymentGroup, b: CodedeployDeploymentGroup) =>
-    isEqual(a.application.applicationId, b.application.applicationId) &&
-    Object.is(a.deploymentConfigName, b.deploymentConfigName) &&
-    Object.is(a.deploymentGroupId, b.deploymentGroupId) &&
-    Object.is(a.name, b.name) &&
-    isEqual(a.role?.roleName, b.role?.roleName) &&
-    isEqual(a.deploymentStyle, b.deploymentStyle) &&
-    isEqual(a.ec2TagFilters ?? [], b.ec2TagFilters ?? []);
+  equals = (a: CodedeployDeploymentGroup, b: CodedeployDeploymentGroup) => {
+    return (
+      isEqual(a.application.applicationId, b.application.applicationId) &&
+      Object.is(a.deploymentConfigName, b.deploymentConfigName) &&
+      Object.is(a.deploymentGroupId, b.deploymentGroupId) &&
+      Object.is(a.name, b.name) &&
+      isEqual(a.role?.roleName, b.role?.roleName) &&
+      isEqual(a.deploymentStyle, b.deploymentStyle) &&
+      isEqual(a.ec2TagFilters ?? [], b.ec2TagFilters ?? [])
+    );
+  };
 
   async deploymentGroupMapper(group: DeploymentGroupInfo, region: string, ctx: Context) {
     const out = new CodedeployDeploymentGroup();
@@ -68,10 +71,8 @@ export class CodedeployDeploymentGroupMapper extends MapperBase<CodedeployDeploy
 
     if (group.deploymentStyle) {
       out.deploymentStyle = {
-        deploymentOption:
-          (group.deploymentStyle.deploymentOption as DeploymentOption) ??
-          DeploymentOption.WITHOUT_TRAFFIC_CONTROL,
-        deploymentType: (group.deploymentStyle.deploymentType as DeploymentType) ?? DeploymentType.IN_PLACE,
+        deploymentOption: group.deploymentStyle.deploymentOption as DeploymentOption,
+        deploymentType: group.deploymentStyle.deploymentType as DeploymentType,
       };
     }
 
@@ -156,23 +157,26 @@ export class CodedeployDeploymentGroupMapper extends MapperBase<CodedeployDeploy
           deploymentGroupName: e.name,
           ec2TagFilters: e.ec2TagFilters,
           serviceRoleArn: e.role?.arn,
-          deploymentStyle: e.deploymentStyle ?? {
-            deploymentOption: DeploymentOption.WITHOUT_TRAFFIC_CONTROL,
-            deploymentType: DeploymentType.IN_PLACE,
-          },
+          deploymentStyle: e.deploymentStyle,
         };
         const groupId = await this.createDeploymentGroup(client.cdClient, input);
         if (!groupId) continue;
 
-        // we need to update group id and app
-        e.deploymentGroupId = groupId;
-
-        const app =
-          (await this.module.application.db.read(ctx, `${e.application.name}|${e.region}`)) ??
-          this.module.application.cloud.read(ctx, `${e.application.name}|${e.region}`);
-        if (app) e.application = app;
-        await this.db.update(e, ctx);
-        out.push(e);
+        // we need to read the created deployment because some default fields are added
+        const dgId = await this.module.deploymentGroup.generateId({
+          deploymentGroupName: e.name,
+          applicationName: e.application.name,
+          region: e.region,
+        });
+        const updatedRecord = await this.module.deploymentGroup.cloud.read(ctx, dgId);
+        if (updatedRecord) {
+          updatedRecord.id = e.id;
+          // Save the record back into the database to get the new fields updated
+          await this.module.deploymentGroup.db.update(updatedRecord, ctx);
+          out.push(updatedRecord);
+        } else {
+          throw new Error('Error updating deployment group');
+        }
       }
       return out;
     },
@@ -230,6 +234,7 @@ export class CodedeployDeploymentGroupMapper extends MapperBase<CodedeployDeploy
       const out = [];
       for (const group of groups) {
         const client = (await ctx.getAwsClient(group.region)) as AWS;
+
         if (!group.application || !group.name) continue; // cannot update a deployment group without app or id
         // we always update
         const cloudRecord = ctx?.memo?.cloud?.CodedeployDeploymentGroup?.[this.entityId(group)];
@@ -239,21 +244,31 @@ export class CodedeployDeploymentGroupMapper extends MapperBase<CodedeployDeploy
           await this.module.application.db.update(cloudRecord, ctx);
           out.push(cloudRecord);
         } else {
-          await this.updateDeploymentGroup(client.cdClient, {
+          const result = await this.updateDeploymentGroup(client.cdClient, {
             applicationName: group.application.name,
             currentDeploymentGroupName: group.name,
             ec2TagFilters: group.ec2TagFilters,
             serviceRoleArn: group.role?.arn,
-            deploymentStyle: group.deploymentStyle ?? {
-              deploymentOption: DeploymentOption.WITHOUT_TRAFFIC_CONTROL,
-              deploymentType: DeploymentType.IN_PLACE,
-            },
+            deploymentStyle: group.deploymentStyle,
             deploymentConfigName: group.deploymentConfigName,
           });
 
-          // update the db
-          await this.db.update(group, ctx);
-          out.push(group);
+          // we need to read that again because some fields may have changed
+          const dgId = await this.module.deploymentGroup.generateId({
+            deploymentGroupName: group.name,
+            applicationName: group.application.name,
+            region: group.region,
+          });
+
+          const updatedRecord = await this.module.deploymentGroup.cloud.read(ctx, dgId);
+          if (updatedRecord) {
+            updatedRecord.id = group.id;
+            // Save the record back into the database to get the new fields updated
+            await this.module.deploymentGroup.db.update(updatedRecord, ctx);
+            out.push(updatedRecord);
+          } else {
+            throw new Error('Error updating deployment group');
+          }
         }
       }
       return out;
