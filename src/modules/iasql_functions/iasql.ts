@@ -1795,7 +1795,7 @@ async function recreateRelation(
   }
 }
 
-function indexModsByTable(mods: ModuleInterface[]): { [key: string]: ModuleInterface } {
+export function indexModsByTable(mods: ModuleInterface[]): { [key: string]: ModuleInterface } {
   const modsIndexedByTable: { [key: string]: ModuleInterface } = {};
   mods.forEach(mod => {
     mod.provides?.tables?.forEach((t: string) => (modsIndexedByTable[t] = mod));

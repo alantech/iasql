@@ -10,3 +10,4 @@ export * from './iasql_preview';
 export * from './iasql_rollback';
 export * from './iasql_begin';
 export * from './iasql_get_errors';
+export * from './iasql_get_sql_since';

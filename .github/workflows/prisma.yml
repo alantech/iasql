@@ -80,16 +80,11 @@ jobs:
         env:
           SECRET_HEADER: ${{ secrets.SECRET_HEADER }}
           LAMBDA_FUNCTION: 'https://22quullhnmsrttacexxc74uium0nndzo.lambda-url.us-east-2.on.aws/'
-        uses: nick-fields/retry@v2
-        with:
-          max_attempts: 2
-          retry_on: error
-          timeout_minutes: 5
-          command: |
-            RESPONSE=$(curl -X POST -H "Content-Type: text/plain" -H "${SECRET_HEADER}" -d '1' ${LAMBDA_FUNCTION} 2>/dev/null)
-            echo $RESPONSE
-            ACCOUNT_INDEX=$(echo $RESPONSE | jq '.[0]' || exit 1)
-            echo "::set-output name=account_index::$(echo ${ACCOUNT_INDEX})"
+        run: |
+          RESPONSE=$(curl -X POST -H "Content-Type: text/plain" -H "${SECRET_HEADER}" -d '1' ${LAMBDA_FUNCTION} 2>/dev/null)
+          echo $RESPONSE
+          ACCOUNT_INDEX=$(echo $RESPONSE | jq '.[0]' || exit 1)
+          echo "::set-output name=account_index::$(echo ${ACCOUNT_INDEX})"
 
       - name: Setup IaSQL database
         if: always()
