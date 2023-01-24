@@ -98,8 +98,6 @@ if [ "$HAS_IASQL_DATABASE" != "" ]; then
         SELECT array_to_json(ARRAY(SELECT row_to_json(iasql_audit_log) FROM iasql_audit_log));
 			" > /tmp/upgrade/$DB/audit_log
 
-			# TODO 2: For now just show the outputs of these various queries, actually start deleting stuff later
-
 			# Triggers
 			TRIGGERS=$(psql $DB --csv -tc "
         SELECT DISTINCT pg_proc.proname, information_schema.triggers.event_object_table
@@ -241,7 +239,7 @@ if [ "$HAS_IASQL_DATABASE" != "" ]; then
         psql $DB -c "DROP TYPE \"$ENUM\";"
       done
 
-      echo Part 1 for $DB complete!
+      echo Part 1 of 3 for $DB complete!
 		fi
 	done
 fi

@@ -238,7 +238,7 @@ export async function upgrade() {
   const dbs = readdirSync('/tmp/upgrade');
   const dbsDone: { [key: string]: boolean } = {};
   for (const db of dbs) {
-    logger.info(`Starting Part 2 of upgrading ${db}`);
+    logger.info(`Starting Part 2 of 3 for ${db}`);
     // Connect to the database and first re-insert the baseline modules
     const conn = await createConnection({
       ...dbMan.baseConnConfig,
@@ -258,7 +258,7 @@ export async function upgrade() {
         [line.ts, line.user, line.table_name, line.change_type, line.change, line.message],
       );
     }
-    logger.info(`Part 2 for ${db} complete!`);
+    logger.info(`Part 2 of 3 for ${db} complete!`);
     // Restoring the `aws_account` and other modules requires the engine to be fully started
     // We can't do that immediately, but we *can* create a polling job to do it as soon as the
     // engine has finished starting
