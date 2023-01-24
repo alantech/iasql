@@ -72,7 +72,7 @@ yarn docker-build
 yarn docker-run-vol &
 while ! psql postgres://postgres:test@localhost:5432/iasql_metadata -b -q -c "SELECT iasql_engine_health()"; do sleep 1 && echo -n .; done;
 
-UPGRADECHECKCOUNT=90
+UPGRADECHECKCOUNT=300
 ISUPGRADED=false
 while [ ${UPGRADECHECKCOUNT} -gt 0 ]; do
   AWSACCOUNTMODULE=$(psql $CONNSTR -AXqtc "
