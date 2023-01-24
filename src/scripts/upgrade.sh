@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -vex
+set -vx
 
 # Upgrade steps:
 # 1. For each user database
