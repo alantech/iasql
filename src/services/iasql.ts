@@ -247,16 +247,20 @@ export async function upgrade() {
     });
     await dbMan.migrate(conn);
     // Next re-insert the audit log
-    const auditLogLines = JSON.parse(readFileSync(`/tmp/upgrade/${db}/audit_log`, 'utf8'));
-    // It's slower, but safer to insert these records one at a time
-    for (const line of auditLogLines) {
-      await conn.query(
-        `
-        INSERT INTO iasql_audit_log (ts, "user", table_name, change_type, change, message) VALUES
-        ($1, $2, $3, $4, $5, $6);
-      `,
-        [line.ts, line.user, line.table_name, line.change_type, line.change, line.message],
-      );
+    try {
+      const auditLogLines = JSON.parse(readFileSync(`/tmp/upgrade/${db}/audit_log`, 'utf8'));
+      // It's slower, but safer to insert these records one at a time
+      for (const line of auditLogLines) {
+        await conn.query(
+          `
+          INSERT INTO iasql_audit_log (ts, "user", table_name, change_type, change, message) VALUES
+          ($1, $2, $3, $4, $5, $6);
+        `,
+          [line.ts, line.user, line.table_name, line.change_type, line.change, line.message],
+        );
+      }
+    } catch (e: any) {
+      logger.warn(`Failed to load the audit log: ${e.message}`, { e, });
     }
     logger.info(`Part 2 of 3 for ${db} complete!`);
     // Restoring the `aws_account` and other modules requires the engine to be fully started
