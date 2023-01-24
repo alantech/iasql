@@ -260,7 +260,7 @@ export async function upgrade() {
         );
       }
     } catch (e: any) {
-      logger.warn(`Failed to load the audit log: ${e.message}`, { e, });
+      logger.warn(`Failed to load the audit log: ${e.message}`, { e });
     }
     logger.info(`Part 2 of 3 for ${db} complete!`);
     // Restoring the `aws_account` and other modules requires the engine to be fully started
@@ -288,14 +288,14 @@ export async function upgrade() {
             SELECT iasql_install('aws_account');
           `);
         } catch (e) {
-          logger.warn('Failed to install aws_account', { e, });
+          logger.warn('Failed to install aws_account', { e });
         }
         try {
           await conn.query(`
             SELECT iasql_begin();
           `);
         } catch (e) {
-          logger.warn('Failed to begin an IaSQL transaction?', { e, });
+          logger.warn('Failed to begin an IaSQL transaction?', { e });
         }
         try {
           await conn.query(
@@ -306,14 +306,14 @@ export async function upgrade() {
             creds,
           );
         } catch (e) {
-          logger.warn('Failed to insert credentials', { e, });
+          logger.warn('Failed to insert credentials', { e });
         }
         try {
           await conn.query(`
             SELECT iasql_commit();
           `);
         } catch (e) {
-          logger.warn('Failed to commit the transaction', { e, });
+          logger.warn('Failed to commit the transaction', { e });
         }
         logger.info('Regions Enabled', { regionsEnabled });
         for (const region of regionsEnabled) {
@@ -325,7 +325,7 @@ export async function upgrade() {
               [region],
             );
           } catch (e) {
-            logger.warn('Failed to enable an aws_region', { e, });
+            logger.warn('Failed to enable an aws_region', { e });
           }
         }
         try {
@@ -336,7 +336,7 @@ export async function upgrade() {
             [defaultRegion],
           );
         } catch (e) {
-          logger.warn('Failed to set the default region', { e, });
+          logger.warn('Failed to set the default region', { e });
         }
       }
       const moduleList = readFileSync(`/tmp/upgrade/${db}/module_list`, 'utf8').trim().split(' ');
@@ -350,7 +350,7 @@ export async function upgrade() {
             [mod],
           );
         } catch (e) {
-          logger.warn('Failed to install a module on upgrade', { e, });
+          logger.warn('Failed to install a module on upgrade', { e });
         }
       }
       execSync(`rm -rf /tmp/upgrade/${db}`);
