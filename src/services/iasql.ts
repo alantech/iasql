@@ -264,7 +264,12 @@ export async function upgrade() {
     // engine has finished starting
     let upgradeRunning = false;
     const upgradeHandle = setInterval(async () => {
-      const started = (await (await fetch(`http://localhost:${config.http.port}/health`)).text()) === 'ok';
+      let started = false;
+      try {
+        started = (await (await fetch(`http://localhost:${config.http.port}/health`)).text()) === 'ok';
+      } catch (_) {
+        // We don't care if it fails to fetch, just a timing issue in starting the rest of the engine
+      }
       if (!started || upgradeRunning) return;
       logger.info(`Starting Part 3 of 3 for ${db}`);
       upgradeRunning = true;

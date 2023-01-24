@@ -27,6 +27,10 @@ function startPrimary() {
 if (cluster.isPrimary) {
   logger.info(`Using IASQL_ENV: ${process.env.IASQL_ENV}`);
 
+  if (config.sentry) {
+    sentry.init(config.sentry);
+  }
+
   const dbsToUpgrade = existsSync('/tmp/upgrade');
 
   if (dbsToUpgrade) {
