@@ -5,7 +5,6 @@ import {
   CreateDeploymentGroupCommandInput,
   DeploymentGroupInfo,
   DeploymentOption,
-  DeploymentStyle,
   DeploymentType,
   paginateListDeploymentGroups,
   UpdateDeploymentGroupCommandOutput,
@@ -54,6 +53,8 @@ export class CodedeployDeploymentGroupMapper extends MapperBase<CodedeployDeploy
   };
 
   async deploymentGroupMapper(group: DeploymentGroupInfo, region: string, ctx: Context) {
+    console.log('in mapper');
+    console.log(group);
     const out = new CodedeployDeploymentGroup();
     if (!group.applicationName || !group.deploymentGroupName) return undefined;
 
@@ -66,8 +67,7 @@ export class CodedeployDeploymentGroupMapper extends MapperBase<CodedeployDeploy
         ctx,
         this.module.application.generateId({ name: group.applicationName, region }),
       ));
-    out.deploymentConfigName =
-      (group.deploymentConfigName as DeploymentConfigType) ?? DeploymentConfigType.ONE_AT_A_TIME;
+    out.deploymentConfigName = group.deploymentConfigName as DeploymentConfigType;
 
     if (group.deploymentStyle) {
       out.deploymentStyle = {
@@ -106,6 +106,8 @@ export class CodedeployDeploymentGroupMapper extends MapperBase<CodedeployDeploy
         /** Do nothing */
       }
     }
+    console.log('i map to');
+    console.log(out);
 
     out.region = region;
     return out;
@@ -160,6 +162,7 @@ export class CodedeployDeploymentGroupMapper extends MapperBase<CodedeployDeploy
           deploymentStyle: e.deploymentStyle,
         };
         const groupId = await this.createDeploymentGroup(client.cdClient, input);
+        console.log('i have created dg');
         if (!groupId) continue;
 
         // we need to read the created deployment because some default fields are added
@@ -168,35 +171,52 @@ export class CodedeployDeploymentGroupMapper extends MapperBase<CodedeployDeploy
           applicationName: e.application.name,
           region: e.region,
         });
+        console.log(dgId);
         const updatedRecord = await this.module.deploymentGroup.cloud.read(ctx, dgId);
+        console.log('record is');
+        console.log(updatedRecord);
         if (updatedRecord) {
           updatedRecord.id = e.id;
           // Save the record back into the database to get the new fields updated
           await this.module.deploymentGroup.db.update(updatedRecord, ctx);
+          console.log('i update');
           out.push(updatedRecord);
         } else {
           throw new Error('Error updating deployment group');
         }
       }
+      console.log('i create with');
+      console.log(out);
       return out;
     },
     read: async (ctx: Context, id?: string) => {
+      console.log('in read');
       const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
       if (!!id) {
+        console.log('i have id');
         const { deploymentGroupName, applicationName, region } = this.idFields(id);
+        console.log(deploymentGroupName);
+        console.log(applicationName);
+        console.log(region);
         if (enabledRegions.includes(region)) {
+          console.log('i have region');
           const client = (await ctx.getAwsClient(region)) as AWS;
           const rawGroup = await this.getDeploymentGroup(client.cdClient, {
             applicationName,
             deploymentGroupName,
           });
+          console.log('i read from cloud');
+          console.log(rawGroup);
           if (!rawGroup) return;
 
           // map to entity
           const group = await this.deploymentGroupMapper(rawGroup, region, ctx);
+          console.log('after mapper');
+          console.log(group);
           return group;
         }
       } else {
+        console.log('i read all');
         const out: CodedeployDeploymentGroup[] = [];
         // first need to read all applications in all region
         const apps = await this.module.application.cloud.read(ctx);
@@ -214,12 +234,15 @@ export class CodedeployDeploymentGroupMapper extends MapperBase<CodedeployDeploy
               if (appName) {
                 const groupNames = await this.listDeploymentGroups(client.cdClient, appName);
                 for (const groupName of groupNames) {
+                  console.log('i read for group name');
                   const rawGroup = await this.getDeploymentGroup(client.cdClient, {
                     applicationName: appName,
                     deploymentGroupName: groupName,
                   });
                   if (!rawGroup) continue;
                   // map to entity
+                  console.log('raw group is');
+                  console.log(rawGroup);
                   const group = await this.deploymentGroupMapper(rawGroup, region, ctx);
                   if (group) out.push(group);
                 }
