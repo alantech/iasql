@@ -11,7 +11,7 @@ import {
 import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../services/aws_macros';
 import { awsElbModule } from '../aws_elb';
 import { LoadBalancerTypeEnum } from '../aws_elb/entity';
-import { AwsSdkInvoker, Context, Crud2, IdFields, MapperBase, ModuleBase } from '../interfaces';
+import { Context, Crud2, IdFields, MapperBase, ModuleBase } from '../interfaces';
 import { AliasTarget, HostedZone, RecordType, ResourceRecordSet } from './entity';
 
 const createHostedZone = crudBuilderFormat<Route53, 'createHostedZone', AwsHostedZone | undefined>(
@@ -447,13 +447,11 @@ class ResourceRecordSetMapper extends MapperBase<ResourceRecordSet> {
 class AwsRoute53Module extends ModuleBase {
   hostedZone: HostedZoneMapper;
   resourceRecordSet: ResourceRecordSetMapper;
-  invokeRoute53: AwsSdkInvoker;
 
   constructor() {
     super();
     this.hostedZone = new HostedZoneMapper(this);
     this.resourceRecordSet = new ResourceRecordSetMapper(this);
-    this.invokeRoute53 = new AwsSdkInvoker('route53Client', this);
     super.init();
   }
 }

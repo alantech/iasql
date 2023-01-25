@@ -1,4 +1,4 @@
-import { AwsSdkInvoker, ModuleBase } from '../interfaces';
+import { ModuleBase } from '../interfaces';
 import { CodebuildProjectMapper, SourceCredentialsListMapper, CodebuildBuildListMapper } from './mappers';
 import { StartBuildRPC, ImportSourceCredentialRpc } from './rpcs';
 
@@ -13,7 +13,6 @@ export class AwsCodebuildModule extends ModuleBase {
   importSourceCredential: ImportSourceCredentialRpc;
   startBuild: StartBuildRPC;
   buildList: CodebuildBuildListMapper;
-  invokeCodebuild: AwsSdkInvoker;
 
   constructor() {
     super();
@@ -22,7 +21,6 @@ export class AwsCodebuildModule extends ModuleBase {
     this.importSourceCredential = new ImportSourceCredentialRpc(this);
     this.buildList = new CodebuildBuildListMapper(this);
     this.startBuild = new StartBuildRPC(this);
-    this.invokeCodebuild = new AwsSdkInvoker('cbClient', this);
     super.init();
   }
 }

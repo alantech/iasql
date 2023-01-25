@@ -257,7 +257,7 @@ describe('Lambda Integration Testing', () => {
     query(
       `
       SELECT *
-      FROM invoke_lambda_function('${lambdaFunctionName}', '{"name": "test"}');
+      FROM invoke_lambda('${lambdaFunctionName}', '{"name": "test"}');
     `,
       (res: any[]) => {
         console.log(res[0]);
@@ -270,7 +270,7 @@ describe('Lambda Integration Testing', () => {
   it('should fail when invoking without function name', done =>
     void query(`
     SELECT *
-    FROM invoke_lambda_function();
+    FROM invoke_lambda();
   `)((e?: any) => {
       try {
         expect(e?.message).toContain('Please provide a valid lambda function name');
@@ -285,7 +285,7 @@ describe('Lambda Integration Testing', () => {
   it('should fail invoking with wrong payload', done =>
     void query(`
       SELECT *
-      FROM invoke_lambda_function('${lambdaFunctionName}', '{name: test}');
+      FROM invoke_lambda('${lambdaFunctionName}', '{name: test}');
   `)((e?: any) => {
       try {
         expect(e?.message).toContain('The payload must be a valid JSON string');

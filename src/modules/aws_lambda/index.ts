@@ -1,4 +1,4 @@
-import { AwsSdkInvoker, ModuleBase } from '../interfaces';
+import { ModuleBase } from '../interfaces';
 import { LambdaFunctionMapper } from './mappers';
 import { LambdaFunctionInvokeRpc } from './rpcs';
 
@@ -9,15 +9,12 @@ export class AwsLambdaModule extends ModuleBase {
   /** @internal */
   lambdaFunction: LambdaFunctionMapper;
 
-  invokeLambdaFunction: LambdaFunctionInvokeRpc;
-
-  invokeLambda: AwsSdkInvoker;
+  invokeLambda: LambdaFunctionInvokeRpc;
 
   constructor() {
     super();
     this.lambdaFunction = new LambdaFunctionMapper(this);
-    this.invokeLambdaFunction = new LambdaFunctionInvokeRpc(this);
-    this.invokeLambda = new AwsSdkInvoker('acmClient', this);
+    this.invokeLambda = new LambdaFunctionInvokeRpc(this);
     super.init();
   }
 }

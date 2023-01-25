@@ -14,7 +14,7 @@ import { WaiterOptions } from '@aws-sdk/util-waiter';
 
 import { throwError } from '../../config/config';
 import { AWS, crudBuilder2, paginateBuilder } from '../../services/aws_macros';
-import { AwsSdkInvoker, Context, Crud2, MapperBase, ModuleBase } from '../interfaces';
+import { Context, Crud2, MapperBase, ModuleBase } from '../interfaces';
 import { DynamoTable, TableClass } from './entity';
 
 class DynamoTableMapper extends MapperBase<DynamoTable> {
@@ -191,12 +191,10 @@ class DynamoTableMapper extends MapperBase<DynamoTable> {
 
 class AwsDynamoModule extends ModuleBase {
   dynamoTable: DynamoTableMapper;
-  invokeDynamo: AwsSdkInvoker;
 
   constructor() {
     super();
     this.dynamoTable = new DynamoTableMapper(this);
-    this.invokeDynamo = new AwsSdkInvoker('dynamoClient', this);
     super.init();
   }
 }

@@ -13,7 +13,7 @@ import {
 import { policiesAreSame } from '../../services/aws-diff';
 import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../services/aws_macros';
 import logger from '../../services/logger';
-import { AwsSdkInvoker, Context, Crud2, IdFields, MapperBase, ModuleBase } from '../interfaces';
+import { Context, Crud2, IdFields, MapperBase, ModuleBase } from '../interfaces';
 import {
   PublicRepository,
   Repository,
@@ -745,10 +745,6 @@ export class AwsEcrModule extends ModuleBase {
 
   ecrBuild: EcrBuildRpc;
 
-  invokeEcr: AwsSdkInvoker;
-
-  invokeEcrPublic: AwsSdkInvoker;
-
   constructor() {
     super();
     this.publicRepository = new PublicRepositoryMapper(this);
@@ -756,8 +752,6 @@ export class AwsEcrModule extends ModuleBase {
     this.repositoryPolicy = new RepositoryPolicyMapper(this);
     this.repositoryImages = new RepositoryImageMapper(this);
     this.ecrBuild = new EcrBuildRpc(this);
-    this.invokeEcr = new AwsSdkInvoker('ecrClient', this);
-    this.invokeEcrPublic = new AwsSdkInvoker('ecrPubClient', this);
     super.init();
   }
 }

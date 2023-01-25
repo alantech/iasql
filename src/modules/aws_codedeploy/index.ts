@@ -1,4 +1,4 @@
-import { AwsSdkInvoker, ModuleBase } from '../interfaces';
+import { ModuleBase } from '../interfaces';
 import {
   CodedeployApplicationMapper,
   CodedeployDeploymentGroupMapper,
@@ -18,15 +18,12 @@ export class AwsCodedeployModule extends ModuleBase {
 
   startDeployment: StartDeployRPC;
 
-  invokeCodedeploy: AwsSdkInvoker;
-
   constructor() {
     super();
     this.application = new CodedeployApplicationMapper(this);
     this.deploymentGroup = new CodedeployDeploymentGroupMapper(this);
     this.deployment = new CodedeployDeploymentMapper(this);
     this.startDeployment = new StartDeployRPC(this);
-    this.invokeCodedeploy = new AwsSdkInvoker('cdClient', this);
     super.init();
   }
 }
