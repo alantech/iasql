@@ -94,7 +94,7 @@ All of these steps will be done in a CodeBuild project in your AWS account. To u
 
 ```sql
 SELECT ecr_build(
-   'https://github.com/iasql/iasql-engine/', -- replace with your own Github repo if you want to use your own codebase
+   'https://github.com/iasql/iasql/', -- replace with your own Github repo if you want to use your own codebase
    (SELECT id
     FROM repository
     WHERE repository_name = 'quickstart-repository')::varchar(255), -- replace quickstart if you've changed the project name

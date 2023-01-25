@@ -5,7 +5,7 @@ slug: '/transaction'
 
 # IaSQL transactions at a high level
 
-IaSQL does not any special syntax, akin to `apply` in IaC, to work normally. You can just `SELECT/INSERT/UPDATE/DELETE` records and eventually the changes are reflected in your cloud account. This also works with migration systems without issues, though in an eventually-consistent fashion. The most basic architectural diagram is simply your IaSQL database and your cloud account with the IaSQL in between.
+IaSQL does not any special syntax, akin to `apply` in IaC, to work normally. You can just `SELECT/INSERT/UPDATE/DELETE` records and eventually the changes are reflected in your cloud account. This also works with migration systems without issues, though in an eventually-consistent fashion. The most basic architectural diagram is simply your IaSQL database and your cloud account with IaSQL in between.
 
 ```
    ______
@@ -16,11 +16,11 @@ IaSQL does not any special syntax, akin to `apply` in IaC, to work normally. You
   \______/                       \__/ \_/
 ```
 
-In both directions, though, the engine needs to be aware of what already exists on the other side in order to make only the calls necessary to produce the desired mutation on the other side.
+In both directions, though, IaSQL needs to be aware of what already exists on the other side in order to make only the calls necessary to produce the desired mutation on the other side.
 
 Traditional IaC tools like Terraform use an internal statefile for this purpose, but this is folly. If there is ever an unexpected change, such as from an outage (or the manual mitigation of an outage) this statefile will not represent the other side correctly so the mutations it attempts will be incorrect causing the change to fail.
 
-IaSQL's engine, on the other hand, is completely stateless. It acquires the state of both the database and the cloud when asked to perform a change in either direction and then determines the work it will do based on the *true state* of both.
+IaSQL, on the other hand, is completely stateless. It acquires the state of both the database and the cloud when asked to perform a change in either direction and then determines the work it will do based on the *true state* of both.
 
 ## IaSQL Transactions with `iasql_begin` and `iasql_commit`
 

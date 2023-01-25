@@ -24,7 +24,7 @@ const theButton = require('./src/rehype/thebutton');
     onBrokenLinks: 'throw',
     onBrokenMarkdownLinks: 'throw',
     favicon: 'img/favicon.png',
-    projectName: 'iasql-engine',
+    projectName: 'iasql',
     organizationName: 'iasql',
     customFields: config,
 
@@ -117,7 +117,7 @@ const theButton = require('./src/rehype/thebutton');
               'aria-label': 'Community',
             },
             {
-              href: 'https://github.com/iasql/iasql-engine',
+              href: 'https://github.com/iasql/iasql',
               position: 'right',
               className: 'header-github-link',
               'aria-label': 'GitHub repository',
@@ -150,7 +150,7 @@ const theButton = require('./src/rehype/thebutton');
                 },
                 {
                   label: 'GitHub',
-                  href: 'https://github.com/iasql/iasql-engine',
+                  href: 'https://github.com/iasql/iasql',
                   target: '_self',
                 },
               ],

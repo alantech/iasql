@@ -9,7 +9,7 @@ tags: [tutorial]
 
 In this tutorial, we will use a script that uses [Prisma](https://www.prisma.io) to introspect the schema of an IaSQL database and deploy a Node.js HTTP server within a docker container on your AWS account using Fargate ECS, IAM, ECR and ELB. The container image will be hosted as a private repository in ECR and deployed to ECS using Fargate.
 
-The code for this tutorial lives in this part of the [repository](https://github.com/iasql/iasql-engine/tree/main/examples/ecs-fargate/prisma/infra/index.js)
+The code for this tutorial lives in this part of the [repository](https://github.com/iasql/iasql/tree/main/examples/ecs-fargate/prisma/infra/index.js)
 
 ## Start managing an AWS account with a hosted IaSQL db
 
@@ -72,7 +72,7 @@ If the function call is successful, it will return a virtual table with a record
 
 ## Connect to the hosted db and provision cloud resources in your AWS account
 
-1. Get a local copy of the [ECS Fargate examples code](https://github.com/iasql/iasql-engine/tree/main/examples/ecs-fargate/prisma)
+1. Get a local copy of the [ECS Fargate examples code](https://github.com/iasql/iasql/tree/main/examples/ecs-fargate/prisma)
 
 2. Install the Node.js project dependencies under the `prisma/infra` folder
 
@@ -86,7 +86,7 @@ npm i
 ```bash title="prisma/infra/.env"
 DATABASE_URL="postgres://d0va6ywg:nfdDh#EP4CyzveFr@db.iasql.com/_4b2bb09a59a411e4"
 GH_PAT=ghp_XXX
-REPO_URI="https://github.com/iasql/iasql-engine"
+REPO_URI="https://github.com/iasql/iasql"
 ```
 
 4. (Optional) Set the desired project name that your resources will be named after by changing the `name` in the `my_project/infra/package.json`. If the name is not changed, `quickstart` will be used.
@@ -135,7 +135,7 @@ introspect the correct schema once again.
 node index.js
 ```
 
-This will run the following [code](https://github.com/iasql/iasql-engine/tree/main/examples/ecs-fargate/prisma/infra/index.js)
+This will run the following [code](https://github.com/iasql/iasql/tree/main/examples/ecs-fargate/prisma/infra/index.js)
 
 ```js title="prisma/infra/index.js"
 async function main() {
@@ -167,7 +167,7 @@ async function main() {
   else if (GITHUB_SERVER_URL && GITHUB_REPOSITORY) // CI
     repoUri = `${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}`;
   else
-    repoUri = 'https://github.com/iasql/iasql-engine'
+    repoUri = 'https://github.com/iasql/iasql'
   const image = await prisma.$queryRaw`SELECT ecr_build(
               ${repoUri},
               ${repoId},
@@ -207,7 +207,7 @@ Previously, you needed to manually build and push your image to the ECR. But rec
 All of these steps will be done in a CodeBuild project in your AWS account. To use the `ecr_build` function, you can run:
 ```sql
 SELECT ecr_build(
-   'https://github.com/iasql/iasql-engine/', -- replace with your own Github repo if you want to use your own codebase
+   'https://github.com/iasql/iasql/', -- replace with your own Github repo if you want to use your own codebase
    (SELECT id
     FROM repository
     WHERE repository_name = 'quickstart-repository')::varchar(255), -- replace quickstart if you've changed the project name
