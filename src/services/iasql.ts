@@ -325,7 +325,7 @@ export async function upgrade() {
               [region],
             );
           } catch (e) {
-            logger.warn('Failed to enable an aws_region', { e });
+            logger.warn('Failed to enable an aws_region', { e, region });
           }
         }
         try {
@@ -336,7 +336,7 @@ export async function upgrade() {
             [defaultRegion],
           );
         } catch (e) {
-          logger.warn('Failed to set the default region', { e });
+          logger.warn('Failed to set the default region', { e, defaultRegion });
         }
       }
       const moduleList = readFileSync(`/tmp/upgrade/${db}/module_list`, 'utf8').trim().split(' ');
@@ -350,7 +350,7 @@ export async function upgrade() {
             [mod],
           );
         } catch (e) {
-          logger.warn('Failed to install a module on upgrade', { e });
+          logger.warn('Failed to install a module on upgrade', { e, mod });
         }
       }
       execSync(`rm -rf /tmp/upgrade/${db}`);
