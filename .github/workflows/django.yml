@@ -87,7 +87,6 @@ jobs:
 
       - name: Setup IaSQL database
         id: set-up-database
-        if: always()
         run: |
           export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
           export AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
@@ -101,7 +100,6 @@ jobs:
           SECRET_ACCESS_KEYS: ${{ secrets.SECRET_ACCESS_KEYS }}
 
       - name: Pre-clean with cleaning script
-        if: always()
         uses: nick-fields/retry@v2
         with:
           max_attempts: 2
@@ -150,7 +148,6 @@ jobs:
           IASQL_PASSWORD: ${{ env.iasql_password }}
 
       - name: Run cleaning script
-        if: always()
         uses: nick-fields/retry@v2
         with:
           max_attempts: 2
