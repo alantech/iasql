@@ -118,6 +118,6 @@ export class RepositoryImage {
     nullable: true,
   })
   @ManyToOne(() => AwsRegions, { nullable: true })
-  @JoinColumn({ name: 'privateRepositoryRegion', referencedColumnName: 'region' })
+  @JoinColumn({ name: 'private_repository_region', referencedColumnName: 'region' })
   privateRepositoryRegion: string;
 }
