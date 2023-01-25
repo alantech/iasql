@@ -171,7 +171,9 @@ const lambdaDeploymentStyle = JSON.stringify({
 
 const lambdaRevisionLocation = JSON.stringify({
   revisionType: 'AppSpecContent',
-  appSpecContent: appSpecContent,
+  appSpecContent: {
+    content: appSpecContent,
+  },
 });
 
 let availabilityZone: string;
