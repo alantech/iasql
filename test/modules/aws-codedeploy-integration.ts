@@ -121,36 +121,6 @@ const revisionLocation = JSON.stringify({
   },
 });
 
-// lambda
-const lambdaFunctionName = `${prefix}-lambda-${dbAlias}`;
-// Base64 for zip file with the following code:
-// exports.handler =  async function(event, context) {
-//   console.log("EVENT: \n" + JSON.stringify(event, null, 2))
-//   return context.logStreamName
-// }
-const lambdaFunctionCode =
-  'UEsDBBQAAAAIADqB9VRxjjIufQAAAJAAAAAIABwAaW5kZXguanNVVAkAAzBe2WIwXtlidXgLAAEE9QEAAAQUAAAANcyxDoIwEIDhnae4MNFIOjiaOLI41AHj5NLUA5scV3K9Gojx3ZWB8R++H5c5iWb78vwkFDgD+LxygKFw0Ji4wTeythASKy5q4FPBFjkRWkpjU3f3zt1O8OAaDnDpr85mlchjHNYdcyFq4WjM3wpqEd5/26JXQT85P2H1/QFQSwECHgMUAAAACAA6gfVUcY4yLn0AAACQAAAACAAYAAAAAAABAAAApIEAAAAAaW5kZXguanNVVAUAAzBe2WJ1eAsAAQT1AQAABBQAAABQSwUGAAAAAAEAAQBOAAAAvwAAAAAA';
-// Base64 for zip file with the following code:
-// exports.handler =  async function(event, context) {
-//   console.log("EVENT: \n" + JSON.stringify(event, null, 3))
-//   return context.logStreamName
-// }
-const lambdaFunctionHandler = 'index.handler';
-const lambdaFunctionRuntime14 = 'nodejs14.x';
-const lambdaFunctionRoleName = `${prefix}${dbAlias}-lambda-role`;
-const lambdaFunctionRoleTaskPolicyArn = 'arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole';
-
-const appSpecContent = `
-version: 0.0
-Resources:
-  - lambdaFunction:
-      Type: AWS::Lambda::Function
-      Properties:
-        Name: "${lambdaFunctionName}"
-        Alias: "my-alias"
-        CurrentVersion: "1"
-        TargetVersion: "2"`;
-
 const attachAssumeLambdaPolicy = JSON.stringify({
   Version: '2012-10-17',
   Statement: [
@@ -169,13 +139,6 @@ const lambdaDeploymentStyle = JSON.stringify({
   deploymentType: 'BLUE_GREEN',
 });
 
-const lambdaRevisionLocation = JSON.stringify({
-  revisionType: 'AppSpecContent',
-  appSpecContent: {
-    content: appSpecContent,
-  },
-});
-
 let availabilityZone: string;
 let instanceType: string;
 
@@ -186,7 +149,7 @@ const uninstall = runUninstall.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const installAll = runInstallAll.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
-const modules = ['aws_codedeploy', 'aws_iam', 'aws_ec2', 'aws_codebuild', 'aws_lambda'];
+const modules = ['aws_codedeploy', 'aws_iam', 'aws_ec2', 'aws_codebuild'];
 
 jest.setTimeout(560000);
 beforeAll(async () => {
@@ -360,42 +323,6 @@ describe('AwsCodedeploy Integration Testing', () => {
   });
 
   it('applies the created instance', commit());
-
-  // adds lambda role
-  it('starts a transaction', begin());
-
-  it(
-    'adds a new role for lambda function',
-    query(
-      `
-    INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
-    VALUES ('${lambdaFunctionRoleName}', '${attachAssumeLambdaPolicy}', array['${lambdaFunctionRoleTaskPolicyArn}']);
-
-  `,
-      undefined,
-      true,
-      () => ({ username, password }),
-    ),
-  );
-  it('creates the lambda role', commit());
-
-  // creates lambda function
-  it('starts a transaction', begin());
-
-  it(
-    'adds a new lambda function',
-    query(
-      `
-      INSERT INTO lambda_function (name, zip_b64, handler, runtime, role_name)
-      VALUES ('${lambdaFunctionName}', '${lambdaFunctionCode}', '${lambdaFunctionHandler}', '${lambdaFunctionRuntime14}', '${lambdaFunctionRoleName}');
-  `,
-      undefined,
-      true,
-      () => ({ username, password }),
-    ),
-  );
-
-  it('applies the lambda function change', commit());
 
   it('starts a transaction', begin());
 
@@ -616,31 +543,6 @@ it(
 );
 it('applies lambda deployment app and group creation', commit());
 
-// triggers a lambda deployment
-it(
-  'start and wait for lambda deployment',
-  query(
-    `
-    SELECT * FROM start_deployment('${lambdaApplicationName}', '${lambdaDeploymentGroupName}', '${lambdaRevisionLocation}', '${region}');
-`,
-    (res: any[]) => {
-      expect(res.length).toBe(1);
-      expect(res[0].status).toBe('OK');
-    },
-  ),
-);
-
-it(
-  'check deployment exists in list',
-  query(
-    `
-  SELECT * FROM codedeploy_deployment
-  WHERE application_id = (SELECT id FROM codedeploy_application WHERE codedeploy_application.name='${lambdaApplicationName}') and region = '${region}';
-`,
-    (res: any[]) => expect(res.length).toBe(1),
-  ),
-);
-
 // triggers a deployment
 it(
   'start and wait for deployment',
@@ -777,24 +679,6 @@ describe('application cleanup', () => {
   it('starts a transaction', begin());
 
   it(
-    'deletes the lambda function',
-    query(
-      `
-      BEGIN;
-      DELETE FROM lambda_function_security_groups
-      WHERE lambda_function_id = (SELECT id FROM lambda_function WHERE name = '${lambdaFunctionName}');
-  
-    DELETE FROM lambda_function WHERE name = '${lambdaFunctionName}';
-    COMMIT;
-
-  `,
-      undefined,
-      true,
-      () => ({ username, password }),
-    ),
-  );
-
-  it(
     'delete deployment group',
     query(
       `
@@ -875,7 +759,7 @@ SELECT * FROM codedeploy_deployment_group WHERE application_id = (SELECT id FROM
       'deletes role',
       query(
         `
-        DELETE FROM iam_role WHERE role_name IN ('${roleName}', '${ec2RoleName}', '${lambdaRoleName}', '${lambdaFunctionRoleName}');
+        DELETE FROM iam_role WHERE role_name IN ('${roleName}', '${ec2RoleName}', '${lambdaRoleName}');
       `,
         undefined,
         true,
