@@ -8,7 +8,7 @@ import {
 } from '@aws-sdk/client-appsync';
 
 import { AWS, crudBuilder2, crudBuilderFormat } from '../../services/aws_macros';
-import { Context, Crud2, MapperBase, ModuleBase } from '../interfaces';
+import { AwsSdkInvoker, Context, Crud2, MapperBase, ModuleBase } from '../interfaces';
 import { AuthenticationType, GraphqlApi } from './entity';
 
 class GraphqlApiMapper extends MapperBase<GraphqlApi> {
@@ -179,10 +179,12 @@ class GraphqlApiMapper extends MapperBase<GraphqlApi> {
 
 class AwsAppsyncModule extends ModuleBase {
   graphqlApi: GraphqlApiMapper;
+  invokeAppSync: AwsSdkInvoker;
 
   constructor() {
     super();
     this.graphqlApi = new GraphqlApiMapper(this);
+    this.invokeAppSync = new AwsSdkInvoker('appSyncClient', this);
     super.init();
   }
 }

@@ -9,7 +9,7 @@ import {
 } from '@aws-sdk/client-secrets-manager';
 
 import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../services/aws_macros';
-import { Context, Crud2, MapperBase, ModuleBase } from '../interfaces';
+import { AwsSdkInvoker, Context, Crud2, MapperBase, ModuleBase } from '../interfaces';
 import { Secret } from './entity/secret';
 
 class SecretMapper extends MapperBase<Secret> {
@@ -215,10 +215,12 @@ class SecretMapper extends MapperBase<Secret> {
 
 class AwsSecretsManagerModule extends ModuleBase {
   secret: SecretMapper;
+  invokeSecretManager: AwsSdkInvoker;
 
   constructor() {
     super();
     this.secret = new SecretMapper(this);
+    this.invokeSecretManager = new AwsSdkInvoker('secretsClient', this);
     super.init();
   }
 }

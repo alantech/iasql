@@ -14,7 +14,7 @@ import {
 } from '@aws-sdk/client-rds';
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 
-import { awsSecurityGroupModule, awsVpcModule } from '..';
+import { AwsSdkInvoker, awsSecurityGroupModule, awsVpcModule } from '..';
 import { objectsAreSame } from '../../services/aws-diff';
 import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder, mapLin } from '../../services/aws_macros';
 import { SecurityGroup } from '../aws_security_group/entity';
@@ -561,11 +561,13 @@ class ParameterGroupMapper extends MapperBase<ParameterGroup> {
 class AwsRdsModule extends ModuleBase {
   rds: RdsMapper;
   parameterGroup: ParameterGroupMapper;
+  invokeRds: AwsSdkInvoker;
 
   constructor() {
     super();
     this.rds = new RdsMapper(this);
     this.parameterGroup = new ParameterGroupMapper(this);
+    this.invokeRds = new AwsSdkInvoker('rdsClient', this);
     super.init();
   }
 }

@@ -1,4 +1,4 @@
-import { ModuleBase } from '../interfaces';
+import { AwsSdkInvoker, ModuleBase } from '../interfaces';
 import { BucketMapper, BucketObjectMapper, BucketWebsiteMapper, PublicAccessBlockMapper } from './mappers';
 import { S3UploadObjectRpc } from './rpcs';
 
@@ -18,6 +18,8 @@ export class AwsS3Module extends ModuleBase {
   /** @internal */
   bucketWebsite: BucketWebsiteMapper;
 
+  invokeS3: AwsSdkInvoker;
+
   constructor() {
     super();
     this.bucket = new BucketMapper(this);
@@ -25,6 +27,7 @@ export class AwsS3Module extends ModuleBase {
     this.s3UploadObject = new S3UploadObjectRpc(this);
     this.publicAccessBlock = new PublicAccessBlockMapper(this);
     this.bucketWebsite = new BucketWebsiteMapper(this);
+    this.invokeS3 = new AwsSdkInvoker('s3Client', this);
     super.init();
   }
 }

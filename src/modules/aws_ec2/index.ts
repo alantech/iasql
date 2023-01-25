@@ -23,6 +23,7 @@ export class AwsEc2Module extends ModuleBase {
   keyPairImport: KeyPairImportRpc;
   keyPairRequest: KeyPairRequestRpc;
   invokeEc2: AwsSdkInvoker;
+  invokeSsm: AwsSdkInvoker;
 
   constructor() {
     super();
@@ -33,6 +34,7 @@ export class AwsEc2Module extends ModuleBase {
     this.keyPairImport = new KeyPairImportRpc(this);
     this.keyPairRequest = new KeyPairRequestRpc(this);
     this.invokeEc2 = new AwsSdkInvoker('ec2client', this);
+    this.invokeSsm = new AwsSdkInvoker('ssmClient', this);
     super.init();
   }
 }

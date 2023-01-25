@@ -8,7 +8,7 @@ import {
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 
 import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../services/aws_macros';
-import { Context, Crud2, MapperBase, ModuleBase } from '../interfaces';
+import { AwsSdkInvoker, Context, Crud2, MapperBase, ModuleBase } from '../interfaces';
 import { CacheCluster, Engine } from './entity';
 
 class CacheClusterMapper extends MapperBase<CacheCluster> {
@@ -208,10 +208,12 @@ class CacheClusterMapper extends MapperBase<CacheCluster> {
 
 class AwsElastiCacheModule extends ModuleBase {
   cacheCluster: CacheClusterMapper;
+  invokeElasticache: AwsSdkInvoker;
 
   constructor() {
     super();
     this.cacheCluster = new CacheClusterMapper(this);
+    this.invokeElasticache = new AwsSdkInvoker('elasticacheClient', this);
     super.init();
   }
 }

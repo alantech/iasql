@@ -6,7 +6,7 @@ import {
 } from '@aws-sdk/client-apigatewayv2';
 
 import { AWS, crudBuilder2, crudBuilderFormat } from '../../services/aws_macros';
-import { Context, Crud2, MapperBase, ModuleBase } from '../interfaces';
+import { AwsSdkInvoker, Context, Crud2, MapperBase, ModuleBase } from '../interfaces';
 import { Api, Protocol } from './entity';
 
 class ApiMapper extends MapperBase<Api> {
@@ -159,10 +159,12 @@ class ApiMapper extends MapperBase<Api> {
 
 class AwsApiGatewayModule extends ModuleBase {
   api: ApiMapper;
+  invokeApiGateway: AwsSdkInvoker;
 
   constructor() {
     super();
     this.api = new ApiMapper(this);
+    this.invokeApiGateway = new AwsSdkInvoker('apiGatewayClient', this);
     super.init();
   }
 }

@@ -11,7 +11,7 @@ import {
 import { WaiterOptions } from '@aws-sdk/util-waiter';
 
 import { AWS, crudBuilder2 } from '../../services/aws_macros';
-import { Context, Crud2, MapperBase, ModuleBase } from '../interfaces';
+import { AwsSdkInvoker, Context, Crud2, MapperBase, ModuleBase } from '../interfaces';
 import { Distribution, viewerProtocolPolicyEnum } from './entity';
 
 class DistributionMapper extends MapperBase<Distribution> {
@@ -339,10 +339,12 @@ class DistributionMapper extends MapperBase<Distribution> {
 
 class AwsCloudfrontModule extends ModuleBase {
   distribution: DistributionMapper;
+  invokeCloudfront: AwsSdkInvoker;
 
   constructor() {
     super();
     this.distribution = new DistributionMapper(this);
+    this.invokeCloudfront = new AwsSdkInvoker('cloudfrontClient', this);
     super.init();
   }
 }

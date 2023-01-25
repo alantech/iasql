@@ -468,7 +468,7 @@ export class AwsSdkInvoker extends RpcBase {
   clientType: keyof AWS;
 
   outputTable = {
-    result: 'varchar',
+    result: 'json',
   } as const;
 
   getInstallUninstallSql(key: string) {

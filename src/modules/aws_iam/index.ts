@@ -1,4 +1,4 @@
-import { ModuleBase } from '../interfaces';
+import { AwsSdkInvoker, ModuleBase } from '../interfaces';
 import { AccessKeyMapper, RoleMapper, UserMapper } from './mappers';
 import { SetUserPasswordRequestRpc } from './rpcs';
 import { AccessKeyRequestRpc } from './rpcs/request';
@@ -19,6 +19,8 @@ export class AwsIamModule extends ModuleBase {
   /** @internal */
   setUserPassword: SetUserPasswordRequestRpc;
 
+  invokeIam: AwsSdkInvoker;
+
   constructor() {
     super();
     this.role = new RoleMapper(this);
@@ -26,6 +28,7 @@ export class AwsIamModule extends ModuleBase {
     this.accessKey = new AccessKeyMapper(this);
     this.accessKeyRequest = new AccessKeyRequestRpc(this);
     this.setUserPassword = new SetUserPasswordRequestRpc(this);
+    this.invokeIam = new AwsSdkInvoker('iamClient', this);
     super.init();
   }
 }

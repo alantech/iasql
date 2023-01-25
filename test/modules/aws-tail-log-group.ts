@@ -135,7 +135,9 @@ describe('AwsCloudwatch and AwsLambda Integration Testing', () => {
 
   it(
     'invoke function',
-    query(`SELECT * FROM invoke_lambda('${resourceName}');`, (res: any[]) => expect(res.length).toBe(1)),
+    query(`SELECT * FROM invoke_lambda_function('${resourceName}');`, (res: any[]) =>
+      expect(res.length).toBe(1),
+    ),
   );
 
   it(

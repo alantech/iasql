@@ -23,7 +23,7 @@ import { invokeFunction } from '../aws';
  *
  * @example
  * ```sql TheButton[Invoke a Lambda Function]="Invoke a Lambda Function"
- * SELECT * FROM invoke_lambda('function_name', '{name: test}');
+ * SELECT * FROM invoke_lambda_function('function_name', '{name: test}');
  * ```
  *
  * @see https://github.com/iasql/iasql-engine/blob/b2c2383b73d73f5cdf75c867d334e80cdf40caa1/test/modules/aws-lambda-integration.ts#L260
