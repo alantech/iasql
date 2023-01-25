@@ -134,16 +134,6 @@ const theButton = require('./src/rehype/thebutton');
               title: 'Product',
               items: [
                 {
-                  label: 'Docs',
-                  to: 'docs',
-                  target: '_self',
-                },
-                {
-                  label: 'Blog',
-                  to: 'blog',
-                  target: '_self',
-                },
-                {
                   label: 'Dashboard',
                   href: 'https://app.iasql.com',
                   target: '_self',
@@ -151,6 +141,21 @@ const theButton = require('./src/rehype/thebutton');
                 {
                   label: 'GitHub',
                   href: 'https://github.com/iasql/iasql-engine',
+                  target: '_self',
+                },
+              ],
+            },
+            {
+              title: 'Content',
+              items: [
+                {
+                  label: 'Docs',
+                  to: 'docs',
+                  target: '_self',
+                },
+                {
+                  label: 'Blog',
+                  to: 'blog',
                   target: '_self',
                 },
               ],
