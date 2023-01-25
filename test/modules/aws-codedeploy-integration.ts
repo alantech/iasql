@@ -604,8 +604,8 @@ it(
   'adds a new deployment_group for Lambda',
   query(
     `
-    INSERT INTO codedeploy_deployment_group (application_id, name, role_name, deployment_style)
-    VALUES ((SELECT id FROM codedeploy_application WHERE name = '${lambdaApplicationName}'), '${lambdaDeploymentGroupName}', '${lambdaRoleName}', '${lambdaDeploymentStyle}');
+    INSERT INTO codedeploy_deployment_group (application_id, name, role_name, deployment_style, deployment_config_name)
+    VALUES ((SELECT id FROM codedeploy_application WHERE name = '${lambdaApplicationName}'), '${lambdaDeploymentGroupName}', '${lambdaRoleName}', '${lambdaDeploymentStyle}', 'CodeDeployDefault.LambdaAllAtOnce');
   `,
     undefined,
     true,
