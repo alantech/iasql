@@ -54,4 +54,6 @@ su - postgres -c "echo \"SELECT 'CREATE DATABASE iasql_metadata' WHERE NOT EXIST
 su - postgres -c "psql iasql_metadata -c \"CREATE EXTENSION IF NOT EXISTS pg_cron;\""
 su - postgres -c "psql iasql_metadata -c \"GRANT EXECUTE ON FUNCTION cron.schedule_in_database(text,text,text,text,text,boolean) TO postgres;\""
 
+su - postgres -c "/engine/src/scripts/upgrade.sh"
+
 yarn start
