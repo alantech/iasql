@@ -16,7 +16,7 @@ import { RepositoryImage } from './repository_image';
  * DELETE FROM public_repository WHERE repository_name = 'repository_name';
  * ```
  *
- * @see https://github.com/iasql/iasql-engine/blob/main/test/modules/aws-ecr-integration.ts#L432
+ * @see https://github.com/iasql/iasql/blob/main/test/modules/aws-ecr-integration.ts#L432
  * @see https://docs.aws.amazon.com/AmazonECR/latest/public/public-repositories.html
  */
 @Entity()

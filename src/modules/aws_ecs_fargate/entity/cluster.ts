@@ -18,7 +18,7 @@ import { AwsRegions } from '../../aws_account/entity';
  * DELETE FROM cluster WHERE cluster_name = 'cluster_name';
  * ```
  *
- * @see https://github.com/iasql/iasql-engine/blob/b2c2383b73d73f5cdf75c867d334e80cdf40caa1/test/modules/aws-ecs-integration.ts#L198
+ * @see https://github.com/iasql/iasql/blob/b2c2383b73d73f5cdf75c867d334e80cdf40caa1/test/modules/aws-ecs-integration.ts#L198
  * @see https://docs.aws.amazon.com/AmazonECS/latest/developerguide/clusters.html
  */
 @Entity()

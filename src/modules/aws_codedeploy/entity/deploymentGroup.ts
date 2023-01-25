@@ -51,7 +51,7 @@ export enum EC2TagFilterType {
  * DELETE FROM codedeploy_deployment_group WHERE name = 'deployment-group-name'
  * ```
  *
- * @see https://github.com/iasql/iasql-engine/blob/main/test/modules/aws-codedeploy-integration.ts#L419
+ * @see https://github.com/iasql/iasql/blob/main/test/modules/aws-codedeploy-integration.ts#L419
  * @see https://docs.aws.amazon.com/codedeploy/latest/userguide/deployment-groups.html
  *
  */

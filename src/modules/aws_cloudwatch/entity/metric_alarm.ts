@@ -110,7 +110,7 @@ export enum treatMissingDataEnum {
  * DELETE FROM metric_alarm wheer alarm_name='alarm_name';
  * ```
  *
- * @see https://github.com/iasql/iasql-engine/blob/main/test/modules/aws-cloudwatch-integration.ts#L436
+ * @see https://github.com/iasql/iasql/blob/main/test/modules/aws-cloudwatch-integration.ts#L436
  * @see https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/AlarmThatSendsEmail.html
  *
  */

@@ -20,8 +20,8 @@ import { cloudId } from '../../../services/cloud-id';
  * ```
  *
  * @see https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html
- * @see https://github.com/iasql/iasql-engine/blob/main/test/modules/aws-account-integration.ts#L62
- * @see https://github.com/iasql/iasql-engine/blob/main/test/modules/aws-account-integration.ts#L95
+ * @see https://github.com/iasql/iasql/blob/main/test/modules/aws-account-integration.ts#L62
+ * @see https://github.com/iasql/iasql/blob/main/test/modules/aws-account-integration.ts#L95
  *
  */
 @Entity()
@@ -62,8 +62,8 @@ export class AwsCredentials {
  *  UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
  * ```
  * @see https://aws.amazon.com/about-aws/global-infrastructure/regions_az/
- * @see https://github.com/iasql/iasql-engine/blob/main/test/modules/aws-account-integration.ts#L185
- * @see https://github.com/iasql/iasql-engine/blob/main/test/modules/aws-account-integration.ts#L196
+ * @see https://github.com/iasql/iasql/blob/main/test/modules/aws-account-integration.ts#L185
+ * @see https://github.com/iasql/iasql/blob/main/test/modules/aws-account-integration.ts#L196
  *
  */
 @Entity()

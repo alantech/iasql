@@ -33,7 +33,7 @@ export enum ActionTypeEnum {
  * DELETE FROM listener WHERE load_balancer_id = (SELECT id FROM load_balancer WHERE load_balancer_name = 'lb_name');
  * ```
  *
- * @see https://github.com/iasql/iasql-engine/blob/b2c2383b73d73f5cdf75c867d334e80cdf40caa1/test/modules/aws-elb-integration.ts#L400
+ * @see https://github.com/iasql/iasql/blob/b2c2383b73d73f5cdf75c867d334e80cdf40caa1/test/modules/aws-elb-integration.ts#L400
  * @see https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-listeners.html
  */
 @Unique('UQ_load_balancer__port', ['loadBalancer', 'port'])

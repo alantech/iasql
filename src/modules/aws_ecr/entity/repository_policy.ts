@@ -21,7 +21,7 @@ import { AwsRegions } from '../../aws_account/entity';
  * DELETE FROM repository_policy WHERE repository_id = (select id from repository where repository_name = 'repository');
  * ```
  *
- * @see https://github.com/iasql/iasql-engine/blob/main/test/modules/aws-ecr-integration.ts#L291
+ * @see https://github.com/iasql/iasql/blob/main/test/modules/aws-ecr-integration.ts#L291
  * @see https://docs.aws.amazon.com/AmazonECR/latest/userguide/repository-policies.html
  */
 @Entity()

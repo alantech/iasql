@@ -23,7 +23,7 @@ export enum AuthType {
  * SELECT * FROM source_credentials_list WHERE source_type = 'GITHUB';
  * DELETE FROM source_credentials_list WHERE source_type = 'GITHUB';
  * ```
- * @see https://github.com/iasql/iasql-engine/blob/main/test/modules/aws-codebuild-integration.ts#L217
+ * @see https://github.com/iasql/iasql/blob/main/test/modules/aws-codebuild-integration.ts#L217
  * @see https://docs.aws.amazon.com/codebuild/latest/userguide/access-tokens.html
  */
 @Entity()

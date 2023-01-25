@@ -84,7 +84,7 @@ export enum IpAddressType {
  * DELETE FROM load_balancer WHERE load_balancer_name = 'load_balancer';
  * ```
  *
- * @see https://github.com/iasql/iasql-engine/blob/b2c2383b73d73f5cdf75c867d334e80cdf40caa1/test/modules/aws-elb-integration.ts#L221
+ * @see https://github.com/iasql/iasql/blob/b2c2383b73d73f5cdf75c867d334e80cdf40caa1/test/modules/aws-elb-integration.ts#L221
  * @see https://aws.amazon.com/elasticloadbalancing/
  */
 @Entity()
