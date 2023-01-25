@@ -19,7 +19,7 @@ import { Vpc } from './vpc';
  * DELETE FROM route_table_association WHERE route_table_id = (SELECT id FROM route_table WHERE tags ->> 'name' = 'route_table');
  * ```
  *
- * @see https://github.com/iasql/iasql-engine/blob/main/test/modules/aws-vpc-routetable-integration.ts#L197
+ * @see https://github.com/iasql/iasql/blob/main/test/modules/aws-vpc-routetable-integration.ts#L197
  * @see https://docs.aws.amazon.com/vpc/latest/userguide/WorkWithRouteTables.html
  */
 @Unique('uq_routetable_routetable_subnet_ismain', ['vpc', 'subnet', 'isMain'])

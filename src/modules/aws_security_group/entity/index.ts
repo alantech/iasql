@@ -24,7 +24,7 @@ import { Vpc } from '../../aws_vpc/entity';
  * DELETE FROM security_group WHERE group_name = 'sg_name';
  * ```
  *
- * @see https://github.com/iasql/iasql-engine/blob/b2c2383b73d73f5cdf75c867d334e80cdf40caa1/test/modules/aws-security-group-integration.ts#L122
+ * @see https://github.com/iasql/iasql/blob/b2c2383b73d73f5cdf75c867d334e80cdf40caa1/test/modules/aws-security-group-integration.ts#L122
  * @see https://docs.aws.amazon.com/vpc/latest/userguide/VPC_SecurityGroups.html
  */
 @Unique('UQ_groupNameByVpc', ['groupName', 'vpc'])
@@ -126,7 +126,7 @@ export class SecurityGroup {
  * DELETE FROM security_group_rule WHERE source_security_group = (SELECT id FROM security_group WHERE group_name='sg_name')
  * ```
  *
- * @see https://github.com/iasql/iasql-engine/blob/main/test/modules/aws-security-group-integration.ts#L151
+ * @see https://github.com/iasql/iasql/blob/main/test/modules/aws-security-group-integration.ts#L151
  * @see https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/security-group-rules.html
  */
 @Unique('UQ_rule', ['isEgress', 'ipProtocol', 'fromPort', 'toPort', 'cidrIpv4', 'securityGroup'])

@@ -8,7 +8,7 @@
 
 &nbsp;
 
-[![CI Tests](https://github.com/iasql/iasql-engine/actions/workflows/ci.yml/badge.svg)](https://github.com/iasql/iasql-engine/actions/workflows/ci.yml)
+[![CI Tests](https://github.com/iasql/iasql/actions/workflows/ci.yml/badge.svg)](https://github.com/iasql/iasql/actions/workflows/ci.yml)
 [![Docs](https://img.shields.io/badge/docs-docusaurus-blue)](https://iasql.com/docs)
 [![Discord](https://img.shields.io/badge/discord-iasql-purple)](https://discord.com/invite/machGGczea)
 [![Twitter](https://img.shields.io/badge/twitter-iasql-9cf)](https://www.twitter.com/iasql)
@@ -50,7 +50,7 @@ For full documentation, visit [iasql.com/docs](https://iasql.com/docs)
 
 ## 🚀 Contribute
 
-To contribute, visit [Contributing.md](https://github.com/iasql/iasql-engine/blob/main/CONTRIBUTING.md)
+To contribute, visit [Contributing.md](https://github.com/reference/sql.md/blob/main/CONTRIBUTING.md)
 
 ## ☁️ Cloud Providers
 
@@ -82,4 +82,4 @@ AWS is our main focus at the moment, but we plan to support GCP, Azure and other
 - Secrets Manager
 - SNS
 
-Check out AWS services that are going to be added next [here](https://github.com/iasql/iasql-engine/issues?q=is%3Aissue+is%3Aopen+label%3A%22cloud+coverage%22) and let us know if you would like to see one that is not listed!
+Check out AWS services that are going to be added next [here](https://github.com/iasql/iasql/issues?q=is%3Aissue+is%3Aopen+label%3A%22cloud+coverage%22) and let us know if you would like to see one that is not listed!

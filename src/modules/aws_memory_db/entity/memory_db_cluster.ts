@@ -42,7 +42,7 @@ export enum NodeTypeEnum {
  * DELETE FROM memory_db_cluster WHERE cluster_name = 'cluster_name';
  * ```
  *
- * @see https://github.com/iasql/iasql-engine/blob/b2c2383b73d73f5cdf75c867d334e80cdf40caa1/test/modules/aws-memory-db-integration.ts#L185
+ * @see https://github.com/iasql/iasql/blob/b2c2383b73d73f5cdf75c867d334e80cdf40caa1/test/modules/aws-memory-db-integration.ts#L185
  * @see https://docs.aws.amazon.com/memorydb/latest/devguide/clusters.html
  */
 @Entity()

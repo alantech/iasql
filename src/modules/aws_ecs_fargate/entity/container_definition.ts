@@ -29,7 +29,7 @@ export enum TransportProtocol {
  * DELETE FROM container_definition using task_definition where container_definition.task_definition_id = task_definition.id and task_definition.family = 'task_name';
  * ```
  *
- * @see https://github.com/iasql/iasql-engine/blob/b2c2383b73d73f5cdf75c867d334e80cdf40caa1/test/modules/aws-ecs-integration.ts#L400
+ * @see https://github.com/iasql/iasql/blob/b2c2383b73d73f5cdf75c867d334e80cdf40caa1/test/modules/aws-ecs-integration.ts#L400
  * @see https://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_ContainerDefinition.html
  *
  * `image` > `repository` > `publicRepository`

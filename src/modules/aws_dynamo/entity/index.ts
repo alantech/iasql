@@ -28,7 +28,7 @@ export enum TableClass {
  * DELETE FROM dynamo_table WHERE table_name = 'dynamo-table';
  * ```
  *
- * @see https://github.com/iasql/iasql-engine/blob/main/test/modules/aws-dynamo-integration.ts#L90
+ * @see https://github.com/iasql/iasql/blob/main/test/modules/aws-dynamo-integration.ts#L90
  * @see https://aws.amazon.com/dynamodb/
  *
  */

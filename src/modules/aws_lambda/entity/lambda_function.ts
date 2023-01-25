@@ -91,7 +91,7 @@ export enum Runtime {
  * DELETE FROM lambda_function WHERE name = 'lambda';
  * ```
  *
- * @see https://github.com/iasql/iasql-engine/blob/b2c2383b73d73f5cdf75c867d334e80cdf40caa1/test/modules/aws-lambda-integration.ts#L168
+ * @see https://github.com/iasql/iasql/blob/b2c2383b73d73f5cdf75c867d334e80cdf40caa1/test/modules/aws-lambda-integration.ts#L168
  * @see https://aws.amazon.com/lambda/
  */
 @Entity()

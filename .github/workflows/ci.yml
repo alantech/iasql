@@ -276,7 +276,7 @@ jobs:
         run: echo "::set-output name=test-module-names::$(npx jest **/modules/* --listTests --json | jq -c 'map(split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring)')"
       - id: set-registry-image-tag
         name: Set registry image tag
-        run: echo "::set-output name=registry-image-tag::ghcr.io/iasql/iasql-engine:$GITHUB_SHA"
+        run: echo "::set-output name=registry-image-tag::ghcr.io/iasql/iasql:$GITHUB_SHA"
 
   build-and-push:
     runs-on: ubuntu-latest
@@ -360,9 +360,9 @@ jobs:
             export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
             export AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
 
-            # Spin up the engine and a postgres instance
-            # Temporarily export the engine port until it's only the Postgres port needed
-            docker run -p 5432:5432 -e IASQL_ENV=ci --name iasql ghcr.io/iasql/iasql-engine:$GITHUB_SHA &
+            # Spin up IaSQL container and a postgres instance
+            # Temporarily export the server port until it's only the Postgres port needed
+            docker run -p 5432:5432 -e IASQL_ENV=ci --name iasql ghcr.io/iasql/iasql:$GITHUB_SHA &
             while ! psql postgres://postgres:test@localhost:5432/iasql_metadata -b -q -c "SELECT iasql_engine_health()"; do sleep 1 && echo -n .; done;
 
             # connect `iasql` db to aws account for `apply`
@@ -415,7 +415,7 @@ jobs:
             echo "\nApply..."
             psql $PSQL_CONN -c "select * from iasql_commit();" ; docker logs $(docker ps -a --filter "name=iasql" --format "{{.Names}}")
 
-            # Shut down the engine
+            # Shut down the container
             docker container stop iasql
 
       - name: Install dependencies

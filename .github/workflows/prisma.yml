@@ -69,9 +69,9 @@ jobs:
           cache-to: type=gha
           tags: iasql:latest
 
-      - name: Start local iasql engine
+      - name: Start local iasql container
         run: |
-          # Temporarily export the engine port until it's only the Postgres port needed
+          # Temporarily export the server port until it's only the Postgres port needed
           docker run -p 5432:5432 -e IASQL_ENV=ci --name iasql iasql &
           while ! psql postgres://postgres:test@localhost:5432/iasql_metadata -b -q -c "SELECT iasql_engine_health()"; do sleep 1 && echo -n .; done;
 
@@ -174,6 +174,6 @@ jobs:
         run: |
           curl -X POST -H "Content-Type: application/json" -H "${SECRET_HEADER}" -H "x-iasql-drop: true" -d "[${ACCOUNT_INDEX}]" ${LAMBDA_FUNCTION}
 
-      - name: Local engine logs
+      - name: Local container logs
         if: always()
         run: docker logs iasql

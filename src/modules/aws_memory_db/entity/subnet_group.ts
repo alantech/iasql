@@ -16,7 +16,7 @@ import { AwsRegions } from '../../aws_account/entity';
  * DELETE FROM subnet_group WHERE subnet_group_name = 'subnet_group';
  * ```
  *
- * @see https://github.com/iasql/iasql-engine/blob/b2c2383b73d73f5cdf75c867d334e80cdf40caa1/test/modules/aws-memory-db-integration.ts#L109
+ * @see https://github.com/iasql/iasql/blob/b2c2383b73d73f5cdf75c867d334e80cdf40caa1/test/modules/aws-memory-db-integration.ts#L109
  * @see https://docs.aws.amazon.com/memorydb/latest/devguide/subnetgroups.html
  */
 @Entity()

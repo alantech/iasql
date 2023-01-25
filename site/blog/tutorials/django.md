@@ -9,7 +9,7 @@ tags: [tutorial]
 
 In this tutorial, we will run [Django SQL migrations](https://docs.djangoproject.com/en/4.0/topics/migrations/) on top of IaSQL to deploy an HTTP server within a docker container on your AWS account using ECS, ECR and ELB. The container image will be hosted as a public repository in ECR and deployed to ECS using Fargate.
 
-The code for this tutorial lives in this part of the [repository](https://github.com/iasql/iasql-engine/tree/main/examples/ecs-fargate/django/app/infra/migrations/0003_initial.py).
+The code for this tutorial lives in this part of the [repository](https://github.com/iasql/iasql/tree/main/examples/ecs-fargate/django/app/infra/migrations/0003_initial.py).
 
 ## Start managing an AWS account with a hosted IaSQL db
 
@@ -73,7 +73,7 @@ If the function call is successful, it will return a virtual table with a record
 
 ## Connect to the hosted db and provision cloud resources in your AWS account
 
-1. Get a local copy of the [ECS Fargate examples](https://github.com/iasql/iasql-engine/tree/main/examples/ecs-fargate)
+1. Get a local copy of the [ECS Fargate examples](https://github.com/iasql/iasql/tree/main/examples/ecs-fargate)
 
 2. (Optional) Create and activate a virtual environment to install python dependencies
 
@@ -193,7 +193,7 @@ All of these steps will be done in a CodeBuild project in your AWS account. To u
 ```sql
 SELECT
   ecr_build (
-    'https://github.com/iasql/iasql-engine/', -- replace with your own Github repo if you want to use your own codebase
+    'https://github.com/iasql/iasql/', -- replace with your own Github repo if you want to use your own codebase
     (
       SELECT
         id

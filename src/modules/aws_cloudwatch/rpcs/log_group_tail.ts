@@ -25,7 +25,7 @@ import {
  *   SELECT * FROM log_group_tail('log_group_name');
  * ```
  *
- * @see https://github.com/iasql/iasql-engine/blob/b2c2383b73d73f5cdf75c867d334e80cdf40caa1/test/modules/aws-tail-log-group.ts#L143
+ * @see https://github.com/iasql/iasql/blob/b2c2383b73d73f5cdf75c867d334e80cdf40caa1/test/modules/aws-tail-log-group.ts#L143
  * @see https://awscli.amazonaws.com/v2/documentation/api/latest/reference/logs/tail.html
  *
  */

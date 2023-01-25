@@ -26,7 +26,7 @@ import { invokeFunction } from '../aws';
  * SELECT * FROM invoke_lambda('function_name', '{name: test}');
  * ```
  *
- * @see https://github.com/iasql/iasql-engine/blob/b2c2383b73d73f5cdf75c867d334e80cdf40caa1/test/modules/aws-lambda-integration.ts#L260
+ * @see https://github.com/iasql/iasql/blob/b2c2383b73d73f5cdf75c867d334e80cdf40caa1/test/modules/aws-lambda-integration.ts#L260
  * @see https://docs.aws.amazon.com/es_es/lambda/latest/dg/API_Invoke.html
  *
  */

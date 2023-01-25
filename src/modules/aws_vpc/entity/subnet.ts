@@ -27,7 +27,7 @@ export enum SubnetState {
  * FROM vpc WHERE is_default = false AND cidr_block = '192.0.0.0/16';
  * ```
  *
- * @see https://github.com/iasql/iasql-engine/blob/main/test/modules/aws-vpc-integration.ts#L178L182
+ * @see https://github.com/iasql/iasql/blob/main/test/modules/aws-vpc-integration.ts#L178L182
  * @see https://docs.aws.amazon.com/vpc/latest/userguide/configure-subnets.html
  */
 @Unique('uq_subnet_region', ['id', 'region'])

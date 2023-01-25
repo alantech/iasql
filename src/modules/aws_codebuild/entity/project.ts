@@ -67,11 +67,11 @@ export enum EnvironmentType {
  * @example
  * ```sql TheButton[Manage a CodeBuild project]="Manage a CodeBuild project"
  * INSERT INTO codebuild_project (project_name, source_type, service_role_name, source_location)
- * VALUES ('codebuild_project', 'GITHUB', 'codebuild_role_name', 'https://github.com/iasql/iasql-engine');
+ * VALUES ('codebuild_project', 'GITHUB', 'codebuild_role_name', 'https://github.com/iasql/iasql');
  * DELETE FROM codebuild_project WHERE project_name='codebuild_project';
  * ```
  *
- * @see https://github.com/iasql/iasql-engine/blob/main/test/modules/aws-codebuild-integration.ts#L298
+ * @see https://github.com/iasql/iasql/blob/main/test/modules/aws-codebuild-integration.ts#L298
  * @see https://docs.aws.amazon.com/codebuild/latest/userguide/builds-working.html
  *
  * TODO support buildspec file in repo
