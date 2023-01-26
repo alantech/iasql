@@ -1,4 +1,4 @@
-import { AwsSdkInvoker, ModuleBase } from '../interfaces';
+import { ModuleBase } from '../interfaces';
 import {
   GeneralPurposeVolumeMapper,
   InstanceMapper,
@@ -34,5 +34,4 @@ export class AwsEc2Module extends ModuleBase {
     super.init();
   }
 }
-
 export const awsEc2Module = new AwsEc2Module();

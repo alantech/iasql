@@ -462,8 +462,8 @@ export class RpcBase implements RpcInterface {
 }
 
 export class AwsSdkInvoker extends RpcBase {
-  preTransactionCheck = PreTransactionCheck.NO_CHECK;
-  postTransactionCheck = PostTransactionCheck.NO_CHECK;
+  preTransactionCheck = PreTransactionCheck.WAIT_FOR_LOCK;
+  postTransactionCheck = PostTransactionCheck.UNLOCK_ALWAYS;
 
   clientType: keyof AWS;
 
@@ -522,9 +522,20 @@ export class AwsSdkInvoker extends RpcBase {
           ) as j;
         end;
         $$;
+        -- function overloading with the last input replaced by default_aws_region()
+        create or replace function ${snakeCase(key)}(method_name varchar, method_input json) returns table (
+          ${rpcOutputTable}
+        )
+        language plpgsql security definer
+        as $$
+        begin
+          RETURN QUERY SELECT ${snakeCase(key)}(method_name, method_input, default_aws_region());
+        end;
+        $$;
       `;
     const beforeUninstallSql = `
-        DROP FUNCTION "${snakeCase(key)}";
+        DROP FUNCTION "${snakeCase(key)}"(varchar, json);
+        DROP FUNCTION "${snakeCase(key)}"(varchar, json, varchar);
       `;
     return { beforeUninstallSql, afterInstallSql };
   }
