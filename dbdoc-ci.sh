@@ -8,7 +8,7 @@ set -e
 
 # IaSQL db connect
 echo "\Connecting an iasql db..."
-curl http://localhost:8088/v1/db/connect/iasql
+psql postgres://postgres:test@localhost:5432/iasql_metadata -c "SELECT * FROM iasql_connect('iasql');"
 
 # Setup Account
 echo "\nInstalling aws_account..."
