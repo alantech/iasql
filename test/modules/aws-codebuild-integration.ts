@@ -36,7 +36,7 @@ const assumeServicePolicy = JSON.stringify({
   ],
   Version: '2012-10-17',
 });
-const ghUrl = 'https://github.com/iasql/iasql-engine';
+const ghUrl = 'https://github.com/iasql/iasql';
 
 jest.setTimeout(360000);
 beforeAll(async () => await execComposeUp());
