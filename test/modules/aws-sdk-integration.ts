@@ -126,26 +126,26 @@ describe('AWS Integration Testing', () => {
   );
 
   it('installs vpc module', install(['aws_vpc']));
-  //
-  // it(
-  //   'executes a request per each default vpc and checks vpc_id and cidr_block',
-  //   query(
-  //     `
-  //     SELECT vpc_id,
-  //            cidr_block,
-  //            invoke_ec2('describeVpcs', json_build_object('VpcIds', array [vpc_id]), region) -> 'Vpcs' ->
-  //            0 as cloud_data
-  //     FROM vpc
-  //     WHERE is_default
-  // `,
-  //     (res: { vpc_id: string; cidr_block: string; cloud_data: { VpcId: string; CidrBlock: string } }[]) => {
-  //       for (const row of res) {
-  //         expect(row.vpc_id).toBe(row.cloud_data.VpcId);
-  //         expect(row.cidr_block).toBe(row.cloud_data.CidrBlock);
-  //       }
-  //     },
-  //   ),
-  // );
+
+  it(
+    'executes a request per each default vpc and checks vpc_id and cidr_block',
+    query(
+      `
+      SELECT vpc_id,
+             cidr_block,
+             invoke_ec2('describeVpcs', json_build_object('VpcIds', array [vpc_id]), region) -> 'Vpcs' ->
+             0 as cloud_data
+      FROM vpc
+      WHERE is_default
+  `,
+      (res: { vpc_id: string; cidr_block: string; cloud_data: { VpcId: string; CidrBlock: string } }[]) => {
+        for (const row of res) {
+          expect(row.vpc_id).toBe(row.cloud_data.VpcId);
+          expect(row.cidr_block).toBe(row.cloud_data.CidrBlock);
+        }
+      },
+    ),
+  );
 
   it(
     'creates a route table',
