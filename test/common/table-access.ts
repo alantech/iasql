@@ -80,5 +80,37 @@ describe('Testing table creation and access', () => {
     });
   });
 
+  it(
+    'dbUser: should be able to select an iasql_platform table',
+    query(
+      `
+      SELECT * FROM iasql_audit_log;
+    `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
+  );
+
+  it('dbUser: should not be able to insert into an iasql_platform table', done =>
+    void query(
+      `
+      INSERT INTO iasql_audit_log (ts, table_name, "user", change_type, change)
+      VALUES (NOW(), 'iasql_audit_log', SESSION_USER, 'INSERT', '{}');
+    `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    )((e?: any) => {
+      try {
+        expect(e?.message).toBe('permission denied for table iasql_audit_log');
+      } catch (err) {
+        done(err);
+        return {};
+      }
+      done();
+      return {};
+    }));
+
   it('deletes the test db', done => void iasql.disconnect(dbAlias, uid).then(...finish(done)));
 });
