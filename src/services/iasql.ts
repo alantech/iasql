@@ -1,7 +1,9 @@
 // TODO: It seems like a lot of this logic could be migrated into the iasql_platform module and make
 // sense there. Need to think a bit more on that, but module manipulation that way could allow for
 // meta operations within the module code itself, if desirable.
-import { exec as execNode } from 'child_process';
+import { exec as execNode, execSync } from 'child_process';
+import { existsSync, readdirSync, readFileSync } from 'fs';
+import fetch from 'node-fetch';
 import { createConnection } from 'typeorm';
 import { promisify } from 'util';
 
@@ -231,3 +233,135 @@ export async function dump(dbId: string, dataOnly: boolean) {
     await conn2?.close();
   }
 }*/
+
+export async function upgrade() {
+  const dbs = readdirSync('/tmp/upgrade');
+  const dbsDone: { [key: string]: boolean } = {};
+  for (const db of dbs) {
+    logger.info(`Starting Part 2 of 3 for ${db}`);
+    // Connect to the database and first re-insert the baseline modules
+    const conn = await createConnection({
+      ...dbMan.baseConnConfig,
+      name: db,
+      database: db,
+    });
+    await dbMan.migrate(conn);
+    // Next re-insert the audit log
+    try {
+      const auditLogLines = JSON.parse(readFileSync(`/tmp/upgrade/${db}/audit_log`, 'utf8'));
+      // It's slower, but safer to insert these records one at a time
+      for (const line of auditLogLines) {
+        await conn.query(
+          `
+          INSERT INTO iasql_audit_log (ts, "user", table_name, change_type, change, message) VALUES
+          ($1, $2, $3, $4, $5, $6);
+        `,
+          [line.ts, line.user, line.table_name, line.change_type, line.change, line.message],
+        );
+      }
+    } catch (e: any) {
+      logger.warn(`Failed to load the audit log: ${e.message}`, { e });
+    }
+    logger.info(`Part 2 of 3 for ${db} complete!`);
+    // Restoring the `aws_account` and other modules requires the engine to be fully started
+    // We can't do that immediately, but we *can* create a polling job to do it as soon as the
+    // engine has finished starting
+    let upgradeRunning = false;
+    const upgradeHandle = setInterval(async () => {
+      let started = false;
+      try {
+        started = (await (await fetch(`http://localhost:${config.http.port}/health`)).text()) === 'ok';
+      } catch (_) {
+        // We don't care if it fails to fetch, just a timing issue in starting the rest of the engine
+      }
+      if (!started || upgradeRunning) return;
+      logger.info(`Starting Part 3 of 3 for ${db}`);
+      upgradeRunning = true;
+      const hasCreds = existsSync(`/tmp/upgrade/${db}/creds`);
+      if (hasCreds) {
+        // Assuming the other two also exist
+        const creds = readFileSync(`/tmp/upgrade/${db}/creds`, 'utf8').trim().split(',');
+        const regionsEnabled = readFileSync(`/tmp/upgrade/${db}/regions_enabled`, 'utf8').trim().split(' ');
+        const defaultRegion = readFileSync(`/tmp/upgrade/${db}/default_region`, 'utf8').trim();
+        try {
+          await conn.query(`
+            SELECT iasql_install('aws_account');
+          `);
+        } catch (e) {
+          logger.warn('Failed to install aws_account', { e });
+        }
+        try {
+          await conn.query(`
+            SELECT iasql_begin();
+          `);
+        } catch (e) {
+          logger.warn('Failed to begin an IaSQL transaction?', { e });
+        }
+        try {
+          await conn.query(
+            `
+            INSERT INTO aws_credentials (access_key_id, secret_access_key) VALUES
+            ($1, $2);
+          `,
+            creds,
+          );
+        } catch (e) {
+          logger.warn('Failed to insert credentials', { e });
+        }
+        try {
+          await conn.query(`
+            SELECT iasql_commit();
+          `);
+        } catch (e) {
+          logger.warn('Failed to commit the transaction', { e });
+        }
+        logger.info('Regions Enabled', { regionsEnabled });
+        for (const region of regionsEnabled) {
+          try {
+            await conn.query(
+              `
+              UPDATE aws_regions SET is_enabled = TRUE WHERE region = $1;
+            `,
+              [region],
+            );
+          } catch (e) {
+            logger.warn('Failed to enable an aws_region', { e, region });
+          }
+        }
+        try {
+          await conn.query(
+            `
+            UPDATE aws_regions SET is_default = TRUE WHERE region = $1;
+          `,
+            [defaultRegion],
+          );
+        } catch (e) {
+          logger.warn('Failed to set the default region', { e, defaultRegion });
+        }
+      }
+      const moduleList = readFileSync(`/tmp/upgrade/${db}/module_list`, 'utf8').trim().split(' ');
+      logger.info('Module List', { moduleList });
+      for (const mod of moduleList) {
+        try {
+          await conn.query(
+            `
+            SELECT iasql_install($1);
+          `,
+            [mod],
+          );
+        } catch (e) {
+          logger.warn('Failed to install a module on upgrade', { e, mod });
+        }
+      }
+      execSync(`rm -rf /tmp/upgrade/${db}`);
+      dbsDone[db] = true;
+      clearInterval(upgradeHandle);
+      logger.info(`Part 3 of 3 for ${db} complete!`);
+      if (Object.keys(dbsDone).sort().join(',') === dbs.sort().join(',')) {
+        logger.info('Final cleanup of upgrade');
+        execSync('rm -rf /tmp/upgrade');
+        logger.info('Upgrade complete');
+      }
+    }, 15000);
+  }
+}

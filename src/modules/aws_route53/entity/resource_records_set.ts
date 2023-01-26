@@ -39,7 +39,7 @@ export enum RecordType {
  * DELETE FROM resource_record_set USING hosted_zone WHERE hosted_zone.id IN (SELECT id FROM hosted_zone WHERE domain_name = 'domain.com.' ORDER BY ID DESC LIMIT 1);
  * ```
  *
- * @see https://github.com/iasql/iasql-engine/blob/b2c2383b73d73f5cdf75c867d334e80cdf40caa1/test/modules/aws-route53-integration.ts#L294
+ * @see https://github.com/iasql/iasql/blob/b2c2383b73d73f5cdf75c867d334e80cdf40caa1/test/modules/aws-route53-integration.ts#L294
  * @see https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/rrsets-working-with.html
  */
 @Unique('UQ_name__record_type', ['parentHostedZone', 'name', 'recordType'])

@@ -14,7 +14,7 @@ import { AwsRegions } from '../../aws_account/entity';
  * DELETE FROM elastic_ip WHERE tags ->> 'name' = 'test_eip';
  * ```
  *
- * @see https://github.com/iasql/iasql-engine/blob/main/test/modules/aws-vpc-eip-nat-integration.ts#L181L182
+ * @see https://github.com/iasql/iasql/blob/main/test/modules/aws-vpc-eip-nat-integration.ts#L181L182
  * @see https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/elastic-ip-addresses-eip.html
  */
 @Entity()

@@ -29,7 +29,7 @@ export enum Protocol {
  *  DELETE FROM api WHERE name = 'api-name';
  * ```
  *
- * @see https://github.com/iasql/iasql-engine/blob/main/test/modules/aws-api-gateway-integration.ts#L124
+ * @see https://github.com/iasql/iasql/blob/main/test/modules/aws-api-gateway-integration.ts#L124
  * @see https://aws.amazon.com/api-gateway/
  *
  */

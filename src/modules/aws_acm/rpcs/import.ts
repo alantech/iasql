@@ -22,7 +22,7 @@ import { safeParse } from './common';
  *   SELECT * FROM certificate_import('***your_certificate_content***', '***your_key_content***', 'us-east-2', '');
  * ```
  *
- * @see https://github.com/iasql/iasql-engine/blob/main/test/modules/aws-acm-import-integration.ts#L86
+ * @see https://github.com/iasql/iasql/blob/main/test/modules/aws-acm-import-integration.ts#L86
  * @see https://aws.amazon.com/certificate-manager
  *
  */

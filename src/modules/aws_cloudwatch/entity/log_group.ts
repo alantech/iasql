@@ -21,7 +21,7 @@ import { AwsRegions } from '../../aws_account/entity';
  * DELETE FROM log_group WHERE log_group_name = 'log_name';
  * ```
  *
- * @see https://github.com/iasql/iasql-engine/blob/main/test/modules/aws-cloudwatch-integration.ts#L309
+ * @see https://github.com/iasql/iasql/blob/main/test/modules/aws-cloudwatch-integration.ts#L309
  * @see https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_LogGroup.html
  *
  */

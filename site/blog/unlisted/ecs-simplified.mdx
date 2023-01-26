@@ -21,7 +21,7 @@ In this post, we're going to discover an IaSQL module that's built to make deplo
 
 ## ** An Example Usage of the `aws_ecs_simplified` Module **
 
-Let's say we are going to deploy [this simple Express.js app](https://github.com/iasql/iasql-engine/tree/main/examples/ecs-fargate/prisma/app) to the ECS. It has a `Dockerfile` and `package.json` that installs `express` on `npm install`. `npm start` then starts the Express server which listens on port `8088`.
+Let's say we are going to deploy [this simple Express.js app](https://github.com/iasql/iasql/tree/main/examples/ecs-fargate/prisma/app) to the ECS. It has a `Dockerfile` and `package.json` that installs `express` on `npm install`. `npm start` then starts the Express server which listens on port `8088`.
 
 :::note
 `aws_ecs_simplified` is a high-level module we have created to make scalable ECS deployments easier. For more info on high-level vs low-level modules, you can check [this guide](https://iasql.com/docs/low-level-vs-high-level/).
@@ -40,7 +40,7 @@ INSERT INTO ecs_simplified(app_name, app_port, image_tag, public_ip) VALUES(
 SELECT iasql_commit();
 
 SELECT ecr_build(
-  'https://github.com/iasql/iasql-engine/', -- the Github repo URL
+  'https://github.com/iasql/iasql/', -- the Github repo URL
   (SELECT id
     FROM repository
     WHERE repository_name = 'simple-express-repository')::varchar(255), -- ECR repo for the image to be pushed
@@ -53,7 +53,7 @@ That's it! Now wait for some time and your app is deployed! While your app is be
 ```sql
 SELECT iasql_install('aws_ecs_simplified', 'aws_codebuild');
 ```
-- This command installs the `aws_ecs_simplified` high-level module. We– at IaSQL– have created that module to make it easy to deploy containerized apps to ECS. The code for it is [here](https://github.com/iasql/iasql-engine/blob/v0.0.22/src/modules/0.0.23/aws_ecs_simplified/sql/after_install.sql). But IaSQL is so flexible that anyone can create their own high-level (and of course, low-level) modules and add it to IaSQL.
+- This command installs the `aws_ecs_simplified` high-level module. We– at IaSQL– have created that module to make it easy to deploy containerized apps to ECS. The code for it is [here](https://github.com/iasql/iasql/blob/v0.0.22/src/modules/0.0.23/aws_ecs_simplified/sql/after_install.sql). But IaSQL is so flexible that anyone can create their own high-level (and of course, low-level) modules and add it to IaSQL.
 ```sql
 INSERT INTO ecs_simplified(app_name, app_port, image_tag, public_ip) VALUES(
   'simple-express',
@@ -72,7 +72,7 @@ INSERT INTO ecs_simplified(app_name, app_port, image_tag, public_ip) VALUES(
 - In the next step, we'll automatically build an image for the code in Github repo and then push it to this URI (all through SQL and using another high-level function named `ecr_build`).
 ```sql
 SELECT ecr_build(
-  'https://github.com/iasql/iasql-engine/', -- the Github repo URL
+  'https://github.com/iasql/iasql/', -- the Github repo URL
   (SELECT id
     FROM repository
     WHERE repository_name = 'simple-express-repository')::varchar(255), -- ECR repo for the image to be pushed
@@ -81,7 +81,7 @@ SELECT ecr_build(
   NULL -- Github personal access token - can be omitted if public repository
 );
 ```
-- This command tells IaSQL to go clone `iasql-engine` repository, build an image on the subdirectory specified, and then push it to the ECR repository created earlier by the `aws_ecs_simplified` module. Running the above command will automatically create a CodeBuild project and the related roles, etc. Then it'll start a build, and after it's successful all the created resources are deleted to ensure there won't be any additional charges to your AWS account.
+- This command tells IaSQL to clone the `iasql` repository, build an image on the subdirectory specified, and then push it to the ECR repository created earlier by the `aws_ecs_simplified` module. Running the above command will automatically create a CodeBuild project and the related roles, etc. Then it'll start a build, and after it's successful all the created resources are deleted to ensure there won't be any additional charges to your AWS account.
 - To access your app on the cloud, get the load balancer address and use your browser to access the live version of it:
 ```sql
 SELECT load_balancer_dns
@@ -107,4 +107,4 @@ WHERE role_name = 'simple-express-ecs-task-exec-role';
 
 You want additional rules for the container's security group? No problem! Just write the SQL and execute it, and it will be applied to the cloud within seconds. You want 3 copies of your container to be kept running with a round-robin load balancing on them? It's already there, just do an `UPDATE ecs_simplified SET desired_count = 3 WHERE app_name = 'simple_express';` and it's there for you.
 
-With IaSQL and its flexibility, you can benefit from both the high-level and low-level operations. We have created the `aws_ecs_simplified` module to show the flexibility and power of IaSQL engine, but the possibilities are endless. IaSQL is also an open-source project, meaning that you can use the powerful IaSQL engine and build your own modules on top of that. If you're into the idea of empowering other developers to do complex infrastructure tasks simply, why don't you take a look at our [contributing guide](https://github.com/iasql/iasql-engine/blob/main/CONTRIBUTING.md) and join our [Discord channel](https://discord.com/invite/machGGczea)? We'll thoroughly answer any of your question regarding the usage or development of IaSQL. Looking forward to seeing you in our small, but great community.
+With IaSQL and its flexibility, you can benefit from both the high-level and low-level operations. We have created the `aws_ecs_simplified` module to show the flexibility and power of IaSQL, but the possibilities are endless. IaSQL is also an open-source project, meaning that you can use it to build your very own modules on top of it. If you're into the idea of empowering other developers to do complex infrastructure tasks simply, why don't you take a look at our [contributing guide](https://github.com/iasql/iasql/blob/main/CONTRIBUTING.md) and join our [Discord channel](https://discord.com/invite/machGGczea)? We'll thoroughly answer any of your questions regarding the usage or development of IaSQL. Looking forward to seeing you in our small, but great community.

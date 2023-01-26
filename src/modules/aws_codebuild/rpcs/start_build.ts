@@ -20,7 +20,7 @@ import { Context, RpcBase, RpcResponseObject } from '../../interfaces';
  *   SELECT * FROM start_build('project_name', 'us-east-2');
  * ```
  *
- * @see https://github.com/iasql/iasql-engine/blob/main/test/modules/aws-codebuild-integration.ts#L313
+ * @see https://github.com/iasql/iasql/blob/main/test/modules/aws-codebuild-integration.ts#L313
  * @see https://docs.aws.amazon.com/cli/latest/reference/codebuild/start-build.html
  *
  */

@@ -78,7 +78,7 @@ export enum ActionCategory {
  * '{ type: 'S3', location: 's3-bucket' }'");
  * ```
  *
- * @see https://github.com/iasql/iasql-engine/blob/main/test/modules/aws-codepipeline-integration.ts#L424
+ * @see https://github.com/iasql/iasql/blob/main/test/modules/aws-codepipeline-integration.ts#L424
  * @see https://docs.aws.amazon.com/codepipeline/latest/userguide/welcome.html
  *
  */

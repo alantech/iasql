@@ -19,7 +19,7 @@ jobs:
         name: Set registry image tag
         run: |
           DEPLOY_TAG=${{inputs.deploy_tag}}
-          echo "::set-output name=registry-image-tag::ghcr.io/iasql/iasql-engine:$DEPLOY_TAG"
+          echo "::set-output name=registry-image-tag::ghcr.io/iasql/iasql:$DEPLOY_TAG"
 
   build-and-push:
     runs-on: ubuntu-latest

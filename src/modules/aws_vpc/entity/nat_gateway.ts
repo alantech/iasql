@@ -44,7 +44,7 @@ export enum NatGatewayState {
  * DELETE FROM nat_gateway WHERE tags ->> 'name' = 'nat_gateway';
  * ```
  *
- * @see https://github.com/iasql/iasql-engine/blob/main/test/modules/aws-vpc-eip-nat-integration.ts#L218L221
+ * @see https://github.com/iasql/iasql/blob/main/test/modules/aws-vpc-eip-nat-integration.ts#L218L221
  * @see https://docs.aws.amazon.com/vpc/latest/userguide/vpc-nat-gateway.html
  */
 @Check(

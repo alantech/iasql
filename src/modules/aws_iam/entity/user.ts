@@ -17,7 +17,7 @@ import { AccessKey } from './access_key';
  * DELETE FROM iam_user WHERE user_name = 'user_name';
  * ```
  *
- * @see https://github.com/iasql/iasql-engine/blob/b2c2383b73d73f5cdf75c867d334e80cdf40caa1/test/modules/aws-iam-integration.ts#L816
+ * @see https://github.com/iasql/iasql/blob/b2c2383b73d73f5cdf75c867d334e80cdf40caa1/test/modules/aws-iam-integration.ts#L816
  * @see https://docs.aws.amazon.com/IAM/latest/UserGuide/id_users.html
  *
  * @privateRemarks

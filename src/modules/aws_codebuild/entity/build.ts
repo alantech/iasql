@@ -34,7 +34,7 @@ export enum BuildStatus {
  * DELETE FROM codebuild_build_list WHERE project_name = 'build_project_name';
  * ```
  *
- * @see https://github.com/iasql/iasql-engine/blob/main/test/modules/aws-codebuild-integration.ts#L341
+ * @see https://github.com/iasql/iasql/blob/main/test/modules/aws-codebuild-integration.ts#L341
  * @see https://docs.aws.amazon.com/codebuild/latest/userguide/builds-working.html
  *
  */
