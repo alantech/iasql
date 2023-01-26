@@ -79,14 +79,9 @@ export function createDbPostgreGroupRole(dbId: string) {
   `;
 }
 
-export function grantPostgresGroupRoleQuery(user: string, dbId: string) {
+export function grantPostgresGroupRoleToUser(user: string, dbId: string) {
   const groupRole = getGroupRole(dbId);
   return `
-    GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO ${groupRole};
-    REVOKE INSERT, UPDATE, DELETE ON iasql_audit_log FROM ${groupRole};
-    GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO ${groupRole};
-    GRANT EXECUTE ON ALL PROCEDURES IN SCHEMA public TO ${groupRole};
-    GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO ${groupRole};
     GRANT ${groupRole} to "${user}";
   `;
 }

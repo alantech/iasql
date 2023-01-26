@@ -62,7 +62,7 @@ export async function connect(dbAlias: string, uid: string, email: string, dbId 
     await conn2.query(`SELECT * FROM query_cron('schedule_purge');`);
     await conn2.query(dbMan.createDbPostgreGroupRole(dbId));
     await conn2.query(dbMan.newPostgresRoleQuery(dbUser, dbPass, dbId));
-    await conn2.query(dbMan.grantPostgresGroupRoleQuery(dbUser, dbId));
+    await conn2.query(dbMan.grantPostgresGroupRoleToUser(dbUser, dbId));
     roleGranted = true;
     const recCount = await getDbRecCount(conn2);
     await MetadataRepo.updateRecordCount(dbId, recCount);
