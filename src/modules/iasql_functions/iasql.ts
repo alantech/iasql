@@ -3,7 +3,8 @@ import { default as cloneDeep } from 'lodash.clonedeep';
 import format from 'pg-format';
 import { Not, In, Between, LessThan, MoreThan, EntityMetadata } from 'typeorm';
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
-import { ColumnMetadata, RelationMetadata } from 'typeorm/metadata';
+import { ColumnMetadata } from 'typeorm/metadata/ColumnMetadata';
+import { RelationMetadata } from 'typeorm/metadata/RelationMetadata';
 import { camelCase, snakeCase } from 'typeorm/util/StringUtils';
 
 import config from '../../config';
