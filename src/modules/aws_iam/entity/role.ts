@@ -31,7 +31,7 @@ import { cloudId } from '../../../services/cloud-id';
  * DELETE FROM iam_role WHERE role_name = 'lambda_role_name';
  * ```
  *
- * @see https://github.com/iasql/iasql-engine/blob/b2c2383b73d73f5cdf75c867d334e80cdf40caa1/test/modules/aws-iam-integration.ts#L183
+ * @see https://github.com/iasql/iasql/blob/b2c2383b73d73f5cdf75c867d334e80cdf40caa1/test/modules/aws-iam-integration.ts#L183
  * @see https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles.html
  *
  * @privateRemarks

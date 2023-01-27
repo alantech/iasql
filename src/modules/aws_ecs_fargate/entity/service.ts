@@ -42,7 +42,7 @@ export enum AssignPublicIp {
  * DELETE FROM service WHERE name = 'service-name';
  * ```
  *
- * @see https://github.com/iasql/iasql-engine/blob/b2c2383b73d73f5cdf75c867d334e80cdf40caa1/test/modules/aws-ecs-integration.ts#L516
+ * @see https://github.com/iasql/iasql/blob/b2c2383b73d73f5cdf75c867d334e80cdf40caa1/test/modules/aws-ecs-integration.ts#L516
  * @see https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs_services.html
  */
 @Entity()

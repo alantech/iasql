@@ -66,7 +66,7 @@ export enum ProtocolVersionEnum {
  * DELETE FROM target_group WHERE target_group_name = 'tg_name';
  * ```
  *
- * @see https://github.com/iasql/iasql-engine/blob/b2c2383b73d73f5cdf75c867d334e80cdf40caa1/test/modules/aws-elb-integration.ts#L126
+ * @see https://github.com/iasql/iasql/blob/b2c2383b73d73f5cdf75c867d334e80cdf40caa1/test/modules/aws-elb-integration.ts#L126
  * @see https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-target-groups.html
  */
 @Entity()

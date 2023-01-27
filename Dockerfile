@@ -2,7 +2,7 @@ FROM debian:bullseye
 
 # Install OS Packages
 RUN apt update
-RUN apt install curl ca-certificates gnupg build-essential git -y
+RUN apt install curl ca-certificates gnupg build-essential git jq -y
 
 # Install Postgres
 # Update postgresql APT repository [apt.postgresql.org](https://wiki.postgresql.org/wiki/Apt)

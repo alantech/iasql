@@ -21,7 +21,7 @@ import { Service } from '../entity';
  * SELECT deploy_service(arn) FROM service WHERE name='service_name';
  * ```
  *
- * @see https://github.com/iasql/iasql-engine/blob/b2c2383b73d73f5cdf75c867d334e80cdf40caa1/test/modules/aws-ecs-integration.ts#L686
+ * @see https://github.com/iasql/iasql/blob/b2c2383b73d73f5cdf75c867d334e80cdf40caa1/test/modules/aws-ecs-integration.ts#L686
  * @see https://aws.amazon.com/es/blogs/compute/building-deploying-and-operating-containerized-applications-with-aws-fargate/
  *
  */

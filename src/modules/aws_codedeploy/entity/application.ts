@@ -26,7 +26,7 @@ export enum ComputePlatform {
  * DELETE FROM codedeploy_application WHERE name = 'application-name';
  * ```
  *
- * @see https://github.com/iasql/iasql-engine/blob/main/test/modules/aws-codedeploy-integration.ts#L289
+ * @see https://github.com/iasql/iasql/blob/main/test/modules/aws-codedeploy-integration.ts#L289
  * @see https://docs.aws.amazon.com/codedeploy/latest/userguide/applications-create.html
  *
  */

@@ -9,12 +9,12 @@ export class AwsLambdaModule extends ModuleBase {
   /** @internal */
   lambdaFunction: LambdaFunctionMapper;
 
-  invokeLambda: LambdaFunctionInvokeRpc;
+  invokeLambdaFunction: LambdaFunctionInvokeRpc;
 
   constructor() {
     super();
     this.lambdaFunction = new LambdaFunctionMapper(this);
-    this.invokeLambda = new LambdaFunctionInvokeRpc(this);
+    this.invokeLambdaFunction = new LambdaFunctionInvokeRpc(this);
     super.init();
   }
 }

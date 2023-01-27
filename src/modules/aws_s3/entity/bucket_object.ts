@@ -16,7 +16,7 @@ import { Bucket } from './bucket';
  * DELETE FROM bucket_object WHERE bucket_name = 'bucket' AND key='object_key';
  * ```
  *
- * @see https://github.com/iasql/iasql-engine/blob/b2c2383b73d73f5cdf75c867d334e80cdf40caa1/test/modules/aws-s3-integration.ts#L253
+ * @see https://github.com/iasql/iasql/blob/b2c2383b73d73f5cdf75c867d334e80cdf40caa1/test/modules/aws-s3-integration.ts#L253
  * @see https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingObjects.html
  */
 @Entity()

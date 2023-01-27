@@ -14,7 +14,7 @@ import { AwsRegions } from '../../aws_account/entity';
  * INSERT INTO bucket (name) VALUES ('bucket');
  * ```
  *
- * @see https://github.com/iasql/iasql-engine/blob/b2c2383b73d73f5cdf75c867d334e80cdf40caa1/test/modules/aws-s3-integration.ts#L129
+ * @see https://github.com/iasql/iasql/blob/b2c2383b73d73f5cdf75c867d334e80cdf40caa1/test/modules/aws-s3-integration.ts#L129
  * @see https://aws.amazon.com/s3/
  */
 @Entity()

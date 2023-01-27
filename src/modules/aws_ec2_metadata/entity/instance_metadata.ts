@@ -38,7 +38,7 @@ export enum RootDeviceType {
  * SELECT * FROM instance_metadata WHERE instance_id = (SELECT instance_id FROM instance WHERE tags ->> 'name' = 'test');
  * ```
  *
- * @see https://github.com/iasql/iasql-engine/blob/main/test/modules/aws-ec2-integration.ts#L1096
+ * @see https://github.com/iasql/iasql/blob/main/test/modules/aws-ec2-integration.ts#L1096
  */
 @Entity()
 export class InstanceMetadata {

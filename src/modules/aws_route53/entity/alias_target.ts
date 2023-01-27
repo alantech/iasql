@@ -11,7 +11,7 @@ import { LoadBalancer } from '../../aws_elb/entity';
  * INSERT INTO alias_target (load_balancer_id) VALUES ((SELECT id FROM load_balancer WHERE load_balancer_name = 'lb_name'));
  * ```
  *
- * @see https://github.com/iasql/iasql-engine/blob/b2c2383b73d73f5cdf75c867d334e80cdf40caa1/test/modules/aws-route53-integration.ts#L343
+ * @see https://github.com/iasql/iasql/blob/b2c2383b73d73f5cdf75c867d334e80cdf40caa1/test/modules/aws-route53-integration.ts#L343
  * @see https://docs.aws.amazon.com/Route53/latest/APIReference/API_AliasTarget.html
  */
 @Entity()

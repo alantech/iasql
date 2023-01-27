@@ -32,7 +32,7 @@ export enum VpcState {
  * DELETE FROM vpc WHERE cidr_block = '192.168.0.0/16';
  * ```
  *
- * @see https://github.com/iasql/iasql-engine/blob/main/test/modules/aws-vpc-integration.ts#L121L122
+ * @see https://github.com/iasql/iasql/blob/main/test/modules/aws-vpc-integration.ts#L121L122
  * @see https://aws.amazon.com/vpc/
  */
 @Unique('uq_vpc_region', ['id', 'region'])

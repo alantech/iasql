@@ -1,17 +1,18 @@
 import * as sentry from '@sentry/node';
 import cluster from 'cluster';
 import express from 'express';
+import { existsSync } from 'fs';
 import { cpus } from 'os';
 import 'reflect-metadata';
 import { inspect } from 'util';
 
 import config from './config';
 import { v1 } from './router';
+import { upgrade } from './services/iasql';
 import logger from './services/logger';
 import MetadataRepo from './services/repositories/metadata';
 
-if (cluster.isPrimary) {
-  logger.info(`Using IASQL_ENV: ${process.env.IASQL_ENV}`);
+function startPrimary() {
   const numCpus = cpus().length;
   for (let i = 0; i < numCpus; i++) {
     cluster.fork();
@@ -21,6 +22,22 @@ if (cluster.isPrimary) {
     logger.warn('Child process died, restarting', { code, signal });
     cluster.fork();
   });
+}
+
+if (cluster.isPrimary) {
+  logger.info(`Using IASQL_ENV: ${process.env.IASQL_ENV}`);
+
+  if (config.sentry) {
+    sentry.init(config.sentry);
+  }
+
+  const dbsToUpgrade = existsSync('/tmp/upgrade');
+
+  if (dbsToUpgrade) {
+    MetadataRepo.init().then(upgrade).then(startPrimary);
+  } else {
+    MetadataRepo.init().then(startPrimary);
+  }
 } else {
   const port = config.http.port;
   const app = express();

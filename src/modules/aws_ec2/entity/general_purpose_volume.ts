@@ -37,7 +37,7 @@ export enum VolumeState {
  * INSERT INTO general_purpose_volume (volume_type, availability_zone, size, tags) VALUES ('gp3', 'us-east-1a', 50, '{"Name": "gp3-volume-name"}');
  * ```
  *
- * @see https://github.com/iasql/iasql-engine/blob/main/test/modules/aws-ec2-gpv-integration.ts#L125
+ * @see https://github.com/iasql/iasql/blob/main/test/modules/aws-ec2-gpv-integration.ts#L125
  * @see https://aws.amazon.com/ebs/general-purpose/
  *
  * @privateRemarks

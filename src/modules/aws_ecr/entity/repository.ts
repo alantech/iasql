@@ -29,7 +29,7 @@ export enum ImageTagMutability {
  * DELETE FROM repository WHERE repository_name = 'repository';
  * ```
  *
- * @see https://github.com/iasql/iasql-engine/blob/main/test/modules/aws-ecr-integration.ts#L113
+ * @see https://github.com/iasql/iasql/blob/main/test/modules/aws-ecr-integration.ts#L113
  * @see https://docs.aws.amazon.com/AmazonECR/latest/userguide/Repositories.html
  */
 @Entity()
