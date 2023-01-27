@@ -18,76 +18,67 @@ import { convertTagsForAws, convertTagsFromAws, eqTags } from './tags';
 export class RouteMapper extends MapperBase<Route> {
   module: AwsVpcModule;
   entity = Route;
-  entityId = (e: Route) =>
-    `${e.id}`;
+  entityId = (e: Route) => `${e.routeTable.routeTableId ?? e.routeTable.id}|${e.destination}`;
   idFields = (id: string) => {
-    return { id };
+    const [routeTableId, destination] = id.split('|');
+    return { routeTableId, destination };
   };
   generateId = (fields: IdFields) => {
-    const requiredFields = ['id'];
+    const requiredFields = ['routeTableId', 'destination'];
     if (
       Object.keys(fields).length !== requiredFields.length &&
       !Object.keys(fields).every(fk => requiredFields.includes(fk))
     ) {
       throw new Error(`Id generation error. Valid fields to generate id are: ${requiredFields.join(', ')}`);
     }
-    return `${fields.id}`;
+    return `${fields.routeTableId}|${fields.destination}`;
   };
   equals = (a: Route, b: Route) => {
     return this.eqRoute(a, b);
   };
-
-  findRoutesDiff(dbEntities: Route[], cloudEntities: Route[]) {
-    const routeId = (route: Route) => {
-      const cloudColumns = getCloudId(Route) as string[];
-      return cloudColumns.map(col => (route as any)[col]).join('|');
-    };
-    const { entitiesInDbOnly, entitiesInAwsOnly } = findDiff(
-      dbEntities,
-      cloudEntities,
-      routeId,
-      () => true, // dummy function because all fields are cloud id
-    );
-    return { entitiesInDbOnly, entitiesInAwsOnly };
-  }
+  cidrIPv4Pattern = new RegExp(
+    '^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/(3[0-2]|[12][0-9]|[1-9])$',
+  );
+  cidrIPv6Pattern = new RegExp(
+    '^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))/(12[0-8]|1[01][0-9]|[1-9]?[0-9])$',
+  );
+  prefixedListPattern = new RegExp('^pl-[wd]+$');
 
   eqRoute(a: Route, b: Route) {
-    return _.isEqual(_.omit(a, ['id', 'routeTable']), _.omit(b, ['id', 'routeTable']));
+    return _.isEqual(
+      _.omit(a, ['id', 'routeTable', 'destination']),
+      _.omit(b, ['id', 'routeTable', 'destination']),
+    );
   }
 
-  getRouteTables = paginateBuilder<EC2>(paginateDescribeRouteTables, 'RouteTables');
-  getRouteTable = crudBuilderFormat<EC2, 'describeRouteTables', AwsRouteTable | undefined>(
-    'describeRouteTables',
-    routeTableId => ({ RouteTableIds: [routeTableId] }),
-    res => res?.RouteTables?.pop(),
-  );
+  createRoute = crudBuilder2<EC2, 'createRoute'>('createRoute', (r: Route) => ({
+    RouteTableId: r.routeTable.routeTableId,
+    DestinationCidrBlock: this.cidrIPv4Pattern.test(r.destination) ? r.destination : undefined,
+    DestinationIpv6CidrBlock: this.cidrIPv6Pattern.test(r.destination) ? r.destination : undefined,
+    DestinationPrefixListId: this.prefixedListPattern.test(r.destination) ? r.destination : undefined,
+    EgressOnlyInternetGatewayId: r.egressOnlyInternetGatewayId,
+    GatewayId: r.gatewayId,
+    InstanceId: r.instanceId,
+    NatGatewayId: r.natGatewayId,
+    TransitGatewayId: r.transitGatewayId,
+    LocalGatewayId: r.localGatewayId,
+    CarrierGatewayId: r.carrierGatewayId,
+    NetworkInterfaceId: r.networkInterfaceId,
+    VpcPeeringConnectionId: r.vpcPeeringConnectionId,
+    CoreNetworkArn: r.coreNetworkArn,
+  }));
 
-  createRoute = crudBuilder2<EC2, 'createRoute'>(
-    'createRoute',
-    (r: Route) => ({
-      RouteTableId: r.routeTable.routeTableId,
-      DestinationCidrBlock: r.destinationCidrBlock,
-      DestinationIpv6CidrBlock: r.destinationIpv6CidrBlock,
-      DestinationPrefixListId: r.destinationPrefixListId,
-      EgressOnlyInternetGatewayId: r.egressOnlyInternetGatewayId,
-      GatewayId: r.gatewayId,
-      InstanceId: r.instanceId,
-      NatGatewayId: r.natGatewayId,
-      TransitGatewayId: r.transitGatewayId,
-      LocalGatewayId: r.localGatewayId,
-      CarrierGatewayId: r.carrierGatewayId,
-      NetworkInterfaceId: r.networkInterfaceId,
-      VpcPeeringConnectionId: r.vpcPeeringConnectionId,
-      CoreNetworkArn: r.coreNetworkArn,
-    }),
-  );
-
-  routeMapper(route: AwsRoute, routeTableId: string) {
+  routeMapper(route: AwsRoute, routeTable: RouteTable) {
     const out = new Route();
-    if (!routeTableId) return undefined;
-    out.destinationCidrBlock = route.DestinationCidrBlock;
-    out.destinationIpv6CidrBlock = route.DestinationIpv6CidrBlock;
-    out.destinationPrefixListId = route.DestinationPrefixListId;
+    if (
+      !routeTable ||
+      (!route.DestinationCidrBlock && !route.DestinationIpv6CidrBlock && !route.DestinationPrefixListId)
+    ) {
+      return undefined;
+    }
+    out.routeTable = routeTable;
+    out.destination =
+      route.DestinationCidrBlock ?? route.DestinationIpv6CidrBlock ?? route.DestinationPrefixListId ?? '';
     out.egressOnlyInternetGatewayId = route.EgressOnlyInternetGatewayId;
     out.gatewayId = route.GatewayId;
     out.instanceId = route.InstanceId;
@@ -114,24 +105,30 @@ export class RouteMapper extends MapperBase<Route> {
       return out;
     },
     read: async (ctx: Context, id?: string) => {
-      const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
       if (!!id) {
-        // const dbR: Route = await this.module.route.db.read(ctx, id);
-        // const client = (await ctx.getAwsClient(dbR.routeTable.region)) as AWS;
-        // return await this.routeTableMapper(rawRouteTable, region, ctx);
+        const { routeTableId, destination } = this.idFields(id);
+        const routeTable: RouteTable = ctx.memo?.cloud?.RouteTable[routeTableId]
+          ? ctx.memo?.cloud?.RouteTable[routeTableId]
+          : await this.module.routeTable.cloud.read(ctx, routeTableId);
+        if (!routeTable) throw Error('RouteTable need to be loaded first');
+        const rawRoute = routeTable.routes.find(r =>
+          [r.DestinationCidrBlock, r.DestinationIpv6CidrBlock, r.DestinationPrefixListId].includes(
+            destination,
+          ),
+        );
+        if (!rawRoute) return;
+        return await this.routeMapper(rawRoute, routeTable);
       } else {
         const out: Route[] = [];
-        await Promise.all(
-          enabledRegions.map(async region => {
-            const client = (await ctx.getAwsClient(region)) as AWS;
-            const rawRouteTables: AwsRouteTable[] = await this.getRouteTables(client.ec2client);
-            for (const rawRouteTable of rawRouteTables) {
-              if (!rawRouteTable) continue;
-              const routes: (Route | undefined)[] = rawRouteTable.Routes?.map(r => this.routeMapper(r, rawRouteTable.RouteTableId ?? '')).filter(r => !!r) ?? [];
-              out.push(...(routes as Route[]));
-            }
-          }),
-        );
+        const routeTables: RouteTable[] = ctx.memo?.cloud?.RouteTable
+          ? Object.values(ctx.memo?.cloud?.RouteTable)
+          : await this.module.routeTable.cloud.read(ctx);
+        for (const rt of routeTables) {
+          if (!rt) continue;
+          const routes: (Route | undefined)[] =
+            rt.routes?.map(r => this.routeMapper(r, rt)).filter(r => !!r) ?? [];
+          out.push(...(routes as Route[]));
+        }
         return out;
       }
     },
