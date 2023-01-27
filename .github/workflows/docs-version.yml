@@ -47,6 +47,11 @@ jobs:
           git add -A
           git commit -m "$VERSION"
           git push
+      - name: Emit for site deploy
+        uses: mvasigh/dispatch-action@main
+        with:
+          token: ${{ secrets.GH_PAT }}
+          event_type: newdocs
 
   notify:
     name: Discord Notification
