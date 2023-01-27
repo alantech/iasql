@@ -273,7 +273,6 @@ describe('AwsAccount Integration Testing', () => {
   `,
       undefined,
       true,
-      () => ({ username, password }),
     ),
   );
 
