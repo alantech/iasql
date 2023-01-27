@@ -11,6 +11,7 @@ import {
   SubnetMapper,
   VpcMapper,
   InternetGatewayMapper,
+  RouteMapper,
 } from './mappers';
 
 export class AwsVpcModule extends ModuleBase {
@@ -47,6 +48,9 @@ export class AwsVpcModule extends ModuleBase {
   /** @internal */
   internetGateway: InternetGatewayMapper;
 
+  /** @internal */
+  route: RouteMapper;
+
   constructor() {
     super();
     this.subnet = new SubnetMapper(this);
@@ -60,6 +64,7 @@ export class AwsVpcModule extends ModuleBase {
     this.routeTable = new RouteTableMapper(this);
     this.routeTableAssociation = new RouteTableAssociationMapper(this);
     this.internetGateway = new InternetGatewayMapper(this);
+    this.route = new RouteMapper(this);
     super.init();
   }
 }
