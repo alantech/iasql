@@ -129,13 +129,13 @@ export async function getContext(conn: TypeormWrapper, AllModules: any): Promise
     throwError('Core IasqlModule not found');
   const moduleNames = (await conn.find(iasqlModule)).map((m: any) => m.name);
   const memo: any = {};
-  const context: Context = { orm: conn, memo };
+  const context: Partial<Context> = { orm: conn, memo };
   for (const name of moduleNames) {
     const mod = (Object.values(AllModules) as ModuleInterface[]).find(
       m => `${m.name}@${m.version}` === name,
     ) as ModuleInterface;
     if (!mod) throwError(`This should be impossible. Cannot find module ${name}`);
-    const moduleContext = mod?.provides?.context ?? {};
+    const moduleContext = mod?.provides?.context ?? ({} as Partial<Context>);
     Object.keys(moduleContext).forEach(k => {
       if (typeof moduleContext[k] === 'function') {
         context[k] = moduleContext[k];
@@ -144,7 +144,7 @@ export async function getContext(conn: TypeormWrapper, AllModules: any): Promise
       }
     });
   }
-  return context;
+  return context as Context;
 }
 
 db.post('/rpc', async (req: Request, res: Response) => {

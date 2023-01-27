@@ -2,11 +2,12 @@ import callsite from 'callsite';
 import fs from 'fs';
 import path from 'path';
 import { parse } from 'pgsql-parser';
-import { QueryRunner, getMetadataArgsStorage, ColumnType } from 'typeorm';
+import { ColumnType, getMetadataArgsStorage, QueryRunner } from 'typeorm';
 import { snakeCase } from 'typeorm/util/StringUtils';
 
 import config from '../config';
 import { throwError } from '../config/config';
+import { AWS } from '../services/aws_macros';
 import { getCloudId } from '../services/cloud-id';
 import logger from '../services/logger';
 
@@ -17,7 +18,12 @@ import logger from '../services/logger';
 
 export type IdFields = { [key: string]: string };
 
-export type Context = { [key: string]: any };
+export type Context = {
+  [key: string]: any;
+  getEnabledAwsRegions: (fullEntities?: boolean) => Promise<string[]>;
+  getAwsClient: (region?: string) => Promise<AWS>;
+  getDefaultRegion: () => Promise<string>;
+};
 
 // TODO: use something better than ColumnType for possible postgres colum types
 export type RpcOutput = { [key: string]: ColumnType };

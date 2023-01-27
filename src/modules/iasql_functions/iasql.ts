@@ -278,13 +278,13 @@ ${Object.keys(tableCollisions)
 
   // Find all of the installed modules, and create the context object only for these
   const moduleNames = (await orm.find(iasqlModule)).map((m: any) => m.name);
-  const context: Context = { orm, memo: {} }; // Every module gets access to the DB
+  const context: Partial<Context> = { orm, memo: {} }; // Every module gets access to the DB
   for (const name of moduleNames) {
     const md = (Object.values(AllModules) as ModuleInterface[]).find(
       m => `${m.name}@${m.version}` === name,
     ) as ModuleInterface;
     if (!md) throw new Error(`This should be impossible. Cannot find module ${name}`);
-    const moduleContext = md?.provides?.context ?? {};
+    const moduleContext = md?.provides?.context ?? ({} as Partial<Context>);
     Object.keys(moduleContext).forEach(k => {
       if (typeof moduleContext[k] === 'function') {
         context[k] = moduleContext[k];
@@ -618,7 +618,7 @@ export async function continueUpgrade(
 export async function commit(
   dbId: string,
   dryRun: boolean,
-  context: Context,
+  context: Partial<Context>,
   force = false,
   ormOpt?: TypeormWrapper,
 ) {
@@ -891,7 +891,7 @@ function getModulesWithChanges(
 async function commitApply(
   dbId: string,
   relevantModules: ModuleInterface[],
-  context: Context,
+  context: Partial<Context>,
   force: boolean,
   crupdes: { toCreate: Crupde; toUpdate: Crupde; toReplace: Crupde; toDelete: Crupde },
   dryRun: boolean,
@@ -1157,7 +1157,7 @@ async function commitApply(
 async function commitSync(
   dbId: string,
   relevantModules: ModuleInterface[],
-  context: Context,
+  context: Partial<Context>,
   force: boolean,
   crupdes: { toCreate: Crupde; toUpdate: Crupde; toReplace: Crupde; toDelete: Crupde },
   dryRun: boolean,
@@ -1540,7 +1540,7 @@ export function indexModsByTable(mods: ModuleInterface[]): { [key: string]: Modu
 
 async function getChangesAfterCommitStartedByEntity(
   orm: TypeormWrapper,
-  context: Context,
+  context: Partial<Context>,
   dbId: string,
   force: boolean,
 ): Promise<{ [key: string]: any[] }> {
