@@ -39,7 +39,7 @@ Support for multiple AWS regions with default region behavior in part because we
 
 ### 🪄 Automagically, please
 
-We redid the UX to allow handling infrastructure changes automatically and wrapping delicate, or complex, changes within a special IaSQL transaction akin to transactions in a regular database. This means no more `apply`. Do you want to programmatically modify your infra or control plane? We got you!
+We redid the UX to allow handling infrastructure changes automatically and wrapping delicate, or complex, changes within a special [IaSQL transaction](/docs/transaction) akin to transactions in a regular database. This means no more `apply`. Do you want to programmatically modify your infra or control plane? We got you!
 
 [Learn more about it in the RFC for this feature &#8594;](https://github.com/iasql/iasql/blob/main/rfcs/004%20-%20Continuous%20Two-Way%20Synchronization%20RFC.md)
 
