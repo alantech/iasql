@@ -28,3 +28,4 @@ export * from './aws_sns';
 export * from './aws_vpc';
 export * from './iasql_functions';
 export * from './iasql_platform';
+export * from './aws_sdk';
