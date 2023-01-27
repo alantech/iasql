@@ -37,7 +37,7 @@ jobs:
         run: |
           cd site
           export OLDVERSION=$(jq -r '.[0]' versions.json)
-          echo '[]' >> versions.json
+          echo '[]' > versions.json
           git rm -r versioned_docs/version-${OLDVERSION}
           git rm versioned_sidebars/version-${OLDVERSION}-sidebars.json
           export VERSION=(${{ github.event.client_payload.version }} ${{ github.event.client_payload.message.version }} ${{ github.event.inputs.version }})
