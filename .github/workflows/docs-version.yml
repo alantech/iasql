@@ -36,7 +36,7 @@ jobs:
       - name: Tag a new version, drop the old, commit the changes and push
         run: |
           cd site
-          export OLDVERSION=$(jq '.[0]' versions.json)
+          export OLDVERSION=$(jq -r '.[0]' versions.json)
           echo '[]' >> versions.json
           git rm -r versioned_docs/version-${OLDVERSION}
           git rm versioned_sidebars/version-${OLDVERSION}-sidebars.json
