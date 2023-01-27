@@ -1,19 +1,12 @@
 import _ from 'lodash';
 
-import { EC2, paginateDescribeRouteTables } from '@aws-sdk/client-ec2';
-import { CreateRouteTableCommandInput } from '@aws-sdk/client-ec2/dist-types/commands/CreateRouteTableCommand';
-import {
-  Route as AwsRoute,
-  RouteTable as AwsRouteTable,
-} from '@aws-sdk/client-ec2/dist-types/models/models_1';
+import { EC2 } from '@aws-sdk/client-ec2';
+import { Route as AwsRoute } from '@aws-sdk/client-ec2/dist-types/models/models_1';
 
-import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
-import { getCloudId } from '../../../services/cloud-id';
-import { findDiff } from '../../../services/diff';
+import { AWS, crudBuilder2 } from '../../../services/aws_macros';
 import { Context, Crud2, IdFields, MapperBase } from '../../interfaces';
 import { Route, RouteTable } from '../entity';
 import { AwsVpcModule } from '../index';
-import { convertTagsForAws, convertTagsFromAws, eqTags } from './tags';
 
 export class RouteMapper extends MapperBase<Route> {
   module: AwsVpcModule;
@@ -66,6 +59,13 @@ export class RouteMapper extends MapperBase<Route> {
     NetworkInterfaceId: r.networkInterfaceId,
     VpcPeeringConnectionId: r.vpcPeeringConnectionId,
     CoreNetworkArn: r.coreNetworkArn,
+  }));
+
+  deleteRoute = crudBuilder2<EC2, 'deleteRoute'>('deleteRoute', (r: Route) => ({
+    DestinationCidrBlock: this.cidrIPv4Pattern.test(r.destination) ? r.destination : undefined,
+    DestinationIpv6CidrBlock: this.cidrIPv6Pattern.test(r.destination) ? r.destination : undefined,
+    DestinationPrefixListId: this.prefixedListPattern.test(r.destination) ? r.destination : undefined,
+    RouteTableId: r.routeTable.routeTableId,
   }));
 
   routeMapper(route: AwsRoute, routeTable: RouteTable) {
@@ -132,60 +132,35 @@ export class RouteMapper extends MapperBase<Route> {
         return out;
       }
     },
-    update: async (es: RouteTable[], ctx: Context) => {
+    updateOrReplace: (_prev: Route, _next: Route) => 'replace',
+    update: async (es: Route[], ctx: Context) => {
       const out = [];
       for (const e of es) {
-        const cloudRecord: RouteTable = ctx?.memo?.cloud?.RouteTable?.[this.entityId(e)];
-
-        if (cloudRecord.vpc.vpcId !== e.vpc.vpcId) {
-          // delete and create a new one
-          await this.module.routeTable.cloud.delete(cloudRecord, ctx);
-          out.push((await this.module.routeTable.cloud.create(e, ctx)) as RouteTable);
+        const cloudRecord: Route = ctx?.memo?.cloud?.RouteTable?.[this.entityId(e)];
+        const client = (await ctx.getAwsClient(e.routeTable.region)) as AWS;
+        // default route, can't be modified by the user
+        if (cloudRecord.gatewayId === 'local') {
+          cloudRecord.id = e.id;
+          this.module.route.db.update(cloudRecord, ctx);
+          out.push(cloudRecord);
           continue;
         }
-
-        const client = (await ctx.getAwsClient(e.region)) as AWS;
-        if (!this.eqListItems<Route>(this.eqRoute, e.routes, cloudRecord.routes)) {
-          // delete and create routes
-          const { entitiesInDbOnly, entitiesInAwsOnly } = this.findRoutesDiff(e.routes, cloudRecord.routes);
-          for (const r of entitiesInAwsOnly) {
-            if (r.GatewayId === 'local') {
-              // default route, can't be deleted by the user
-              await ctx.orm.save(Route, r);
-              ctx.memo.db.RouteTable[this.entityId(e)] = await ctx.orm.find(RouteTable, {
-                where: { id: e.id },
-              });
-              continue;
-            }
-            await RouteTableMapper.deleteRoute(client.ec2client, e, r);
-          }
-          for (const r of entitiesInDbOnly) {
-            await RouteTableMapper.createRoute(client.ec2client, e, r);
-          }
-        }
-
-        return out;
+        // delete and create route
+        await this.deleteRoute(client.ec2client, cloudRecord);
+        await this.createRoute(client.ec2client, e);
+        out.push(e);
       }
+      return out;
     },
-    delete: async (es: RouteTable[], ctx: Context) => {
+    delete: async (es: Route[], ctx: Context) => {
       await Promise.all(
         es.map(async e => {
-          const client = (await ctx.getAwsClient(e.region)) as AWS;
-          // fails if it's the main route table, but the routeTableAssociation.cloud.delete would write it back to the db
-          await client.ec2client.deleteRouteTable({ RouteTableId: e.routeTableId });
+          const client = (await ctx.getAwsClient(e.routeTable.region)) as AWS;
+          await this.deleteRoute(client.ec2client, e);
         }),
       );
     },
   });
-
-  private static async deleteRoute(client: EC2, routeTable: RouteTable, r: Route) {
-    return await client.deleteRoute({
-      DestinationCidrBlock: r.DestinationCidrBlock,
-      DestinationIpv6CidrBlock: r.DestinationIpv6CidrBlock,
-      DestinationPrefixListId: r.DestinationPrefixListId,
-      RouteTableId: routeTable.routeTableId,
-    });
-  }
 
   constructor(module: AwsVpcModule) {
     super();
