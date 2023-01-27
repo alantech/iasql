@@ -162,6 +162,30 @@ export class RouteMapper extends MapperBase<Route> {
     },
   });
 
+  db = new Crud2<Route>({
+    create: (es: Route[], ctx: Context) => ctx.orm.save(Route, es),
+    update: (es: Route[], ctx: Context) => ctx.orm.save(Route, es),
+    delete: (es: Route[], ctx: Context) => ctx.orm.remove(Route, es),
+    read: async (ctx: Context, id?: string) => {
+      const { routeTableId, destination } = id
+        ? this.idFields(id)
+        : { routeTableId: undefined, destination: undefined };
+      const opts =
+        routeTableId && destination
+          ? {
+              relations: ['routeTable'],
+              where: {
+                destination,
+                routeTable: {
+                  routeTableId,
+                },
+              },
+            }
+          : {};
+      return await ctx.orm.find(Route, opts);
+    },
+  });
+
   constructor(module: AwsVpcModule) {
     super();
     this.module = module;
