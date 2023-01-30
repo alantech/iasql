@@ -3434,9 +3434,10 @@ dns-packet@^5.2.2:
   dependencies:
     "@leichtgewicht/ip-codec" "^2.0.1"
 
-"docusaurus-plugin-iasql@https://github.com/iasql/docusaurus-plugin-iasql#v1.0.1":
+"docusaurus-plugin-iasql@https://github.com/iasql/docusaurus-plugin-iasql#v1.0.2":
   version "1.0.1"
-  resolved "https://github.com/iasql/docusaurus-plugin-iasql#7d64d3128c52ce744682119686871a57d4c19e45"
+  uid a11be126922aff7da2609dc3d0d8f5bbb3a6a31e
+  resolved "https://github.com/iasql/docusaurus-plugin-iasql#a11be126922aff7da2609dc3d0d8f5bbb3a6a31e"
   dependencies:
     "@supercharge/strings" "^1.29.1"
     fs "^0.0.1-security"
@@ -6412,6 +6413,11 @@ remark-squeeze-paragraphs@4.0.0:
   integrity sha512-8qRqmL9F4nuLPIgl92XUuxI3pFxize+F1H0e/W3llTk0UsjJaj01+RrirkMw7P21RKe4X6goQhYRSvNWX+70Rw==
   dependencies:
     mdast-squeeze-paragraphs "^4.0.0"
+
+remarkable-external-link@^2.1.0:
+  version "2.1.0"
+  resolved "https://registry.yarnpkg.com/remarkable-external-link/-/remarkable-external-link-2.1.0.tgz#a51bcaa196a1d88676e1ae4eee78ba0d42e076b2"
+  integrity sha512-R+HaXputhzlf5j02cf7POvs1HRf3qrZa36Qy/DMQEKn/H+nKVTTXUL0G8eWUAJl7ihX5mgkxQPRm7MeFiP29Pw==
 
 renderkid@^3.0.0:
   version "3.0.0"
