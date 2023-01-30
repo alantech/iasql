@@ -74,19 +74,11 @@ export default function DocBreadcrumbs() {
   if (!breadcrumbs || breadcrumbs.length==0) {
     breadcrumbs = [
       {
-        "type":"category",
-        "label": "Docs"
+        type:"link",
+        label:"Reference",
+        href: "/docs/next/reference",
+        docId: "reference"
       },
-      {
-        "type":"category",
-        "label":"Reference",
-      },
-      {
-        "type": "link",
-        "label": "SQL",
-        "href": "/docs/next/reference/sql",
-        "docId": "reference"
-      }
     ]
   }
   return (
@@ -105,7 +97,10 @@ export default function DocBreadcrumbs() {
         itemScope
         itemType="https://schema.org/BreadcrumbList">
         {homePageRoute && <HomeBreadcrumbItem />}
-        {breadcrumbs.map((item, idx) => {
+        <BreadcrumbsItem active={false} addMicrodata={false}>
+          <BreadcrumbsItemLink href="/docs/" isLast={false}>Docs</BreadcrumbsItemLink>
+          </BreadcrumbsItem>
+        {breadcrumbs.map((item, idx) => {   
           const isLast = idx === breadcrumbs.length - 1;
           return (
             <BreadcrumbsItem
@@ -113,7 +108,7 @@ export default function DocBreadcrumbs() {
               active={isLast}
               index={idx}
               addMicrodata={!!item.href}>
-              <BreadcrumbsItemLink href={item.href} isLast={isLast}>
+              <BreadcrumbsItemLink href={item.href} isLast={false}>
                 {item.label}
               </BreadcrumbsItemLink>
             </BreadcrumbsItem>
