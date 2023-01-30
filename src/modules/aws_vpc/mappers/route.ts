@@ -123,12 +123,11 @@ export class RouteMapper extends MapperBase<Route> {
       } else {
         logger.warn(`+-+ GETTING ROUTES`);
         const out: Route[] = [];
-        const routeTables: RouteTable[] = ctx.memo?.cloud?.RouteTable
-          ? Object.values(ctx.memo?.cloud?.RouteTable)
-          : await this.module.routeTable.cloud.read(ctx);
+        const routeTables: RouteTable[] = await this.module.routeTable.cloud.read(ctx);
         for (const rt of routeTables ?? []) {
           try {
             if (!rt) continue;
+            logger.warn(`+-+ ROUTE TABLE ${JSON.stringify(rt)}`);
             const routes: (Route | undefined)[] =
               rt.routes?.map(r => this.routeMapper(r, rt)).filter(r => !!r) ?? [];
             out.push(...(routes as Route[]));

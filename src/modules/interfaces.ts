@@ -113,6 +113,7 @@ export class Crud2<E extends {}> {
       ctx.memo[dest] = ctx.memo[dest] ?? {};
       ctx.memo[dest][entityName] = ctx.memo[dest][entityName] ?? {};
       delete ctx.memo[dest][entityName][entityId(e)];
+      logger.warn(`+-+ memo object after delete ${JSON.stringify(ctx.memo[dest][entityName][entityId(e)])}`)
     });
   }
 
