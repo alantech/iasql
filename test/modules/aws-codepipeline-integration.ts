@@ -48,6 +48,7 @@ const codepipelinePolicyArn = 'arn:aws:iam::aws:policy/AWSCodePipeline_FullAcces
 const s3PolicyArn = 'arn:aws:iam::aws:policy/AmazonS3FullAccess';
 
 const bucket = `${prefix}-bucket`;
+const testLambdaBucketName = `${prefix}-lambda-bucket`;
 
 const applicationNameForDeployment = `${prefix}${dbAlias}applicationForDeployment`;
 const deploymentGroupName = `${prefix}${dbAlias}deployment_group`;
@@ -55,6 +56,7 @@ const nonDefaultRegion = 'us-east-1';
 const codeDeployRoleName = `${prefix}-codedeploy-${region}`;
 const codePipelineRoleName = `${prefix}-codepipeline-${region}`;
 const ec2RoleName = `${prefix}-codedeploy-ec2-${region}`;
+const cloudformationRoleName = `${prefix}-codedeploy-cloudformation-${region}`;
 const sgGroupName = `${prefix}sgcodedeploy`;
 
 const accessKeyId = process.env.AWS_ACCESS_KEY_ID ?? '';
@@ -157,6 +159,100 @@ const stages = JSON.stringify([
     ],
   },
 ]);
+
+// stages for lambda
+const lambdaStages = JSON.stringify([
+  {
+    name: 'Source',
+    actions: [
+      {
+        name: 'SourceAction',
+        actionTypeId: {
+          category: 'Source',
+          owner: 'ThirdParty',
+          version: '1',
+          provider: 'GitHub',
+        },
+        configuration: {
+          Owner: 'iasql',
+          Repo: 'iasql-code-example-lambda',
+          Branch: 'main',
+          OAuthToken: `${process.env.GH_PAT}`,
+          OutputArtifactFormat: 'CODE_ZIP',
+        },
+        outputArtifacts: [
+          {
+            name: 'SourceArtifact',
+          },
+        ],
+      },
+    ],
+  },
+  {
+    name: 'Build',
+    actions: [
+      {
+        actionTypeId: {
+          category: 'Build',
+          owner: 'AWS',
+          provider: 'CodeBuild',
+          version: '1',
+        },
+        configuration: {
+          ProjectName: 'build-code-example-lambda',
+          EnvironmentVariables: `[{"TEST_LAMBDA_BUCKET_NAME": "${testLambdaBucketName}"}]`,
+        },
+        inputArtifacts: [
+          {
+            name: 'SourceArtifact',
+          },
+        ],
+        name: 'Build',
+        namespace: 'BuildVariables',
+        outputArtifacts: [
+          {
+            name: 'BuildArtifact',
+          },
+        ],
+        region: 'us-east-2',
+        runOrder: 1,
+      },
+    ],
+  },
+  {
+    name: 'Deploy',
+    actions: [
+      {
+        actionTypeId: {
+          category: 'Deploy',
+          owner: 'AWS',
+          provider: 'CloudFormation',
+          version: '1',
+        },
+        configuration: {
+          ActionMode: 'CHANGE_SET_REPLACE',
+          Capabilities: 'CAPABILITY_IAM',
+          ChangeSetName: 'aws-codepipeline-lambda-changeset-example',
+          RoleArn: cloudformationRoleName,
+          StackName: 'aws-codepipeline-lambda-stack-example',
+          TemplatePath: 'BuildArtifact::outputTemplate.yaml',
+        },
+        inputArtifacts: [
+          {
+            name: 'BuildArtifact',
+          },
+        ],
+        name: 'Deploy',
+        namespace: 'DeployVariables',
+        outputArtifacts: [],
+        region: region,
+        runOrder: 1,
+      },
+    ],
+  },
+]);
+
+// buggy stages
 const buggyStages = JSON.stringify([
   {
     name: 'Source',
@@ -232,6 +328,20 @@ const ec2RolePolicy = JSON.stringify({
       Effect: 'Allow',
       Principal: {
         Service: 'ec2.amazonaws.com',
+      },
+      Action: 'sts:AssumeRole',
+    },
+  ],
+});
+
+const cloudformationRolePolicy = JSON.stringify({
+  Version: '2012-10-17',
+  Statement: [
+    {
+      Sid: '',
+      Effect: 'Allow',
+      Principal: {
+        Service: 'cloudformation.amazonaws.com',
       },
       Action: 'sts:AssumeRole',
     },
@@ -337,6 +447,19 @@ describe('AwsCodepipeline Integration Testing', () => {
     query(
       `
     INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
+    VALUES ('${cloudformationRoleName}', '${cloudformationRolePolicy}', array['${codedeployPolicyArn}']);
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it(
+    'adds a new ec2 role for cloudformation',
+    query(
+      `
+    INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
     VALUES ('${ec2RoleName}', '${ec2RolePolicy}', array['${deployEC2PolicyArn}', '${ssmPolicyArn}', '${codedeployPolicyArn}', '${s3PolicyArn}']);
   `,
       undefined,
@@ -366,6 +489,46 @@ describe('AwsCodepipeline Integration Testing', () => {
       undefined,
       true,
       () => ({ username, password }),
+    ),
+  );
+
+  it(
+    'add storage s3 endpoint for lambda',
+    query(
+      `
+    INSERT INTO bucket (name) VALUES ('${testLambdaBucketName}')`,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  // testing of lambda deployment function
+  it('starts a transaction', begin());
+
+  it(
+    'adds a new pipeline',
+    query(
+      `
+    INSERT INTO pipeline_declaration (name, service_role_name, stages, artifact_store)
+    VALUES ('${prefix}-lambda-${dbAlias}', '${codePipelineRoleName}', '${lambdaStages}', '${artifactStore}');
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it('apply pipeline creation', commit());
+
+  it(
+    'check pipeline is created',
+    query(
+      `
+    SELECT * FROM pipeline_declaration
+    WHERE name = '${prefix}-${dbAlias}-lambda';
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
     ),
   );
 
@@ -547,7 +710,7 @@ describe('AwsCodepipeline Integration Testing', () => {
     query(
       `
     DELETE FROM pipeline_declaration
-    WHERE name = '${prefix}-${dbAlias}' OR name = '${prefix}-buggy-${dbAlias}';
+    WHERE name IN ('${prefix}-${dbAlias}', '${prefix}-buggy-${dbAlias}', '${prefix}-lambda-${dbAlias}');
   `,
       undefined,
       true,
@@ -612,7 +775,7 @@ describe('AwsCodepipeline Integration Testing', () => {
     query(
       `
     DELETE FROM iam_role
-    WHERE role_name = '${codePipelineRoleName}' OR role_name='${codeDeployRoleName}' OR role_name='${ec2RoleName}';
+    WHERE role_name IN ('${codePipelineRoleName}', '${codeDeployRoleName}', '${ec2RoleName}', '${cloudformationRoleName}');
   `,
       undefined,
       true,
@@ -624,7 +787,7 @@ describe('AwsCodepipeline Integration Testing', () => {
     'cleans up the bucket',
     query(
       `
-        DELETE FROM bucket_object WHERE bucket_name='${bucket}'
+        DELETE FROM bucket_object WHERE bucket_name='${bucket}' OR bucket_name='${testLambdaBucketName}'
       `,
       undefined,
       true,
