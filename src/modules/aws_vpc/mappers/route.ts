@@ -165,7 +165,12 @@ export class RouteMapper extends MapperBase<Route> {
         es.map(async e => {
           if (e.gatewayId === 'local') return; // created by AWS, can't be modified by the user
           const client = (await ctx.getAwsClient(e.routeTable.region)) as AWS;
-          await this.deleteRoute(client.ec2client, e);
+          try {
+            await this.deleteRoute(client.ec2client, e);
+          } catch (err) {
+            console.log(`+-+ Error deleting route ${JSON.stringify(err)}`);
+            throw err;
+          }
         }),
       );
     },
