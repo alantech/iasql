@@ -44,6 +44,8 @@ const region = defaultRegion([
 ]);
 const modules = ['aws_codepipeline', 'aws_s3', 'aws_codedeploy'];
 
+const codecommitPolicyArn = 'arn:aws:iam::aws:policy/AWSCodeCommitFullAccess';
+const codebuildPolicyArn = 'arn:aws:iam::aws:policy/AWSCodeBuildAdminAccess';
 const codepipelinePolicyArn = 'arn:aws:iam::aws:policy/AWSCodePipeline_FullAccess';
 const s3PolicyArn = 'arn:aws:iam::aws:policy/AmazonS3FullAccess';
 
@@ -55,6 +57,7 @@ const deploymentGroupName = `${prefix}${dbAlias}deployment_group`;
 const nonDefaultRegion = 'us-east-1';
 const codeDeployRoleName = `${prefix}-codedeploy-${region}`;
 const codePipelineRoleName = `${prefix}-codepipeline-${region}`;
+const codePipelineCfRoleName = `${prefix}-codepipeline-cf-${region}`;
 const ec2RoleName = `${prefix}-codedeploy-ec2-${region}`;
 const cloudformationRoleName = `${prefix}-codedeploy-cloudformation-${region}`;
 const sgGroupName = `${prefix}sgcodedeploy`;
@@ -253,46 +256,158 @@ const lambdaStages = JSON.stringify([
 ]);
 
 const customLambdaPolicy = JSON.stringify({
-  Version: '2012-10-17',
   Statement: [
     {
-      Sid: 'VisualEditor0',
+      Action: ['iam:PassRole'],
+      Resource: '*',
+      Effect: 'Allow',
+      Condition: {
+        StringEqualsIfExists: {
+          'iam:PassedToService': [
+            'cloudformation.amazonaws.com',
+            'elasticbeanstalk.amazonaws.com',
+            'ec2.amazonaws.com',
+            'ecs-tasks.amazonaws.com',
+          ],
+        },
+      },
+    },
+    {
+      Action: [
+        'codecommit:CancelUploadArchive',
+        'codecommit:GetBranch',
+        'codecommit:GetCommit',
+        'codecommit:GetRepository',
+        'codecommit:GetUploadArchiveStatus',
+        'codecommit:UploadArchive',
+      ],
+      Resource: '*',
+      Effect: 'Allow',
+    },
+    {
+      Action: [
+        'codedeploy:CreateDeployment',
+        'codedeploy:GetApplication',
+        'codedeploy:GetApplicationRevision',
+        'codedeploy:GetDeployment',
+        'codedeploy:GetDeploymentConfig',
+        'codedeploy:RegisterApplicationRevision',
+      ],
+      Resource: '*',
+      Effect: 'Allow',
+    },
+    {
+      Action: ['codestar-connections:UseConnection'],
+      Resource: '*',
+      Effect: 'Allow',
+    },
+    {
+      Action: [
+        'elasticbeanstalk:*',
+        'ec2:*',
+        'elasticloadbalancing:*',
+        'autoscaling:*',
+        'cloudwatch:*',
+        's3:*',
+        'sns:*',
+        'cloudformation:*',
+        'rds:*',
+        'sqs:*',
+        'ecs:*',
+      ],
+      Resource: '*',
+      Effect: 'Allow',
+    },
+    {
+      Action: ['lambda:InvokeFunction', 'lambda:ListFunctions'],
+      Resource: '*',
+      Effect: 'Allow',
+    },
+    {
+      Action: [
+        'opsworks:CreateDeployment',
+        'opsworks:DescribeApps',
+        'opsworks:DescribeCommands',
+        'opsworks:DescribeDeployments',
+        'opsworks:DescribeInstances',
+        'opsworks:DescribeStacks',
+        'opsworks:UpdateApp',
+        'opsworks:UpdateStack',
+      ],
+      Resource: '*',
+      Effect: 'Allow',
+    },
+    {
+      Action: [
+        'cloudformation:CreateStack',
+        'cloudformation:DeleteStack',
+        'cloudformation:DescribeStacks',
+        'cloudformation:UpdateStack',
+        'cloudformation:CreateChangeSet',
+        'cloudformation:DeleteChangeSet',
+        'cloudformation:DescribeChangeSet',
+        'cloudformation:ExecuteChangeSet',
+        'cloudformation:SetStackPolicy',
+        'cloudformation:ValidateTemplate',
+      ],
+      Resource: '*',
+      Effect: 'Allow',
+    },
+    {
+      Action: [
+        'codebuild:BatchGetBuilds',
+        'codebuild:StartBuild',
+        'codebuild:BatchGetBuildBatches',
+        'codebuild:StartBuildBatch',
+      ],
+      Resource: '*',
+      Effect: 'Allow',
+    },
+    {
       Effect: 'Allow',
       Action: [
-        'events:EnableRule',
-        'events:PutRule',
-        'iam:CreateRole',
-        'iam:AttachRolePolicy',
-        'iam:*',
-        'events:ListRuleNamesByTarget',
-        'iam:DeleteRolePolicy',
-        'events:ListRules',
-        'events:RemoveTargets',
-        'events:ListTargetsByRule',
-        'events:DisableRule',
-        'sns:*',
-        'events:PutEvents',
-        'iam:GetRole',
-        'events:DescribeRule',
-        'iam:DeleteRole',
-        's3:GetBucketVersioning',
-        'events:TestEventPattern',
-        'events:PutPermission',
-        'events:DescribeEventBus',
-        'events:TagResource',
-        'events:PutTargets',
-        'events:DeleteRule',
-        's3:GetObject',
-        'lambda:*',
-        'events:ListTagsForResource',
-        'events:RemovePermission',
-        'iam:GetRolePolicy',
-        's3:GetObjectVersion',
-        'events:UntagResource',
+        'devicefarm:ListProjects',
+        'devicefarm:ListDevicePools',
+        'devicefarm:GetRun',
+        'devicefarm:GetUpload',
+        'devicefarm:CreateUpload',
+        'devicefarm:ScheduleRun',
       ],
       Resource: '*',
     },
+    {
+      Effect: 'Allow',
+      Action: [
+        'servicecatalog:ListProvisioningArtifacts',
+        'servicecatalog:CreateProvisioningArtifact',
+        'servicecatalog:DescribeProvisioningArtifact',
+        'servicecatalog:DeleteProvisioningArtifact',
+        'servicecatalog:UpdateProduct',
+      ],
+      Resource: '*',
+    },
+    {
+      Effect: 'Allow',
+      Action: ['cloudformation:ValidateTemplate'],
+      Resource: '*',
+    },
+    {
+      Effect: 'Allow',
+      Action: ['ecr:DescribeImages'],
+      Resource: '*',
+    },
+    {
+      Effect: 'Allow',
+      Action: ['states:DescribeExecution', 'states:DescribeStateMachine', 'states:StartExecution'],
+      Resource: '*',
+    },
+    {
+      Effect: 'Allow',
+      Action: ['appconfig:StartDeployment', 'appconfig:StopDeployment', 'appconfig:GetDeployment'],
+      Resource: '*',
+    },
   ],
+  Version: '2012-10-17',
 });
 
 // buggy stages
@@ -363,6 +478,7 @@ const codedeployRolePolicy = JSON.stringify({
 const codedeployPolicyArn = 'arn:aws:iam::aws:policy/AWSCodeDeployFullAccess';
 const deployEC2PolicyArn = 'arn:aws:iam::aws:policy/AmazonEC2FullAccess';
 const globalIamPolicyArn = 'arn:aws:iam::aws:policy/IAMFullAccess';
+const cloudformationPolicyArn = 'arn:aws:iam::aws:policy/AWSCloudFormationFullAccess';
 
 const ec2RolePolicy = JSON.stringify({
   Version: '2012-10-17',
@@ -478,7 +594,20 @@ describe('AwsCodepipeline Integration Testing', () => {
     query(
       `
     INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
-    VALUES ('${codePipelineRoleName}', '${assumeServicePolicy}', array['${codepipelinePolicyArn}', '${s3PolicyArn}', '${codedeployPolicyArn}', '${globalIamPolicyArn}']);
+    VALUES ('${codePipelineRoleName}', '${assumeServicePolicy}', array['${codepipelinePolicyArn}', '${s3PolicyArn}', '${codedeployPolicyArn}', '${globalIamPolicyArn}', '${cloudformationPolicyArn}']);
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it(
+    'adds a new role for lambda pipeline',
+    query(
+      `
+    INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
+    VALUES ('${codePipelineCfRoleName}', '${assumeServicePolicy}', array['${codepipelinePolicyArn}', '${s3PolicyArn}', '${codecommitPolicyArn}', '${codebuildPolicyArn}', '${codedeployPolicyArn}', '${globalIamPolicyArn}', '${cloudformationPolicyArn}']);
   `,
       undefined,
       true,
@@ -491,7 +620,7 @@ describe('AwsCodepipeline Integration Testing', () => {
     query(
       `
     INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
-    VALUES ('${cloudformationRoleName}', '${cloudformationRolePolicy}', array['${codedeployPolicyArn}', '${globalIamPolicyArn}']);
+    VALUES ('${cloudformationRoleName}', '${cloudformationRolePolicy}', array['${codedeployPolicyArn}', '${globalIamPolicyArn}', '${cloudformationPolicyArn}']);
   `,
       undefined,
       true,
@@ -556,7 +685,7 @@ describe('AwsCodepipeline Integration Testing', () => {
     query(
       `
     INSERT INTO pipeline_declaration (name, service_role_name, stages, artifact_store)
-    VALUES ('${prefix}-lambda-${dbAlias}', '${codePipelineRoleName}', '${lambdaStages}', '${artifactStore}');
+    VALUES ('${prefix}-lambda-${dbAlias}', '${codePipelineCfRoleName}', '${lambdaStages}', '${artifactStore}');
   `,
       undefined,
       true,
@@ -816,6 +945,8 @@ describe('AwsCodepipeline Integration Testing', () => {
     it('applies the instance deletion', commit());
   });
 
+  // deletes policy
+
   it('starts a transaction', begin());
 
   it(
@@ -823,7 +954,7 @@ describe('AwsCodepipeline Integration Testing', () => {
     query(
       `
     DELETE FROM iam_role
-    WHERE role_name IN ('${codePipelineRoleName}', '${codeDeployRoleName}', '${ec2RoleName}', '${cloudformationRoleName}');
+    WHERE role_name IN ('${codePipelineRoleName}', '${codePipelineCfRoleName}', '${codeDeployRoleName}', '${ec2RoleName}', '${cloudformationRoleName}');
   `,
       undefined,
       true,
