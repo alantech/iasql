@@ -212,7 +212,7 @@ This method is used to open a transaction. It first checks if there's no other o
 
 ### `iasql_commit`
 
-This can only happen if a transaction has been opened first. this function executes the following steps:
+This can only happen if a transaction has been opened first. This function executes the following steps:
 
 1. Insert a new "start commit" record in `iasql_audit_log`.
 2. Get the previous start commit record.
@@ -222,9 +222,11 @@ This can only happen if a transaction has been opened first. this function execu
 5. When the changes have been applied, we sync from the cloud into the database to keep it up-to-date.
 6. No matter what happened during the commit execution, we insert a new end commit record in the `iasql_audit_log` table.
 
+If the commit operation fails we revert all changes before closing the transaction. It will recreate all changes in the audit log table as "inverse queries" and `apply` them. These inverse queries will handle any `INSERT` statement as a `DELETE` statement and `DELETE`s as `INSERT`s.
+
 ### `iasql_rollback`
 
-This can only happen if a transaction has been opened first. This function executes the following steps:
+This can only happen if a transaction has been opened first. It help us synchronize again the state of the cloud in our database discarding changes done to the DB since `iasql_begin` and that have not been committed. This function executes the following steps:
 
 1. Insert a new "start commit" record in `iasql_audit_log`.
 2. Make a cloud synchronization into the database to restore possible changes done by the user that have not been applied.

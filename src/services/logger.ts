@@ -131,7 +131,7 @@ export function logErrSentry(e: any, uid?: string, email?: string, dbAlias?: str
   let err = e;
   let metadata;
   if (e instanceof DepError && e.metadata?.failures) {
-    message = [...new Set(e.metadata.failures.map((f: Error) => f?.message))].join('\n');
+    message = mergeErrorMessages(e.metadata.failures);
     err = e.metadata.failures[e.metadata.failures.length - 1];
     metadata = e.metadata;
   }
@@ -154,6 +154,10 @@ export function logErrSentry(e: any, uid?: string, email?: string, dbAlias?: str
   }
   singleton.error(message, e instanceof DepError ? e.metadata : err);
   return message;
+}
+
+export function mergeErrorMessages(es: any[]): string {
+  return [...new Set(es.map((f: any) => f?.message))].filter(m => !!m).join('\n');
 }
 
 export default singleton;

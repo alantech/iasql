@@ -209,8 +209,6 @@ describe('S3 Integration Testing', () => {
       return {};
     }));
 
-  it('restores cloud state', rollback());
-
   it('starts a transaction', begin());
 
   it(

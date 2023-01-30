@@ -11,7 +11,7 @@ import { Context, ModuleBase, ModuleInterface, PostTransactionCheck, PreTransact
 import * as iasqlFunctions from '../modules/iasql_functions/iasql';
 import * as dbMan from '../services/db-manager';
 import * as iasql from '../services/iasql';
-import logger, { logErrSentry } from '../services/logger';
+import logger, { logErrSentry, mergeErrorMessages } from '../services/logger';
 import MetadataRepo from '../services/repositories/metadata';
 import * as telemetry from '../services/telemetry';
 import { TypeormWrapper } from '../services/typeorm';
@@ -294,7 +294,7 @@ async function rpcCall(
       break;
   }
   if (rpcErr && commitErr) {
-    const errMessage = [rpcErr.message, commitErr.message].join('\n');
+    const errMessage = mergeErrorMessages([rpcErr, commitErr]);
     rpcErr.message = errMessage;
     throw rpcErr;
   }

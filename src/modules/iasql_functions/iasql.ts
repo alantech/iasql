@@ -1,7 +1,10 @@
 import * as levenshtein from 'fastest-levenshtein';
 import { default as cloneDeep } from 'lodash.clonedeep';
+import format from 'pg-format';
 import { Not, In, Between, LessThan, MoreThan, EntityMetadata } from 'typeorm';
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
+import { ColumnMetadata } from 'typeorm/metadata/ColumnMetadata';
+import { RelationMetadata } from 'typeorm/metadata/RelationMetadata';
 import { camelCase, snakeCase } from 'typeorm/util/StringUtils';
 
 import config from '../../config';
@@ -11,7 +14,7 @@ import { Context, MapperInterface, ModuleInterface, MapperBase } from '../../mod
 import * as dbMan from '../../services/db-manager';
 import { findDiff } from '../../services/diff';
 import { DepError, lazyLoader } from '../../services/lazy-dep';
-import logger, { debugObj, logErrSentry } from '../../services/logger';
+import logger, { debugObj, logErrSentry, mergeErrorMessages } from '../../services/logger';
 import { sortModules } from '../../services/mod-sort';
 import MetadataRepo from '../../services/repositories/metadata';
 import * as telemetry from '../../services/telemetry';
@@ -20,6 +23,8 @@ import { AuditLogChangeType, IasqlAuditLog, IasqlModule } from '../iasql_platfor
 
 // Crupde = CR-UP-DE, Create/Update/Delete
 type Crupde = { [key: string]: { id: string; description: string }[] };
+type CrupdeOperations = { toCreate: Crupde; toUpdate: Crupde; toReplace: Crupde; toDelete: Crupde };
+
 export function recordCount(records: { [key: string]: any }[]): [number, number, number] {
   const dbCount = records.reduce((cumu, r) => cumu + r.diff.entitiesInDbOnly.length, 0);
   const cloudCount = records.reduce((cumu, r) => cumu + r.diff.entitiesInAwsOnly.length, 0);
@@ -634,9 +639,12 @@ export async function commit(
     context.orm = orm;
 
     const isRunning = await isCommitRunning(orm);
-    if (isRunning) throw new Error('Another execution is in process. Please try again later.');
+    if (!force && isRunning) throw new Error('Another execution is in process. Please try again later.');
 
-    const newStartCommit: IasqlAuditLog = await insertLog(orm, dryRun ? 'preview_start' : 'start');
+    const newStartCommit: IasqlAuditLog = await insertLog(
+      orm,
+      dryRun ? AuditLogChangeType.PREVIEW_START_COMMIT : AuditLogChangeType.START_COMMIT,
+    );
     if (dryRun) context.previewStartCommit = newStartCommit;
     else context.startCommit = newStartCommit;
     const previousStartCommit = await getPreviousStartCommit(orm, newStartCommit.ts);
@@ -666,17 +674,17 @@ export async function commit(
     const t2 = Date.now();
     logger.scope({ dbId }).info(`Setup took ${t2 - t1}ms`);
 
-    const crupdes: { toCreate: Crupde; toUpdate: Crupde; toReplace: Crupde; toDelete: Crupde } = {
+    const crupdes: CrupdeOperations = {
       toCreate: {},
       toUpdate: {},
       toReplace: {},
       toDelete: {},
     };
-
+    let applyErr;
     try {
       if (modulesWithChanges.length) {
-        logger.scope({ dbId }).info('Starting commit apply phase for modules with changes');
-        const applyRes = await commitApply(
+        logger.scope({ dbId }).info('Starting apply phase for modules with changes');
+        const applyRes = await apply(
           dbId,
           modulesWithChangesSorted,
           context,
@@ -688,21 +696,302 @@ export async function commit(
         if (dryRun) return applyRes;
       }
     } catch (e) {
-      logger.scope({ dbId }).info('Something failed. Starting commit apply phase for all modules');
-      return await commitApply(dbId, installedModulesSorted, context, force, crupdes, dryRun);
+      logger.scope({ dbId }).warn(`Something failed applying for modules with changes.\n${e}`);
+      applyErr = e;
     }
-    logger.scope({ dbId }).info('Starting commit sync phase for all modules');
-    return await commitSync(dbId, installedModulesSorted, context, force, crupdes, dryRun);
+    if (applyErr) {
+      try {
+        logger.scope({ dbId }).info(`Starting apply phase for all modules`);
+        await apply(dbId, installedModulesSorted, context, force, crupdes, dryRun);
+        applyErr = null;
+      } catch (e) {
+        logger.scope({ dbId }).warn(`Something failed applying for all modules.\n${e}`);
+        applyErr = e;
+      }
+    }
+    let syncRes, syncErr;
+    try {
+      logger.scope({ dbId }).info('Starting sync phase for all modules');
+      syncRes = await sync(dbId, installedModulesSorted, context, force, crupdes, dryRun);
+    } catch (e) {
+      logger.scope({ dbId }).warn(`Something failed during sync phase for all modules\n${e}`);
+      syncErr = e;
+    }
+    if (applyErr || syncErr) {
+      let rollbackErr;
+      try {
+        await revert(dbId, context, installedModulesSorted, crupdes);
+      } catch (e) {
+        rollbackErr = e;
+      }
+      const errMessage = mergeErrorMessages([rollbackErr, syncErr, applyErr]);
+      const err: any | Error =
+        applyErr ?? syncErr ?? rollbackErr ?? new Error(`Something went wrong. ${errMessage}`);
+      err.message = errMessage;
+      throw err;
+    }
+    return syncRes;
   } catch (e: any) {
     debugObj(e);
     await insertErrorLog(orm, logErrSentry(e));
     throw e;
   } finally {
     // Create end commit object
-    await insertLog(orm, dryRun ? 'preview_end' : 'end');
+    await insertLog(orm, dryRun ? AuditLogChangeType.PREVIEW_END_COMMIT : AuditLogChangeType.END_COMMIT);
     // do not drop the conn if it was provided
     if (orm !== ormOpt) orm?.dropConn();
     if (parentOrm) context.orm = parentOrm;
+  }
+}
+
+async function revert(
+  dbId: string,
+  ctx: Context,
+  installedModules: ModuleInterface[],
+  crupdes: CrupdeOperations,
+) {
+  await insertLog(ctx.orm, AuditLogChangeType.START_REVERT);
+  try {
+    const changeLogsSinceLastBegin: IasqlAuditLog[] = await getChangeLogsSinceLastBegin(ctx.orm);
+    const modsIndexedByTable = indexModsByTable(installedModules);
+    const inverseQueries: string[] = await getInverseQueries(
+      changeLogsSinceLastBegin,
+      modsIndexedByTable,
+      ctx.orm,
+    );
+    await applyInverseQueries(inverseQueries, dbId, ctx, installedModules, crupdes);
+  } catch (e) {
+    throw e;
+  } finally {
+    await insertLog(ctx.orm, AuditLogChangeType.END_REVERT);
+  }
+}
+
+async function getChangeLogsSinceLastBegin(orm: TypeormWrapper): Promise<IasqlAuditLog[]> {
+  const transaction: IasqlAuditLog = await orm.findOne(IasqlAuditLog, {
+    order: { ts: 'DESC' },
+    skip: 0,
+    take: 1,
+    where: {
+      changeType: AuditLogChangeType.OPEN_TRANSACTION,
+    },
+  });
+  if (!transaction) throw new Error('No open transaction');
+  return await orm.find(IasqlAuditLog, {
+    order: { ts: 'DESC', id: 'DESC' },
+    where: {
+      changeType: In([AuditLogChangeType.INSERT, AuditLogChangeType.UPDATE, AuditLogChangeType.DELETE]),
+      ts: MoreThan(transaction.ts),
+    },
+  });
+}
+
+/**
+ * @internal
+ * Generate inverse SQL statements based on change logs
+ */
+async function getInverseQueries(
+  changeLogs: IasqlAuditLog[],
+  modsIndexedByTable: { [key: string]: ModuleInterface },
+  orm: TypeormWrapper,
+): Promise<string[]> {
+  const inverseQueries: string[] = [];
+  for (const cl of changeLogs) {
+    const tableMetadata = await getTableMetadata(cl.tableName, modsIndexedByTable, orm);
+    let inverseQuery = '';
+    let originalAugmentedValues;
+    let changedAugmentedValues;
+    switch (cl.changeType) {
+      case AuditLogChangeType.INSERT:
+        changedAugmentedValues = Object.entries(cl.change.change ?? {})
+          .map(([k, v]: [string, any]) => augmentValue(k, v, tableMetadata))
+          .filter(av => (!av.isPrimary && !av.isAutogenerated) || !av.isAutogenerated);
+        inverseQuery = format(
+          `
+            DELETE FROM %I
+            WHERE ${changedAugmentedValues
+              // We need to add an special case for AMIs since we know the revolve string can be used and it will not match with the actual AMI assigned
+              .filter(av => av.key !== 'ami')
+              .map(
+                av =>
+                  `${av.formattedValue === 'NULL' ? '%I IS %s' : av.isJson ? '%I::jsonb = %s' : '%I = %s'}`,
+              )
+              .join(' AND ')};
+          `,
+          cl.tableName,
+          ...changedAugmentedValues
+            // We need to add an special case for AMIs since we know the revolve string can be used and it will not match with the actual AMI assigned
+            .filter(av => av.key !== 'ami')
+            .flatMap(av => [av.key, av.formattedValue]),
+        );
+        break;
+      case AuditLogChangeType.DELETE:
+        originalAugmentedValues = Object.entries(cl.change.original ?? {})
+          .map(([k, v]: [string, any]) => augmentValue(k, v, tableMetadata))
+          .filter(av => (!av.isPrimary && !av.isAutogenerated) || !av.isAutogenerated);
+        inverseQuery = format(
+          `
+            INSERT INTO %I (${originalAugmentedValues.map(_ => '%I').join(', ')})
+            VALUES (${originalAugmentedValues.map(_ => '%s').join(', ')});
+          `,
+          cl.tableName,
+          ...originalAugmentedValues.map(av => av.key),
+          ...originalAugmentedValues.map(av => av.formattedValue),
+        );
+        break;
+      case AuditLogChangeType.UPDATE:
+        originalAugmentedValues = Object.entries(cl.change.original ?? {}).map(([k, v]: [string, any]) =>
+          augmentValue(k, v, tableMetadata),
+        );
+        changedAugmentedValues = Object.entries(cl.change.change ?? {})
+          .map(([k, v]: [string, any]) => augmentValue(k, v, tableMetadata))
+          .filter(av => (!av.isPrimary && !av.isAutogenerated) || !av.isAutogenerated);
+        inverseQuery = format(
+          `
+            UPDATE %I
+            SET ${originalAugmentedValues.map(av => `${av.isJson ? '%I::jsonb = %s' : '%I = %s'}`).join(', ')}
+            WHERE ${changedAugmentedValues
+              // We need to add an special case for AMIs since we know the revolve string can be used and it will not match with the actual AMI assigned
+              .filter(av => av.key !== 'ami')
+              .map(
+                av =>
+                  `${av.formattedValue === 'NULL' ? '%I IS %s' : av.isJson ? '%I::jsonb = %s' : '%I = %s'}`,
+              )
+              .join(' AND ')};
+          `,
+          cl.tableName,
+          ...originalAugmentedValues.flatMap(av => [av.key, av.formattedValue]),
+          ...changedAugmentedValues
+            // We need to add an special case for AMIs since we know the revolve string can be used and it will not match with the actual AMI assigned
+            .filter(av => av.key !== 'ami')
+            .flatMap(av => [av.key, av.formattedValue]),
+        );
+        break;
+      default:
+        break;
+    }
+    if (inverseQuery) inverseQueries.push(inverseQuery);
+  }
+  return inverseQueries;
+}
+
+/**
+ * @internal
+ * Returns Typeorm metadata related to `tableName`
+ */
+async function getTableMetadata(
+  tableName: string,
+  modsIndexedByTable: { [key: string]: ModuleInterface },
+  orm: TypeormWrapper,
+): Promise<EntityMetadata | RelationMetadata | undefined> {
+  const mappers = Object.values(modsIndexedByTable[tableName] ?? {}).filter(val => val instanceof MapperBase);
+  let metadata: EntityMetadata | RelationMetadata | undefined;
+  for (const m of mappers) {
+    const tableEntity = (m as MapperBase<any>).entity;
+    const entityMetadata = await orm.getEntityMetadata(tableEntity);
+    if (entityMetadata.tableName === tableName) {
+      metadata = entityMetadata;
+      break;
+    } else {
+      if (
+        entityMetadata.ownRelations
+          .filter(or => !!or.joinTableName)
+          .map(or => or.joinTableName)
+          .includes(tableName)
+      ) {
+        metadata = entityMetadata.ownRelations.find(or => or.joinTableName === tableName);
+        break;
+      }
+    }
+  }
+  // If no metadata found, we need to do a second pass over the mappers because it could be the case of an
+  // Entity that does not have it's own mapper but it is managed by another Entity Mapper.
+  if (!metadata) {
+    for (const m of mappers) {
+      const tableEntity = (m as MapperBase<any>).entity;
+      const entityMetadata = await orm.getEntityMetadata(tableEntity);
+      if (
+        entityMetadata.ownRelations
+          .filter(or => !!or.inverseEntityMetadata.tableName)
+          .map(or => or.inverseEntityMetadata.tableName)
+          .includes(tableName)
+      ) {
+        metadata = entityMetadata.ownRelations.find(
+          or => or.inverseEntityMetadata.tableName === tableName,
+        )?.inverseEntityMetadata;
+        break;
+      }
+    }
+  }
+  return metadata;
+}
+
+/**
+ * @internal
+ * Return object with formatted value for query and some relevant metadata
+ */
+function augmentValue(
+  key: string,
+  value: any,
+  metadata: EntityMetadata | RelationMetadata | undefined,
+): { isPrimary: boolean; isAutogenerated: boolean; key: string; formattedValue: string; isJson: boolean } {
+  const augmentedValue = { isPrimary: false, isAutogenerated: false, key, formattedValue: '', isJson: false };
+  let columnMetadata: ColumnMetadata | undefined;
+  // If `metadata instanceof EntityMetadata` means that the `key` is one of the Entity's properties
+  if (metadata && metadata instanceof EntityMetadata) {
+    columnMetadata = metadata.ownColumns.filter(oc => oc.databaseName === key)?.pop();
+  }
+  // If `metadata instanceof RelationMetadata` means that the `key` is one of the join columns to another entity.
+  if (metadata instanceof RelationMetadata) {
+    columnMetadata = metadata.joinColumns.filter(jc => jc.databaseName === key)?.pop();
+    if (!columnMetadata) {
+      columnMetadata = metadata.inverseJoinColumns.filter(jc => jc.databaseName === key)?.pop();
+    }
+  }
+  // Arrays have special behaviour in postgres. We try to cast the right array type when possible.
+  if (columnMetadata && columnMetadata.isArray) {
+    augmentedValue.formattedValue =
+      typeof columnMetadata.type === 'string'
+        ? format('array[%L]::%I[]', value, columnMetadata.type)
+        : format('array[%L]', value);
+  } else if (typeof value === 'object' && Array.isArray(value)) {
+    augmentedValue.formattedValue =
+      typeof columnMetadata?.type === 'string'
+        ? format('%L::%I', JSON.stringify(value), columnMetadata.type)
+        : format('%L', JSON.stringify(value));
+  } else if (value && typeof value === 'object' && !Array.isArray(value)) {
+    augmentedValue.isJson = true;
+    augmentedValue.formattedValue = format('%L', value);
+  } else {
+    augmentedValue.formattedValue = format('%L', value);
+  }
+  augmentedValue.isPrimary = columnMetadata?.isPrimary ?? false;
+  augmentedValue.isAutogenerated = columnMetadata?.isGenerated ?? false;
+  return augmentedValue;
+}
+
+/**
+ * @internal
+ * Executes all the queries received one by one and the call `apply`
+ */
+async function applyInverseQueries(
+  inverseQueries: string[],
+  dbId: string,
+  ctx: Context,
+  installedModules: ModuleInterface[],
+  crupdes: CrupdeOperations,
+) {
+  try {
+    for (const q of inverseQueries) {
+      try {
+        await ctx.orm.query(q);
+      } catch (e) {
+        logger.scope({ dbId }).warn(`Error applying inverse query: ${JSON.stringify(e)}`);
+      }
+    }
+    await apply(dbId, installedModules, ctx, true, crupdes, false);
+  } catch (e) {
+    throw e;
   }
 }
 
@@ -722,7 +1011,7 @@ export async function rollback(dbId: string, context: Context, force = false, or
     const isRunning = await isCommitRunning(orm);
     if (isRunning) throw new Error('Another execution is in process. Please try again later.');
 
-    const newStartCommit = await insertLog(orm, 'start');
+    const newStartCommit = await insertLog(orm, AuditLogChangeType.START_COMMIT);
     context.startCommit = newStartCommit;
 
     const installedModulesNames = (await orm.find(IasqlModule)).map((m: any) => m.name);
@@ -734,20 +1023,20 @@ export async function rollback(dbId: string, context: Context, force = false, or
     const t2 = Date.now();
     logger.scope({ dbId }).info(`Setup took ${t2 - t1}ms`);
 
-    const crupdes: { toCreate: Crupde; toUpdate: Crupde; toReplace: Crupde; toDelete: Crupde } = {
+    const crupdes: CrupdeOperations = {
       toCreate: {},
       toUpdate: {},
       toReplace: {},
       toDelete: {},
     };
-    return await commitSync(dbId, installedModulesSorted, context, force, crupdes, false);
+    return await sync(dbId, installedModulesSorted, context, force, crupdes, false);
   } catch (e: any) {
     debugObj(e);
     await insertErrorLog(orm, logErrSentry(e));
     throw e;
   } finally {
     // Create end commit object
-    await insertLog(orm, 'end');
+    await insertLog(orm, AuditLogChangeType.END_COMMIT);
     // do not drop the conn if it was provided
     if (orm !== ormOpt) orm?.dropConn();
     if (parentOrm) context.orm = parentOrm;
@@ -786,35 +1075,11 @@ export async function isCommitRunning(orm: TypeormWrapper): Promise<boolean> {
   );
 }
 
-async function insertLog(
-  orm: TypeormWrapper | null,
-  type: 'start' | 'preview_start' | 'end' | 'preview_end' | 'open' | 'close',
-): Promise<IasqlAuditLog> {
+async function insertLog(orm: TypeormWrapper | null, changeType: AuditLogChangeType): Promise<IasqlAuditLog> {
   const commitLog = new IasqlAuditLog();
   commitLog.user = config.db.user;
   commitLog.change = {};
-  switch (type) {
-    case 'start':
-      commitLog.changeType = AuditLogChangeType.START_COMMIT;
-      break;
-    case 'preview_start':
-      commitLog.changeType = AuditLogChangeType.PREVIEW_START_COMMIT;
-      break;
-    case 'end':
-      commitLog.changeType = AuditLogChangeType.END_COMMIT;
-      break;
-    case 'preview_end':
-      commitLog.changeType = AuditLogChangeType.PREVIEW_END_COMMIT;
-      break;
-    case 'open':
-      commitLog.changeType = AuditLogChangeType.OPEN_TRANSACTION;
-      break;
-    case 'close':
-      commitLog.changeType = AuditLogChangeType.CLOSE_TRANSACTION;
-      break;
-    default:
-      break;
-  }
+  commitLog.changeType = changeType;
   commitLog.tableName = 'iasql_audit_log';
   commitLog.ts = new Date();
   await orm?.save(IasqlAuditLog, commitLog);
@@ -887,12 +1152,12 @@ function getModulesWithChanges(
   return [...modulesDirectlyAffected, ...modulesIndirectlyAffected];
 }
 
-async function commitApply(
+async function apply(
   dbId: string,
   relevantModules: ModuleInterface[],
   context: Context,
   force: boolean,
-  crupdes: { toCreate: Crupde; toUpdate: Crupde; toReplace: Crupde; toDelete: Crupde },
+  crupdes: CrupdeOperations,
   dryRun: boolean,
   changesToCommit?: IasqlAuditLog[],
 ): Promise<{ iasqlPlanVersion: number; rows: any[] }> {
@@ -1153,12 +1418,12 @@ async function commitApply(
   return output;
 }
 
-async function commitSync(
+async function sync(
   dbId: string,
   relevantModules: ModuleInterface[],
   context: Context,
   force: boolean,
-  crupdes: { toCreate: Crupde; toUpdate: Crupde; toReplace: Crupde; toDelete: Crupde },
+  crupdes: CrupdeOperations,
   dryRun: boolean,
 ): Promise<{ iasqlPlanVersion: number; rows: any[] }> {
   const oldOrm = context.orm;
@@ -1590,7 +1855,7 @@ export async function maybeOpenTransaction(orm: TypeormWrapper): Promise<void> {
   do {
     const [isRunning, openTransaction] = await Promise.all([isCommitRunning(orm), isOpenTransaction(orm)]);
     if (!isRunning && !openTransaction) {
-      await insertLog(orm, 'open');
+      await insertLog(orm, AuditLogChangeType.OPEN_TRANSACTION);
       addedTransaction = true;
     } else {
       await new Promise(r => setTimeout(r, 1000)); // Sleep for a sec
@@ -1601,7 +1866,7 @@ export async function maybeOpenTransaction(orm: TypeormWrapper): Promise<void> {
 }
 
 export async function closeTransaction(orm: TypeormWrapper): Promise<void> {
-  await insertLog(orm, 'close');
+  await insertLog(orm, AuditLogChangeType.CLOSE_TRANSACTION);
 }
 
 export async function isOpenTransaction(orm: TypeormWrapper): Promise<boolean> {
