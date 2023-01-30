@@ -24,6 +24,7 @@ export class Route {
   @ManyToOne(() => RouteTable, {
     eager: true,
     nullable: false,
+    onDelete: 'CASCADE',
   })
   @JoinColumn()
   routeTable: RouteTable;
