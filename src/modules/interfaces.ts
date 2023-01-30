@@ -476,10 +476,14 @@ export class AwsSdkInvoker extends RpcBase {
     const rpcOutputTable = rpcOutputEntries
       .map(([columnName, columnType]) => `${columnName} ${columnType}`)
       .join(', ');
-    const afterInstallSql = `
+    const inputEnumName = `${snakeCase(key)}_method_names`;
+    const enumSql = this.getMethodNamesEnumCreateSql(key, inputEnumName);
+    const afterInstallSql =
+      enumSql +
+      `
         create or replace function ${snakeCase(
           key,
-        )}(method_name varchar, method_input json, region varchar) returns table (
+        )}(method_name ${inputEnumName}, method_input json, region varchar) returns table (
           ${rpcOutputTable}
         )
         language plpgsql security definer
@@ -494,7 +498,7 @@ export class AwsSdkInvoker extends RpcBase {
             json_build_object(
               'dbId', current_database(),
               'dbUser', SESSION_USER,
-              'params', (SELECT array[method_name, method_input::varchar, region]),
+              'params', (SELECT array[method_name::varchar, method_input::varchar, region]),
               'modulename', '${this.module.name}',
               'methodname', '${key}',
               'preTransaction', '${this.preTransactionCheck}',
@@ -523,7 +527,9 @@ export class AwsSdkInvoker extends RpcBase {
         end;
         $$;
         -- function overloading with the last input replaced by default_aws_region()
-        create or replace function ${snakeCase(key)}(method_name varchar, method_input json) returns table (
+        create or replace function ${snakeCase(
+          key,
+        )}(method_name ${inputEnumName}, method_input json) returns table (
           ${rpcOutputTable}
         )
         language plpgsql security definer
@@ -534,10 +540,24 @@ export class AwsSdkInvoker extends RpcBase {
         $$;
       `;
     const beforeUninstallSql = `
-        DROP FUNCTION "${snakeCase(key)}"(varchar, json);
-        DROP FUNCTION "${snakeCase(key)}"(varchar, json, varchar);
+        DROP TYPE ${inputEnumName};
+        DROP FUNCTION "${snakeCase(key)}"(${inputEnumName}, json);
+        DROP FUNCTION "${snakeCase(key)}"(${inputEnumName}, json, varchar);
       `;
     return { beforeUninstallSql, afterInstallSql };
+  }
+
+  private getMethodNamesEnumCreateSql(key: string, inputEnumName: string) {
+    const dummyClient = new AWS({
+      region: 'us-east-1',
+      credentials: { accessKeyId: '', secretAccessKey: '' },
+    });
+    const methodNames = Object.getOwnPropertyNames(Object.getPrototypeOf(dummyClient[this.clientType]));
+    const enumEntries = methodNames
+      .filter(name => name !== 'constructor')
+      .map(name => `'${name}'`)
+      .join(',');
+    return `create type ${inputEnumName} as enum (${enumEntries});`;
   }
 
   call = async (
