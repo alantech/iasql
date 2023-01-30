@@ -123,7 +123,6 @@ describe('iasql_get_sql_since functionality', () => {
       `,
       undefined,
       true,
-      () => ({ username, password }),
     ),
   );
 
@@ -156,7 +155,6 @@ describe('iasql_get_sql_since functionality', () => {
       `,
       undefined,
       true,
-      () => ({ username, password }),
     ),
   );
 
@@ -189,7 +187,6 @@ describe('iasql_get_sql_since functionality', () => {
       `,
       undefined,
       true,
-      () => ({ username, password }),
     ),
   );
 
@@ -290,7 +287,6 @@ describe('iasql_get_sql_since functionality', () => {
       `,
       undefined,
       true,
-      () => ({ username, password }),
     ),
   );
 

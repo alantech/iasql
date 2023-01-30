@@ -184,17 +184,21 @@ Modules tests are inside `test/modules/` directory. Currently, every module has 
 
 ### 1. Release the newest version
 
-Go to the Actions tab and click the "Release Newest Version" tab. Then click the "Run Workflow" button to mark the newest version as released.
+Go to ["Version: Release Newest" tab](https://github.com/iasql/iasql/actions/workflows/version.yml) in the repository Actions tab. Then click the "Run Workflow" button to mark the newest version as released.
 
-### 2. Begin development of the next version
+### 2. Deploy Production
 
-Go to the [Actions tab](https://github.com/iasql/iasql/actions) and click the "Develop New Version" tab. Next click the "Run Workflow" button. Then type in the new version number for the next release and finally click the green "Run workflow" button. It will create a commit with that version with a `-beta` appended to it to make it clear this and following commits are not for users to work with directly.
+Go to ["Deploy to Production" tab](https://github.com/iasql/iasql/actions/workflows/production.yml) in the repository Actions tab. Next click the "Run Workflow" button. Then type in the new version number to deploy and finally click the green "Run workflow" button.
 
-### 3. Develop!
+### 3. Begin development of the next version
+
+Go to ["Version: Start New Development" tab](https://github.com/iasql/iasql/actions/workflows/develop.yml) in the repository Actions tab. Next click the "Run Workflow" button. Then type in the new version number for the next release and finally click the green "Run workflow" button. It will create a commit with that version with a `-beta` appended to it to make it clear this and following commits are not for users to work with directly.
+
+### 4. Develop!
 
 Write PRs and merge them as you normally would.
 
-### 4. GOTO 1.
+### 5. GOTO 1.
 
 ## Eventually Consistent Behavior and Transactions
 

@@ -4,11 +4,8 @@ on:
   push:
     branches: [main]
     paths: ['site/**', '.github/workflows/site-deploy.yml']
-  workflow_run:
-    workflows: ['RELEASE']
-    types:
-      - completed
-
+  repository_dispatch:
+    types: [newdocs]
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 

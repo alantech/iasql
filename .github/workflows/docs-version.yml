@@ -33,9 +33,13 @@ jobs:
           yarn 
           yarn build
       # https://docusaurus.io/docs/versioning#tagging-a-new-version
-      - name: Tag a new version, commit the changes and push
+      - name: Tag a new version, drop the old, commit the changes and push
         run: |
           cd site
+          export OLDVERSION=$(jq -r '.[0]' versions.json)
+          echo '[]' > versions.json
+          git rm -r versioned_docs/version-${OLDVERSION}
+          git rm versioned_sidebars/version-${OLDVERSION}-sidebars.json
           export VERSION=(${{ github.event.client_payload.version }} ${{ github.event.client_payload.message.version }} ${{ github.event.inputs.version }})
           yarn run docusaurus docs:version $VERSION
           git config --local user.email "iasql-bot@users.noreply.github.com"
@@ -43,6 +47,11 @@ jobs:
           git add -A
           git commit -m "$VERSION"
           git push
+      - name: Emit for site deploy
+        uses: mvasigh/dispatch-action@main
+        with:
+          token: ${{ secrets.GH_PAT }}
+          event_type: newdocs
 
   notify:
     name: Discord Notification

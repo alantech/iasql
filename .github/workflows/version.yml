@@ -35,7 +35,7 @@ jobs:
           VERSION="$(jq -r '.version' package.json)"
           echo ::set-output name=version::${VERSION}
 
-      - name: Emit doc generation
+      - name: Emit for doc generation
         uses: mvasigh/dispatch-action@main
         with:
           token: ${{ secrets.GH_PAT }}
