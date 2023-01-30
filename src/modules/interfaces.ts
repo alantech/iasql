@@ -540,9 +540,9 @@ export class AwsSdkInvoker extends RpcBase {
         $$;
       `;
     const beforeUninstallSql = `
-        DROP TYPE ${inputEnumName};
         DROP FUNCTION "${snakeCase(key)}"(${inputEnumName}, json);
         DROP FUNCTION "${snakeCase(key)}"(${inputEnumName}, json, varchar);
+        DROP TYPE ${inputEnumName};
       `;
     return { beforeUninstallSql, afterInstallSql };
   }
