@@ -214,7 +214,7 @@ const lambdaStages = JSON.stringify([
             name: 'BuildArtifact',
           },
         ],
-        region: 'us-east-2',
+        region: region,
         runOrder: 1,
       },
     ],
