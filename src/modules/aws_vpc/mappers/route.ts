@@ -156,7 +156,7 @@ export class RouteMapper extends MapperBase<Route> {
     },
     delete: async (es: Route[], ctx: Context) => {
       for (const e of es) {
-        // if (e.gatewayId === 'local') continue; // created by AWS, can't be modified by the user
+        if (e.gatewayId === 'local') continue; // created by AWS, can't be modified by the user
         const client = (await ctx.getAwsClient(e.routeTable.region)) as AWS;
         try {
           await this.deleteRoute(client.ec2client, e);
