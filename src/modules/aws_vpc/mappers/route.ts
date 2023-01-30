@@ -128,12 +128,18 @@ export class RouteMapper extends MapperBase<Route> {
           : await this.module.routeTable.cloud.read(ctx);
         logger.warn(`+-+ route tables are ${JSON.stringify(routeTables)}`);
         for (const rt of routeTables ?? []) {
-          logger.warn(`+-+ GETTING ROUTE FOR RT ${JSON.stringify(rt)}`);
-          if (!rt) continue;
-          const routes: (Route | undefined)[] =
-            rt.routes?.map(r => this.routeMapper(r, rt)).filter(r => !!r) ?? [];
-          out.push(...(routes as Route[]));
+          try {
+            logger.warn(`+-+ GETTING ROUTE FOR RT ${JSON.stringify(rt)}`);
+            if (!rt) continue;
+            const routes: (Route | undefined)[] =
+              rt.routes?.map(r => this.routeMapper(r, rt)).filter(r => !!r) ?? [];
+            out.push(...(routes as Route[]));
+          } catch (e2) {
+            logger.warn(`+-+ DID SOMETHING HAPPENED HERE? ${JSON.stringify(e2)}`);
+            throw e2;
+          }
         }
+        logger.warn(`+-+ RETURNING ROUTES`);
         return out;
       }
     },
