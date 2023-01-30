@@ -8,6 +8,8 @@ import { Context, Crud2, IdFields, MapperBase } from '../../interfaces';
 import { Route, RouteTable } from '../entity';
 import { AwsVpcModule } from '../index';
 
+import logger from '../../../services/logger';
+
 export class RouteMapper extends MapperBase<Route> {
   module: AwsVpcModule;
   entity = Route;
@@ -153,18 +155,28 @@ export class RouteMapper extends MapperBase<Route> {
       return out;
     },
     delete: async (es: Route[], ctx: Context) => {
-      await Promise.all(
-        es.map(async e => {
-          if (e.gatewayId === 'local') return; // created by AWS, can't be modified by the user
-          const client = (await ctx.getAwsClient(e.routeTable.region)) as AWS;
-          try {
-            await this.deleteRoute(client.ec2client, e);
-          } catch (err) {
-            console.log(`+-+ Error deleting route ${JSON.stringify(err)}`);
-            throw err;
-          }
-        }),
-      );
+      for (const e of es) {
+        if (e.gatewayId === 'local') return; // created by AWS, can't be modified by the user
+        const client = (await ctx.getAwsClient(e.routeTable.region)) as AWS;
+        try {
+          await this.deleteRoute(client.ec2client, e);
+        } catch (err) {
+          logger.warn(`+-+ Error deleting route ${JSON.stringify(err)}`);
+          throw err;
+        }
+      }
+      // await Promise.all(
+      //   es.map(async e => {
+      //     if (e.gatewayId === 'local') return; // created by AWS, can't be modified by the user
+      //     const client = (await ctx.getAwsClient(e.routeTable.region)) as AWS;
+      //     try {
+      //       await this.deleteRoute(client.ec2client, e);
+      //     } catch (err) {
+      //       console.log(`+-+ Error deleting route ${JSON.stringify(err)}`);
+      //       throw err;
+      //     }
+      //   }),
+      // );
     },
   });
 
