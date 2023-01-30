@@ -494,6 +494,16 @@ describe('VPC Endpoint interface Integration Testing', () => {
         FROM vpc
         WHERE cidr_block = '192.${randIPBlock}.0.0/16'
     );
+    DELETE FROM route
+    WHERE route_table_id = (
+        SELECT id
+        FROM route_table
+        WHERE vpc_id = (
+          SELECT id
+          FROM vpc
+          WHERE cidr_block = '192.${randIPBlock}.0.0/16'
+      )
+    );
     DELETE FROM route_table
     WHERE vpc_id = (
         SELECT id
