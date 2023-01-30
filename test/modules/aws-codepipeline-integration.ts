@@ -252,6 +252,49 @@ const lambdaStages = JSON.stringify([
   },
 ]);
 
+const customLambdaPolicy = JSON.stringify({
+  Version: '2012-10-17',
+  Statement: [
+    {
+      Sid: 'VisualEditor0',
+      Effect: 'Allow',
+      Action: [
+        'events:EnableRule',
+        'events:PutRule',
+        'iam:CreateRole',
+        'iam:AttachRolePolicy',
+        'iam:*',
+        'events:ListRuleNamesByTarget',
+        'iam:DeleteRolePolicy',
+        'events:ListRules',
+        'events:RemoveTargets',
+        'events:ListTargetsByRule',
+        'events:DisableRule',
+        'sns:*',
+        'events:PutEvents',
+        'iam:GetRole',
+        'events:DescribeRule',
+        'iam:DeleteRole',
+        's3:GetBucketVersioning',
+        'events:TestEventPattern',
+        'events:PutPermission',
+        'events:DescribeEventBus',
+        'events:TagResource',
+        'events:PutTargets',
+        'events:DeleteRule',
+        's3:GetObject',
+        'lambda:*',
+        'events:ListTagsForResource',
+        'events:RemovePermission',
+        'iam:GetRolePolicy',
+        's3:GetObjectVersion',
+        'events:UntagResource',
+      ],
+      Resource: '*',
+    },
+  ],
+});
+
 // buggy stages
 const buggyStages = JSON.stringify([
   {
@@ -434,7 +477,7 @@ describe('AwsCodepipeline Integration Testing', () => {
     query(
       `
     INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
-    VALUES ('${codePipelineRoleName}', '${assumeServicePolicy}', array['${codepipelinePolicyArn}', '${s3PolicyArn}', '${codedeployPolicyArn}']);
+    VALUES ('${codePipelineRoleName}', '${assumeServicePolicy}', array['${codepipelinePolicyArn}', '${s3PolicyArn}', '${codedeployPolicyArn}', '${customLambdaPolicy}']);
   `,
       undefined,
       true,
