@@ -99,14 +99,6 @@ export class RouteMapper extends MapperBase<Route> {
       for (const e of es) {
         const client = (await ctx.getAwsClient(e.routeTable.region)) as AWS;
         if (e.gatewayId === 'local') continue; // created by AWS, can't be created by the user
-        const routeTable = await this.module.routeTable.db.read(
-          ctx,
-          this.module.routeTable.generateId({
-            routeTableId: e.routeTable.routeTableId ?? '',
-            region: e.routeTable.region,
-          }),
-        );
-        if (!routeTable?.id) throw new Error('RouteTable need to be loaded first');
         await this.createRoute(client.ec2client, e);
         out.push(e);
       }
@@ -177,7 +169,22 @@ export class RouteMapper extends MapperBase<Route> {
   });
 
   db = new Crud2<Route>({
-    create: (es: Route[], ctx: Context) => ctx.orm.save(Route, es),
+    create: async (es: Route[], ctx: Context) => {
+      for (const e of es) {
+        if (!e.routeTable?.id) {
+          const routeTable = await this.module.routeTable.db.read(
+            ctx,
+            this.module.routeTable.generateId({
+              routeTableId: e.routeTable.routeTableId ?? '',
+              region: e.routeTable.region,
+            }),
+          );
+          e.routeTable.id = routeTable?.id;
+        }
+        if (!e.routeTable?.id) throw new Error('RouteTable need to be loaded first');
+      }
+      return await ctx.orm.save(Route, es);
+    },
     update: (es: Route[], ctx: Context) => ctx.orm.save(Route, es),
     delete: (es: Route[], ctx: Context) => ctx.orm.remove(Route, es),
     read: async (ctx: Context, id?: string) => {
