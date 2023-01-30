@@ -106,7 +106,7 @@ export function runQuery(
   queryString: string,
   assertFn?: (res: any[]) => void,
   log = true,
-  withUserAndPassword = () => ({ username: 'postgres', password: 'test' }),
+  withUserAndPassword = () => ({ username: config.db.user, password: config.db.password }),
 ) {
   return function (done: (e?: any) => {}) {
     const { username, password } = withUserAndPassword();
