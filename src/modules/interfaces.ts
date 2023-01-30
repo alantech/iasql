@@ -107,13 +107,13 @@ export class Crud2<E extends {}> {
         return 'What?';
       });
     if (entityName === 'Route') {
-      logger.warn(`+-+ the routes we are unmemoing are ${JSON.stringify(es)}`)
+      console.log(`+-+ the routes we are unmemoing are ${JSON.stringify(es)}`)
     }
     es.forEach(e => {
       ctx.memo[dest] = ctx.memo[dest] ?? {};
       ctx.memo[dest][entityName] = ctx.memo[dest][entityName] ?? {};
       delete ctx.memo[dest][entityName][entityId(e)];
-      logger.warn(`+-+ memo object after delete ${JSON.stringify(ctx.memo[dest][entityName][entityId(e)])}`)
+      console.log(`+-+ memo object after delete ${JSON.stringify(ctx.memo[dest][entityName][entityId(e)])}`)
     });
   }
 

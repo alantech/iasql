@@ -121,22 +121,22 @@ export class RouteMapper extends MapperBase<Route> {
         if (!rawRoute) return;
         return await this.routeMapper(rawRoute, routeTable);
       } else {
-        logger.warn(`+-+ GETTING ROUTES`);
+        console.log(`+-+ GETTING ROUTES`);
         const out: Route[] = [];
         const routeTables: RouteTable[] = await this.module.routeTable.cloud.read(ctx);
         for (const rt of routeTables ?? []) {
           try {
             if (!rt) continue;
-            logger.warn(`+-+ ROUTE TABLE ${JSON.stringify(rt)}`);
+            console.log(`+-+ ROUTE TABLE ${JSON.stringify(rt)}`);
             const routes: (Route | undefined)[] =
               rt.routes?.map(r => this.routeMapper(r, rt)).filter(r => !!r) ?? [];
             out.push(...(routes as Route[]));
           } catch (e2) {
-            logger.warn(`+-+ DID SOMETHING HAPPENED HERE? ${JSON.stringify(e2)}`);
+            console.log(`+-+ DID SOMETHING HAPPENED HERE? ${JSON.stringify(e2)}`);
             throw e2;
           }
         }
-        logger.warn(`+-+ RETURNING ROUTES`);
+        console.log(`+-+ RETURNING ROUTES`);
         return out;
       }
     },
@@ -162,16 +162,23 @@ export class RouteMapper extends MapperBase<Route> {
     },
     delete: async (es: Route[], ctx: Context) => {
       for (const e of es) {
+        const r = await ctx.orm.find(Route, {
+          relations: ['routeTable'],
+          where: {
+            destination: e.destination,
+          },
+        });
+        console.log(`+-+ THE ROUTES IN DB WITH THE SAME DESTINATION: ${JSON.stringify(r)}`)
         if (e.gatewayId === 'local') continue; // created by AWS, can't be modified by the user
         const client = (await ctx.getAwsClient(e.routeTable.region)) as AWS;
         try {
           await this.deleteRoute(client.ec2client, e);
         } catch (err) {
-          logger.warn(`+-+ Error deleting route ${JSON.stringify(err)}`);
+          console.log(`+-+ Error deleting route ${JSON.stringify(err)}`);
           throw err;
         }
       }
-      logger.warn(`+-+ DELETE COMPLETE SUCCESSFULLY}`);
+      console.log(`+-+ DELETE COMPLETE SUCCESSFULLY`);
       // await Promise.all(
       //   es.map(async e => {
       //     if (e.gatewayId === 'local') return; // created by AWS, can't be modified by the user

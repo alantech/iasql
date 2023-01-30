@@ -129,7 +129,11 @@ export class RouteTableMapper extends MapperBase<RouteTable> {
         es.map(async e => {
           const client = (await ctx.getAwsClient(e.region)) as AWS;
           // fails if it's the main route table, but the routeTableAssociation.cloud.delete would write it back to the db
-          await client.ec2client.deleteRouteTable({ RouteTableId: e.routeTableId });
+          try {
+            await client.ec2client.deleteRouteTable({ RouteTableId: e.routeTableId });
+          } catch (err) {
+            console.log(`+-+ is this an error deleting route tables??`)
+          }
         }),
       );
     },
