@@ -362,6 +362,7 @@ const codedeployRolePolicy = JSON.stringify({
 });
 const codedeployPolicyArn = 'arn:aws:iam::aws:policy/AWSCodeDeployFullAccess';
 const deployEC2PolicyArn = 'arn:aws:iam::aws:policy/AmazonEC2FullAccess';
+const globalIamPolicyArn = 'arn:aws:iam::aws:policy/IAMFullAccess';
 
 const ec2RolePolicy = JSON.stringify({
   Version: '2012-10-17',
@@ -477,7 +478,7 @@ describe('AwsCodepipeline Integration Testing', () => {
     query(
       `
     INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
-    VALUES ('${codePipelineRoleName}', '${assumeServicePolicy}', array['${codepipelinePolicyArn}', '${s3PolicyArn}', '${codedeployPolicyArn}', '${customLambdaPolicy}']);
+    VALUES ('${codePipelineRoleName}', '${assumeServicePolicy}', array['${codepipelinePolicyArn}', '${s3PolicyArn}', '${codedeployPolicyArn}']);
   `,
       undefined,
       true,
@@ -490,7 +491,7 @@ describe('AwsCodepipeline Integration Testing', () => {
     query(
       `
     INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
-    VALUES ('${cloudformationRoleName}', '${cloudformationRolePolicy}', array['${codedeployPolicyArn}']);
+    VALUES ('${cloudformationRoleName}', '${cloudformationRolePolicy}', array['${codedeployPolicyArn}', '${globalIamPolicyArn}']);
   `,
       undefined,
       true,
