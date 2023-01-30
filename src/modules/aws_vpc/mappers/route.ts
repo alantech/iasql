@@ -98,7 +98,15 @@ export class RouteMapper extends MapperBase<Route> {
       const out: Route[] = [];
       for (const e of es) {
         const client = (await ctx.getAwsClient(e.routeTable.region)) as AWS;
-        if (e.gatewayId === 'local') return; // created by AWS, can't be created by the user
+        if (e.gatewayId === 'local') continue; // created by AWS, can't be created by the user
+        const routeTable = await this.module.routeTable.db.read(
+          ctx,
+          this.module.routeTable.generateId({
+            routeTableId: e.routeTable.routeTableId ?? '',
+            region: e.routeTable.region,
+          }),
+        );
+        if (!routeTable?.id) throw new Error('RouteTable need to be loaded first');
         await this.createRoute(client.ec2client, e);
         out.push(e);
       }
@@ -155,6 +163,7 @@ export class RouteMapper extends MapperBase<Route> {
     delete: async (es: Route[], ctx: Context) => {
       await Promise.all(
         es.map(async e => {
+          if (e.gatewayId === 'local') return; // created by AWS, can't be modified by the user
           const client = (await ctx.getAwsClient(e.routeTable.region)) as AWS;
           await this.deleteRoute(client.ec2client, e);
         }),
