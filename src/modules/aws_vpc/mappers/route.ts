@@ -126,10 +126,8 @@ export class RouteMapper extends MapperBase<Route> {
         const routeTables: RouteTable[] = ctx.memo?.cloud?.RouteTable
           ? Object.values(ctx.memo?.cloud?.RouteTable)
           : await this.module.routeTable.cloud.read(ctx);
-        logger.warn(`+-+ route tables are ${JSON.stringify(routeTables)}`);
         for (const rt of routeTables ?? []) {
           try {
-            logger.warn(`+-+ GETTING ROUTE FOR RT ${JSON.stringify(rt)}`);
             if (!rt) continue;
             const routes: (Route | undefined)[] =
               rt.routes?.map(r => this.routeMapper(r, rt)).filter(r => !!r) ?? [];
@@ -174,6 +172,7 @@ export class RouteMapper extends MapperBase<Route> {
           throw err;
         }
       }
+      logger.warn(`+-+ DELETE COMPLETE SUCCESSFULLY}`);
       // await Promise.all(
       //   es.map(async e => {
       //     if (e.gatewayId === 'local') return; // created by AWS, can't be modified by the user

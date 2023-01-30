@@ -106,6 +106,9 @@ export class Crud2<E extends {}> {
       ((_e: E) => {
         return 'What?';
       });
+    if (entityName === 'Route') {
+      logger.warn(`+-+ the routes we are unmemoing are ${JSON.stringify(es)}`)
+    }
     es.forEach(e => {
       ctx.memo[dest] = ctx.memo[dest] ?? {};
       ctx.memo[dest][entityName] = ctx.memo[dest][entityName] ?? {};
