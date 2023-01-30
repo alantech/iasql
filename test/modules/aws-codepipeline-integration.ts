@@ -502,6 +502,7 @@ describe('AwsCodepipeline Integration Testing', () => {
       () => ({ username, password }),
     ),
   );
+  it('apply creation of resources', commit());
 
   // testing of lambda deployment function
   it('starts a transaction', begin());
@@ -531,6 +532,9 @@ describe('AwsCodepipeline Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(1),
     ),
   );
+
+  // testing of ec2 pipeline
+  it('starts a transaction', begin());
 
   it(
     'adds a new security group',
