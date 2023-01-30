@@ -273,7 +273,7 @@ export class PeeringConnectionMapper extends MapperBase<PeeringConnection> {
       route.destination = accepterVpc.cidrBlock;
       route.vpcPeeringConnectionId = vpcPeeringConnectionId;
       route.routeTable = routeTable;
-      await this.module.route.db.create(route, ctx);
+      await this.module.route.cloud.create(route, ctx);
     }
     // create accepter -> requester route
     const accepterRouteTables = routeTables.filter(rt => rt.vpc.vpcId === accepterVpc.vpcId);
@@ -282,7 +282,7 @@ export class PeeringConnectionMapper extends MapperBase<PeeringConnection> {
       route.destination = requesterVpc.cidrBlock;
       route.vpcPeeringConnectionId = vpcPeeringConnectionId;
       route.routeTable = routeTable;
-      await this.module.route.db.create(route, ctx);
+      await this.module.route.cloud.create(route, ctx);
     }
   }
 
