@@ -1,14 +1,29 @@
 ---
 slug: save-on-ecr
-title: Save on AWS by deleting unused ECR images
+title: Save on AWS by deleting untagged ECR images
 authors: [depombo]
 ---
 
-# Save on AWS by deleting unused ECR images
+# Save on AWS by deleting untagged ECR images used in ECS or EKS
 
-Every time you want to deploy a new version of your code to an ECS container you build and push a new docker image from your code into an ECR container repository. The latest image in an ECR repository is the only one in use. Stale images remain in the repository and accumulate over long periods by normal usage of ECS, or EKS, as there is typically no workflow to delete unused images. However, there is a gotcha. AWS charges $0.10 per GB per month for images stored in private or public ECR repositories. This doesn't sound like a lot, but for context, the size of the IaSQL docker image is around 600 MB. We have a CI job that deploys our staging environment every time we land a pull request to the main branch of our repository. This added up to 845 deploys over only a few months. Those 845 images, which have since been deleted, summed up to roughly 50 GB which was $50 per month in our case. However, companies with lots of microservices on ECS or large docker containers can have many gigabytes of unused storage that can come out to hundreds or thousands of dollars per month of unnecessary AWS spend.
+Every time you want to deploy a new version of your code to an ECS container or EKS pod, you build and push a new docker image from your code into an ECR container repository. The latest image in an ECR repository is the only one in use. Stale images remain in the repository and accumulate over long periods by normal usage of ECS, or EKS, as there is typically no workflow to delete untagged images. However, there is a gotcha. AWS charges $0.10 per GB per month for images stored in private or public ECR repositories. This doesn't sound like a lot, but for context, the size of the IaSQL docker image is around 600 MB. We have a CI job that deploys our staging environment every time we land a pull request to the main branch of our repository. This added up to 845 deploys over only a few months. Those 845 images, which have since been deleted, summed up to roughly 50 GB which was $50 per month in our case. However, companies with lots of microservices on ECS or large docker containers can have many gigabytes of unused storage that can come out to hundreds or thousands of dollars per month of unnecessary AWS spend.
 
-How do you get rid of unused ECR images though? Deleting hundreds, or thousands, of old or untagged container images across ECR repositories is quite tedious through the AWS console, which involves multiple clicks per deleted image. It is also tedious to delete images in IaC where state file manipulation is often necessary, or it is not possible at all as images are not typically modeled in the infrastructure declaration. Cloud Query and Steampipe let you query your cloud, but do not let you make changes to your cloud account. This leaves a script that calls the AWS SDK or CLI directly as the most common option. Enter IaSQL where deleting unused images and saving money in your AWS bill is as simple as this query:
+How do you get rid of untagged ECR images though? Deleting hundreds, or thousands, of container images across ECR repositories is quite tedious through the AWS console, which involves multiple clicks per deleted image. It is also tedious to delete images in IaC where state file manipulation is often necessary, or it is not possible at all as images are not typically modeled in the infrastructure declaration. Cloud Query and Steampipe let you query your cloud, but do not let you make changes to your cloud account. This leaves a script that calls the AWS SDK or CLI directly as the most common option. Enter IaSQL where deleting untagged images and saving money in your AWS bill is as simple as this query:
+
+```sql TheButton[Delete untagged ECR images]="Delete untagged ECR images"
+
+SELECT * FROM iasql_install('aws_ecr');
+
+DELETE FROM repository_images WHERE tag = '<untagged>';
+```
+
+It is also possible to delete old images, or images past a certain size This query deletes unused images pushed to the repository before 2023 that are bigger than 10 GB:
+
+```sql
+DELETE FROM repository_images WHERE tag = '<untagged>' AND pushed_at < '2023-01-01' AND size_in_mb = 10000;
+```
+
+There is a way to delete all *unused* images if you are using ECR with ECS exclusively:
 
 ```sql TheButton[Delete unused ECR images]="Delete unused ECR images"
 
@@ -17,16 +32,6 @@ SELECT * FROM iasql_install('aws_ecs_fargate');
 DELETE FROM repository_images;
 ```
 
-That's all folks. After installing `aws_ecs_fargate` module, which installs the dependant `aws_ecr` module, the schema relations between the AWS ECS service will not let you delete ECR images currently in use and will reinstate the ones that are currently active. However, if you would like to delete images that are untagged, and unused, you can use the following query:
+After installing the `aws_ecs_fargate` [module](/docs/module), which installs the dependant `aws_ecr` module if it's not already installed, the schema relations between the AWS ECS service will not let you delete ECR images currently in use and will reinstate the ones that are currently active.
 
-```sql
-DELETE FROM repository_images WHERE tag = '<untagged>';
-```
-
-It is also possible to delete old images, or images past a certain size, as long as they remain unused by an ECS instance. This query deletes unused images pushed to the repository before 2023 that are bigger than 10 GB:
-
-```sql
-DELETE FROM repository_images WHERE pushed_at < '2023-01-01' and size_in_mb = 10000;
-```
-
-Questions or issues with AWS? Join our [Discord channel](https://discord.com/invite/machGGczea) to ask away, or just to let us know if you would like to see more AWS cost optimizations in case this one was useful.
+Questions or issues with AWS? Join our [Discord channel](https://discord.com/invite/machGGczea) to ask away, or just to let us know if you would like to see more AWS cost optimizations like this one.
