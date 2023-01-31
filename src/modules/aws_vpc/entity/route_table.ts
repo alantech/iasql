@@ -1,4 +1,4 @@
-import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn, Unique } from 'typeorm';
 
 import { Route as AwsRoute } from '@aws-sdk/client-ec2';
 
@@ -20,6 +20,7 @@ import { Vpc } from './vpc';
  * @see https://github.com/iasql/iasql-engine/blob/main/test/modules/aws-vpc-routetable-integration.ts#L154
  * @see https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Route_Tables.html
  */
+@Unique('uq_route_table_region', ['id', 'region'])
 @Entity()
 export class RouteTable {
   /**

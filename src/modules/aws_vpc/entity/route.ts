@@ -1,5 +1,6 @@
 import { Check, Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 
+import { AwsRegions } from '../../aws_account/entity';
 import { RouteTable } from './route_table';
 
 /**
@@ -26,7 +27,16 @@ export class Route {
     nullable: false,
     onDelete: 'CASCADE',
   })
-  @JoinColumn()
+  @JoinColumn([
+    {
+      name: 'route_table_id',
+      referencedColumnName: 'id',
+    },
+    {
+      name: 'region',
+      referencedColumnName: 'region',
+    },
+  ])
   routeTable: RouteTable;
 
   /**
@@ -118,4 +128,17 @@ export class Route {
    */
   @Column({ nullable: true })
   coreNetworkArn?: string;
+
+  /**
+   * @public
+   * Reference to the region where it belongs
+   */
+  @Column({
+    type: 'character varying',
+    nullable: false,
+    default: () => 'default_aws_region()',
+  })
+  @ManyToOne(() => AwsRegions, { nullable: false })
+  @JoinColumn({ name: 'region' })
+  region: string;
 }
