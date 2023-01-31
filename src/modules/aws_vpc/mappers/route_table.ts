@@ -4,7 +4,7 @@ import { RouteTable as AwsRouteTable } from '@aws-sdk/client-ec2/dist-types/mode
 
 import { AWS, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
 import { Context, Crud2, MapperBase } from '../../interfaces';
-import { RouteTable } from '../entity';
+import { Route, RouteTable } from '../entity';
 import { AwsVpcModule } from '../index';
 import { convertTagsForAws, convertTagsFromAws, eqTags } from './tags';
 
@@ -131,8 +131,8 @@ export class RouteTableMapper extends MapperBase<RouteTable> {
           // fails if it's the main route table, but the routeTableAssociation.cloud.delete would write it back to the db
           try {
             await client.ec2client.deleteRouteTable({ RouteTableId: e.routeTableId });
-          } catch (err) {
-            console.log(`+-+ is this an error deleting route tables?? ${JSON.stringify(err)}`)
+          } catch (err: any) {
+            if (err.Code === 'InvalidRouteTableID.NotFound') return; // If we cannot find the route we continue
             throw err;
           }
         }),
@@ -140,6 +140,33 @@ export class RouteTableMapper extends MapperBase<RouteTable> {
     },
   });
 
+  db = new Crud2<RouteTable>({
+    create: async (es: RouteTable[], ctx: Context) => {
+      await ctx.orm.save(RouteTable, es);
+      for (const e of es) {
+        const routes = e.routes.map(r => this.module.route.routeMapper(r, e, e.region));
+        await ctx.orm.save(Route, routes);
+      }
+    },
+    update: (es: RouteTable[], ctx: Context) => ctx.orm.save(RouteTable, es),
+    delete: (es: RouteTable[], ctx: Context) => ctx.orm.remove(RouteTable, es),
+    read: async (ctx: Context, id?: string) => {
+      const { routeTableId, region } = id
+        ? this.idFields(id)
+        : { routeTableId: undefined, region: undefined };
+      const opts =
+        routeTableId && region
+          ? {
+              relations: ['vpc'],
+              where: {
+                routeTableId,
+                region,
+              },
+            }
+          : {};
+      return await ctx.orm.find(RouteTable, opts);
+    },
+  });
   constructor(module: AwsVpcModule) {
     super();
     this.module = module;
