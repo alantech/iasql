@@ -236,6 +236,7 @@ describe('AwsAcm List install/uninstall', () => {
       'aws_route53',
       'aws_codedeploy',
       'aws_codepipeline',
+      'aws_cloudfront',
     ]),
   );
 
