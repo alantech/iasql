@@ -19,7 +19,7 @@ import { Context, RpcBase, RpcResponseObject } from '../../interfaces';
  * SELECT * FROM key_pair_import ('test-key', '<content_for_ssh_key>', 'us-east-1');
  * ```
  *
- * @see https://github.com/iasql/iasql-engine/blob/main/test/modules/aws-ec2-integration.ts#L320
+ * @see https://github.com/iasql/iasql/blob/main/test/modules/aws-ec2-integration.ts#L320
  * @see https://docs.aws.amazon.com/cli/latest/reference/ec2/import-key-pair.html
  *
  */

@@ -1,6 +1,6 @@
 {
   "name": "iasql",
-  "version": "0.0.24-beta",
+  "version": "0.0.26-beta",
   "description": "Infrastructure as SQL",
   "main": "dist/index.js",
   "scripts": {
@@ -74,9 +74,9 @@
     "@aws-sdk/client-acm": "^3.216.0",
     "@aws-sdk/client-apigatewayv2": "^3.194.0",
     "@aws-sdk/client-appsync": "^3.188.0",
-    "@aws-sdk/client-cloudfront": "^3.194.0",
+    "@aws-sdk/client-cloudfront": "^3.259.0",
     "@aws-sdk/client-cloudwatch": "^3.245.0",
-    "@aws-sdk/client-cloudwatch-logs": "^3.245.0",
+    "@aws-sdk/client-cloudwatch-logs": "^3.259.0",
     "@aws-sdk/client-codebuild": "^3.170.0",
     "@aws-sdk/client-codedeploy": "^3.245.0",
     "@aws-sdk/client-codepipeline": "^3.241.0",

@@ -1,12 +1,14 @@
 import callsite from 'callsite';
 import fs from 'fs';
+import _ from 'lodash';
 import path from 'path';
 import { parse } from 'pgsql-parser';
-import { QueryRunner, getMetadataArgsStorage, ColumnType } from 'typeorm';
+import { ColumnType, getMetadataArgsStorage, QueryRunner } from 'typeorm';
 import { snakeCase } from 'typeorm/util/StringUtils';
 
 import config from '../config';
 import { throwError } from '../config/config';
+import { AWS, crudBuilder2 } from '../services/aws_macros';
 import { getCloudId } from '../services/cloud-id';
 import logger from '../services/logger';
 
@@ -251,6 +253,8 @@ export interface RpcInterface {
     ctx: Context,
     ...args: string[]
   ) => Promise<RpcResponseObject<RpcOutput>[]>;
+
+  getInstallUninstallSql: (key: string) => { beforeUninstallSql: string; afterInstallSql: string };
 }
 
 /** @internal */
@@ -376,7 +380,7 @@ export class MapperBase<E extends {}> {
   }
 }
 
-export class RpcBase {
+export class RpcBase implements RpcInterface {
   module: ModuleInterface;
   outputTable: RpcOutput;
   preTransactionCheck: PreTransactionCheck;
@@ -396,6 +400,193 @@ export class RpcBase {
 
   formatObjKeysToSnakeCase(obj: any) {
     return Object.fromEntries(Object.entries(obj).map(([k, v]) => [snakeCase(k), v]));
+  }
+
+  getInstallUninstallSql(key: string) {
+    const rpcOutputEntries = Object.entries(this.outputTable ?? {});
+    const rpcOutputTable = rpcOutputEntries
+      .map(([columnName, columnType]) => `${columnName} ${columnType}`)
+      .join(', ');
+    const afterInstallSql = `
+        create or replace function ${snakeCase(
+          key,
+        )}(variadic _args text[] default array[]::text[]) returns table (
+          ${rpcOutputTable}
+        )
+        language plpgsql security definer
+        as $$
+        declare
+          _content text;
+        begin
+          perform http.http_set_curlopt('CURLOPT_TIMEOUT_MS', '3600000');
+          select content into _content
+          from http.http_post(
+            'http://${config.http.host}:8088/v1/db/rpc',
+            json_build_object(
+              'dbId', current_database(),
+              'dbUser', SESSION_USER,
+              'params', _args,
+              'modulename', '${this.module.name}',
+              'methodname', '${key}',
+              'preTransaction', '${this.preTransactionCheck}',
+              'postTransaction', '${this.postTransactionCheck}'
+            )::varchar,
+            'application/json'
+          );
+          if json_typeof(_content::json) <> 'array' then
+            if json_typeof(_content::json) = 'object' then
+              raise exception 'Error: %', _content::json->>'message';
+            else
+              raise exception 'Error: %', _content;
+            end if;
+          end if;
+          return query select
+            ${
+              rpcOutputEntries.length
+                ? `${rpcOutputEntries
+                    .map(([col, typ]) => `try_cast(j.s->>'${col}', NULL::${typ}) as ${col}`)
+                    .join(', ')}`
+                : ''
+            }
+          from (
+            select json_array_elements(_content::json) as s
+          ) as j;
+        end;
+        $$;
+      `;
+    const beforeUninstallSql = `
+        DROP FUNCTION "${snakeCase(key)}";
+      `;
+    return { beforeUninstallSql, afterInstallSql };
+  }
+}
+
+export class AwsSdkInvoker extends RpcBase {
+  preTransactionCheck = PreTransactionCheck.WAIT_FOR_LOCK;
+  postTransactionCheck = PostTransactionCheck.UNLOCK_ALWAYS;
+
+  clientType: keyof AWS;
+
+  outputTable = {
+    result: 'json',
+  } as const;
+
+  getInstallUninstallSql(key: string) {
+    const rpcOutputEntries = Object.entries(this.outputTable ?? {});
+    const rpcOutputTable = rpcOutputEntries
+      .map(([columnName, columnType]) => `${columnName} ${columnType}`)
+      .join(', ');
+    const inputEnumName = `${snakeCase(key)}_method_names`;
+    const enumSql = this.getMethodNamesEnumCreateSql(key, inputEnumName);
+    const afterInstallSql =
+      enumSql +
+      `
+        create or replace function ${snakeCase(
+          key,
+        )}(method_name ${inputEnumName}, method_input json, region varchar) returns table (
+          ${rpcOutputTable}
+        )
+        language plpgsql security definer
+        as $$
+        declare
+          _content text;
+        begin
+          perform http.http_set_curlopt('CURLOPT_TIMEOUT_MS', '3600000');
+          select content into _content
+          from http.http_post(
+            'http://${config.http.host}:8088/v1/db/rpc',
+            json_build_object(
+              'dbId', current_database(),
+              'dbUser', SESSION_USER,
+              'params', (SELECT array[method_name::varchar, method_input::varchar, region]),
+              'modulename', '${this.module.name}',
+              'methodname', '${key}',
+              'preTransaction', '${this.preTransactionCheck}',
+              'postTransaction', '${this.postTransactionCheck}'
+            )::varchar,
+            'application/json'
+          );
+          if json_typeof(_content::json) <> 'array' then
+            if json_typeof(_content::json) = 'object' then
+              raise exception 'Error: %', _content::json->>'message';
+            else
+              raise exception 'Error: %', _content;
+            end if;
+          end if;
+          return query select
+            ${
+              rpcOutputEntries.length
+                ? `${rpcOutputEntries
+                    .map(([col, typ]) => `try_cast(j.s->>'${col}', NULL::${typ}) as ${col}`)
+                    .join(', ')}`
+                : ''
+            }
+          from (
+            select json_array_elements(_content::json) as s
+          ) as j;
+        end;
+        $$;
+        -- function overloading with the last input replaced by default_aws_region()
+        create or replace function ${snakeCase(
+          key,
+        )}(method_name ${inputEnumName}, method_input json) returns table (
+          ${rpcOutputTable}
+        )
+        language plpgsql security definer
+        as $$
+        begin
+          RETURN QUERY SELECT ${snakeCase(key)}(method_name, method_input, default_aws_region());
+        end;
+        $$;
+      `;
+    const beforeUninstallSql = `
+        DROP FUNCTION "${snakeCase(key)}"(${inputEnumName}, json);
+        DROP FUNCTION "${snakeCase(key)}"(${inputEnumName}, json, varchar);
+        DROP TYPE ${inputEnumName};
+      `;
+    return { beforeUninstallSql, afterInstallSql };
+  }
+
+  private getMethodNamesEnumCreateSql(key: string, inputEnumName: string) {
+    const dummyClient = new AWS({
+      region: 'us-east-1',
+      credentials: { accessKeyId: '', secretAccessKey: '' },
+    });
+    const methodNames = Object.getOwnPropertyNames(Object.getPrototypeOf(dummyClient[this.clientType]));
+    const enumEntries = methodNames
+      .filter(name => name !== 'constructor')
+      .map(name => `'${name}'`)
+      .join(',');
+    return `create type ${inputEnumName} as enum (${enumEntries});`;
+  }
+
+  call = async (
+    _dbId: string,
+    _dbUser: string,
+    ctx: Context,
+    methodName: string,
+    argsString: string,
+    region: string,
+  ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
+    const clientWrapper = (await ctx.getAwsClient(region)) as AWS;
+    const client = clientWrapper[this.clientType];
+    const methodAsType: keyof typeof client = methodName as keyof typeof client;
+    const args = JSON.parse(argsString);
+    // @ts-ignore
+    const fn = crudBuilder2<typeof client, typeof methodAsType>(methodAsType, input => input);
+
+    const res = await fn(client, args);
+    return [
+      {
+        result: JSON.stringify(_.omit(res, ['$metadata'])),
+      },
+    ];
+  };
+
+  constructor(clientType: keyof AWS, module: ModuleInterface) {
+    super();
+    this.clientType = clientType;
+    this.module = module;
   }
 }
 
@@ -447,66 +638,14 @@ export class ModuleBase {
   };
 
   private getRpcSql(): [string, string] {
-    let afterInstallSql = '';
-    let beforeUninstallSql = '';
+    let finalAfterInstallSql = '';
+    let finalBeforeUninstallSql = '';
     for (const [key, rpc] of Object.entries(this.rpc ?? {})) {
-      const rpcOutputEntries = Object.entries(rpc.outputTable ?? {});
-      const rpcOutputTable = rpcOutputEntries
-        .map(([columnName, columnType]) => `${columnName} ${columnType}`)
-        .join(', ');
-      afterInstallSql += `
-        create or replace function ${snakeCase(
-          key,
-        )}(variadic _args text[] default array[]::text[]) returns table (
-          ${rpcOutputTable}
-        )
-        language plpgsql security definer
-        as $$
-        declare
-          _content text;
-        begin
-          perform http.http_set_curlopt('CURLOPT_TIMEOUT_MS', '3600000');
-          select content into _content
-          from http.http_post(
-            'http://${config.http.host}:8088/v1/db/rpc',
-            json_build_object(
-              'dbId', current_database(),
-              'dbUser', SESSION_USER,
-              'params', _args,
-              'modulename', '${this.name}',
-              'methodname', '${key}',
-              'preTransaction', '${rpc.preTransactionCheck}',
-              'postTransaction', '${rpc.postTransactionCheck}'
-            )::varchar,
-            'application/json'
-          );
-          if json_typeof(_content::json) <> 'array' then
-            if json_typeof(_content::json) = 'object' then
-              raise exception 'Error: %', _content::json->>'message';
-            else
-              raise exception 'Error: %', _content;
-            end if;
-          end if;
-          return query select
-            ${
-              rpcOutputEntries.length
-                ? `${rpcOutputEntries
-                    .map(([col, typ]) => `try_cast(j.s->>'${col}', NULL::${typ}) as ${col}`)
-                    .join(', ')}`
-                : ''
-            }
-          from (
-            select json_array_elements(_content::json) as s
-          ) as j;
-        end;
-        $$;
-      `;
-      beforeUninstallSql =
-        `
-        DROP FUNCTION "${snakeCase(key)}";
-      ` + beforeUninstallSql;
+      const { beforeUninstallSql, afterInstallSql } = rpc.getInstallUninstallSql(key);
+      finalAfterInstallSql += afterInstallSql;
+      finalBeforeUninstallSql = beforeUninstallSql + finalBeforeUninstallSql;
     }
-    return [afterInstallSql, beforeUninstallSql];
+    return [finalAfterInstallSql, finalBeforeUninstallSql];
   }
 
   private getCustomSql() {
@@ -554,9 +693,7 @@ export class ModuleBase {
     if (this.name !== 'iasql_platform' && !this.dependencies.includes(`iasql_platform@${this.version}`))
       throw new Error(`${this.name} did not declare an iasql_platform dependency and cannot be loaded.`);
     this.rpc = Object.fromEntries(
-      Object.entries(this).filter(([_, m]: [string, any]) => m instanceof RpcBase) as [
-        [string, RpcInterface],
-      ],
+      Object.entries(this).filter(([, m]: [string, any]) => m instanceof RpcBase) as [[string, RpcInterface]],
     );
     const { beforeInstallSql, afterInstallSql, beforeUninstallSql, afterUninstallSql } = this.getCustomSql();
     const [rpcAfterInstallSql, rpcBeforeUninstallSql] = this.getRpcSql();

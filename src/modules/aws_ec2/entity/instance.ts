@@ -49,7 +49,7 @@ export enum State {
  * DELETE FROM instance  WHERE tags ->> 'name' = 'test-vm';
  * ```
  *
- * @see https://github.com/iasql/iasql-engine/blob/main/test/modules/aws-ec2-integration.ts#L219
+ * @see https://github.com/iasql/iasql/blob/main/test/modules/aws-ec2-integration.ts#L219
  * @see https://aws.amazon.com/ec2/features
  */
 @Entity()

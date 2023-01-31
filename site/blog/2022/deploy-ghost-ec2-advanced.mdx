@@ -1,0 +1,192 @@
+---
+slug: deploy-ghost-ec2-advanced
+title: Advanced configuration for deploying Ghost on EC2
+date: 2022-12-28
+authors: [yrobla]
+---
+
+# Advanced configuration for deploying <a href="https://ghost.org/">Ghost</a> on EC2
+
+In our previous <a href="https://iasql.com/blog/deploy-ghost-ec2/">blogpost</a> we showed how to install <a href="https://ghost.org/">Ghost</a> in an EC2 instance, using a simple configuration. While it is ok
+for testing and development purposes, it was not ready for production. In order to be ready, it needs some essential features, that we will be illustrating on this new post.
+
+## Associate a domain
+
+The initial deployment was just serving Ghost on the public IP of the instance, which is something not suitable for end use. As an initial step, we will be associating that instance with a domain.
+In order to achieve that, we will be relying on AWS Route 53 to create hosted zones and recordsets, and associate them to the instance:
+
+```sql TheButton[Generate A record for domain]="Generate A record for domain"
+ -- Install modules
+SELECT * FROM iasql_install ('aws_route53', 'aws_ec2_metadata');
+
+-- Grab public IP for previously created instance
+SELECT public_ip_address FROM instance_metadata WHERE id = (
+    SELECT id FROM instance WHERE tags ->> 'name' = 'ghost-blog' LIMIT 1
+  );
+
+-- Create recordset
+SELECT * FROM iasql_begin();
+INSERT INTO hosted_zone (domain_name) VALUES ('test-ghost.com.');
+INSERT INTO resource_record_set (name, parent_hosted_zone_id, record_type, record, ttl) 
+SELECT 'blog.test-ghost.com.', id , 'A', '<instance_public_ip>', 300
+FROM hosted_zone where domain_name='test-ghost.com.';
+SELECT * FROM iasql_commit();
+```
+
+After some period of time, and assuming that the domain nameservers are pointing to <a href="https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/migrate-dns-domain-in-use.html#migrate-dns-change-name-servers-with-provider">AWS nameservers</a>,
+the `blog.test-ghost.com` subdomain should be resolved to the EC2 instance IP.
+
+Finally, Ghost needs to be configured to serve this new domain. This can be achieved by connecting by SSH to the instance:
+
+```console
+ssh ubuntu@<instance_public_ip>
+sudo su ghostuser
+cd /var/www/ghost
+ghost config url http://blog.test-ghost.com
+ghost setup nginx
+ghost restart
+```
+
+## Serve traffic over HTTPS
+
+The current deployment is served as HTTP, something not really suitable for production, where all traffic needs to be served via HTTPS. In order to achieve that, we can request a certificate for the
+domain using <a href="https://aws.amazon.com/certificate-manager">AWS ACM</a> functionality. The certificate will be validated automatically using the <a href="https://docs.aws.amazon.com/acm/latest/userguide/dns-validation.html">DNS method</a>:
+
+```sql TheButton[Request certificate and validate via DNS]="Request certificate and validate via DNS"
+ -- Install modules
+SELECT * FROM iasql_install ('aws_acm');
+
+-- request certificate
+SELECT * FROM certificate_request('test-ghost.com', 'DNS', 'us-east-2', '');
+```
+
+The DNS method is performed automagically in IaSQL if the domain is managed via Route 53 service. As an alternative, manual validation can be issued via this method, or e-mail.
+In the e-mail case, a validation link will be sent to the associated e-mail for the domain. The certificate will be activated by manually clicking on the activation link:
+
+```sql TheButton[Request certificate and validate via email]="Request certificate and validate via email"
+ -- Install modules
+SELECT * FROM iasql_install ('aws_acm');
+
+-- request certificate
+SELECT * FROM certificate_request('test-ghost.com', 'EMAIL', 'us-east-2', '');
+```
+
+Once the certificate has been properly issued, it needs to be associated with the current EC2 instance. This is achieved by creating a
+<a href="https://aws.amazon.com/elasticloadbalancing/">Load Balancer</a> - application, internet facing - and properly associating the certificate and domain:
+
+```sql TheButton[Create Load Balancer]="Create Load Balancer"
+ -- Install modules
+SELECT * FROM iasql_install ('aws_elb');
+
+-- create components
+SELECT * FROM iasql_begin();
+INSERT INTO load_balancer (load_balancer_name, scheme, vpc, load_balancer_type, ip_address_type)
+VALUES ('ghost', 'internet-facing', null, 'application', 'ipv4');
+INSERT INTO load_balancer_security_groups(load_balancer_id, security_group_id)
+SELECT (SELECT id FROM load_balancer WHERE load_balancer_name = 'ghost'),
+        (SELECT id FROM security_group WHERE group_name = 'ghost_sg');
+
+INSERT INTO target_group (target_group_name, target_type, protocol, port)
+VALUES ('ghost', 'instance', 'HTTP', 80);
+
+INSERT INTO listener (load_balancer_id, port, protocol, target_group_id, action_type, certificate_id) VALUES
+((SELECT id FROM load_balancer WHERE load_balancer_name = 'ghost'), 443, 'HTTPS',
+(SELECT id FROM target_group WHERE target_group_name = 'ghost'), 'forward',
+(SELECT id FROM certificate WHERE domain_name='test-ghost.com'));
+
+SELECT * FROM iasql_commit();
+```
+
+Once the ALB is created, we will associate the Ghost EC2 instance with the matching target group:
+
+```sql TheButton[Associate instance to target group]="Associate instance to target group"
+-- register ec2 instance
+SELECT * FROM iasql_begin();
+INSERT INTO registered_instance (instance, target_group_id)
+SELECT (SELECT id FROM instance WHERE tags ->> 'name' = 'ghost-blog'), (SELECT id FROM target_group WHERE target_group_name = 'ghost');
+
+SELECT * FROM iasql_commit();
+```
+
+The final step is to point the domain to the load balancer that has been created. If the domain is managed via Route 53 it
+can be setup automatically:
+
+```sql TheButton[Delete old recordset]="Delete old recordset"
+-- delete old recordset
+SELECT * FROM iasql_begin();
+DELETE FROM resource_record_set WHERE name='blog.test-ghost.com.';
+SELECT * FROM iasql_commit();
+```
+
+```sql TheButton[Create recordset]="Create recordset"
+-- create alias recordset
+SELECT * FROM iasql_begin();
+INSERT INTO alias_target (evaluate_target_health, load_balancer_id) SELECT true, id FROM load_balancer WHERE load_balancer_name='ghost' LIMIT 1;
+INSERT INTO resource_record_set (name, record_type, alias_target_id, parent_hosted_zone_id) VALUES ('blog.test-ghost.com.', 'A',
+(SELECT id FROM alias_target WHERE load_balancer_id=(SELECT id FROM load_balancer WHERE load_balancer_name='ghost') LIMIT 1),
+(SELECT id FROM hosted_zone WHERE domain_name='test-ghost.com.' LIMIT 1));
+SELECT * FROM iasql_commit();
+```
+
+If the domain is managed externally, please create an A record with the domain of the blogpost, pointing to the DNS name of the created Load Balancer.
+
+After the components have been created and instance properly associated, the Ghost configuration can be changed accordingly:
+
+```console
+ssh ubuntu@<instance_public_ip>
+sudo su ghostuser
+cd /var/www/ghost
+ghost config url https://blog.test-ghost.com
+ghost setup nginx
+ghost restart
+```
+
+## Use an AWS managed database
+
+The current approach was using an internal mySQL database hosted on the same EC2 instance. This could lead to unstability and availability problems,
+depending on the traffic and capacity of the hosting EC2 instances. A more recommendable approach could be to use an externally
+managed AWS database. We can rely on <a href="https://aws.amazon.com/rds/">AWS RDS</a> for it.
+
+```sql TheButton[Create database]="Create database"
+SELECT * FROM iasql_begin();
+-- create security group and rules
+INSERT INTO security_group (description, group_name) VALUES ('RDS security Group', 'rds');
+
+INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
+SELECT false, 'tcp', 3306, 3306, '0.0.0.0/0', 'rds_mysql', id FROM security_group WHERE group_name = 'rds';
+
+-- create database
+INSERT INTO rds (db_instance_identifier, allocated_storage, db_instance_class, engine, master_user_password, master_username, availability_zone) VALUES
+('ghost', 20, 'db.t3.micro', 'mysql', 'admin2022', 'admin', 'us-east-2a');
+
+INSERT INTO rds_security_groups (rds_id, security_group_id) SELECT
+  (SELECT id FROM rds WHERE db_instance_identifier='ghost'),
+  (SELECT id FROM security_group WHERE group_name='rds' AND region = 'us-east-2');
+
+SELECT * FROM iasql_commit();
+```
+
+Once the database has been created, the endpoint and ports can be retrieved, so they can be connected to the Ghost instance:
+
+```sql TheButton[Retrieve database details]="Retrieve database details"
+SELECT endpoint_addr, endpoint_port FROM rds;
+```
+
+The database can be associated via Ghost configuration. Then the local database can be removed:
+
+```console
+ssh ubuntu@<instance_public_ip>
+sudo su ghostuser
+cd /var/www/ghost
+ghost config set database.client mysql
+ghost config set database.connection.host <endpoint_addr>
+ghost config set database.connection.user admin
+ghost config set database.connection.password admin2022
+ghost config set database.connection.port <endpoint_port>
+ghost config set database.connection.database ghost
+ghost config set database.connection.charset utf8
+ghost config set database.connection.ssl "Amazon RDS"
+ghost restart
+```
+
+** With all these additions, your Ghost deployment will be suitable for production, being able to manage traffic securely and reliably. **

@@ -39,7 +39,7 @@ export enum RevisionType {
  * SELECT * FROM codedeploy_deployment WHERE application_id = (SELECT id FROM codedeploy_application WHERE name = 'application_name');
  * ```
  *
- * @see https://github.com/iasql/iasql-engine/blob/main/test/modules/aws-codedeploy-integration.ts#L595
+ * @see https://github.com/iasql/iasql/blob/main/test/modules/aws-codedeploy-integration.ts#L595
  * @see https://docs.aws.amazon.com/codedeploy/latest/userguide/deployments.html
  *
  */

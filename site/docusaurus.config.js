@@ -21,10 +21,10 @@ const theButton = require('./src/rehype/thebutton');
     url: config.url,
     baseUrl: '/',
     trailingSlash: true,
-    onBrokenLinks: 'throw',
-    onBrokenMarkdownLinks: 'throw',
+    onBrokenLinks: 'ignore', // we need to allow temporarily until the path structure for current version and next version converge, otherwise it fails on references
+    onBrokenMarkdownLinks: 'ignore',
     favicon: 'img/favicon.png',
-    projectName: 'iasql-engine',
+    projectName: 'iasql',
     organizationName: 'iasql',
     customFields: config,
 
@@ -68,7 +68,6 @@ const theButton = require('./src/rehype/thebutton');
       ],
       ['docusaurus-plugin-iasql', { sidebar: { usedSidebar: 'docs' } }],
     ],
-
     themeConfig:
       /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
       ({
@@ -117,7 +116,7 @@ const theButton = require('./src/rehype/thebutton');
               'aria-label': 'Community',
             },
             {
-              href: 'https://github.com/iasql/iasql-engine',
+              href: 'https://github.com/iasql/iasql',
               position: 'right',
               className: 'header-github-link',
               'aria-label': 'GitHub repository',
@@ -134,6 +133,21 @@ const theButton = require('./src/rehype/thebutton');
               title: 'Product',
               items: [
                 {
+                  label: 'Dashboard',
+                  href: 'https://app.iasql.com',
+                  target: '_self',
+                },
+                {
+                  label: 'GitHub',
+                  href: 'https://github.com/iasql/iasql',
+                  target: '_self',
+                },
+              ],
+            },
+            {
+              title: 'Content',
+              items: [
+                {
                   label: 'Docs',
                   to: 'docs',
                   target: '_self',
@@ -141,16 +155,6 @@ const theButton = require('./src/rehype/thebutton');
                 {
                   label: 'Blog',
                   to: 'blog',
-                  target: '_self',
-                },
-                {
-                  label: 'Dashboard',
-                  href: 'https://app.iasql.com',
-                  target: '_self',
-                },
-                {
-                  label: 'GitHub',
-                  href: 'https://github.com/iasql/iasql-engine',
                   target: '_self',
                 },
               ],

@@ -13,7 +13,7 @@ import { cloudId } from '../../../services/cloud-id';
  * DELETE FROM hosted_zone WHERE domain_name = 'domain.com';
  * ```
  *
- * @see https://github.com/iasql/iasql-engine/blob/b2c2383b73d73f5cdf75c867d334e80cdf40caa1/test/modules/aws-route53-integration.ts#L121
+ * @see https://github.com/iasql/iasql/blob/b2c2383b73d73f5cdf75c867d334e80cdf40caa1/test/modules/aws-route53-integration.ts#L121
  * @see https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/hosted-zones-working-with.html
  */
 @Entity()

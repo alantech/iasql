@@ -29,7 +29,7 @@ import { ParameterGroup } from './parameter_group';
  * DELETE FROM rds WHERE db_instance_identifier = 'db_name';
  * ```
  *
- * @see https://github.com/iasql/iasql-engine/blob/b2c2383b73d73f5cdf75c867d334e80cdf40caa1/test/modules/aws-rds-integration.ts#L93
+ * @see https://github.com/iasql/iasql/blob/b2c2383b73d73f5cdf75c867d334e80cdf40caa1/test/modules/aws-rds-integration.ts#L93
  * @see https://aws.amazon.com/rds/
  */
 @Entity()

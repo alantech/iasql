@@ -80,10 +80,11 @@ describe('Every module installed need to have at least a table', () => {
       `
     SELECT *
     FROM iasql_modules_installed()
-    WHERE module_name NOT LIKE 'iasql_%' AND concat_ws ('@', module_name, module_version) NOT IN (
-      SELECT module FROM iasql_tables
-    )
-  `,
+    WHERE module_name NOT LIKE 'iasql_%'
+      AND module_name != 'aws_sdk'
+      AND concat_ws('@', module_name, module_version) NOT IN (SELECT module
+                                                              FROM iasql_tables)
+      `,
       (res: any[]) => expect(res?.length).toBe(0),
     ),
   );

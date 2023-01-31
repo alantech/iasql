@@ -17,7 +17,7 @@ import { Vpc } from './vpc';
  * ((SELECT id FROM vpc WHERE tags ->> 'name' = 'vpc'), '{"name":"route_table"}', 'us-east-1');
  * ```
  *
- * @see https://github.com/iasql/iasql-engine/blob/main/test/modules/aws-vpc-routetable-integration.ts#L154
+ * @see https://github.com/iasql/iasql/blob/main/test/modules/aws-vpc-routetable-integration.ts#L154
  * @see https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Route_Tables.html
  */
 @Unique('uq_route_table_region', ['id', 'region'])

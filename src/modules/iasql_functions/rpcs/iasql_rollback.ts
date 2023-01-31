@@ -10,7 +10,7 @@ import * as iasql from '../iasql';
 
 /**
  * Method to abort an IaSQL transaction if you want to discard the changes done since calling `iasql_begin` by
- * calling `iasql_rollback`. This will re-enable regular behaviour of IaSQL in which changes are propagated
+ * calling `iasql_rollback`. This will sync from your cloud and re-enable regular behaviour of IaSQL in which changes are propagated
  * both ways in an eventually consistent way without any special syntax other than
  * `SELECT/INSERT/UPDATE/DELETE` records normally.
  *

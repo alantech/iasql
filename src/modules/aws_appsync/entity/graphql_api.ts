@@ -44,7 +44,7 @@ export enum DefaultAction {
  *  DELETE FROM graphql_api WHERE name = 'graphql-api';
  * ```
  *
- * @see https://github.com/iasql/iasql-engine/blob/main/test/modules/aws-appsync-integration.ts#L95
+ * @see https://github.com/iasql/iasql/blob/main/test/modules/aws-appsync-integration.ts#L95
  * @see https://aws.amazon.com/appsync
  *
  */

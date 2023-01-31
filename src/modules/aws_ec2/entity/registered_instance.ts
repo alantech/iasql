@@ -17,7 +17,7 @@ import { TargetGroup } from '../../aws_elb/entity';
  * DELETE FROM registered_instance USING instance WHERE instance.tags ->> 'name' = 'test-vm' AND instance.id = registered_instance.instance;
  * ```
  *
- * @see https://github.com/iasql/iasql-engine/blob/main/test/modules/aws-ec2-integration.ts#L614
+ * @see https://github.com/iasql/iasql/blob/main/test/modules/aws-ec2-integration.ts#L614
  * @see https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-deregister-register-instances.html
  */
 @Entity()

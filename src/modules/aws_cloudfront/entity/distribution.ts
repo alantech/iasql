@@ -50,7 +50,7 @@ export enum originProtocolPolicyEnum {
  * DELETE FROM distribution WHERE caller_reference = 's3-bucket-ref';
  * ```
  *
- * @see https://github.com/iasql/iasql-engine/blob/main/test/modules/aws-cloudfront-integration.ts#L148
+ * @see https://github.com/iasql/iasql/blob/main/test/modules/aws-cloudfront-integration.ts#L148
  * @see https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/Introduction.html
  *
  */
