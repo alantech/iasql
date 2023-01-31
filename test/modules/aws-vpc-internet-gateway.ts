@@ -140,6 +140,37 @@ describe('InternetGateway Integration Testing', () => {
   );
 
   it('starts a transaction', begin());
+
+  it(
+    'adds a new route pointing the recently created internet gateway to the vpc in the region',
+    query(
+      `
+        INSERT INTO route (gateway_id, route_table_id, destination)
+        VALUES ((SELECT internet_gateway_id FROM internet_gateway WHERE tags ->> 'name' = '${prefix}'), (SELECT id FROM route_table WHERE vpc_id = (SELECT id FROM vpc WHERE tags ->> 'name' = '${prefix}')), '0.0.0.0/0')
+      `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+  
+  it('applies creation of the internet gateway route', commit());
+
+  it(
+    'confirms that the internet gateway route is created',
+    query(
+      `
+        SELECT *
+        FROM route
+        WHERE gateway_id = (SELECT internet_gateway_id FROM internet_gateway WHERE tags ->> 'name' = '${prefix}')
+      `,
+      (res: any[]) => expect(res.length).toBe(1),
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it('starts a transaction', begin());
   it(
     'creates another vpc',
     query(
