@@ -544,7 +544,7 @@ describe('AwsCodepipeline Integration Testing', () => {
     query(
       `
     SELECT * FROM pipeline_declaration
-    WHERE name = '${prefix}-${dbAlias}-lambda';
+    WHERE name = '${prefix}-lambda-${dbAlias}';
   `,
       (res: any[]) => expect(res.length).toBe(1),
     ),
