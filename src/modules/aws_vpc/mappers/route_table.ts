@@ -132,7 +132,8 @@ export class RouteTableMapper extends MapperBase<RouteTable> {
           try {
             await client.ec2client.deleteRouteTable({ RouteTableId: e.routeTableId });
           } catch (err) {
-            console.log(`+-+ is this an error deleting route tables??`)
+            console.log(`+-+ is this an error deleting route tables?? ${JSON.stringify(err)}`)
+            throw err;
           }
         }),
       );
