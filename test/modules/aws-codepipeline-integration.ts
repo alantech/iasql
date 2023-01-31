@@ -162,6 +162,98 @@ const stages = JSON.stringify([
   },
 ]);
 
+// stages for lambda
+const lambdaStages = JSON.stringify([
+  {
+    name: 'Source',
+    actions: [
+      {
+        name: 'SourceAction',
+        actionTypeId: {
+          category: 'Source',
+          owner: 'ThirdParty',
+          version: '1',
+          provider: 'GitHub',
+        },
+        configuration: {
+          Owner: 'iasql',
+          Repo: 'iasql-code-example-lambda',
+          Branch: 'main',
+          OAuthToken: `${process.env.GH_PAT}`,
+          OutputArtifactFormat: 'CODE_ZIP',
+        },
+        outputArtifacts: [
+          {
+            name: 'SourceArtifact',
+          },
+        ],
+      },
+    ],
+  },
+  {
+    name: 'Build',
+    actions: [
+      {
+        actionTypeId: {
+          category: 'Build',
+          owner: 'AWS',
+          provider: 'CodeBuild',
+          version: '1',
+        },
+        configuration: {
+          ProjectName: 'build-code-example-lambda',
+          EnvironmentVariables: `[{"TEST_LAMBDA_BUCKET_NAME": "${testLambdaBucketName}"}]`,
+        },
+        inputArtifacts: [
+          {
+            name: 'SourceArtifact',
+          },
+        ],
+        name: 'Build',
+        namespace: 'BuildVariables',
+        outputArtifacts: [
+          {
+            name: 'BuildArtifact',
+          },
+        ],
+        region: region,
+        runOrder: 1,
+      },
+    ],
+  },
+  {
+    name: 'Deploy',
+    actions: [
+      {
+        actionTypeId: {
+          category: 'Deploy',
+          owner: 'AWS',
+          provider: 'CloudFormation',
+          version: '1',
+        },
+        configuration: {
+          ActionMode: 'CHANGE_SET_REPLACE',
+          Capabilities: 'CAPABILITY_IAM',
+          ChangeSetName: 'aws-codepipeline-lambda-changeset-example',
+          RoleArn: '##ROLE_ARN##',
+          StackName: 'aws-codepipeline-lambda-stack-example',
+          TemplatePath: 'BuildArtifact::outputTemplate.yaml',
+        },
+        inputArtifacts: [
+          {
+            name: 'BuildArtifact',
+          },
+        ],
+        name: 'Deploy',
+        namespace: 'DeployVariables',
+        outputArtifacts: [],
+        region: region,
+        runOrder: 1,
+      },
+    ],
+  },
+]);
+
 // buggy stages
 const buggyStages = JSON.stringify([
   {
@@ -433,118 +525,16 @@ describe('AwsCodepipeline Integration Testing', () => {
   it('starts a transaction', begin());
 
   it(
-    'query iam role for cloud formation',
-    query(`SELECT arn FROM iam_role WHERE role_name='${cloudformationRoleName}'`, (res: any[]) => {
-      const arn = res[0].arn;
-
-      if (arn) {
-        // generate the pipeline code
-        const lambdaStages = JSON.stringify([
-          {
-            name: 'Source',
-            actions: [
-              {
-                name: 'SourceAction',
-                actionTypeId: {
-                  category: 'Source',
-                  owner: 'ThirdParty',
-                  version: '1',
-                  provider: 'GitHub',
-                },
-                configuration: {
-                  Owner: 'iasql',
-                  Repo: 'iasql-code-example-lambda',
-                  Branch: 'main',
-                  OAuthToken: `${process.env.GH_PAT}`,
-                  OutputArtifactFormat: 'CODE_ZIP',
-                },
-                outputArtifacts: [
-                  {
-                    name: 'SourceArtifact',
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            name: 'Build',
-            actions: [
-              {
-                actionTypeId: {
-                  category: 'Build',
-                  owner: 'AWS',
-                  provider: 'CodeBuild',
-                  version: '1',
-                },
-                configuration: {
-                  ProjectName: 'build-code-example-lambda',
-                  EnvironmentVariables: `[{"TEST_LAMBDA_BUCKET_NAME": "${testLambdaBucketName}"}]`,
-                },
-                inputArtifacts: [
-                  {
-                    name: 'SourceArtifact',
-                  },
-                ],
-                name: 'Build',
-                namespace: 'BuildVariables',
-                outputArtifacts: [
-                  {
-                    name: 'BuildArtifact',
-                  },
-                ],
-                region: region,
-                runOrder: 1,
-              },
-            ],
-          },
-          {
-            name: 'Deploy',
-            actions: [
-              {
-                actionTypeId: {
-                  category: 'Deploy',
-                  owner: 'AWS',
-                  provider: 'CloudFormation',
-                  version: '1',
-                },
-                configuration: {
-                  ActionMode: 'CHANGE_SET_REPLACE',
-                  Capabilities: 'CAPABILITY_IAM',
-                  ChangeSetName: 'aws-codepipeline-lambda-changeset-example',
-                  RoleArn: arn,
-                  StackName: 'aws-codepipeline-lambda-stack-example',
-                  TemplatePath: 'BuildArtifact::outputTemplate.yaml',
-                },
-                inputArtifacts: [
-                  {
-                    name: 'BuildArtifact',
-                  },
-                ],
-                name: 'Deploy',
-                namespace: 'DeployVariables',
-                outputArtifacts: [],
-                region: region,
-                runOrder: 1,
-              },
-            ],
-          },
-        ]);
-
-        // inserts the pipeline
-        it(
-          'adds a new pipeline',
-          query(
-            `
-          INSERT INTO pipeline_declaration (name, service_role_name, stages, artifact_store)
-          VALUES ('${prefix}-lambda-${dbAlias}', '${codePipelineCfRoleName}', '${lambdaStages}', '${artifactStore}');
-        `,
-            undefined,
-            true,
-            () => ({ username, password }),
-          ),
-        );
-      }
-    }),
+    'adds a new pipeline',
+    query(
+      `
+    INSERT INTO pipeline_declaration (name, service_role_name, stages, artifact_store)
+    VALUES ('${prefix}-lambda-${dbAlias}', '${codePipelineCfRoleName}', REPLACE('${lambdaStages}', '##ROLE_ARN##', SELECT arn FROM iam_role WHERE role_name='${cloudformationRoleName}'), '${artifactStore}');
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('apply pipeline creation', commit());
