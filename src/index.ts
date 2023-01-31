@@ -1,7 +1,7 @@
 import * as sentry from '@sentry/node';
+import { execSync } from 'child_process';
 import cluster from 'cluster';
 import express from 'express';
-import { existsSync } from 'fs';
 import { cpus } from 'os';
 import 'reflect-metadata';
 import { inspect } from 'util';
@@ -87,10 +87,17 @@ if (config.http.workerPool && cluster.isPrimary) {
     sentry.init(config.sentry);
   }
 
-  const dbsToUpgrade = existsSync('/tmp/upgrade');
+  const dbsToUpgrade = execSync(
+    `
+    su - postgres -c "
+      psql iasql_metadata -qtc \\"SELECT datname FROM pg_database WHERE datname LIKE 'OLD%'\\"
+    "
+  `,
+    { encoding: 'utf8' },
+  ).trim();
 
-  if (dbsToUpgrade) {
-    MetadataRepo.init().then(upgrade).then(startPrimary);
+  if (dbsToUpgrade !== '') {
+    MetadataRepo.init(false).then(upgrade).then(startPrimary);
   } else {
     MetadataRepo.init().then(startPrimary);
   }
