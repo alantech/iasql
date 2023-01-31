@@ -201,7 +201,7 @@ const lambdaStages = JSON.stringify([
         },
         configuration: {
           ProjectName: 'build-code-example-lambda',
-          EnvironmentVariables: `[{"TEST_LAMBDA_BUCKET_NAME": "${testLambdaBucketName}"}]`,
+          EnvironmentVariables: `[{"name": "TEST_LAMBDA_BUCKET_NAME", "value":"${testLambdaBucketName}"}]`,
         },
         inputArtifacts: [
           {
