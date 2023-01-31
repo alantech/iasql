@@ -180,7 +180,6 @@ const lambdaStages = JSON.stringify([
           Repo: 'iasql-code-example-lambda',
           Branch: 'main',
           OAuthToken: `${process.env.GH_PAT}`,
-          OutputArtifactFormat: 'CODE_ZIP',
         },
         outputArtifacts: [
           {
