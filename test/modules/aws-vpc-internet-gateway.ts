@@ -145,8 +145,8 @@ describe('InternetGateway Integration Testing', () => {
     'adds a new route pointing the recently created internet gateway to the vpc in the region',
     query(
       `
-        INSERT INTO route (gateway_id, route_table_id, destination)
-        VALUES ((SELECT internet_gateway_id FROM internet_gateway WHERE tags ->> 'name' = '${prefix}'), (SELECT id FROM route_table WHERE vpc_id = (SELECT id FROM vpc WHERE tags ->> 'name' = '${prefix}')), '0.0.0.0/0')
+        INSERT INTO route (gateway_id, route_table_id, destination, region)
+        VALUES ((SELECT internet_gateway_id FROM internet_gateway WHERE tags ->> 'name' = '${prefix}'), (SELECT id FROM route_table WHERE vpc_id = (SELECT id FROM vpc WHERE tags ->> 'name' = '${prefix}')), '0.0.0.0/0', '${region}')
       `,
       undefined,
       true,
