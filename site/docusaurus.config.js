@@ -36,12 +36,17 @@ const theButton = require('./src/rehype/thebutton');
             routeBasePath: '/docs',
             remarkPlugins: [theButton],
             sidebarPath: require.resolve('./sidebars.js'),
+            editUrl: 'https://github.com/iasql/iasql/tree/main/site/',
           },
           blog: {
             showReadingTime: true,
             routeBasePath: '/blog',
             remarkPlugins: [theButton],
             exclude: ['unlisted/*'],
+            blogSidebarTitle: 'All posts',
+            blogSidebarCount: 'ALL',
+            editUrl: 'https://github.com/iasql/iasql/tree/main/site/',
+            postsPerPage: 1,
           },
           theme: {
             customCss: require.resolve('./src/css/custom.css'),
