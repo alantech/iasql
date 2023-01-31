@@ -4,9 +4,13 @@ import DocSidebarItemLink from '@theme/DocSidebarItem/Link';
 import DocSidebarItemHtml from '@theme/DocSidebarItem/Html';
 export default function DocSidebarItem({item, ...props}) {
   // if there is custom property fragment, modify the link
-  if (item.customProps && 'fragment' in item.customProps) {
+  if (item.customProps && ('fragment' in item.customProps)) {    
     item.label = item.customProps.label;
-    item.href = item.href + '#' +item.customProps.fragment;
+    if (item.customProps.fragment!="") 
+    {
+      // check if it has the fragment added or not
+      if (!item.href.endsWith(item.customProps.fragment)) item.href = item.href + '#' +item.customProps.fragment;
+    }
   }
   switch (item.type) {
     case 'category':
