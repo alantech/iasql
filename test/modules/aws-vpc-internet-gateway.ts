@@ -153,7 +153,7 @@ describe('InternetGateway Integration Testing', () => {
       () => ({ username, password }),
     ),
   );
-  
+
   it('applies creation of the internet gateway route', commit());
 
   it(
