@@ -145,7 +145,7 @@ export class RouteTableMapper extends MapperBase<RouteTable> {
       await ctx.orm.save(RouteTable, es);
       for (const e of es) {
         const routes = e.routes.map(r => this.module.route.routeMapper(r, e, e.region));
-        await ctx.orm.save(Route, routes);
+        await this.module.route.db.create(routes.filter(r => !!r) as Route[], ctx);
       }
     },
     update: (es: RouteTable[], ctx: Context) => ctx.orm.save(RouteTable, es),

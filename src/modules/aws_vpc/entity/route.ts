@@ -1,4 +1,4 @@
-import { Check, Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Check, Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, Unique } from 'typeorm';
 
 import { AwsRegions } from '../../aws_account/entity';
 import { RouteTable } from './route_table';
@@ -9,6 +9,7 @@ import { RouteTable } from './route_table';
  *
  * @see https://docs.aws.amazon.com/vpc/latest/userguide/route-table-options.html
  */
+@Unique('uq_route_table_destination', ['routeTable', 'destination'])
 @Entity()
 export class Route {
   /**

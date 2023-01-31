@@ -30,7 +30,7 @@ export class RouteMapper extends MapperBase<Route> {
     return this.eqRoute(a, b);
   };
   cidrIPv4Pattern = new RegExp(
-    '^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/(3[0-2]|[12][0-9]|[1-9])$',
+    '^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/(3[0-2]|[12][0-9]|[0-9])$',
   );
   cidrIPv6Pattern = new RegExp(
     '^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))/(12[0-8]|1[01][0-9]|[1-9]?[0-9])$',
@@ -180,6 +180,8 @@ export class RouteMapper extends MapperBase<Route> {
           e.routeTable.id = routeTable?.id;
         }
         if (!e.routeTable?.id) throw new Error('RouteTable need to be loaded first');
+        const dbE = await this.db.read(ctx, this.entityId(e));
+        if (dbE?.id) e.id = dbE.id;
       }
       return await ctx.orm.save(Route, es);
     },
