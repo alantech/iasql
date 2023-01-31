@@ -45,7 +45,6 @@ const region = defaultRegion([
 const modules = ['aws_codepipeline', 'aws_s3', 'aws_codedeploy'];
 
 const codecommitPolicyArn = 'arn:aws:iam::aws:policy/AWSCodeCommitFullAccess';
-const codebuildPolicyArn = 'arn:aws:iam::aws:policy/AWSCodeBuildAdminAccess';
 const codepipelinePolicyArn = 'arn:aws:iam::aws:policy/AWSCodePipeline_FullAccess';
 const s3PolicyArn = 'arn:aws:iam::aws:policy/AmazonS3FullAccess';
 
@@ -162,253 +161,6 @@ const stages = JSON.stringify([
     ],
   },
 ]);
-
-// stages for lambda
-const lambdaStages = JSON.stringify([
-  {
-    name: 'Source',
-    actions: [
-      {
-        name: 'SourceAction',
-        actionTypeId: {
-          category: 'Source',
-          owner: 'ThirdParty',
-          version: '1',
-          provider: 'GitHub',
-        },
-        configuration: {
-          Owner: 'iasql',
-          Repo: 'iasql-code-example-lambda',
-          Branch: 'main',
-          OAuthToken: `${process.env.GH_PAT}`,
-          OutputArtifactFormat: 'CODE_ZIP',
-        },
-        outputArtifacts: [
-          {
-            name: 'SourceArtifact',
-          },
-        ],
-      },
-    ],
-  },
-  {
-    name: 'Build',
-    actions: [
-      {
-        actionTypeId: {
-          category: 'Build',
-          owner: 'AWS',
-          provider: 'CodeBuild',
-          version: '1',
-        },
-        configuration: {
-          ProjectName: 'build-code-example-lambda',
-          EnvironmentVariables: `[{"TEST_LAMBDA_BUCKET_NAME": "${testLambdaBucketName}"}]`,
-        },
-        inputArtifacts: [
-          {
-            name: 'SourceArtifact',
-          },
-        ],
-        name: 'Build',
-        namespace: 'BuildVariables',
-        outputArtifacts: [
-          {
-            name: 'BuildArtifact',
-          },
-        ],
-        region: region,
-        runOrder: 1,
-      },
-    ],
-  },
-  {
-    name: 'Deploy',
-    actions: [
-      {
-        actionTypeId: {
-          category: 'Deploy',
-          owner: 'AWS',
-          provider: 'CloudFormation',
-          version: '1',
-        },
-        configuration: {
-          ActionMode: 'CHANGE_SET_REPLACE',
-          Capabilities: 'CAPABILITY_IAM',
-          ChangeSetName: 'aws-codepipeline-lambda-changeset-example',
-          RoleArn: cloudformationRoleName,
-          StackName: 'aws-codepipeline-lambda-stack-example',
-          TemplatePath: 'BuildArtifact::outputTemplate.yaml',
-        },
-        inputArtifacts: [
-          {
-            name: 'BuildArtifact',
-          },
-        ],
-        name: 'Deploy',
-        namespace: 'DeployVariables',
-        outputArtifacts: [],
-        region: region,
-        runOrder: 1,
-      },
-    ],
-  },
-]);
-
-const customLambdaPolicy = JSON.stringify({
-  Statement: [
-    {
-      Action: ['iam:PassRole'],
-      Resource: '*',
-      Effect: 'Allow',
-      Condition: {
-        StringEqualsIfExists: {
-          'iam:PassedToService': [
-            'cloudformation.amazonaws.com',
-            'elasticbeanstalk.amazonaws.com',
-            'ec2.amazonaws.com',
-            'ecs-tasks.amazonaws.com',
-          ],
-        },
-      },
-    },
-    {
-      Action: [
-        'codecommit:CancelUploadArchive',
-        'codecommit:GetBranch',
-        'codecommit:GetCommit',
-        'codecommit:GetRepository',
-        'codecommit:GetUploadArchiveStatus',
-        'codecommit:UploadArchive',
-      ],
-      Resource: '*',
-      Effect: 'Allow',
-    },
-    {
-      Action: [
-        'codedeploy:CreateDeployment',
-        'codedeploy:GetApplication',
-        'codedeploy:GetApplicationRevision',
-        'codedeploy:GetDeployment',
-        'codedeploy:GetDeploymentConfig',
-        'codedeploy:RegisterApplicationRevision',
-      ],
-      Resource: '*',
-      Effect: 'Allow',
-    },
-    {
-      Action: ['codestar-connections:UseConnection'],
-      Resource: '*',
-      Effect: 'Allow',
-    },
-    {
-      Action: [
-        'elasticbeanstalk:*',
-        'ec2:*',
-        'elasticloadbalancing:*',
-        'autoscaling:*',
-        'cloudwatch:*',
-        's3:*',
-        'sns:*',
-        'cloudformation:*',
-        'rds:*',
-        'sqs:*',
-        'ecs:*',
-      ],
-      Resource: '*',
-      Effect: 'Allow',
-    },
-    {
-      Action: ['lambda:InvokeFunction', 'lambda:ListFunctions'],
-      Resource: '*',
-      Effect: 'Allow',
-    },
-    {
-      Action: [
-        'opsworks:CreateDeployment',
-        'opsworks:DescribeApps',
-        'opsworks:DescribeCommands',
-        'opsworks:DescribeDeployments',
-        'opsworks:DescribeInstances',
-        'opsworks:DescribeStacks',
-        'opsworks:UpdateApp',
-        'opsworks:UpdateStack',
-      ],
-      Resource: '*',
-      Effect: 'Allow',
-    },
-    {
-      Action: [
-        'cloudformation:CreateStack',
-        'cloudformation:DeleteStack',
-        'cloudformation:DescribeStacks',
-        'cloudformation:UpdateStack',
-        'cloudformation:CreateChangeSet',
-        'cloudformation:DeleteChangeSet',
-        'cloudformation:DescribeChangeSet',
-        'cloudformation:ExecuteChangeSet',
-        'cloudformation:SetStackPolicy',
-        'cloudformation:ValidateTemplate',
-      ],
-      Resource: '*',
-      Effect: 'Allow',
-    },
-    {
-      Action: [
-        'codebuild:BatchGetBuilds',
-        'codebuild:StartBuild',
-        'codebuild:BatchGetBuildBatches',
-        'codebuild:StartBuildBatch',
-      ],
-      Resource: '*',
-      Effect: 'Allow',
-    },
-    {
-      Effect: 'Allow',
-      Action: [
-        'devicefarm:ListProjects',
-        'devicefarm:ListDevicePools',
-        'devicefarm:GetRun',
-        'devicefarm:GetUpload',
-        'devicefarm:CreateUpload',
-        'devicefarm:ScheduleRun',
-      ],
-      Resource: '*',
-    },
-    {
-      Effect: 'Allow',
-      Action: [
-        'servicecatalog:ListProvisioningArtifacts',
-        'servicecatalog:CreateProvisioningArtifact',
-        'servicecatalog:DescribeProvisioningArtifact',
-        'servicecatalog:DeleteProvisioningArtifact',
-        'servicecatalog:UpdateProduct',
-      ],
-      Resource: '*',
-    },
-    {
-      Effect: 'Allow',
-      Action: ['cloudformation:ValidateTemplate'],
-      Resource: '*',
-    },
-    {
-      Effect: 'Allow',
-      Action: ['ecr:DescribeImages'],
-      Resource: '*',
-    },
-    {
-      Effect: 'Allow',
-      Action: ['states:DescribeExecution', 'states:DescribeStateMachine', 'states:StartExecution'],
-      Resource: '*',
-    },
-    {
-      Effect: 'Allow',
-      Action: ['appconfig:StartDeployment', 'appconfig:StopDeployment', 'appconfig:GetDeployment'],
-      Resource: '*',
-    },
-  ],
-  Version: '2012-10-17',
-});
 
 // buggy stages
 const buggyStages = JSON.stringify([
@@ -607,7 +359,7 @@ describe('AwsCodepipeline Integration Testing', () => {
     query(
       `
     INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
-    VALUES ('${codePipelineCfRoleName}', '${assumeServicePolicy}', array['${codepipelinePolicyArn}', '${s3PolicyArn}', '${codecommitPolicyArn}', '${codebuildPolicyArn}', '${codedeployPolicyArn}', '${globalIamPolicyArn}', '${cloudformationPolicyArn}']);
+    VALUES ('${codePipelineCfRoleName}', '${assumeServicePolicy}', array['${codepipelinePolicyArn}', '${s3PolicyArn}', '${codecommitPolicyArn}', '${codedeployPolicyArn}', '${globalIamPolicyArn}', '${cloudformationPolicyArn}']);
   `,
       undefined,
       true,
@@ -616,7 +368,7 @@ describe('AwsCodepipeline Integration Testing', () => {
   );
 
   it(
-    'adds a new ec2 role',
+    'adds a new role for cloudformation',
     query(
       `
     INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
@@ -629,7 +381,7 @@ describe('AwsCodepipeline Integration Testing', () => {
   );
 
   it(
-    'adds a new ec2 role for cloudformation',
+    'adds a new ec2 role',
     query(
       `
     INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
@@ -681,16 +433,118 @@ describe('AwsCodepipeline Integration Testing', () => {
   it('starts a transaction', begin());
 
   it(
-    'adds a new pipeline',
-    query(
-      `
-    INSERT INTO pipeline_declaration (name, service_role_name, stages, artifact_store)
-    VALUES ('${prefix}-lambda-${dbAlias}', '${codePipelineCfRoleName}', '${lambdaStages}', '${artifactStore}');
-  `,
-      undefined,
-      true,
-      () => ({ username, password }),
-    ),
+    'query iam role for cloud formation',
+    query(`SELECT arn FROM iam_role WHERE role_name='${cloudformationRoleName}'`, (res: any[]) => {
+      const arn = res[0].arn;
+
+      if (arn) {
+        // generate the pipeline code
+        const lambdaStages = JSON.stringify([
+          {
+            name: 'Source',
+            actions: [
+              {
+                name: 'SourceAction',
+                actionTypeId: {
+                  category: 'Source',
+                  owner: 'ThirdParty',
+                  version: '1',
+                  provider: 'GitHub',
+                },
+                configuration: {
+                  Owner: 'iasql',
+                  Repo: 'iasql-code-example-lambda',
+                  Branch: 'main',
+                  OAuthToken: `${process.env.GH_PAT}`,
+                  OutputArtifactFormat: 'CODE_ZIP',
+                },
+                outputArtifacts: [
+                  {
+                    name: 'SourceArtifact',
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            name: 'Build',
+            actions: [
+              {
+                actionTypeId: {
+                  category: 'Build',
+                  owner: 'AWS',
+                  provider: 'CodeBuild',
+                  version: '1',
+                },
+                configuration: {
+                  ProjectName: 'build-code-example-lambda',
+                  EnvironmentVariables: `[{"TEST_LAMBDA_BUCKET_NAME": "${testLambdaBucketName}"}]`,
+                },
+                inputArtifacts: [
+                  {
+                    name: 'SourceArtifact',
+                  },
+                ],
+                name: 'Build',
+                namespace: 'BuildVariables',
+                outputArtifacts: [
+                  {
+                    name: 'BuildArtifact',
+                  },
+                ],
+                region: region,
+                runOrder: 1,
+              },
+            ],
+          },
+          {
+            name: 'Deploy',
+            actions: [
+              {
+                actionTypeId: {
+                  category: 'Deploy',
+                  owner: 'AWS',
+                  provider: 'CloudFormation',
+                  version: '1',
+                },
+                configuration: {
+                  ActionMode: 'CHANGE_SET_REPLACE',
+                  Capabilities: 'CAPABILITY_IAM',
+                  ChangeSetName: 'aws-codepipeline-lambda-changeset-example',
+                  RoleArn: arn,
+                  StackName: 'aws-codepipeline-lambda-stack-example',
+                  TemplatePath: 'BuildArtifact::outputTemplate.yaml',
+                },
+                inputArtifacts: [
+                  {
+                    name: 'BuildArtifact',
+                  },
+                ],
+                name: 'Deploy',
+                namespace: 'DeployVariables',
+                outputArtifacts: [],
+                region: region,
+                runOrder: 1,
+              },
+            ],
+          },
+        ]);
+
+        // inserts the pipeline
+        it(
+          'adds a new pipeline',
+          query(
+            `
+          INSERT INTO pipeline_declaration (name, service_role_name, stages, artifact_store)
+          VALUES ('${prefix}-lambda-${dbAlias}', '${codePipelineCfRoleName}', '${lambdaStages}', '${artifactStore}');
+        `,
+            undefined,
+            true,
+            () => ({ username, password }),
+          ),
+        );
+      }
+    }),
   );
 
   it('apply pipeline creation', commit());
