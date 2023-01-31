@@ -106,14 +106,10 @@ export class Crud2<E extends {}> {
       ((_e: E) => {
         return 'What?';
       });
-    if (entityName === 'Route') {
-      console.log(`+-+ the routes we are unmemoing are ${JSON.stringify(es)}`)
-    }
     es.forEach(e => {
       ctx.memo[dest] = ctx.memo[dest] ?? {};
       ctx.memo[dest][entityName] = ctx.memo[dest][entityName] ?? {};
       delete ctx.memo[dest][entityName][entityId(e)];
-      console.log(`+-+ memo object after delete dest=${dest} ${JSON.stringify(ctx.memo[dest][entityName][entityId(e)])}`)
     });
   }
 
