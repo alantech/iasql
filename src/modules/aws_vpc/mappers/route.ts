@@ -120,24 +120,16 @@ export class RouteMapper extends MapperBase<Route> {
         if (!rawRoute) return;
         return await this.routeMapper(rawRoute, routeTable, region);
       } else {
-        console.log(`+-+ GETTING ROUTES`);
         const out: Route[] = [];
         const routeTables: RouteTable[] = ctx.memo.cloud?.RouteTable
           ? Object.values(ctx.memo.cloud?.RouteTable)
           : await this.module.routeTable.cloud.read(ctx);
         for (const rt of routeTables ?? []) {
-          try {
-            if (!rt) continue;
-            console.log(`+-+ ROUTE TABLE ${JSON.stringify(rt)}`);
-            const routes: (Route | undefined)[] =
-              rt.routes?.map(r => this.routeMapper(r, rt, rt.region)).filter(r => !!r) ?? [];
-            out.push(...(routes as Route[]));
-          } catch (e2) {
-            console.log(`+-+ DID SOMETHING HAPPENED HERE? ${JSON.stringify(e2)}`);
-            throw e2;
-          }
+          if (!rt) continue;
+          const routes: (Route | undefined)[] =
+            rt.routes?.map(r => this.routeMapper(r, rt, rt.region)).filter(r => !!r) ?? [];
+          out.push(...(routes as Route[]));
         }
-        console.log(`+-+ RETURNING ROUTES`);
         return out;
       }
     },
@@ -163,42 +155,14 @@ export class RouteMapper extends MapperBase<Route> {
     },
     delete: async (es: Route[], ctx: Context) => {
       for (const e of es) {
-        const r = await ctx.orm.find(Route, {
-          relations: ['routeTable'],
-          where: {
-            destination: e.destination,
-            region: e.region,
-          },
-        });
-        console.log(`+-+ THE ROUTES IN DB WITH THE SAME DESTINATION: ${JSON.stringify(r)}`);
-        console.log(`+-+ this entity id = ${this.entityId(e)}`);
-        console.log(`+-+ memo = ${JSON.stringify(ctx.memo?.db?.Route?.[this.entityId(e)])}`);
         if (e.gatewayId === 'local' && ctx.memo?.db?.Route?.[this.entityId(e)]) {
           // created by AWS, can't be deleted by the user but we need to remove it from the memo
           delete ctx.memo.db.Route[this.entityId(e)];
           continue;
         } else if (e.gatewayId === 'local') continue;
-        const client = (await ctx.getAwsClient(e.routeTable.region)) as AWS;
-        try {
-          await this.deleteRoute(client.ec2client, e);
-        } catch (err) {
-          console.log(`+-+ Error deleting route ${JSON.stringify(err)}`);
-          throw err;
-        }
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
+        await this.deleteRoute(client.ec2client, e);
       }
-      console.log(`+-+ DELETE COMPLETE SUCCESSFULLY`);
-      // await Promise.all(
-      //   es.map(async e => {
-      //     if (e.gatewayId === 'local') return; // created by AWS, can't be modified by the user
-      //     const client = (await ctx.getAwsClient(e.routeTable.region)) as AWS;
-      //     try {
-      //       await this.deleteRoute(client.ec2client, e);
-      //     } catch (err) {
-      //       console.log(`+-+ Error deleting route ${JSON.stringify(err)}`);
-      //       throw err;
-      //     }
-      //   }),
-      // );
     },
   });
 
