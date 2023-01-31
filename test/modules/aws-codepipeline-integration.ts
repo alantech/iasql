@@ -530,7 +530,7 @@ describe('AwsCodepipeline Integration Testing', () => {
       `
     INSERT INTO pipeline_declaration (name, service_role_name, stages, artifact_store)
     SELECT '${prefix}-lambda-${dbAlias}', '${codePipelineCfRoleName}',
-    REPLACE('${lambdaStages}', '##ROLE_ARN##', arn), '${artifactStore}' FROM iam_role WHERE role_name='${cloudformationRoleName}';
+    CAST(REPLACE('${lambdaStages}', '##ROLE_ARN##', arn) AS json), '${artifactStore}' FROM iam_role WHERE role_name='${cloudformationRoleName}';
   `,
       undefined,
       true,
