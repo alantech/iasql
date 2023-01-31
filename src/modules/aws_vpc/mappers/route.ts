@@ -169,10 +169,12 @@ export class RouteMapper extends MapperBase<Route> {
           },
         });
         console.log(`+-+ THE ROUTES IN DB WITH THE SAME DESTINATION: ${JSON.stringify(r)}`)
+        console.log(`+-+ this entity id = ${this.entityId(e)}`)
+        console.log(`+-+ memo = ${JSON.stringify(ctx.memo?.db?.Route?.[this.entityId(e)])}`)
         if (e.gatewayId === 'local' && ctx.memo?.db?.Route?.[this.entityId(e)]) { // created by AWS, can't be deleted by the user but we need to remove it from the memo
           delete ctx.memo.db.Route[this.entityId(e)];
           continue;
-        }
+        } else if (e.gatewayId === 'local') continue;
         const client = (await ctx.getAwsClient(e.routeTable.region)) as AWS;
         try {
           await this.deleteRoute(client.ec2client, e);
