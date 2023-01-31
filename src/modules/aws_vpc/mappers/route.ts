@@ -8,25 +8,23 @@ import { Context, Crud2, IdFields, MapperBase } from '../../interfaces';
 import { Route, RouteTable } from '../entity';
 import { AwsVpcModule } from '../index';
 
-import logger from '../../../services/logger';
-
 export class RouteMapper extends MapperBase<Route> {
   module: AwsVpcModule;
   entity = Route;
-  entityId = (e: Route) => `${e.routeTable.routeTableId ?? e.routeTable.id}|${e.destination}`;
+  entityId = (e: Route) => `${e.routeTable.routeTableId ?? e.routeTable.id}|${e.destination}|${e.region}`;
   idFields = (id: string) => {
-    const [routeTableId, destination] = id.split('|');
-    return { routeTableId, destination };
+    const [routeTableId, destination, region] = id.split('|');
+    return { routeTableId, destination, region };
   };
   generateId = (fields: IdFields) => {
-    const requiredFields = ['routeTableId', 'destination'];
+    const requiredFields = ['routeTableId', 'destination', 'region'];
     if (
       Object.keys(fields).length !== requiredFields.length &&
       !Object.keys(fields).every(fk => requiredFields.includes(fk))
     ) {
       throw new Error(`Id generation error. Valid fields to generate id are: ${requiredFields.join(', ')}`);
     }
-    return `${fields.routeTableId}|${fields.destination}`;
+    return `${fields.routeTableId}|${fields.destination}|${fields.region}`;
   };
   equals = (a: Route, b: Route) => {
     return this.eqRoute(a, b);
@@ -41,8 +39,8 @@ export class RouteMapper extends MapperBase<Route> {
 
   eqRoute(a: Route, b: Route) {
     return _.isEqual(
-      _.omit(a, ['id', 'routeTable', 'destination']),
-      _.omit(b, ['id', 'routeTable', 'destination']),
+      _.omit(a, ['id', 'routeTable', 'destination', 'region']),
+      _.omit(b, ['id', 'routeTable', 'destination', 'region']),
     );
   }
 
@@ -70,7 +68,7 @@ export class RouteMapper extends MapperBase<Route> {
     RouteTableId: r.routeTable.routeTableId,
   }));
 
-  routeMapper(route: AwsRoute, routeTable: RouteTable) {
+  routeMapper(route: AwsRoute, routeTable: RouteTable, region: string) {
     const out = new Route();
     if (
       !routeTable ||
@@ -79,6 +77,7 @@ export class RouteMapper extends MapperBase<Route> {
       return undefined;
     }
     out.routeTable = routeTable;
+    out.region = region;
     out.destination =
       route.DestinationCidrBlock ?? route.DestinationIpv6CidrBlock ?? route.DestinationPrefixListId ?? '';
     out.egressOnlyInternetGatewayId = route.EgressOnlyInternetGatewayId;
@@ -108,7 +107,7 @@ export class RouteMapper extends MapperBase<Route> {
     },
     read: async (ctx: Context, id?: string) => {
       if (!!id) {
-        const { routeTableId, destination } = this.idFields(id);
+        const { routeTableId, destination, region } = this.idFields(id);
         const routeTable: RouteTable = ctx.memo?.cloud?.RouteTable[routeTableId]
           ? ctx.memo?.cloud?.RouteTable[routeTableId]
           : await this.module.routeTable.cloud.read(ctx, routeTableId);
@@ -119,17 +118,19 @@ export class RouteMapper extends MapperBase<Route> {
           ),
         );
         if (!rawRoute) return;
-        return await this.routeMapper(rawRoute, routeTable);
+        return await this.routeMapper(rawRoute, routeTable, region);
       } else {
         console.log(`+-+ GETTING ROUTES`);
         const out: Route[] = [];
-        const routeTables: RouteTable[] = await this.module.routeTable.cloud.read(ctx);
+        const routeTables: RouteTable[] = ctx.memo.cloud?.RouteTable
+          ? Object.values(ctx.memo.cloud?.RouteTable)
+          : await this.module.routeTable.cloud.read(ctx);
         for (const rt of routeTables ?? []) {
           try {
             if (!rt) continue;
             console.log(`+-+ ROUTE TABLE ${JSON.stringify(rt)}`);
             const routes: (Route | undefined)[] =
-              rt.routes?.map(r => this.routeMapper(r, rt)).filter(r => !!r) ?? [];
+              rt.routes?.map(r => this.routeMapper(r, rt, rt.region)).filter(r => !!r) ?? [];
             out.push(...(routes as Route[]));
           } catch (e2) {
             console.log(`+-+ DID SOMETHING HAPPENED HERE? ${JSON.stringify(e2)}`);
@@ -144,8 +145,8 @@ export class RouteMapper extends MapperBase<Route> {
     update: async (es: Route[], ctx: Context) => {
       const out = [];
       for (const e of es) {
-        const cloudRecord: Route = ctx?.memo?.cloud?.RouteTable?.[this.entityId(e)];
-        const client = (await ctx.getAwsClient(e.routeTable.region)) as AWS;
+        const cloudRecord: Route = ctx?.memo?.cloud?.Route?.[this.entityId(e)];
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
         // default route, can't be modified by the user
         if (cloudRecord.gatewayId === 'local') {
           cloudRecord.id = e.id;
@@ -166,12 +167,14 @@ export class RouteMapper extends MapperBase<Route> {
           relations: ['routeTable'],
           where: {
             destination: e.destination,
+            region: e.region,
           },
         });
-        console.log(`+-+ THE ROUTES IN DB WITH THE SAME DESTINATION: ${JSON.stringify(r)}`)
-        console.log(`+-+ this entity id = ${this.entityId(e)}`)
-        console.log(`+-+ memo = ${JSON.stringify(ctx.memo?.db?.Route?.[this.entityId(e)])}`)
-        if (e.gatewayId === 'local' && ctx.memo?.db?.Route?.[this.entityId(e)]) { // created by AWS, can't be deleted by the user but we need to remove it from the memo
+        console.log(`+-+ THE ROUTES IN DB WITH THE SAME DESTINATION: ${JSON.stringify(r)}`);
+        console.log(`+-+ this entity id = ${this.entityId(e)}`);
+        console.log(`+-+ memo = ${JSON.stringify(ctx.memo?.db?.Route?.[this.entityId(e)])}`);
+        if (e.gatewayId === 'local' && ctx.memo?.db?.Route?.[this.entityId(e)]) {
+          // created by AWS, can't be deleted by the user but we need to remove it from the memo
           delete ctx.memo.db.Route[this.entityId(e)];
           continue;
         } else if (e.gatewayId === 'local') continue;
@@ -207,7 +210,7 @@ export class RouteMapper extends MapperBase<Route> {
             ctx,
             this.module.routeTable.generateId({
               routeTableId: e.routeTable.routeTableId ?? '',
-              region: e.routeTable.region,
+              region: e.region,
             }),
           );
           e.routeTable.id = routeTable?.id;
@@ -219,17 +222,19 @@ export class RouteMapper extends MapperBase<Route> {
     update: (es: Route[], ctx: Context) => ctx.orm.save(Route, es),
     delete: (es: Route[], ctx: Context) => ctx.orm.remove(Route, es),
     read: async (ctx: Context, id?: string) => {
-      const { routeTableId, destination } = id
+      const { routeTableId, destination, region } = id
         ? this.idFields(id)
-        : { routeTableId: undefined, destination: undefined };
+        : { routeTableId: undefined, destination: undefined, region: undefined };
       const opts =
-        routeTableId && destination
+        routeTableId && destination && region
           ? {
               relations: ['routeTable'],
               where: {
                 destination,
+                region,
                 routeTable: {
                   routeTableId,
+                  region,
                 },
               },
             }
