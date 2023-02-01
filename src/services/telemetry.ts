@@ -89,10 +89,6 @@ export async function logExport(uid: string, dbProps: DbProps, eventProps: Event
   await logEvent(uid, 'EXPORT', dbProps, eventProps);
 }
 
-export async function logRunSql(uid: string, dbProps: DbProps, eventProps: EventProps) {
-  await logEvent(uid, 'RUNSQL', dbProps, eventProps);
-}
-
 export async function logInstall(uid: string, dbProps: DbProps, eventProps: EventProps) {
   await logEvent(uid, 'INSTALL', dbProps, eventProps);
 }
