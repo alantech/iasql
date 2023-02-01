@@ -44,11 +44,6 @@ WHERE group_name = 'iasql-ssh';
 INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
   (SELECT id FROM instance WHERE tags ->> 'name' = 'iasql-stable-diffusion'),
   (SELECT id FROM security_group WHERE group_name='iasql-ssh');
-
--- Previewing changes in your account
-SELECT * FROM iasql_preview_apply();
--- Applying delete changes, please uncomment it to perform the cleanup
---SELECT * FROM iasql_apply();
 ```
 
 After the initial module install, IaSQL will propose the creation of a new virtual machine.
