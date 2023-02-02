@@ -37,11 +37,11 @@ export class EcrBuildRpc extends RpcBase {
   } as const;
 
   inputTable: RpcInput = [
-    { ArgName: 'githubRepoUrl', ArgType: 'varchar' },
-    { ArgName: 'ecrRepositoryId', ArgType: 'varchar' },
-    { ArgName: 'buildPath', ArgType: 'varchar', Default: "''" },
-    { ArgName: 'githubRef', ArgType: 'varchar', Default: "''" },
-    { ArgName: 'githubPersonalAccessToken', ArgType: 'varchar', Default: "''" },
+    { argName: 'githubRepoUrl', argType: 'varchar' },
+    { argName: 'ecrRepositoryId', argType: 'varchar' },
+    { argName: 'buildPath', argType: 'varchar', default: "''" },
+    { argName: 'githubRef', argType: 'varchar', default: "''" },
+    { argName: 'githubPersonalAccessToken', argType: 'varchar', default: "''" },
   ];
 
   /**

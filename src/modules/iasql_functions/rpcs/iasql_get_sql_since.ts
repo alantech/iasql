@@ -34,7 +34,7 @@ export class IasqlGetSqlSince extends RpcBase {
   preTransactionCheck = PreTransactionCheck.NO_CHECK;
   /** @internal */
   postTransactionCheck = PostTransactionCheck.NO_CHECK;
-  inputTable: RpcInput = [{ ArgName: 'limitDate', ArgType: 'varchar' }];
+  inputTable: RpcInput = [{ argName: 'limitDate', argType: 'varchar', default: 'NULL' }];
   /** @internal */
   outputTable = {
     sql: 'varchar',

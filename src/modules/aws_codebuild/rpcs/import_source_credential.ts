@@ -35,10 +35,10 @@ export class ImportSourceCredentialRpc extends RpcBase {
   module: AwsCodebuildModule;
 
   inputTable: RpcInput = [
-    { ArgName: 'region', ArgType: 'varchar' },
-    { ArgName: 'token', ArgType: 'varchar' },
-    { ArgName: 'serverType', ArgType: 'varchar', Default: "'GITHUB'" },
-    { ArgName: 'authType', ArgType: 'varchar', Default: "'PERSONAL_ACCESS_TOKEN'" },
+    { argName: 'region', argType: 'varchar' },
+    { argName: 'token', argType: 'varchar' },
+    { argName: 'serverType', argType: 'varchar', default: "'GITHUB'" },
+    { argName: 'authType', argType: 'varchar', default: "'PERSONAL_ACCESS_TOKEN'" },
   ];
 
   /** @internal */

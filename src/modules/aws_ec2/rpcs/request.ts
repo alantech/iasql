@@ -9,7 +9,7 @@ import { WaiterOptions, WaiterState } from '@aws-sdk/util-waiter';
 
 import { AwsEc2Module } from '..';
 import { AWS } from '../../../services/aws_macros';
-import { Context, RpcBase, RpcResponseObject } from '../../interfaces';
+import { Context, RpcBase, RpcInput, RpcResponseObject } from '../../interfaces';
 
 /**
  * Method for requesting a new EC2 keypair
@@ -40,11 +40,11 @@ export class KeyPairRequestRpc extends RpcBase {
     privateKey: 'varchar',
   } as const;
 
-  inputTable = [
-    { ArgName: 'keyPairName', ArgType: 'varchar' },
-    { ArgName: 'region', ArgType: 'varchar' },
-    { ArgName: 'keyFormat', ArgType: 'varchar', Default: "'pem'" },
-    { ArgName: 'keyType', ArgType: 'varchar', Default: "'rsa'" },
+  inputTable: RpcInput = [
+    { argName: 'keyPairName', argType: 'varchar' },
+    { argName: 'region', argType: 'varchar' },
+    { argName: 'keyFormat', argType: 'varchar', default: "'pem'" },
+    { argName: 'keyType', argType: 'varchar', default: "'rsa'" },
   ];
 
   /**

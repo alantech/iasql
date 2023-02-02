@@ -39,10 +39,10 @@ export class StartDeployRPC extends RpcBase {
   module: AwsCodedeployModule;
 
   inputTable: RpcInput = [
-    { ArgName: 'applicationName', ArgType: 'varchar' },
-    { ArgName: 'deploymentGroupName', ArgType: 'varchar' },
-    { ArgName: 'revision', ArgType: 'varchar' },
-    { ArgName: 'region', ArgType: 'varchar', Default: 'default_aws_region()' },
+    { argName: 'applicationName', argType: 'varchar' },
+    { argName: 'deploymentGroupName', argType: 'varchar' },
+    { argName: 'revision', argType: 'varchar' },
+    { argName: 'region', argType: 'varchar', default: 'default_aws_region()' },
   ];
   /** @internal */
   outputTable = {

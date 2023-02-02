@@ -54,10 +54,10 @@ export class CertificateRequestRpc extends RpcBase {
   } as const;
 
   inputTable: RpcInput = [
-    { ArgName: 'domainName', ArgType: 'varchar' },
-    { ArgName: 'validationMethod', ArgType: 'varchar' },
-    { ArgName: 'region', ArgType: 'varchar' },
-    { ArgName: 'options', ArgType: 'json' },
+    { argName: 'domainName', argType: 'varchar' },
+    { argName: 'validationMethod', argType: 'varchar' },
+    { argName: 'region', argType: 'varchar' },
+    { argName: 'options', argType: 'json' },
   ];
 
   /**

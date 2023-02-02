@@ -23,7 +23,7 @@ export type Context = { [key: string]: any };
 
 // TODO: use something better than ColumnType for possible postgres colum types
 export type RpcOutput = { [key: string]: ColumnType };
-export type RpcInput = { ArgMode?: string; ArgName: string; ArgType: string; Default?: string }[];
+export type RpcInput = { argMode?: string; argName: string; argType: string; default?: string }[];
 
 export type RpcResponseObject<T> = { [Properties in keyof T]: any };
 
@@ -385,7 +385,7 @@ export class RpcBase implements RpcInterface {
   module: ModuleInterface;
   outputTable: RpcOutput;
   inputTable: RpcInput = [
-    { ArgMode: 'VARIADIC', ArgName: '_args', ArgType: 'TEXT[]', Default: 'ARRAY[]::text[]' },
+    { argMode: 'VARIADIC', argName: '_args', argType: 'TEXT[]', default: 'ARRAY[]::text[]' },
   ];
   preTransactionCheck: PreTransactionCheck;
   postTransactionCheck: PostTransactionCheck;
@@ -407,7 +407,7 @@ export class RpcBase implements RpcInterface {
   }
 
   getInstallUninstallSql(key: string) {
-    const finalInputNames = _.map(_.map(this.inputTable, 'ArgName'), snakeCase);
+    const finalInputNames = _.map(_.map(this.inputTable, 'argName'), snakeCase);
     const commonElements = _.intersection(finalInputNames, _.keys(this.outputTable));
     if (!!commonElements.length)
       throw new Error(
@@ -415,15 +415,15 @@ export class RpcBase implements RpcInterface {
       );
 
     const rpcInputArgs = this.inputTable
-      .map((value: { ArgMode?: string; ArgName: string; ArgType: string; Default?: string }) => {
-        if (value.Default)
-          return `${value.ArgMode ?? ''} ${snakeCase(value.ArgName)} ${value.ArgType} = ${value.Default}`;
-        return `${value.ArgMode ?? ''} ${snakeCase(value.ArgName)} ${value.ArgType}`;
+      .map((value: { argMode?: string; argName: string; argType: string; default?: string }) => {
+        if (value.default)
+          return `${value.argMode ?? ''} ${snakeCase(value.argName)} ${value.argType} = ${value.default}`;
+        return `${value.argMode ?? ''} ${snakeCase(value.argName)} ${value.argType}`;
       }) // https://www.postgresql.org/docs/current/sql-createfunction.html
       .join(', ');
     let rpcInputArgsForPost;
-    if (this.inputTable.length === 1 && this.inputTable[0].ArgMode?.toLowerCase() === 'variadic') {
-      rpcInputArgsForPost = this.inputTable[0].ArgName; // simply pass the array, don't wrap in another one
+    if (this.inputTable.length === 1 && this.inputTable[0].argMode?.toLowerCase() === 'variadic') {
+      rpcInputArgsForPost = this.inputTable[0].argName; // simply pass the array, don't wrap in another one
     } else {
       rpcInputArgsForPost = finalInputNames.join(', ');
       rpcInputArgsForPost = `(SELECT array[${rpcInputArgsForPost}]::varchar[])`;

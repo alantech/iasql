@@ -23,8 +23,8 @@ export class StartBuildRPC extends RpcBase {
   module: AwsCodebuildModule;
 
   inputTable: RpcInput = [
-    { ArgName: 'codeBuildProjectName', ArgType: 'varchar' },
-    { ArgName: 'region', ArgType: 'varchar', Default: 'default_aws_region()' },
+    { argName: 'codeBuildProjectName', argType: 'varchar' },
+    { argName: 'region', argType: 'varchar', default: 'default_aws_region()' },
   ];
   /** @internal */
   outputTable = {

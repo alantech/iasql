@@ -23,9 +23,9 @@ export class KeyPairImportRpc extends RpcBase {
    */
   module: AwsEc2Module;
   inputTable: RpcInput = [
-    { ArgName: 'keyName', ArgType: 'varchar' },
-    { ArgName: 'publicKey', ArgType: 'varchar' },
-    { ArgName: 'region', ArgType: 'varchar' },
+    { argName: 'keyName', argType: 'varchar' },
+    { argName: 'publicKey', argType: 'varchar' },
+    { argName: 'region', argType: 'varchar' },
   ];
   /**
    * @internal

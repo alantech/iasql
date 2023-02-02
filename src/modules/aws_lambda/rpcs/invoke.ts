@@ -31,9 +31,9 @@ export class LambdaFunctionInvokeRpc extends RpcBase {
   module: AwsLambdaModule;
 
   inputTable: RpcInput = [
-    { ArgName: 'lambdaFunctionName', ArgType: 'varchar' },
-    { ArgName: 'functionPayload', ArgType: 'json', Default: "'{}'" },
-    { ArgName: 'region', ArgType: 'varchar', Default: 'default_aws_region()' },
+    { argName: 'lambdaFunctionName', argType: 'varchar' },
+    { argName: 'functionPayload', argType: 'json', default: "'{}'" },
+    { argName: 'region', argType: 'varchar', default: 'default_aws_region()' },
   ];
   /**
    * @internal
