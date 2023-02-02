@@ -57,7 +57,10 @@ export class SubscriptionMapper extends MapperBase<Subscription> {
 
   cloud: Crud2<Subscription> = new Crud2({
     create: async (es: Subscription[], ctx: Context) => {
-      // no action
+      // Just immediately revert, we can't create subscriptions without the RPC
+      const out = await this.module.subscription.db.delete(es, ctx);
+      if (!out || out instanceof Array) return out;
+      return [out];
     },
     read: async (ctx: Context, id?: string) => {
       const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
@@ -88,7 +91,6 @@ export class SubscriptionMapper extends MapperBase<Subscription> {
             }
           }),
         );
-
         return out;
       }
     },
@@ -96,7 +98,10 @@ export class SubscriptionMapper extends MapperBase<Subscription> {
       // no action
     },
     delete: async (es: Subscription[], ctx: Context) => {
-      // no action
+      // You can't delete subscriptions, just restore them back
+      const out = await this.module.subscription.db.create(es, ctx);
+      if (!out || out instanceof Array) return out;
+      return [out];
     },
   });
 

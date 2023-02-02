@@ -19,7 +19,7 @@ import { Context, RpcBase, RpcResponseObject } from '../../interfaces';
  *
  * @example
  * ```sql TheButton[Confirm an SNS subscription]="Confirm an SNS subscription"
- * SELECT * FROM invoke_lambda('function_name', '{name: test}');
+ * SELECT * FROM confirm_subscription('<arn>', '<token>');
  * ```
  *
  * @see https://docs.aws.amazon.com/sns/latest/dg/sns-create-subscribe-endpoint-to-topic.html

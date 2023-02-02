@@ -39,7 +39,6 @@ export class Subscription {
       referencedColumnName: 'arn',
     },
   ])
-  @cloudId
   topic: Topic;
 
   /**
@@ -51,7 +50,6 @@ export class Subscription {
     nullable: false,
     type: 'varchar',
   })
-  @cloudId
   endpoint?: string;
 
   /**
@@ -77,7 +75,6 @@ export class Subscription {
     nullable: false,
     type: 'varchar',
   })
-  @cloudId
   protocol?: string;
 
   /**
@@ -87,5 +84,6 @@ export class Subscription {
   @Column({
     nullable: true,
   })
+  @cloudId
   arn?: string;
 }
