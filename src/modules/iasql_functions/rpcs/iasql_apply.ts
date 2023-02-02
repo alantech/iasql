@@ -23,6 +23,7 @@ export class IasqlApply extends RpcBase {
    * @internal
    */
   postTransactionCheck = PostTransactionCheck.NO_CHECK;
+  inputTable = [];
   /**
    * @internal
    */

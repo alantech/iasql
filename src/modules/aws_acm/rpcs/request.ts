@@ -15,7 +15,7 @@ import { AWS, paginateBuilder } from '../../../services/aws_macros';
 import { awsRoute53Module } from '../../aws_route53';
 import { HostedZone, ResourceRecordSet } from '../../aws_route53/entity';
 import { modules } from '../../iasql_functions/iasql';
-import { Context, RpcBase, RpcResponseObject } from '../../interfaces';
+import { Context, RpcBase, RpcInput, RpcResponseObject } from '../../interfaces';
 import { Certificate } from '../entity';
 import { safeParse } from './common';
 
@@ -52,6 +52,13 @@ export class CertificateRequestRpc extends RpcBase {
     status: 'varchar',
     message: 'varchar',
   } as const;
+
+  inputTable: RpcInput = [
+    { ArgName: 'domainName', ArgType: 'varchar' },
+    { ArgName: 'validationMethod', ArgType: 'varchar' },
+    { ArgName: 'region', ArgType: 'varchar' },
+    { ArgName: 'options', ArgType: 'json' },
+  ];
 
   /**
    * @internal

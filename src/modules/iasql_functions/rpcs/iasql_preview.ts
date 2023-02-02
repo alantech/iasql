@@ -30,6 +30,7 @@ export class IasqlPreview extends RpcBase {
   preTransactionCheck = PreTransactionCheck.FAIL_IF_NOT_LOCKED;
   /** @internal */
   postTransactionCheck = PostTransactionCheck.NO_CHECK;
+  inputTable = [];
   /**
    * @internal
    */

@@ -23,6 +23,7 @@ export type Context = { [key: string]: any };
 
 // TODO: use something better than ColumnType for possible postgres colum types
 export type RpcOutput = { [key: string]: ColumnType };
+export type RpcInput = { ArgMode?: string; ArgName: string; ArgType: string; Default?: string }[];
 
 export type RpcResponseObject<T> = { [Properties in keyof T]: any };
 
@@ -383,6 +384,9 @@ export class MapperBase<E extends {}> {
 export class RpcBase implements RpcInterface {
   module: ModuleInterface;
   outputTable: RpcOutput;
+  inputTable: RpcInput = [
+    { ArgMode: 'VARIADIC', ArgName: '_args', ArgType: 'TEXT[]', Default: 'ARRAY[]::text[]' },
+  ];
   preTransactionCheck: PreTransactionCheck;
   postTransactionCheck: PostTransactionCheck;
   call: (
@@ -403,16 +407,33 @@ export class RpcBase implements RpcInterface {
   }
 
   getInstallUninstallSql(key: string) {
+    const finalInputNames = _.map(_.map(this.inputTable, 'ArgName'), snakeCase);
+    const commonElements = _.intersection(finalInputNames, _.keys(this.outputTable));
+    if (!!commonElements.length)
+      throw new Error(
+        `A variable name can't be both input and output in ${key} RPC: ${commonElements.join(', ')}`,
+      );
+
+    const rpcInputArgs = this.inputTable
+      .map((value: { ArgMode?: string; ArgName: string; ArgType: string; Default?: string }) => {
+        if (value.Default)
+          return `${value.ArgMode ?? ''} ${snakeCase(value.ArgName)} ${value.ArgType} = ${value.Default}`;
+        return `${value.ArgMode ?? ''} ${snakeCase(value.ArgName)} ${value.ArgType}`;
+      }) // https://www.postgresql.org/docs/current/sql-createfunction.html
+      .join(', ');
+    let rpcInputArgsForPost;
+    if (this.inputTable.length === 1 && this.inputTable[0].ArgMode?.toLowerCase() === 'variadic') {
+      rpcInputArgsForPost = this.inputTable[0].ArgName; // simply pass the array, don't wrap in another one
+    } else {
+      rpcInputArgsForPost = finalInputNames.join(', ');
+      rpcInputArgsForPost = `(SELECT array[${rpcInputArgsForPost}]::varchar[])`;
+    }
     const rpcOutputEntries = Object.entries(this.outputTable ?? {});
     const rpcOutputTable = rpcOutputEntries
       .map(([columnName, columnType]) => `${columnName} ${columnType}`)
       .join(', ');
     const afterInstallSql = `
-        create or replace function ${snakeCase(
-          key,
-        )}(variadic _args text[] default array[]::text[]) returns table (
-          ${rpcOutputTable}
-        )
+        create or replace function ${snakeCase(key)}(${rpcInputArgs}) returns table (${rpcOutputTable})
         language plpgsql security definer
         as $$
         declare
@@ -425,7 +446,7 @@ export class RpcBase implements RpcInterface {
             json_build_object(
               'dbId', current_database(),
               'dbUser', SESSION_USER,
-              'params', _args,
+              'params', ${rpcInputArgsForPost},
               'modulename', '${this.module.name}',
               'methodname', '${key}',
               'preTransaction', '${this.preTransactionCheck}',
@@ -483,7 +504,7 @@ export class AwsSdkInvoker extends RpcBase {
       `
         create or replace function ${snakeCase(
           key,
-        )}(method_name ${inputEnumName}, method_input json, region varchar) returns table (
+        )}(method_name ${inputEnumName}, method_input json, region varchar default default_aws_region()) returns table (
           ${rpcOutputTable}
         )
         language plpgsql security definer
@@ -498,7 +519,7 @@ export class AwsSdkInvoker extends RpcBase {
             json_build_object(
               'dbId', current_database(),
               'dbUser', SESSION_USER,
-              'params', (SELECT array[method_name::varchar, method_input::varchar, region]),
+              'params', (SELECT array[method_name, method_input, region]::varchar[]),
               'modulename', '${this.module.name}',
               'methodname', '${key}',
               'preTransaction', '${this.preTransactionCheck}',
@@ -526,21 +547,8 @@ export class AwsSdkInvoker extends RpcBase {
           ) as j;
         end;
         $$;
-        -- function overloading with the last input replaced by default_aws_region()
-        create or replace function ${snakeCase(
-          key,
-        )}(method_name ${inputEnumName}, method_input json) returns table (
-          ${rpcOutputTable}
-        )
-        language plpgsql security definer
-        as $$
-        begin
-          RETURN QUERY SELECT ${snakeCase(key)}(method_name, method_input, default_aws_region());
-        end;
-        $$;
       `;
     const beforeUninstallSql = `
-        DROP FUNCTION "${snakeCase(key)}"(${inputEnumName}, json);
         DROP FUNCTION "${snakeCase(key)}"(${inputEnumName}, json, varchar);
         DROP TYPE ${inputEnumName};
       `;

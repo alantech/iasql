@@ -3,7 +3,7 @@ import { InvokeCommandInput, InvokeCommandOutput } from '@aws-sdk/client-lambda'
 import { AwsLambdaModule } from '..';
 import { AWS } from '../../../services/aws_macros';
 import { awsCloudwatchModule } from '../../aws_cloudwatch';
-import { Context, RpcBase, RpcResponseObject } from '../../interfaces';
+import { Context, RpcBase, RpcInput, RpcResponseObject } from '../../interfaces';
 import { invokeFunction } from '../aws';
 
 /**
@@ -30,6 +30,11 @@ export class LambdaFunctionInvokeRpc extends RpcBase {
    */
   module: AwsLambdaModule;
 
+  inputTable: RpcInput = [
+    { ArgName: 'lambdaFunctionName', ArgType: 'varchar' },
+    { ArgName: 'functionPayload', ArgType: 'json', Default: "'{}'" },
+    { ArgName: 'region', ArgType: 'varchar', Default: 'default_aws_region()' },
+  ];
   /**
    * @internal
    */

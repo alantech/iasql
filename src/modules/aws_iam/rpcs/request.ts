@@ -2,7 +2,7 @@ import { CreateAccessKeyCommandInput, IAM } from '@aws-sdk/client-iam';
 
 import { AwsIamModule } from '..';
 import { AWS } from '../../../services/aws_macros';
-import { Context, RpcBase, RpcResponseObject } from '../../interfaces';
+import { Context, RpcBase, RpcInput, RpcResponseObject } from '../../interfaces';
 
 /**
  * Method for requesting a new Access Key for an IAM user
@@ -33,6 +33,8 @@ export class AccessKeyRequestRpc extends RpcBase {
     accessKeyId: 'varchar',
     secretAccessKey: 'varchar',
   } as const;
+
+  inputTable: RpcInput = [{ ArgName: 'userName', ArgType: 'varchar' }];
 
   /**
    * @internal

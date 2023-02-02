@@ -32,6 +32,7 @@ export class IasqlGetErrors extends RpcBase {
    * @internal
    */
   postTransactionCheck = PostTransactionCheck.NO_CHECK;
+  inputTable = [];
   /**
    * @internal
    */

@@ -3,7 +3,7 @@ import { CodebuildProject, SourceCredentialsList, SourceType } from '../../aws_c
 import { awsIamModule } from '../../aws_iam';
 import { IamRole } from '../../aws_iam/entity';
 import { modules } from '../../iasql_functions/iasql';
-import { Context, RpcBase, RpcResponseObject } from '../../interfaces';
+import { Context, RpcBase, RpcInput, RpcResponseObject } from '../../interfaces';
 import { Repository, RepositoryImage } from '../entity';
 import { AwsEcrModule } from '../index';
 
@@ -35,6 +35,14 @@ export class EcrBuildRpc extends RpcBase {
   outputTable = {
     imageId: 'varchar',
   } as const;
+
+  inputTable: RpcInput = [
+    { ArgName: 'githubRepoUrl', ArgType: 'varchar' },
+    { ArgName: 'ecrRepositoryId', ArgType: 'varchar' },
+    { ArgName: 'buildPath', ArgType: 'varchar', Default: "''" },
+    { ArgName: 'githubRef', ArgType: 'varchar', Default: "''" },
+    { ArgName: 'githubPersonalAccessToken', ArgType: 'varchar', Default: "''" },
+  ];
 
   /**
    * @internal

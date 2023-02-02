@@ -2,7 +2,7 @@ import { Build, CodeBuild } from '@aws-sdk/client-codebuild';
 
 import { AwsCodebuildModule } from '..';
 import { AWS, crudBuilderFormat } from '../../../services/aws_macros';
-import { Context, RpcBase, RpcResponseObject } from '../../interfaces';
+import { Context, RpcBase, RpcInput, RpcResponseObject } from '../../interfaces';
 
 /**
  * Method for triggering the build of a project
@@ -22,6 +22,10 @@ export class StartBuildRPC extends RpcBase {
   /** @internal */
   module: AwsCodebuildModule;
 
+  inputTable: RpcInput = [
+    { ArgName: 'codeBuildProjectName', ArgType: 'varchar' },
+    { ArgName: 'region', ArgType: 'varchar', Default: 'default_aws_region()' },
+  ];
   /** @internal */
   outputTable = {
     name: 'varchar',

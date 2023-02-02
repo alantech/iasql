@@ -1,8 +1,7 @@
-import { Build, CodeBuild, ImportSourceCredentialsInput } from '@aws-sdk/client-codebuild';
-import { ServerType } from '@aws-sdk/client-codebuild/dist-types/models/models_0';
+import { CodeBuild, ImportSourceCredentialsInput } from '@aws-sdk/client-codebuild';
 
 import { AWS, crudBuilderFormat } from '../../../services/aws_macros';
-import { Context, RpcBase, RpcResponseObject } from '../../interfaces';
+import { Context, RpcBase, RpcInput, RpcResponseObject } from '../../interfaces';
 import { AwsCodebuildModule } from '../index';
 
 export enum ValidServerTypes {
@@ -34,6 +33,13 @@ export enum ValidAuthTypes {
 export class ImportSourceCredentialRpc extends RpcBase {
   /** @internal */
   module: AwsCodebuildModule;
+
+  inputTable: RpcInput = [
+    { ArgName: 'region', ArgType: 'varchar' },
+    { ArgName: 'token', ArgType: 'varchar' },
+    { ArgName: 'serverType', ArgType: 'varchar', Default: "'GITHUB'" },
+    { ArgName: 'authType', ArgType: 'varchar', Default: "'PERSONAL_ACCESS_TOKEN'" },
+  ];
 
   /** @internal */
   outputTable = {
@@ -81,8 +87,6 @@ export class ImportSourceCredentialRpc extends RpcBase {
     serverType: string,
     authType: string,
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
-    if (!serverType) serverType = 'GITHUB';
-    if (!authType) authType = 'PERSONAL_ACCESS_TOKEN';
     if (!(serverType in ValidServerTypes))
       return this.makeError(`serverType must be one of ${Object.keys(ValidServerTypes).join(', ')}`);
     if (!(authType in ValidAuthTypes))
