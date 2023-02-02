@@ -18,7 +18,14 @@ async function getDocsLinks() {
   // as the path has changed, links are not correctly resolving for `next` version
   let files = await fs.readdirSync(filesPath);
   let items = [];
-  const excluded = ['iasql_functions_iasql', 'index', 'interfaces', 'subscribers'];
+  const excluded = [
+    'iasql_functions_iasql.md',
+    'index.md',
+    'interfaces.md',
+    'subscribers.md',
+    'aws_lambda_aws.md',
+    'iasql_functions.md',
+  ];
 
   // add global
   items.push({
@@ -32,22 +39,20 @@ async function getDocsLinks() {
   });
 
   // sort it
-  filters = files.filter(item => item !== 'iasql_functions');
-  files.unshift('iasql_functions');
+  filters = files.filter(item => !excluded.includes(item));
+  filters.unshift('iasql_functions');
 
-  for (const file of files) {
+  for (const file of filters) {
     // just strip md
     const name = file.split('.')[0];
-    if (!excluded.includes(name)) {
-      items.push({
-        type: 'doc',
+    items.push({
+      type: 'doc',
+      label: name,
+      id: 'reference/modules/' + name,
+      customProps: {
         label: name,
-        id: 'reference/modules/' + name,
-        customProps: {
-          label: name,
-        },
-      });
-    }
+      },
+    });
   }
   return items;
 }

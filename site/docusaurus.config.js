@@ -35,7 +35,6 @@ const theButton = require('./src/rehype/thebutton');
           docs: {
             routeBasePath: '/docs',
             remarkPlugins: [theButton],
-            exclude: ['sample-queries/*'],
             sidebarPath: require.resolve('./sidebars.js'),
             editUrl: 'https://github.com/iasql/iasql/tree/main/site/',
           },
