@@ -4,7 +4,7 @@ const config: ConfigInterface = {
   http: {
     host: 'localhost',
     port: 8088,
-    workerPool: true,
+    workerPool: false,
   },
   db: {
     host: 'localhost',
@@ -18,6 +18,9 @@ const config: ConfigInterface = {
     debug: true,
     test: false,
     forceLocal: false,
+  },
+  telemetry: {
+    posthogKey: 'phc_xvAQWfpHug7G0SuU5P9wwAbvP9ZawgAfIEZ9FUsiarS',
   },
 };
 
