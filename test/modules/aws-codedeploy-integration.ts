@@ -19,8 +19,10 @@ import {
 const prefix = getPrefix();
 const dbAlias = 'codedeploytest';
 const applicationName = `${prefix}${dbAlias}application`;
+const lambdaApplicationName = `${prefix}${dbAlias}lambdaApplication`;
 const applicationNameForDeployment = `${prefix}${dbAlias}applicationForDeployment`;
 const deploymentGroupName = `${prefix}${dbAlias}deployment_group`;
+const lambdaDeploymentGroupName = `${prefix}${dbAlias}lambdaDeployment_group`;
 const ubuntuAmiId =
   'resolve:ssm:/aws/service/canonical/ubuntu/server/20.04/stable/current/amd64/hvm/ebs-gp2/ami-id';
 
@@ -64,6 +66,8 @@ const getInstanceTypeOffering = async (availabilityZones: string[]) => {
 };
 
 const roleName = `${prefix}-codedeploy-${region}`;
+const lambdaRoleName = `${prefix}-lambda-codedeploy-${region}`;
+
 const ec2RoleName = `${prefix}-codedeploy-ec2-${region}`;
 
 const codedeployRolePolicy = JSON.stringify({
@@ -81,6 +85,7 @@ const codedeployRolePolicy = JSON.stringify({
 });
 const codedeployPolicyArn = 'arn:aws:iam::aws:policy/AWSCodeDeployFullAccess';
 const deployEC2PolicyArn = 'arn:aws:iam::aws:policy/AmazonEC2FullAccess';
+const deployLambdaPolicyArn = 'arn:aws:iam::aws:policy/service-role/AWSCodeDeployRoleForLambda';
 
 const ec2RolePolicy = JSON.stringify({
   Version: '2012-10-17',
@@ -114,6 +119,24 @@ const revisionLocation = JSON.stringify({
     repository: 'iasql/iasql-codedeploy-example',
     commitId: 'cf6aa63cbd2502a5d1064363c2af5c56cc2107cc',
   },
+});
+
+const attachAssumeLambdaPolicy = JSON.stringify({
+  Version: '2012-10-17',
+  Statement: [
+    {
+      Effect: 'Allow',
+      Principal: {
+        Service: 'lambda.amazonaws.com',
+      },
+      Action: 'sts:AssumeRole',
+    },
+  ],
+});
+
+const lambdaDeploymentStyle = JSON.stringify({
+  deploymentOption: 'WITH_TRAFFIC_CONTROL',
+  deploymentType: 'BLUE_GREEN',
 });
 
 let availabilityZone: string;
@@ -206,6 +229,19 @@ describe('AwsCodedeploy Integration Testing', () => {
   );
 
   it(
+    'adds a new codedeploy role for lambda',
+    query(
+      `
+    INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
+    VALUES ('${lambdaRoleName}', '${codedeployRolePolicy}', array['${codedeployPolicyArn}', '${deployLambdaPolicyArn}']);
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it(
     'adds a new ec2 role',
     query(
       `
@@ -260,9 +296,9 @@ describe('AwsCodedeploy Integration Testing', () => {
   );
   it('applies the security group and rules creation', commit());
 
+  // create sample ec2 instance
   it('starts a transaction', begin());
 
-  // create sample ec2 instance
   it('adds an ec2 instance', done => {
     query(
       `
@@ -290,6 +326,7 @@ describe('AwsCodedeploy Integration Testing', () => {
 
   it('starts a transaction', begin());
 
+  // creates codedeploy application for EC2
   it(
     'adds a new codedeploy_application',
     query(
@@ -476,6 +513,36 @@ describe('AwsCodedeploy Integration Testing', () => {
   );
 });
 
+// creates codedeploy application for Lambda
+it('starts a transaction', begin());
+
+it(
+  'adds a new codedeploy_application for lambda',
+  query(
+    `
+    INSERT INTO codedeploy_application (name, compute_platform)
+    VALUES ('${lambdaApplicationName}', 'Lambda');
+  `,
+    undefined,
+    true,
+    () => ({ username, password }),
+  ),
+);
+
+it(
+  'adds a new deployment_group for Lambda',
+  query(
+    `
+    INSERT INTO codedeploy_deployment_group (application_id, name, role_name, deployment_style, deployment_config_name)
+    VALUES ((SELECT id FROM codedeploy_application WHERE name = '${lambdaApplicationName}'), '${lambdaDeploymentGroupName}', '${lambdaRoleName}', '${lambdaDeploymentStyle}', 'CodeDeployDefault.LambdaAllAtOnce');
+  `,
+    undefined,
+    true,
+    () => ({ username, password }),
+  ),
+);
+it('applies lambda deployment app and group creation', commit());
+
 // triggers a deployment
 it(
   'start and wait for deployment',
@@ -616,7 +683,7 @@ describe('application cleanup', () => {
     query(
       `
       DELETE FROM codedeploy_deployment_group
-      WHERE name = '${deploymentGroupName}';
+      WHERE name = '${deploymentGroupName}' OR name='${lambdaDeploymentGroupName}';
     `,
       undefined,
       true,
@@ -629,7 +696,7 @@ describe('application cleanup', () => {
     query(
       `
       DELETE FROM codedeploy_application
-      WHERE name = '${applicationNameForDeployment}';
+      WHERE name = '${applicationNameForDeployment}' OR name='${lambdaApplicationName}';
     `,
       undefined,
       true,
@@ -692,7 +759,7 @@ SELECT * FROM codedeploy_deployment_group WHERE application_id = (SELECT id FROM
       'deletes role',
       query(
         `
-        DELETE FROM iam_role WHERE role_name = '${roleName}' OR role_name='${ec2RoleName}';
+        DELETE FROM iam_role WHERE role_name IN ('${roleName}', '${ec2RoleName}', '${lambdaRoleName}');
       `,
         undefined,
         true,
