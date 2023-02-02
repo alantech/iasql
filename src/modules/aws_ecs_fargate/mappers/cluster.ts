@@ -145,14 +145,16 @@ export class ClusterMapper extends MapperBase<Cluster> {
         }
       } else {
         const out: Cluster[] = [];
-        for (const region of enabledRegions) {
-          const client = (await ctx.getAwsClient(region)) as AWS;
-          const rawClusters = (await this.getClusters(client.ecsClient)) ?? [];
-          for (const cluster of rawClusters) {
-            const outCluster = this.clusterMapper(cluster, region);
-            if (outCluster) out.push(outCluster);
-          }
-        }
+        await Promise.all(
+          enabledRegions.map(async region => {
+            const client = (await ctx.getAwsClient(region)) as AWS;
+            const rawClusters = (await this.getClusters(client.ecsClient)) ?? [];
+            for (const cluster of rawClusters) {
+              const outCluster = this.clusterMapper(cluster, region);
+              if (outCluster) out.push(outCluster);
+            }
+          }),
+        );
         return out;
       }
     },
