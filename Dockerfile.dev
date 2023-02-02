@@ -34,7 +34,7 @@ COPY ./src/scripts/postgresql.conf /etc/postgresql/14/main/postgresql.conf
 COPY ./src/scripts/pg_hba.conf /etc/postgresql/14/main/pg_hba.conf
 
 # Default ENVs that can be overwritten
-ARG IASQL_ENV=local
+ARG IASQL_ENV=dev
 ENV IASQL_ENV=$IASQL_ENV
 ARG DB_USER=postgres
 ENV DB_USER=$DB_USER

@@ -24,21 +24,7 @@ function startPrimary() {
   });
 }
 
-if (cluster.isPrimary) {
-  logger.info(`Using IASQL_ENV: ${process.env.IASQL_ENV}`);
-
-  if (config.sentry) {
-    sentry.init(config.sentry);
-  }
-
-  const dbsToUpgrade = existsSync('/tmp/upgrade');
-
-  if (dbsToUpgrade) {
-    MetadataRepo.init().then(upgrade).then(startPrimary);
-  } else {
-    MetadataRepo.init().then(startPrimary);
-  }
-} else {
+function runServer() {
   const port = config.http.port;
   const app = express();
 
@@ -92,4 +78,22 @@ if (cluster.isPrimary) {
       logger.info(`Server is running on port ${port}`);
     });
   });
+}
+
+if (config.http.workerPool && cluster.isPrimary) {
+  logger.info(`Using IASQL_ENV: ${process.env.IASQL_ENV}`);
+
+  if (config.sentry) {
+    sentry.init(config.sentry);
+  }
+
+  const dbsToUpgrade = existsSync('/tmp/upgrade');
+
+  if (dbsToUpgrade) {
+    MetadataRepo.init().then(upgrade).then(startPrimary);
+  } else {
+    MetadataRepo.init().then(startPrimary);
+  }
+} else {
+  runServer();
 }

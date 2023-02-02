@@ -4,6 +4,7 @@ const config: ConfigInterface = {
   http: {
     host: 'localhost',
     port: 8088,
+    workerPool: true,
   },
   db: {
     host: 'db-bootstrap.iasql.com',
