@@ -78,6 +78,8 @@ function runServer() {
       logger.info(`Server is running on port ${port}`);
     });
   });
+
+  if (!cluster.isPrimary) setTimeout(() => process.exit(1), 60 * 60 * 1000); // Die once an hour
 }
 
 if (config.http.workerPool && cluster.isPrimary) {
