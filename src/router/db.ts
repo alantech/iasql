@@ -302,17 +302,3 @@ async function rpcCall(
   if (commitErr) throw commitErr;
   return rpcRes;
 }
-
-db.post('/event', async (req: Request, res: Response) => {
-  logger.info('Calling /event');
-  const { dbAlias, eventName, buttonAlias, sql, user: uid } = req.body;
-  const email = await MetadataRepo.getEmailByUid(uid);
-  if (dbAlias) {
-    const database: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
-    const dbId = database.pgName;
-    telemetry.logEvent(uid, eventName, { dbAlias, dbId, email }, { buttonAlias, sql });
-  } else {
-    telemetry.logEvent(uid, eventName, { email }, { buttonAlias, sql });
-  }
-  res.json(`event registered`);
-});
