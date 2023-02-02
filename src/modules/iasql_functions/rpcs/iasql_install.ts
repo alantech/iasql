@@ -1,6 +1,12 @@
 import { IasqlFunctions } from '..';
 import { TypeormWrapper } from '../../../services/typeorm';
-import { Context, PreTransactionCheck, PostTransactionCheck, RpcBase, RpcResponseObject } from '../../interfaces';
+import {
+  Context,
+  PreTransactionCheck,
+  PostTransactionCheck,
+  RpcBase,
+  RpcResponseObject,
+} from '../../interfaces';
 import * as iasql from '../iasql';
 
 /**
