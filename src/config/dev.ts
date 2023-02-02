@@ -19,9 +19,6 @@ const config: ConfigInterface = {
     test: false,
     forceLocal: false,
   },
-  telemetry: {
-    posthogKey: 'phc_xvAQWfpHug7G0SuU5P9wwAbvP9ZawgAfIEZ9FUsiarS',
-  },
 };
 
 export default config;
