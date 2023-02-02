@@ -6,7 +6,7 @@ name: CI Tests
 # events but only for the main branch.
 on:
   push:
-    branches: [main]
+    branches: [main, install-times]
     paths:
       [
         '.github/workflows/ci.yml',
