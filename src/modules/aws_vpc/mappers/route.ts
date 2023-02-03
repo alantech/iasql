@@ -154,17 +154,15 @@ export class RouteMapper extends MapperBase<Route> {
       return out;
     },
     delete: async (es: Route[], ctx: Context) => {
-      await Promise.all(
-        es.map(async e => {
-          if (e.gatewayId === 'local' && ctx.memo?.db?.Route?.[this.entityId(e)]) {
-            // created by AWS, can't be deleted by the user but we need to remove it from the memo
-            delete ctx.memo.db.Route[this.entityId(e)];
-            return;
-          } else if (e.gatewayId === 'local') return;
-          const client = (await ctx.getAwsClient(e.region)) as AWS;
-          await this.deleteRoute(client.ec2client, e);
-        }),
-      );
+      for (const e of es) {
+        if (e.gatewayId === 'local' && ctx.memo?.db?.Route?.[this.entityId(e)]) {
+          // created by AWS, can't be deleted by the user but we need to remove it from the memo
+          delete ctx.memo.db.Route[this.entityId(e)];
+          return;
+        } else if (e.gatewayId === 'local') return;
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
+        await this.deleteRoute(client.ec2client, e);
+      }
     },
   });
 
