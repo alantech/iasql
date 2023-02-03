@@ -4,6 +4,7 @@ const config: ConfigInterface = {
   http: {
     host: 'host.docker.internal',
     port: 8088,
+    workerPool: true,
   },
   db: {
     host: 'localhost',

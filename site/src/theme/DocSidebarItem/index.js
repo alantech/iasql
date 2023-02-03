@@ -3,9 +3,10 @@ import DocSidebarItemCategory from '@theme/DocSidebarItem/Category';
 import DocSidebarItemLink from '@theme/DocSidebarItem/Link';
 import DocSidebarItemHtml from '@theme/DocSidebarItem/Html';
 export default function DocSidebarItem({item, ...props}) {
+  if (item.customProps && 'label' in item.customProps) item.label=item.customProps.label;
+
   // if there is custom property fragment, modify the link
   if (item.customProps && ('fragment' in item.customProps)) {    
-    item.label = item.customProps.label;
     if (item.customProps.fragment!="") 
     {
       // check if it has the fragment added or not

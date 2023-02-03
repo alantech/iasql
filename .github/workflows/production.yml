@@ -69,12 +69,19 @@ jobs:
             sudo docker image prune -af
           "
           rm production.pem
-      - name: Emit production deploy
+      - name: Trigger prod UI deploy
         uses: mvasigh/dispatch-action@main
         with:
           token: ${{ secrets.GH_PAT }}
           event_type: prod-deploy
           repo: prod-ui
+          owner: iasql
+      - name: Trigger prod run deploy
+        uses: mvasigh/dispatch-action@main
+        with:
+          token: ${{ secrets.GH_PAT }}
+          event_type: prod-deploy
+          repo: dashboard
           owner: iasql
 
   notify:

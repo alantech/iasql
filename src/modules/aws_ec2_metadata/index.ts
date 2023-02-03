@@ -118,4 +118,29 @@ class AwsEc2MetadataModule extends ModuleBase {
     super.init();
   }
 }
+
+/**
+ * ## Code examples
+ *
+ *
+ * ### Read-only instance metadata
+ *
+ * Install the AWS EC2 module
+ *
+ * ```sql
+ * SELECT * FROM iasql_install('aws_ec2_metadata');
+ * ```
+ *
+ * View the metadata for the previously created `i-1` instance. View the table schema [here](https://dbdocs.io/iasql/iasql?table=instance_metadata&schema=public&view=table_structure)
+ *
+ * ```sql
+ * SELECT *
+ * FROM instance_metadata
+ * WHERE instance_id = (
+ * SELECT instance_id
+ * FROM instance
+ * WHERE tags ->> 'name' = 'i-1'
+ * );
+ * ```
+ */
 export const awsEc2MetadataModule = new AwsEc2MetadataModule();

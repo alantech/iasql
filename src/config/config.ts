@@ -3,6 +3,7 @@ export interface ConfigInterface {
   http: {
     host: string;
     port: number;
+    workerPool: boolean;
   };
   // Configuration for the postgres database
   db: {
