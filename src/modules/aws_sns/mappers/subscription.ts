@@ -95,7 +95,20 @@ export class SubscriptionMapper extends MapperBase<Subscription> {
       }
     },
     update: async (es: Subscription[], ctx: Context) => {
-      // no action
+      // Right now we can only modify AWS-generated fields in the database.
+      // This implies that on `update`s we only have to restore the values for those records.
+      const out = [];
+      for (const e of es) {
+        if (e.arn) {
+          const arn = e.arn;
+          const region = e.region;
+          const cloudRecord = ctx?.memo?.cloud?.Subscription?.[this.generateId({ arn, region })];
+          cloudRecord.id = e.id;
+          await this.module.subscription.db.update(cloudRecord, ctx);
+          out.push(cloudRecord);
+        }
+      }
+      return out;
     },
     delete: async (es: Subscription[], ctx: Context) => {
       // You can't delete subscriptions, just restore them back
