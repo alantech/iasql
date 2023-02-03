@@ -343,19 +343,21 @@ export class ServiceMapper extends MapperBase<Service> {
         const clusters = ctx.memo?.cloud?.Cluster
           ? Object.values(ctx.memo?.cloud?.Cluster)
           : await this.module.cluster.cloud.read(ctx);
-        for (const region of enabledRegions) {
-          const client = (await ctx.getAwsClient(region)) as AWS;
-          const result = await this.getServices(
-            client.ecsClient,
-            clusters?.filter((c: Cluster) => c.region === region).map((c: Cluster) => c.clusterArn) ?? [],
-          );
-          // Make sure we just handle FARGATE services
-          const fargateResult = result.filter(s => s.launchType === 'FARGATE');
-          for (const s of fargateResult) {
-            const mappedService = await this.serviceMapper(s, region, ctx);
-            if (mappedService) out.push(mappedService);
-          }
-        }
+        await Promise.all(
+          enabledRegions.map(async region => {
+            const client = (await ctx.getAwsClient(region)) as AWS;
+            const result = await this.getServices(
+              client.ecsClient,
+              clusters?.filter((c: Cluster) => c.region === region).map((c: Cluster) => c.clusterArn) ?? [],
+            );
+            // Make sure we just handle FARGATE services
+            const fargateResult = result.filter(s => s.launchType === 'FARGATE');
+            for (const s of fargateResult) {
+              const mappedService = await this.serviceMapper(s, region, ctx);
+              if (mappedService) out.push(mappedService);
+            }
+          }),
+        );
         return out;
       }
     },

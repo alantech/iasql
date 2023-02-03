@@ -116,14 +116,16 @@ export class CertificateMapper extends MapperBase<Certificate> {
         }
       } else {
         const out: Certificate[] = [];
-        for (const region of enabledRegions) {
-          const client = (await ctx.getAwsClient(region)) as AWS;
-          const rawCerts = (await this.getCertificates(client.acmClient)) ?? [];
-          for (const rawCert of rawCerts) {
-            const cert = this.certificateMapper(rawCert, region);
-            if (cert) out.push(cert);
-          }
-        }
+        await Promise.all(
+          enabledRegions.map(async region => {
+            const client = (await ctx.getAwsClient(region)) as AWS;
+            const rawCerts = (await this.getCertificates(client.acmClient)) ?? [];
+            for (const rawCert of rawCerts) {
+              const cert = this.certificateMapper(rawCert, region);
+              if (cert) out.push(cert);
+            }
+          }),
+        );
         return out;
       }
     },
