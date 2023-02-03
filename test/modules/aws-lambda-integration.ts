@@ -286,10 +286,10 @@ describe('Lambda Integration Testing', () => {
   it('should fail invoking with wrong payload', done =>
     void query(`
       SELECT *
-      FROM invoke_lambda_function('${lambdaFunctionName}', '{"name": "test"}');
+      FROM invoke_lambda_function('${lambdaFunctionName}', '{name: test}');
   `)((e?: any) => {
       try {
-        expect(e?.message).toContain('The payload must be a valid JSON string');
+        expect(e?.message).toContain('invalid input syntax for type json');
       } catch (err) {
         done(err);
         return {};
