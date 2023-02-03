@@ -5,7 +5,9 @@ import {
   DistributionConfig,
   DistributionSummary,
   GetDistributionCommandOutput,
+  MinimumProtocolVersion,
   paginateListDistributions,
+  SSLSupportMethod,
   waitUntilDistributionDeployed,
 } from '@aws-sdk/client-cloudfront';
 import { WaiterOptions } from '@aws-sdk/util-waiter';
@@ -132,14 +134,14 @@ class DistributionMapper extends MapperBase<Distribution> {
       req.ViewerCertificate = {
         CloudFrontDefaultCertificate: false,
         ACMCertificateArn: e.customSslCertificate.arn,
-        MinimumProtocolVersion: 'TLSv1.2_2021',
-        SSLSupportMethod: 'sni-only',
+        MinimumProtocolVersion: MinimumProtocolVersion.TLSv1_2_2021,
+        SSLSupportMethod: SSLSupportMethod.sni_only,
       };
     else
       req.ViewerCertificate = {
         CloudFrontDefaultCertificate: true,
-        MinimumProtocolVersion: 'TLSv1.2_2021',
-        SSLSupportMethod: 'sni-only',
+        MinimumProtocolVersion: MinimumProtocolVersion.TLSv1_2_2021,
+        SSLSupportMethod: SSLSupportMethod.sni_only,
       };
 
     return req;
@@ -227,8 +229,8 @@ class DistributionMapper extends MapperBase<Distribution> {
           config.ViewerCertificate = {
             CloudFrontDefaultCertificate: false,
             ACMCertificateArn: e.customSslCertificate.arn,
-            MinimumProtocolVersion: 'TLSv1.2_2021',
-            SSLSupportMethod: 'sni-only',
+            MinimumProtocolVersion: MinimumProtocolVersion.TLSv1_2_2021,
+            SSLSupportMethod: SSLSupportMethod.sni_only,
           };
         }
         const res = await this.createDistribution(client.cloudfrontClient, {
