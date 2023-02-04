@@ -1,7 +1,7 @@
 import { execSync } from 'child_process';
 import express from 'express';
 import fs from 'fs';
-import { createConnection } from 'typeorm';
+import { Connection } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 
 import config from '../src/config';
@@ -111,7 +111,7 @@ export function runQuery(
   return function (done: (e?: any) => {}) {
     const { username, password } = withUserAndPassword();
     if (log) logger.info(queryString);
-    createConnection({
+    new Connection({
       name: uuidv4(),
       type: 'postgres',
       username,
@@ -120,7 +120,7 @@ export function runQuery(
       port: 5432,
       database: databaseName,
       extra: { ssl: false },
-    }).then(conn => {
+    }).connect().then(conn => {
       conn.query(queryString).then(
         (res: any[]) => {
           conn.close().then(

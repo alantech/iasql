@@ -1,4 +1,4 @@
-import { createConnection, Connection, Repository } from 'typeorm';
+import { Connection, Repository } from 'typeorm';
 import { SnakeNamingStrategy } from 'typeorm-naming-strategies';
 
 import { IasqlDatabase, IasqlUser } from '../../entity/index';
@@ -14,7 +14,7 @@ class MetadataRepo {
   initialized: boolean;
 
   async init() {
-    const conn = await createConnection(dbMan.baseConnConfig);
+    const conn = await new Connection(dbMan.baseConnConfig).connect();
     try {
       await conn.query(`CREATE DATABASE ${this.database};`);
     } catch (e) {
@@ -23,7 +23,7 @@ class MetadataRepo {
     } finally {
       await conn.close();
     }
-    this.conn = await createConnection({
+    this.conn = await new Connection({
       ...dbMan.baseConnConfig,
       name: this.database,
       namingStrategy: new SnakeNamingStrategy(),
@@ -31,7 +31,7 @@ class MetadataRepo {
       entities: [IasqlDatabase, IasqlUser],
       migrations: [`${__dirname}/../../migration/*.js`, `${__dirname}/../../migration/*.ts`],
       migrationsTableName: '__migrations__',
-    });
+    }).connect();
     await this.conn.query(`CREATE EXTENSION IF NOT EXISTS pg_cron;`);
     await this.conn.runMigrations();
     this.userRepo = this.conn.getRepository(IasqlUser);

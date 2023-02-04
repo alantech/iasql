@@ -4,7 +4,7 @@
 import { exec as execNode, execSync } from 'child_process';
 import { existsSync, readdirSync, readFileSync } from 'fs';
 import fetch from 'node-fetch';
-import { createConnection } from 'typeorm';
+import { Connection } from 'typeorm';
 import { promisify } from 'util';
 
 import config from '../config';
@@ -46,15 +46,15 @@ export async function connect(dbAlias: string, uid: string, email: string, dbId 
     await MetadataRepo.saveDb(uid, email, metaDb);
     dbSaved = true;
     logger.info('Establishing DB connections...');
-    conn1 = await createConnection(dbMan.baseConnConfig);
+    conn1 = await new Connection(dbMan.baseConnConfig).connect();
     await conn1.query(`
       CREATE DATABASE ${dbId};
     `);
-    conn2 = await createConnection({
+    conn2 = await new Connection({
       ...dbMan.baseConnConfig,
       name: dbId,
       database: dbId,
-    });
+    }).connect();
     await dbMan.migrate(conn2);
     await conn2.query('CREATE SCHEMA http; CREATE EXTENSION http WITH SCHEMA http;');
     await conn2.query(dbMan.setUpDblink(dbId));
@@ -92,7 +92,7 @@ export async function disconnect(dbAlias: string, uid: string) {
   let conn, conn2;
   try {
     const db: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
-    conn = await createConnection(dbMan.baseConnConfig);
+    conn = await new Connection(dbMan.baseConnConfig).connect();
     conn2 = await TypeormWrapper.createConn(db.pgName, {
       ...dbMan.baseConnConfig,
       database: db.pgName,
@@ -240,11 +240,11 @@ export async function upgrade() {
   for (const db of dbs) {
     logger.info(`Starting Part 2 of 3 for ${db}`);
     // Connect to the database and first re-insert the baseline modules
-    const conn = await createConnection({
+    const conn = await new Connection({
       ...dbMan.baseConnConfig,
       name: db,
       database: db,
-    });
+    }).connect();
     await dbMan.migrate(conn);
     // Next re-insert the audit log
     try {
