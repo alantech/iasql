@@ -120,32 +120,34 @@ export function runQuery(
       port: 5432,
       database: databaseName,
       extra: { ssl: false },
-    }).connect().then(conn => {
-      conn.query(queryString).then(
-        (res: any[]) => {
-          conn.close().then(
-            ...finish((_e?: any) => {
-              if (assertFn) {
-                try {
-                  assertFn(res);
-                } catch (e: any) {
-                  done(e);
-                  return {};
+    })
+      .connect()
+      .then(conn => {
+        conn.query(queryString).then(
+          (res: any[]) => {
+            conn.close().then(
+              ...finish((_e?: any) => {
+                if (assertFn) {
+                  try {
+                    assertFn(res);
+                  } catch (e: any) {
+                    done(e);
+                    return {};
+                  }
                 }
-              }
-              done();
-              return {};
-            }),
-          );
-        },
-        e => {
-          conn.close().then(
-            () => done(e),
-            e2 => done(e2),
-          );
-        },
-      );
-    }, done);
+                done();
+                return {};
+              }),
+            );
+          },
+          e => {
+            conn.close().then(
+              () => done(e),
+              e2 => done(e2),
+            );
+          },
+        );
+      }, done);
   };
 }
 
