@@ -562,16 +562,6 @@ jobs:
         run: |
           curl -X POST -H "Content-Type: application/json" -H "${SECRET_HEADER}" -H "x-iasql-drop: true" -d "[${ACCOUNT_INDEX}]" ${LAMBDA_FUNCTION}
 
-      - uses: actions/github-script@v6
-        with:
-          script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: 'All modules installed in: ' + {{  }}
-            })
-
   notify-install-all-time:
     runs-on: ubuntu-latest
     needs:
