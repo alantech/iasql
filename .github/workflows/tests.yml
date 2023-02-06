@@ -9,7 +9,7 @@ on:
     branches: [main]
     paths:
       [
-        '.github/workflows/ci.yml',
+        '.github/workflows/tests.yml',
         'src/**',
         'test/**',
         'package.json',
@@ -21,7 +21,7 @@ on:
     branches: [main]
     paths:
       [
-        '.github/workflows/ci.yml',
+        '.github/workflows/tests.yml',
         'src/**',
         'test/**',
         'package.json',

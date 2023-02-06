@@ -1,0 +1,41 @@
+.loader-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  margin: 0;
+  background-color: rgb(228, 243, 206);
+  background: linear-gradient(45deg, rgb(228, 243, 206) 0%, rgb(206, 228, 243) 100%);
+}
+
+.loader-logo {
+  background-image: url(../../assets/logo-black.png);
+  background-repeat: no-repeat;
+  background-position: center center;
+  background-size: contain;
+  width: 10em;
+  height: 10em;
+  animation-name: fade;
+  animation-duration: 0.9s;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+}
+
+@media (prefers-color-scheme: dark) {
+  .loader-wrapper {
+    background-color: rgb(12, 13, 11);
+    background: linear-gradient(45deg, rgb(36, 38, 33) 0%, rgb(33, 36, 38) 100%);
+  }
+  .loader-logo {
+    background-image: url(../../assets/logo.png);
+  }
+}
+
+@keyframes fade {
+  0% {
+    opacity: 0.2;
+  }
+  100% {
+    opacity: 1;
+  }
+}
