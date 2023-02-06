@@ -263,7 +263,7 @@ export async function upgrade() {
       await conn.query(`
       SELECT array_to_json(ARRAY(SELECT row_to_json(iasql_audit_log) FROM iasql_audit_log));
     `)
-    )[0].array_to_json;
+    )?.[0]?.array_to_json ?? [];
     // Get the list of modules in the database that we will have to re-install
     const moduleList = (
       await conn.query(`
@@ -278,7 +278,7 @@ export async function upgrade() {
         await conn.query(`
         SELECT * FROM aws_credentials;
       `)
-      )[0];
+      )?.[0] ?? undefined;
       regionsEnabled = await conn.query(`
         SELECT region FROM aws_regions WHERE is_enabled = TRUE;
       `);
@@ -286,7 +286,7 @@ export async function upgrade() {
         await conn.query(`
         SELECT region FROM aws_regions WHERE is_default = TRUE;
       `)
-      )[0].region;
+      )?.[0]?.region ?? 'us-east-1';
     }
     // Close out the connection to the old version of the DB
     await conn.close();
