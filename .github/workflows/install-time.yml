@@ -1,0 +1,21 @@
+name: Notify install time
+
+on:
+  pull_request:
+    branches: [main]
+    paths: ['src/**', 'package.json', 'yarn.lock']
+
+jobs:
+  comment:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v5
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '👋 Thanks for reporting!'
+            })
