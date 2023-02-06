@@ -19,7 +19,7 @@ export class AwsCloudwatchModule extends ModuleBase {
 }
 
 /**
- * ### Code examples
+ * ### Code examples
  *
  * ```testdoc
  * modules/aws-cloudwatch-integration.ts#AwsCloudwatch Integration Testing#Manage cloudwatch
