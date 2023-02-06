@@ -450,3 +450,144 @@ jobs:
           LAMBDA_FUNCTION: 'https://22quullhnmsrttacexxc74uium0nndzo.lambda-url.us-east-2.on.aws/'
         run: |
           curl -X POST -H "Content-Type: application/json" -H "${SECRET_HEADER}" -H "x-iasql-drop: true" -d "[${ACCOUNT_INDEX}]" ${LAMBDA_FUNCTION}
+
+  get-install-times:
+    needs:
+      - build-and-push
+    runs-on: ubuntu-latest
+    # only run if a PR exists
+    if: ${{ github.event.pull_request }}
+    outputs:
+      install-time: ${{ steps.install-all-modules.outputs.set-install-time }}
+      uninstall-time: ${{ steps.install-all-modules.outputs.set-uninstall-time }}
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Use Node.js 16.x
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16.x
+          cache: 'yarn'
+
+      - name: Determine Test Account To Use
+        id: determine-test-account
+        env:
+          SECRET_HEADER: ${{ secrets.SECRET_HEADER }}
+          LAMBDA_FUNCTION: 'https://22quullhnmsrttacexxc74uium0nndzo.lambda-url.us-east-2.on.aws/'
+        run: |
+          RESPONSE=$(curl -X POST -H "Content-Type: text/plain" -H "${SECRET_HEADER}" -d '1' ${LAMBDA_FUNCTION} 2>/dev/null)
+          echo $RESPONSE
+          ACCOUNT_INDEX=$(echo $RESPONSE | jq '.[0]' || exit 1)
+          echo "::set-output name=account_index::$(echo ${ACCOUNT_INDEX})"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install and Uninstall all modules
+        id: install-all-modules
+        env:
+          IASQL_ENV: ci
+          ACCOUNT_INDEX: ${{ steps['determine-test-account'].outputs['account_index'] }}
+          ACCESS_KEY_IDS: ${{ secrets.ACCESS_KEY_IDS }}
+          SECRET_ACCESS_KEYS: ${{ secrets.SECRET_ACCESS_KEYS }}
+          PSQL_CONN: postgres://postgres:test@localhost:5432/iasql
+        run: |
+          # Establish needed secrets
+          export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
+          export AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
+
+          # Spin up IaSQL container and a postgres instance
+          # Temporarily export the server port until it's only the Postgres port needed
+          docker run -p 5432:5432 -e IASQL_ENV=ci --name iasql ghcr.io/iasql/iasql:$GITHUB_SHA &
+          while ! psql postgres://postgres:test@localhost:5432/iasql_metadata -b -q -c "SELECT iasql_engine_health()"; do sleep 1 && echo -n .; done;
+
+          # connect `iasql` db to aws account for `apply`
+          echo "\nCreating an iasql db..."
+          connectres=$(psql "postgres://postgres:test@localhost:5432/iasql_metadata" -t -c "SELECT json_agg(c)->0 FROM iasql_connect('iasql') as c;")
+          username=$(jq -r '.user' <<<"$connectres")
+          password=$(jq -r '.password' <<<"$connectres")
+
+          # Setup Account
+          echo "\nInstalling aws_account..."
+          psql $PSQL_CONN -c "
+            select iasql_install(
+              'aws_account'
+            );
+          ";
+
+          echo "\nAttaching credentials..."
+          psql $PSQL_CONN -c "
+            INSERT INTO aws_credentials (access_key_id, secret_access_key)
+            VALUES ('${AWS_ACCESS_KEY_ID}', '${AWS_SECRET_ACCESS_KEY}');
+          ";
+
+          # Start transaction
+          echo "\nStarting transaction..."
+          psql $PSQL_CONN -c "
+            select * from iasql_begin();
+          ";
+
+          # Start transaction
+          echo "\nSynchronizing..."
+          psql $PSQL_CONN -c "
+            SELECT * FROM iasql_commit();
+          ";
+
+          echo "\nInstalling all modules in iasql db..."
+          start=`date +%s.%N`
+          psql $PSQL_CONN -c "
+            select iasql_install(
+              variadic array(select module_name from iasql_modules_list())
+            );
+          ";
+          end=`date +%s.%N`
+
+          echo "set-install-time=$( echo "$end - $start" | bc -l )" >> $GITHUB_OUTPUT
+
+          echo "\nUninstalling all modules in iasql db..."
+          start=`date +%s.%N`
+          psql $PSQL_CONN -c "
+            select iasql_uninstall(
+              variadic array(select module_name from iasql_modules_list())
+            );
+          ";
+          end=`date +%s.%N`
+
+          echo "set-uninstall-time=$( echo "$end - $start" | bc -l )" >> $GITHUB_OUTPUT
+
+          # Shut down the container
+          docker container stop iasql
+
+      - name: Return test account
+        if: always()
+        env:
+          SECRET_HEADER: ${{ secrets.SECRET_HEADER }}
+          ACCOUNT_INDEX: ${{ steps['determine-test-account'].outputs['account_index'] }}
+          LAMBDA_FUNCTION: 'https://22quullhnmsrttacexxc74uium0nndzo.lambda-url.us-east-2.on.aws/'
+        run: |
+          curl -X POST -H "Content-Type: application/json" -H "${SECRET_HEADER}" -H "x-iasql-drop: true" -d "[${ACCOUNT_INDEX}]" ${LAMBDA_FUNCTION}
+
+  notify-install-all-modules-time:
+    runs-on: ubuntu-latest
+    needs:
+      - get-install-times
+    steps:
+      - uses: actions/github-script@v6
+        env:
+          INSTALL_TIME: ${{ needs.get-install-times.outputs.install-time }}
+          UNINSTALL_TIME: ${{ needs.get-install-times.outputs.uninstall-time }}
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '⏳ All modules installed in: ' + process.env.INSTALL_TIME + ' seconds ⌛️\n⏳ All modules uninstalled in: ' + process.env.UNINSTALL_TIME + ' seconds ⌛️'
+            })
