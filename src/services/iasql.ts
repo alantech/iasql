@@ -84,7 +84,7 @@ export async function connect(
     // delete db in psql and metadata
     if (dbSaved) await conn1?.query(`DROP DATABASE IF EXISTS "${dbId}" WITH (FORCE);`);
     if (dbUser && roleGranted) await conn1?.query(dbMan.dropPostgresRoleQuery(dbUser, dbId, true));
-    if (dbSaved) await MetadataRepo.delDb(uid, dbAlias);
+    if (dbSaved && !dbPregen) await MetadataRepo.delDb(uid, dbAlias);
     // rethrow the error
     throw e;
   } finally {
