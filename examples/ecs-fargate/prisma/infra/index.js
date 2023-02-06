@@ -39,7 +39,7 @@ async function main() {
   else if (GITHUB_SERVER_URL && GITHUB_REPOSITORY) // CI
     repoUri = `${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}`;
   else
-    repoUri = 'https://github.com/iasql/iasql-engine'
+    repoUri = 'https://github.com/iasql/iasql'
   const image = await prisma.$queryRaw`SELECT ecr_build(
               ${repoUri},
               ${repoId},

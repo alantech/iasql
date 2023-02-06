@@ -16,7 +16,6 @@ git pull origin --tags ${CURRENTGITSHA}
 # Get metadata on the current branch to use during the test
 CURRENTVERSION=$(jq -r .version package.json)
 PRIORVERSION=$(./node_modules/.bin/semver $(git tag -l) | tail -n 1)
-CURRENTGITSHA=$(git rev-parse HEAD)
 
 # Clear mutations, if any
 git reset --hard HEAD
