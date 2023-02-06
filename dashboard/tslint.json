@@ -1,0 +1,20 @@
+{
+  "defaultSeverity": "error",
+  "extends": [
+    "tslint:recommended"
+  ],
+  "jsRules": {},
+  "rules": {
+    "one-variable-per-declaration": false,
+    "ban-types": false,
+    "max-classes-per-file": 9001,
+    "only-arrow-functions": false
+  },
+  "rulesDirectory": [],
+  "linterOptions": {
+    "exclude": [
+      "src/migration/*.ts",
+      "src/modules/**/migration/*.ts"
+    ]
+  }
+}
