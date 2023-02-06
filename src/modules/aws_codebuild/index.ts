@@ -16,10 +16,12 @@ export class AwsCodebuildModule extends ModuleBase {
 
   constructor() {
     super();
+    // Mappers
     this.project = new CodebuildProjectMapper(this);
     this.sourceCredentialsList = new SourceCredentialsListMapper(this);
-    this.importSourceCredential = new ImportSourceCredentialRpc(this);
     this.buildList = new CodebuildBuildListMapper(this);
+    // RPCs
+    this.importSourceCredential = new ImportSourceCredentialRpc(this);
     this.startBuild = new StartBuildRPC(this);
     super.init();
   }

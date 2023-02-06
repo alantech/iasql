@@ -2,16 +2,15 @@ import { ModuleBase } from '../interfaces';
 import { MemoryDBClusterMapper, SubnetGroupMapper } from './mappers';
 
 export class AwsMemoryDBModule extends ModuleBase {
+  /** @internal */
   memoryDBCluster: MemoryDBClusterMapper;
+  /** @internal */
   subnetGroup: SubnetGroupMapper;
 
   constructor() {
     super();
-    /** @internal */
-    this.memoryDBCluster = new MemoryDBClusterMapper(this);
-
-    /** @internal */
     this.subnetGroup = new SubnetGroupMapper(this);
+    this.memoryDBCluster = new MemoryDBClusterMapper(this);
     super.init();
   }
 }

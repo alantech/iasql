@@ -20,9 +20,11 @@ export class AwsCodedeployModule extends ModuleBase {
 
   constructor() {
     super();
+    // Mappers
     this.application = new CodedeployApplicationMapper(this);
     this.deploymentGroup = new CodedeployDeploymentGroupMapper(this);
     this.deployment = new CodedeployDeploymentMapper(this);
+    // RPCs
     this.startDeployment = new StartDeployRPC(this);
     super.init();
   }
