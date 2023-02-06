@@ -291,6 +291,14 @@ export async function upgrade() {
       `)
         )?.[0]?.region ?? 'us-east-1';
     }
+    // If there was a failure after `NEW_<db>` was created, we should delete the existing one
+    // and do this again. We'll use the OLD db connection to test
+    const hasNewDb = (
+      await conn.query(`SELECT datname FROM pg_database WHERE datname = 'NEW${db.pgName}'`)
+    )?.[0]?.datname ?? '' === `NEW${db.pgName}`;
+    if (hasNewDb) {
+      await conn.query(`DROP DATABASE "NEW${db.pgName}"`);
+    }
     // Close out the connection to the old version of the DB
     await conn.close();
     // We need to create a new database called `NEW_<db>` with the current DB user associated
