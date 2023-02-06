@@ -225,6 +225,8 @@ db.post('/rpc', async (req: Request, res: Response) => {
           );
       } catch (e: any) {
         logger.error('could not log op event', e);
+      } finally {
+        await conn.dropConn();
       }
     }
   } catch (e: any) {

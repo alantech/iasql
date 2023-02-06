@@ -1,5 +1,5 @@
 import { Pool } from 'pg';
-import { Connection, createConnection, EntityMetadata, EntityTarget, getConnectionManager } from 'typeorm';
+import { Connection, EntityMetadata, EntityTarget } from 'typeorm';
 import { SnakeNamingStrategy } from 'typeorm-naming-strategies';
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
 import { PostgresDriver } from 'typeorm/driver/postgres/PostgresDriver';
@@ -30,18 +30,14 @@ export class TypeormWrapper {
     // Pulled this out as a function so it can be re-used in the iasql service. This should probably
     // be moved into Metadata at some point in the future, but for now let's assume that the
     // `iasql_module` table is stable
-    const connMan = getConnectionManager();
     const dbname = uuidv4();
-    if (connMan.has(dbname)) {
-      throw new Error(`Connection ${dbname} already exists`);
-    }
     const typeorm = new TypeormWrapper();
     const connOpts: PostgresConnectionOptions = {
       ...typeorm.connectionConfig,
       name: dbname,
       database,
     };
-    const tempconn = await createConnection(connOpts);
+    const tempconn = await new Connection(connOpts).connect();
     // If this connection is being used to create a new DB, assume we're creating one with the
     // newest module versions
     let versionString: string = config.version;
@@ -61,11 +57,7 @@ export class TypeormWrapper {
   static async createConn(database: string, connectionConfig = {}): Promise<TypeormWrapper> {
     // First step: we need to probe the database to see what version it is.
     const typeorm = new TypeormWrapper();
-    const connMan = getConnectionManager();
     const dbname = uuidv4();
-    if (connMan.has(dbname)) {
-      throw new Error(`Connection ${dbname} already exists`);
-    }
     // Grab all of the entities and create the TypeORM connection with it. Theoretically only need
     // the module in question at first, but when we try to use the module to acquire the cloud
     // records, it may use one or more other modules it depends on, so we just load them all into
@@ -87,7 +79,7 @@ export class TypeormWrapper {
       database,
     };
 
-    typeorm.connection = await createConnection({ ...connOpts, entities, name });
+    typeorm.connection = await new Connection({ ...connOpts, entities, name }).connect();
     return typeorm;
   }
 
