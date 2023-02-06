@@ -1,4 +1,4 @@
-name: CI Tutorial Prisma
+name: Prisma Tutorial Tests
 
 on:
   # Allows you to run this workflow manually from the Actions tab

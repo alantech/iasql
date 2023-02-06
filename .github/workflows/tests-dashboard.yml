@@ -1,6 +1,6 @@
 # This is a basic workflow to help you get started with Actions
 
-name: TEST
+name: Dashboard Tests
 
 # Controls when the action will run. Triggers the workflow on push or pull request
 # events but only for the main branch
@@ -31,10 +31,14 @@ jobs:
           node-version: "16"
 
       - name: Install dependencies
-        run: yarn
+        run: |
+          cd dashboard
+          yarn
 
       - name: Run linter check
-        run: yarn lint
+        run: |
+          cd dashboard
+          yarn lint
 
   style:
     # The type of runner that the job will run on
@@ -50,10 +54,14 @@ jobs:
           node-version: "16"
 
       - name: Install dependencies
-        run: yarn
+        run: |
+          cd dashboard
+          yarn
 
       - name: Run code style check
-        run: yarn style
+        run: |
+          cd dashboard
+          yarn style
 
   setup-build:
     runs-on: ubuntu-latest
@@ -115,7 +123,7 @@ jobs:
 
       - name: Start local run service
         run: |
-          cd run
+          cd dashboard/run
           yarn
           yarn build
           IASQL_ENV=test yarn start &
@@ -124,6 +132,7 @@ jobs:
 
       - name: Start local dashboard
         run: |
+          cd dashboard
           yarn
           yarn install 
           yarn build
