@@ -548,7 +548,7 @@ jobs:
           ";
           end=`date +%s`
 
-          echo "::set-output name=set-install-time::$((end-start))"
+          echo "set-install-time=$((end-start))" >> $GITHUB_OUTPUT
 
           # Shut down the container
           docker container stop iasql
@@ -568,11 +568,13 @@ jobs:
       - install-all
     steps:
       - uses: actions/github-script@v6
+        env:
+          INSTALL_TIME: ${{ needs.install-all.outputs.install-time }}
         with:
           script: |
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: 'All modules installed in: ' + {{ needs.install-all.outputs.install-time }}
+              body: 'All modules installed in: ' + process.env.INSTALL_TIME
             })
