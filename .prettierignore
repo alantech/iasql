@@ -1,2 +1,4 @@
+# ignore dashboard which has its own styling
+dashboard/*
 # Ignore iasql_platform sql file since it doing weird stuff with ALTER DEFAULT PRIVILEGES command
 src/modules/iasql_platform/sql/after_install.sql
