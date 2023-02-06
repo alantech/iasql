@@ -456,7 +456,7 @@ jobs:
       - build-and-push
     runs-on: ubuntu-latest
     # only run if a PR exists
-    if: ${{ context.issue.pull_request }}
+    if: ${{ github.event.pull_request }}
     outputs:
       install-time: ${{ steps.install-all-modules.outputs.set-install-time }}
     steps:
