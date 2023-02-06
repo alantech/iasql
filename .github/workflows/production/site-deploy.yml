@@ -3,7 +3,7 @@ name: Docs Deployment
 on:
   push:
     branches: [main]
-    paths: ['site/**', '.github/workflows/site-deploy.yml']
+    paths: ['site/**', '.github/workflows/production/site-deploy.yml']
   repository_dispatch:
     types: [newdocs]
   # Allows you to run this workflow manually from the Actions tab
