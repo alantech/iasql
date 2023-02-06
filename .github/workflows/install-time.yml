@@ -1,11 +1,11 @@
 name: Notify install time
 
 on:
-  push:
-    branches: [notify-wf]
+  # push:
+  #   branches: [notify-wf]
   pull_request:
     branches: [main]
-    paths: ['src/**', 'package.json', 'yarn.lock']
+    paths: ['src/**', 'package.json', 'yarn.lock', '.github/workflows/**']
 
 jobs:
   comment:
@@ -15,6 +15,7 @@ jobs:
         with:
           script: |
             console.log(JSON.stringify(context.issue))
+            console.log(JSON.stringify(context))
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
