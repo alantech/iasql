@@ -19,7 +19,7 @@ const logFactory: LogFunctionFactory<Logger> = (scope: any) => {
     });
     logfn.on('error', event => {
       if (event.retrying) return;
-      console.log('Fatal error in LogDNA', event);
+      console.log(`Fatal error in LogDNA ${util.inspect(event)}`);
     });
     if (config.logger.forceLocal) {
       return async (level, message, meta) => {
@@ -29,7 +29,7 @@ const logFactory: LogFunctionFactory<Logger> = (scope: any) => {
           const user = await MetadataRepo.getUserFromDbId(dbId);
           userId = user?.id;
         }
-        console.log(`${level}: ${message}`, { ...meta, userId, dbId });
+        console.log(`${level}: ${message} ${util.inspect({ ...meta, userId, dbId })}`);
         logfn.log(message, {
           level: level === 'warning' ? 'warn' : level, // Graphile Logger vs LogDNA levels fix
           meta: { ...meta, userId, dbId },
@@ -74,11 +74,11 @@ const logFactory: LogFunctionFactory<Logger> = (scope: any) => {
     return (level, message, meta) => {
       switch (level) {
         case 'error':
-          console.error(level, message, scope, meta);
+          console.error(`${level}: ${message} ${util.inspect(scope)}  ${util.inspect(meta)}`);
           break;
         case 'debug':
         default:
-          console.log(level, message, scope, meta);
+          console.log(`${level}: ${message} ${util.inspect(scope)}  ${util.inspect(meta)}`);
           break;
       }
     };
@@ -102,12 +102,12 @@ const logFactory: LogFunctionFactory<Logger> = (scope: any) => {
     return (level, message, meta) => {
       switch (level) {
         case 'error':
-          console.error(level, message, scope, meta);
+          console.error(`${level}: ${message} ${util.inspect(scope)}  ${util.inspect(meta)}`);
           break;
         case 'debug':
           break;
         default:
-          console.log(level, message, scope, meta);
+          console.log(`${level}: ${message} ${util.inspect(scope)}  ${util.inspect(meta)}`);
           break;
       }
     };
