@@ -259,11 +259,12 @@ export async function upgrade() {
       database: `OLD${db.pgName}`,
     }).connect();
     // Every IaSQL database has an audit log, so let's retrieve the current log for future use
-    const auditLogLines = (
-      await conn.query(`
+    const auditLogLines =
+      (
+        await conn.query(`
       SELECT array_to_json(ARRAY(SELECT row_to_json(iasql_audit_log) FROM iasql_audit_log));
     `)
-    )?.[0]?.array_to_json ?? [];
+      )?.[0]?.array_to_json ?? [];
     // Get the list of modules in the database that we will have to re-install
     const moduleList = (
       await conn.query(`
@@ -274,19 +275,21 @@ export async function upgrade() {
     // configuration
     let creds: { [key: string]: string }, regionsEnabled: { region: string }[], defaultRegion: string;
     if (moduleList.includes('aws_account')) {
-      creds = (
-        await conn.query(`
+      creds =
+        (
+          await conn.query(`
         SELECT * FROM aws_credentials;
       `)
-      )?.[0] ?? undefined;
+        )?.[0] ?? undefined;
       regionsEnabled = await conn.query(`
         SELECT region FROM aws_regions WHERE is_enabled = TRUE;
       `);
-      defaultRegion = (
-        await conn.query(`
+      defaultRegion =
+        (
+          await conn.query(`
         SELECT region FROM aws_regions WHERE is_default = TRUE;
       `)
-      )?.[0]?.region ?? 'us-east-1';
+        )?.[0]?.region ?? 'us-east-1';
     }
     // Close out the connection to the old version of the DB
     await conn.close();
