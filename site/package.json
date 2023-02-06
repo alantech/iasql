@@ -17,7 +17,7 @@
   "dependencies": {
     "@docusaurus/core": "^2.3.1",
     "@docusaurus/preset-classic": "^2.3.1",
-    "@mdx-js/react": "^1.6.21",
+    "@mdx-js/react": "^2.2.1",
     "@mxssfd/typedoc-theme": "^1.0.3",
     "@svgr/webpack": "^6.5.1",
     "clsx": "^1.2.1",
