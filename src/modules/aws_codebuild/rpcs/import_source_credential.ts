@@ -28,11 +28,6 @@ export enum ValidAuthTypes {
  *
  * - message: Error message in case of failure
  *
- * @example
- * ```sql TheButton[Import Github credentials to CodeBuild]="Import Github credentials to CodeBuild"
- *   SELECT * FROM import_source_credential('us-east-1', 'ghp_XXX', 'GITHUB', 'PERSONAL_ACCESS_TOKEN');
- * ```
- *
  * @see https://docs.aws.amazon.com/cli/latest/reference/codebuild/import-source-credentials.html
  *
  */

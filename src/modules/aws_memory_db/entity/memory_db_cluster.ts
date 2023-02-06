@@ -35,14 +35,6 @@ export enum NodeTypeEnum {
  * Table to manage Memory DB clusters. Amazon MemoryDB for Redis is a Redis-compatible, durable, in-memory
  * database service that delivers ultra-fast performance. It is purpose-built for modern applications with microservices architectures.
  *
- * @example
- * ```sql TheButton[Manage a MemoryDB cluster]="Manage a MemoryDB cluster"
- * INSERT INTO memory_db_cluster (cluster_name, subnet_group_id) VALUES ('cluster_name', (select id from subnet_group where subnet_group_name = 'subnet_name'));
- * SELECT * FROM memory_db_cluster WHERE cluster_name = 'cluster_name';
- * DELETE FROM memory_db_cluster WHERE cluster_name = 'cluster_name';
- * ```
- *
- * @see https://github.com/iasql/iasql/blob/b2c2383b73d73f5cdf75c867d334e80cdf40caa1/test/modules/aws-memory-db-integration.ts#L185
  * @see https://docs.aws.amazon.com/memorydb/latest/devguide/clusters.html
  */
 @Entity()

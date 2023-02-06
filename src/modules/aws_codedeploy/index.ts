@@ -29,4 +29,11 @@ export class AwsCodedeployModule extends ModuleBase {
     super.init();
   }
 }
+
+/**
+ *
+ * ```testdoc
+ * modules/aws-codedeploy-integration.ts#AwsCodedeploy Integration Testing#Code examples
+ * ```
+ */
 export const awsCodedeployModule = new AwsCodedeployModule();

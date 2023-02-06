@@ -11,17 +11,7 @@ import { cloudId } from '../../../services/cloud-id';
  * When a new connection to IaSQL is issued, the AWS credentials are stored.
  * The keys can be generated from the AWS console for each registered user
  *
- * @example
- * ```sql TheButton[Add new credentials]="Add new credentials"
- *  INSERT INTO aws_credentials (access_key_id, secret_access_key)
- *  VALUES ('AKIA...', '<your secret access key>');
- *
- *  SELECT * FROM aws_credentials;
- * ```
- *
  * @see https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html
- * @see https://github.com/iasql/iasql/blob/main/test/modules/aws-account-integration.ts#L62
- * @see https://github.com/iasql/iasql/blob/main/test/modules/aws-account-integration.ts#L95
  *
  */
 @Entity()

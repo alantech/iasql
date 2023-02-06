@@ -41,17 +41,6 @@ export enum EndpointInterfaceService {
  * AWS PrivateLink is a highly available, scalable technology that enables you to privately
  * connect your VPC to services as if they were in your VPC.
  *
- * @example
- * ```sql TheButton[Manage an Interface endpoint]="Manage an Interface endpoint"
- * INSERT INTO endpoint_interface (service, vpc_id, tags) SELECT 'lambda', id, '{"Name": "lambda_vpc_endpoint"}'
- * FROM vpc WHERE is_default = false AND cidr_block = '191.0.0.0/16';
- *
- * SELECT * FROM endpoint_interface WHERE tags ->> 'Name' = 'lambda_vpc_endpoint';
- *
- * DELETE FROM endpoint_interface WHERE tags ->> 'Name' = 'lambda_vpc_endpoint';
- * ```
- *
- * @see https://github.com/iasql/iasql/blob/main/test/modules/aws-vpc-endpoint-interface-integration.ts#L190L194
  * @see https://docs.aws.amazon.com/vpc/latest/privatelink/create-interface-endpoint.html
  */
 @Entity()

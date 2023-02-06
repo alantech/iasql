@@ -10,18 +10,6 @@ import { AwsRegions } from '../../aws_account/entity';
  * By default, only the AWS account that created the repository has access to a repository.
  * You can apply a policy document that allow additional permissions to your repository.
  *
- * @example
- * ```sql TheButton[Manage policies for an ECR repository]="Manage policies for an ECR repository"
- * INSERT INTO repository_policy (repository_id, policy_text) VALUES
- * ((select id from repository where repository_name = 'repository'),
- * '{ "Version": "2012-10-17", "Statement": [ { "Sid": "DenyPull", "Effect": "Deny", "Principal": "*", "Action": [ "ecr:BatchGetImage", "ecr:GetDownloadUrlForLayer" ] } ]}');
- *
- * SELECT * FROM repository_policy WHERE repository_id = (select id from repository where repository_name = 'repository');
- *
- * DELETE FROM repository_policy WHERE repository_id = (select id from repository where repository_name = 'repository');
- * ```
- *
- * @see https://github.com/iasql/iasql/blob/main/test/modules/aws-ecr-integration.ts#L291
  * @see https://docs.aws.amazon.com/AmazonECR/latest/userguide/repository-policies.html
  */
 @Entity()

@@ -18,18 +18,6 @@ export enum Protocol {
  *
  * APIs act as the "front door" for applications to access data, business logic, or functionality from your backend services.
  *
- * @example
- * ```sql TheButton[Manage API Gateway]="Manage API gateway"
- *  INSERT INTO api (name, description, disable_execute_api_endpoint, version) VALUES ('api-name', 'description', false, '1.0');
- *
- *  UPDATE api SET description='new description' WHERE name='api-name';
- *
- *  SELECT * FROM api WHERE name='api-name';
- *
- *  DELETE FROM api WHERE name = 'api-name';
- * ```
- *
- * @see https://github.com/iasql/iasql/blob/main/test/modules/aws-api-gateway-integration.ts#L124
  * @see https://aws.amazon.com/api-gateway/
  *
  */

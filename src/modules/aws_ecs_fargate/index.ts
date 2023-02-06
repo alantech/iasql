@@ -26,4 +26,15 @@ export class AwsEcsFargateModule extends ModuleBase {
     super.init();
   }
 }
+
+/**
+ * ### Code examples
+ *
+ * ```testdoc
+ * modules/aws-ecs-integration.ts#ECS Integration Testing#Manage ECS
+ * modules/aws-ecs-ecr-integration.ts#ECS Integration Testing#Integrate with aws_ecr private repos
+ * modules/aws-ecs-pub-ecr-integration.ts#ECS Integration Testing#Integrate with aws_ecr public repos
+ *
+ * ```
+ */
 export const awsEcsFargateModule = new AwsEcsFargateModule();

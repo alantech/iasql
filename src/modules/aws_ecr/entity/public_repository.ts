@@ -9,14 +9,6 @@ import { RepositoryImage } from './repository_image';
  *
  * Amazon ECR integrates with the Docker CLI to push images from your development environments to your public repositories.
  *
- * @example
- * ```sql TheButton[Manage an ECR public repo]="Manage an ECR public repo"
- * INSERT INTO public_repository (repository_name) VALUES ('repository_name');
- * SELECT * FROM public_repository WHERE repository_name = 'repository_name';
- * DELETE FROM public_repository WHERE repository_name = 'repository_name';
- * ```
- *
- * @see https://github.com/iasql/iasql/blob/main/test/modules/aws-ecr-integration.ts#L432
  * @see https://docs.aws.amazon.com/AmazonECR/latest/public/public-repositories.html
  */
 @Entity()

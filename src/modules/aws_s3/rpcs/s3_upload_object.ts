@@ -21,15 +21,6 @@ import { BucketObject } from '../entity';
  * - content: blob for the object to upload
  * - contentType: MIME type for the uploaded object
  *
- * @example
- * ```sql TheButton[Uploads an object]="Uploads an object"
- * SELECT * FROM s3_upload_object('bucket', 'object_key', '{
- * name: 'Iasql',
- * value: 'Hello world!',
- * }', 'application/json')`,
- * ```
- *
- * @see https://github.com/iasql/iasql/blob/b2c2383b73d73f5cdf75c867d334e80cdf40caa1/test/modules/aws-s3-integration.ts#L209
  * @see https://docs.aws.amazon.com/AmazonS3/latest/userguide/upload-objects.html
  *
  */

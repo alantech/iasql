@@ -82,16 +82,6 @@ export enum Runtime {
  *
  * You can trigger Lambda from over 200 AWS services and software as a service (SaaS) applications, and only pay for what you use.
  *
- * @example
- * ```sql TheButton[Manage a Lambda function]="Manage a Lambda function"
- * INSERT INTO lambda_function (name, zip_b64, handler, runtime, role_name) VALUES ('lambda', '<base64_encoded_code>', 'index.handler', 'nodejs16.x', 'lambda_role');
- *
- * SELECT * FROM lambda_function WHERE name = 'lambda';
- *
- * DELETE FROM lambda_function WHERE name = 'lambda';
- * ```
- *
- * @see https://github.com/iasql/iasql/blob/b2c2383b73d73f5cdf75c867d334e80cdf40caa1/test/modules/aws-lambda-integration.ts#L168
  * @see https://aws.amazon.com/lambda/
  */
 @Entity()

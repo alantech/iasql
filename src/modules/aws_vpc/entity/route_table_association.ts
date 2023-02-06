@@ -8,18 +8,6 @@ import { Vpc } from './vpc';
 /**
  * Table to manage associations between a Route and a Route table.
  *
- * @example
- * ```sql TheButton[Manage Route Table associations]="Manage Route Table associations"
- * INSERT INTO route_table_association (route_table_id, vpc_id, subnet_id) VALUES
- * ((SELECT id FROM route_table WHERE tags ->> 'name' = 'route_table'),
- * (SELECT id FROM vpc WHERE tags ->> 'name' = 'vpc'),
- * (SELECT id FROM subnet WHERE cidr_block = '10.0.1.0/24' AND availability_zone = 'us-east-1a'));
- * SELECT * FROM route_table_association WHERE route_table_id = (SELECT id FROM route_table WHERE tags ->> 'name' = 'route_table');
- *
- * DELETE FROM route_table_association WHERE route_table_id = (SELECT id FROM route_table WHERE tags ->> 'name' = 'route_table');
- * ```
- *
- * @see https://github.com/iasql/iasql/blob/main/test/modules/aws-vpc-routetable-integration.ts#L197
  * @see https://docs.aws.amazon.com/vpc/latest/userguide/WorkWithRouteTables.html
  */
 @Unique('uq_routetable_routetable_subnet_ismain', ['vpc', 'subnet', 'isMain'])

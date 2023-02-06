@@ -28,13 +28,6 @@ export enum BuildStatus {
  * This table can only be used to check the existing builds, and delete them. The main builds are created
  * via a CodeBuild project.
  *
- * @example
- * ```sql TheButton[Manage CodeBuild builds]="Manage CodeBuild builds"
- * SELECT * FROM codebuild_build_list WHERE project_name = 'build_project_name' and build_status = 'FAILED';
- * DELETE FROM codebuild_build_list WHERE project_name = 'build_project_name';
- * ```
- *
- * @see https://github.com/iasql/iasql/blob/main/test/modules/aws-codebuild-integration.ts#L341
  * @see https://docs.aws.amazon.com/codebuild/latest/userguide/builds-working.html
  *
  */

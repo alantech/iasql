@@ -14,12 +14,6 @@ import { AwsRegions } from '../../aws_account/entity';
  * Keys can only be listed and deleted.
  * The keypairs can be created using `key_pair_request` and `key_pair_import` methods.
  *
- * @example
- * ```sql TheButton[Manage EC2 keypairs]="Manage EC2 keypairs"
- * SELECT * FROM key_pair WHERE name = 'key';
- * DELETE FROM key_pair WHERE name = 'key';
- * ```
- *
  * @see https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-key-pairs.html
  * @see https://aws.amazon.com/ec2/features
  */

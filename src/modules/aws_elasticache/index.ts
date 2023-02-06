@@ -215,4 +215,10 @@ class AwsElastiCacheModule extends ModuleBase {
     super.init();
   }
 }
+
+/**
+ * ```testdoc
+ * modules/aws-elasticache-integration.ts#Elasticache Integration Testing#Code examples
+ * ```
+ */
 export const awsElastiCacheModule = new AwsElastiCacheModule();

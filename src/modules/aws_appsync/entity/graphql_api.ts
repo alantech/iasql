@@ -33,18 +33,6 @@ export enum DefaultAction {
 /**
  * Table to manage GraphQL API entires
  *
- * @example
- * ```sql TheButton[Manage GraphQL API]="Manage GraphQL API"
- *  INSERT INTO graphql_api (name, authentication_type) VALUES ('graphql-api', 'API_KEY');
- *
- *  UPDATE graphql_api SET authentication_type='AWS_IAM' WHERE name='graphql-api';
- *
- *  SELECT * FROM graphql_api WHERE name='graphql-api';
- *
- *  DELETE FROM graphql_api WHERE name = 'graphql-api';
- * ```
- *
- * @see https://github.com/iasql/iasql/blob/main/test/modules/aws-appsync-integration.ts#L95
  * @see https://aws.amazon.com/appsync
  *
  */

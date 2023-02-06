@@ -169,4 +169,10 @@ class AwsAccount extends ModuleBase {
     super.init();
   }
 }
+/**
+ *
+ * ```testdoc
+ * modules/aws-account-integration.ts#AwsAccount Integration Testing#Code examples
+ * ```
+ */
 export const awsAccount = new AwsAccount();

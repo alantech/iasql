@@ -7,4 +7,11 @@ class AwsEcsSimplified extends ModuleBase {
     super.loadBasics();
   }
 }
+
+/**
+ * ```testdoc
+ * modules/aws-ecs-simplified-integration.ts#ECS Simplified Integration Testing#Code examples
+ *
+ * ```
+ */
 export const ecsSimplified = new AwsEcsSimplified();

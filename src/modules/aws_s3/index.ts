@@ -31,4 +31,10 @@ export class AwsS3Module extends ModuleBase {
   }
 }
 
+/**
+ * ```testdoc
+ * modules/aws-s3-integration.ts#S3 Integration Testing#Manage buckets
+ * modules/aws-s3-integration.ts#S3 bucket policy integration testing#Manage policies
+ * ```
+ */
 export const awsS3 = new AwsS3Module();

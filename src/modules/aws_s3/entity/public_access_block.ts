@@ -8,10 +8,6 @@ import { Bucket } from './bucket';
  *
  * The Amazon S3 Block Public Access feature provides settings for access points, buckets, and accounts to help you manage public access to Amazon S3 resources
  *
- * @example
- * ```sql TheButton[Make the S3 Bucket Public]="Make the S3 Bucket Public"
- * UPDATE public_access_block SET BlockPublicAcls = false, IgnorePublicAcls = false, BlockPublicPolicy = false, RestrictPublicBuckets = false WHERE bucket_name = 'mybucketname';
- * ```
  *
  * @see https://docs.aws.amazon.com/AmazonS3/latest/userguide/access-control-block-public-access.html
  */

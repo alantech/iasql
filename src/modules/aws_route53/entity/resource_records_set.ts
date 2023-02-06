@@ -29,17 +29,6 @@ export enum RecordType {
  * Domain Name System (DNS) how you want traffic to be routed for that domain. Each record includes the name of a domain or a subdomain,
  * a record type (for example, a record with a type of MX routes email), and other information applicable to the record type (for MX records, the host name of one or more mail servers and a priority for each server).
  *
- * @example
- * ```sql TheButton[Manage a RecordSet]="Manage a RecordSet"
- * INSERT INTO resource_record_set (name, record_type, record, ttl, parent_hosted_zone_id) SELECT 'name', 'CNAME', 'domain.com.', 300, id
- * FROM hosted_zone WHERE domain_name = 'domain.com.';
- *
- * SELECT * FROM resource_record_set INNER JOIN hosted_zone ON hosted_zone.id = parent_hosted_zone_id WHERE domain_name = 'domain.com.';
- *
- * DELETE FROM resource_record_set USING hosted_zone WHERE hosted_zone.id IN (SELECT id FROM hosted_zone WHERE domain_name = 'domain.com.' ORDER BY ID DESC LIMIT 1);
- * ```
- *
- * @see https://github.com/iasql/iasql/blob/b2c2383b73d73f5cdf75c867d334e80cdf40caa1/test/modules/aws-route53-integration.ts#L294
  * @see https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/rrsets-working-with.html
  */
 @Unique('UQ_name__record_type', ['parentHostedZone', 'name', 'recordType'])

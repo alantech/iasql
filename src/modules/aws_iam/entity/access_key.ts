@@ -30,11 +30,6 @@ export enum accessKeyStatusEnum {
  *
  * Access keys can only be listed and deleted. The access keys can be created using the `access_key_request` method.
  *
- * @example
- * ```sql TheButton[Manage Access Keys]="Manage Access Keys"
- * SELECT * FROM access_key WHERE user_name='user';
- * DELETE FROM access_key WHERE user_name = 'user';
- * ```
  *
  * @see https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html
  */

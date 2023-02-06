@@ -166,4 +166,11 @@ class AwsApiGatewayModule extends ModuleBase {
     super.init();
   }
 }
+
+/**
+ *
+ * ```testdoc
+ * modules/aws-api-gateway-integration.ts#API Gateway Integration Testing#Code examples
+ * ```
+ */
 export const awsApiGatewayModule = new AwsApiGatewayModule();

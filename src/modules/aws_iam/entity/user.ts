@@ -7,17 +7,6 @@ import { AccessKey } from './access_key';
  * Table to manage AWS IAM users. An AWS Identity and Access Management (IAM) user is an entity that you create in AWS to represent the person
  * or application that uses it to interact with AWS. A user in AWS consists of a name and credentials.
  *
- * @example
- * ```sql TheButton[Manage an IAM user]="Manage an IAM user"
- * INSERT INTO iam_user (user_name, path, attached_policies_arns) VALUES ('user_name', '/username/',
- * array['arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy']);
- *
- * SELECT * FROM iam_user WHERE user_name = 'user_name';
- *
- * DELETE FROM iam_user WHERE user_name = 'user_name';
- * ```
- *
- * @see https://github.com/iasql/iasql/blob/b2c2383b73d73f5cdf75c867d334e80cdf40caa1/test/modules/aws-iam-integration.ts#L816
  * @see https://docs.aws.amazon.com/IAM/latest/UserGuide/id_users.html
  *
  * @privateRemarks

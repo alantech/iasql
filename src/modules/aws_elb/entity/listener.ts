@@ -24,16 +24,6 @@ export enum ActionTypeEnum {
  * A listener is a process that checks for connection requests, using the protocol and port that you configure.
  * The rules that you define for a listener determine how the load balancer routes requests to its registered targets.
  *
- * @example
- * ```sql TheButton[Manage an Load Balancer listener]="Manage a Load Balancer listener"
- * INSERT INTO listener (load_balancer_id, port, protocol, target_group_id) VALUES
- * ((SELECT id FROM load_balancer WHERE load_balancer_name = 'lb_name'), 5678, 'tcp',
- * (SELECT id FROM target_group WHERE target_group_name = 'target_group_name'));
- *
- * DELETE FROM listener WHERE load_balancer_id = (SELECT id FROM load_balancer WHERE load_balancer_name = 'lb_name');
- * ```
- *
- * @see https://github.com/iasql/iasql/blob/b2c2383b73d73f5cdf75c867d334e80cdf40caa1/test/modules/aws-elb-integration.ts#L400
  * @see https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-listeners.html
  */
 @Unique('UQ_load_balancer__port', ['loadBalancer', 'port'])

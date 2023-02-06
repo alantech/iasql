@@ -1184,22 +1184,26 @@
   resolved "https://registry.yarnpkg.com/@colors/colors/-/colors-1.5.0.tgz#bb504579c1cae923e6576a4f5da43d25f97bdbd9"
   integrity sha512-ooWCrlZP11i8GImSjTHYHLkvFDP48nS4+204nGb1RiX/WXYHmJA2III9/e2DWVabCESdW7hBAEzHRqUn9OUVvQ==
 
-"@docsearch/css@3.3.2":
-  version "3.3.2"
-  resolved "https://registry.yarnpkg.com/@docsearch/css/-/css-3.3.2.tgz#2c49995e6fbc7834c75f317b277ed6e4019223a4"
-  integrity sha512-dctFYiwbvDZkksMlsmc7pj6W6By/EjnVXJq5TEPd05MwQe+dcdHJgaIn1c8wfsucxHpIsdrUcgSkACHCq6aIhw==
+"@docsearch/css@3.3.3":
+  version "3.3.3"
+  resolved "https://registry.yarnpkg.com/@docsearch/css/-/css-3.3.3.tgz#f9346c9e24602218341f51b8ba91eb9109add434"
+  integrity sha512-6SCwI7P8ao+se1TUsdZ7B4XzL+gqeQZnBc+2EONZlcVa0dVrk0NjETxozFKgMv0eEGH8QzP1fkN+A1rH61l4eg==
 
 "@docsearch/react@^3.1.1":
-  version "3.3.2"
-  resolved "https://registry.yarnpkg.com/@docsearch/react/-/react-3.3.2.tgz#252b659c66682f24902bf6db257f63ee73ffe8fa"
-  integrity sha512-ugILab2TYKSh6IEHf6Z9xZbOovsYbsdfo60PBj+Bw+oMJ1MHJ7pBt1TTcmPki1hSgg8mysgKy2hDiVdPm7XWSQ==
+  version "3.3.3"
+  resolved "https://registry.yarnpkg.com/@docsearch/react/-/react-3.3.3.tgz#907b6936a565f880b4c0892624b4f7a9f132d298"
+  integrity sha512-pLa0cxnl+G0FuIDuYlW+EBK6Rw2jwLw9B1RHIeS4N4s2VhsfJ/wzeCi3CWcs5yVfxLd5ZK50t//TMA5e79YT7Q==
   dependencies:
     "@algolia/autocomplete-core" "1.7.4"
     "@algolia/autocomplete-preset-algolia" "1.7.4"
-    "@docsearch/css" "3.3.2"
+    "@docsearch/css" "3.3.3"
     algoliasearch "^4.0.0"
 
 "@docusaurus/core@2.3.1", "@docusaurus/core@^2.3.1":
+  version "2.3.1"
+  resolved "https://registry.yarnpkg.com/@docusaurus/core/-/core-2.3.1.tgz#32849f2ffd2f086a4e55739af8c4195c5eb386f2"
+  integrity sha512-0Jd4jtizqnRAr7svWaBbbrCCN8mzBNd2xFLoT/IM7bGfFie5y58oz97KzXliwiLY3zWjqMXjQcuP1a5VgCv2JA==
+"@docusaurus/core@2.3.1", "@docusaurus/core@^2.3.0":
   version "2.3.1"
   resolved "https://registry.yarnpkg.com/@docusaurus/core/-/core-2.3.1.tgz#32849f2ffd2f086a4e55739af8c4195c5eb386f2"
   integrity sha512-0Jd4jtizqnRAr7svWaBbbrCCN8mzBNd2xFLoT/IM7bGfFie5y58oz97KzXliwiLY3zWjqMXjQcuP1a5VgCv2JA==
@@ -1217,7 +1221,13 @@
     "@docusaurus/cssnano-preset" "2.3.1"
     "@docusaurus/logger" "2.3.1"
     "@docusaurus/mdx-loader" "2.3.1"
+    "@docusaurus/cssnano-preset" "2.3.1"
+    "@docusaurus/logger" "2.3.1"
+    "@docusaurus/mdx-loader" "2.3.1"
     "@docusaurus/react-loadable" "5.5.2"
+    "@docusaurus/utils" "2.3.1"
+    "@docusaurus/utils-common" "2.3.1"
+    "@docusaurus/utils-validation" "2.3.1"
     "@docusaurus/utils" "2.3.1"
     "@docusaurus/utils-common" "2.3.1"
     "@docusaurus/utils-validation" "2.3.1"
@@ -1280,12 +1290,20 @@
   version "2.3.1"
   resolved "https://registry.yarnpkg.com/@docusaurus/cssnano-preset/-/cssnano-preset-2.3.1.tgz#e042487655e3e062417855e12edb3f6eee8f5ecb"
   integrity sha512-7mIhAROES6CY1GmCjR4CZkUfjTL6B3u6rKHK0ChQl2d1IevYXq/k/vFgvOrJfcKxiObpMnE9+X6R2Wt1KqxC6w==
+"@docusaurus/cssnano-preset@2.3.1":
+  version "2.3.1"
+  resolved "https://registry.yarnpkg.com/@docusaurus/cssnano-preset/-/cssnano-preset-2.3.1.tgz#e042487655e3e062417855e12edb3f6eee8f5ecb"
+  integrity sha512-7mIhAROES6CY1GmCjR4CZkUfjTL6B3u6rKHK0ChQl2d1IevYXq/k/vFgvOrJfcKxiObpMnE9+X6R2Wt1KqxC6w==
   dependencies:
     cssnano-preset-advanced "^5.3.8"
     postcss "^8.4.14"
     postcss-sort-media-queries "^4.2.1"
     tslib "^2.4.0"
 
+"@docusaurus/logger@2.3.1":
+  version "2.3.1"
+  resolved "https://registry.yarnpkg.com/@docusaurus/logger/-/logger-2.3.1.tgz#d76aefb452e3734b4e0e645efc6cbfc0aae52869"
+  integrity sha512-2lAV/olKKVr9qJhfHFCaqBIl8FgYjbUFwgUnX76+cULwQYss+42ZQ3grHGFvI0ocN2X55WcYe64ellQXz7suqg==
 "@docusaurus/logger@2.3.1":
   version "2.3.1"
   resolved "https://registry.yarnpkg.com/@docusaurus/logger/-/logger-2.3.1.tgz#d76aefb452e3734b4e0e645efc6cbfc0aae52869"
@@ -1298,9 +1316,15 @@
   version "2.3.1"
   resolved "https://registry.yarnpkg.com/@docusaurus/mdx-loader/-/mdx-loader-2.3.1.tgz#7ec6acee5eff0a280e1b399ea4dd690b15a793f7"
   integrity sha512-Gzga7OsxQRpt3392K9lv/bW4jGppdLFJh3luKRknCKSAaZrmVkOQv2gvCn8LAOSZ3uRg5No7AgYs/vpL8K94lA==
+"@docusaurus/mdx-loader@2.3.1":
+  version "2.3.1"
+  resolved "https://registry.yarnpkg.com/@docusaurus/mdx-loader/-/mdx-loader-2.3.1.tgz#7ec6acee5eff0a280e1b399ea4dd690b15a793f7"
+  integrity sha512-Gzga7OsxQRpt3392K9lv/bW4jGppdLFJh3luKRknCKSAaZrmVkOQv2gvCn8LAOSZ3uRg5No7AgYs/vpL8K94lA==
   dependencies:
     "@babel/parser" "^7.18.8"
     "@babel/traverse" "^7.18.8"
+    "@docusaurus/logger" "2.3.1"
+    "@docusaurus/utils" "2.3.1"
     "@docusaurus/logger" "2.3.1"
     "@docusaurus/utils" "2.3.1"
     "@mdx-js/mdx" "^1.6.22"
@@ -1321,8 +1345,13 @@
   version "2.3.1"
   resolved "https://registry.yarnpkg.com/@docusaurus/module-type-aliases/-/module-type-aliases-2.3.1.tgz#986186200818fed999be2e18d6c698eaf4683a33"
   integrity sha512-6KkxfAVOJqIUynTRb/tphYCl+co3cP0PlHiMDbi+SzmYxMdgIrwYqH9yAnGSDoN6Jk2ZE/JY/Azs/8LPgKP48A==
+"@docusaurus/module-type-aliases@2.3.1":
+  version "2.3.1"
+  resolved "https://registry.yarnpkg.com/@docusaurus/module-type-aliases/-/module-type-aliases-2.3.1.tgz#986186200818fed999be2e18d6c698eaf4683a33"
+  integrity sha512-6KkxfAVOJqIUynTRb/tphYCl+co3cP0PlHiMDbi+SzmYxMdgIrwYqH9yAnGSDoN6Jk2ZE/JY/Azs/8LPgKP48A==
   dependencies:
     "@docusaurus/react-loadable" "5.5.2"
+    "@docusaurus/types" "2.3.1"
     "@docusaurus/types" "2.3.1"
     "@types/history" "^4.7.11"
     "@types/react" "*"

@@ -27,4 +27,10 @@ export class AwsCodebuildModule extends ModuleBase {
   }
 }
 
+/**
+ *
+ * ```testdoc
+ * modules/aws-codebuild-integration.ts#AwsCodebuild Integration Testing#Code examples
+ * ```
+ */
 export const awsCodebuildModule = new AwsCodebuildModule();

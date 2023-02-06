@@ -16,12 +16,6 @@ import { Context, RpcBase, RpcResponseObject } from '../../interfaces';
  * - message: Error message in case of failure
  * - privateKey: Content of the private key. You will need to store it safely, as it won't be stored and shown again.
  *
- * @example
- * ```sql TheButton[Request an EC2 keypair]="Request an EC2 keypair"
- * SELECT * FROM key_pair_request ('key_name', 'us-east-1');
- * ```
- *
- * @see https://github.com/iasql/iasql/blob/main/test/modules/aws-ec2-integration.ts#L269
  * @see https://docs.aws.amazon.com/cli/latest/reference/ec2/create-key-pair.html
  *
  */

@@ -8,10 +8,6 @@ import { Bucket } from './bucket';
  *
  * A bucket website can be used to host a static website (e.g. React app) using just the S3 bucket and no additional servers
  *
- * @example
- * ```sql TheButton[Create a Static Website For Bucket]="Create a Static Website For Bucket"
- * INSERT INTO bucket_website (bucket_name, index_document, error_document) VALUES ('mybucket', 'index.html', 'index.html');
- * ```
  *
  * @see https://docs.aws.amazon.com/AmazonS3/latest/userguide/WebsiteHosting.html
  */

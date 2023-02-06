@@ -186,4 +186,11 @@ class AwsAppsyncModule extends ModuleBase {
     super.init();
   }
 }
+
+/**
+ *
+ * ```testdoc
+ * modules/aws-appsync-integration.ts#App Sync Integration Testing#Code examples
+ * ```
+ */
 export const awsAppsyncModule = new AwsAppsyncModule();

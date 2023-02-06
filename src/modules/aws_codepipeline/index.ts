@@ -11,4 +11,11 @@ export class AwsCodepipelineModule extends ModuleBase {
     super.init();
   }
 }
+
+/**
+ *
+ * ```testdoc
+ * modules/aws-codepipeline-integration.ts#AwsCodepipeline Integration Testing#Code examples
+ * ```
+ */
 export const awsCodepipelineModule = new AwsCodepipelineModule();

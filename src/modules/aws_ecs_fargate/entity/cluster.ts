@@ -11,14 +11,6 @@ import { AwsRegions } from '../../aws_account/entity';
  * The infrastructure capacity can be provided by AWS Fargate, which is serverless infrastructure that AWS manages, Amazon EC2 instances that you manage,
  * or an on-premise server or virtual machine (VM) that you manage remotely.
  *
- * @example
- * ```sql TheButton[Manage an ECS cluster]="Manage an ECS cluster"
- * INSERT INTO cluster (cluster_name) VALUES('cluster_name');
- * SELECT * FROM cluster WHERE cluster_name = 'cluster_name';
- * DELETE FROM cluster WHERE cluster_name = 'cluster_name';
- * ```
- *
- * @see https://github.com/iasql/iasql/blob/b2c2383b73d73f5cdf75c867d334e80cdf40caa1/test/modules/aws-ecs-integration.ts#L198
  * @see https://docs.aws.amazon.com/AmazonECS/latest/developerguide/clusters.html
  */
 @Entity()

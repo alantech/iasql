@@ -709,7 +709,7 @@ describe('AwsCodepipeline Integration Testing', () => {
     try {
       query(
         `
-      UPDATE pipeline_declaration SET region='${nonDefaultRegion} WHERE name='${prefix}-${dbAlias}');
+      UPDATE pipeline_declaration SET region='${nonDefaultRegion}' WHERE name='${prefix}-${dbAlias}');
       `,
         undefined,
         true,

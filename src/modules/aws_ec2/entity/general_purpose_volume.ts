@@ -32,12 +32,6 @@ export enum VolumeState {
  * Table to manage AWS general purpose Volume entities. Amazon Elastic Block Store (Amazon EBS) provides block
  * level storage volumes for use with EC2 instances. EBS volumes behave like raw, unformatted block devices.
  *
- * @example
- * ```sql TheButton[Create a General purpose volume]="Create a general purpose volume"
- * INSERT INTO general_purpose_volume (volume_type, availability_zone, size, tags) VALUES ('gp3', 'us-east-1a', 50, '{"Name": "gp3-volume-name"}');
- * ```
- *
- * @see https://github.com/iasql/iasql/blob/main/test/modules/aws-ec2-gpv-integration.ts#L125
  * @see https://aws.amazon.com/ebs/general-purpose/
  *
  * @privateRemarks

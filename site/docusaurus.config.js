@@ -11,6 +11,7 @@ const localConfig = {
 };
 const config = process.env.IASQL_ENV === 'local' ? localConfig : prodConfig;
 const theButton = require('./src/rehype/thebutton');
+const testDoc = require('./src/rehype/testdoc');
 
 // With JSDoc @type annotations, IDEs can provide config autocompletion
 /** @type {import('@docusaurus/types').DocusaurusConfig} */
@@ -34,14 +35,14 @@ const theButton = require('./src/rehype/thebutton');
         {
           docs: {
             routeBasePath: '/docs',
-            remarkPlugins: [theButton],
+            remarkPlugins: [theButton, testDoc],
             sidebarPath: require.resolve('./sidebars.js'),
             editUrl: 'https://github.com/iasql/iasql/tree/main/site/',
           },
           blog: {
             showReadingTime: true,
             routeBasePath: '/blog',
-            remarkPlugins: [theButton],
+            remarkPlugins: [theButton, testDoc],
             exclude: ['unlisted/*'],
             blogSidebarTitle: 'All posts',
             blogSidebarCount: 'ALL',

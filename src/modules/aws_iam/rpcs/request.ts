@@ -14,10 +14,6 @@ import { Context, RpcBase, RpcResponseObject } from '../../interfaces';
  * - accessKeyId: The ID for the access key
  * - secretAccessKey: The secret key used to sign requests. You will need to store it safely, as it won't be stored and shown again.
  *
- * @example
- * ```sql TheButton[Request an IAM User Access Key]="Request an IAM User Access Key"
- * SELECT * FROM access_key_request('user');
- * ```
  *
  * @see https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html
  *

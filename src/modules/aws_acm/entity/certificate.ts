@@ -47,12 +47,6 @@ export enum certificateRenewalEligibilityEnum {
  * can be created or imported by using the following postgres functions:
  * @see https://iasql.com/docs/sql/classes/aws_acm_rpcs_import.CertificateImportRpc/
  * @see https://iasql.com/docs/sql/classes/aws_acm_rpcs_request.CertificateRequestRpc/
- *
- * @example
- * ```sql TheButton[Show certificates for domain]="Show certificates for domain"
- *   SELECT * FROM certificate WHERE domain_name = 'domain.com';
- * ```
- *
  * @see https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html
  * @see https://aws.amazon.com/certificate-manager
  *

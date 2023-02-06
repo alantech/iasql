@@ -14,4 +14,10 @@ export class AwsMemoryDBModule extends ModuleBase {
     super.init();
   }
 }
+
+/**
+ * ```testdoc
+ * modules/aws-memory-db-integration.ts#MemoryDB Integration Testing#Code examples
+ * ```
+ */
 export const awsMemoryDBModule = new AwsMemoryDBModule();

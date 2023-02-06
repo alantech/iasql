@@ -11,13 +11,6 @@ import { Vpc } from './vpc';
  * Table to manage AWS route tables.
  * A route table contains a set of rules, called routes, that determine where network traffic from your subnet or gateway is directed.
  *
- * @example
- * ```sql TheButton[Creates a Route table]="Creates a Route table"
- * INSERT INTO route_table (vpc_id, tags, region) VALUES
- * ((SELECT id FROM vpc WHERE tags ->> 'name' = 'vpc'), '{"name":"route_table"}', 'us-east-1');
- * ```
- *
- * @see https://github.com/iasql/iasql/blob/main/test/modules/aws-vpc-routetable-integration.ts#L154
  * @see https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Route_Tables.html
  */
 @Unique('uq_route_table_region', ['id', 'region'])

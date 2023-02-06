@@ -23,10 +23,6 @@ import { Context, RpcBase, RpcResponseObject } from '../../interfaces';
  * - status: OK if the password was updated successfully
  * - message: Error message in case of failure
  *
- * @example
- * ```sql TheButton[Set a new password for an IAM user]="Set a new password for an IAM user"
- * SELECT * FROM set_user_password('user', 'password', true);
- * ```
  *
  * @see https://docs.aws.amazon.com/cli/latest/reference/iam/create-login-profile.html
  * @see https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_passwords_account-policy.html

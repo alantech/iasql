@@ -20,6 +20,8 @@
     "@mdx-js/react": "^1.6.21",
     "@mxssfd/typedoc-theme": "^1.0.3",
     "@svgr/webpack": "^6.5.1",
+    "acorn-loose": "^8.3.0",
+    "acorn-walk": "^8.2.0",
     "clsx": "^1.2.1",
     "docusaurus-plugin-iasql": "https://github.com/iasql/docusaurus-plugin-iasql#v1.0.4",
     "file-loader": "^6.2.0",

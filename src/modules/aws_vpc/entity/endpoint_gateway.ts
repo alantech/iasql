@@ -19,15 +19,6 @@ export enum EndpointGatewayService {
  * Gateway endpoints provide reliable connectivity to Amazon S3 and DynamoDB without requiring an internet gateway or a NAT device for your VPC.
  * Gateway endpoints do not enable AWS PrivateLink.
  *
- * @example
- * ```sql TheButton[Manage a Gateway endpoint]="Manage a Gateway endpoint"
- * INSERT INTO endpoint_gateway (service, vpc_id, tags) SELECT 's3', id, '{"Name": "s3_gateway"}'
- * FROM vpc WHERE is_default = false AND cidr_block = '191.0.0.0/16';
- * SELECT * FROM endpoint_gateway WHERE tags ->> 'name' = 's3_gateway';
- * DELETE FROM endpoint_gateway WHERE tags ->> 'name' = 's3_gateway';
- * ```
- *
- * @see https://github.com/iasql/iasql/blob/main/test/modules/aws-vpc-endpoint-gateway-integration.ts#L191L195
  * @see https://docs.aws.amazon.com/vpc/latest/privatelink/gateway-endpoints.html
  */
 @Entity()

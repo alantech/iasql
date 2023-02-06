@@ -11,27 +11,6 @@ import { cloudId } from '../../../services/cloud-id';
  * Also, a role does not have standard long-term credentials such as a password or access keys associated with it.
  * Instead, when you assume a role, it provides you with temporary security credentials for your role session.
  *
- * @example
- * ```sql TheButton[Manage an IAM role]="Manage an IAM role"
- * INSERT INTO iam_role (role_name, assume_role_policy_document) VALUES ('lambda_role_name', '{
- * Version: '2012-10-17',
- * Statement: [
- *   {
- *     Effect: 'Allow',
- *     Principal: {
- *       Service: 'lambda.amazonaws.com',
- *     },
- *     Action: 'sts:AssumeRole',
- *   },
- * ],
- * }');
- *
- * SELECT * FROM iam_role WHERE role_name = 'lambda_role_name';
- *
- * DELETE FROM iam_role WHERE role_name = 'lambda_role_name';
- * ```
- *
- * @see https://github.com/iasql/iasql/blob/b2c2383b73d73f5cdf75c867d334e80cdf40caa1/test/modules/aws-iam-integration.ts#L183
  * @see https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles.html
  *
  * @privateRemarks
