@@ -541,26 +541,26 @@ jobs:
           ";
 
           echo "\nInstalling all modules in iasql db..."
-          start=`date +%s`
+          start=`date +%s.%N`
           psql $PSQL_CONN -c "
             select iasql_install(
               variadic array(select module_name from iasql_modules_list())
             );
           ";
-          end=`date +%s`
+          end=`date +%s.%N`
 
-          echo "set-install-time=$((end-start))" >> $GITHUB_OUTPUT
+          echo "set-install-time=$( echo "$end - $start" | bc -l )" >> $GITHUB_OUTPUT
 
           echo "\nUninstalling all modules in iasql db..."
-          start=`date +%s`
+          start=`date +%s.%N`
           psql $PSQL_CONN -c "
             select iasql_uninstall(
               variadic array(select module_name from iasql_modules_list())
             );
           ";
-          end=`date +%s`
+          end=`date +%s.%N`
 
-          echo "set-uninstall-time=$((end-start))" >> $GITHUB_OUTPUT
+          echo "set-uninstall-time=$( echo "$end - $start" | bc -l )" >> $GITHUB_OUTPUT
 
           # Shut down the container
           docker container stop iasql
