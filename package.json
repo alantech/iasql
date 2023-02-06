@@ -76,7 +76,7 @@
     "@aws-sdk/client-appsync": "^3.188.0",
     "@aws-sdk/client-cloudfront": "^3.259.0",
     "@aws-sdk/client-cloudwatch": "^3.245.0",
-    "@aws-sdk/client-cloudwatch-logs": "^3.259.0",
+    "@aws-sdk/client-cloudwatch-logs": "^3.264.0",
     "@aws-sdk/client-codebuild": "^3.170.0",
     "@aws-sdk/client-codedeploy": "^3.245.0",
     "@aws-sdk/client-codepipeline": "^3.241.0",
