@@ -91,7 +91,7 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v3
         with:
-          context: ./run/
+          context: ./dashboard/run/
           push: true
           cache-from: type=gha
           cache-to: type=gha
