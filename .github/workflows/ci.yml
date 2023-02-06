@@ -451,7 +451,7 @@ jobs:
         run: |
           curl -X POST -H "Content-Type: application/json" -H "${SECRET_HEADER}" -H "x-iasql-drop: true" -d "[${ACCOUNT_INDEX}]" ${LAMBDA_FUNCTION}
 
-  get-install-all-modules-time:
+  get-install-times:
     needs:
       - build-and-push
     runs-on: ubuntu-latest
@@ -459,6 +459,7 @@ jobs:
     if: ${{ github.event.pull_request }}
     outputs:
       install-time: ${{ steps.install-all-modules.outputs.set-install-time }}
+      uninstall-time: ${{ steps.install-all-modules.outputs.set-uninstall-time }}
     steps:
       - uses: actions/checkout@v3
 
@@ -489,7 +490,7 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install all modules
+      - name: Install and Uninstall all modules
         id: install-all-modules
         env:
           IASQL_ENV: ci
@@ -550,6 +551,17 @@ jobs:
 
           echo "set-install-time=$((end-start))" >> $GITHUB_OUTPUT
 
+          echo "\nUninstalling all modules in iasql db..."
+          start=`date +%s`
+          psql $PSQL_CONN -c "
+            select iasql_uninstall(
+              variadic array(select module_name from iasql_modules_list())
+            );
+          ";
+          end=`date +%s`
+
+          echo "set-uninstall-time=$((end-start))" >> $GITHUB_OUTPUT
+
           # Shut down the container
           docker container stop iasql
 
@@ -565,16 +577,17 @@ jobs:
   notify-install-all-modules-time:
     runs-on: ubuntu-latest
     needs:
-      - get-install-all-modules-time
+      - get-install-times
     steps:
       - uses: actions/github-script@v6
         env:
-          INSTALL_TIME: ${{ needs.get-install-all-modules-time.outputs.install-time }}
+          INSTALL_TIME: ${{ needs.get-install-times.outputs.install-time }}
+          UNINSTALL_TIME: ${{ needs.get-install-times.outputs.uninstall-time }}
         with:
           script: |
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: '⏳ All modules installed in: ' + process.env.INSTALL_TIME + ' seconds ⌛️'
+              body: '⏳ All modules installed in: ' + process.env.INSTALL_TIME + ' seconds ⌛️\n⏳ All modules uninstalled in: ' + process.env.UNINSTALL_TIME + ' seconds ⌛️'
             })
