@@ -747,10 +747,12 @@ export class AwsEcrModule extends ModuleBase {
 
   constructor() {
     super();
+    // Mappers
     this.publicRepository = new PublicRepositoryMapper(this);
     this.repository = new RepositoryMapper(this);
     this.repositoryPolicy = new RepositoryPolicyMapper(this);
     this.repositoryImages = new RepositoryImageMapper(this);
+    // RPCs
     this.ecrBuild = new EcrBuildRpc(this);
     super.init();
   }
