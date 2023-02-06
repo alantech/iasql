@@ -15,9 +15,9 @@ export class AwsElbModule extends ModuleBase {
 
   constructor() {
     super();
-    this.listener = new ListenerMapper(this);
     this.loadBalancer = new LoadBalancerMapper(this);
     this.targetGroup = new TargetGroupMapper(this);
+    this.listener = new ListenerMapper(this);
     super.init();
   }
 }

@@ -16,9 +16,11 @@ export class AwsEcsFargateModule extends ModuleBase {
 
   constructor() {
     super();
+    // Mappers
     this.cluster = new ClusterMapper(this);
     this.taskDefinition = new TaskDefinitionMapper(this);
     this.service = new ServiceMapper(this);
+    // RPCs
     this.deployService = new DeployServiceRPC(this);
 
     super.init();

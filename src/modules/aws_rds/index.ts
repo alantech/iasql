@@ -564,8 +564,8 @@ class AwsRdsModule extends ModuleBase {
 
   constructor() {
     super();
-    this.rds = new RdsMapper(this);
     this.parameterGroup = new ParameterGroupMapper(this);
+    this.rds = new RdsMapper(this);
     super.init();
   }
 }
