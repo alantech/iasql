@@ -1,6 +1,8 @@
 name: Notify install time
 
 on:
+  push:
+    branches: [notify-wf]
   pull_request:
     branches: [main]
     paths: ['src/**', 'package.json', 'yarn.lock']
