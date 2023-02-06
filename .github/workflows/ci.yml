@@ -584,7 +584,6 @@ jobs:
           INSTALL_TIME: ${{ needs.get-install-times.outputs.install-time }}
           UNINSTALL_TIME: ${{ needs.get-install-times.outputs.uninstall-time }}
         with:
-          token: ${{ secrets.GH_PAT }}
           script: |
             github.rest.issues.createComment({
               issue_number: context.issue.number,
