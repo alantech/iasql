@@ -7,8 +7,8 @@ cd /dashboard
 REACT_APP_IASQL_ENV=local yarn start:build &
 
 # Run service
-cd /dashboard/run
-IASQL_ENV=local yarn start &
+cd /run
+yarn start &
 
 # Engine
 cd /engine

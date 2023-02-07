@@ -1,4 +1,35 @@
-FROM debian:bullseye
+# Run service
+FROM node:16-bullseye AS run-stage
+
+WORKDIR /run
+
+COPY dashboard/run/tsconfig.json tsconfig.json
+COPY dashboard/run/src src
+
+COPY dashboard/run/package.json dashboard/run/yarn.lock .
+RUN yarn install
+
+RUN yarn build
+
+# Dashboard
+FROM node:16-bullseye AS dashboard-stage
+
+WORKDIR /dashboard
+
+COPY dashboard/tsconfig.json dashboard/tailwind.config.js dashboard/craco.config.js .
+COPY dashboard/assets assets
+COPY dashboard/public public
+COPY dashboard/src src
+
+COPY dashboard/package.json dashboard/yarn.lock .
+RUN yarn install
+
+ENV REACT_APP_IASQL_ENV=local
+RUN yarn build
+RUN ls
+
+# Engine
+FROM debian:bullseye AS main-stage
 
 # Install OS Packages
 RUN apt update
@@ -20,48 +51,30 @@ RUN ["bash", "-c", "curl -fsSL https://deb.nodesource.com/setup_16.x | bash -"]
 RUN apt install nodejs -y
 RUN npm install -g yarn
 
-# Dashboard
-WORKDIR /dashboard
-
-COPY dashboard/package.json package.json
-COPY dashboard/yarn.lock yarn.lock
-RUN yarn install
-
-COPY dashboard/assets assets
-COPY dashboard/public public
-COPY dashboard/tsconfig.json tsconfig.json
-COPY dashboard/tailwind.config.js tailwind.config.js
-COPY dashboard/craco.config.js craco.config.js
-COPY dashboard/src src
-ENV REACT_APP_IASQL_ENV=local
-RUN yarn build
-
-## Run service
-WORKDIR /dashboard/run
-
-COPY dashboard/run/package.json package.json
-COPY dashboard/run/yarn.lock yarn.lock
-RUN yarn install
-
-COPY dashboard/run/tsconfig.json tsconfig.json
-COPY dashboard/run/src src
-RUN yarn build
-
-# Engine
 WORKDIR /engine
 
 COPY package.json package.json
 COPY yarn.lock yarn.lock
 RUN yarn install
 
-COPY docker-entrypoint.sh docker-entrypoint.sh
-COPY ormconfig.js ormconfig.js
-COPY tsconfig.json tsconfig.json
+COPY docker-entrypoint.sh ormconfig.js tsconfig.json .
 COPY src src
 RUN yarn build
 
 COPY ./src/scripts/postgresql.conf /etc/postgresql/14/main/postgresql.conf
 COPY ./src/scripts/pg_hba.conf /etc/postgresql/14/main/pg_hba.conf
+
+WORKDIR /run
+COPY --from=run-stage /run/package.json package.json
+COPY --from=run-stage /run/node_modules node_modules
+COPY --from=run-stage /run/dist dist
+
+WORKDIR /dashboard
+COPY --from=dashboard-stage /dashboard/package.json package.json
+COPY --from=dashboard-stage /dashboard/node_modules node_modules
+COPY --from=dashboard-stage /dashboard/build build
+
+WORKDIR /engine
 
 # Default ENVs that can be overwritten
 ARG IASQL_ENV=local
