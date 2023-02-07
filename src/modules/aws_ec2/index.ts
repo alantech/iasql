@@ -25,10 +25,12 @@ export class AwsEc2Module extends ModuleBase {
 
   constructor() {
     super();
+    // Mappers
     this.instance = new InstanceMapper(this);
     this.registeredInstance = new RegisteredInstanceMapper(this);
     this.generalPurposeVolume = new GeneralPurposeVolumeMapper(this);
     this.keypair = new KeyPairMapper(this);
+    // RPCs
     this.keyPairImport = new KeyPairImportRpc(this);
     this.keyPairRequest = new KeyPairRequestRpc(this);
     super.init();

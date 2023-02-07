@@ -1,5 +1,5 @@
 import { execSync } from 'child_process';
-import { createConnection, EntityTarget } from 'typeorm';
+import { Connection, EntityTarget } from 'typeorm';
 import { SnakeNamingStrategy } from 'typeorm-naming-strategies';
 
 import * as Entities from '../../src/modules/iasql_platform/entity';
@@ -14,7 +14,7 @@ beforeAll(done => {
     // Spin up the Postgres server and wait for it to start
     execSync('cd test && docker-compose up -d && sleep 5');
     // Create the test database
-    const conn = await createConnection({
+    const conn = await new Connection({
       name: 'startup',
       type: 'postgres',
       username: 'postgres',
@@ -22,7 +22,7 @@ beforeAll(done => {
       host: 'localhost',
       port: 5432,
       database: 'postgres',
-    });
+    }).connect();
     await conn.query('CREATE DATABASE test');
     await conn.close();
     done();
@@ -32,14 +32,14 @@ beforeAll(done => {
 afterAll(done => {
   (async () => {
     // Destroy the test database
-    const conn = await createConnection({
+    const conn = await new Connection({
       name: 'shutdown',
       type: 'postgres',
       username: 'postgres',
       password: 'test',
       host: 'localhost',
       database: 'postgres',
-    });
+    }).connect();
     await conn.query('DROP DATABASE test');
     await conn.close();
     // Finally turn off the postgres server
@@ -51,14 +51,14 @@ afterAll(done => {
 describe('Basic DB testing', () => {
   it('should run the migrations correctly', done => {
     (async () => {
-      const conn = await createConnection({
+      const conn = await new Connection({
         name: 'test',
         type: 'postgres',
         username: 'postgres',
         password: 'test',
         host: 'localhost',
         database: 'test',
-      });
+      }).connect();
 
       // Migrate in the database
       await migrate(conn);

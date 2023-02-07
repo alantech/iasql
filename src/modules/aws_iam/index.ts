@@ -21,9 +21,11 @@ export class AwsIamModule extends ModuleBase {
 
   constructor() {
     super();
+    // Mappers
     this.role = new RoleMapper(this);
     this.user = new UserMapper(this);
     this.accessKey = new AccessKeyMapper(this);
+    // RPCs
     this.accessKeyRequest = new AccessKeyRequestRpc(this);
     this.setUserPassword = new SetUserPasswordRequestRpc(this);
     super.init();

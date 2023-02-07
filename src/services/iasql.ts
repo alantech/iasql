@@ -1,10 +1,9 @@
 // TODO: It seems like a lot of this logic could be migrated into the iasql_platform module and make
 // sense there. Need to think a bit more on that, but module manipulation that way could allow for
 // meta operations within the module code itself, if desirable.
-import { exec as execNode, execSync } from 'child_process';
-import { existsSync, readdirSync, readFileSync } from 'fs';
+import { exec as execNode } from 'child_process';
 import fetch from 'node-fetch';
-import { createConnection } from 'typeorm';
+import { Connection } from 'typeorm';
 import { promisify } from 'util';
 
 import config from '../config';
@@ -30,42 +29,48 @@ export async function getDbRecCount(conn: TypeormWrapper): Promise<number> {
 }
 
 // TODO: connect and disconnect to be turned into metadata RPCs
-export async function connect(dbAlias: string, uid: string, email: string, dbId = dbMan.genDbId(dbAlias)) {
+export async function connect(
+  dbAlias: string,
+  uid: string,
+  email: string,
+  dbId = dbMan.genDbId(dbAlias),
+  dbPregen?: string[],
+) {
   let conn1: any, conn2: any, dbUser: any;
   let dbSaved,
     roleGranted = false;
   try {
     logger.info('Creating account for user...');
-    const dbGen = dbMan.genUserAndPass();
+    const dbGen = dbPregen ?? dbMan.genUserAndPass();
     dbUser = dbGen[0];
     const dbPass = dbGen[1];
     const metaDb = new IasqlDatabase();
     metaDb.alias = dbAlias;
     metaDb.pgUser = dbUser;
     metaDb.pgName = dbId;
-    await MetadataRepo.saveDb(uid, email, metaDb);
+    if (!dbPregen) await MetadataRepo.saveDb(uid, email, metaDb);
     dbSaved = true;
     logger.info('Establishing DB connections...');
-    conn1 = await createConnection(dbMan.baseConnConfig);
+    conn1 = await new Connection(dbMan.baseConnConfig).connect();
     await conn1.query(`
-      CREATE DATABASE ${dbId};
+      CREATE DATABASE "${dbId}";
     `);
-    conn2 = await createConnection({
+    conn2 = await new Connection({
       ...dbMan.baseConnConfig,
       name: dbId,
       database: dbId,
-    });
+    }).connect();
     await dbMan.migrate(conn2);
     await conn2.query('CREATE SCHEMA http; CREATE EXTENSION http WITH SCHEMA http;');
     await conn2.query(dbMan.setUpDblink(dbId));
     await conn2.query(`SELECT * FROM query_cron('schedule');`);
     await conn2.query(`SELECT * FROM query_cron('schedule_purge');`);
     await conn2.query(dbMan.createDbPostgreGroupRole(dbId));
-    await conn2.query(dbMan.newPostgresRoleQuery(dbUser, dbPass, dbId));
+    if (dbPass) await conn2.query(dbMan.newPostgresRoleQuery(dbUser, dbPass, dbId));
     await conn2.query(dbMan.grantPostgresGroupRoleToUser(dbUser, dbId));
     roleGranted = true;
     const recCount = await getDbRecCount(conn2);
-    await MetadataRepo.updateRecordCount(dbId, recCount);
+    if (!dbPregen) await MetadataRepo.updateRecordCount(dbId, recCount);
     logger.info('Done!');
     // Return custom IasqlDatabase object since we need to return the password
     return {
@@ -77,9 +82,9 @@ export async function connect(dbAlias: string, uid: string, email: string, dbId 
     };
   } catch (e: any) {
     // delete db in psql and metadata
-    if (dbSaved) await conn1?.query(`DROP DATABASE IF EXISTS ${dbId} WITH (FORCE);`);
+    if (dbSaved) await conn1?.query(`DROP DATABASE IF EXISTS "${dbId}" WITH (FORCE);`);
     if (dbUser && roleGranted) await conn1?.query(dbMan.dropPostgresRoleQuery(dbUser, dbId, true));
-    if (dbSaved) await MetadataRepo.delDb(uid, dbAlias);
+    if (dbSaved && !dbPregen) await MetadataRepo.delDb(uid, dbAlias);
     // rethrow the error
     throw e;
   } finally {
@@ -92,7 +97,7 @@ export async function disconnect(dbAlias: string, uid: string) {
   let conn, conn2;
   try {
     const db: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
-    conn = await createConnection(dbMan.baseConnConfig);
+    conn = await new Connection(dbMan.baseConnConfig).connect();
     conn2 = await TypeormWrapper.createConn(db.pgName, {
       ...dbMan.baseConnConfig,
       database: db.pgName,
@@ -235,23 +240,80 @@ export async function dump(dbId: string, dataOnly: boolean) {
 }*/
 
 export async function upgrade() {
-  const dbs = readdirSync('/tmp/upgrade');
+  logger.info('Starting upgrade...');
+  const dbs = await MetadataRepo.getAllDbs();
   const dbsDone: { [key: string]: boolean } = {};
   for (const db of dbs) {
-    logger.info(`Starting Part 2 of 3 for ${db}`);
-    // Connect to the database and first re-insert the baseline modules
-    const conn = await createConnection({
+    logger.info(`Starting Part 2 of 3 for ${db.pgName}`);
+    const user = await MetadataRepo.getUserFromDbId(db.pgName);
+    // If there's no user for this database, there's something corrupt and we should log and skip
+    if (!user) {
+      logger.warn('IaSQL database without a user', { db });
+      continue;
+    }
+    // The actual database is sitting at OLD_<db> so we connect to the database and extract the
+    // data we need to migrate over
+    const conn = await new Connection({
       ...dbMan.baseConnConfig,
-      name: db,
-      database: db,
-    });
-    await dbMan.migrate(conn);
+      name: `OLD${db.pgName}`,
+      database: `OLD${db.pgName}`,
+    }).connect();
+    // Every IaSQL database has an audit log, so let's retrieve the current log for future use
+    const auditLogLines =
+      (
+        await conn.query(`
+      SELECT array_to_json(ARRAY(SELECT row_to_json(iasql_audit_log) FROM iasql_audit_log));
+    `)
+      )?.[0]?.array_to_json ?? [];
+    // Get the list of modules in the database that we will have to re-install
+    const moduleList = (
+      await conn.query(`
+      SELECT split_part(name, '@', 1) AS module FROM iasql_module;
+    `)
+    ).map((r: { module: string }) => r.module);
+    // If the 'aws_account' module is installed, we need to acquire the credentials and region
+    // configuration
+    let creds: { [key: string]: string }, regionsEnabled: { region: string }[], defaultRegion: string;
+    if (moduleList.includes('aws_account')) {
+      creds =
+        (
+          await conn.query(`
+        SELECT * FROM aws_credentials;
+      `)
+        )?.[0] ?? undefined;
+      regionsEnabled = await conn.query(`
+        SELECT region FROM aws_regions WHERE is_enabled = TRUE;
+      `);
+      defaultRegion =
+        (
+          await conn.query(`
+        SELECT region FROM aws_regions WHERE is_default = TRUE;
+      `)
+        )?.[0]?.region ?? 'us-east-1';
+    }
+    // If there was a failure after `NEW_<db>` was created, we should delete the existing one
+    // and do this again. We'll use the OLD db connection to test
+    const hasNewDb =
+      (await conn.query(`SELECT datname FROM pg_database WHERE datname = 'NEW${db.pgName}'`))?.[0]?.datname ??
+      '' === `NEW${db.pgName}`;
+    if (hasNewDb) {
+      await conn.query(`DROP DATABASE "NEW${db.pgName}"`);
+    }
+    // Close out the connection to the old version of the DB
+    await conn.close();
+    // We need to create a new database called `NEW_<db>` with the current DB user associated
+    await connect(`NEW${db.alias}`, user.id, user.email, `NEW${db.pgName}`, [db.pgUser]);
+    // Create a new conn for the new DB
+    const newConn = await new Connection({
+      ...dbMan.baseConnConfig,
+      name: `NEW${db.pgName}`,
+      database: `NEW${db.pgName}`,
+    }).connect();
     // Next re-insert the audit log
     try {
-      const auditLogLines = JSON.parse(readFileSync(`/tmp/upgrade/${db}/audit_log`, 'utf8'));
       // It's slower, but safer to insert these records one at a time
       for (const line of auditLogLines) {
-        await conn.query(
+        await newConn.query(
           `
           INSERT INTO iasql_audit_log (ts, "user", table_name, change_type, change, message) VALUES
           ($1, $2, $3, $4, $5, $6);
@@ -262,7 +324,7 @@ export async function upgrade() {
     } catch (e: any) {
       logger.warn(`Failed to load the audit log: ${e.message}`, { e });
     }
-    logger.info(`Part 2 of 3 for ${db} complete!`);
+    logger.info(`Part 2 of 3 for ${db.pgName} complete!`);
     // Restoring the `aws_account` and other modules requires the engine to be fully started
     // We can't do that immediately, but we *can* create a polling job to do it as soon as the
     // engine has finished starting
@@ -275,41 +337,36 @@ export async function upgrade() {
         // We don't care if it fails to fetch, just a timing issue in starting the rest of the engine
       }
       if (!started || upgradeRunning) return;
-      logger.info(`Starting Part 3 of 3 for ${db}`);
+      logger.info(`Starting Part 3 of 3 for ${db.pgName}`);
       upgradeRunning = true;
-      const hasCreds = existsSync(`/tmp/upgrade/${db}/creds`);
-      if (hasCreds) {
-        // Assuming the other two also exist
-        const creds = readFileSync(`/tmp/upgrade/${db}/creds`, 'utf8').trim().split(',');
-        const regionsEnabled = readFileSync(`/tmp/upgrade/${db}/regions_enabled`, 'utf8').trim().split(' ');
-        const defaultRegion = readFileSync(`/tmp/upgrade/${db}/default_region`, 'utf8').trim();
+      if (!!creds) {
         try {
-          await conn.query(`
+          await newConn.query(`
             SELECT iasql_install('aws_account');
           `);
         } catch (e) {
           logger.warn('Failed to install aws_account', { e });
         }
         try {
-          await conn.query(`
+          await newConn.query(`
             SELECT iasql_begin();
           `);
         } catch (e) {
           logger.warn('Failed to begin an IaSQL transaction?', { e });
         }
         try {
-          await conn.query(
+          await newConn.query(
             `
             INSERT INTO aws_credentials (access_key_id, secret_access_key) VALUES
             ($1, $2);
           `,
-            creds,
+            [creds.access_key_id, creds.secret_access_key],
           );
         } catch (e) {
           logger.warn('Failed to insert credentials', { e });
         }
         try {
-          await conn.query(`
+          await newConn.query(`
             SELECT iasql_commit();
           `);
         } catch (e) {
@@ -318,18 +375,18 @@ export async function upgrade() {
         logger.info('Regions Enabled', { regionsEnabled });
         for (const region of regionsEnabled) {
           try {
-            await conn.query(
+            await newConn.query(
               `
               UPDATE aws_regions SET is_enabled = TRUE WHERE region = $1;
             `,
-              [region],
+              [region.region],
             );
           } catch (e) {
             logger.warn('Failed to enable an aws_region', { e, region });
           }
         }
         try {
-          await conn.query(
+          await newConn.query(
             `
             UPDATE aws_regions SET is_default = TRUE WHERE region = $1;
           `,
@@ -339,11 +396,9 @@ export async function upgrade() {
           logger.warn('Failed to set the default region', { e, defaultRegion });
         }
       }
-      const moduleList = readFileSync(`/tmp/upgrade/${db}/module_list`, 'utf8').trim().split(' ');
-      logger.info('Module List', { moduleList });
       for (const mod of moduleList) {
         try {
-          await conn.query(
+          await newConn.query(
             `
             SELECT iasql_install($1);
           `,
@@ -353,13 +408,36 @@ export async function upgrade() {
           logger.warn('Failed to install a module on upgrade', { e, mod });
         }
       }
-      execSync(`rm -rf /tmp/upgrade/${db}`);
-      dbsDone[db] = true;
+      dbsDone[db.pgName] = true;
+      await newConn.close();
+      // Create a final connection to rename `NEW_<db>` to `<db>` and drop `OLD_<db>`
+      const lastConn = await new Connection({
+        ...dbMan.baseConnConfig,
+        name: `CLEAN${db.pgName}`,
+        database: 'iasql_metadata',
+      }).connect();
+      // Make sure nothing is connected to the new database when we rename it or the old when we drop it
+      await lastConn.query(`
+        SELECT pg_terminate_backend( pid )
+        FROM pg_stat_activity
+        WHERE pid <> pg_backend_pid( )
+            AND (datname = 'NEW${db.pgName}' OR datname = 'OLD${db.pgName}');
+      `);
+      await lastConn.query(`
+        ALTER DATABASE "NEW${db.pgName}" RENAME TO "${db.pgName}";
+      `);
+      await lastConn.query(`
+        DROP DATABASE "OLD${db.pgName}";
+      `);
       clearInterval(upgradeHandle);
       logger.info(`Part 3 of 3 for ${db} complete!`);
-      if (Object.keys(dbsDone).sort().join(',') === dbs.sort().join(',')) {
-        logger.info('Final cleanup of upgrade');
-        execSync('rm -rf /tmp/upgrade');
+      if (
+        Object.keys(dbsDone).sort().join(',') ===
+        dbs
+          .map(someDb => someDb.pgName)
+          .sort()
+          .join(',')
+      ) {
         logger.info('Upgrade complete');
       }
     }, 15000);

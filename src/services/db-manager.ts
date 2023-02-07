@@ -43,7 +43,7 @@ export function genDbId(dbAlias: string) {
 }
 
 function getGroupRole(dbId: string) {
-  return `group_role_${dbId}`;
+  return `"group_role_${dbId}"`;
 }
 
 export const baseConnConfig: PostgresConnectionOptions = {
@@ -62,7 +62,7 @@ export const baseConnConfig: PostgresConnectionOptions = {
 export function newPostgresRoleQuery(user: string, pass: string, dbId: string) {
   return `
     CREATE ROLE ${user} LOGIN PASSWORD '${pass}';
-    GRANT CONNECT ON DATABASE ${dbId} TO "${user}";
+    GRANT CONNECT ON DATABASE "${dbId}" TO "${user}";
     GRANT CREATE ON SCHEMA public TO "${user}";
   `;
 }
@@ -153,7 +153,7 @@ export function ourPgUrl(dbId: string): string {
 export function setUpDblink(dbId: string) {
   return `
     CREATE EXTENSION IF NOT EXISTS dblink;
-    CREATE SERVER IF NOT EXISTS cron_dblink_${dbId} FOREIGN DATA WRAPPER dblink_fdw OPTIONS (host '${config.db.host}', dbname 'iasql_metadata', port '${config.db.port}');
-    CREATE USER MAPPING IF NOT EXISTS FOR ${config.db.user} SERVER cron_dblink_${dbId} OPTIONS (user '${config.db.user}', password '${config.db.password}');
+    CREATE SERVER IF NOT EXISTS "cron_dblink_${dbId}" FOREIGN DATA WRAPPER dblink_fdw OPTIONS (host '${config.db.host}', dbname 'iasql_metadata', port '${config.db.port}');
+    CREATE USER MAPPING IF NOT EXISTS FOR ${config.db.user} SERVER "cron_dblink_${dbId}" OPTIONS (user '${config.db.user}', password '${config.db.password}');
   `;
 }

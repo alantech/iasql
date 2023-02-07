@@ -20,11 +20,13 @@ export class AwsS3Module extends ModuleBase {
 
   constructor() {
     super();
+    // Mappers
     this.bucket = new BucketMapper(this);
     this.bucketObject = new BucketObjectMapper(this);
-    this.s3UploadObject = new S3UploadObjectRpc(this);
     this.publicAccessBlock = new PublicAccessBlockMapper(this);
     this.bucketWebsite = new BucketWebsiteMapper(this);
+    // RPCs
+    this.s3UploadObject = new S3UploadObjectRpc(this);
     super.init();
   }
 }
