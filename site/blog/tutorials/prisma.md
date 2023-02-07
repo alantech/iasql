@@ -11,7 +11,7 @@ In this tutorial, we will use a script that uses [Prisma](https://www.prisma.io)
 
 The code for this tutorial lives in this part of the [repository](https://github.com/iasql/iasql/tree/main/examples/ecs-fargate/prisma/infra/index.js)
 
-## Start managing an AWS account with a hosted IaSQL db
+## Start managing an AWS account with a PostgreSQL IaSQL db
 
 First, make sure you have an [IAM user](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_users.html) in AWS or create one with **Programmatic access** through the [console/UI](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_users_create.html#id_users_create_console) or [CLI](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_users_create.html#id_users_create_cliwpsapi). Ensure that the IAM role has sufficient permissions to deploy and manage all your infrastructure resources.
 
@@ -33,9 +33,9 @@ You will be able to see your PostgreSQL connection information when you press Co
 
 Make sure to copy the PostgreSQL connection string as you will not see it again.
 
-## Add the necessary cloud services to the hosted database
+## Add the necessary cloud services to the PostgreSQL database
 
-Use the `iasql_install` SQL function to install [modules](/docs/module) into the hosted database.
+Use the `iasql_install` SQL function to install [modules](/docs/module) into the PostgreSQL database.
 
 ```sql
 SELECT * from iasql_install(
@@ -70,7 +70,7 @@ If the function call is successful, it will return a virtual table with a record
 (17 rows)
 ```
 
-## Connect to the hosted db and provision cloud resources in your AWS account
+## Connect to the PostgreSQL db and provision cloud resources in your AWS account
 
 1. Get a local copy of the [ECS Fargate examples code](https://github.com/iasql/iasql/tree/main/examples/ecs-fargate/prisma)
 
@@ -84,7 +84,7 @@ npm i
 3. Modify the [`.env file`](https://www.prisma.io/docs/guides/development-environment/environment-variables) that Prisma expects with the connection parameters provided on db creation. You'll need to add your [Github personal access token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token) for the `ecr_build` SQL function to be able to do the pull. Also, if you're going to deploy a codebase other than the default one, set the `REPO_URI` variable. In this case:
 
 ```bash title="prisma/infra/.env"
-DATABASE_URL="postgres://d0va6ywg:nfdDh#EP4CyzveFr@db.iasql.com/_4b2bb09a59a411e4"
+DATABASE_URL="postgres://d0va6ywg:nfdDh#EP4CyzveFr@localhost:5432/_4b2bb09a59a411e4"
 GH_PAT=ghp_XXX
 REPO_URI="https://github.com/iasql/iasql"
 ```
@@ -220,7 +220,7 @@ That command is already being run in the `infra/index.js` script. So no need for
 
 After running the above SQL command to completion, you can check the running app using the load balancer DNS name. To grab the name, run:
 ```bash
-QUICKSTART_LB_DNS=$(psql -At 'postgres://d0va6ywg:nfdDh#EP4CyzveFr@db.iasql.com/_4b2bb09a59a411e4' -c "
+QUICKSTART_LB_DNS=$(psql -At 'postgres://d0va6ywg:nfdDh#EP4CyzveFr@localhost:5432/_4b2bb09a59a411e4' -c "
 SELECT dns_name
 FROM load_balancer
 WHERE load_balancer_name = '<project-name>-load-balancer';")
@@ -235,7 +235,7 @@ curl ${QUICKSTART_LB_DNS}:8088/health
 
 Delete the resources created by this tutorial using the following SQL code:
 
-```sql title="psql postgres://qpp3pzqb:LN6jnHfhRJTBD6ia@db.iasql.com/_3ba201e349a11daf -c"
+```sql title="psql postgres://qpp3pzqb:LN6jnHfhRJTBD6ia@localhost:5432/_3ba201e349a11daf -c"
 SELECT iasql_begin();
 DELETE FROM repository_image WHERE private_repository_id = (SELECT id FROM repository WHERE repository_name = 'quickstart-repository');
 DELETE FROM ecs_simplified WHERE app_name = 'quickstart';
