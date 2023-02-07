@@ -346,13 +346,13 @@ describe('VPC Integration Testing', () => {
     'checks if routes from requester to accepter is added',
     query(
       `
-          SELECT destination_cidr_block
+          SELECT destination
           FROM route
           WHERE vpc_peering_connection_id = (SELECT peering_connection_id
                                              FROM peering_connection
                                              WHERE tags ->> 'name' = '${prefix}-peering-connection-test');
       `,
-      (res: { destination_cidr_block: string }[]) => {
+      (res: { destination: string }[]) => {
         expect(res.length).toBe(2);
       },
     ),

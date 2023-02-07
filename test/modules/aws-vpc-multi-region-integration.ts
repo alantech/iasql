@@ -169,6 +169,12 @@ describe('VPC Multi-region Integration Testing', () => {
     query(
       `
     DELETE FROM route_table_association WHERE vpc_id = (SELECT id FROM vpc WHERE tags ->> 'name' = '${prefix}-1');
+    DELETE FROM route
+    WHERE route_table_id = (
+      SELECT id
+      FROM route_table
+      WHERE vpc_id = (SELECT id FROM vpc WHERE tags ->> 'name' = '${prefix}-1')
+    );
     DELETE FROM route_table WHERE vpc_id = (SELECT id FROM vpc WHERE tags ->> 'name' = '${prefix}-1');
     DELETE FROM security_group_rule WHERE security_group_id = (SELECT id FROM security_group WHERE vpc_id = (SELECT id FROM vpc WHERE tags ->> 'name' = '${prefix}-1'));
     DELETE FROM security_group WHERE vpc_id = (SELECT id FROM vpc WHERE tags ->> 'name' = '${prefix}-1');
@@ -259,6 +265,16 @@ describe('VPC Multi-region Integration Testing', () => {
         FROM vpc
         WHERE cidr_block='192.${randIPBlock}.0.0/16' AND tags ->> 'name' = '${prefix}-1' AND region = '${region}'
     );
+    DELETE FROM route
+    WHERE route_table_id = (
+      SELECT id
+      FROM route_table
+      WHERE vpc_id = (
+        SELECT id
+        FROM vpc
+        WHERE cidr_block='192.${randIPBlock}.0.0/16' AND tags ->> 'name' = '${prefix}-1' AND region = '${region}'
+      )
+    );
     DELETE FROM route_table
     WHERE vpc_id = (
       SELECT id
@@ -295,6 +311,16 @@ describe('VPC Multi-region Integration Testing', () => {
         SELECT id
         FROM vpc
         WHERE cidr_block='191.${randIPBlock}.0.0/16' AND region = 'us-east-1'
+    );
+    DELETE FROM route
+    WHERE route_table_id = (
+      SELECT id
+      FROM route_table
+      WHERE vpc_id = (
+        SELECT id
+        FROM vpc
+        WHERE cidr_block='191.${randIPBlock}.0.0/16' AND region = 'us-east-1'
+      )
     );
     DELETE FROM route_table
     WHERE vpc_id = (
