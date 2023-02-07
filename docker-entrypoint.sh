@@ -2,6 +2,17 @@
 
 set -vex
 
+# Dashboard
+cd /dashboard
+REACT_APP_IASQL_ENV=local yarn start:build &
+
+# Run service
+cd /dashboard/run
+IASQL_ENV=local yarn start &
+
+# Engine
+cd /engine
+
 if [ -d /var/lib/postgresql/14/main ]; then
   chown -R postgres /var/lib/postgresql/14/main
   chgrp -R postgres /var/lib/postgresql/14/main
