@@ -28,6 +28,8 @@ COPY yarn.lock yarn.lock
 RUN yarn install
 
 COPY . .
+RUN echo $PWD
+RUN cat package.json
 RUN yarn build
 
 COPY ./src/scripts/postgresql.conf /etc/postgresql/14/main/postgresql.conf
