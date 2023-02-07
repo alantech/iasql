@@ -1,3 +1,4 @@
+import path from 'path';
 import express from 'express';
 import cors from 'cors';
 import { Request, Response } from 'express';
@@ -277,6 +278,8 @@ app.post('/', async (req: Request, res: Response) => {
     return res.status(401).json({ message: e?.message ?? 'Unknown error', });
   }
 });
+
+app.use('/', express.static(path.resolve(__dirname, '../../build')));
 
 app.listen(port);
 logger.log(`Listening on port ${port}`, {
