@@ -36,7 +36,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: latest ${{ github.event.client_payload.version }} ${{ github.event.client_payload.message.version }} ${{ github.event.inputs.version }}
+          tags: iasql/iasql:latest, iasql.iasql:${{ github.event.client_payload.version }} ${{ github.event.client_payload.message.version }} ${{ github.event.inputs.version }}
           labels: ${{ steps.meta.outputs.labels }}
 
   notify:
