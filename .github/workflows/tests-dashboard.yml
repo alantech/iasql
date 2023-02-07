@@ -152,8 +152,8 @@ jobs:
           TEST_ACCOUNT_EMAIL: dev+dashboard-testing@iasql.com
           TEST_ACCOUNT_PASSWORD: ${{ secrets.TEST_ACCOUNT_PASSWORD }}
           AWS_REGION: us-east-2
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID_STAGING }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY_STAGING }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.STAGING_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.STAGING_SECRET_ACCESS_KEY }}
           REACT_APP_IASQL_ENV: test
           WEBSITE_URL: http://localhost:3000/
       # https://github.com/actions/upload-artifact#where-does-the-upload-go
