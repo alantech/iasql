@@ -710,7 +710,7 @@ class SecurityGroupRuleMapper extends MapperBase<SecurityGroupRule> {
           }
         } catch (e: any) {
           if (e.Code === 'InvalidGroup.NotFound') {
-            logger.info('Security Group have been deleted');
+            logger.debug('Security Group have been deleted');
           } else {
             throw e;
           }
@@ -733,7 +733,7 @@ class SecurityGroupRuleMapper extends MapperBase<SecurityGroupRule> {
           }
         } catch (e: any) {
           if (e.Code === 'InvalidGroup.NotFound') {
-            logger.info('Security Group have been deleted');
+            logger.debug('Security Group have been deleted');
           } else {
             throw e;
           }
