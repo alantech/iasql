@@ -155,16 +155,18 @@ export class TargetGroupMapper extends MapperBase<TargetGroup> {
         if (!rawTargetGroup) return;
         return await this.targetGroupMapper(rawTargetGroup, ctx, region);
       } else {
-        const out = [];
+        const out: TargetGroup[] = [];
         const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
-        for (const region of enabledRegions) {
-          const client = (await ctx.getAwsClient(region)) as AWS;
-          const tgs = await this.getTargetGroups(client.elbClient);
-          for (const tg of tgs) {
-            const tgMapped = await this.targetGroupMapper(tg, ctx, region);
-            if (tgMapped) out.push(tgMapped);
-          }
-        }
+        await Promise.all(
+          enabledRegions.map(async region => {
+            const client = (await ctx.getAwsClient(region)) as AWS;
+            const tgs = await this.getTargetGroups(client.elbClient);
+            for (const tg of tgs) {
+              const tgMapped = await this.targetGroupMapper(tg, ctx, region);
+              if (tgMapped) out.push(tgMapped);
+            }
+          }),
+        );
         return out;
       }
     },
