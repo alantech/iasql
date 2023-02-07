@@ -30,13 +30,13 @@ jobs:
         uses: docker/metadata-action@v4
         with:
           images: iasql/iasql
-      
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
         with:
           context: .
           push: true
-          tags: iasql/iasql:latest, iasql.iasql:${{ github.event.client_payload.version }} ${{ github.event.client_payload.message.version }} ${{ github.event.inputs.version }}
+          tags: iasql/iasql:latest, iasql.iasql:${{ github.event.client_payload.tag }} ${{ github.event.client_payload.message.tag }} ${{ github.event.inputs.tag }}
           labels: ${{ steps.meta.outputs.labels }}
 
   notify:
