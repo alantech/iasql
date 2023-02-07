@@ -115,7 +115,6 @@ jobs:
 
       - name: Start local iasql engine
         run: |
-          cd iasql
           docker build -t iasql:latest .
           docker run -p 5432:5432 -e IASQL_ENV=ci --name iasql iasql:latest &
           while ! psql postgres://postgres:test@localhost:5432/iasql_metadata -b -q -c "SELECT iasql_engine_health()"; do sleep 1 && echo -n .; done;
@@ -142,10 +141,14 @@ jobs:
           REACT_APP_IASQL_ENV: test
 
       - name: Install Playwright
-        run: npx playwright install --with-deps
+        run: |
+          cd dashboard
+          npx playwright install --with-deps
 
       - name: Run Playwright tests
-        run: yarn playwright test
+        run: |
+          cd dashboard
+          yarn playwright test
         env:
           TEST_ACCOUNT_EMAIL: dev+dashboard-testing@iasql.com
           TEST_ACCOUNT_PASSWORD: ${{ secrets.TEST_ACCOUNT_PASSWORD }}
