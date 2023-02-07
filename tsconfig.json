@@ -104,7 +104,6 @@
   },
   "exclude": [
     "test",
-    "dashboard",
-    "iasql/dashboard"
+    "dashboard"
   ]
 }
