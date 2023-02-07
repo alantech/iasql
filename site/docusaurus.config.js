@@ -91,11 +91,6 @@ const theButton = require('./src/rehype/thebutton');
           },
           items: [
             {
-              to: 'https://app.iasql.com',
-              target: '_self',
-              label: 'Dashboard',
-            },
-            {
               to: 'docs',
               target: '_self',
               label: 'Docs',
@@ -138,13 +133,13 @@ const theButton = require('./src/rehype/thebutton');
               title: 'Product',
               items: [
                 {
-                  label: 'Dashboard',
-                  href: 'https://app.iasql.com',
+                  label: 'GitHub',
+                  to: 'https://github.com/iasql/iasql',
                   target: '_self',
                 },
                 {
-                  label: 'GitHub',
-                  href: 'https://github.com/iasql/iasql',
+                  label: 'Hosted SaaS',
+                  to: 'hosted',
                   target: '_self',
                 },
               ],
@@ -169,11 +164,11 @@ const theButton = require('./src/rehype/thebutton');
               items: [
                 {
                   label: 'Discord',
-                  href: 'https://discord.com/invite/yxNBQugGbH',
+                  to: 'https://discord.com/invite/yxNBQugGbH',
                 },
                 {
                   label: 'Twitter',
-                  href: 'https://twitter.com/iasql',
+                  to: 'https://twitter.com/iasql',
                 },
               ],
             },

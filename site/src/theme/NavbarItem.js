@@ -7,7 +7,6 @@ export default function NavbarItem(props) {
   const { pathname } = useLocation();
 
   if (pathname.includes('blog')) {
-    if (label === 'Dashboard') return null;
     if (label === 'Blog') return null;
     if (type === 'docsVersionDropdown') return null;
   } else if (pathname.includes('docs')) {
@@ -16,7 +15,6 @@ export default function NavbarItem(props) {
     if (label === 'Schema') return null;
     if (type === 'docsVersionDropdown') return null;
   } else {
-    if (label === 'Dashboard') return null;
     if (type === 'docsVersionDropdown') return null;
     if (label === 'Schema') return null;
     if (type === 'search') return null;
