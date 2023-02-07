@@ -79,7 +79,7 @@ export class RouteMapper extends MapperBase<Route> {
     out.routeTable = routeTable;
     out.region = region;
     out.destination =
-      route.DestinationCidrBlock ?? route.DestinationIpv6CidrBlock ?? route.DestinationPrefixListId ?? '';
+      route.DestinationPrefixListId ?? route.DestinationCidrBlock ?? route.DestinationIpv6CidrBlock ?? '';
     out.egressOnlyInternetGatewayId = route.EgressOnlyInternetGatewayId;
     out.gatewayId = route.GatewayId;
     out.instanceId = route.InstanceId;
