@@ -1,8 +1,9 @@
 import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn, Unique } from 'typeorm';
 
+import { Route as AwsRoute } from '@aws-sdk/client-ec2';
+
 import { cloudId } from '../../../services/cloud-id';
 import { AwsRegions } from '../../aws_account/entity';
-import { Route } from './route';
 import { RouteTableAssociation } from './route_table_association';
 import { Vpc } from './vpc';
 
@@ -19,6 +20,7 @@ import { Vpc } from './vpc';
  * @see https://github.com/iasql/iasql/blob/main/test/modules/aws-vpc-routetable-integration.ts#L154
  * @see https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Route_Tables.html
  */
+@Unique('uq_route_table_region', ['id', 'region'])
 @Entity()
 export class RouteTable {
   /**
@@ -66,16 +68,6 @@ export class RouteTable {
 
   /**
    * @public
-   * Reference to all the routes that belong to this table
-   */
-  @OneToMany(() => Route, route => route.routeTable, {
-    eager: true,
-    cascade: true,
-  })
-  routes: Route[];
-
-  /**
-   * @public
    * Complex type to provide identifier tags for the route table
    */
   @Column({
@@ -97,4 +89,11 @@ export class RouteTable {
   @JoinColumn({ name: 'region' })
   @cloudId
   region: string;
+
+  /**
+   * @internal
+   * Reference to raw routes coming from AWS to reduce calls to AWS API
+   * Not meant to be part of the DB schema but useful in the engine code
+   */
+  routes: AwsRoute[];
 }

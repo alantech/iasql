@@ -40,7 +40,7 @@ export async function connect(
   let dbSaved,
     roleGranted = false;
   try {
-    logger.info('Creating account for user...');
+    logger.debug('Creating account for user...');
     const dbGen = dbPregen ?? dbMan.genUserAndPass();
     dbUser = dbGen[0];
     const dbPass = dbGen[1];
@@ -50,7 +50,7 @@ export async function connect(
     metaDb.pgName = dbId;
     if (!dbPregen) await MetadataRepo.saveDb(uid, email, metaDb);
     dbSaved = true;
-    logger.info('Establishing DB connections...');
+    logger.debug('Establishing DB connections...');
     conn1 = await new Connection(dbMan.baseConnConfig).connect();
     await conn1.query(`
       CREATE DATABASE "${dbId}";
@@ -71,7 +71,6 @@ export async function connect(
     roleGranted = true;
     const recCount = await getDbRecCount(conn2);
     if (!dbPregen) await MetadataRepo.updateRecordCount(dbId, recCount);
-    logger.info('Done!');
     // Return custom IasqlDatabase object since we need to return the password
     return {
       user: dbUser,
@@ -84,7 +83,7 @@ export async function connect(
     // delete db in psql and metadata
     if (dbSaved) await conn1?.query(`DROP DATABASE IF EXISTS "${dbId}" WITH (FORCE);`);
     if (dbUser && roleGranted) await conn1?.query(dbMan.dropPostgresRoleQuery(dbUser, dbId, true));
-    if (dbSaved) await MetadataRepo.delDb(uid, dbAlias);
+    if (dbSaved && !dbPregen) await MetadataRepo.delDb(uid, dbAlias);
     // rethrow the error
     throw e;
   } finally {
@@ -240,11 +239,11 @@ export async function dump(dbId: string, dataOnly: boolean) {
 }*/
 
 export async function upgrade() {
-  logger.info('Starting upgrade...');
+  logger.debug('Starting upgrade...');
   const dbs = await MetadataRepo.getAllDbs();
   const dbsDone: { [key: string]: boolean } = {};
   for (const db of dbs) {
-    logger.info(`Starting Part 2 of 3 for ${db.pgName}`);
+    logger.debug(`Starting Part 2 of 3 for ${db.pgName}`);
     const user = await MetadataRepo.getUserFromDbId(db.pgName);
     // If there's no user for this database, there's something corrupt and we should log and skip
     if (!user) {
@@ -259,11 +258,12 @@ export async function upgrade() {
       database: `OLD${db.pgName}`,
     }).connect();
     // Every IaSQL database has an audit log, so let's retrieve the current log for future use
-    const auditLogLines = (
-      await conn.query(`
+    const auditLogLines =
+      (
+        await conn.query(`
       SELECT array_to_json(ARRAY(SELECT row_to_json(iasql_audit_log) FROM iasql_audit_log));
     `)
-    )[0].array_to_json;
+      )?.[0]?.array_to_json ?? [];
     // Get the list of modules in the database that we will have to re-install
     const moduleList = (
       await conn.query(`
@@ -274,19 +274,29 @@ export async function upgrade() {
     // configuration
     let creds: { [key: string]: string }, regionsEnabled: { region: string }[], defaultRegion: string;
     if (moduleList.includes('aws_account')) {
-      creds = (
-        await conn.query(`
+      creds =
+        (
+          await conn.query(`
         SELECT * FROM aws_credentials;
       `)
-      )[0];
+        )?.[0] ?? undefined;
       regionsEnabled = await conn.query(`
         SELECT region FROM aws_regions WHERE is_enabled = TRUE;
       `);
-      defaultRegion = (
-        await conn.query(`
+      defaultRegion =
+        (
+          await conn.query(`
         SELECT region FROM aws_regions WHERE is_default = TRUE;
       `)
-      )[0].region;
+        )?.[0]?.region ?? 'us-east-1';
+    }
+    // If there was a failure after `NEW_<db>` was created, we should delete the existing one
+    // and do this again. We'll use the OLD db connection to test
+    const hasNewDb =
+      (await conn.query(`SELECT datname FROM pg_database WHERE datname = 'NEW${db.pgName}'`))?.[0]?.datname ??
+      '' === `NEW${db.pgName}`;
+    if (hasNewDb) {
+      await conn.query(`DROP DATABASE "NEW${db.pgName}"`);
     }
     // Close out the connection to the old version of the DB
     await conn.close();
@@ -313,7 +323,7 @@ export async function upgrade() {
     } catch (e: any) {
       logger.warn(`Failed to load the audit log: ${e.message}`, { e });
     }
-    logger.info(`Part 2 of 3 for ${db.pgName} complete!`);
+    logger.debug(`Part 2 of 3 for ${db.pgName} complete!`);
     // Restoring the `aws_account` and other modules requires the engine to be fully started
     // We can't do that immediately, but we *can* create a polling job to do it as soon as the
     // engine has finished starting
@@ -326,7 +336,7 @@ export async function upgrade() {
         // We don't care if it fails to fetch, just a timing issue in starting the rest of the engine
       }
       if (!started || upgradeRunning) return;
-      logger.info(`Starting Part 3 of 3 for ${db.pgName}`);
+      logger.debug(`Starting Part 3 of 3 for ${db.pgName}`);
       upgradeRunning = true;
       if (!!creds) {
         try {
@@ -361,7 +371,6 @@ export async function upgrade() {
         } catch (e) {
           logger.warn('Failed to commit the transaction', { e });
         }
-        logger.info('Regions Enabled', { regionsEnabled });
         for (const region of regionsEnabled) {
           try {
             await newConn.query(
@@ -419,7 +428,7 @@ export async function upgrade() {
         DROP DATABASE "OLD${db.pgName}";
       `);
       clearInterval(upgradeHandle);
-      logger.info(`Part 3 of 3 for ${db} complete!`);
+      logger.debug(`Part 3 of 3 for ${db} complete!`);
       if (
         Object.keys(dbsDone).sort().join(',') ===
         dbs
@@ -427,7 +436,7 @@ export async function upgrade() {
           .sort()
           .join(',')
       ) {
-        logger.info('Upgrade complete');
+        logger.debug('Upgrade complete');
       }
     }, 15000);
   }

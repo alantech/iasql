@@ -1,0 +1,54 @@
+name: Publish Docker image
+
+on:
+  workflow_dispatch:
+    tag:
+      description: 'Tag for docker image'
+    inputs:
+      tag:
+        required: true
+        description: 'Tag for docker image'
+  repository_dispatch:
+    types: [release]
+
+jobs:
+  push_to_registry:
+    name: Push Docker image to Docker Hub
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v3
+      
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      
+      - name: Extract metadata labels for Docker
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: iasql/iasql
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          tags: iasql/iasql:latest, iasql/iasql:${{ github.event.client_payload.tag }}${{ github.event.client_payload.message.tag }}${{ github.event.inputs.tag }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+  notify:
+    name: Discord Notification
+    runs-on: ubuntu-latest
+    needs: # make sure the notification is sent AFTER the jobs you want included have completed
+      - push_to_registry
+    if: ${{ always() }} # You always want to be notified: success, failure, or cancelled
+
+    steps:
+      - name: Notify
+        uses: nobrayner/discord-webhook@v1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          discord-webhook: ${{ secrets.DISCORD_WEBHOOK }}

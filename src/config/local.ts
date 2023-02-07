@@ -15,7 +15,7 @@ const config: ConfigInterface = {
     multiUser: false,
   },
   logger: {
-    debug: true,
+    debug: false,
     test: false,
     forceLocal: false,
   },

@@ -35,12 +35,12 @@ function runServer() {
     app.use(sentry.Handlers.requestHandler());
   }
   app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
-    logger.info(`Starting request on: ${req.path}`);
+    logger.debug(`Starting request on: ${req.path}`);
     const realSend = res.send;
     const start = Date.now();
     res.send = (body?: any) => {
       const end = Date.now();
-      logger.info(`Request on: ${req.path} took ${end - start}ms`);
+      logger.debug(`Request on: ${req.path} took ${end - start}ms`);
       return realSend.call(res, body);
     };
     next();

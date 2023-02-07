@@ -1,6 +1,6 @@
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Check, Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, Unique } from 'typeorm';
 
-import { cloudId } from '../../../services/cloud-id';
+import { AwsRegions } from '../../aws_account/entity';
 import { RouteTable } from './route_table';
 
 /**
@@ -9,6 +9,7 @@ import { RouteTable } from './route_table';
  *
  * @see https://docs.aws.amazon.com/vpc/latest/userguide/route-table-options.html
  */
+@Unique('uq_route_table_destination', ['routeTable', 'destination'])
 @Entity()
 export class Route {
   /**
@@ -23,36 +24,33 @@ export class Route {
    * Reference to the route table associated with this route
    */
   @ManyToOne(() => RouteTable, {
+    eager: true,
+    nullable: false,
     onDelete: 'CASCADE',
-    onUpdate: 'CASCADE',
   })
-  @JoinColumn()
+  @JoinColumn([
+    {
+      name: 'route_table_id',
+      referencedColumnName: 'id',
+    },
+    {
+      name: 'region',
+      referencedColumnName: 'region',
+    },
+  ])
   routeTable: RouteTable;
 
   /**
    * @public
-   * destination fields: used to determine the destination to be matched
+   * destination field: used to determine the destination to be matched. Could be an IPv4 or IPv6 CIDR block or a prefixed list
    */
-  @Column({ nullable: true })
-  @cloudId
-  DestinationCidrBlock?: string;
-
-  /**
-   * @public
-   * destination fields: used to determine the destination to be matched (ipv6)
-   */
-  @Column({ nullable: true })
-  @cloudId
-  DestinationIpv6CidrBlock?: string;
-
-  /**
-   * @public
-   * A managed prefix list is a set of one or more CIDR blocks.
-   * @see https://docs.aws.amazon.com/vpc/latest/userguide/managed-prefix-lists.html
-   */
-  @Column({ nullable: true })
-  @cloudId
-  DestinationPrefixListId?: string;
+  @Check(`
+    "destination" LIKE 'pl-%'
+    OR "destination" ~ '^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/(3[0-2]|[12][0-9]|[0-9])$'
+    OR "destination" ~ '^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))/(12[0-8]|1[01][0-9]|[1-9]?[0-9])$'
+  `)
+  @Column({ nullable: false })
+  destination: string;
 
   /**
    * @public
@@ -60,8 +58,7 @@ export class Route {
    * internet over IPv6, and prevents the Internet from initiating an IPv6 connection with your instances.
    */
   @Column({ nullable: true })
-  @cloudId
-  EgressOnlyInternetGatewayId?: string;
+  egressOnlyInternetGatewayId?: string;
 
   /**
    * @public
@@ -69,78 +66,81 @@ export class Route {
    * @see https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Internet_Gateway.html
    */
   @Column({ nullable: true })
-  @cloudId
-  GatewayId?: string;
+  gatewayId?: string;
 
   /**
    * @public
    * ID for the referenced EC2 instance
    */
   @Column({ nullable: true })
-  @cloudId
-  InstanceId?: string;
+  instanceId?: string;
 
   /**
    * @public
    * ID for the EC2 instance owner
    */
   @Column({ nullable: true })
-  @cloudId
-  InstanceOwnerId?: string;
+  instanceOwnerId?: string;
 
   /**
    * @public
    * ID for the NAT gateway referenced by the route
    */
   @Column({ nullable: true })
-  @cloudId
-  NatGatewayId?: string;
+  natGatewayId?: string;
 
   /**
    * @public
    * ID for the transit gateway used by the route
    */
   @Column({ nullable: true })
-  @cloudId
-  TransitGatewayId?: string;
+  transitGatewayId?: string;
 
   /**
    * @public
    * ID for the local gateway used by the route
    */
   @Column({ nullable: true })
-  @cloudId
-  LocalGatewayId?: string;
+  localGatewayId?: string;
 
   /**
    * @public
    * ID for the carrier gateway used by the route
    */
   @Column({ nullable: true })
-  @cloudId
-  CarrierGatewayId?: string;
+  carrierGatewayId?: string;
 
   /**
    * @public
    * ID for the network interface gateway gateway used by the route
    */
   @Column({ nullable: true })
-  @cloudId
-  NetworkInterfaceId?: string;
+  networkInterfaceId?: string;
 
   /**
    * @public
    * ID for the VPC peering connection used by the route
    */
   @Column({ nullable: true })
-  @cloudId
-  VpcPeeringConnectionId?: string;
+  vpcPeeringConnectionId?: string;
 
   /**
    * @public
    * AWS ARN to identify the network for the route
    */
   @Column({ nullable: true })
-  @cloudId
-  CoreNetworkArn?: string;
+  coreNetworkArn?: string;
+
+  /**
+   * @public
+   * Reference to the region where it belongs
+   */
+  @Column({
+    type: 'character varying',
+    nullable: false,
+    default: () => 'default_aws_region()',
+  })
+  @ManyToOne(() => AwsRegions, { nullable: false })
+  @JoinColumn({ name: 'region' })
+  region: string;
 }
