@@ -26,9 +26,21 @@ RUN yarn install
 
 ENV REACT_APP_IASQL_ENV=local
 RUN yarn build
-RUN ls
 
 # Engine
+FROM node:16-bullseye AS engine-stage
+
+WORKDIR /engine
+
+COPY docker-entrypoint.sh ormconfig.js tsconfig.json .
+COPY src src
+
+COPY package.json yarn.lock .
+RUN yarn install
+
+RUN yarn build
+
+# Main stage
 FROM debian:bullseye AS main-stage
 
 # Install OS Packages
@@ -51,16 +63,6 @@ RUN ["bash", "-c", "curl -fsSL https://deb.nodesource.com/setup_16.x | bash -"]
 RUN apt install nodejs -y
 RUN npm install -g yarn
 
-WORKDIR /engine
-
-COPY package.json package.json
-COPY yarn.lock yarn.lock
-RUN yarn install
-
-COPY docker-entrypoint.sh ormconfig.js tsconfig.json .
-COPY src src
-RUN yarn build
-
 COPY ./src/scripts/postgresql.conf /etc/postgresql/14/main/postgresql.conf
 COPY ./src/scripts/pg_hba.conf /etc/postgresql/14/main/pg_hba.conf
 
@@ -75,6 +77,10 @@ COPY --from=dashboard-stage /dashboard/node_modules node_modules
 COPY --from=dashboard-stage /dashboard/build build
 
 WORKDIR /engine
+COPY --from=engine-stage /engine/package.json /engine/docker-entrypoint.sh .
+COPY --from=engine-stage /engine/node_modules node_modules
+COPY --from=engine-stage /engine/src/scripts src/scripts
+COPY --from=engine-stage /engine/dist dist
 
 # Default ENVs that can be overwritten
 ARG IASQL_ENV=local
