@@ -1,13 +1,15 @@
-name: Deploy to Production
+name: Deploy `run` to Production
 
 on:
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
     inputs:
-      deploy_tag:
-        description: Tag to Deploy
-        required: true
+      commit_sha:
+        description: Commit SHA
+        required: false
         type: string
+  repository_dispatch:
+    types: [prod-deploy]
 
 jobs:
   setup-build:
@@ -18,8 +20,8 @@ jobs:
       - id: set-registry-image-tag
         name: Set registry image tag
         run: |
-          DEPLOY_TAG=${{inputs.deploy_tag}}
-          echo "::set-output name=registry-image-tag::ghcr.io/iasql/iasql:$DEPLOY_TAG"
+          COMMIT_SHA=${{inputs.commit_sha}}
+          echo "::set-output name=registry-image-tag::ghcr.io/iasql/dashboard:$(echo ${COMMIT_SHA:-$GITHUB_SHA})-run"
 
   build-and-push:
     runs-on: ubuntu-latest
@@ -27,8 +29,6 @@ jobs:
       - setup-build
     steps:
       - uses: actions/checkout@v3
-        with:
-          ref: ${{inputs.deploy_tag}}
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
       - name: Login to GitHub Container Registry
@@ -40,7 +40,7 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v3
         with:
-          context: .
+          context: ./run
           push: true
           cache-from: type=gha
           cache-to: type=gha
@@ -63,24 +63,12 @@ jobs:
           ssh -i production.pem -o "StrictHostKeyChecking no" ubuntu@pg.iasql.com "
             sudo apt update && sudo apt upgrade -y
             sudo docker pull $DOCKER_URL
-            sudo docker container stop iasql
-            sudo docker container rm iasql
-            sudo docker run -d --env-file=.env -p 5432:5432 -v /iasqldb:/var/lib/postgresql/14 --name iasql $DOCKER_URL
+            sudo docker container stop run
+            sudo docker container rm run
+            sudo docker run -d --env-file=.env -p 8888:8888 --name run $DOCKER_URL
             sudo docker image prune -af
           "
           rm production.pem
-      - name: Trigger prod UI deploy
-        uses: mvasigh/dispatch-action@main
-        with:
-          token: ${{ secrets.GH_PAT }}
-          event_type: prod-deploy
-          repo: prod-ui
-          owner: iasql
-      - name: Trigger prod run deploy
-        uses: mvasigh/dispatch-action@main
-        with:
-          token: ${{ secrets.GH_PAT }}
-          event_type: prod-deploy
 
   notify:
     name: Discord Notification

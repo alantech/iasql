@@ -20,14 +20,44 @@ RUN ["bash", "-c", "curl -fsSL https://deb.nodesource.com/setup_16.x | bash -"]
 RUN apt install nodejs -y
 RUN npm install -g yarn
 
-# Install App
+# Dashboard
+WORKDIR /dashboard
+
+COPY dashboard/package.json package.json
+COPY dashboard/yarn.lock yarn.lock
+RUN yarn install
+
+COPY dashboard/assets assets
+COPY dashboard/public public
+COPY dashboard/tsconfig.json tsconfig.json
+COPY dashboard/tailwind.config.js tailwind.config.js
+COPY dashboard/craco.config.js craco.config.js
+COPY dashboard/src src
+ENV REACT_APP_IASQL_ENV=local
+RUN yarn build
+
+## Run service
+WORKDIR /dashboard/run
+
+COPY dashboard/run/package.json package.json
+COPY dashboard/run/yarn.lock yarn.lock
+RUN yarn install
+
+COPY dashboard/run/tsconfig.json tsconfig.json
+COPY dashboard/run/src src
+RUN yarn build
+
+# Engine
 WORKDIR /engine
 
 COPY package.json package.json
 COPY yarn.lock yarn.lock
 RUN yarn install
 
-COPY . .
+COPY docker-entrypoint.sh docker-entrypoint.sh
+COPY ormconfig.js ormconfig.js
+COPY tsconfig.json tsconfig.json
+COPY src src
 RUN yarn build
 
 COPY ./src/scripts/postgresql.conf /etc/postgresql/14/main/postgresql.conf
@@ -42,4 +72,6 @@ ARG DB_PASSWORD=test
 ENV DB_PASSWORD=$DB_PASSWORD
 
 EXPOSE 5432
+EXPOSE 3000
+EXPOSE 8888
 ENTRYPOINT ["/engine/docker-entrypoint.sh"]

@@ -1,0 +1,170 @@
+# This is a basic workflow to help you get started with Actions
+
+name: Dashboard Tests
+
+# Controls when the action will run. Triggers the workflow on push or pull request
+# events but only for the main branch
+on:
+  workflow_dispatch:
+    inputs:
+      engine-branch:
+        description: 'Optional branch to checkout for iasql/iasql'
+  push:
+    branches: [main]
+    paths: ['dashboard/**', '.github/workflows/tests-dashboard.yml']
+  pull_request:
+    branches: [main]
+    paths: ['dashboard/**', '.github/workflows/tests-dashboard.yml']
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  lint:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-node@v2
+        with:
+          node-version: "16"
+
+      - name: Install dependencies
+        run: |
+          cd dashboard
+          yarn
+          cd ..
+
+      - name: Run linter check
+        run: |
+          cd dashboard
+          yarn lint
+          cd ..
+
+  style:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-node@v2
+        with:
+          node-version: "16"
+
+      - name: Install dependencies
+        run: |
+          cd dashboard
+          yarn
+          cd ..
+
+      - name: Run code style check
+        run: |
+          cd dashboard
+          yarn style
+          cd ..
+
+  setup-build:
+    runs-on: ubuntu-latest
+    outputs:
+      registry-image-tag: ${{ steps['set-registry-image-tag'].outputs['registry-image-tag'] }}
+    steps:
+      - uses: actions/checkout@v3
+      - run: yarn --prefer-offline
+      - id: set-registry-image-tag
+        name: Set registry image tag
+        run: echo "::set-output name=registry-image-tag::ghcr.io/iasql/iasql:$GITHUB_SHA-run"
+
+  build-and-push:
+    runs-on: ubuntu-latest
+    needs:
+      - setup-build
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push
+        uses: docker/build-push-action@v3
+        with:
+          context: ./dashboard/run/
+          push: true
+          cache-from: type=gha
+          cache-to: type=gha
+          tags: ${{ needs.setup-build.outputs.registry-image-tag }}
+
+  test:
+    timeout-minutes: 40
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-node@v2
+        with:
+          node-version: "16"
+
+      - name: Start local iasql engine
+        run: |
+          docker build -t iasql:latest .
+          docker run -p 5432:5432 -e IASQL_ENV=ci --name iasql iasql:latest &
+          while ! psql postgres://postgres:test@localhost:5432/iasql_metadata -b -q -c "SELECT iasql_engine_health()"; do sleep 1 && echo -n .; done;
+
+      - name: Start local run service
+        run: |
+          cd dashboard/run
+          yarn
+          yarn build
+          IASQL_ENV=test yarn start &
+          sleep 1
+          cd ../..
+
+      - name: Start local dashboard
+        run: |
+          cd dashboard
+          yarn
+          yarn install 
+          yarn build
+          yarn global add serve
+          serve -s build &
+          cd ..
+        env:
+          REACT_APP_IASQL_ENV: test
+
+      - name: Install Playwright
+        run: |
+          cd dashboard
+          npx playwright install --with-deps
+
+      - name: Run Playwright tests
+        run: |
+          cd dashboard
+          yarn playwright test
+          cd ..
+        env:
+          TEST_ACCOUNT_EMAIL: dev+dashboard-testing@iasql.com
+          TEST_ACCOUNT_PASSWORD: ${{ secrets.TEST_ACCOUNT_PASSWORD }}
+          AWS_REGION: us-east-2
+          AWS_ACCESS_KEY_ID: ${{ secrets.STAGING_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.STAGING_SECRET_ACCESS_KEY }}
+          REACT_APP_IASQL_ENV: test
+          WEBSITE_URL: http://localhost:3000/
+      # https://github.com/actions/upload-artifact#where-does-the-upload-go
+      # Download artifact and upload to https://trace.playwright.dev
+      - uses: actions/upload-artifact@v2
+        if: always()
+        with:
+          name: test-results
+          path: dashboard/test-results/
+          retention-days: 3
+      
+      - name: Local engine logs
+        if: always()
+        run: docker logs $(docker ps -a --filter "name=iasql" --format "{{.Names}}")

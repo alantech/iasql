@@ -1,4 +1,4 @@
-name: CI Tutorial Prisma
+name: Prisma Tutorial Tests
 
 on:
   # Allows you to run this workflow manually from the Actions tab
@@ -7,7 +7,7 @@ on:
     branches: [main]
     paths:
       [
-        '.github/workflows/prisma.yml',
+        '.github/workflows/tests-prisma.yml',
         'examples/**',
         'src/**',
         'test/tutorials/**',
@@ -18,7 +18,7 @@ on:
     branches: [main]
     paths:
       [
-        '.github/workflows/prisma.yml',
+        '.github/workflows/tests-prisma.yml',
         'examples/**',
         'src/**',
         'test/tutorials/**',
