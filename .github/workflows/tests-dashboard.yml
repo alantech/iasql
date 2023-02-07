@@ -102,7 +102,7 @@ jobs:
           tags: ${{ needs.setup-build.outputs.registry-image-tag }}
 
   test:
-    timeout-minutes: 20
+    timeout-minutes: 40
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -113,8 +113,6 @@ jobs:
 
       - name: Start local iasql engine
         run: |
-          echo $PWD
-          ls
           docker build -t iasql:latest .
           docker run -p 5432:5432 -e IASQL_ENV=ci --name iasql iasql:latest &
           while ! psql postgres://postgres:test@localhost:5432/iasql_metadata -b -q -c "SELECT iasql_engine_health()"; do sleep 1 && echo -n .; done;
