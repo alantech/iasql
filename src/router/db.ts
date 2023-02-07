@@ -19,7 +19,7 @@ import { TypeormWrapper } from '../services/typeorm';
 export const db = express.Router();
 
 async function connectHandler(req: Request, res: Response) {
-  logger.info('Calling /connect');
+  logger.debug('Calling /connect');
   const { dbAlias, user: uid } = req.body;
   if (!dbAlias)
     return res
@@ -73,7 +73,7 @@ db.post('/connect', connectHandler);
 });*/
 
 db.post('/export', async (req: Request, res: Response) => {
-  logger.info('Calling /export');
+  logger.debug('Calling /export');
   const { dbAlias, dataOnly, user: uid } = req.body;
   if (!dbAlias) return res.status(400).json("Required key 'dbAlias' not provided");
   const email = await MetadataRepo.getEmailByUid(uid);
@@ -97,7 +97,7 @@ db.post('/export', async (req: Request, res: Response) => {
 });
 
 db.post('/disconnect', async (req: Request, res: Response) => {
-  logger.info('Calling /disconnect');
+  logger.debug('Calling /disconnect');
   const { dbAlias, user: uid } = req.body;
   if (!dbAlias) return res.status(400).json("Required key 'dbAlias' not provided");
   const email = await MetadataRepo.getEmailByUid(uid);
@@ -148,7 +148,7 @@ export async function getContext(conn: TypeormWrapper, AllModules: any): Promise
 }
 
 db.post('/rpc', async (req: Request, res: Response) => {
-  logger.info(`Calling /rpc ${req.body?.methodname ?? ''}`);
+  logger.debug(`Calling /rpc ${req.body?.methodname ?? ''}`);
   const { dbId, dbUser, params, modulename, methodname, preTransaction, postTransaction } = req.body;
   const missing = [];
   if (!dbId) missing.push('dbId');

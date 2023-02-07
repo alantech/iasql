@@ -162,7 +162,7 @@ export class ServiceMapper extends MapperBase<Service> {
     } catch (_) {
       // We should not throw here.
       // This is an extra validation to ensure that the service is fully deleted
-      logger.info('Error getting network interfaces for tasks');
+      logger.debug('Error getting network interfaces for tasks');
     }
   }
   async deleteServiceOnly(client: ECS, name: string, cluster: string) {
@@ -435,13 +435,13 @@ export class ServiceMapper extends MapperBase<Service> {
           desiredCount: e.desiredCount,
         });
         const t2 = Date.now();
-        logger.info(`Setting service ${e.name} desired count to 0 in ${t2 - t1}ms`);
+        logger.debug(`Setting service ${e.name} desired count to 0 in ${t2 - t1}ms`);
         await this.deleteServiceOnly(client.ecsClient, e.name, e.cluster?.clusterArn!);
         const t3 = Date.now();
-        logger.info(`Deleting service ${e.name} in ${t3 - t2}ms`);
+        logger.debug(`Deleting service ${e.name} in ${t3 - t2}ms`);
       }
       const tn = Date.now();
-      logger.info(`Service cloud mapper delete completed in ${tn - t0}ms`);
+      logger.debug(`Service cloud mapper delete completed in ${tn - t0}ms`);
     },
   });
 
