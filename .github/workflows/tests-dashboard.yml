@@ -34,11 +34,13 @@ jobs:
         run: |
           cd dashboard
           yarn
+          cd ..
 
       - name: Run linter check
         run: |
           cd dashboard
           yarn lint
+          cd ..
 
   style:
     # The type of runner that the job will run on
@@ -57,11 +59,13 @@ jobs:
         run: |
           cd dashboard
           yarn
+          cd ..
 
       - name: Run code style check
         run: |
           cd dashboard
           yarn style
+          cd ..
 
   setup-build:
     runs-on: ubuntu-latest
@@ -118,7 +122,6 @@ jobs:
           docker build -t iasql:latest .
           docker run -p 5432:5432 -e IASQL_ENV=ci --name iasql iasql:latest &
           while ! psql postgres://postgres:test@localhost:5432/iasql_metadata -b -q -c "SELECT iasql_engine_health()"; do sleep 1 && echo -n .; done;
-          cd ..
 
       - name: Start local run service
         run: |
@@ -127,7 +130,7 @@ jobs:
           yarn build
           IASQL_ENV=test yarn start &
           sleep 1
-          cd ..
+          cd ../..
 
       - name: Start local dashboard
         run: |
@@ -137,6 +140,7 @@ jobs:
           yarn build
           yarn global add serve
           serve -s build &
+          cd ..
         env:
           REACT_APP_IASQL_ENV: test
 
@@ -149,6 +153,7 @@ jobs:
         run: |
           cd dashboard
           yarn playwright test
+          cd ..
         env:
           TEST_ACCOUNT_EMAIL: dev+dashboard-testing@iasql.com
           TEST_ACCOUNT_PASSWORD: ${{ secrets.TEST_ACCOUNT_PASSWORD }}
