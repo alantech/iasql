@@ -72,7 +72,7 @@ jobs:
       - run: yarn --prefer-offline
       - id: set-registry-image-tag
         name: Set registry image tag
-        run: echo "::set-output name=registry-image-tag::ghcr.io/iasql/dashboard:$GITHUB_SHA"
+        run: echo "::set-output name=registry-image-tag::ghcr.io/iasql/iasql:$GITHUB_SHA-run"
 
   build-and-push:
     runs-on: ubuntu-latest
