@@ -11,7 +11,7 @@ In this tutorial, we will run [Django SQL migrations](https://docs.djangoproject
 
 The code for this tutorial lives in this part of the [repository](https://github.com/iasql/iasql/tree/main/examples/ecs-fargate/django/app/infra/migrations/0003_initial.py).
 
-## Start managing an AWS account with a hosted IaSQL db
+## Start managing an AWS account with a PostgreSQL IaSQL db
 
 First, make sure you have an [IAM user](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_users.html) in AWS or create one with **Programmatic access** through the [console/UI](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_users_create.html#id_users_create_console) or [CLI](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_users_create.html#id_users_create_cliwpsapi). Ensure that the IAM role has sufficient permissions to deploy and manage all your infrastructure resources.
 
@@ -34,13 +34,13 @@ You will be able to see your PostgreSQL connection information when you press Co
 
 Make sure to copy the PostgreSQL connection string as you will not see it again.
 
-## Add the necessary cloud services to the hosted database
+## Add the necessary cloud services to the PostgreSQL database
 
 1. Many different clients can be used to [connect](/docs/connect) to a PostgreSQL database. For this tutorial, we'll use the standard `psql` CLI client. If you need to install `psql`, follow the instructions for your corresponding OS [here](https://www.postgresql.org/download/).
 
-2. The first migration calls the `iasql_install` SQL function to install the ECS simplified [module](/docs/module) into the hosted database.
+2. The first migration calls the `iasql_install` SQL function to install the ECS simplified [module](/docs/module) into the PostgreSQL database.
 
-```sql title="psql postgres://d0va6ywg:nfdDh#EP4CyzveFr@db.iasql.com/_4b2bb09a59a411e4 -c"
+```sql title="psql postgres://d0va6ywg:nfdDh#EP4CyzveFr@localhost:5432/_4b2bb09a59a411e4 -c"
 SELECT
   *
 FROM
@@ -71,7 +71,7 @@ If the function call is successful, it will return a virtual table with a record
  aws_ecs_fargate          | service_security_groups       |            0
 ```
 
-## Connect to the hosted db and provision cloud resources in your AWS account
+## Connect to the PostgreSQL db and provision cloud resources in your AWS account
 
 1. Get a local copy of the [ECS Fargate examples](https://github.com/iasql/iasql/tree/main/examples/ecs-fargate)
 
@@ -115,7 +115,7 @@ If the function call is successful, it will return a virtual table with a record
            'NAME': env('DB_NAME'),
            'USER': env('DB_USER'),
            'PASSWORD': env('DB_PASSWORD'),
-           'HOST': 'db.iasql.com',
+           'HOST': 'localhost',
            'PORT': '5432',
        }
    }
@@ -123,7 +123,7 @@ If the function call is successful, it will return a virtual table with a record
 
 ### If you are using the template example go to step 9. The following steps explains how to instrospect an existing DB in Django.
 
-7. The second migration correspond to the Django models instrospected from the modules that have been installed in the database. To introspect the schema from your database run the following command. More information [here](https://docs.djangoproject.com/en/4.0/howto/legacy-databases/).
+7. The second migration corresponds to the Django models introspected from the modules that have been installed in the database. To introspect the schema from your database run the following command. More information [here](https://docs.djangoproject.com/en/4.0/howto/legacy-databases/).
 
 ```bash
 python manage.py inspectdb --database=infra > infra/models.py
@@ -164,7 +164,7 @@ In our case you will have to modify the `my_project/app/infra/models.py` file as
     python manage.py migrate --database infra infra
     ```
 
-    The operations of the `my_project/app/infra/migrations/0003_initial.py` migration will apply the changes described in the hosted db to your cloud account which will take a few minutes waiting for AWS
+    The operations of the `my_project/app/infra/migrations/0003_initial.py` migration will apply the changes described in the PostgreSQL db to your cloud account which will take a few minutes waiting for AWS
 
     ```python title="my_project/app/infra/migrations/0003_initial.py"
     ...
@@ -211,7 +211,7 @@ SELECT
 After running the above SQL command to completion, you can check the running app using the load balancer DNS name. To grab the name, run:
 
 ```bash
-QUICKSTART_LB_DNS=$(psql -At 'postgres://d0va6ywg:nfdDh#EP4CyzveFr@db.iasql.com/_4b2bb09a59a411e4' -c "
+QUICKSTART_LB_DNS=$(psql -At 'postgres://d0va6ywg:nfdDh#EP4CyzveFr@localhost:5432/_4b2bb09a59a411e4' -c "
 SELECT dns_name
 FROM load_balancer
 WHERE load_balancer_name = '<project-name>-load-balancer';")
@@ -227,7 +227,7 @@ curl ${QUICKSTART_LB_DNS}:8088/health
 
 Delete the resources created by this tutorial using the following SQL code:
 
-```sql title="psql postgres://qpp3pzqb:LN6jnHfhRJTBD6ia@db.iasql.com/_3ba201e349a11daf -c"
+```sql title="psql postgres://qpp3pzqb:LN6jnHfhRJTBD6ia@localhost:5432/_3ba201e349a11daf -c"
 SELECT iasql_begin();
 DELETE FROM
   repository_image

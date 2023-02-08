@@ -115,7 +115,7 @@ html[data-theme='dark'] .docusaurus-highlight-code-line {
 }
 
 .card {
-  height: 15rem;
+  height: 100%;
   padding: 1rem;
 }
 
@@ -143,4 +143,8 @@ html[data-theme='dark'] .docusaurus-highlight-code-line {
   background: #f1f1f1;
   border-top-left-radius: 0.5rem;
   border-top-right-radius: 0.5rem;
+}
+
+[title^='Copy'].clean-btn {
+  opacity: 0.5 !important;
 }

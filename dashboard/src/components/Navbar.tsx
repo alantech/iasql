@@ -7,6 +7,7 @@ import { UserIcon } from '@heroicons/react/solid';
 
 import { ActionType, useAppContext } from '../AppProvider';
 import logo from '../assets/logo.png';
+import config from '../config';
 import * as Posthog from '../services/posthog';
 
 function classNames(...classes: any[]) {
@@ -89,7 +90,7 @@ export default function Navbar({ userPic }: { userPic: string }) {
                   <div className='h-8 text-white'>{isDarkMode ? <MoonIcon /> : <SunIcon />}</div>
                 </button>
               </div>
-              {token && (
+              {token && config.auth && (
                 <div className='absolute inset-y-0 right-0 flex items-center pr-2 sm:static sm:inset-auto sm:pr-0'>
                   {/* Profile dropdown */}
                   <Menu as='div' className='ml-3 relative'>

@@ -17,19 +17,23 @@
 
 # Cloud infrastructure as data in PostgreSQL
 
-[IaSQL](https://iasql.com) is an open-source SaaS that treats infrastructure as data by maintaining a 2-way connection between a cloud account and a PostgreSQL database.
+[IaSQL](https://iasql.com) is open-source software that treats infrastructure as data by maintaining a 2-way connection between a cloud account and a PostgreSQL database.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./site/static/img/ec2-typewriter_dark.gif">
+  <source media="(prefers-color-scheme: light)" srcset="/site/static/img/ec2-typewriter.gif">
+  <img width="700"/>
+</picture>
 
 ## ⚡️ Try out IaSQL
 
-<a href="https://app.iasql.com#/button/SELECT%20%2A%20FROM%20iasql_install%28%27aws_ec2%27%29%3B%0A%0AINSERT%20INTO%20instance%20%28ami%2C%20instance_type%2C%20tags%29%0A%20%20VALUES%20%28%27resolve%3Assm%3A%2Faws%2Fservice%2Fcanonical%2Fubuntu%2Fserver%2F20.04%2Fstable%2Fcurrent%2Famd64%2Fhvm%2Febs-gp2%2Fami-id%27%2C%20%27t2.micro%27%2C%20%27%7B%22name%22%3A%22i-1%22%7D%27%29%3B%0A%0AINSERT%20INTO%20instance_security_groups%20%28instance_id%2C%20security_group_id%29%20SELECT%0A%20%20%28SELECT%20id%20FROM%20instance%20WHERE%20tags%20-%3E%3E%20%27name%27%20%3D%20%27i-1%27%29%2C%0A%20%20%28SELECT%20id%20FROM%20security_group%20WHERE%20group_name%3D%27default%27%20AND%20vpc_id%20%3D%20%28SELECT%20id%20FROM%20vpc%20WHERE%20is_default%20%3D%20true%20AND%20region%3Ddefault_aws_region%28%29%29%29%3B">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="./site/static/img/ec2-typewriter_dark.gif">
-    <source media="(prefers-color-scheme: light)" srcset="/site/static/img/ec2-typewriter.gif">
-    <img width="700"/>
-  </picture>
-</a>
+To connect your AWS account to a PostgreSQL database running locally make sure docker is installed and run:
 
-Use the dashboard to connect a hosted PostgreSQL database to an AWS account. Visit [app.iasql.com](https://app.iasql.com)
+```bash
+docker run -p 5432:5432 -p 8888:8888 --name iasql iasql/iasql
+```
+
+Alternatively, use a hosted version of IaSQL at [app.iasql.com](https://app.iasql.com)
 
 ## 💬 Community, Support and Questions
 

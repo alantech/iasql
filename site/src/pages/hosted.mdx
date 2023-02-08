@@ -1,7 +1,7 @@
 import { default as ReactTooltip } from 'rc-tooltip'
 import 'rc-tooltip/assets/bootstrap_white.css'
 import { useColorMode } from '@docusaurus/theme-common';
-import '../css/pricing.css';
+import '../css/hosted.css';
 
 export const Tooltip = ({children, summary, details}) => {
   const { isDarkTheme } = useColorMode();
@@ -15,10 +15,10 @@ export const Tooltip = ({children, summary, details}) => {
   )
 };
 
-<h1 style={{ textAlign: 'center'}}>Simple, transparent pricing</h1>
+<h1 style={{ textAlign: 'center'}}>Hosted IaSQL with simple, transparent pricing</h1>
 <p style={{ textAlign: 'center', marginBottom: '3rem', fontSize: '1.3rem'}}>Pay based on the amount of records across all the hosted PostgreSQL databases</p>
 
-<div style={{ marginBottom: '3rem'}}>
+<div style={{ marginBottom: '4rem'}}>
 
 |         | Starter | Business | Enterprise |
 | :------ | :-----: | :------: | :--------: |
@@ -30,4 +30,8 @@ export const Tooltip = ({children, summary, details}) => {
 | <Tooltip summary='Granular access control' details='Determine which team members have access to which tables or cloud resources.'/> | --  | -- | &check; |
 | <Tooltip summary='Single tenant hosting' details='Secured and isolated deployment.'/> | --  | -- | &check; |
 
+</div>
+
+<div style={{ textAlign: 'center', marginBottom: '3rem'}}>
+  <button className="button button--primary button--lg " onClick={() => window.location.href="https://app.iasql.com"}>Get started</button>
 </div>
