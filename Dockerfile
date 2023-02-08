@@ -1,52 +1,5 @@
-# Run service
-FROM node:16-bullseye AS run-stage
-
-WORKDIR /run
-
-COPY dashboard/run/tsconfig.json tsconfig.json
-COPY dashboard/run/src src
-
-COPY dashboard/run/package.json dashboard/run/yarn.lock ./
-RUN yarn install
-
-RUN yarn build
-RUN yarn install --production
-
-# Dashboard
-FROM node:16-bullseye AS dashboard-stage
-
-WORKDIR /dashboard
-
-COPY dashboard/tsconfig.json dashboard/tailwind.config.js dashboard/craco.config.js ./
-COPY dashboard/public public
-COPY dashboard/src src
-
-COPY dashboard/package.json dashboard/yarn.lock ./
-RUN yarn install
-
-ARG IASQL_ENV=local
-ENV REACT_APP_IASQL_ENV=$IASQL_ENV
-ENV GENERATE_SOURCEMAP=false
-RUN yarn build
-RUN yarn install --production
-
-# Engine
-FROM node:16-bullseye AS engine-stage
-
-WORKDIR /engine
-
-COPY docker-entrypoint.sh ormconfig.js tsconfig.json ./
-COPY src src
-
-COPY package.json yarn.lock ./
-RUN yarn install
-
-RUN yarn build
-RUN yarn install --production
-
-# Main stage
-FROM debian:bullseye AS main-stage
-
+# Base image
+FROM debian:bullseye AS base
 # Install OS Packages
 RUN apt update
 RUN apt install curl ca-certificates gnupg build-essential git jq -y
@@ -66,6 +19,55 @@ RUN cd pgsql-http && make && make install
 RUN ["bash", "-c", "curl -fsSL https://deb.nodesource.com/setup_16.x | bash -"]
 RUN apt install nodejs -y
 RUN npm install -g yarn
+
+# Run service
+FROM base AS run-stage
+
+WORKDIR /run
+
+COPY dashboard/run/tsconfig.json tsconfig.json
+COPY dashboard/run/src src
+
+COPY dashboard/run/package.json dashboard/run/yarn.lock ./
+RUN yarn install
+
+RUN yarn build
+RUN yarn install --production
+
+# Dashboard
+FROM base AS dashboard-stage
+
+WORKDIR /dashboard
+
+COPY dashboard/tsconfig.json dashboard/tailwind.config.js dashboard/craco.config.js ./
+COPY dashboard/public public
+COPY dashboard/src src
+
+COPY dashboard/package.json dashboard/yarn.lock ./
+RUN yarn install
+
+ARG IASQL_ENV=local
+ENV REACT_APP_IASQL_ENV=$IASQL_ENV
+ENV GENERATE_SOURCEMAP=false
+RUN yarn build
+RUN yarn install --production
+
+# Engine
+FROM base AS engine-stage
+
+WORKDIR /engine
+
+COPY docker-entrypoint.sh ormconfig.js tsconfig.json ./
+COPY src src
+
+COPY package.json yarn.lock ./
+RUN yarn install
+
+RUN yarn build
+RUN yarn install --production
+
+# Main stage
+FROM base AS main-stage
 
 COPY ./src/scripts/postgresql.conf /etc/postgresql/14/main/postgresql.conf
 COPY ./src/scripts/pg_hba.conf /etc/postgresql/14/main/pg_hba.conf
