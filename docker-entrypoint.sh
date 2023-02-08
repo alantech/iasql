@@ -2,13 +2,9 @@
 
 set -vex
 
-# Dashboard
-cd /dashboard
-REACT_APP_IASQL_ENV=local yarn start:build &
-
-# Run service
-cd /run
-yarn start &
+# Dashboard/Run service (TODO: Merge this more tightly in the future)
+cd /dashboard/run
+IASQL_ENV=local yarn start &
 
 # Engine
 cd /engine
