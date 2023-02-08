@@ -190,7 +190,7 @@ class AwsAppsyncModule extends ModuleBase {
 /**
  *
  * ```testdoc
- * modules/aws-appsync-integration.ts#App Sync Integration Testing#Code examples
+ * modules/aws-appsync-integration.ts#App Sync Integration Testing#Manage GraphQL
  * ```
  */
 export const awsAppsyncModule = new AwsAppsyncModule();

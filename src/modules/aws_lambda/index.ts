@@ -21,7 +21,7 @@ export class AwsLambdaModule extends ModuleBase {
 
 /**
  * ```testdoc
- * modules/aws-lambda-integration.ts#Lambda Integration Testing#Code examples
+ * modules/aws-lambda-integration.ts#Lambda Integration Testing#Manage Lambda functions
  * ```
  */
 export const awsLambdaModule = new AwsLambdaModule();

@@ -572,7 +572,7 @@ class AwsRdsModule extends ModuleBase {
 
 /**
  * ```testdoc
- * modules/aws-rds-integration.ts#RDS Integration Testing#Code examples
+ * modules/aws-rds-integration.ts#RDS Integration Testing#Manage RDS
  * ```
  */
 export const awsRdsModule = new AwsRdsModule();

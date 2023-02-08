@@ -61,17 +61,6 @@ export enum DeploymentType {
  * for a CodeDeploy application. Each application deployment uses one of its deployment groups.
  * The deployment group contains settings and configurations used during the deployment.
  *
- * @example
- * ```sql TheButton[Manage CodeDeploy deployment groups]="Manage CodeDeploy deployment groups"
- * INSERT INTO codedeploy_deployment_group (application_id, name, role_name) VALUES
- * ((SELECT id FROM codedeploy_application WHERE name = 'application-name'), 'deployment-group-name', 'role-name');
- *
- * SELECT * FROM codedeploy_deployment_group WHERE name='deployment-group-name';
- *
- * DELETE FROM codedeploy_deployment_group WHERE name = 'deployment-group-name'
- * ```
- *
- * @see https://github.com/iasql/iasql/blob/main/test/modules/aws-codedeploy-integration.ts#L419
  * @see https://docs.aws.amazon.com/codedeploy/latest/userguide/deployment-groups.html
  *
  */

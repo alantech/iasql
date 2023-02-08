@@ -5,6 +5,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  itDocs,
   runBegin,
   runCommit,
   runInstall,
@@ -82,7 +83,7 @@ describe('Security Group Integration Testing', () => {
     ),
   );
 
-  it('installs the security group module', install(modules));
+  itDocs('installs the security group module', install(modules));
 
   it('starts a transaction', begin());
 
@@ -113,9 +114,9 @@ describe('Security Group Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'adds a new security group',
     query(
       `  
@@ -128,9 +129,9 @@ describe('Security Group Integration Testing', () => {
     ),
   );
 
-  it('applies the security group change', commit());
+  itDocs('applies the security group change', commit());
 
-  it(
+  itDocs(
     'check security_group insertion',
     query(
       `
@@ -142,9 +143,9 @@ describe('Security Group Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'adds security group rules',
     query(
       `
@@ -163,11 +164,11 @@ describe('Security Group Integration Testing', () => {
     ),
   );
 
-  it('applies the security group rule change', commit());
+  itDocs('applies the security group rule change', commit());
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'updates the security group rule',
     query(
       `
@@ -180,7 +181,7 @@ describe('Security Group Integration Testing', () => {
     ),
   );
 
-  it(
+  itDocs(
     'check security_group update',
     query(
       `
@@ -201,7 +202,7 @@ describe('Security Group Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'updates the security group',
     query(
       `
@@ -420,9 +421,9 @@ describe('Security Group Integration Testing', () => {
   );
 
   // tests self referencing security group
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'adds a new security group rule pointing to itself',
     query(
       `
@@ -435,9 +436,9 @@ describe('Security Group Integration Testing', () => {
       () => ({ username, password }),
     ),
   );
-  it('creates the source security group rule pointing to itself', commit());
+  itDocs('creates the source security group rule pointing to itself', commit());
 
-  it(
+  itDocs(
     'check security group rule expanded for TCP pointing to itself',
     query(
       `
@@ -449,7 +450,7 @@ describe('Security Group Integration Testing', () => {
     ),
   );
 
-  it(
+  itDocs(
     'check security group rule expanded for UDP pointing to itself',
     query(
       `
@@ -475,7 +476,7 @@ describe('Security Group Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'deletes the source security group rule pointing to itself',
     query(
       `DELETE FROM security_group_rule WHERE source_security_group = (SELECT id FROM security_group WHERE group_name='${prefix}sgforsource')`,
@@ -487,7 +488,7 @@ describe('Security Group Integration Testing', () => {
 
   it('applies the deletion of source security group rule', commit());
 
-  it(
+  itDocs(
     'check no security group rules remain',
     query(
       `
@@ -501,7 +502,7 @@ describe('Security Group Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'deletes the original security group to test source',
     query(
       `
@@ -549,9 +550,9 @@ describe('Security Group Integration Testing', () => {
   it('applies the vpc removal', commit());
 
   // tests cycle in security rules
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'adds self-referential security groups A and B',
     query(
       `  
@@ -572,9 +573,9 @@ describe('Security Group Integration Testing', () => {
     ),
   );
 
-  it('creates the source groups and rules', commit());
+  itDocs('creates the source groups and rules', commit());
 
-  it(
+  itDocs(
     'check that security group and rules are correctly created - tcp, udp, icmp',
     query(
       `
@@ -597,7 +598,7 @@ describe('Security Group Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'deletes the source security group rule for A',
     query(
       `DELETE FROM security_group_rule WHERE source_security_group = (SELECT id FROM security_group WHERE group_name='${prefix}sgtestA')`,
@@ -606,7 +607,7 @@ describe('Security Group Integration Testing', () => {
       () => ({ username, password }),
     ),
   );
-  it(
+  itDocs(
     'deletes the source security group rule for B',
     query(
       `
@@ -616,7 +617,7 @@ DELETE FROM security_group_rule WHERE source_security_group = (SELECT id FROM se
       () => ({ username, password }),
     ),
   );
-  it(
+  itDocs(
     'deletes the source security group for A',
     query(
       `
@@ -630,7 +631,7 @@ DELETE FROM security_group_rule WHERE source_security_group = (SELECT id FROM se
       }),
     ),
   );
-  it(
+  itDocs(
     'deletes the source security group for B',
     query(
       `
@@ -647,7 +648,7 @@ DELETE FROM security_group_rule WHERE source_security_group = (SELECT id FROM se
 
   it('deletes rules and groups', commit());
 
-  it(
+  itDocs(
     'check no security group rules remain',
     query(
       `
@@ -659,7 +660,7 @@ DELETE FROM security_group_rule WHERE source_security_group = (SELECT id FROM se
     ),
   );
 
-  it(
+  itDocs(
     'check no security group for source remain',
     query(
       `

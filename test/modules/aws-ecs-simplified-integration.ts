@@ -6,6 +6,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  itDocs,
   runBegin,
   runCommit,
   runInstall,
@@ -98,7 +99,7 @@ describe('ECS Simplified Integration Testing', () => {
   `),
   );
 
-  it('installs the ecs simplified module and its dependencies', install(modules));
+  itDocs('installs the ecs simplified module and its dependencies', install(modules));
 
   it('starts a transaction', begin());
 
@@ -155,7 +156,7 @@ describe('ECS Simplified Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'adds a new row',
     query(
       `
@@ -168,7 +169,7 @@ describe('ECS Simplified Integration Testing', () => {
     ),
   );
 
-  it(
+  itDocs(
     'updates a row',
     query(
       `
@@ -249,7 +250,7 @@ describe('ECS Simplified Integration Testing', () => {
     ),
   );
 
-  it(
+  itDocs(
     'deletes the app',
     query(
       `
@@ -410,7 +411,7 @@ describe('ECS Simplified Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'updates a row',
     query(
       `
@@ -492,7 +493,7 @@ describe('ECS Simplified Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'updates a row',
     query(
       `
@@ -526,7 +527,7 @@ describe('ECS Simplified Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'updates env vars',
     query(
       `
@@ -626,7 +627,7 @@ describe('ECS Simplified Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'deletes the app',
     query(
       `

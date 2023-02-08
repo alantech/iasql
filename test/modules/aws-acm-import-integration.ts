@@ -6,6 +6,7 @@ import {
   finish,
   getKeyCertPair,
   getPrefix,
+  itDocs,
   runBegin,
   runCommit,
   runInstall,
@@ -78,16 +79,16 @@ describe('AwsAcm Import Integration Testing', () => {
     ),
   );
 
-  it('installs the acm module', install(modules));
+  itDocs('installs the acm module', install(modules));
 
-  it(
+  itDocs(
     'adds a new certificate to import',
     query(`
     SELECT * FROM certificate_import('${cert}', '${key}', '${region}', '');
   `),
   );
 
-  it(
+  itDocs(
     'check new certificate added',
     query(
       `
@@ -103,7 +104,7 @@ describe('AwsAcm Import Integration Testing', () => {
 
   it('installs modules', install(modules));
 
-  it(
+  itDocs(
     'check certificate count after uninstall/install',
     query(
       `
@@ -115,9 +116,9 @@ describe('AwsAcm Import Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'deletes a certificate imported',
     query(
       `
@@ -130,9 +131,9 @@ describe('AwsAcm Import Integration Testing', () => {
     ),
   );
 
-  it('applies the delete', commit());
+  itDocs('applies the delete', commit());
 
-  it(
+  itDocs(
     'check certificate count after delete',
     query(
       `
@@ -144,14 +145,14 @@ describe('AwsAcm Import Integration Testing', () => {
     ),
   );
 
-  it(
+  itDocs(
     'import a certificate in non-default region',
     query(`
     SELECT * FROM certificate_import('${cert}', '${key}', '${region}', '');
   `),
   );
 
-  it(
+  itDocs(
     'verifies the certificate in the non-default region is created',
     query(
       `

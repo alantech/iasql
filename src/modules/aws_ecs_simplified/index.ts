@@ -10,7 +10,7 @@ class AwsEcsSimplified extends ModuleBase {
 
 /**
  * ```testdoc
- * modules/aws-ecs-simplified-integration.ts#ECS Simplified Integration Testing#Code examples
+ * modules/aws-ecs-simplified-integration.ts#ECS Simplified Integration Testing#Manage ECS simplified
  *
  * ```
  */

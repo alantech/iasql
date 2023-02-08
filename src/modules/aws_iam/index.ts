@@ -34,7 +34,8 @@ export class AwsIamModule extends ModuleBase {
 
 /**
  * ```testdoc
- * modules/aws-iam-integration.ts#IAM Role Integration Testing#Code examples
+ * modules/aws-iam-integration.ts#IAM Role Integration Testing#Manage Roles
+ * modules/aws-iam-integration.ts#IAM User Integration Testing#Manage Users
  * ```
  */
 export const awsIamModule = new AwsIamModule();

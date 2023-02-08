@@ -14,11 +14,6 @@ import * as iasql from '../iasql';
  * Accepts the following parameters:
  * - list of modules to uninstall
  *
- * @example
- * ```sql
- * SELECT * FROM iasql_uninstall('aws_ec2');
- * ```
- *
  * @see https://iasql.com/docs/module/
  *
  */

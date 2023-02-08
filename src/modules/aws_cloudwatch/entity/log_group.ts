@@ -12,16 +12,6 @@ import { AwsRegions } from '../../aws_account/entity';
  * You can define log groups and specify which streams to put into each group.
  * There is no limit on the number of log streams that can belong to one log group.
  *
- * @example
- * ```sql TheButton[Manae a CloudWatch Log group entry]="Manage a CloudWatch Log group entry"
- * INSERT INTO log_group (log_group_name) VALUES ('log_name');
- *
- * SELECT * FROM log_group WHERE log_group_name = 'log_name';
- *
- * DELETE FROM log_group WHERE log_group_name = 'log_name';
- * ```
- *
- * @see https://github.com/iasql/iasql/blob/main/test/modules/aws-cloudwatch-integration.ts#L309
  * @see https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_LogGroup.html
  *
  */

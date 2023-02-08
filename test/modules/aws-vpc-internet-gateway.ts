@@ -5,6 +5,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  itDocs,
   runBegin,
   runCommit,
   runInstall,
@@ -74,10 +75,10 @@ describe('InternetGateway Integration Testing', () => {
     ),
   );
 
-  it('installs the vpc module', install(['aws_vpc']));
+  itDocs('installs the vpc module', install(['aws_vpc']));
 
-  it('starts a transaction', begin());
-  it(
+  itDocs('starts a transaction', begin());
+  itDocs(
     'creates a new vpc',
     query(
       `
@@ -90,7 +91,7 @@ describe('InternetGateway Integration Testing', () => {
     ),
   );
 
-  it(
+  itDocs(
     'adds a subnet to the vpc',
     query(
       `
@@ -107,10 +108,10 @@ describe('InternetGateway Integration Testing', () => {
       () => ({ username, password }),
     ),
   );
-  it('applies creation of the vpc', commit());
+  itDocs('applies creation of the vpc', commit());
 
-  it('starts a transaction', begin());
-  it(
+  itDocs('starts a transaction', begin());
+  itDocs(
     'adds a new internet gateway to the vpc in the region',
     query(
       `
@@ -123,9 +124,9 @@ describe('InternetGateway Integration Testing', () => {
       () => ({ username, password }),
     ),
   );
-  it('applies creation of the internet gateway', commit());
+  itDocs('applies creation of the internet gateway', commit());
 
-  it(
+  itDocs(
     'confirms that the internet gateway is created',
     query(
       `
@@ -139,9 +140,9 @@ describe('InternetGateway Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'adds a new route pointing the recently created internet gateway to the vpc in the region',
     query(
       `
@@ -154,9 +155,9 @@ describe('InternetGateway Integration Testing', () => {
     ),
   );
 
-  it('applies creation of the internet gateway route', commit());
+  itDocs('applies creation of the internet gateway route', commit());
 
-  it(
+  itDocs(
     'confirms that the internet gateway route is created',
     query(
       `
@@ -170,8 +171,8 @@ describe('InternetGateway Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
-  it(
+  itDocs('starts a transaction', begin());
+  itDocs(
     'creates another vpc',
     query(
       `
@@ -183,9 +184,9 @@ describe('InternetGateway Integration Testing', () => {
       () => ({ username, password }),
     ),
   );
-  it('applies creation of the second vpc', commit());
+  itDocs('applies creation of the second vpc', commit());
 
-  it(
+  itDocs(
     'verifies there is no internet gateway associated with the new vpc',
     query(
       `
@@ -197,8 +198,8 @@ describe('InternetGateway Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
-  it(
+  itDocs('starts a transaction', begin());
+  itDocs(
     'associates the internet gateway with the new vpc',
     query(
       `
@@ -211,9 +212,9 @@ describe('InternetGateway Integration Testing', () => {
       () => ({ username, password }),
     ),
   );
-  it('applies association of the internet gateway to the new vpc', commit());
+  itDocs('applies association of the internet gateway to the new vpc', commit());
 
-  it(
+  itDocs(
     'checks the internet gateway is associated with the new vpc',
     query(
       `
@@ -225,7 +226,7 @@ describe('InternetGateway Integration Testing', () => {
     ),
   );
 
-  it(
+  itDocs(
     'checks the first vpc does not have any internet gateways',
     query(
       `
@@ -238,7 +239,7 @@ describe('InternetGateway Integration Testing', () => {
   );
 
   it('starts a transaction', begin());
-  it(
+  itDocs(
     'deletes the internet gateway',
     query(
       `
@@ -253,8 +254,8 @@ describe('InternetGateway Integration Testing', () => {
   );
   it('applies deletion of the internet gateway', commit());
 
-  it('starts a transaction', begin());
-  it(
+  itDocs('starts a transaction', begin());
+  itDocs(
     'deletes the vpcs',
     query(
       `
@@ -271,7 +272,7 @@ describe('InternetGateway Integration Testing', () => {
       () => ({ username, password }),
     ),
   );
-  it('applies deletion of the vpcs', commit());
+  itDocs('applies deletion of the vpcs', commit());
 
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 });

@@ -19,10 +19,9 @@ export class AwsAcmModule extends ModuleBase {
 
 /**
  *
- * ### Code examples
  * ```testdoc
- * modules/aws-acm-import-integration.ts#AwsAcm Import Integration Testing#Managing certificates
- * modules/aws-acm-list-integration.ts#AwsAcm Import Integration Testing#Importing a certificate
+ * modules/aws-acm-list-integration.ts#AwsAcm List Integration Testing#Managing certificates
+ * modules/aws-acm-import-integration.ts#AwsAcm Import Integration Testing#Importing a certificate
  * modules/aws-acm-request-integration.ts#AwsAcm Request Integration Testing#Requesting a certificate
  * ```
  */

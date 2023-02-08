@@ -5,6 +5,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  itDocs,
   runBegin,
   runCommit,
   runInstall,
@@ -45,7 +46,7 @@ describe('AwsAcm Request Integration Testing', () => {
     })();
   });
 
-  it('installs the aws_account module', install(['aws_account']));
+  itDocs('installs the aws_account module', install(['aws_account']));
 
   it(
     'inserts aws credentials',
@@ -76,7 +77,7 @@ describe('AwsAcm Request Integration Testing', () => {
     ),
   );
 
-  it('installs the acm module alone', install(['aws_acm']));
+  itDocs('installs the acm module alone', install(['aws_acm']));
 
   it('adds a new certificate to request with a domain without route53 support', done => {
     query(`
@@ -110,14 +111,14 @@ describe('AwsAcm Request Integration Testing', () => {
     ),
   );
 
-  it(
+  itDocs(
     'adds a new certificate to request',
     query(`
       SELECT * FROM certificate_request('${domainName}', 'DNS', '${region}', '');
   `),
   );
 
-  it(
+  itDocs(
     'check new certificate added and validated',
     query(
       `
@@ -147,7 +148,7 @@ describe('AwsAcm Request Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'deletes a certificate requested',
     query(
       `
@@ -174,14 +175,14 @@ describe('AwsAcm Request Integration Testing', () => {
     ),
   );
 
-  it(
+  itDocs(
     'creates a certificate request in non-default region',
     query(`
       SELECT * FROM certificate_request('${domainName}', 'DNS', 'us-east-1', '');
   `),
   );
 
-  it(
+  itDocs(
     'checks the certificate in non-default region is created and validated',
     query(
       `

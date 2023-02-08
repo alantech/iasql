@@ -5,6 +5,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  itDocs,
   runBegin,
   runCommit,
   runInstall,
@@ -98,7 +99,7 @@ describe('MemoryDB Integration Testing', () => {
     ),
   );
 
-  it('installs the memory db module', install(modules));
+  itDocs('installs the memory db module', install(modules));
 
   it('starts a transaction', begin());
 
@@ -129,9 +130,9 @@ describe('MemoryDB Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'creates a subnet group',
     query(
       `
@@ -144,9 +145,9 @@ describe('MemoryDB Integration Testing', () => {
     ),
   );
 
-  it('applies the change', commit());
+  itDocs('applies the change', commit());
 
-  it(
+  itDocs(
     'checks the subnet group was added',
     query(
       `
@@ -160,7 +161,7 @@ describe('MemoryDB Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'changes the subnet group description',
     query(
       `
@@ -208,9 +209,9 @@ describe('MemoryDB Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'creates a memory db cluster',
     query(
       `
@@ -226,9 +227,9 @@ describe('MemoryDB Integration Testing', () => {
     ),
   );
 
-  it('applies the change', commit());
+  itDocs('applies the change', commit());
 
-  it(
+  itDocs(
     'checks the memory db cluster was added',
     query(
       `
@@ -242,7 +243,7 @@ describe('MemoryDB Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'changes the cluster description',
     query(
       `
@@ -294,7 +295,7 @@ describe('MemoryDB Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'removes the memory db cluster',
     query(
       `
@@ -347,7 +348,7 @@ describe('MemoryDB Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'removes the subnet group',
     query(
       `

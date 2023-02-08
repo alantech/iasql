@@ -200,3 +200,7 @@ export function defaultRegion(overrideList?: string[]): string {
   ];
   return regionList[Math.floor(Math.random() * regionList.length)];
 }
+
+export function itDocs(...args: any[]): any {
+  return (it as unknown as (...args: any[]) => {})(...args);
+}

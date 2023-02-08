@@ -778,7 +778,7 @@ class AwsSecurityGroupModule extends ModuleBase {
 
 /**
  * ```testdoc
- * modules/aws-security-group-integration.ts#Security Group Integration Testing#Code examples
+ * modules/aws-security-group-integration.ts#Security Group Integration Testing#Manage Security groups
  * ```
  */
 export const awsSecurityGroupModule = new AwsSecurityGroupModule();

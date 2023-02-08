@@ -6,6 +6,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  itDocs,
   runBegin,
   runCommit,
   runInstall,
@@ -84,7 +85,7 @@ describe('App Sync Integration Testing', () => {
     ),
   );
 
-  it('installs the App Sync module', install(modules));
+  itDocs('installs the App Sync module', install(modules));
 
   it('starts a transaction', begin());
 
@@ -103,9 +104,9 @@ describe('App Sync Integration Testing', () => {
 
   it('undo changes', rollback());
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'adds a new GraphQL API entry',
     query(
       `
@@ -118,9 +119,9 @@ describe('App Sync Integration Testing', () => {
     ),
   );
 
-  it('applies the Graphql API change', commit());
+  itDocs('applies the Graphql API change', commit());
 
-  it(
+  itDocs(
     'check Graphql API is available',
     query(
       `
@@ -130,9 +131,9 @@ describe('App Sync Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'tries to update Graphql API auth type',
     query(
       `
@@ -144,9 +145,9 @@ describe('App Sync Integration Testing', () => {
     ),
   );
 
-  it('applies the Graphql API auth type update', commit());
+  itDocs('applies the Graphql API auth type update', commit());
 
-  it(
+  itDocs(
     'checks that Graphql API has been been modified',
     query(
       `
@@ -198,7 +199,7 @@ describe('App Sync Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'deletes the Graphql API',
     query(
       `

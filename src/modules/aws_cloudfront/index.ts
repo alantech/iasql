@@ -350,7 +350,7 @@ class AwsCloudfrontModule extends ModuleBase {
 /**
  *
  * ```testdoc
- * modules/aws-cloudfront-integration.ts#Cloudfront Integration Testing#Code examples
+ * modules/aws-cloudfront-integration.ts#Cloudfront Integration Testing#Manage CloudFront
  * ```
  */
 export const awsCloudfrontModule = new AwsCloudfrontModule();

@@ -7,6 +7,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  itDocs,
   runBegin,
   runCommit,
   runInstall,
@@ -118,7 +119,7 @@ describe('Elasticache Integration Testing', () => {
     ),
   );
 
-  it('installs the elasticache module', install(modules));
+  itDocs('installs the elasticache module', install(modules));
 
   it('starts a transaction', begin());
 
@@ -137,9 +138,9 @@ describe('Elasticache Integration Testing', () => {
 
   it('undo changes', rollback());
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it('adds a new cacheCluster', done => {
+  itDocs('adds a new cacheCluster', done => {
     query(
       `
       INSERT INTO cache_cluster (cluster_id, node_type, engine, num_nodes)
@@ -154,9 +155,9 @@ describe('Elasticache Integration Testing', () => {
     });
   });
 
-  it('applies the cache_cluster change', commit());
+  itDocs('applies the cache_cluster change', commit());
 
-  it(
+  itDocs(
     'check cache_cluster is available',
     query(
       `
@@ -168,7 +169,7 @@ describe('Elasticache Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it('tries to update cache_cluster node type', done => {
+  itDocs('tries to update cache_cluster node type', done => {
     query(
       `
     UPDATE cache_cluster SET node_type='${updatedNodeType}' WHERE cluster_id='${clusterId}';
@@ -280,7 +281,7 @@ describe('Elasticache Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'deletes the cache_cluster',
     query(
       `

@@ -9,7 +9,7 @@ function parseExpression(expression) {
   let fragmentName;
   const titems = [];
 
-  if (expression.type == 'CallExpression' && expression.callee.name == 'it') {
+  if (expression.type == 'CallExpression' && expression.callee.name == 'itDocs') {
     fragmentName = expression.arguments[0].type == 'Literal' ? expression.arguments[0].value : '';
 
     // walk the node to find the desired elements
@@ -46,6 +46,27 @@ function parseExpression(expression) {
         titems.push('SELECT * FROM iasql_commit();');
       else if (node.type == 'CallExpression' && node.callee.name == 'rollback')
         titems.push('SELECT * FROM iasql_rollback();');
+      else if (node.type == 'CallExpression' && node.callee.name == 'install') {
+        let modules = '';
+        if (node.arguments[0].type == 'ArrayExpression') {
+          const elem = [];
+          for (const element of node.arguments[0].elements) elem.push(element.raw);
+          modules = modules + elem.join(',');
+        } else {
+          modules = "'" + (node.arguments[0].name == 'modules' ? '<modules>' : node.arguments[0].name) + "'";
+        }
+        titems.push(`SELECT * FROM iasql_install(${modules});`);
+      } else if (node.type == 'CallExpression' && node.callee.name == 'uninstall') {
+        let modules = '';
+        if (node.arguments[0].type == 'ArrayExpression') {
+          const elem = [];
+          for (const element of node.arguments[0].elements) elem.push(element.raw);
+          modules = modules + elem.join(',');
+        } else {
+          modules = "'" + (node.arguments[0].name == 'modules' ? '<modules>' : node.arguments[0].name) + "'";
+        }
+        titems.push(`SELECT * FROM iasql_uninstall(${modules});`);
+      }
     });
   }
   return { name: fragmentName, content: titems };
@@ -123,19 +144,19 @@ const plugin = options => {
                   code = code + `--- ${result.name}\n`;
                   code = code + `${result.content}\n`;
                 }
+                code = code.replaceAll('`', '');
 
                 // we replace the code with the composed html
                 let title;
                 if (items.length == 3) title = items[2];
                 else title = items[1];
+
                 result.push({
-                  type: 'html',
-                  value: `<h3>${title}</h3>`,
-                });
-                result.push({
-                  type: 'code',
-                  lang: 'sql',
-                  value: code,
+                  type: 'jsx',
+                  value: `<details open="true">
+                  <summary mdxType="summary">${title}</summary>
+                  <codeblock language="sql" >{\`${code}\`}</codeblock>
+                  </details>`,
                 });
               }
             }

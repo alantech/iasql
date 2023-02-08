@@ -759,9 +759,7 @@ export class AwsEcrModule extends ModuleBase {
 }
 
 /**
- * ### Code examples
  * ```testdoc
- * modules/aws-ecr-integration.ts#ECR Integration Testing#Installs module
  * modules/aws-ecr-integration.ts#private repository#Managing private repositories
  * modules/aws-ecr-integration.ts#public repository#Managing public repositories
  * modules/aws-ecr-build-integration.ts#AwsEcrBuild Integration Testing#Build images

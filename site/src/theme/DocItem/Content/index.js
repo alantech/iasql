@@ -4,6 +4,7 @@ import {ThemeClassNames} from '@docusaurus/theme-common';
 import {useDoc} from '@docusaurus/theme-common/internal';
 import Heading from '@theme/Heading';
 import MDXContent from '@theme/MDXContent';
+
 /**
  Title can be declared inside md content or declared through
  front matter and added manually. To make both cases consistent,

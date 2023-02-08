@@ -458,7 +458,7 @@ class AwsRoute53Module extends ModuleBase {
 
 /**
  * ```testdoc
- * modules/aws-route53-integration.ts#Route53 Integration Testing#Code examples
+ * modules/aws-route53-integration.ts#Route53 Integration Testing#Manage Route53
  * ```
  */
 export const awsRoute53Module = new AwsRoute53Module();

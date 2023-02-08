@@ -46,15 +46,6 @@ export class AwsCredentials {
  *
  * An user can specify which regions are enabled and which region is used as default.
  *
- * @example
- * ```sql
- *  SELECT * FROM aws_regions WHERE is_default = TRUE;
- *  UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
- * ```
- * @see https://aws.amazon.com/about-aws/global-infrastructure/regions_az/
- * @see https://github.com/iasql/iasql/blob/main/test/modules/aws-account-integration.ts#L185
- * @see https://github.com/iasql/iasql/blob/main/test/modules/aws-account-integration.ts#L196
- *
  */
 @Entity()
 export class AwsRegions {

@@ -5,6 +5,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  itDocs,
   runBegin,
   runCommit,
   runInstall,
@@ -49,7 +50,7 @@ describe('AwsAcm List Integration Testing', () => {
     })();
   });
 
-  it('installs the aws_account module', install(['aws_account']));
+  itDocs('installs the aws_account module', install(['aws_account']));
 
   it(
     'inserts aws credentials',
@@ -111,9 +112,9 @@ describe('AwsAcm List Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'adds a new certificate',
     query(
       `
@@ -126,7 +127,7 @@ describe('AwsAcm List Integration Testing', () => {
     ),
   );
 
-  it(
+  itDocs(
     'check adds new certificate',
     query(
       `
@@ -138,9 +139,9 @@ describe('AwsAcm List Integration Testing', () => {
     ),
   );
 
-  it('applies the new certificate (should delete the record)', commit());
+  itDocs('applies the new certificate (should delete the record)', commit());
 
-  it(
+  itDocs(
     'check adds new certificate',
     query(
       `
@@ -152,7 +153,7 @@ describe('AwsAcm List Integration Testing', () => {
     ),
   );
 
-  it('uninstalls the acm module', uninstall(modules));
+  itDocs('uninstalls the acm module', uninstall(modules));
 
   it('installs the acm module', install(modules));
 

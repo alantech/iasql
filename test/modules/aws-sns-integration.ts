@@ -5,6 +5,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  itDocs,
   runBegin,
   runCommit,
   runInstall,
@@ -80,7 +81,7 @@ describe('AwsSNS Integration Testing', () => {
     ),
   );
 
-  it('installs the SNS module', install(modules));
+  itDocs('installs the SNS module', install(modules));
 
   it('starts a transaction', begin());
 
@@ -111,9 +112,9 @@ describe('AwsSNS Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'adds a new topic',
     query(
       `
@@ -126,7 +127,7 @@ describe('AwsSNS Integration Testing', () => {
     ),
   );
 
-  it(
+  itDocs(
     'check adds a new topic',
     query(
       `
@@ -138,7 +139,7 @@ describe('AwsSNS Integration Testing', () => {
     ),
   );
 
-  it('applies the topic change', commit());
+  itDocs('applies the topic change', commit());
 
   it('uninstalls the SNS module', uninstall(modules));
 
@@ -210,7 +211,7 @@ describe('AwsSNS Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'tries to update a field with an correct value',
     query(
       `
@@ -224,7 +225,7 @@ describe('AwsSNS Integration Testing', () => {
 
   it('applies the topic change which will be correct', commit());
 
-  it(
+  itDocs(
     'check tracing config change has been applied',
     query(
       `
@@ -238,7 +239,7 @@ describe('AwsSNS Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'deletes the topic',
     query(
       `
@@ -253,7 +254,7 @@ describe('AwsSNS Integration Testing', () => {
 
   it('applies the topic delete', commit());
 
-  it(
+  itDocs(
     'check deletes the topic',
     query(
       `

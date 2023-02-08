@@ -28,8 +28,6 @@ export class AwsEcsFargateModule extends ModuleBase {
 }
 
 /**
- * ### Code examples
- *
  * ```testdoc
  * modules/aws-ecs-integration.ts#ECS Integration Testing#Manage ECS
  * modules/aws-ecs-ecr-integration.ts#ECS Integration Testing#Integrate with aws_ecr private repos

@@ -10,6 +10,7 @@ import {
   runInstall,
   defaultRegion,
   runBegin,
+  itDocs,
 } from '../helpers';
 
 const prefix = getPrefix();
@@ -77,11 +78,11 @@ describe('AwsEcrBuild Integration Testing', () => {
     ),
   );
 
-  it('installs the ecr module', install(modules));
+  itDocs('installs the ecr module', install(modules));
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'creates a new ecr repository',
     query(
       `
@@ -96,7 +97,7 @@ describe('AwsEcrBuild Integration Testing', () => {
 
   it('applies the creation of ecr repository', commit());
 
-  it(
+  itDocs(
     'builds hello world image and pushes to the new ecr repo',
     query(`
       SELECT ecr_build(
@@ -109,7 +110,7 @@ describe('AwsEcrBuild Integration Testing', () => {
   `),
   );
 
-  it(
+  itDocs(
     'checks if the image is created in the database',
     query(
       `
@@ -151,7 +152,7 @@ describe('AwsEcrBuild Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'deletes the image',
     query(
       `
@@ -167,7 +168,7 @@ describe('AwsEcrBuild Integration Testing', () => {
 
   it('applies the deletion of resources', commit());
 
-  it(
+  itDocs(
     'builds hello world image and pushes to the new ecr repo without Github personal access token',
     query(`
       SELECT ecr_build(
@@ -180,7 +181,7 @@ describe('AwsEcrBuild Integration Testing', () => {
   `),
   );
 
-  it(
+  itDocs(
     'checks if the image is created in the database',
     query(
       `
@@ -197,7 +198,7 @@ describe('AwsEcrBuild Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'deletes the image',
     query(
       `
@@ -211,7 +212,7 @@ describe('AwsEcrBuild Integration Testing', () => {
     ),
   );
 
-  it(
+  itDocs(
     'deletes the repository',
     query(
       `

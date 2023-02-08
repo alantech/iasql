@@ -70,8 +70,6 @@ export class AwsVpcModule extends ModuleBase {
 }
 
 /**
- * ### Code examples
- *
  * ```testdoc
  * modules/aws-vpc-integration.ts#VPC Integration Testing#Manage VPCs
  * modules/aws-vpc-eip-nat-integration.ts#VPC Elastic IP Integration Testing#Manage Elastic IPs and NAT Gateways

@@ -5,6 +5,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  itDocs,
   runBegin,
   runCommit,
   runInstall,
@@ -172,7 +173,7 @@ describe('IAM Role Integration Testing', () => {
     ),
   );
 
-  it('installs the iam module', install(modules));
+  itDocs('installs the iam module', install(modules));
 
   it('starts a transaction', begin());
 
@@ -203,9 +204,9 @@ describe('IAM Role Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'adds a new role',
     query(
       `
@@ -305,7 +306,7 @@ describe('IAM Role Integration Testing', () => {
     ),
   );
 
-  it(
+  itDocs(
     'check a new role addition',
     query(
       `
@@ -317,7 +318,7 @@ describe('IAM Role Integration Testing', () => {
     ),
   );
 
-  it('applies the role additions', commit());
+  itDocs('applies the role additions', commit());
 
   it('starts a transaction', begin());
 
@@ -383,7 +384,7 @@ describe('IAM Role Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'tries to update a role description',
     query(
       `
@@ -399,7 +400,7 @@ describe('IAM Role Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'tries to update ec2 policy field',
     query(
       `
@@ -415,7 +416,7 @@ describe('IAM Role Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'tries to restore ec2 policy field',
     query(
       `
@@ -443,7 +444,7 @@ describe('IAM Role Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'tries to update role attached policies',
     query(
       `
@@ -478,7 +479,7 @@ describe('IAM Role Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'deletes the role',
     query(
       `
@@ -805,7 +806,7 @@ describe('IAM User Integration Testing', () => {
     ),
   );
 
-  it('installs the iam module', install(modules));
+  itDocs('installs the iam module', install(modules));
 
   it('starts a transaction', begin());
 
@@ -836,9 +837,9 @@ describe('IAM User Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'adds a new user',
     query(
       `
@@ -851,9 +852,9 @@ describe('IAM User Integration Testing', () => {
     ),
   );
 
-  it('applies change', commit());
+  itDocs('applies change', commit());
 
-  it(
+  itDocs(
     'check a new user addition',
     query(
       `
@@ -865,7 +866,7 @@ describe('IAM User Integration Testing', () => {
     ),
   );
 
-  it(
+  itDocs(
     'generates an user password',
     query(
       `
@@ -879,7 +880,7 @@ describe('IAM User Integration Testing', () => {
     ),
   );
 
-  it(
+  itDocs(
     'updates an user password',
     query(
       `
@@ -893,7 +894,7 @@ describe('IAM User Integration Testing', () => {
     ),
   );
 
-  it(
+  itDocs(
     'deletes an user password',
     query(
       `
@@ -937,7 +938,7 @@ describe('IAM User Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'updates user path',
     query(
       `
@@ -951,7 +952,7 @@ describe('IAM User Integration Testing', () => {
 
   it('applies change', commit());
 
-  it(
+  itDocs(
     'check that path has been modified',
     query(
       `
@@ -965,7 +966,7 @@ describe('IAM User Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'tries to update user attached policies',
     query(
       `
@@ -995,7 +996,7 @@ describe('IAM User Integration Testing', () => {
   );
 
   // generate access keys
-  it(
+  itDocs(
     'generates a new access key',
     query(
       `
@@ -1006,7 +1007,7 @@ describe('IAM User Integration Testing', () => {
     ),
   );
 
-  it(
+  itDocs(
     'check new access key added',
     query(
       `
@@ -1019,7 +1020,7 @@ describe('IAM User Integration Testing', () => {
   );
 
   it('starts a transaction', begin());
-  it(
+  itDocs(
     'updates access key status',
     query(
       `
@@ -1045,7 +1046,7 @@ describe('IAM User Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(0),
     ),
   );
-  it(
+  itDocs(
     'check access key updated',
     query(
       `
@@ -1058,7 +1059,7 @@ describe('IAM User Integration Testing', () => {
   );
 
   it('starts a transaction', begin());
-  it(
+  itDocs(
     'deletes the access key',
     query(
       `
@@ -1087,7 +1088,7 @@ describe('IAM User Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'tries to delete an aws user',
     query(
       `

@@ -33,7 +33,7 @@ export class AwsCodedeployModule extends ModuleBase {
 /**
  *
  * ```testdoc
- * modules/aws-codedeploy-integration.ts#AwsCodedeploy Integration Testing#Code examples
+ * modules/aws-codedeploy-integration.ts#AwsCodedeploy Integration Testing#Manage Codedeploy
  * ```
  */
 export const awsCodedeployModule = new AwsCodedeployModule();

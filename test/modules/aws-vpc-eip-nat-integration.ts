@@ -5,6 +5,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  itDocs,
   runBegin,
   runCommit,
   runInstall,
@@ -83,7 +84,7 @@ describe('VPC Elastic IP Integration Testing', () => {
     ),
   );
 
-  it('installs the vpc module', install(modules));
+  itDocs('installs the vpc module', install(modules));
 
   it(
     'confirms there are availability zones present',
@@ -95,9 +96,9 @@ describe('VPC Elastic IP Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'adds a new vpc',
     query(
       `  
@@ -110,7 +111,7 @@ describe('VPC Elastic IP Integration Testing', () => {
     ),
   );
 
-  it('applies the vpc change', commit());
+  itDocs('applies the vpc change', commit());
 
   it(
     'check no vpc is pending',
@@ -122,7 +123,7 @@ describe('VPC Elastic IP Integration Testing', () => {
     ),
   );
 
-  it(
+  itDocs(
     'check vpc is available',
     query(
       `
@@ -142,7 +143,7 @@ describe('VPC Elastic IP Integration Testing', () => {
     ),
   );
 
-  it(
+  itDocs(
     'check vpc has the right attributes',
     query(
       `
@@ -152,9 +153,9 @@ describe('VPC Elastic IP Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'adds a subnet',
     query(
       `
@@ -174,7 +175,7 @@ describe('VPC Elastic IP Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'adds a new elastic ip',
     query(
       `
@@ -197,9 +198,9 @@ describe('VPC Elastic IP Integration Testing', () => {
     ),
   );
 
-  it('applies the elastic ip change', commit());
+  itDocs('applies the elastic ip change', commit());
 
-  it(
+  itDocs(
     'check elastic ip count',
     query(
       `
@@ -209,9 +210,9 @@ describe('VPC Elastic IP Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'adds a private nat gateway',
     query(
       `
@@ -226,9 +227,9 @@ describe('VPC Elastic IP Integration Testing', () => {
     ),
   );
 
-  it('applies the private nat gateway change', commit());
+  itDocs('applies the private nat gateway change', commit());
 
-  it(
+  itDocs(
     'checks private nat gateway count',
     query(
       `
@@ -238,9 +239,9 @@ describe('VPC Elastic IP Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'adds a public nat gateway with existing elastic ip',
     query(
       `
@@ -255,9 +256,9 @@ describe('VPC Elastic IP Integration Testing', () => {
     ),
   );
 
-  it('applies the public nat gateway with existing elastic ip change', commit());
+  itDocs('applies the public nat gateway with existing elastic ip change', commit());
 
-  it(
+  itDocs(
     'checks public nat gateway with existing elastic ip count',
     query(
       `
@@ -267,9 +268,9 @@ describe('VPC Elastic IP Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'adds a public nat gateway with no existing elastic ip',
     query(
       `
@@ -284,9 +285,9 @@ describe('VPC Elastic IP Integration Testing', () => {
     ),
   );
 
-  it('applies the public nat gateway with no existing elastic ip change', commit());
+  itDocs('applies the public nat gateway with no existing elastic ip change', commit());
 
-  it(
+  itDocs(
     'checks public nat gateway with no existing elastic ip count',
     query(
       `
@@ -296,7 +297,7 @@ describe('VPC Elastic IP Integration Testing', () => {
     ),
   );
 
-  it(
+  itDocs(
     'checks elastic IP count',
     query(
       `
@@ -351,9 +352,9 @@ describe('VPC Elastic IP Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'updates a elastic ip',
     query(
       `
@@ -367,9 +368,9 @@ describe('VPC Elastic IP Integration Testing', () => {
     ),
   );
 
-  it('applies the elastic ip change', commit());
+  itDocs('applies the elastic ip change', commit());
 
-  it(
+  itDocs(
     'check elastic ip count',
     query(
       `
@@ -389,9 +390,9 @@ describe('VPC Elastic IP Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'updates a public nat gateway with existing elastic ip to be private',
     query(
       `
@@ -405,9 +406,9 @@ describe('VPC Elastic IP Integration Testing', () => {
     ),
   );
 
-  it('applies the public nat gateway with existing elastic ip to be private change', commit());
+  itDocs('applies the public nat gateway with existing elastic ip to be private change', commit());
 
-  it(
+  itDocs(
     'checks public nat gateway with existing elastic ip to be private count',
     query(
       `
@@ -427,9 +428,9 @@ describe('VPC Elastic IP Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'updates a public nat gateway with no existing elastic ip',
     query(
       `
@@ -444,9 +445,9 @@ describe('VPC Elastic IP Integration Testing', () => {
     ),
   );
 
-  it('applies the public nat gateway with no existing elastic ip change', commit());
+  itDocs('applies the public nat gateway with no existing elastic ip change', commit());
 
-  it(
+  itDocs(
     'checks public nat gateway with no existing elastic ip count',
     query(
       `
@@ -468,7 +469,7 @@ describe('VPC Elastic IP Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'deletes a public nat gateways',
     query(
       `
@@ -483,7 +484,7 @@ describe('VPC Elastic IP Integration Testing', () => {
 
   it('applies the public nat gateways change', commit());
 
-  it(
+  itDocs(
     'checks public nat gateways count',
     query(
       `
@@ -495,7 +496,7 @@ describe('VPC Elastic IP Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'deletes a elastic ip created by the nat gateway',
     query(
       `
@@ -522,7 +523,7 @@ describe('VPC Elastic IP Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'deletes a elastic ip',
     query(
       `
@@ -587,7 +588,7 @@ describe('VPC Elastic IP Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'deletes a private nat gateway',
     query(
       `
@@ -614,7 +615,7 @@ describe('VPC Elastic IP Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'deletes the subnet',
     query(
       `
@@ -638,7 +639,7 @@ describe('VPC Elastic IP Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'deletes the vpc',
     query(
       `

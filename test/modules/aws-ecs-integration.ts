@@ -6,6 +6,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  itDocs,
   runBegin,
   runCommit,
   runInstall,
@@ -186,7 +187,7 @@ describe('ECS Integration Testing', () => {
 
   it('installs the ecs module and its dependencies in sidecar db', sidecarInstall(modules));
 
-  it('installs the ecs module and its dependencies', install(modules));
+  itDocs('installs the ecs module and its dependencies', install(modules));
 
   // Cluster
   it('starts a transaction', begin());
@@ -218,9 +219,9 @@ describe('ECS Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'adds a new cluster',
     query(
       `
@@ -233,9 +234,9 @@ describe('ECS Integration Testing', () => {
     ),
   );
 
-  it('applies adds a new cluster', commit());
+  itDocs('applies adds a new cluster', commit());
 
-  it(
+  itDocs(
     'check cluster insertion',
     query(
       `
@@ -248,9 +249,9 @@ describe('ECS Integration Testing', () => {
   );
 
   // Service dependencies
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'adds service dependencies',
     query(
       `
@@ -291,7 +292,7 @@ describe('ECS Integration Testing', () => {
     ),
   );
 
-  it('applies service dependencies', commit());
+  itDocs('applies service dependencies', commit());
 
   it(
     'check target group insertion',
@@ -319,9 +320,9 @@ describe('ECS Integration Testing', () => {
 
   // Service spinning up a task definition with container using a docker image
   // Container definition
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'adds container dependencies',
     query(
       `
@@ -338,7 +339,7 @@ describe('ECS Integration Testing', () => {
     ),
   );
 
-  it('applies adds container dependencies', commit());
+  itDocs('applies adds container dependencies', commit());
 
   it(
     'check target group insertion',
@@ -365,9 +366,9 @@ describe('ECS Integration Testing', () => {
   );
 
   // Task definition
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'adds a new task definition',
     query(
       `
@@ -380,7 +381,7 @@ describe('ECS Integration Testing', () => {
     ),
   );
 
-  it(
+  itDocs(
     'check task_definition insertion',
     query(
       `
@@ -392,7 +393,7 @@ describe('ECS Integration Testing', () => {
     ),
   );
 
-  it(
+  itDocs(
     'adds a new container definition',
     query(
       `
@@ -455,9 +456,9 @@ describe('ECS Integration Testing', () => {
     ),
   );
 
-  it('applies adds a new task definition with container definition', commit());
+  itDocs('applies adds a new task definition with container definition', commit());
 
-  it(
+  itDocs(
     'check task_definition insertion',
     query(
       `
@@ -493,7 +494,7 @@ describe('ECS Integration Testing', () => {
     ),
   );
 
-  it(
+  itDocs(
     'check container definition insertion',
     query(
       `
@@ -506,9 +507,9 @@ describe('ECS Integration Testing', () => {
   );
 
   // Service
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'adds a new service',
     query(
       `
@@ -550,7 +551,7 @@ describe('ECS Integration Testing', () => {
     ),
   );
 
-  it(
+  itDocs(
     'tries to update a task definition',
     query(
       `
@@ -569,9 +570,9 @@ describe('ECS Integration Testing', () => {
     ),
   );
 
-  it('applies tries to update a task definition field', commit());
+  itDocs('applies tries to update a task definition field', commit());
 
-  it(
+  itDocs(
     'check service insertion',
     query(
       `
@@ -597,7 +598,7 @@ describe('ECS Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'tries to update a service (update)',
     query(
       `
@@ -653,7 +654,7 @@ describe('ECS Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'tries to update a service (replace)',
     query(
       `
@@ -735,7 +736,7 @@ describe('ECS Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'deletes service',
     query(
       `
@@ -772,7 +773,7 @@ describe('ECS Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'deletes container definitons',
     query(
       `
@@ -846,7 +847,7 @@ describe('ECS Integration Testing', () => {
   // deletes service dependencies
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'deletes service dependencies',
     query(
       `
@@ -915,7 +916,7 @@ describe('ECS Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'deletes the cluster',
     query(
       `

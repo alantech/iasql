@@ -5,6 +5,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  itDocs,
   runBegin,
   runCommit,
   runInstall,
@@ -119,7 +120,7 @@ describe('S3 Integration Testing', () => {
     ),
   );
 
-  it('installs the s3 module', install(modules));
+  itDocs('installs the s3 module', install(modules));
 
   it('starts a transaction', begin());
 
@@ -150,9 +151,9 @@ describe('S3 Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'adds a new s3 bucket without policy',
     query(
       `  
@@ -165,9 +166,9 @@ describe('S3 Integration Testing', () => {
     ),
   );
 
-  it('applies the s3 bucket change', commit());
+  itDocs('applies the s3 bucket change', commit());
 
-  it(
+  itDocs(
     'check s3 insertion',
     query(
       `
@@ -211,7 +212,7 @@ describe('S3 Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'deletes new s3 bucket without policy',
     query(
       `  
@@ -226,7 +227,7 @@ describe('S3 Integration Testing', () => {
 
   it('applies the s3 bucket deletion', commit());
 
-  it(
+  itDocs(
     'check s3 deletion',
     query(
       `
@@ -238,9 +239,9 @@ describe('S3 Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'adds a new s3 bucket',
     query(
       `  
@@ -253,7 +254,7 @@ describe('S3 Integration Testing', () => {
     ),
   );
 
-  it('applies the s3 bucket change', commit());
+  itDocs('applies the s3 bucket change', commit());
 
   it(
     'check s3 insertion',
@@ -292,14 +293,14 @@ describe('S3 Integration Testing', () => {
     ),
   );
 
-  it(
+  itDocs(
     'adds content to bucket',
     query(
       `SELECT * FROM s3_upload_object('${s3Name}', 'iasql_message', '${bucketContent}', 'application/json')`,
       (res: any[]) => expect(res[0].status).toStrictEqual('OK'),
     ),
   );
-  it(
+  itDocs(
     'adds new content to bucket',
     query(
       `SELECT * FROM s3_upload_object('${s3Name}', 'iasql_message_1', '${bucketContent}', 'application/json')`,
@@ -307,7 +308,7 @@ describe('S3 Integration Testing', () => {
     ),
   );
 
-  it(
+  itDocs(
     'check object insertion',
     query(
       `
@@ -319,9 +320,9 @@ describe('S3 Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'deletes one object of the bucket',
     query(
       `
@@ -333,9 +334,9 @@ describe('S3 Integration Testing', () => {
     ),
   );
 
-  it('applies the s3 object removal', commit());
+  itDocs('applies the s3 object removal', commit());
 
-  it(
+  itDocs(
     'check object deletion',
     query(
       `
@@ -358,7 +359,7 @@ describe('S3 Integration Testing', () => {
     ),
   );
 
-  it(
+  itDocs(
     'gets current bucket policy document',
     query(
       `
@@ -410,7 +411,7 @@ describe('S3 Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'cleans the bucket',
     query(
       `
@@ -425,7 +426,7 @@ describe('S3 Integration Testing', () => {
     ),
   );
 
-  it(
+  itDocs(
     'check no s3 objects still exist',
     query(
       `
@@ -438,7 +439,7 @@ describe('S3 Integration Testing', () => {
   );
 
   describe('S3 bucket policy integration testing', () => {
-    it(
+    itDocs(
       'gets current bucket policy',
       query(
         `
@@ -452,7 +453,7 @@ describe('S3 Integration Testing', () => {
       ),
     );
 
-    it(
+    itDocs(
       'updates the bucket policy',
       query(
         `
@@ -465,7 +466,7 @@ describe('S3 Integration Testing', () => {
     );
     it('applies the s3 bucket policy update', commit());
 
-    it(
+    itDocs(
       'gets current bucket policy with updated document',
       query(
         `
@@ -476,9 +477,9 @@ describe('S3 Integration Testing', () => {
     );
   });
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'adds a new public access block entry',
     query(
       `
@@ -492,9 +493,9 @@ describe('S3 Integration Testing', () => {
     ),
   );
 
-  it('applies creation of public access block', commit());
+  itDocs('applies creation of public access block', commit());
 
-  it(
+  itDocs(
     'checks the public access block exists',
     query(
       `
@@ -526,9 +527,9 @@ describe('S3 Integration Testing', () => {
     }
   });
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'change the public access block',
     query(
       `
@@ -542,9 +543,9 @@ describe('S3 Integration Testing', () => {
     ),
   );
 
-  it('applies update of public access block', commit());
+  itDocs('applies update of public access block', commit());
 
-  it(
+  itDocs(
     'checks public access block is updated',
     query(
       `
@@ -562,7 +563,7 @@ describe('S3 Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'removes the public block entry',
     query(
       `
@@ -578,9 +579,9 @@ describe('S3 Integration Testing', () => {
 
   it('applies deletion of public access block', commit());
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'adds a static website to bucket',
     query(
       `
@@ -593,9 +594,9 @@ describe('S3 Integration Testing', () => {
     ),
   );
 
-  it('applies creation of static website', commit());
+  itDocs('applies creation of static website', commit());
 
-  it(
+  itDocs(
     'checks the static website exists',
     query(
       `
@@ -624,9 +625,9 @@ describe('S3 Integration Testing', () => {
     }
   });
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'change the static website',
     query(
       `
@@ -640,9 +641,9 @@ describe('S3 Integration Testing', () => {
     ),
   );
 
-  it('applies update of static website', commit());
+  itDocs('applies update of static website', commit());
 
-  it(
+  itDocs(
     'checks static website is updated',
     query(
       `
@@ -657,7 +658,7 @@ describe('S3 Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'removes the static website',
     query(
       `

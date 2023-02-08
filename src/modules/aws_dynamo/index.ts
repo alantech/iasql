@@ -202,7 +202,7 @@ class AwsDynamoModule extends ModuleBase {
 /**
  *
  * ```testdoc
- * modules/aws-dynamo-integration.ts#Dynamo Integration Testing#Code examples
+ * modules/aws-dynamo-integration.ts#Dynamo Integration Testing#Manage Dynamo DB
  * ```
  */
 export const awsDynamoModule = new AwsDynamoModule();
