@@ -159,7 +159,7 @@ describe('Cloudfront Integration Testing', () => {
 
   itDocs('starts a transaction', begin());
 
-  itDocs('adds a new s3 distribution', done => {
+  itDocs('adds a new s3 distribution', (done: (arg0: any) => any) => {
     query(
       `
     INSERT INTO distribution (caller_reference, comment, enabled, is_ipv6_enabled, default_cache_behavior, origins )
@@ -170,7 +170,7 @@ describe('Cloudfront Integration Testing', () => {
       () => ({ username, password }),
     )((e?: any) => {
       if (!!e) return done(e);
-      done();
+      done(undefined);
     });
   });
 

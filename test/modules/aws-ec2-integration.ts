@@ -338,7 +338,7 @@ describe('EC2 Integration Testing', () => {
   );
 
   itDocs('starts a transaction', begin());
-  itDocs('adds an instance without security groups and key', done => {
+  itDocs('adds an instance without security groups and key', (done: (arg0: any) => any) => {
     query(
       `
       BEGIN;
@@ -360,7 +360,7 @@ describe('EC2 Integration Testing', () => {
       () => ({ username, password }),
     )((e?: any) => {
       if (!!e) return done(e);
-      done();
+      done(undefined);
     });
   });
 
@@ -404,7 +404,7 @@ describe('EC2 Integration Testing', () => {
 
   itDocs('starts a transaction', begin());
 
-  itDocs('adds two ec2 instance', done => {
+  itDocs('adds two ec2 instance', (done: (arg0: any) => any) => {
     query(
       `
       BEGIN;
@@ -434,7 +434,7 @@ describe('EC2 Integration Testing', () => {
       () => ({ username, password }),
     )((e?: any) => {
       if (!!e) return done(e);
-      done();
+      done(undefined);
     });
   });
 
@@ -991,7 +991,7 @@ describe('EC2 Integration Testing', () => {
 
   itDocs('starts a transaction', begin());
 
-  itDocs('adds an ec2 instance with no security group', done => {
+  itDocs('adds an ec2 instance with no security group', (done: (arg0: any) => any) => {
     query(
       `
       INSERT INTO instance (ami, instance_type, tags, subnet_id)
@@ -1005,7 +1005,7 @@ describe('EC2 Integration Testing', () => {
       () => ({ username, password }),
     )((e?: any) => {
       if (!!e) return done(e);
-      done();
+      done(undefined);
     });
   });
 

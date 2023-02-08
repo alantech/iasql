@@ -595,7 +595,7 @@ describe('AwsCodepipeline Integration Testing', () => {
   // create sample ec2 instance
   itDocs('starts a transaction', begin());
 
-  itDocs('adds an ec2 instance', done => {
+  itDocs('adds an ec2 instance', (done: (arg0: any) => any) => {
     query(
       `
       BEGIN;
@@ -614,7 +614,7 @@ describe('AwsCodepipeline Integration Testing', () => {
       () => ({ username, password }),
     )((e?: any) => {
       if (!!e) return done(e);
-      done();
+      done(undefined);
     });
   });
 

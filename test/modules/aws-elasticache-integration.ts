@@ -140,7 +140,7 @@ describe('Elasticache Integration Testing', () => {
 
   itDocs('starts a transaction', begin());
 
-  itDocs('adds a new cacheCluster', done => {
+  itDocs('adds a new cacheCluster', (done: (arg0: any) => any) => {
     query(
       `
       INSERT INTO cache_cluster (cluster_id, node_type, engine, num_nodes)
@@ -151,7 +151,7 @@ describe('Elasticache Integration Testing', () => {
       () => ({ username, password }),
     )((e?: any) => {
       if (!!e) return done(e);
-      done();
+      done(undefined);
     });
   });
 
@@ -169,7 +169,7 @@ describe('Elasticache Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  itDocs('tries to update cache_cluster node type', done => {
+  itDocs('tries to update cache_cluster node type', (done: (arg0: any) => any) => {
     query(
       `
     UPDATE cache_cluster SET node_type='${updatedNodeType}' WHERE cluster_id='${clusterId}';
@@ -179,7 +179,7 @@ describe('Elasticache Integration Testing', () => {
       () => ({ username, password }),
     )((e?: any) => {
       if (!!e) return done(e);
-      done();
+      done(undefined);
     });
   });
 
