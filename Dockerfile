@@ -1,5 +1,5 @@
-FROM debian:bullseye
-
+# Base image
+FROM debian:bullseye AS base
 # Install OS Packages
 RUN apt update
 RUN apt install curl ca-certificates gnupg build-essential git jq -y
@@ -20,48 +20,71 @@ RUN ["bash", "-c", "curl -fsSL https://deb.nodesource.com/setup_16.x | bash -"]
 RUN apt install nodejs -y
 RUN npm install -g yarn
 
-# Dashboard
-WORKDIR /dashboard
+# Run service
+FROM base AS run-stage
 
-COPY dashboard/package.json package.json
-COPY dashboard/yarn.lock yarn.lock
-RUN yarn install
-
-COPY dashboard/assets assets
-COPY dashboard/public public
-COPY dashboard/tsconfig.json tsconfig.json
-COPY dashboard/tailwind.config.js tailwind.config.js
-COPY dashboard/craco.config.js craco.config.js
-COPY dashboard/src src
-ENV REACT_APP_IASQL_ENV=local
-RUN yarn build
-
-## Run service
-WORKDIR /dashboard/run
-
-COPY dashboard/run/package.json package.json
-COPY dashboard/run/yarn.lock yarn.lock
-RUN yarn install
+WORKDIR /run
 
 COPY dashboard/run/tsconfig.json tsconfig.json
 COPY dashboard/run/src src
-RUN yarn build
 
-# Engine
-WORKDIR /engine
-
-COPY package.json package.json
-COPY yarn.lock yarn.lock
+COPY dashboard/run/package.json dashboard/run/yarn.lock ./
 RUN yarn install
 
-COPY docker-entrypoint.sh docker-entrypoint.sh
-COPY ormconfig.js ormconfig.js
-COPY tsconfig.json tsconfig.json
-COPY src src
 RUN yarn build
+RUN yarn install --production
+
+# Dashboard
+FROM base AS dashboard-stage
+
+WORKDIR /dashboard
+
+COPY dashboard/tsconfig.json dashboard/tailwind.config.js dashboard/craco.config.js ./
+COPY dashboard/public public
+COPY dashboard/src src
+
+COPY dashboard/package.json dashboard/yarn.lock ./
+RUN yarn install
+
+ARG IASQL_ENV=local
+ENV REACT_APP_IASQL_ENV=$IASQL_ENV
+ENV GENERATE_SOURCEMAP=false
+RUN yarn build
+RUN yarn install --production
+
+# Engine
+FROM base AS engine-stage
+
+WORKDIR /engine
+
+COPY docker-entrypoint.sh ormconfig.js tsconfig.json ./
+COPY src src
+
+COPY package.json yarn.lock ./
+RUN yarn install
+
+RUN yarn build
+RUN yarn install --production
+
+# Main stage
+FROM base AS main-stage
 
 COPY ./src/scripts/postgresql.conf /etc/postgresql/14/main/postgresql.conf
 COPY ./src/scripts/pg_hba.conf /etc/postgresql/14/main/pg_hba.conf
+
+WORKDIR /dashboard/run
+COPY --from=run-stage /run/package.json package.json
+COPY --from=run-stage /run/node_modules node_modules
+COPY --from=run-stage /run/dist dist
+
+WORKDIR /dashboard
+COPY --from=dashboard-stage /dashboard/build build
+
+WORKDIR /engine
+COPY --from=engine-stage /engine/package.json /engine/docker-entrypoint.sh ./
+COPY --from=engine-stage /engine/node_modules node_modules
+COPY --from=engine-stage /engine/src/scripts src/scripts
+COPY --from=engine-stage /engine/dist dist
 
 # Default ENVs that can be overwritten
 ARG IASQL_ENV=local

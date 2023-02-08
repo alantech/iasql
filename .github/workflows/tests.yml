@@ -16,6 +16,7 @@ on:
         'yarn.lock',
         'jest.config.js',
         'jest-environment-fail-fast.js',
+        'Dockerfile',
       ]
   pull_request:
     branches: [main]
@@ -28,6 +29,7 @@ on:
         'yarn.lock',
         'jest.config.js',
         'jest-environment-fail-fast.js',
+        'Dockerfile',
       ]
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
