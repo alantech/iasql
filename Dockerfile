@@ -26,6 +26,7 @@ RUN yarn install
 
 ARG IASQL_ENV=local
 ENV REACT_APP_IASQL_ENV=$IASQL_ENV
+ENV GENERATE_SOURCEMAP=false
 RUN yarn build
 RUN yarn install --production
 
