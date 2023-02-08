@@ -61,8 +61,8 @@ In terms of speed, Private Link supports a sustained bandwidth of 10 Gbps per av
 
 This query will find your active S3 buckets for all regions, associated with the existing endpoint gateways or interfaces - if they exist.
 
-```sql TheButton[Query for missing endpoints]="Query for missing endpoints"
--- Installing the needed modules
+```sql title="Query for missing endpoints"
+ -- Installing the needed modules
 SELECT
   iasql_install ('aws_s3', 'aws_vpc');
 
@@ -111,7 +111,9 @@ the desired type in an automated way.
 An interface endpoint is an elastic network interface with a private IP address that serves as an entry
 point for traffic destined to a supported AWS service. As they use ENIs, they can benefit from security groups
 to control traffic.
-<a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/access_controlling.html">IAM policies</a>can also be added to control access to those endpoints.
+
+<a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/access_controlling.html">IAM policies</a>can also be
+added to control access to those endpoints.
 
 They are regional, meaning they can only be accessed by the same region they are created. However, Multi-region is possible by also using VPC peering, so resources in one region can be accessed from others, though this only supports IPv4
 TCP traffic.
@@ -124,9 +126,12 @@ Get more detail about interface endpoints</a>
 
 This query will auto-generate the missing interface endpoints and will preview the changes to be applied on your cloud. Simply uncomment the final statement and run it to make the changes to your cloud account.
 
-```sql TheButton[Insert missing endpoints]="Insert missing endpoints"
+```sql title="Insert missing endpoints"
  -- Inserts the missing endpoints
-SELECT * FROM iasql_begin();
+SELECT
+  *
+FROM
+  iasql_begin ();
 
 INSERT INTO
   endpoint_interface (region, vpc_id, service)
@@ -152,7 +157,7 @@ WHERE
 SELECT
   *
 FROM
-  iasql_preview();
+  iasql_preview ();
 
 -- Commit the changes
 -- SELECT * FROM iasql_commit();
@@ -186,9 +191,12 @@ Gateway endpoints only support S3 and DynamoDB services. <a href="https://docs.a
 
 This query will auto-generate the missing endpoint gateways and will allow you to preview the changes to be applied on your cloud.
 
-```sql TheButton[Insert missing Gateway endpoints]="Insert missing Gateway endpoints"
+```sql title="Insert missing Gateway endpoints"
  -- Inserts the missing endpoints
-SELECT * FROM iasql_begin();
+SELECT
+  *
+FROM
+  iasql_begin ();
 
 INSERT INTO
   endpoint_gateway (region, vpc_id, service)
@@ -210,7 +218,10 @@ WHERE
       AND endpoint_gateway.vpc_id = vpc.id
   )
   -- Preview the changes
-SELECT * FROM iasql_preview();
+SELECT
+  *
+FROM
+  iasql_preview ();
 
 -- Commit the changes
 -- SELECT * FROM iasql_commit();

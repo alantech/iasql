@@ -50,7 +50,7 @@ Please follow this documentation to create the token and ensure that the token h
 
 Before actually creating the deployment pipeline, we need to install several dependencies in IaSQL to be able to install, deploy and serve the application. The following installation script will cover those steps:
 
-```sql TheButton[Install CodePipeline dependencies]="Install CodePipeline dependencies"
+```sql title="Install CodePipeline dependencies"
  -- installs needed modules
 SELECT
   *
@@ -246,7 +246,7 @@ FROM
 
 This fragment will install the required modules, and all the infrastructure needed to deploy the pipeline, including the needed Roles, Security Rules, Storage and Compute on EC2. After this process finishes, the pipeline is ready to go. It can be launched in another query (please remember to replace the _token_ with your current one):
 
-```sql TheButton[Trigger CodePipeline]="Trigger CodePipeline"
+```sql title="Trigger CodePipeline"
 SELECT
   *
 FROM
@@ -360,7 +360,7 @@ The status of the pipeline can be checked via AWS console:
 
 After a small amount of time the pipeline will run and the application will be ready to go. It will be exposed on the EC2 public ip, that can be extracted with:
 
-```sql TheButton[Get public IP]="Get public IP"
+```sql title="Get public IP"
 SELECT
   public_ip_address
 FROM

@@ -10,7 +10,6 @@ const localConfig = {
   phKey: 'phc_xvAQWfpHug7G0SuU5P9wwAbvP9ZawgAfIEZ9FUsiarS',
 };
 const config = process.env.IASQL_ENV === 'local' ? localConfig : prodConfig;
-const theButton = require('./src/rehype/thebutton');
 const testDoc = require('./src/rehype/testdoc');
 
 // With JSDoc @type annotations, IDEs can provide config autocompletion
@@ -35,14 +34,14 @@ const testDoc = require('./src/rehype/testdoc');
         {
           docs: {
             routeBasePath: '/docs',
-            remarkPlugins: [theButton, testDoc],
+            remarkPlugins: [testDoc],
             sidebarPath: require.resolve('./sidebars.js'),
             editUrl: 'https://github.com/iasql/iasql/tree/main/site/',
           },
           blog: {
             showReadingTime: true,
             routeBasePath: '/blog',
-            remarkPlugins: [theButton, testDoc],
+            remarkPlugins: [testDoc],
             exclude: ['unlisted/*'],
             blogSidebarTitle: 'All posts',
             blogSidebarCount: 'ALL',
