@@ -6,7 +6,7 @@ WORKDIR /run
 COPY dashboard/run/tsconfig.json tsconfig.json
 COPY dashboard/run/src src
 
-COPY dashboard/run/package.json dashboard/run/yarn.lock .
+COPY dashboard/run/package.json dashboard/run/yarn.lock ./
 RUN yarn install
 
 RUN yarn build
@@ -17,11 +17,11 @@ FROM node:16-bullseye AS dashboard-stage
 
 WORKDIR /dashboard
 
-COPY dashboard/tsconfig.json dashboard/tailwind.config.js dashboard/craco.config.js .
+COPY dashboard/tsconfig.json dashboard/tailwind.config.js dashboard/craco.config.js ./
 COPY dashboard/public public
 COPY dashboard/src src
 
-COPY dashboard/package.json dashboard/yarn.lock .
+COPY dashboard/package.json dashboard/yarn.lock ./
 RUN yarn install
 
 ARG IASQL_ENV=local
@@ -34,10 +34,10 @@ FROM node:16-bullseye AS engine-stage
 
 WORKDIR /engine
 
-COPY docker-entrypoint.sh ormconfig.js tsconfig.json .
+COPY docker-entrypoint.sh ormconfig.js tsconfig.json ./
 COPY src src
 
-COPY package.json yarn.lock .
+COPY package.json yarn.lock ./
 RUN yarn install
 
 RUN yarn build
@@ -78,7 +78,7 @@ WORKDIR /dashboard
 COPY --from=dashboard-stage /dashboard/build build
 
 WORKDIR /engine
-COPY --from=engine-stage /engine/package.json /engine/docker-entrypoint.sh .
+COPY --from=engine-stage /engine/package.json /engine/docker-entrypoint.sh ./
 COPY --from=engine-stage /engine/node_modules node_modules
 COPY --from=engine-stage /engine/src/scripts src/scripts
 COPY --from=engine-stage /engine/dist dist
