@@ -18,7 +18,6 @@ FROM node:16-bullseye AS dashboard-stage
 WORKDIR /dashboard
 
 COPY dashboard/tsconfig.json dashboard/tailwind.config.js dashboard/craco.config.js .
-COPY dashboard/assets assets
 COPY dashboard/public public
 COPY dashboard/src src
 
@@ -76,8 +75,6 @@ COPY --from=run-stage /run/node_modules node_modules
 COPY --from=run-stage /run/dist dist
 
 WORKDIR /dashboard
-COPY --from=dashboard-stage /dashboard/package.json package.json
-COPY --from=dashboard-stage /dashboard/node_modules node_modules
 COPY --from=dashboard-stage /dashboard/build build
 
 WORKDIR /engine
