@@ -8,14 +8,6 @@ import { AwsRegions } from '../../aws_account/entity';
  *
  * A secret can be a password, a set of credentials such as a user name and password, an OAuth token, or other secret information that you store in an encrypted form in Secrets Manager.
  *
- * @example
- * ```sql TheButton[Manage a secret]="Manage a secret"
- * INSERT INTO secret (name, description, value) VALUES ('secret_name', 'description', 'value');
- * SELECT * FROM secret WHERE description='description';
- * DELETE FROM secret WHERE description='description';
- * ```
- *
- * @see https://github.com/iasql/iasql/blob/b2c2383b73d73f5cdf75c867d334e80cdf40caa1/test/modules/aws-secret-integration.ts#L109
  * @see https://docs.aws.amazon.com/secretsmanager/latest/userguide/intro.html
  */
 @Entity()

@@ -58,4 +58,10 @@ export class AwsSdkModule extends ModuleBase {
   }
 }
 
+/**
+ *
+ * ```testdoc
+ * modules/aws-sdk-integration.ts#AWS Integration Testing#Manage SDK
+ * ```
+ */
 export const awsSdkModule = new AwsSdkModule();

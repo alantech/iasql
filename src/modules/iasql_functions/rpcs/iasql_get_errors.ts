@@ -17,10 +17,6 @@ import {
  * - ts: Error message timestamp
  * - message: Error message
  *
- * @example
- * ```sql
- * SELECT * FROM iasql_get_errors();
- * ```
  *
  */
 export class IasqlGetErrors extends RpcBase {

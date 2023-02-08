@@ -7,6 +7,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  itDocs,
   runBegin,
   runCommit,
   runInstall,
@@ -101,7 +102,7 @@ describe('ECR Integration Testing', () => {
     ),
   );
 
-  it('installs the ecr module', install(modules));
+  itDocs('installs the ecr module', install(modules));
 
   describe('private repository', () => {
     it('starts a transaction', begin());
@@ -133,9 +134,9 @@ describe('ECR Integration Testing', () => {
       ),
     );
 
-    it('starts a transaction', begin());
+    itDocs('starts a transaction', begin());
 
-    it(
+    itDocs(
       'adds a new repository',
       query(
         `
@@ -164,7 +165,7 @@ describe('ECR Integration Testing', () => {
       ),
     );
 
-    it('applies the repository change', commit());
+    itDocs('applies the repository change', commit());
 
     it('starts a transaction', begin());
 
@@ -193,7 +194,7 @@ describe('ECR Integration Testing', () => {
 
     it('syncs the images', commit());
 
-    it(
+    itDocs(
       'check that new images has been created under a private repo',
       query(
         `
@@ -217,7 +218,7 @@ describe('ECR Integration Testing', () => {
 
     it('starts a transaction', begin());
 
-    it(
+    itDocs(
       'deletes image with a tag from a private repo',
       query(
         `DELETE FROM repository_image WHERE private_repository_id = (select id from repository where repository_name = '${repositoryName}') AND image_tag='${repositoryTag}';`,
@@ -260,7 +261,7 @@ describe('ECR Integration Testing', () => {
 
     it('starts a transaction', begin());
 
-    it(
+    itDocs(
       'tries to update a repository field',
       query(
         `
@@ -274,7 +275,7 @@ describe('ECR Integration Testing', () => {
 
     it('applies the change', commit());
 
-    it(
+    itDocs(
       'check adds a new repository',
       query(
         `
@@ -291,7 +292,7 @@ describe('ECR Integration Testing', () => {
 
     it('starts a transaction', begin());
 
-    it(
+    itDocs(
       'adds a new repository policy',
       query(
         `
@@ -356,7 +357,7 @@ describe('ECR Integration Testing', () => {
 
     it('starts a transaction', begin());
 
-    it(
+    itDocs(
       'deletes the repository policy',
       query(
         `
@@ -389,7 +390,7 @@ describe('ECR Integration Testing', () => {
 
     it('starts a transaction', begin());
 
-    it(
+    itDocs(
       'deletes the repository images',
       query(
         `
@@ -401,7 +402,7 @@ describe('ECR Integration Testing', () => {
       ),
     );
 
-    it(
+    itDocs(
       'deletes the repository',
       query(
         `
@@ -459,9 +460,9 @@ describe('ECR Integration Testing', () => {
       ),
     );
 
-    it('starts a transaction', begin());
+    itDocs('starts a transaction', begin());
 
-    it(
+    itDocs(
       'adds a new public repository',
       query(
         `
@@ -486,7 +487,7 @@ describe('ECR Integration Testing', () => {
       ),
     );
 
-    it('applies the public repository change', commit());
+    itDocs('applies the public repository change', commit());
 
     it('starts a transaction', begin());
 
@@ -509,7 +510,7 @@ describe('ECR Integration Testing', () => {
 
     it('syncs the images', commit());
 
-    it(
+    itDocs(
       'check that new images has been created under a public repo',
       query(
         `
@@ -557,7 +558,7 @@ describe('ECR Integration Testing', () => {
 
     it('starts a transaction', begin());
 
-    it(
+    itDocs(
       'deletes the repository images',
       query(
         `
@@ -569,7 +570,7 @@ describe('ECR Integration Testing', () => {
       ),
     );
 
-    it(
+    itDocs(
       'deletes the public repository',
       query(
         `

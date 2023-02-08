@@ -12,6 +12,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  itDocs,
   runBegin,
   runCommit,
   runInstall,
@@ -89,7 +90,7 @@ describe('RouteTable Integration Testing', () => {
     ),
   );
 
-  it('installs the vpc module', install(['aws_vpc']));
+  itDocs('installs the vpc module', install(['aws_vpc']));
 
   it('regions for vpc and route table should be the same', async () => {
     const associations = (await awsVpcModule.routeTableAssociation.db.read(
@@ -98,7 +99,7 @@ describe('RouteTable Integration Testing', () => {
     for (const a of associations) expect(a.vpc.region).toBe(a.routeTable.region);
   });
 
-  it(
+  itDocs(
     'checks each vpc has at least a route table',
     query(
       `
@@ -116,8 +117,8 @@ describe('RouteTable Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
-  it(
+  itDocs('starts a transaction', begin());
+  itDocs(
     'creates a new vpc',
     query(
       `
@@ -130,7 +131,7 @@ describe('RouteTable Integration Testing', () => {
     ),
   );
 
-  it(
+  itDocs(
     'adds a subnet to the vpc',
     query(
       `
@@ -144,10 +145,10 @@ describe('RouteTable Integration Testing', () => {
       () => ({ username, password }),
     ),
   );
-  it('applies creation of the vpc', commit());
+  itDocs('applies creation of the vpc', commit());
 
-  it('starts a transaction', begin());
-  it(
+  itDocs('starts a transaction', begin());
+  itDocs(
     'adds a new route table to the vpc in the region',
     query(
       `
@@ -160,9 +161,9 @@ describe('RouteTable Integration Testing', () => {
       () => ({ username, password }),
     ),
   );
-  it('applies creation of the route table', commit());
+  itDocs('applies creation of the route table', commit());
 
-  it(
+  itDocs(
     'confirms that the default route is created',
     query(
       `
@@ -176,7 +177,7 @@ describe('RouteTable Integration Testing', () => {
     ),
   );
 
-  it(
+  itDocs(
     'checks there is no association for the route table',
     query(
       `
@@ -189,8 +190,8 @@ describe('RouteTable Integration Testing', () => {
       },
     ),
   );
-  it('starts a transaction', begin());
-  it(
+  itDocs('starts a transaction', begin());
+  itDocs(
     'associates the route table to the subnet',
     query(
       `
@@ -207,8 +208,8 @@ describe('RouteTable Integration Testing', () => {
       () => ({ username, password }),
     ),
   );
-  it('applies creation of the route table', commit());
-  it(
+  itDocs('applies creation of the route table', commit());
+  itDocs(
     'checks whether the route table is associated to the subnet',
     query(
       `
@@ -223,7 +224,7 @@ describe('RouteTable Integration Testing', () => {
   );
 
   it('starts a transaction', begin());
-  it(
+  itDocs(
     'deletes the association',
     query(
       `
@@ -236,7 +237,7 @@ describe('RouteTable Integration Testing', () => {
       () => ({ username, password }),
     ),
   );
-  it(
+  itDocs(
     'deletes the route table',
     query(`
       DELETE
@@ -244,7 +245,7 @@ describe('RouteTable Integration Testing', () => {
       WHERE tags ->> 'name' = '${prefix}';
   `),
   );
-  it(
+  itDocs(
     'deletes the subnet and vpc',
     query(`
       DELETE

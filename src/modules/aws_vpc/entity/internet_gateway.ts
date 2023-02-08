@@ -8,12 +8,6 @@ import { Vpc } from './vpc';
  * Table to manage AWS Internet Gateway.
  * An internet gateway is a horizontally scaled, redundant, and highly available VPC component that enables communication between your VPC and the internet.
  *
- * @example
- * ```sql TheButton[Creates a Route table]="Creates a Route table"
- * INSERT INTO internet_gateway (tags, region) VALUES
- * ('{"name":"internet_gateway"}', 'us-east-1');
- * ```
- *
  * @see https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Internet_Gateway.html
  */
 @Entity()

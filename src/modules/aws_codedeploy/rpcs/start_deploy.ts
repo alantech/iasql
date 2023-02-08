@@ -31,18 +31,6 @@ import { Context, RpcBase, RpcResponseObject } from '../../interfaces';
  *
  * - message: Error message in case of failure
  *
- * @example
- * ```sql TheButton[Deploy CodeDeploy application]="Deploy CodeDeploy application"
- *   select * from start_deployment('test', 'test', '{
- * "revisionType": "GitHub",
- * "gitHubLocation": {
- *   "repository": "iasql/iasql-codedeploy-example",
- *   "commitId": "cf6aa63cbd2502a5d1064363c2af5c56cc2107cc"
- * }
- * }', 'us-east-2');
- * ```
- *
- * @see https://github.com/iasql/iasql/blob/main/test/modules/aws-codebuild-integration.ts#L313
  * @see https://docs.aws.amazon.com/cli/latest/reference/deploy/create-deployment.html
  *
  */

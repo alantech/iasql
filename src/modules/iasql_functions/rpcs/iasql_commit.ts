@@ -16,10 +16,6 @@ import * as iasql from '../iasql';
  *
  * @see https://iasql.com/docs/transaction
  *
- * @example
- * ```sql
- * SELECT * FROM iasql_commit();
- * ```
  *
  */
 export class IasqlCommit extends RpcBase {

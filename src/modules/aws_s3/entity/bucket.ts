@@ -9,12 +9,6 @@ import { AwsRegions } from '../../aws_account/entity';
  *
  * A bucket is a container for objects stored in Amazon S3. You can store any number of objects in a bucket and can have up to 100 buckets in your account.
  *
- * @example
- * ```sql TheButton[Creates a bucket]="Creates a bucket"
- * INSERT INTO bucket (name) VALUES ('bucket');
- * ```
- *
- * @see https://github.com/iasql/iasql/blob/b2c2383b73d73f5cdf75c867d334e80cdf40caa1/test/modules/aws-s3-integration.ts#L129
  * @see https://aws.amazon.com/s3/
  */
 @Entity()

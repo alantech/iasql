@@ -14,12 +14,6 @@ import { Context, RpcBase, RpcResponseObject } from '../../interfaces';
  * - status: OK if the certificate was imported successfully
  * - message: Error message in case of failure
  *
- * @example
- * ```sql TheButton[Import an EC2 keypair]="Import an EC2 keypair"
- * SELECT * FROM key_pair_import ('test-key', '<content_for_ssh_key>', 'us-east-1');
- * ```
- *
- * @see https://github.com/iasql/iasql/blob/main/test/modules/aws-ec2-integration.ts#L320
  * @see https://docs.aws.amazon.com/cli/latest/reference/ec2/import-key-pair.html
  *
  */

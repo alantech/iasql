@@ -5,6 +5,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  itDocs,
   runBegin,
   runCommit,
   runInstall,
@@ -79,7 +80,7 @@ describe('Dynamo Integration Testing', () => {
     ),
   );
 
-  it('installs the dynamo module', install(modules));
+  itDocs('installs the dynamo module', install(modules));
 
   it('starts a transaction', begin());
 
@@ -115,9 +116,9 @@ describe('Dynamo Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'creates a Dynamo table',
     query(
       `
@@ -135,9 +136,9 @@ describe('Dynamo Integration Testing', () => {
     ),
   );
 
-  it('applies the change', commit());
+  itDocs('applies the change', commit());
 
-  it(
+  itDocs(
     'checks the table was added',
     query(
       `
@@ -151,7 +152,7 @@ describe('Dynamo Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'changes the column definition',
     query(
       `
@@ -185,7 +186,7 @@ describe('Dynamo Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'removes the dynamo table',
     query(
       `
@@ -224,9 +225,9 @@ describe('Dynamo Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'creates a table in a non-default region',
     query(
       `
@@ -245,9 +246,9 @@ describe('Dynamo Integration Testing', () => {
     ),
   );
 
-  it('applies the change', commit());
+  itDocs('applies the change', commit());
 
-  it(
+  itDocs(
     'checks the table was added',
     query(
       `
@@ -262,9 +263,9 @@ describe('Dynamo Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'changes the region the table is located in',
     query(
       `
@@ -278,9 +279,9 @@ describe('Dynamo Integration Testing', () => {
     ),
   );
 
-  it('applies the replacement', commit());
+  itDocs('applies the replacement', commit());
 
-  it(
+  itDocs(
     'checks the table was moved',
     query(
       `

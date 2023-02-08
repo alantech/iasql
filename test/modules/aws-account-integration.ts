@@ -9,6 +9,7 @@ import {
   runCommit,
   runInstall,
   runQuery,
+  itDocs,
 } from '../helpers';
 
 const latestVersion = config.version;
@@ -52,9 +53,9 @@ describe('AwsAccount Integration Testing', () => {
     })();
   });
 
-  it('installs the aws_account module', install(['aws_account']));
+  itDocs('installs the aws_account module', install(['aws_account']));
 
-  it(
+  itDocs(
     'inserts aws credentials',
     query(
       `
@@ -83,7 +84,7 @@ describe('AwsAccount Integration Testing', () => {
 
   it('does absolutely nothing when you apply this', commit());
 
-  it(
+  itDocs(
     'selects a default region',
     query(
       `
@@ -95,7 +96,7 @@ describe('AwsAccount Integration Testing', () => {
     ),
   );
 
-  it(
+  itDocs(
     'confirms that the default region was set',
     query(
       `
@@ -133,7 +134,7 @@ describe('AwsAccount Integration Testing', () => {
     ),
   );
 
-  it(
+  itDocs(
     'updates the default region with the handy `default_aws_region` function',
     query(
       `
@@ -146,7 +147,7 @@ describe('AwsAccount Integration Testing', () => {
     ),
   );
 
-  it(
+  itDocs(
     'clears out the default region',
     query(
       `
@@ -158,7 +159,7 @@ describe('AwsAccount Integration Testing', () => {
     ),
   );
 
-  it(
+  itDocs(
     'confirms the `default_aws_region` still returns a default region',
     query(
       `
@@ -214,7 +215,7 @@ describe('AwsAccount Integration Testing', () => {
     ),
   );
 
-  it(
+  itDocs(
     'returns records when calling iasql_help',
     query(
       `

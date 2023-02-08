@@ -12,4 +12,9 @@ export class AwsSnsModule extends ModuleBase {
   }
 }
 
+/**
+ * ```testdoc
+ * modules/aws-sns-integration.ts#AwsSNS Integration Testing#Manage SNS
+ * ```
+ */
 export const awsSnsModule = new AwsSnsModule();

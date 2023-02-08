@@ -222,4 +222,11 @@ class AwsSecretsManagerModule extends ModuleBase {
     super.init();
   }
 }
+
+/**
+ *
+ * ```testdoc
+ * modules/aws-secret-integration.ts#Secrets Manager Integration Testing#Manage secrets
+ * ```
+ */
 export const awsSecretsManagerModule = new AwsSecretsManagerModule();

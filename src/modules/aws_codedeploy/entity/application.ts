@@ -19,14 +19,6 @@ export enum ComputePlatform {
  * by CodeDeploy to ensure that the correct revision, deployment configuration, and deployment group are
  * referenced during a deployment.
  *
- * @example
- * ```sql TheButton[Manage a CodeDeploy app]="Manage a CodeDeploy app"
- * INSERT INTO codedeploy_application (name, compute_platform) VALUES ('application-name', 'Server');
- * SELECT * FROM codedeploy_application WHERE name='application-name';
- * DELETE FROM codedeploy_application WHERE name = 'application-name';
- * ```
- *
- * @see https://github.com/iasql/iasql/blob/main/test/modules/aws-codedeploy-integration.ts#L289
  * @see https://docs.aws.amazon.com/codedeploy/latest/userguide/applications-create.html
  *
  */

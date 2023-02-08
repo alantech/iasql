@@ -34,22 +34,6 @@ export enum State {
  * in the Amazon Web Services (AWS) Cloud. You can use Amazon EC2 to launch as many or as few virtual servers
  * as you need, configure security and networking, and manage storage.
  *
- * @example
- * ```sql TheButton[Manage an EC2 instance]="Manage an EC2 instance"
- * INSERT INTO instance (ami, instance_type, tags, subnet_id)
- *         SELECT '<internal-ami-id>', 't1.small', '{"name":"test-vm"}', id
- *         FROM subnet
- *         WHERE availability_zone = 'us-east-1a'
- *         LIMIT 1;
- *
- * UPDATE instance SET role_name = 'role_name' WHERE tags ->> 'name' = 'test-vm';
- *
- * SELECT * FROM instance WHERE tags ->> 'name' = 'test-vm';
- *
- * DELETE FROM instance  WHERE tags ->> 'name' = 'test-vm';
- * ```
- *
- * @see https://github.com/iasql/iasql/blob/main/test/modules/aws-ec2-integration.ts#L219
  * @see https://aws.amazon.com/ec2/features
  */
 @Entity()

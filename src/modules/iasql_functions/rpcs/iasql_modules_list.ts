@@ -17,10 +17,6 @@ import * as iasql from '../iasql';
  * - dependencies: complex type representing the dependencies for the module
  *
  *
- * @example
- * ```sql
- * SELECT * FROM iasql_modules_list();
- * ```
  *
  * @see https://iasql.com/docs/module/
  *

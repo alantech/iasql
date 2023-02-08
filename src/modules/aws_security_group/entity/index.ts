@@ -17,14 +17,6 @@ import { Vpc } from '../../aws_vpc/entity';
  * Table to manage AWS security groups.
  * A security group controls the traffic that is allowed to reach and leave the resources that it is associated with.
  *
- * @example
- * ```sql TheButton[Manage a Security group]="Manage a Security group"
- * INSERT INTO security_group (description, group_name) VALUES ('sg description', 'sg_name');
- * SELECT * FROM security_group WHERE group_name = 'sg_name';
- * DELETE FROM security_group WHERE group_name = 'sg_name';
- * ```
- *
- * @see https://github.com/iasql/iasql/blob/b2c2383b73d73f5cdf75c867d334e80cdf40caa1/test/modules/aws-security-group-integration.ts#L122
  * @see https://docs.aws.amazon.com/vpc/latest/userguide/VPC_SecurityGroups.html
  */
 @Unique('UQ_groupNameByVpc', ['groupName', 'vpc'])
@@ -115,18 +107,6 @@ export class SecurityGroup {
  * Table to manage AWS security group rules. The rules of a security group control the inbound traffic that's allowed to reach the
  * instances that are associated with the security group. The rules also control the outbound traffic that's allowed to leave them.
  *
- * @example
- * ```sql TheButton[Manage security group rules]="Manage security group rules"
- * INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
- * SELECT true, 'tcp', 443, 443, '0.0.0.0/8', 'rule_name', id FROM security_group WHERE group_name = 'sg_name';
- *
- * SELECT * FROM security_group_rule INNER JOIN security_group ON security_group.id = security_group_rule.security_group_id
- * WHERE group_name = 'sg_name';
- *
- * DELETE FROM security_group_rule WHERE source_security_group = (SELECT id FROM security_group WHERE group_name='sg_name')
- * ```
- *
- * @see https://github.com/iasql/iasql/blob/main/test/modules/aws-security-group-integration.ts#L151
  * @see https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/security-group-rules.html
  */
 @Unique('UQ_rule', ['isEgress', 'ipProtocol', 'fromPort', 'toPort', 'cidrIpv4', 'securityGroup'])

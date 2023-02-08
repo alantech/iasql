@@ -9,14 +9,6 @@ import { AwsRegions } from '../../aws_account/entity';
  * When you create a cluster in an Amazon VPC, you can specify a subnet group or use the default one provided.
  * MemoryDB uses that subnet group to choose a subnet and IP addresses within that subnet to associate with your nodes.
  *
- * @example
- * ```sql TheButton[Manage a MemoryDB subnet group]="Manage a MemoryDB subnet group"
- * INSERT INTO subnet_group (subnet_group_name) VALUES ('subnet_group');
- * SELECT * FROM subnet_group WHERE subnet_group_name = 'subnet_group';
- * DELETE FROM subnet_group WHERE subnet_group_name = 'subnet_group';
- * ```
- *
- * @see https://github.com/iasql/iasql/blob/b2c2383b73d73f5cdf75c867d334e80cdf40caa1/test/modules/aws-memory-db-integration.ts#L109
  * @see https://docs.aws.amazon.com/memorydb/latest/devguide/subnetgroups.html
  */
 @Entity()

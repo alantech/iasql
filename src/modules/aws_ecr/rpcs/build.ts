@@ -20,13 +20,6 @@ import { AwsEcrModule } from '../index';
  * - githubRef: Git reference for the source code repo
  * - githubPersonalAccessToken: Personal Access Token used to access private repositories
  *
- * @example
- * ```sql TheButton[Trigger an ECR image build]="Trigger an ECR image build"
- * SELECT ecr_build('https://github.com/iasql/docker-helloworld',
- * (SELECT id FROM repository WHERE repository_name = '${repositoryName}')::varchar(255), '.', 'main', '<personal_access_token>');
- * ```
- *
- * @see https://github.com/iasql/iasql/blob/b2c2383b73d73f5cdf75c867d334e80cdf40caa1/test/modules/aws-ecr-build-integration.ts#L104
  * @see https://docs.aws.amazon.com/codebuild/latest/userguide/sample-ecr.html
  *
  */

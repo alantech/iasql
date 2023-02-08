@@ -11,6 +11,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  itDocs,
   runBegin,
   runCommit,
   runInstall,
@@ -110,7 +111,7 @@ describe('Route53 Integration Testing', () => {
     ),
   );
 
-  it('installs module', install(modules));
+  itDocs('installs module', install(modules));
 
   it('starts a transaction', begin());
 
@@ -153,9 +154,9 @@ describe('Route53 Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'adds a new hosted zone',
     query(
       `
@@ -180,9 +181,9 @@ describe('Route53 Integration Testing', () => {
     ),
   );
 
-  it('applies the hosted zone change', commit());
+  itDocs('applies the hosted zone change', commit());
 
-  it(
+  itDocs(
     'check adds a new hosted zone',
     query(
       `
@@ -194,7 +195,7 @@ describe('Route53 Integration Testing', () => {
     ),
   );
 
-  it(
+  itDocs(
     'check default record sets have been added',
     query(
       `
@@ -285,9 +286,9 @@ describe('Route53 Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'adds a new record to hosted zone',
     query(
       `
@@ -315,9 +316,9 @@ describe('Route53 Integration Testing', () => {
     ),
   );
 
-  it('applies new resource record set', commit());
+  itDocs('applies new resource record set', commit());
 
-  it(
+  itDocs(
     'check default record sets have been added',
     query(
       `
@@ -330,9 +331,9 @@ describe('Route53 Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'adds a new A record to hosted zone',
     query(
       `
@@ -369,9 +370,9 @@ describe('Route53 Integration Testing', () => {
     ),
   );
 
-  it('applies new resource record set', commit());
+  itDocs('applies new resource record set', commit());
 
-  it(
+  itDocs(
     'check alias target record has been added',
     query(
       `
@@ -438,9 +439,9 @@ describe('Route53 Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'adds a new record to hosted zone',
     query(
       `
@@ -468,9 +469,9 @@ describe('Route53 Integration Testing', () => {
     ),
   );
 
-  it('applies new multiline resource record set', commit());
+  itDocs('applies new multiline resource record set', commit());
 
-  it(
+  itDocs(
     'check multiline record set have been added',
     query(
       `
@@ -492,9 +493,9 @@ describe('Route53 Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'updates a record name',
     query(
       `
@@ -509,9 +510,9 @@ describe('Route53 Integration Testing', () => {
     ),
   );
 
-  it('applies updates a record name', commit());
+  itDocs('applies updates a record name', commit());
 
-  it(
+  itDocs(
     'check records after update',
     query(
       `
@@ -573,7 +574,7 @@ describe('Route53 Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'deletes the hosted zone with the same name',
     query(
       `
@@ -595,7 +596,7 @@ describe('Route53 Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'deletes records',
     query(
       `
@@ -624,7 +625,7 @@ describe('Route53 Integration Testing', () => {
 
   it('applies deletes records', commit());
 
-  it(
+  itDocs(
     'check records after delete. SOA and NS recordsets have to be keeped',
     query(
       `
@@ -639,7 +640,7 @@ describe('Route53 Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'deletes mandatory records and hosted zone',
     query(
       `
@@ -684,7 +685,7 @@ describe('Route53 Integration Testing', () => {
 
   it('applies deletes records', commit());
 
-  it(
+  itDocs(
     'check records after delete',
     query(
       `
@@ -697,7 +698,7 @@ describe('Route53 Integration Testing', () => {
     ),
   );
 
-  it(
+  itDocs(
     'check hosted zones after delete',
     query(
       `

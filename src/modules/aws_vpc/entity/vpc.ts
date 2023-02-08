@@ -17,22 +17,6 @@ export enum VpcState {
  * Amazon Virtual Private Cloud (Amazon VPC) gives you full control over your virtual networking
  * environment, including resource placement, connectivity, and security.
  *
- * @example
- * ```sql TheButton[VPC creation]="Create a VPC and the associated subnet"
- * SELECT * FROM iasql_install('aws_vpc');
- *
- * INSERT INTO vpc (cidr_block) VALUES ('192.168.0.0/16');
- *
- * SELECT * FROM vpc WHERE cidr_block='192.168.0.0/16' AND state='available';
- *
- * INSERT INTO subnet (availability_zone, vpc_id, cidr_block) SELECT
- * (SELECT * FROM availability_zone LIMIT 1), id, '192.168.0.0/16' FROM vpc
- * WHERE is_default = false AND cidr_block = '192.168.0.0/16';
- *
- * DELETE FROM vpc WHERE cidr_block = '192.168.0.0/16';
- * ```
- *
- * @see https://github.com/iasql/iasql/blob/main/test/modules/aws-vpc-integration.ts#L121L122
  * @see https://aws.amazon.com/vpc/
  */
 @Unique('uq_vpc_region', ['id', 'region'])

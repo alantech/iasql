@@ -5,6 +5,7 @@ import {
   execComposeDown,
   execComposeUp,
   finish,
+  itDocs,
   runBegin,
   runCommit,
   runInstall,
@@ -90,9 +91,9 @@ describe('AwsCodebuild Integration Testing', () => {
     ),
   );
 
-  it('installs the codebuild module', install(modules));
+  itDocs('installs the codebuild module', install(modules));
 
-  it(
+  itDocs(
     'check generate_put_ecr_image_build_spec with no build args',
     query(
       `
@@ -121,7 +122,7 @@ phases:
     ),
   );
 
-  it(
+  itDocs(
     'check generate_put_ecr_image_build_spec',
     query(
       `
@@ -150,7 +151,7 @@ phases:
     ),
   );
 
-  it(
+  itDocs(
     'imports a new source credential',
     query(
       `
@@ -166,7 +167,7 @@ phases:
     ),
   );
 
-  it(
+  itDocs(
     'check new source_credentials_list',
     query(
       `
@@ -180,7 +181,7 @@ phases:
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'delete source_credentials_list',
     query(
       `
@@ -207,9 +208,9 @@ phases:
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'adds a new repository',
     query(
       `
@@ -222,7 +223,7 @@ phases:
     ),
   );
 
-  it(
+  itDocs(
     'adds a new role',
     query(
       `
@@ -238,7 +239,7 @@ phases:
     ),
   );
 
-  it(
+  itDocs(
     'adds a new codebuild_project with codepipeline type',
     query(
       `
@@ -251,9 +252,9 @@ phases:
     ),
   );
 
-  it('apply codebuild_project codepipeline creation', commit());
+  itDocs('apply codebuild_project codepipeline creation', commit());
 
-  it(
+  itDocs(
     'check new project exists',
     query(
       `
@@ -267,7 +268,7 @@ phases:
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'deletes codebuild codepipeline project',
     query(
       `
@@ -294,7 +295,7 @@ phases:
 
   it('apply codebuild_project creation', commit());
 
-  it(
+  itDocs(
     'start and wait for build',
     query(
       `
@@ -322,7 +323,7 @@ phases:
 
   it('installs the codebuild module', install(modules));
 
-  it(
+  itDocs(
     'check build exists in list',
     query(
       `
@@ -333,8 +334,8 @@ phases:
     ),
   );
 
-  it('starts a transaction', begin());
-  it(
+  itDocs('starts a transaction', begin());
+  itDocs(
     'creates a project that pushes to ecr',
     query(
       `
@@ -361,9 +362,9 @@ phases:
       () => ({ username, password }),
     ),
   );
-  it('apply creation of codebuild project', commit());
+  itDocs('apply creation of codebuild project', commit());
 
-  it(
+  itDocs(
     'start ecr build and wait',
     query(
       `
@@ -376,7 +377,7 @@ phases:
     ),
   );
 
-  it(
+  itDocs(
     'check successful build exists in list',
     query(
       `
@@ -391,7 +392,7 @@ phases:
 
   it('syncs the ecr images', commit());
 
-  it(
+  itDocs(
     'checks the image is pushed to ecr',
     query(
       `
@@ -408,7 +409,7 @@ phases:
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'deletes the image',
     query(
       `
@@ -422,7 +423,7 @@ phases:
     ),
   );
 
-  it(
+  itDocs(
     'delete build',
     query(
       `
@@ -435,7 +436,7 @@ phases:
     ),
   );
 
-  it(
+  itDocs(
     'delete project',
     query(
       `
@@ -448,7 +449,7 @@ phases:
     ),
   );
 
-  it(
+  itDocs(
     'delete repository',
     query(
       `
@@ -461,7 +462,7 @@ phases:
     ),
   );
 
-  it(
+  itDocs(
     'delete role',
     query(
       `

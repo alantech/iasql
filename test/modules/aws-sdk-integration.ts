@@ -11,6 +11,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  itDocs,
   runBegin,
   runCommit,
   runInstall,
@@ -79,9 +80,9 @@ describe('AWS Integration Testing', () => {
     ),
   );
 
-  it('installs the aws sdk module', install(['aws_sdk']));
+  itDocs('installs the aws sdk module', install(['aws_sdk']));
 
-  it(
+  itDocs(
     'get IAM groups list',
     query(
       `
@@ -94,7 +95,7 @@ describe('AWS Integration Testing', () => {
     ),
   );
 
-  it(
+  itDocs(
     'creates an IAM group',
     query(
       `
@@ -109,7 +110,7 @@ describe('AWS Integration Testing', () => {
     ),
   );
 
-  it(
+  itDocs(
     'gets the created IAM group',
     query(
       `
@@ -125,9 +126,9 @@ describe('AWS Integration Testing', () => {
     ),
   );
 
-  it('installs vpc module', install(['aws_vpc']));
+  itDocs('installs vpc module', install(['aws_vpc']));
 
-  it(
+  itDocs(
     'executes a request per each default vpc and checks vpc_id and cidr_block',
     query(
       `
@@ -147,7 +148,7 @@ describe('AWS Integration Testing', () => {
     ),
   );
 
-  it(
+  itDocs(
     'creates a route table',
     query(`
         SELECT invoke_ec2(
@@ -165,7 +166,7 @@ describe('AWS Integration Testing', () => {
   it('starts a new transaction', begin());
   it('commits transaction to sync', commit());
 
-  it(
+  itDocs(
     'checks the route table is created',
     query(
       `
@@ -180,7 +181,7 @@ describe('AWS Integration Testing', () => {
   );
 
   it('starts a new transaction', begin());
-  it(
+  itDocs(
     'deletes the route table',
     query(
       `

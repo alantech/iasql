@@ -5,6 +5,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  itDocs,
   runBegin,
   runCommit,
   runInstall,
@@ -97,11 +98,11 @@ describe('AwsCloudwatch and AwsLambda Integration Testing', () => {
     ),
   );
 
-  it('installs modules', install(modules));
+  itDocs('installs modules', install(modules));
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'adds a new lambda function and role',
     query(
       `
@@ -133,14 +134,14 @@ describe('AwsCloudwatch and AwsLambda Integration Testing', () => {
     ),
   );
 
-  it(
+  itDocs(
     'invoke function',
     query(`SELECT * FROM invoke_lambda_function('${resourceName}');`, (res: any[]) =>
       expect(res.length).toBe(1),
     ),
   );
 
-  it(
+  itDocs(
     'tail logs function',
     query(`SELECT * FROM log_group_tail('${lambdaLogGroupName}');`, (res: any[]) =>
       expect(res.length).toBeGreaterThan(0),

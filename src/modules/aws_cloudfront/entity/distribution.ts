@@ -32,25 +32,6 @@ export enum originProtocolPolicyEnum {
  *
  * You create a CloudFront distribution to tell CloudFront where you want content to be delivered from, and the details about how to track and manage content delivery.
  *
- * @example
- * ```sql TheButton[Manage a CloudFront distribution]="Manage a CloudFront distribution"
- *  INSERT INTO distribution (caller_reference, comment, enabled, is_ipv6_enabled, default_cache_behavior, origins ) VALUES ('s3-bucket-ref', 'a comment', true, false, "{
- * TargetOriginId: s3-caller,
- * ViewerProtocolPolicy: 'allow-all',
- * CachePolicyId: 'cache-policy-id',
- * }"", '[
- * {
- *   DomainName: `custom-bucket.s3.amazonaws.com`,
- *   Id: s3OriginId,
- *   S3OriginConfig: { OriginAccessIdentity: '' },
- * },
- * ]');
- *
- * SELECT * FROM distribution WHERE caller_reference='s3-bucket-ref';
- * DELETE FROM distribution WHERE caller_reference = 's3-bucket-ref';
- * ```
- *
- * @see https://github.com/iasql/iasql/blob/main/test/modules/aws-cloudfront-integration.ts#L148
  * @see https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/Introduction.html
  *
  */

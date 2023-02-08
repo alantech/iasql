@@ -36,12 +36,6 @@ enum ValidationMethod {
  *
  * - message: Error message in case of failure
  *
- * @example
- * ```sql
- *   SELECT * FROM certificate_request('fakeDomain.com', 'DNS', 'us-east-2', '');
- * ```
- *
- * @see https://github.com/iasql/iasql/blob/main/test/modules/aws-acm-request-integration.ts#L83
  * @see https://aws.amazon.com/certificate-manager
  *
  */

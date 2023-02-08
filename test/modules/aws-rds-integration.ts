@@ -5,6 +5,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  itDocs,
   runBegin,
   runCommit,
   runInstall,
@@ -81,7 +82,7 @@ describe('RDS Integration Testing', () => {
     ),
   );
 
-  it('installs the rds module', install(modules));
+  itDocs('installs the rds module', install(modules));
 
   it('starts a transaction', begin());
 
@@ -130,9 +131,9 @@ describe('RDS Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'creates an RDS instance',
     query(
       `
@@ -150,9 +151,9 @@ describe('RDS Integration Testing', () => {
     ),
   );
 
-  it('applies the change', commit());
+  itDocs('applies the change', commit());
 
-  it(
+  itDocs(
     'check adds a new repository',
     query(
       `
@@ -164,7 +165,7 @@ describe('RDS Integration Testing', () => {
     ),
   );
 
-  it(
+  itDocs(
     'check adds a new repository',
     query(
       `
@@ -179,7 +180,7 @@ describe('RDS Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'changes the postgres version',
     query(
       `
@@ -193,9 +194,9 @@ describe('RDS Integration Testing', () => {
 
   it('applies the change', commit());
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'creates an RDS parameter group',
     query(
       `
@@ -208,9 +209,9 @@ describe('RDS Integration Testing', () => {
     ),
   );
 
-  it('applies the change', commit());
+  itDocs('applies the change', commit());
 
-  it(
+  itDocs(
     'check parameter group insertion',
     query(
       `
@@ -236,7 +237,7 @@ describe('RDS Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'changes all boolean parameters for the new parameter group to be true',
     query(
       `
@@ -264,7 +265,7 @@ describe('RDS Integration Testing', () => {
 
   it('applies the change', commit());
 
-  it(
+  itDocs(
     'check all modifiable boolean parameters are true',
     query(
       `
@@ -306,7 +307,7 @@ describe('RDS Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'removes the RDS instance',
     query(
       `
@@ -319,7 +320,7 @@ describe('RDS Integration Testing', () => {
     ),
   );
 
-  it(
+  itDocs(
     'check rds delete count',
     query(
       `
@@ -347,7 +348,7 @@ describe('RDS Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'removes the parameter group and it parameters',
     query(
       `
@@ -360,7 +361,7 @@ describe('RDS Integration Testing', () => {
     ),
   );
 
-  it(
+  itDocs(
     'check parameter group count after delete',
     query(
       `

@@ -22,4 +22,9 @@ export class AwsElbModule extends ModuleBase {
   }
 }
 
+/**
+ * ```testdoc
+ * modules/aws-elb-integration.ts#ELB Integration Testing#Manage ELB
+ * ```
+ */
 export const awsElbModule = new AwsElbModule();

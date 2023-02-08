@@ -5,6 +5,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  itDocs,
   runBegin,
   runCommit,
   runInstall,
@@ -96,7 +97,7 @@ describe('API Gateway Integration Testing', () => {
     ),
   );
 
-  it('installs the API gateway module', install(modules));
+  itDocs('installs the API gateway module', install(modules));
 
   it('starts a transaction', begin());
 
@@ -115,9 +116,9 @@ describe('API Gateway Integration Testing', () => {
 
   it('undo changes', rollback());
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'adds a new API gateway',
     query(
       `
@@ -130,9 +131,9 @@ describe('API Gateway Integration Testing', () => {
     ),
   );
 
-  it('applies the API gateway change', commit());
+  itDocs('applies the API gateway change', commit());
 
-  it(
+  itDocs(
     'check API gateway is available',
     query(
       `
@@ -142,9 +143,9 @@ describe('API Gateway Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'tries to update API description',
     query(
       `
@@ -156,9 +157,9 @@ describe('API Gateway Integration Testing', () => {
     ),
   );
 
-  it('applies the API description update', commit());
+  itDocs('applies the API description update', commit());
 
-  it(
+  itDocs(
     'checks that API has been been modified',
     query(
       `
@@ -245,7 +246,7 @@ describe('API Gateway Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'deletes the API',
     query(
       `

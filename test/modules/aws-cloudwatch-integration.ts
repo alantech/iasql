@@ -5,6 +5,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  itDocs,
   runBegin,
   runCommit,
   runInstall,
@@ -83,7 +84,7 @@ describe('AwsCloudwatch Integration Testing', () => {
     ),
   );
 
-  it('installs the cloudwatch module', install(modules));
+  itDocs('installs the cloudwatch module', install(modules));
 
   it('starts a transaction', begin());
 
@@ -114,9 +115,9 @@ describe('AwsCloudwatch Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'adds a new log group',
     query(
       `
@@ -129,7 +130,7 @@ describe('AwsCloudwatch Integration Testing', () => {
     ),
   );
 
-  it(
+  itDocs(
     'check adds a new log group',
     query(
       `
@@ -141,7 +142,7 @@ describe('AwsCloudwatch Integration Testing', () => {
     ),
   );
 
-  it('applies the log group change', commit());
+  itDocs('applies the log group change', commit());
 
   it('uninstalls the cloudwatch module', uninstall(modules));
 
@@ -165,7 +166,7 @@ describe('AwsCloudwatch Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'deletes the log group',
     query(
       `
@@ -194,7 +195,7 @@ describe('AwsCloudwatch Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'creates a log group in default region',
     query(
       `
@@ -316,9 +317,9 @@ describe('AwsCloudwatch Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'deletes the log group in the default region',
     query(
       `
@@ -331,9 +332,9 @@ describe('AwsCloudwatch Integration Testing', () => {
     ),
   );
 
-  it('applies deletion of the log group in the default region', commit());
+  itDocs('applies deletion of the log group in the default region', commit());
 
-  it(
+  itDocs(
     'checks the deletion of all of the log groups',
     query(
       `
@@ -364,7 +365,7 @@ describe('AwsCloudwatch Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'moves the log group to a new region',
     query(
       `
@@ -443,9 +444,9 @@ describe('AwsCloudwatch Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'adds a new alarm',
     query(
       `
@@ -458,7 +459,7 @@ describe('AwsCloudwatch Integration Testing', () => {
     ),
   );
 
-  it(
+  itDocs(
     'check adds a new alarm',
     query(
       `
@@ -470,7 +471,7 @@ describe('AwsCloudwatch Integration Testing', () => {
     ),
   );
 
-  it('applies the alarm change', commit());
+  itDocs('applies the alarm change', commit());
 
   it('starts a transaction', begin());
 
@@ -500,9 +501,9 @@ describe('AwsCloudwatch Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'tries to add metric actions',
     query(
       `
@@ -514,9 +515,9 @@ describe('AwsCloudwatch Integration Testing', () => {
     ),
   );
 
-  it('applies the metric alarm change to update periods', commit());
+  itDocs('applies the metric alarm change to update periods', commit());
 
-  it(
+  itDocs(
     'check evaluation periods has been modified',
     query(
       `
@@ -530,7 +531,7 @@ describe('AwsCloudwatch Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'deletes the metric alarm',
     query(
       `

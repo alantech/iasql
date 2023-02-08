@@ -5,6 +5,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  itDocs,
   runBegin,
   runCommit,
   runInstall,
@@ -117,11 +118,11 @@ describe('Lambda Integration Testing', () => {
     ),
   );
 
-  it('installs the lambda module', install(modules));
+  itDocs('installs the lambda module', install(modules));
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'adds a new security group',
     query(
       `  
@@ -134,7 +135,7 @@ describe('Lambda Integration Testing', () => {
     ),
   );
 
-  it(
+  itDocs(
     'adds security group rules',
     query(
       `
@@ -152,7 +153,7 @@ describe('Lambda Integration Testing', () => {
       () => ({ username, password }),
     ),
   );
-  it('applies the security group and rules creation', commit());
+  itDocs('applies the security group and rules creation', commit());
 
   it('starts a transaction', begin());
 
@@ -188,9 +189,9 @@ describe('Lambda Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'adds a new lambda role',
     query(
       `
@@ -203,11 +204,11 @@ describe('Lambda Integration Testing', () => {
     ),
   );
 
-  it('applies the iam role creation', commit());
+  itDocs('applies the iam role creation', commit());
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'adds a new lambda function',
     query(
       `
@@ -226,9 +227,9 @@ describe('Lambda Integration Testing', () => {
     ),
   );
 
-  it('applies the lambda function change', commit());
+  itDocs('applies the lambda function change', commit());
 
-  it(
+  itDocs(
     'check function insertion',
     query(
       `
@@ -239,7 +240,7 @@ describe('Lambda Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(1),
     ),
   );
-  it(
+  itDocs(
     'check security group insertion',
     query(
       `
@@ -252,7 +253,7 @@ describe('Lambda Integration Testing', () => {
   );
 
   // Invoke Lambda function
-  it(
+  itDocs(
     'invoke lambda',
     query(
       `
@@ -339,9 +340,9 @@ describe('Lambda Integration Testing', () => {
   );
 
   // Check subnet modification
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'adds a new vpc',
     query(
       `  
@@ -354,7 +355,7 @@ describe('Lambda Integration Testing', () => {
     ),
   );
 
-  it(
+  itDocs(
     'adds a subnet',
     query(
       `
@@ -373,7 +374,7 @@ describe('Lambda Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'adds a new security group with non-default vpc',
     query(
       `  
@@ -386,7 +387,7 @@ describe('Lambda Integration Testing', () => {
     ),
   );
 
-  it(
+  itDocs(
     'adds security group rules for not default',
     query(
       `
@@ -408,7 +409,7 @@ describe('Lambda Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'updates the function subnets',
     query(
       `
@@ -421,7 +422,7 @@ describe('Lambda Integration Testing', () => {
     ),
   );
 
-  it(
+  itDocs(
     'updates the security groups',
     query(
       `
@@ -434,7 +435,7 @@ describe('Lambda Integration Testing', () => {
     ),
   );
 
-  it('applies the lambda subnet and security group function update', commit());
+  itDocs('applies the lambda subnet and security group function update', commit());
 
   it(
     'check subnets after modification',
@@ -450,7 +451,7 @@ describe('Lambda Integration Testing', () => {
   // Check configuration update path
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'updates the function',
     query(
       `
@@ -491,7 +492,7 @@ describe('Lambda Integration Testing', () => {
   // Check code update path
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'updates the function',
     query(
       `
@@ -532,7 +533,7 @@ describe('Lambda Integration Testing', () => {
   // Check tags update path
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'updates the function',
     query(
       `
@@ -576,7 +577,7 @@ describe('Lambda Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'deletes the lambda function',
     query(
       `
@@ -660,9 +661,9 @@ describe('Lambda Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'deletes security group rules',
     query(
       `
@@ -674,7 +675,7 @@ describe('Lambda Integration Testing', () => {
     ),
   );
 
-  it(
+  itDocs(
     'deletes security group',
     query(
       `
@@ -690,7 +691,7 @@ describe('Lambda Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'deletes the subnet and security groups',
     query(
       `
@@ -754,7 +755,7 @@ describe('Lambda Integration Testing', () => {
     ),
   );
 
-  it('applies the subnet removal', commit());
+  itDocs('applies the subnet removal', commit());
 
   it(
     'check no vpc is pending',

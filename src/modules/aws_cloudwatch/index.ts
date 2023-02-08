@@ -18,4 +18,12 @@ export class AwsCloudwatchModule extends ModuleBase {
   }
 }
 
+/**
+ * ### Code examples
+ *
+ * ```testdoc
+ * modules/aws-cloudwatch-integration.ts#AwsCloudwatch Integration Testing#Manage cloudwatch
+ * modules/aws-tail-log-group.ts#AwsCloudwatch and AwsLambda Integration Testing#Tail logs
+ * ```
+ */
 export const awsCloudwatchModule = new AwsCloudwatchModule();

@@ -20,11 +20,6 @@ import * as iasql from '../iasql';
  * Accepts the following parameters:
  * - list of modules to install
  *
- * @example
- * ```sql
- * SELECT * FROM iasql_install('aws_ec2');
- * ```
- *
  * @see https://iasql.com/docs/module/
  *
  */

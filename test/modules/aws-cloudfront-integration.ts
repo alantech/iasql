@@ -5,6 +5,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  itDocs,
   runBegin,
   runCommit,
   runInstall,
@@ -123,11 +124,11 @@ describe('Cloudfront Integration Testing', () => {
     ),
   );
 
-  it('installs the cloudfront module', install(modules));
+  itDocs('installs the cloudfront module', install(modules));
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'creates a dummy s3 resource',
     query(
       `
@@ -137,7 +138,7 @@ describe('Cloudfront Integration Testing', () => {
       () => ({ username, password }),
     ),
   );
-  it('applies the s3 creation', commit());
+  itDocs('applies the s3 creation', commit());
 
   it('starts a transaction', begin());
 
@@ -156,9 +157,9 @@ describe('Cloudfront Integration Testing', () => {
 
   it('undo changes', rollback());
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it('adds a new s3 distribution', done => {
+  itDocs('adds a new s3 distribution', (done: (arg0: any) => any) => {
     query(
       `
     INSERT INTO distribution (caller_reference, comment, enabled, is_ipv6_enabled, default_cache_behavior, origins )
@@ -169,13 +170,13 @@ describe('Cloudfront Integration Testing', () => {
       () => ({ username, password }),
     )((e?: any) => {
       if (!!e) return done(e);
-      done();
+      done(undefined);
     });
   });
 
-  it('applies the distribution change', commit());
+  itDocs('applies the distribution change', commit());
 
-  it(
+  itDocs(
     'check distribution is available',
     query(
       `
@@ -185,9 +186,9 @@ describe('Cloudfront Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'adds a new distribution',
     query(
       `
@@ -200,9 +201,9 @@ describe('Cloudfront Integration Testing', () => {
     ),
   );
 
-  it('applies the distribution change', commit());
+  itDocs('applies the distribution change', commit());
 
-  it(
+  itDocs(
     'check distribution is available',
     query(
       `
@@ -212,9 +213,9 @@ describe('Cloudfront Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'tries to update distribution comment',
     query(
       `
@@ -226,9 +227,9 @@ describe('Cloudfront Integration Testing', () => {
     ),
   );
 
-  it('applies the distribution comment update', commit());
+  itDocs('applies the distribution comment update', commit());
 
-  it(
+  itDocs(
     'checks that distribution have been modified',
     query(
       `
@@ -306,7 +307,7 @@ describe('Cloudfront Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'deletes the distribution',
     query(
       `
@@ -323,7 +324,7 @@ describe('Cloudfront Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'deletes the s3 bucket',
     query(
       `

@@ -20,11 +20,6 @@ import * as iasql from '../iasql';
  * - id: the ID of the generated change
  * - description: A description of the generated change
  *
- * @example
- * ```sql
- * SELECT * FROM iasql_rollback();
- * ```
- *
  * @see https://iasql.com/docs/transaction/
  *
  */

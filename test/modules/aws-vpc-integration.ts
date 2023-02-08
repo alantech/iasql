@@ -5,6 +5,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  itDocs,
   runBegin,
   runCommit,
   runInstall,
@@ -83,7 +84,7 @@ describe('VPC Integration Testing', () => {
     ),
   );
 
-  it('installs the vpc module', install(modules));
+  itDocs('installs the vpc module', install(modules));
 
   it(
     'confirms there are availability zones present',
@@ -112,9 +113,9 @@ describe('VPC Integration Testing', () => {
 
   it('undo changes', rollback());
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'adds a new vpc',
     query(
       `  
@@ -127,7 +128,7 @@ describe('VPC Integration Testing', () => {
     ),
   );
 
-  it('applies the vpc change', commit());
+  itDocs('applies the vpc change', commit());
 
   it(
     'check no vpc is pending',
@@ -169,9 +170,9 @@ describe('VPC Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'adds a subnet',
     query(
       `
@@ -187,7 +188,7 @@ describe('VPC Integration Testing', () => {
     ),
   );
 
-  it('applies the subnet change', commit());
+  itDocs('applies the subnet change', commit());
 
   it('starts a transaction', begin());
 
@@ -217,9 +218,9 @@ describe('VPC Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'tries to update vpc tags',
     query(
       `
@@ -231,9 +232,9 @@ describe('VPC Integration Testing', () => {
     ),
   );
 
-  it('applies the vpc tags update', commit());
+  itDocs('applies the vpc tags update', commit());
 
-  it(
+  itDocs(
     'checks that tags have been modified',
     query(
       `
@@ -243,9 +244,9 @@ describe('VPC Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'tries to update vpc cidr',
     query(
       `
@@ -258,9 +259,9 @@ describe('VPC Integration Testing', () => {
     ),
   );
 
-  it('applies the vpc cidr update', commit());
+  itDocs('applies the vpc cidr update', commit());
 
-  it(
+  itDocs(
     'checks that cidr have been modified',
     query(
       `
@@ -284,8 +285,8 @@ describe('VPC Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
-  it(
+  itDocs('starts a transaction', begin());
+  itDocs(
     'creates a second vpc in another region',
     query(
       `
@@ -297,7 +298,7 @@ describe('VPC Integration Testing', () => {
       () => ({ username, password }),
     ),
   );
-  it(
+  itDocs(
     'adds a subnet to the vpc',
     query(
       `
@@ -311,10 +312,10 @@ describe('VPC Integration Testing', () => {
       () => ({ username, password }),
     ),
   );
-  it('applies the creation of the second vpc', commit());
+  itDocs('applies the creation of the second vpc', commit());
 
-  it('starts a transaction', begin());
-  it(
+  itDocs('starts a transaction', begin());
+  itDocs(
     'creates a peering connection between the first and second vpc',
     query(
       `
@@ -328,9 +329,9 @@ describe('VPC Integration Testing', () => {
       () => ({ username, password }),
     ),
   );
-  it('applies creation of the peering connection', commit());
+  itDocs('applies creation of the peering connection', commit());
 
-  it(
+  itDocs(
     'checks the state for peering connection is active',
     query(
       `
@@ -342,7 +343,7 @@ describe('VPC Integration Testing', () => {
     ),
   );
 
-  it(
+  itDocs(
     'checks if routes from requester to accepter is added',
     query(
       `
@@ -358,8 +359,8 @@ describe('VPC Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
-  it(
+  itDocs('starts a transaction', begin());
+  itDocs(
     'changes the tags for the peering connection',
     query(
       `
@@ -372,9 +373,9 @@ describe('VPC Integration Testing', () => {
       () => ({ username, password }),
     ),
   );
-  it('applies creation of the peering connection', commit());
+  itDocs('applies creation of the peering connection', commit());
 
-  it(
+  itDocs(
     'checks the peering connection tags are changed',
     query(
       `
@@ -415,7 +416,7 @@ describe('VPC Integration Testing', () => {
   );
 
   it('starts a transaction', begin());
-  it(
+  itDocs(
     'deletes the peering connection',
     query(
       `
@@ -474,7 +475,7 @@ describe('VPC Integration Testing', () => {
   );
   it('applies the deletion of the second vpc and peering connection', commit());
 
-  it(
+  itDocs(
     'checks deletion of the peering connection',
     query(
       `
@@ -486,9 +487,9 @@ describe('VPC Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'deletes the subnet',
     query(
       `
@@ -512,7 +513,7 @@ describe('VPC Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'deletes the vpc',
     query(
       `
@@ -556,7 +557,7 @@ describe('VPC Integration Testing', () => {
     ),
   );
 
-  it('applies the vpc removal', commit());
+  itDocs('applies the vpc removal', commit());
 
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 });

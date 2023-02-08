@@ -5,6 +5,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  itDocs,
   runBegin,
   runCommit,
   runInstall,
@@ -81,7 +82,7 @@ describe('Secrets Manager Integration Testing', () => {
     ),
   );
 
-  it('installs the secret module', install(modules));
+  itDocs('installs the secret module', install(modules));
 
   it('starts a transaction', begin());
 
@@ -100,9 +101,9 @@ describe('Secrets Manager Integration Testing', () => {
 
   it('undo changes', rollback());
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'adds a new secret',
     query(
       `  
@@ -115,9 +116,9 @@ describe('Secrets Manager Integration Testing', () => {
     ),
   );
 
-  it('applies the secret change', commit());
+  itDocs('applies the secret change', commit());
 
-  it(
+  itDocs(
     'check secret is available',
     query(
       `
@@ -129,7 +130,7 @@ describe('Secrets Manager Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'tries to update secret description',
     query(
       `
@@ -143,7 +144,7 @@ describe('Secrets Manager Integration Testing', () => {
 
   it('applies the secret description update', commit());
 
-  it(
+  itDocs(
     'checks that secret has been been modified',
     query(
       `
@@ -155,7 +156,7 @@ describe('Secrets Manager Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'tries to update secret value',
     query(
       `
@@ -171,7 +172,7 @@ describe('Secrets Manager Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'tries to update version',
     query(
       `
@@ -199,7 +200,7 @@ describe('Secrets Manager Integration Testing', () => {
 
   it('installs the secret module again (to make sure it reloads stuff)', install(modules));
 
-  it(
+  itDocs(
     'checks secret count',
     query(
       `
@@ -209,9 +210,9 @@ describe('Secrets Manager Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'moves the secret to another region with a new value',
     query(
       `
@@ -223,9 +224,9 @@ describe('Secrets Manager Integration Testing', () => {
     ),
   );
 
-  it('applies the secret region update', commit());
+  itDocs('applies the secret region update', commit());
 
-  it(
+  itDocs(
     'confirms that the secret was moved',
     query(
       `
@@ -269,7 +270,7 @@ describe('Secrets Manager Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'deletes the secret',
     query(
       `

@@ -9,12 +9,6 @@ import { AwsRegions } from '../../aws_account/entity';
  *
  * This is a read-only table.
  *
- * @example
- * ```sql TheButton[Shows availability zones]="Shows availability zones"
- * SELECT * FROM availability_zone;
- * ```
- *
- * @see https://github.com/iasql/iasql/blob/main/test/modules/aws-vpc-integration.ts#L92
  * @see https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-regions-availability-zones.html
  */
 @Unique('uq_az_region', ['name', 'region'])

@@ -5,6 +5,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  itDocs,
   runBegin,
   runCommit,
   runInstall,
@@ -93,7 +94,7 @@ describe('VPC Integration Testing', () => {
     ),
   );
 
-  it('installs the vpc module', install(modules));
+  itDocs('installs the vpc module', install(modules));
 
   it(
     'confirms there are availability zones present',
@@ -105,9 +106,9 @@ describe('VPC Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'adds a new vpc',
     query(
       `  
@@ -120,7 +121,7 @@ describe('VPC Integration Testing', () => {
     ),
   );
 
-  it('applies the vpc change', commit());
+  itDocs('applies the vpc change', commit());
 
   it(
     'check no vpc is pending',
@@ -162,9 +163,9 @@ describe('VPC Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'adds a subnet',
     query(
       `
@@ -180,11 +181,11 @@ describe('VPC Integration Testing', () => {
     ),
   );
 
-  it('applies the subnet change', commit());
+  itDocs('applies the subnet change', commit());
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'adds a new s3 endpoint gateway',
     query(
       `
@@ -210,9 +211,9 @@ describe('VPC Integration Testing', () => {
     ),
   );
 
-  it('applies the endpoint gateway change', commit());
+  itDocs('applies the endpoint gateway change', commit());
 
-  it(
+  itDocs(
     'checks endpoint gateway count',
     query(
       `
@@ -236,7 +237,7 @@ describe('VPC Integration Testing', () => {
     ),
   );
 
-  it(
+  itDocs(
     'checks endpoint gateway count',
     query(
       `
@@ -284,9 +285,9 @@ describe('VPC Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'updates a endpoint gateway policy',
     query(
       `
@@ -300,7 +301,7 @@ describe('VPC Integration Testing', () => {
     ),
   );
 
-  it('applies the endpoint_gateway change', commit());
+  itDocs('applies the endpoint_gateway change', commit());
 
   it(
     'checks endpoint_gateway count',
@@ -312,7 +313,7 @@ describe('VPC Integration Testing', () => {
     ),
   );
 
-  it(
+  itDocs(
     'checks endpoint_gateway policy update',
     query(
       `
@@ -322,9 +323,9 @@ describe('VPC Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'updates a endpoint gateway tags',
     query(
       `
@@ -338,7 +339,7 @@ describe('VPC Integration Testing', () => {
     ),
   );
 
-  it('applies the endpoint_gateway change', commit());
+  itDocs('applies the endpoint_gateway change', commit());
 
   it(
     'checks endpoint_gateway count',
@@ -350,7 +351,7 @@ describe('VPC Integration Testing', () => {
     ),
   );
 
-  it(
+  itDocs(
     'checks endpoint_gateway policy update',
     query(
       `
@@ -400,7 +401,7 @@ describe('VPC Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'deletes a endpoint_gateway',
     query(
       `
@@ -425,9 +426,9 @@ describe('VPC Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'deletes the subnet',
     query(
       `
@@ -451,7 +452,7 @@ describe('VPC Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'deletes the vpc',
     query(
       `
@@ -505,7 +506,7 @@ describe('VPC Integration Testing', () => {
     ),
   );
 
-  it('applies the vpc removal', commit());
+  itDocs('applies the vpc removal', commit());
 
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 });

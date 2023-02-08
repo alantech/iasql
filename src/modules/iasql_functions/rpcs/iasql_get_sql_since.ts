@@ -24,12 +24,6 @@ import { indexModsByTable } from '../iasql';
 /**
  * Method that generates SQL from the audit log from a given point in time.
  *
- * @example
- * ```sql
- * SELECT * FROM iasql_get_sql_since();
- * SELECT * FROM iasql_get_sql_since('2023-01-05T12:00:00');
- * SELECT * FROM iasql_get_sql_since((now() - interval '5 minutes')::text);
- * ```
  *
  */
 export class IasqlGetSqlSince extends RpcBase {

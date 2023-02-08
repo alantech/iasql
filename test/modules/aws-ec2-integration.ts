@@ -11,6 +11,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  itDocs,
   runBegin,
   runCommit,
   runInstall,
@@ -208,7 +209,7 @@ describe('EC2 Integration Testing', () => {
   `),
   );
 
-  it('installs the ec2 module', install(modules));
+  itDocs('installs the ec2 module', install(modules));
 
   it('starts a transaction', begin());
 
@@ -262,7 +263,7 @@ describe('EC2 Integration Testing', () => {
   );
 
   // generate keypairs
-  it(
+  itDocs(
     'generates a new keypair',
     query(
       `
@@ -273,7 +274,7 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
-  it(
+  itDocs(
     'check new keypair added',
     query(
       `
@@ -286,7 +287,7 @@ describe('EC2 Integration Testing', () => {
   );
 
   it('starts a transaction', begin());
-  it(
+  itDocs(
     'deletes the keypair',
     query(
       `
@@ -313,7 +314,7 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
-  it(
+  itDocs(
     'imports a new keypair',
     query(
       `
@@ -324,7 +325,7 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
-  it(
+  itDocs(
     'check new keypair added',
     query(
       `
@@ -336,8 +337,8 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
-  it('adds an instance without security groups and key', done => {
+  itDocs('starts a transaction', begin());
+  itDocs('adds an instance without security groups and key', (done: (arg0: any) => any) => {
     query(
       `
       BEGIN;
@@ -359,13 +360,13 @@ describe('EC2 Integration Testing', () => {
       () => ({ username, password }),
     )((e?: any) => {
       if (!!e) return done(e);
-      done();
+      done(undefined);
     });
   });
 
-  it('applies the created instances', commit());
+  itDocs('applies the created instances', commit());
 
-  it(
+  itDocs(
     'check number of instances',
     query(
       `
@@ -377,9 +378,9 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'deletes security group and instance',
     query(
       `
@@ -399,11 +400,11 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
-  it('applies the security group and instance deletion', commit());
+  itDocs('applies the security group and instance deletion', commit());
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it('adds two ec2 instance', done => {
+  itDocs('adds two ec2 instance', (done: (arg0: any) => any) => {
     query(
       `
       BEGIN;
@@ -433,11 +434,11 @@ describe('EC2 Integration Testing', () => {
       () => ({ username, password }),
     )((e?: any) => {
       if (!!e) return done(e);
-      done();
+      done(undefined);
     });
   });
 
-  it(
+  itDocs(
     'check number of instances',
     query(
       `
@@ -450,7 +451,7 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
-  it('applies the created instances', commit());
+  itDocs('applies the created instances', commit());
 
   it(
     'check number of instances',
@@ -467,7 +468,7 @@ describe('EC2 Integration Testing', () => {
 
   // TODO add table to allow creating key value pairs and then check user_data ran
   // https://stackoverflow.com/questions/15904095/how-to-check-whether-my-user-data-passing-to-ec2-instance-is-working
-  it(
+  itDocs(
     'check user data',
     query(
       `
@@ -497,7 +498,7 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
-  it(
+  itDocs(
     'check number of volumes',
     query(
       `
@@ -559,9 +560,9 @@ describe('EC2 Integration Testing', () => {
   );
 
   describe('create IAM role', () => {
-    it('starts a transaction', begin());
+    itDocs('starts a transaction', begin());
 
-    it(
+    itDocs(
       'creates ec2 instance role',
       query(
         `
@@ -586,9 +587,9 @@ describe('EC2 Integration Testing', () => {
       ),
     );
 
-    it('applies the role creation', commit());
+    itDocs('applies the role creation', commit());
 
-    it(
+    itDocs(
       'checks role count',
       query(
         `
@@ -601,9 +602,9 @@ describe('EC2 Integration Testing', () => {
     );
   });
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'create target group and register instance to it',
     query(
       `
@@ -621,7 +622,7 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
-  it(
+  itDocs(
     'check target group count',
     query(
       `
@@ -645,9 +646,9 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
-  it('applies the instance registration', commit());
+  itDocs('applies the instance registration', commit());
 
-  it(
+  itDocs(
     'check registered instance count',
     query(
       `
@@ -659,7 +660,7 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
-  it(
+  itDocs(
     'check registered instance port',
     query(
       `
@@ -674,9 +675,9 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'register instance with custom port to target group',
     query(
       `
@@ -701,7 +702,7 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
-  it('applies the instance registration', commit());
+  itDocs('applies the instance registration', commit());
 
   it(
     'check registered instance count',
@@ -730,7 +731,7 @@ describe('EC2 Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'updates register instance with custom port to target group',
     query(
       `
@@ -775,7 +776,7 @@ describe('EC2 Integration Testing', () => {
   describe('update instance with IAM role', () => {
     it('starts a transaction', begin());
 
-    it(
+    itDocs(
       'assigns role to instance',
       query(
         `
@@ -817,7 +818,7 @@ describe('EC2 Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'stop instance',
     query(
       `
@@ -847,7 +848,7 @@ describe('EC2 Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'start instance',
     query(
       `
@@ -876,7 +877,7 @@ describe('EC2 Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'hibernates instance',
     query(
       `
@@ -988,9 +989,9 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it('adds an ec2 instance with no security group', done => {
+  itDocs('adds an ec2 instance with no security group', (done: (arg0: any) => any) => {
     query(
       `
       INSERT INTO instance (ami, instance_type, tags, subnet_id)
@@ -1004,7 +1005,7 @@ describe('EC2 Integration Testing', () => {
       () => ({ username, password }),
     )((e?: any) => {
       if (!!e) return done(e);
-      done();
+      done(undefined);
     });
   });
 
@@ -1020,9 +1021,9 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
-  it('applies the created instances', commit());
+  itDocs('applies the created instances', commit());
 
-  it(
+  itDocs(
     'check number of instances',
     query(
       `
@@ -1049,7 +1050,7 @@ describe('EC2 Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'deletes one of the registered instances',
     query(
       `
@@ -1089,7 +1090,7 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
-  it(
+  itDocs(
     'check instance metadata',
     query(
       `
@@ -1151,7 +1152,7 @@ describe('EC2 Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'deletes all ec2 instances',
     query(
       `
@@ -1219,7 +1220,7 @@ describe('EC2 Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'deletes the target group',
     query(
       `
@@ -1249,7 +1250,7 @@ describe('EC2 Integration Testing', () => {
   describe('delete role', () => {
     it('starts a transaction', begin());
 
-    it(
+    itDocs(
       'deletes role',
       query(
         `

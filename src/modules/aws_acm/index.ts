@@ -17,4 +17,12 @@ export class AwsAcmModule extends ModuleBase {
   }
 }
 
+/**
+ *
+ * ```testdoc
+ * modules/aws-acm-list-integration.ts#AwsAcm List Integration Testing#Managing certificates
+ * modules/aws-acm-import-integration.ts#AwsAcm Import Integration Testing#Importing a certificate
+ * modules/aws-acm-request-integration.ts#AwsAcm Request Integration Testing#Requesting a certificate
+ * ```
+ */
 export const awsAcmModule = new AwsAcmModule();

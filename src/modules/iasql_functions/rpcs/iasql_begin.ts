@@ -13,10 +13,6 @@ import {
  *
  * @see https://iasql.com/docs/transaction
  *
- * @example
- * ```sql
- * SELECT * FROM iasql_begin();
- * ```
  *
  */
 export class IasqlBegin extends RpcBase {

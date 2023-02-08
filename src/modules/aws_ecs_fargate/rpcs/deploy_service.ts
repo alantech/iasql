@@ -16,12 +16,6 @@ import { Service } from '../entity';
  * Accepts the following parameters:
  * - arn: AWS ARN for the service to deploy
  *
- * @example
- * ```sql TheButton[Trigger the deployment of an ECS service]="Trigger the deployment of an ECS service"
- * SELECT deploy_service(arn) FROM service WHERE name='service_name';
- * ```
- *
- * @see https://github.com/iasql/iasql/blob/b2c2383b73d73f5cdf75c867d334e80cdf40caa1/test/modules/aws-ecs-integration.ts#L686
  * @see https://aws.amazon.com/es/blogs/compute/building-deploying-and-operating-containerized-applications-with-aws-fargate/
  *
  */

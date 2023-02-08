@@ -5,6 +5,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  itDocs,
   runBegin,
   runCommit,
   runInstall,
@@ -92,7 +93,7 @@ describe('VPC Endpoint interface Integration Testing', () => {
     ),
   );
 
-  it('installs the vpc module', install(modules));
+  itDocs('installs the vpc module', install(modules));
 
   it(
     'confirms there are availability zones present',
@@ -104,9 +105,9 @@ describe('VPC Endpoint interface Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'adds a new vpc',
     query(
       `  
@@ -119,7 +120,7 @@ describe('VPC Endpoint interface Integration Testing', () => {
     ),
   );
 
-  it('applies the vpc change', commit());
+  itDocs('applies the vpc change', commit());
 
   it(
     'check no vpc is pending',
@@ -161,9 +162,9 @@ describe('VPC Endpoint interface Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'adds a subnet',
     query(
       `
@@ -179,11 +180,11 @@ describe('VPC Endpoint interface Integration Testing', () => {
     ),
   );
 
-  it('applies the subnet change', commit());
+  itDocs('applies the subnet change', commit());
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'adds a new lambda endpoint interface',
     query(
       `
@@ -209,9 +210,9 @@ describe('VPC Endpoint interface Integration Testing', () => {
     ),
   );
 
-  it('applies the endpoint interface creation', commit());
+  itDocs('applies the endpoint interface creation', commit());
 
-  it(
+  itDocs(
     'checks endpoint interface count',
     query(
       `
@@ -220,7 +221,7 @@ describe('VPC Endpoint interface Integration Testing', () => {
       (res: any) => expect(res.length).toBe(1),
     ),
   );
-  it(
+  itDocs(
     'checks endpoint interface default subnet count',
     query(
       `
@@ -244,7 +245,7 @@ describe('VPC Endpoint interface Integration Testing', () => {
     ),
   );
 
-  it(
+  itDocs(
     'queries the vpcs to confirm the record is present',
     query(
       `
@@ -292,9 +293,9 @@ describe('VPC Endpoint interface Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'updates a endpoint interface policy',
     query(
       `
@@ -308,9 +309,9 @@ describe('VPC Endpoint interface Integration Testing', () => {
     ),
   );
 
-  it('applies the endpoint_interface change', commit());
+  itDocs('applies the endpoint_interface change', commit());
 
-  it(
+  itDocs(
     'checks endpoint_interface count',
     query(
       `
@@ -330,9 +331,9 @@ describe('VPC Endpoint interface Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'updates a endpoint interface tags',
     query(
       `
@@ -346,9 +347,9 @@ describe('VPC Endpoint interface Integration Testing', () => {
     ),
   );
 
-  it('applies the endpoint_interface change', commit());
+  itDocs('applies the endpoint_interface change', commit());
 
-  it(
+  itDocs(
     'checks endpoint_interface count',
     query(
       `
@@ -368,9 +369,9 @@ describe('VPC Endpoint interface Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'removes the current endpoint subnets',
     query(
       `
@@ -382,7 +383,7 @@ describe('VPC Endpoint interface Integration Testing', () => {
     ),
   );
 
-  it('applies the endpoint_interface subnet removal', commit());
+  itDocs('applies the endpoint_interface subnet removal', commit());
 
   it(
     'checks endpoint_interface subnet count',
@@ -394,9 +395,9 @@ describe('VPC Endpoint interface Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'adds new endpoint subnet',
     query(
       `
@@ -409,9 +410,9 @@ describe('VPC Endpoint interface Integration Testing', () => {
     ),
   );
 
-  it('applies the endpoint_interface subnet change', commit());
+  itDocs('applies the endpoint_interface subnet change', commit());
 
-  it(
+  itDocs(
     'checks endpoint_interface subnet count',
     query(
       `
@@ -423,7 +424,7 @@ describe('VPC Endpoint interface Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'deletes a endpoint_interface',
     query(
       `
@@ -448,9 +449,9 @@ describe('VPC Endpoint interface Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'deletes the subnet',
     query(
       `
@@ -474,7 +475,7 @@ describe('VPC Endpoint interface Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'deletes the vpc',
     query(
       `
@@ -528,7 +529,7 @@ describe('VPC Endpoint interface Integration Testing', () => {
     ),
   );
 
-  it('applies the vpc removal', commit());
+  itDocs('applies the vpc removal', commit());
 
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 });

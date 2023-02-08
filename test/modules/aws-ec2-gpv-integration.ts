@@ -7,6 +7,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  itDocs,
   runBegin,
   runCommit,
   runInstall,
@@ -114,7 +115,7 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
     ),
   );
 
-  it('installs the module', install(modules));
+  itDocs('installs the module', install(modules));
 
   it('starts a transaction', begin());
 
@@ -161,9 +162,9 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it('adds new volumes', done => {
+  itDocs('adds new volumes', (done: (arg0: any) => any) => {
     query(
       `
       BEGIN;
@@ -177,10 +178,10 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
       undefined,
       true,
       () => ({ username, password }),
-    )((e?: any) => (!!e ? done(e) : done()));
+    )((e?: any) => (!!e ? done(e) : done(undefined)));
   });
 
-  it(
+  itDocs(
     'checks volume count',
     query(
       `
@@ -192,7 +193,7 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
     ),
   );
 
-  it('applies the change', commit());
+  itDocs('applies the change', commit());
 
   it(
     'checks volume count',
@@ -250,9 +251,9 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'tries to update a volume size',
     query(
       `
@@ -264,9 +265,9 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
     ),
   );
 
-  it('applies the change', commit());
+  itDocs('applies the change', commit());
 
-  it(
+  itDocs(
     'checks volume update',
     query(
       `
@@ -278,9 +279,9 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it('tries to update a volume availability zone', done => {
+  itDocs('tries to update a volume availability zone', (done: (arg0: any) => any) => {
     query(
       `
       UPDATE general_purpose_volume
@@ -290,10 +291,10 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
       undefined,
       true,
       () => ({ username, password }),
-    )((e?: any) => (!!e ? done(e) : done()));
+    )((e?: any) => (!!e ? done(e) : done(undefined)));
   });
 
-  it('applies the change', commit());
+  itDocs('applies the change', commit());
 
   it(
     'checks volume count',
@@ -349,7 +350,7 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'deletes the volumes',
     query(
       `

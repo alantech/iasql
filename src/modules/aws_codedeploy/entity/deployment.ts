@@ -34,12 +34,6 @@ export enum RevisionType {
  * Table to list existing AWS CodeDeploy deployments. A deployment is the process, and the components involved in the process,
  * of installing content on one or more instances.
  *
- * @example
- * ```sql TheButton[List CodeDeploy deployments]="List CodeDeploy deployments"
- * SELECT * FROM codedeploy_deployment WHERE application_id = (SELECT id FROM codedeploy_application WHERE name = 'application_name');
- * ```
- *
- * @see https://github.com/iasql/iasql/blob/main/test/modules/aws-codedeploy-integration.ts#L595
  * @see https://docs.aws.amazon.com/codedeploy/latest/userguide/deployments.html
  *
  */
