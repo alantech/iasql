@@ -2,12 +2,12 @@ name: Publish Docker image
 
 on:
   workflow_dispatch:
-    tag:
-      description: 'Tag for docker image'
+    version:
+      description: 'Version for docker image'
     inputs:
-      tag:
+      version:
         required: true
-        description: 'Tag for docker image'
+        description: 'Version for docker image'
   repository_dispatch:
     types: [release]
 
@@ -36,7 +36,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: iasql/iasql:latest, iasql/iasql:${{ github.event.client_payload.tag }}${{ github.event.client_payload.message.tag }}${{ github.event.inputs.tag }}
+          tags: iasql/iasql:latest, iasql/iasql:${{ github.event.client_payload.version }}${{ github.event.client_payload.message.version }}${{ github.event.inputs.version }}
           labels: ${{ steps.meta.outputs.labels }}
 
   notify:
