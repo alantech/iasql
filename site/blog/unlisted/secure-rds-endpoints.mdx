@@ -22,7 +22,7 @@ just using Amazon's private network.
 
 Please use this query to check it:
 
-```sql TheButton[Run SQL to check your endpoints]="Run SQL to check your endpoints"
+```sql title="Run SQL to check your endpoints"
  ---- Installing the needed modules
 SELECT
   iasql_install ('aws_rds', 'aws_vpc');
@@ -49,17 +49,20 @@ FROM
 
 Have you found missing endpoints? No problem, IaSQL can generate missing Endpoint Interfaces for you:
 
-```sql TheButton[Add missing endpoint interfaces]="Add missing endpoint interfaces"
-select * from iasql_begin();
+```sql title="Add missing endpoint interfaces"
+SELECT
+  *
+FROM
+  iasql_begin ();
 
- -- Inserts the missing endpoints
+-- Inserts the missing endpoints
 INSERT INTO
   endpoint_interface (region, vpc_id, service, private_dns_enabled)
 SELECT
   RDS.region,
   vpc.id,
   'rds',
-  true
+  TRUE
 FROM
   rds
   INNER JOIN vpc ON rds.region = vpc.region
@@ -82,7 +85,6 @@ FROM
 
 -- Apply the changes
 --select * from iasql_commit();
-
 -- Rollback the changes
 --select * from iasql_rollback();
 ```
