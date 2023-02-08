@@ -904,10 +904,10 @@ jws@^3.2.2:
     jwa "^1.4.1"
     safe-buffer "^5.0.1"
 
-libpg-query@13.3.0:
-  version "13.3.0"
-  resolved "https://registry.yarnpkg.com/libpg-query/-/libpg-query-13.3.0.tgz#c362285373c17619cc775870c0a36aed963fd149"
-  integrity sha512-9PKW8iRWnSCw+IW5LlZYq+bLMmAhKsAIR2en8iRYnoRLBg4x+HKHBb+PQyqFy8+jC7AmzV65A+DsUO7tiZddEQ==
+libpg-query@13.3.1:
+  version "13.3.1"
+  resolved "https://registry.yarnpkg.com/libpg-query/-/libpg-query-13.3.1.tgz#1403a58c67ea5fc3ca7087b3e12dec9dc4ea8b89"
+  integrity sha512-RLvnKPLWngNR7bNep/Q9euPcfFJVFfDg/iP13lYGxcSI01emS/1vbTw6EBd8UordweWFdvUuK+31sHp104dukA==
   dependencies:
     "@mapbox/node-pre-gyp" "^1.0.8"
     node-addon-api "^1.6.3"
@@ -1321,7 +1321,7 @@ pgsql-parser@^13.4.0:
   integrity sha512-d3ZQtQnUptz19f+WpmRP4OLfAZ33LgYDpycTA9ZSNCF+AZyURfm9e3sRZJ/amBcLtpwnZuto9EHjVz3EPpiksA==
   dependencies:
     "@babel/runtime" "^7.11.2"
-    libpg-query "13.3.0"
+    libpg-query "13.3.1"
     minimist "^1.2.6"
     pgsql-deparser "^13.3.14"
     pgsql-enums "^13.1.3"
