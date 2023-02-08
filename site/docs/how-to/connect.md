@@ -5,7 +5,7 @@ slug: '/connect'
 
 # Connecting to PostgreSQL
 
-The IaSQL dashboard provides an IDE-like SQL editor built specifically for the IaSQL needs that can be used to run queries on the hosted database(s) connected to your cloud account(s).
+The IaSQL dashboard provides an IDE-like SQL editor built specifically for the IaSQL needs that can be used to run queries on the database(s) connected to your cloud account(s).
 
 <img src={require('@site/static/screenshots/dashboard.png').default} />
 
