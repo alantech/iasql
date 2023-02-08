@@ -24,7 +24,8 @@ COPY dashboard/src src
 COPY dashboard/package.json dashboard/yarn.lock .
 RUN yarn install
 
-ENV REACT_APP_IASQL_ENV=local
+ARG IASQL_ENV=local
+ENV REACT_APP_IASQL_ENV=$IASQL_ENV
 RUN yarn build
 
 # Engine
@@ -66,7 +67,7 @@ RUN npm install -g yarn
 COPY ./src/scripts/postgresql.conf /etc/postgresql/14/main/postgresql.conf
 COPY ./src/scripts/pg_hba.conf /etc/postgresql/14/main/pg_hba.conf
 
-WORKDIR /run
+WORKDIR /dashboard/run
 COPY --from=run-stage /run/package.json package.json
 COPY --from=run-stage /run/node_modules node_modules
 COPY --from=run-stage /run/dist dist
