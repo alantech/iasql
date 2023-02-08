@@ -10,6 +10,7 @@ COPY dashboard/run/package.json dashboard/run/yarn.lock .
 RUN yarn install
 
 RUN yarn build
+RUN yarn install --production
 
 # Dashboard
 FROM node:16-bullseye AS dashboard-stage
@@ -27,6 +28,7 @@ RUN yarn install
 ARG IASQL_ENV=local
 ENV REACT_APP_IASQL_ENV=$IASQL_ENV
 RUN yarn build
+RUN yarn install --production
 
 # Engine
 FROM node:16-bullseye AS engine-stage
@@ -40,6 +42,7 @@ COPY package.json yarn.lock .
 RUN yarn install
 
 RUN yarn build
+RUN yarn install --production
 
 # Main stage
 FROM debian:bullseye AS main-stage
