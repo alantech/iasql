@@ -27,7 +27,7 @@ export default function Home() {
               <h1 className="hero__title">Infrastructure as data in PostgreSQL</h1>
               <p className="hero__subtitle">Manage and provision cloud infrastructure via a PostgreSQL database. Simpler than IaC or the AWS UI</p>
               <CodeBlock className="language-bash">
-                {"docker run -p 5432:5432 -p 8888:8888 iasql/iasql"}
+                {"docker run -p 5432:5432 -p 8888:8888 --name iasql iasql/iasql"}
               </CodeBlock>
             </div>
             <div className="col col--6 padding--lg">
