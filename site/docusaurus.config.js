@@ -21,8 +21,8 @@ const testDoc = require('./src/rehype/testdoc');
     url: config.url,
     baseUrl: '/',
     trailingSlash: true,
-    onBrokenLinks: 'ignore', // we need to allow temporarily until the path structure for current version and next version converge, otherwise it fails on references
-    onBrokenMarkdownLinks: 'ignore',
+    onBrokenLinks: 'throw',
+    onBrokenMarkdownLinks: 'throw',
     favicon: 'img/favicon.png',
     projectName: 'iasql',
     organizationName: 'iasql',
