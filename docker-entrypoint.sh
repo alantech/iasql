@@ -2,10 +2,6 @@
 
 set -vex
 
-# Dashboard/Run service (TODO: Merge this more tightly in the future)
-cd /dashboard/run
-IASQL_ENV=local yarn start &
-
 # Engine
 cd /engine
 
@@ -62,5 +58,19 @@ su - postgres -c "psql iasql_metadata -c \"CREATE EXTENSION IF NOT EXISTS pg_cro
 su - postgres -c "psql iasql_metadata -c \"GRANT EXECUTE ON FUNCTION cron.schedule_in_database(text,text,text,text,text,boolean) TO postgres;\""
 
 su - postgres -c "/engine/src/scripts/upgrade.sh"
+
+wait-for-url() {
+  echo "Testing $1"
+  echo $(curl -s -o /dev/null -L -w ''%{http_code}'' ${0})
+  timeout -s TERM 360 bash -c \
+    'while [[ "$(curl -s -o /dev/null -L -w ''%{http_code}'' ${0})" != "200" ]];\
+  do echo "Waiting for ${0}" && sleep 5;\
+  done' ${1}
+  echo "OK!"
+  curl -I $1
+}
+
+# Dashboard/Run service (TODO: Merge this more tightly in the future)
+(cd /dashboard/run; wait-for-url localhost:8088/v1/version && yarn start) &
 
 yarn start
