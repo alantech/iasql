@@ -28,7 +28,7 @@ jobs:
 
   run-container-macos:
     runs-on: macos-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v3
 
@@ -38,7 +38,8 @@ jobs:
 
       - name: Install docker
         run: |
-          brew install colima docker
+          brew install docker
+          # https://github.com/abiosoft/colima
           colima start
 
       - name: Start local iasql engine
