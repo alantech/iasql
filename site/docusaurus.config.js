@@ -102,11 +102,6 @@ const testDoc = require('./src/rehype/testdoc');
               label: 'Blog',
             },
             {
-              to: 'schema',
-              target: '_self',
-              label: 'Schema',
-            },
-            {
               type: 'docsVersionDropdown',
               position: 'right',
             },
@@ -137,6 +132,11 @@ const testDoc = require('./src/rehype/testdoc');
                   label: 'GitHub',
                   to: 'https://github.com/iasql/iasql',
                   target: '_self',
+                },
+                {
+                  to: 'schema',
+                  target: '_self',
+                  label: 'DbDoc Schema',
                 },
                 {
                   label: 'Hosted SaaS',
