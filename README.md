@@ -61,30 +61,8 @@ To contribute, visit [Contributing.md](https://github.com/iasql/iasql/blob/main/
 
 AWS is our main focus at the moment, but we plan to support GCP, Azure and other cloud providers soon. Let us know if you need a specific AWS service and we might be able to prioritize it!
 
-### AWS services with significant API coverage
+### AWS coverage
 
-- CloudWatch
-- [EC2](https://iasql.com/docs/aws_ec2)
-- [ECR](https://iasql.com/docs/aws_ecr/)
-- [ECS + Fargate](https://iasql.com/docs/fargate/)
-- ELB
-- [IAM](https://iasql.com/docs/aws_iam/)
-- Lambda
-- [RDS](https://iasql.com/docs/aws_rds/)
-- S3
-- [Security Groups](https://iasql.com/docs/aws_security_group/)
-- [VPC](https://iasql.com/docs/vpc/)
+An IaSQL module roughly maps to an AWS service. Check out our supported modules in this [part](https://iasql.com/docs/modules/) of our docs. 
 
-### AWS services with basic API coverage
-
-- API Gateway
-- AppSync
-- CloudFront
-- Dynamo DB
-- ElastiCache
-- MemoryDB
-- [Route53](https://iasql.com/docs/aws_route53/)
-- Secrets Manager
-- SNS
-
-Check out AWS services that are going to be added next [here](https://github.com/iasql/iasql/issues?q=is%3Aissue+is%3Aopen+label%3A%22cloud+coverage%22) and let us know if you would like to see one that is not listed!
+AWS services that are going to be added next can be found [here](https://github.com/iasql/iasql/issues?q=is%3Aissue+is%3Aopen+label%3A%22cloud+coverage%22) and let us know if you would like to see one that is not listed!
