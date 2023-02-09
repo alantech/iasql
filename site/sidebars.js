@@ -89,7 +89,7 @@ module.exports = (async function () {
       },
       {
         type: 'category',
-        label: 'Reference',
+        label: 'Modules',
         collapsible: true,
         collapsed: true,
         items: items,
