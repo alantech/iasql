@@ -2,7 +2,7 @@ name: Docker image change
 
 on:
   push:
-    branches: [main, os-test]
+    branches: [main]
     paths: ['Dockerfile', '.github/workflows/tests-site.yml']
   pull_request:
     branches: [main]
