@@ -8,7 +8,8 @@
 
 &nbsp;
 
-[![CI Tests](https://github.com/iasql/iasql/actions/workflows/ci.yml/badge.svg)](https://github.com/iasql/iasql/actions/workflows/ci.yml)
+[![CI Tests](https://github.com/iasql/iasql/actions/workflows/tests.yml/badge.svg)](https://github.com/iasql/iasql/actions/workflows/tests.yml)
+[![Dashboard Tests](https://github.com/iasql/iasql/actions/workflows/tests-dashboard.yml/badge.svg)](https://github.com/iasql/iasql/actions/workflows/tests-dashboard.yml)
 [![Docs](https://img.shields.io/badge/docs-docusaurus-blue)](https://iasql.com/docs)
 [![Discord](https://img.shields.io/badge/discord-iasql-purple)](https://discord.com/invite/machGGczea)
 [![Twitter](https://img.shields.io/badge/twitter-iasql-9cf)](https://www.twitter.com/iasql)
