@@ -76,7 +76,7 @@ FROM base AS engine-stage
 WORKDIR /engine
 
 ## Copy files
-COPY docker-entrypoint.sh ormconfig.js tsconfig.json ./
+COPY ormconfig.js tsconfig.json ./
 COPY src src
 
 ## Install stage dependencies
@@ -94,10 +94,6 @@ RUN yarn install --production
 # Main stage
 FROM base AS main-stage
 
-## Copy files
-COPY ./src/scripts/postgresql.conf /etc/postgresql/14/main/postgresql.conf
-COPY ./src/scripts/pg_hba.conf /etc/postgresql/14/main/pg_hba.conf
-
 ## Copy from run-stage
 WORKDIR /dashboard/run
 COPY --from=run-stage /run/package.json package.json
@@ -110,10 +106,15 @@ COPY --from=dashboard-stage /dashboard/build build
 
 ## Copy from engine-stage
 WORKDIR /engine
-COPY --from=engine-stage /engine/package.json /engine/docker-entrypoint.sh ./
+COPY --from=engine-stage /engine/package.json ./
 COPY --from=engine-stage /engine/node_modules node_modules
-COPY --from=engine-stage /engine/src/scripts src/scripts
 COPY --from=engine-stage /engine/dist dist
+
+## Copy files
+COPY ./src/scripts/postgresql.conf /etc/postgresql/14/main/postgresql.conf
+COPY ./src/scripts/pg_hba.conf /etc/postgresql/14/main/pg_hba.conf
+COPY docker-entrypoint.sh /engine/docker-entrypoint.sh
+COPY src/scripts /engine/src/scripts
 
 ## Default ENVs that can be overwritten
 ARG IASQL_ENV=local
