@@ -29,7 +29,7 @@ function useSyntheticTitle() {
 function renderType(id) {
   // get type from url and class  
   let type, color;
-  if (id.startsWith('reference/classes')) {
+  if (id.startsWith('aws/classes')) {
     if (id.includes("rpcs")) {
       type = "Function";
       color = "95CE3D";
@@ -37,10 +37,10 @@ function renderType(id) {
       type = "Table";
       color = "3D95CE";
     }
-  } else if (id.startsWith('reference/modules')) {
+  } else if (id.startsWith('aws/modules')) {
     type = "module";
     color = "CE3D3D";
-  } else if (id.startsWith('reference/enums')) {
+  } else if (id.startsWith('aws/enums')) {
     type = "Enum";
     color = "CD3C94";
   }

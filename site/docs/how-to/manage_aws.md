@@ -1,6 +1,6 @@
 ---
 sidebar_position: 1
-slug: '/aws'
+slug: '/manage_aws'
 ---
 
 # Manage an AWS Account
@@ -25,11 +25,11 @@ aws_secret_access_key = <YOUR_SECRET_ACCESS_KEY>
 
 ## Add the necessary cloud services to the PostgreSQL database
 
-Connect to your database and use the `iasql_install` IaSQL PostgreSQL [function](../reference/modules/iasql_functions.md) which is already loaded into your database to install different [modules](../concepts/module.md) and start managing different parts of your cloud account. Many different clients can be used to [connect](../how-to/connect.md) to a PostgreSQL database.
+Connect to your database and use the `iasql_install` IaSQL PostgreSQL [function](../aws/modules/iasql_functions.md) which is already loaded into your database to install different [modules](../concepts/module.md) and start managing different parts of your cloud account. Many different clients can be used to [connect](../how-to/connect.md) to a PostgreSQL database.
 
 :::note
 
-To see the available modules use the `modules_list` [function](../reference/modules/iasql_functions.md) which will return a virtual table
+To see the available modules use the `modules_list` [function](../aws/modules/iasql_functions.md) which will return a virtual table
 
 :::
 
