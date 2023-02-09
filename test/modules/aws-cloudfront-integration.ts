@@ -332,15 +332,21 @@ describe('Cloudfront Integration Testing', () => {
   );
   it('applies the change in distribution certificate', commit());
 
-  it('checks to see if the certificate and alternate domain name still in place', query(`
+  it(
+    'checks to see if the certificate and alternate domain name still in place',
+    query(
+      `
       SELECT *
       FROM distribution
       WHERE caller_reference = '${callerReference}';
-  `, (res: any[]) => {
-    expect(res.length).toBe(1);
-    expect(res[0].custom_ssl_certificate_id).toBeTruthy();
-    expect(res[0].alternate_domain_names).toBeTruthy();
-  }));
+  `,
+      (res: any[]) => {
+        expect(res.length).toBe(1);
+        expect(res[0].custom_ssl_certificate_id).toBeTruthy();
+        expect(res[0].alternate_domain_names).toBeTruthy();
+      },
+    ),
+  );
 
   it('starts a transaction', begin());
 
