@@ -28,7 +28,6 @@ jobs:
 
   run-container-macos:
     runs-on: macos-latest
-    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v3
 
@@ -38,7 +37,9 @@ jobs:
 
       - name: Install docker
         run: |
-          brew install docker-buildx
+          brew install docker docker-buildx
+          mkdir -p ~/.docker/cli-plugins
+          ln -sfn /usr/local/opt/docker-buildx/bin/docker-buildx ~/.docker/cli-plugins/docker-buildx
           # https://github.com/abiosoft/colima
           colima start
 
