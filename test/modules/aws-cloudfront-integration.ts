@@ -4,6 +4,7 @@ import {
   execComposeDown,
   execComposeUp,
   finish,
+  getKeyCertPair,
   getPrefix,
   itDocs,
   runBegin,
@@ -22,6 +23,8 @@ const s3CallerReference = `s3-${prefix}-caller`;
 const originId = `${prefix}-origin-id`;
 const s3OriginId = `${prefix}-s3-origin-id`;
 const bucket = `${prefix}-bucket`;
+const domainName = `${prefix}${dbAlias}.com`;
+const [key, cert] = getKeyCertPair(domainName);
 
 const behavior = {
   TargetOriginId: originId,
@@ -302,6 +305,46 @@ describe('Cloudfront Integration Testing', () => {
     SELECT * FROM distribution WHERE caller_reference='${callerReference}';
   `,
       (res: any) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it(
+    'imports a certificate to use in cloudfront distribution',
+    query(`
+    SELECT * FROM certificate_import('${cert}', '${key}', 'us-east-1', '');
+  `),
+  );
+
+  it('starts a transaction', begin());
+  it(
+    'uses that certificate for the distribution',
+    query(
+      `
+          UPDATE distribution
+          SET custom_ssl_certificate_id = (SELECT id FROM certificate WHERE domain_name = '${domainName}'),
+              alternate_domain_names    = '{${domainName}}'
+          WHERE caller_reference = '${callerReference}';
+      `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+  it('applies the change in distribution certificate', commit());
+
+  it(
+    'checks to see if the certificate and alternate domain name still in place',
+    query(
+      `
+      SELECT *
+      FROM distribution
+      WHERE caller_reference = '${callerReference}';
+  `,
+      (res: any[]) => {
+        expect(res.length).toBe(1);
+        expect(res[0].custom_ssl_certificate_id).toBeTruthy();
+        expect(res[0].alternate_domain_names).toBeTruthy();
+      },
     ),
   );
 

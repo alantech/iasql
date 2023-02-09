@@ -889,6 +889,7 @@ describe('ELB install/uninstall', () => {
       'aws_codepipeline',
       'aws_elb',
       'aws_lambda',
+      'aws_cloudfront',
     ]),
   );
 

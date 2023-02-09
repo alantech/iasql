@@ -3,14 +3,17 @@ import isEqual from 'lodash.isequal';
 import {
   CloudFront,
   DistributionConfig,
-  paginateListDistributions,
-  waitUntilDistributionDeployed,
   DistributionSummary,
   GetDistributionCommandOutput,
+  MinimumProtocolVersion,
+  paginateListDistributions,
+  SSLSupportMethod,
+  waitUntilDistributionDeployed,
 } from '@aws-sdk/client-cloudfront';
 import { WaiterOptions } from '@aws-sdk/util-waiter';
 
 import { AWS, crudBuilder2 } from '../../services/aws_macros';
+import { awsAcmModule } from '../aws_acm';
 import { Context, Crud2, MapperBase, ModuleBase } from '../interfaces';
 import { Distribution, viewerProtocolPolicyEnum } from './entity';
 
@@ -117,7 +120,7 @@ class DistributionMapper extends MapperBase<Distribution> {
       WebACLId: e.webACLId,
       Origins: { Quantity: e.origins.length, Items: e.origins },
       PriceClass: distributionConfig.DistributionConfig?.PriceClass,
-      Aliases: distributionConfig.DistributionConfig?.Aliases,
+      Aliases: { Quantity: e.alternateDomainNames?.length ?? 0, Items: e.alternateDomainNames ?? [] },
       Logging: distributionConfig.DistributionConfig?.Logging,
       CacheBehaviors: distributionConfig.DistributionConfig?.CacheBehaviors,
       CustomErrorResponses: distributionConfig.DistributionConfig?.CustomErrorResponses,
@@ -125,8 +128,21 @@ class DistributionMapper extends MapperBase<Distribution> {
       HttpVersion: distributionConfig.DistributionConfig?.HttpVersion,
       OriginGroups: distributionConfig.DistributionConfig?.OriginGroups,
       Restrictions: distributionConfig.DistributionConfig?.Restrictions,
-      ViewerCertificate: distributionConfig.DistributionConfig?.ViewerCertificate,
     };
+
+    if (e.customSslCertificate?.arn)
+      req.ViewerCertificate = {
+        CloudFrontDefaultCertificate: false,
+        ACMCertificateArn: e.customSslCertificate.arn,
+        MinimumProtocolVersion: MinimumProtocolVersion.TLSv1_2_2021,
+        SSLSupportMethod: SSLSupportMethod.sni_only,
+      };
+    else
+      req.ViewerCertificate = {
+        CloudFrontDefaultCertificate: true,
+        MinimumProtocolVersion: MinimumProtocolVersion.TLSv1_2_2021,
+        SSLSupportMethod: SSLSupportMethod.sni_only,
+      };
 
     return req;
   }
@@ -152,7 +168,7 @@ class DistributionMapper extends MapperBase<Distribution> {
     return finalOrigins;
   }
 
-  distributionMapper(distribution: GetDistributionCommandOutput) {
+  async distributionMapper(distribution: GetDistributionCommandOutput, ctx: Context) {
     const out = new Distribution();
     out.callerReference = distribution.Distribution?.DistributionConfig?.CallerReference;
     out.comment = distribution.Distribution?.DistributionConfig?.Comment;
@@ -163,6 +179,25 @@ class DistributionMapper extends MapperBase<Distribution> {
     out.eTag = distribution.ETag;
     out.status = distribution.Distribution?.Status;
     out.domainName = distribution.Distribution?.DomainName;
+    if (!!distribution.Distribution?.DistributionConfig?.ViewerCertificate?.ACMCertificateArn) {
+      out.customSslCertificate =
+        (await awsAcmModule.certificate.db.read(
+          ctx,
+          awsAcmModule.certificate.generateId({
+            arn: distribution.Distribution?.DistributionConfig?.ViewerCertificate?.ACMCertificateArn,
+          }),
+        )) ??
+        (await awsAcmModule.certificate.cloud.read(
+          ctx,
+          awsAcmModule.certificate.generateId({
+            arn: distribution.Distribution?.DistributionConfig?.ViewerCertificate?.ACMCertificateArn,
+          }),
+        ));
+    }
+    out.alternateDomainNames = [];
+    distribution.Distribution?.DistributionConfig?.Aliases?.Items?.map(alias =>
+      out.alternateDomainNames?.push(alias),
+    );
 
     if (distribution.Distribution?.DistributionConfig?.DefaultCacheBehavior) {
       out.defaultCacheBehavior = this.transformDefaultCacheBehavior(
@@ -188,7 +223,16 @@ class DistributionMapper extends MapperBase<Distribution> {
           WebACLId: e.webACLId,
           Origins: { Quantity: e.origins.length, Items: e.origins },
           DefaultCacheBehavior: e.defaultCacheBehavior,
+          Aliases: { Quantity: e.alternateDomainNames?.length ?? 0, Items: e.alternateDomainNames ?? [] },
         };
+        if (!!e.customSslCertificate?.arn) {
+          config.ViewerCertificate = {
+            CloudFrontDefaultCertificate: false,
+            ACMCertificateArn: e.customSslCertificate.arn,
+            MinimumProtocolVersion: MinimumProtocolVersion.TLSv1_2_2021,
+            SSLSupportMethod: SSLSupportMethod.sni_only,
+          };
+        }
         const res = await this.createDistribution(client.cloudfrontClient, {
           DistributionConfig: config,
         });
@@ -206,7 +250,7 @@ class DistributionMapper extends MapperBase<Distribution> {
           );
 
           if (res && res.Distribution) {
-            const newDistribution = this.distributionMapper(res);
+            const newDistribution = await this.distributionMapper(res, ctx);
             newDistribution.id = e.id;
             newDistribution.status = 'Deployed';
 
@@ -230,17 +274,17 @@ class DistributionMapper extends MapperBase<Distribution> {
     },
     read: async (ctx: Context, id?: string) => {
       const client = (await ctx.getAwsClient()) as AWS;
-      if (id) {
+      if (!!id) {
         const rawDistribution = await this.getDistribution(client.cloudfrontClient, id);
         if (rawDistribution) {
-          const result = this.distributionMapper(rawDistribution);
+          const result = await this.distributionMapper(rawDistribution, ctx);
           return result;
         }
       } else {
         const distributions = await this.getDistributions(client.cloudfrontClient);
         const out = [];
         for (const distribution of distributions) {
-          out.push(this.distributionMapper(distribution));
+          out.push(await this.distributionMapper(distribution, ctx));
         }
         return out;
       }
@@ -268,7 +312,7 @@ class DistributionMapper extends MapperBase<Distribution> {
               e.eTag,
             );
             if (res && res.Distribution) {
-              const newDistribution = this.distributionMapper(res);
+              const newDistribution = await this.distributionMapper(res, ctx);
               newDistribution.id = e.id;
               newDistribution.status = 'Deployed';
 
@@ -315,7 +359,7 @@ class DistributionMapper extends MapperBase<Distribution> {
             e.eTag,
           );
           if (res && res.Distribution) {
-            const newDistribution = this.distributionMapper(res);
+            const newDistribution = await this.distributionMapper(res, ctx);
             newDistribution.id = e.id;
             newDistribution.status = 'Deployed';
             e.eTag = newDistribution.eTag;
