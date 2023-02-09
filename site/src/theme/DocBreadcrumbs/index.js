@@ -75,9 +75,9 @@ export default function DocBreadcrumbs() {
     breadcrumbs = [
       {
         type:"link",
-        label:"Reference",
-        href: "/docs/next/reference",
-        docId: "reference"
+        label:"Modules",
+        href: "/docs/next/aws",
+        docId: "index"
       },
     ]
   }

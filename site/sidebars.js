@@ -12,9 +12,9 @@ async function getDocsLinks() {
   // read all documents at directory
   var fs = require('fs');
   var path = require('path');
-  var filesPath = path.join(__dirname, 'docs', 'reference', 'modules');
+  var filesPath = path.join(__dirname, 'docs', 'aws', 'modules');
 
-  // please note: links are pointing to /docs/reference, without versioning
+  // please note: links are pointing to /docs/aws, without versioning
   // as the path has changed, links are not correctly resolving for `next` version
   let files = await fs.readdirSync(filesPath);
   let items = [];
@@ -31,7 +31,7 @@ async function getDocsLinks() {
   items.push({
     type: 'doc',
     label: 'Index',
-    id: 'reference/index',
+    id: 'aws/index',
     customProps: {
       fragment: '',
       label: 'Index',
@@ -48,7 +48,7 @@ async function getDocsLinks() {
     items.push({
       type: 'doc',
       label: name,
-      id: 'reference/modules/' + name,
+      id: 'aws/modules/' + name,
       customProps: {
         label: name,
       },

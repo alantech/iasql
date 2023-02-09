@@ -4,7 +4,7 @@ import Link from '@docusaurus/Link';
 export default function PaginatorNavLink(props) {
   const {permalink, title, subLabel, isNext} = props;
   let newTitle = title;
-  if (title == 'Reference') {
+  if (title == 'SQL reference per module') {
     // custom title for dynamic modules
     if (permalink.includes("/modules/")) {
       const items = permalink.split("/");
