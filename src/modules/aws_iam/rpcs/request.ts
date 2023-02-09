@@ -34,8 +34,9 @@ export class AccessKeyRequestRpc extends RpcBase {
     secretAccessKey: 'varchar',
   } as const;
 
-  inputTable: RpcInput = [{ argName: 'userName', argType: 'varchar' }];
-
+  inputTable: RpcInput = {
+    userName: 'varchar',
+  };
   /**
    * @internal
    */

@@ -31,10 +31,10 @@ export class LogGroupTailRpc extends RpcBase {
   preTransactionCheck = PreTransactionCheck.NO_CHECK;
   /** @internal */
   postTransactionCheck = PostTransactionCheck.NO_CHECK;
-  inputTable: RpcInput = [
-    { argName: 'logGroupName', argType: 'varchar' },
-    { argName: 'region', argType: 'varchar', default: 'default_aws_region()' },
-  ];
+  inputTable: RpcInput = {
+    logGroupName: 'varchar',
+    region: { argType: 'varchar', default: 'default_aws_region()', rawDefault: true },
+  };
   /** @internal */
   outputTable = {
     event_id: 'varchar',

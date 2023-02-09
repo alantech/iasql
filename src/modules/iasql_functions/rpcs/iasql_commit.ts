@@ -25,7 +25,7 @@ export class IasqlCommit extends RpcBase {
   preTransactionCheck = PreTransactionCheck.FAIL_IF_NOT_LOCKED;
   /** @internal */
   postTransactionCheck = PostTransactionCheck.UNLOCK_ALWAYS;
-  inputTable = [];
+  inputTable = {};
   /** @internal */
   outputTable = {
     action: 'varchar',

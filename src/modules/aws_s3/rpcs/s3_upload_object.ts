@@ -30,12 +30,12 @@ export class S3UploadObjectRpc extends RpcBase {
    */
   module: AwsS3Module;
 
-  inputTable: RpcInput = [
-    { argName: 'bucketName', argType: 'varchar' },
-    { argName: 'bucketKey', argType: 'varchar' },
-    { argName: 'fileContent', argType: 'varchar' },
-    { argName: 'contentType', argType: 'varchar' },
-  ];
+  inputTable: RpcInput = {
+    bucketName: 'varchar',
+    bucketKey: 'varchar',
+    fileContent: 'varchar',
+    contentType: 'varchar',
+  };
   /**
    * @internal
    */

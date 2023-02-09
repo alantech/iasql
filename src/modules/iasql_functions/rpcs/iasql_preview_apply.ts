@@ -19,7 +19,7 @@ export class IasqlPreviewApply extends RpcBase {
   preTransactionCheck = PreTransactionCheck.NO_CHECK;
   /** @internal */
   postTransactionCheck = PostTransactionCheck.NO_CHECK;
-  inputTable = [];
+  inputTable = {};
   /**
    * @internal
    */

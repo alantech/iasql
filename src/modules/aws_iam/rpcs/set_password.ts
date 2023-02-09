@@ -34,11 +34,11 @@ export class SetUserPasswordRequestRpc extends RpcBase {
    */
   module: AwsIamModule;
 
-  inputTable: RpcInput = [
-    { argName: 'userName', argType: 'varchar' },
-    { argName: 'password', argType: 'varchar', default: 'NULL' },
-    { argName: 'resetPassword', argType: 'varchar', default: 'FALSE' },
-  ];
+  inputTable: RpcInput = {
+    userName: 'varchar',
+    password: 'varchar',
+    resetPassword: { argType: 'varchar', default: false },
+  };
 
   /**
    * @internal

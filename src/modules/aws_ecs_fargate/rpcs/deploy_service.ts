@@ -34,7 +34,9 @@ export class DeployServiceRPC extends RpcBase {
     message: 'varchar',
   } as const;
 
-  inputTable: RpcInput = [{ argName: 'serviceArn', argType: 'varchar' }];
+  inputTable: RpcInput = {
+    serviceArn: 'varchar',
+  };
   /**
    * @internal
    */

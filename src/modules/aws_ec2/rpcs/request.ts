@@ -40,12 +40,12 @@ export class KeyPairRequestRpc extends RpcBase {
     privateKey: 'varchar',
   } as const;
 
-  inputTable: RpcInput = [
-    { argName: 'keyPairName', argType: 'varchar' },
-    { argName: 'region', argType: 'varchar' },
-    { argName: 'keyFormat', argType: 'varchar', default: "'pem'" },
-    { argName: 'keyType', argType: 'varchar', default: "'rsa'" },
-  ];
+  inputTable: RpcInput = {
+    keyPairName: 'varchar',
+    region: 'varchar',
+    keyFormat: { argType: 'varchar', default: 'pem' },
+    keyType: { argType: 'varchar', default: 'rsa' },
+  };
 
   /**
    * @internal

@@ -22,11 +22,11 @@ export class KeyPairImportRpc extends RpcBase {
    * @internal
    */
   module: AwsEc2Module;
-  inputTable: RpcInput = [
-    { argName: 'keyName', argType: 'varchar' },
-    { argName: 'publicKey', argType: 'varchar' },
-    { argName: 'region', argType: 'varchar' },
-  ];
+  inputTable: RpcInput = {
+    keyName: 'varchar',
+    publicKey: 'varchar',
+    region: 'varchar',
+  };
   /**
    * @internal
    */

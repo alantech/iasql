@@ -23,7 +23,11 @@ export type Context = { [key: string]: any };
 
 // TODO: use something better than ColumnType for possible postgres colum types
 export type RpcOutput = { [key: string]: ColumnType };
-export type RpcInput = { argMode?: string; argName: string; argType: string; default?: string }[];
+export type RpcInput = {
+  [key: string]:
+    | string
+    | { argType: string; default?: string | boolean | null; rawDefault?: boolean; variadic?: true };
+};
 
 export type RpcResponseObject<T> = { [Properties in keyof T]: any };
 
@@ -384,9 +388,9 @@ export class MapperBase<E extends {}> {
 export class RpcBase implements RpcInterface {
   module: ModuleInterface;
   outputTable: RpcOutput;
-  inputTable: RpcInput = [
-    { argMode: 'VARIADIC', argName: '_args', argType: 'TEXT[]', default: 'ARRAY[]::text[]' },
-  ];
+  inputTable: RpcInput = {
+    _args: { argType: 'TEXT[]', default: 'ARRAY[]::text[]', variadic: true, rawDefault: true },
+  };
   preTransactionCheck: PreTransactionCheck;
   postTransactionCheck: PostTransactionCheck;
   call: (
@@ -405,29 +409,46 @@ export class RpcBase implements RpcInterface {
   formatObjKeysToSnakeCase(obj: any) {
     return Object.fromEntries(Object.entries(obj).map(([k, v]) => [snakeCase(k), v]));
   }
+  getRpcInput() {
+    // https://www.postgresql.org/docs/current/sql-createfunction.html
+    const inputArgs = [];
+    let postArgs = '';
+    for (const [k, v] of Object.entries(this.inputTable)) {
+      if (typeof v === 'string') {
+        // argName => argType syntax
+        inputArgs.push(`${snakeCase(k)} ${v}`);
+      } else {
+        // argName => {argType, default, rawDefault, variadic}
+        let defaultValue = v.default;
+        if (!v.rawDefault) {
+          if (typeof v.default === 'string') defaultValue = `'${v.default}'`;
+          else if (typeof v.default === 'boolean') defaultValue = v.default ? 'TRUE' : 'FALSE';
+          else if (v.default === null) defaultValue = 'NULL';
+        }
+        inputArgs.push(`${v.variadic ? 'VARIADIC' : ''} ${snakeCase(k)} ${v.argType} = ${defaultValue}`);
+      }
+    }
+
+    if (Object.keys(this.inputTable).length === 1 && this.inputTable.hasOwnProperty('_args')) {
+      // _args is a special name for passing a variadic without wrapping
+      postArgs = '_args';
+    } else {
+      postArgs = `(SELECT array[${Object.keys(this.inputTable).map(snakeCase).join(', ')}]::varchar[])`;
+    }
+
+    return [inputArgs.join(', '), postArgs];
+  }
 
   getInstallUninstallSql(key: string) {
-    const finalInputNames = _.map(_.map(this.inputTable, 'argName'), snakeCase);
+    const finalInputNames = _.map(Object.keys(this.inputTable), snakeCase);
     const commonElements = _.intersection(finalInputNames, _.keys(this.outputTable));
     if (!!commonElements.length)
       throw new Error(
         `A variable name can't be both input and output in ${key} RPC: ${commonElements.join(', ')}`,
       );
 
-    const rpcInputArgs = this.inputTable
-      .map((value: { argMode?: string; argName: string; argType: string; default?: string }) => {
-        if (value.default)
-          return `${value.argMode ?? ''} ${snakeCase(value.argName)} ${value.argType} = ${value.default}`;
-        return `${value.argMode ?? ''} ${snakeCase(value.argName)} ${value.argType}`;
-      }) // https://www.postgresql.org/docs/current/sql-createfunction.html
-      .join(', ');
-    let rpcInputArgsForPost;
-    if (this.inputTable.length === 1 && this.inputTable[0].argMode?.toLowerCase() === 'variadic') {
-      rpcInputArgsForPost = this.inputTable[0].argName; // simply pass the array, don't wrap in another one
-    } else {
-      rpcInputArgsForPost = finalInputNames.join(', ');
-      rpcInputArgsForPost = `(SELECT array[${rpcInputArgsForPost}]::varchar[])`;
-    }
+    const [rpcInputArgs, rpcInputArgsForPost] = this.getRpcInput();
+
     const rpcOutputEntries = Object.entries(this.outputTable ?? {});
     const rpcOutputTable = rpcOutputEntries
       .map(([columnName, columnType]) => `${columnName} ${columnType}`)

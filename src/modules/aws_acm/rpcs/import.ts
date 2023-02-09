@@ -34,12 +34,12 @@ export class CertificateImportRpc extends RpcBase {
     message: 'varchar',
   } as const;
 
-  inputTable: RpcInput = [
-    { argName: 'certificate', argType: 'varchar' },
-    { argName: 'privateKey', argType: 'varchar' },
-    { argName: 'region', argType: 'varchar' },
-    { argName: 'options', argType: 'varchar' },
-  ];
+  inputTable: RpcInput = {
+    certificate: 'varchar',
+    privateKey: 'varchar',
+    region: 'varchar',
+    options: { argType: 'json', default: '{}' },
+  };
 
   /**
    * @internal
