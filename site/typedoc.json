@@ -5,7 +5,7 @@
   "excludeExternals": true,
   "excludePrivate": true,
   "excludeInternal": true,
-  "name": "SQL reference per module",
+  "name": "Modules",
   "categorizeByGroup": false,
   "disableSources": true,
   "readme": "default",
