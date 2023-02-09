@@ -40,6 +40,7 @@ export class KeyPairRequestRpc extends RpcBase {
     privateKey: 'varchar',
   } as const;
 
+  /** @internal */
   inputTable: RpcInput = {
     keyPairName: 'varchar',
     region: 'varchar',

@@ -33,7 +33,9 @@ export class CertificateImportRpc extends RpcBase {
     status: 'varchar',
     message: 'varchar',
   } as const;
-
+  /**
+   * @internal
+   */
   inputTable: RpcInput = {
     certificate: 'varchar',
     privateKey: 'varchar',

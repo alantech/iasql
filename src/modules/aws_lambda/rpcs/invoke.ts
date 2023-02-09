@@ -30,6 +30,9 @@ export class LambdaFunctionInvokeRpc extends RpcBase {
    */
   module: AwsLambdaModule;
 
+  /**
+   * @internal
+   */
   inputTable: RpcInput = {
     lambdaFunctionName: 'varchar',
     functionPayload: { argType: 'json', default: '{}' },

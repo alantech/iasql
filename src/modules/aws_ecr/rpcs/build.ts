@@ -36,6 +36,9 @@ export class EcrBuildRpc extends RpcBase {
     imageId: 'varchar',
   } as const;
 
+  /**
+   * @internal
+   */
   inputTable: RpcInput = {
     githubRepoUrl: 'varchar',
     ecrRepositoryId: 'varchar',

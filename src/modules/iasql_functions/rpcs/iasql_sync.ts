@@ -19,6 +19,7 @@ export class IasqlSync extends RpcBase {
   preTransactionCheck = PreTransactionCheck.NO_CHECK;
   /** @internal */
   postTransactionCheck = PostTransactionCheck.NO_CHECK;
+  /** @internal */
   inputTable = {};
   /**
    * @internal

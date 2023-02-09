@@ -22,6 +22,7 @@ export class IasqlBegin extends RpcBase {
   preTransactionCheck = PreTransactionCheck.WAIT_FOR_LOCK;
   /** @internal */
   postTransactionCheck = PostTransactionCheck.NO_CHECK;
+  /** @internal */
   inputTable = {};
   /** @internal */
   outputTable = {

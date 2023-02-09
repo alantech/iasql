@@ -38,6 +38,7 @@ export class StartDeployRPC extends RpcBase {
   /** @internal */
   module: AwsCodedeployModule;
 
+  /** @internal */
   inputTable: RpcInput = {
     applicationName: 'varchar',
     deploymentGroupName: 'varchar',

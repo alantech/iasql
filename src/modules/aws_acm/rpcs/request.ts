@@ -52,7 +52,9 @@ export class CertificateRequestRpc extends RpcBase {
     status: 'varchar',
     message: 'varchar',
   } as const;
-
+  /**
+   * @internal
+   */
   inputTable: RpcInput = {
     domainName: 'varchar',
     validationMethod: 'varchar',

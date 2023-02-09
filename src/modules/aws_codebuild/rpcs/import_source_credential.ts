@@ -34,6 +34,7 @@ export class ImportSourceCredentialRpc extends RpcBase {
   /** @internal */
   module: AwsCodebuildModule;
 
+  /** @internal */
   inputTable: RpcInput = {
     region: 'varchar',
     token: 'varchar',

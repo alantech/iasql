@@ -34,6 +34,9 @@ export class SetUserPasswordRequestRpc extends RpcBase {
    */
   module: AwsIamModule;
 
+  /**
+   * @internal
+   */
   inputTable: RpcInput = {
     userName: 'varchar',
     password: 'varchar',
