@@ -38,12 +38,12 @@ jobs:
 
       - name: Install docker
         run: |
-          brew install docker
+          brew install docker-buildx
           # https://github.com/abiosoft/colima
           colima start
 
       - name: Start local iasql engine
         run: |
-          docker build -t iasql:latest .
+          docker buildx build -t iasql:latest .
           docker run -p 5432:5432 -e IASQL_ENV=ci --name iasql iasql:latest &
           while ! psql postgres://postgres:test@localhost:5432/iasql_metadata -b -q -c "SELECT iasql_engine_health()"; do sleep 1 && echo -n .; done;
