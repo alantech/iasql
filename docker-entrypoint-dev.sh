@@ -2,6 +2,13 @@
 
 set -vex
 
+# Dashboard/Run service (TODO: Merge this more tightly in the future)
+cd /dashboard/run
+yarn start &
+
+# Engine
+cd /engine
+
 if [ -d /var/lib/postgresql/14/main ]; then
   chown -R postgres /var/lib/postgresql/14/main
   chgrp -R postgres /var/lib/postgresql/14/main
