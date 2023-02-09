@@ -38,8 +38,6 @@ jobs:
   
   run-container-ubuntu:
     runs-on: ubuntu-latest
-    # timeout-minutes: 5
-    # os: [, windows-latest, ]
     steps:
       - uses: actions/checkout@v3
 
@@ -53,7 +51,7 @@ jobs:
           docker run -p 5432:5432 -e IASQL_ENV=local --name iasql iasql:latest &
           while ! psql postgres://postgres:test@localhost:5432/iasql_metadata -b -q -c "SELECT iasql_engine_health()"; do sleep 1 && echo -n .; done;
 
-  run-container-ubuntu:
+  run-container-windows:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v3
