@@ -15,7 +15,7 @@ Ghost is a software as a service product, but it is built totally on open source
 Starting an EC2 instance and manually triggering the installation commands is a procedure that can be done manually, but there are also another dependencies involved, such as the creation of proper security groups.
 It is time-consuming task, specially if you need to install several instances. This article will offer a way to install Ghost with one-click on IaSQL using an EC2 instance on Ubuntu as highlighted <a href="https://ghost.org/docs/install/ubuntu/">here</a>.
 
-_This approach uses <a href="https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/user-data.html">EC2 user data</a> functionality - to run an startup script that will configure Ghost
+\_This approach uses <a href="https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/user-data.html">EC2 user data</a> functionality - to run an startup script that will configure Ghost
 as soon as the instance is started - and <a href="https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instancedata-data-retrieval.html">EC2 instance metadata</a> - to retrieve
 the public IP of the instance, and assign it dynamically to Ghost installation script.
 
@@ -31,7 +31,7 @@ PUBKEY=$(cat /tmp/key.pub)
 
 The public key will be then imported into the system:
 
-```sql TheButton[Generate keypair]="Import keypair"
+```sql title="Import keypair"
  -- Install modules
 SELECT
   *
@@ -39,17 +39,22 @@ FROM
   iasql_install ('aws_ec2', 'aws_ec2_metadata');
 
 -- Request a keypair
-SELECT * FROM key_pair_import ('ghost', '<your_pubkey_content>', 'us-east-2');
+SELECT
+  *
+FROM
+  key_pair_import ('ghost', '<your_pubkey_content>', 'us-east-2');
 ```
 
 ## Ghost installation
 
 After the keypair has been imported, we can proceed with the installation of the instance itself, associating the created key to allow SSH access after it is created.
 
-
-```sql TheButton[Install Ghost]="Install Ghost"
--- start transaction
-SELECT * FROM iasql_begin();
+```sql title="Install Ghost"
+ -- start transaction
+SELECT
+  *
+FROM
+  iasql_begin ();
 
 -- insert security groups
 INSERT INTO
@@ -105,7 +110,8 @@ sudo -E chown ghostuser /var/www/ghost
 sudo chmod 775 /var/www/ghost
 cd /var/www/ghost/
 sudo -u ghostuser ghost install --url http://$(curl http://169.254.169.254/latest/meta-data/public-ipv4) --db mysql --dbpass ghost --no-prompt --start --enable
-', 'ghost',
+',
+  'ghost',
   'us-east-2'
 FROM
   subnet
@@ -146,7 +152,7 @@ SELECT
 SELECT
   *
 FROM
-  iasql_commit();
+  iasql_commit ();
 ```
 
 ## Accessing Ghost
