@@ -2,7 +2,7 @@ import { ACM, ImportCertificateCommandInput, paginateListCertificates } from '@a
 
 import { AwsAcmModule } from '..';
 import { AWS, paginateBuilder } from '../../../services/aws_macros';
-import { Context, RpcBase, RpcResponseObject } from '../../interfaces';
+import { Context, RpcBase, RpcInput, RpcResponseObject } from '../../interfaces';
 import { Certificate } from '../entity';
 import { safeParse } from './common';
 
@@ -33,6 +33,15 @@ export class CertificateImportRpc extends RpcBase {
     status: 'varchar',
     message: 'varchar',
   } as const;
+  /**
+   * @internal
+   */
+  inputTable: RpcInput = {
+    certificate: 'varchar',
+    privateKey: 'varchar',
+    region: 'varchar',
+    options: { argType: 'json', default: '{}' },
+  };
 
   /**
    * @internal

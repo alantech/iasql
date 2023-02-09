@@ -2,7 +2,7 @@ import { ECS, UpdateServiceCommandInput } from '@aws-sdk/client-ecs';
 
 import { AwsEcsFargateModule } from '..';
 import { AWS } from '../../../services/aws_macros';
-import { Context, RpcBase, RpcResponseObject } from '../../interfaces';
+import { Context, RpcBase, RpcInput, RpcResponseObject } from '../../interfaces';
 import { Service } from '../entity';
 
 /**
@@ -34,6 +34,12 @@ export class DeployServiceRPC extends RpcBase {
     message: 'varchar',
   } as const;
 
+  /**
+   * @internal
+   */
+  inputTable: RpcInput = {
+    serviceArn: 'varchar',
+  };
   /**
    * @internal
    */

@@ -26,6 +26,10 @@ export class IasqlApply extends RpcBase {
   /**
    * @internal
    */
+  inputTable = {};
+  /**
+   * @internal
+   */
   outputTable = {
     action: 'varchar',
     table_name: 'varchar',

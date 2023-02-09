@@ -3,7 +3,7 @@ import { WaiterOptions, WaiterState } from '@aws-sdk/util-waiter';
 
 import { AwsEc2Module } from '..';
 import { AWS } from '../../../services/aws_macros';
-import { Context, RpcBase, RpcResponseObject } from '../../interfaces';
+import { Context, RpcBase, RpcInput, RpcResponseObject } from '../../interfaces';
 
 /**
  * Method for importing EC2 keypairs, based on a local one.
@@ -22,6 +22,12 @@ export class KeyPairImportRpc extends RpcBase {
    * @internal
    */
   module: AwsEc2Module;
+  /** @internal */
+  inputTable: RpcInput = {
+    keyName: 'varchar',
+    publicKey: 'varchar',
+    region: 'varchar',
+  };
   /**
    * @internal
    */

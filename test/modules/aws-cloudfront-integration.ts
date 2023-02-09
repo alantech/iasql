@@ -311,7 +311,7 @@ describe('Cloudfront Integration Testing', () => {
   it(
     'imports a certificate to use in cloudfront distribution',
     query(`
-    SELECT * FROM certificate_import('${cert}', '${key}', 'us-east-1', '');
+    SELECT * FROM certificate_import('${cert}', '${key}', 'us-east-1', '{}');
   `),
   );
 

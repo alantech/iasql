@@ -81,7 +81,7 @@ describe('AwsAcm Request Integration Testing', () => {
 
   it('adds a new certificate to request with a domain without route53 support', done => {
     query(`
-        SELECT * FROM certificate_request('fakeDomain.com', 'DNS', '${region}', '');
+        SELECT * FROM certificate_request('fakeDomain.com', 'DNS', '${region}', '{}');
       `)((e: any) => {
       if (e instanceof Error) {
         return done();
@@ -95,7 +95,7 @@ describe('AwsAcm Request Integration Testing', () => {
   it(
     'adds a new certificate to request with a fake domain',
     query(`
-      SELECT * FROM certificate_request('fakeDomain.com', 'DNS', '${region}', '');
+      SELECT * FROM certificate_request('fakeDomain.com', 'DNS', '${region}', '{}');
     `),
   );
 
@@ -114,7 +114,7 @@ describe('AwsAcm Request Integration Testing', () => {
   itDocs(
     'adds a new certificate to request',
     query(`
-      SELECT * FROM certificate_request('${domainName}', 'DNS', '${region}', '');
+      SELECT * FROM certificate_request('${domainName}', 'DNS', '${region}', '{}');
   `),
   );
 
@@ -178,7 +178,7 @@ describe('AwsAcm Request Integration Testing', () => {
   itDocs(
     'creates a certificate request in non-default region',
     query(`
-      SELECT * FROM certificate_request('${domainName}', 'DNS', 'us-east-1', '');
+      SELECT * FROM certificate_request('${domainName}', 'DNS', 'us-east-1', '{}');
   `),
   );
 

@@ -8,7 +8,7 @@ import { WaiterOptions } from '@aws-sdk/util-waiter';
 
 import { AwsCodedeployModule } from '..';
 import { AWS, crudBuilderFormat } from '../../../services/aws_macros';
-import { Context, RpcBase, RpcResponseObject } from '../../interfaces';
+import { Context, RpcBase, RpcInput, RpcResponseObject } from '../../interfaces';
 
 /**
  * Method for deploying a CodeDeploy application revision through a deployment group.
@@ -38,6 +38,13 @@ export class StartDeployRPC extends RpcBase {
   /** @internal */
   module: AwsCodedeployModule;
 
+  /** @internal */
+  inputTable: RpcInput = {
+    applicationName: 'varchar',
+    deploymentGroupName: 'varchar',
+    revision: 'varchar',
+    region: { argType: 'varchar', default: 'default_aws_region()', rawDefault: true },
+  };
   /** @internal */
   outputTable = {
     id: 'varchar',

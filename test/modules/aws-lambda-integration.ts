@@ -274,7 +274,7 @@ describe('Lambda Integration Testing', () => {
     FROM invoke_lambda_function();
   `)((e?: any) => {
       try {
-        expect(e?.message).toContain('Please provide a valid lambda function name');
+        expect(e?.message).toContain('function invoke_lambda_function() does not exist');
       } catch (err) {
         done(err);
         return {};
@@ -289,7 +289,7 @@ describe('Lambda Integration Testing', () => {
       FROM invoke_lambda_function('${lambdaFunctionName}', '{name: test}');
   `)((e?: any) => {
       try {
-        expect(e?.message).toContain('The payload must be a valid JSON string');
+        expect(e?.message).toContain('invalid input syntax for type json');
       } catch (err) {
         done(err);
         return {};

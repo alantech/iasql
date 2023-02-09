@@ -23,6 +23,8 @@ export class IasqlBegin extends RpcBase {
   /** @internal */
   postTransactionCheck = PostTransactionCheck.NO_CHECK;
   /** @internal */
+  inputTable = {};
+  /** @internal */
   outputTable = {
     message: 'varchar',
   } as const;

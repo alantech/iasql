@@ -6,6 +6,7 @@ import { snakeCase } from 'typeorm/util/StringUtils';
 
 import { IasqlFunctions } from '..';
 import * as AllModules from '../../../modules';
+import { RpcInput } from '../../../modules';
 import { getCloudId } from '../../../services/cloud-id';
 import logger from '../../../services/logger';
 import { TypeormWrapper } from '../../../services/typeorm';
@@ -33,6 +34,10 @@ export class IasqlGetSqlSince extends RpcBase {
   preTransactionCheck = PreTransactionCheck.NO_CHECK;
   /** @internal */
   postTransactionCheck = PostTransactionCheck.NO_CHECK;
+  /** @internal */
+  inputTable: RpcInput = {
+    limitDate: { argType: 'varchar', default: null, rawDefault: true },
+  };
   /** @internal */
   outputTable = {
     sql: 'varchar',

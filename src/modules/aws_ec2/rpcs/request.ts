@@ -1,10 +1,15 @@
-import { CreateKeyPairCommandInput, EC2, waitUntilKeyPairExists } from '@aws-sdk/client-ec2';
-import { KeyFormat, KeyType } from '@aws-sdk/client-ec2';
+import {
+  CreateKeyPairCommandInput,
+  EC2,
+  KeyFormat,
+  KeyType,
+  waitUntilKeyPairExists,
+} from '@aws-sdk/client-ec2';
 import { WaiterOptions, WaiterState } from '@aws-sdk/util-waiter';
 
 import { AwsEc2Module } from '..';
 import { AWS } from '../../../services/aws_macros';
-import { Context, RpcBase, RpcResponseObject } from '../../interfaces';
+import { Context, RpcBase, RpcInput, RpcResponseObject } from '../../interfaces';
 
 /**
  * Method for requesting a new EC2 keypair
@@ -35,6 +40,14 @@ export class KeyPairRequestRpc extends RpcBase {
     privateKey: 'varchar',
   } as const;
 
+  /** @internal */
+  inputTable: RpcInput = {
+    keyPairName: 'varchar',
+    region: 'varchar',
+    keyFormat: { argType: 'varchar', default: 'pem' },
+    keyType: { argType: 'varchar', default: 'rsa' },
+  };
+
   /**
    * @internal
    */
@@ -63,15 +76,14 @@ export class KeyPairRequestRpc extends RpcBase {
     ctx: Context,
     name: string,
     region: string,
-    keyFormat?: string,
-    keyType?: string,
+    keyFormat: string,
+    keyType: string,
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
     const client = (await ctx.getAwsClient(region)) as AWS;
-    const textEncoder = new TextEncoder();
     const input: CreateKeyPairCommandInput = {
       KeyName: name,
-      KeyFormat: (keyFormat ?? 'pem') as KeyFormat,
-      KeyType: (keyType ?? 'rsa') as KeyType,
+      KeyFormat: keyFormat as KeyFormat,
+      KeyType: keyType as KeyType,
     };
     const result = await this.requestKeyPair(client.ec2client, input);
     if (!result) {

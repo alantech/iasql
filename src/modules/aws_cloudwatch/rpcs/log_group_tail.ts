@@ -7,6 +7,7 @@ import {
   PostTransactionCheck,
   PreTransactionCheck,
   RpcBase,
+  RpcInput,
   RpcResponseObject,
 } from '../../interfaces';
 
@@ -30,6 +31,11 @@ export class LogGroupTailRpc extends RpcBase {
   preTransactionCheck = PreTransactionCheck.NO_CHECK;
   /** @internal */
   postTransactionCheck = PostTransactionCheck.NO_CHECK;
+  /** @internal */
+  inputTable: RpcInput = {
+    logGroupName: 'varchar',
+    region: { argType: 'varchar', default: 'default_aws_region()', rawDefault: true },
+  };
   /** @internal */
   outputTable = {
     event_id: 'varchar',

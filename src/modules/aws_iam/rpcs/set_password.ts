@@ -7,7 +7,7 @@ import {
 
 import { AwsIamModule } from '..';
 import { AWS, crudBuilder2, crudBuilderFormat } from '../../../services/aws_macros';
-import { Context, RpcBase, RpcResponseObject } from '../../interfaces';
+import { Context, RpcBase, RpcInput, RpcResponseObject } from '../../interfaces';
 
 /**
  * Method for requesting a new password for an IAM user
@@ -33,6 +33,15 @@ export class SetUserPasswordRequestRpc extends RpcBase {
    * @internal
    */
   module: AwsIamModule;
+
+  /**
+   * @internal
+   */
+  inputTable: RpcInput = {
+    userName: 'varchar',
+    password: 'varchar',
+    resetPassword: { argType: 'varchar', default: false },
+  };
 
   /**
    * @internal

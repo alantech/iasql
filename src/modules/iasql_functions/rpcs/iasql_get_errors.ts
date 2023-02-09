@@ -35,6 +35,10 @@ export class IasqlGetErrors extends RpcBase {
   /**
    * @internal
    */
+  inputTable = {};
+  /**
+   * @internal
+   */
   outputTable = {
     ts: 'timestamp with time zone',
     message: 'varchar',

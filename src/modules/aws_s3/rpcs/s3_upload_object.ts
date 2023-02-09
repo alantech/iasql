@@ -3,7 +3,7 @@ import { WaiterOptions } from '@aws-sdk/util-waiter';
 
 import { AwsS3Module } from '..';
 import { AWS, crudBuilderFormat } from '../../../services/aws_macros';
-import { Context, RpcBase, RpcResponseObject } from '../../interfaces';
+import { Context, RpcBase, RpcInput, RpcResponseObject } from '../../interfaces';
 import { BucketObject } from '../entity';
 
 /**
@@ -30,6 +30,15 @@ export class S3UploadObjectRpc extends RpcBase {
    */
   module: AwsS3Module;
 
+  /**
+   * @internal
+   */
+  inputTable: RpcInput = {
+    bucketName: 'varchar',
+    bucketKey: 'varchar',
+    fileContent: 'varchar',
+    contentType: 'varchar',
+  };
   /**
    * @internal
    */
