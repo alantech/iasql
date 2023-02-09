@@ -101,7 +101,7 @@ COPY --from=dashboard-stage /dashboard/build build
 
 ## Copy from engine-stage
 WORKDIR /engine
-COPY --from=engine-stage /engine/package.json /engine/docker-entrypoint-dev.sh ./
+COPY --from=engine-stage /engine/ormconfig.js /engine/tsconfig.json /engine/package.json /engine/docker-entrypoint-dev.sh ./
 COPY --from=engine-stage /engine/node_modules node_modules
 COPY --from=engine-stage /engine/src/scripts src/scripts
 COPY --from=engine-stage /engine/dist dist
