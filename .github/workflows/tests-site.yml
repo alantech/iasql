@@ -53,6 +53,21 @@ jobs:
           docker run -p 5432:5432 -e IASQL_ENV=local --name iasql iasql:latest &
           while ! psql postgres://postgres:test@localhost:5432/iasql_metadata -b -q -c "SELECT iasql_engine_health()"; do sleep 1 && echo -n .; done;
 
+  run-container-ubuntu:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-node@v2
+        with:
+          node-version: "16"
+
+      - name: Start local iasql engine
+        run: |
+          docker build -t iasql:latest .
+          docker run -p 5432:5432 -e IASQL_ENV=local --name iasql iasql:latest &
+          while ! psql postgres://postgres:test@localhost:5432/iasql_metadata -b -q -c "SELECT iasql_engine_health()"; do sleep 1 && echo -n .; done;
+
   run-container-macos:
     runs-on: macos-latest
     steps:
@@ -64,11 +79,30 @@ jobs:
 
       - name: Install docker
         run: |
-          brew install docker docker-buildx
-          mkdir -p ~/.docker/cli-plugins
-          ln -sfn /usr/local/opt/docker-buildx/bin/docker-buildx ~/.docker/cli-plugins/docker-buildx
+          brew install docker
           # https://github.com/abiosoft/colima
           colima start
+
+      - name: Start local iasql engine
+        run: |
+          docker build -t iasql:latest .
+          docker run -p 5432:5432 -e IASQL_ENV=local --name iasql iasql:latest &
+          while ! psql postgres://postgres:test@localhost:5432/iasql_metadata -b -q -c "SELECT iasql_engine_health()"; do sleep 1 && echo -n .; done;
+
+  run-container-macos-arm:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-node@v2
+        with:
+          node-version: "16"
+
+      - name: Install docker
+        run: |
+          brew install docker
+          # https://github.com/abiosoft/colima
+          colima start --arch aarch64
 
       - name: Start local iasql engine
         run: |
