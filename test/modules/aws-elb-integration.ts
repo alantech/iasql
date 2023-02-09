@@ -445,7 +445,7 @@ describe('ELB Integration Testing', () => {
   itDocs(
     'adds a new certificate to import',
     query(`
-      SELECT * FROM certificate_import('${cert}', '${key}', '${region}', '');
+      SELECT * FROM certificate_import('${cert}', '${key}', '${region}', '{}');
   `),
   );
 

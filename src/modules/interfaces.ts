@@ -412,7 +412,7 @@ export class RpcBase implements RpcInterface {
   getRpcInput() {
     // https://www.postgresql.org/docs/current/sql-createfunction.html
     const inputArgs = [];
-    let postArgs = '';
+    let postArgs: string;
     for (const [k, v] of Object.entries(this.inputTable)) {
       if (typeof v === 'string') {
         // argName => argType syntax
