@@ -36,6 +36,23 @@ jobs:
   #       run: |
   #         [ -d "./site/docs/reference" ]
   
+  run-container-ubuntu:
+    runs-on: ubuntu-latest
+    # timeout-minutes: 5
+    # os: [, windows-latest, ]
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-node@v2
+        with:
+          node-version: "16"
+
+      - name: Start local iasql engine
+        run: |
+          docker build -t iasql:latest .
+          docker run -p 5432:5432 -e IASQL_ENV=local --name iasql iasql:latest &
+          while ! psql postgres://postgres:test@localhost:5432/iasql_metadata -b -q -c "SELECT iasql_engine_health()"; do sleep 1 && echo -n .; done;
+
   run-container-macos:
     runs-on: macos-latest
     steps:
@@ -55,6 +72,6 @@ jobs:
 
       - name: Start local iasql engine
         run: |
-          docker buildx build -t iasql:latest .
-          docker run -p 5432:5432 -e IASQL_ENV=ci --name iasql iasql:latest &
+          docker build -t iasql:latest .
+          docker run -p 5432:5432 -e IASQL_ENV=local --name iasql iasql:latest &
           while ! psql postgres://postgres:test@localhost:5432/iasql_metadata -b -q -c "SELECT iasql_engine_health()"; do sleep 1 && echo -n .; done;
