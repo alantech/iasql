@@ -19,7 +19,6 @@ export default function Navbar({ userPic }: { userPic: string }) {
   const { logout } = useAuth0();
   const homeUrl = 'https://iasql.com';
   const navigation = [
-    { name: 'Schema', href: 'https://iasql.com/schema', current: false },
     { name: 'Docs', href: 'https://iasql.com/docs', current: false },
     { name: 'Discord', href: 'https://discord.com/invite/machGGczea', current: false },
   ];
