@@ -60,6 +60,10 @@ jobs:
         with:
           node-version: "16"
 
+      - name: Switch to linux containers
+        run: |
+          & $Env:ProgramFiles\Docker\Docker\DockerCli.exe -SwitchDaemon .
+
       - name: Start local iasql engine
         shell: bash
         run: |
@@ -80,7 +84,7 @@ jobs:
         run: |
           brew install docker
           # https://github.com/abiosoft/colima
-          colima start
+          colima start --cpu 4 --memory 2
 
       - name: Start local iasql engine
         run: |
@@ -101,7 +105,7 @@ jobs:
         run: |
           brew install docker
           # https://github.com/abiosoft/colima
-          colima start --arch aarch64
+          colima start --cpu 4 --memory 2 --arch aarch64
 
       - name: Start local iasql engine
         run: |
