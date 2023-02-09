@@ -34,4 +34,4 @@ jobs:
           yarn build
       - name: Returns true if the site has been generated
         run: |
-          [ -d "./site/docs/reference" ]
+          [ -d "./site/docs/aws" ]
