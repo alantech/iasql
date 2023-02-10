@@ -27,28 +27,36 @@ function useSyntheticTitle() {
 
 // custom function to render type badge
 function renderType(id) {
-  // get type from url and class  
-  let type, color;
-  if (id.startsWith('aws/classes')) {
-    if (id.includes("rpcs")) {
+  if (id.startsWith("modules/") && id!="modules/index") {
+
+    // get type from url and class  
+    let type, color;
+    if (id.includes("/tables/")) {
+      if (id.includes("_rpcs_")) {
+        type = "Function";
+        color = "95CE3D";  
+      } else {
+        type = "Table";
+        color = "3D95CE";  
+      }
+    }
+    else if (id.includes("/enums/")) {
+      type = "Enum";
+      color = "CD3C94";
+    }
+    else if (id.includes("/functions/")) {
       type = "Function";
       color = "95CE3D";
     } else {
-      type = "Table";
-      color = "3D95CE";
+      type = "Module";
+      color = "CE3D3D";
     }
-  } else if (id.startsWith('aws/modules')) {
-    type = "module";
-    color = "CE3D3D";
-  } else if (id.startsWith('aws/enums')) {
-    type = "Enum";
-    color = "CD3C94";
-  }
 
-  if (type && color) {
-    const image = `https://img.shields.io/static/v1?label=&message=${type}&color=${color}&style=for-the-badge`;
-    return <span class="padding-left--lg"><img src={image} /></span>;
-  } else return <></>;
+    if (type && color) {
+      const image = `https://img.shields.io/static/v1?label=&message=${type}&color=${color}&style=for-the-badge`;
+      return <span class="padding-left--lg"><img src={image} /></span>;
+    } else return <></>;
+  }
 }
 
 export default function DocItemContent({children}) {

@@ -12,48 +12,64 @@ async function getDocsLinks() {
   // read all documents at directory
   var fs = require('fs');
   var path = require('path');
-  var filesPath = path.join(__dirname, 'docs', 'aws', 'modules');
+  var filesPath = path.join(__dirname, 'docs', 'modules', 'aws');
 
-  // please note: links are pointing to /docs/aws, without versioning
-  // as the path has changed, links are not correctly resolving for `next` version
-  let files = await fs.readdirSync(filesPath);
-  let items = [];
-  const excluded = [
-    'iasql_functions_iasql.md',
-    'index.md',
-    'interfaces.md',
-    'subscribers.md',
-    'aws_lambda_aws.md',
-    'iasql_functions.md',
-  ];
+  let files = fs.readdirSync(filesPath);
+
+  // read aws
+  const aws_items = [];
+  for (const file of files) {
+    if (file.endsWith('.md') && !file.includes('entity') && !file.includes('_rpcs')) {
+      // just strip md
+      const name = file.split('.')[0];
+      aws_items.push({
+        type: 'doc',
+        label: name,
+        id: 'modules/aws/' + name,
+        customProps: {
+          label: name,
+        },
+      });
+    }
+  }
 
   // add global
-  items.push({
-    type: 'doc',
-    label: 'Index',
-    id: 'aws/index',
-    customProps: {
-      fragment: '',
-      label: 'Index',
-    },
-  });
-
-  // sort it
-  filters = files.filter(item => !excluded.includes(item));
-  filters.unshift('iasql_functions');
-
-  for (const file of filters) {
-    // just strip md
-    const name = file.split('.')[0];
-    items.push({
+  const items = [
+    {
       type: 'doc',
-      label: name,
-      id: 'aws/modules/' + name,
+      label: 'Index',
+      id: 'modules/index',
       customProps: {
-        label: name,
+        fragment: '',
+        label: 'Index',
       },
-    });
-  }
+    },
+    {
+      type: 'category',
+      label: 'Builtin',
+      collapsible: true,
+      collapsed: true,
+      items: [
+        {
+          type: 'doc',
+          label: 'iasql_functions',
+          id: 'modules/builtin/iasql_functions',
+          customProps: {
+            fragment: '',
+            label: 'iasql_functions',
+          },
+        },
+      ],
+    },
+    {
+      type: 'category',
+      label: 'AWS',
+      collapsible: true,
+      collapsed: true,
+      items: aws_items,
+    },
+  ];
+
   return items;
 }
 

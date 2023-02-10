@@ -76,7 +76,7 @@ export default function DocBreadcrumbs() {
       {
         type:"link",
         label:"Modules",
-        href: "/docs/next/aws",
+        href: "/docs/next/modules",
         docId: "index"
       },
     ]

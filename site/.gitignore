@@ -7,7 +7,7 @@
 # Generated files
 .docusaurus
 .cache-loader
-docs/aws/*
+docs/modules/*
 
 # Misc
 .DS_Store
