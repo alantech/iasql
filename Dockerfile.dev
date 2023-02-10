@@ -1,15 +1,3 @@
-# Default ENVs that can be overwritten
-ARG IASQL_ENV=dev
-ENV IASQL_ENV=$IASQL_ENV
-ENV REACT_APP_IASQL_ENV=$IASQL_ENV
-ARG DB_USER=postgres
-ENV DB_USER=$DB_USER
-ARG DB_PASSWORD=test
-ENV DB_PASSWORD=$DB_PASSWORD
-
-# Default ENVs
-ENV GENERATE_SOURCEMAP=false
-
 # Base image
 FROM debian:bullseye AS base
 
@@ -37,6 +25,10 @@ RUN npm install -g yarn
 # Run service
 FROM base AS run-stage
 
+# Default ENVs that can be overwritten
+ARG IASQL_ENV=local
+ENV IASQL_ENV=$IASQL_ENV
+
 WORKDIR /run
 
 ## Copy files
@@ -54,6 +46,14 @@ RUN yarn build
 
 # Dashboard
 FROM base AS dashboard-stage
+
+# Default ENVs that can be overwritten
+ARG IASQL_ENV=local
+ENV IASQL_ENV=$IASQL_ENV
+ENV REACT_APP_IASQL_ENV=$IASQL_ENV
+
+# Default ENVs
+ENV GENERATE_SOURCEMAP=false
 
 WORKDIR /dashboard
 
@@ -73,6 +73,14 @@ RUN yarn build
 
 # Engine
 FROM base AS engine-stage
+
+# Default ENVs that can be overwritten
+ARG IASQL_ENV=local
+ENV IASQL_ENV=$IASQL_ENV
+ARG DB_USER=postgres
+ENV DB_USER=$DB_USER
+ARG DB_PASSWORD=test
+ENV DB_PASSWORD=$DB_PASSWORD
 
 WORKDIR /engine
 
