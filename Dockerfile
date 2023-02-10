@@ -25,6 +25,10 @@ RUN npm install -g yarn
 # Run service
 FROM base AS run-stage
 
+# Default ENVs that can be overwritten
+ARG IASQL_ENV=local
+ENV IASQL_ENV=$IASQL_ENV
+
 WORKDIR /run
 
 ## Copy files
@@ -45,6 +49,14 @@ RUN yarn install --production
 
 # Dashboard
 FROM base AS dashboard-stage
+
+# Default ENVs that can be overwritten
+ARG IASQL_ENV=local
+ENV IASQL_ENV=$IASQL_ENV
+ENV REACT_APP_IASQL_ENV=$IASQL_ENV
+
+# Default ENVs
+ENV GENERATE_SOURCEMAP=false
 
 WORKDIR /dashboard
 
@@ -68,6 +80,14 @@ RUN yarn install --production
 # Engine
 FROM base AS engine-stage
 
+# Default ENVs that can be overwritten
+ARG IASQL_ENV=local
+ENV IASQL_ENV=$IASQL_ENV
+ARG DB_USER=postgres
+ENV DB_USER=$DB_USER
+ARG DB_PASSWORD=test
+ENV DB_PASSWORD=$DB_PASSWORD
+
 WORKDIR /engine
 
 ## Copy files
@@ -88,17 +108,6 @@ RUN yarn install --production
 
 # Main stage
 FROM base AS main-stage
-
-# Default ENVs that can be overwritten
-ARG IASQL_ENV=local
-ENV IASQL_ENV=$IASQL_ENV
-ENV REACT_APP_IASQL_ENV=$IASQL_ENV
-ARG DB_USER=postgres
-ENV DB_USER=$DB_USER
-ARG DB_PASSWORD=test
-ENV DB_PASSWORD=$DB_PASSWORD
-# Default ENVs
-ENV GENERATE_SOURCEMAP=false
 
 ## Copy from run-stage
 WORKDIR /dashboard/run
