@@ -7,6 +7,7 @@ const staging: ConfigInterface = {
   },
   http: {
     port: 8888,
+    corsOrigin: 'https://app-staging.iasql.com',
   },
   db: {
     host: 'pg-staging.iasql.com',
