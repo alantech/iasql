@@ -28,7 +28,7 @@ const logger = !!config.logDna ? createLogger(config.logDna.key, { levels: ['inf
 const port = config.http.port;
 const app = express();
 
-app.use(cors({ origin: config.http.corsOrigin, }));
+if (config.http.corsOrigin) app.use(cors({ origin: config.http.corsOrigin, }));
 app.use(express.json({ limit: '10000MB' }));
 app.use(express.text({ limit: '10000MB' }));
 
