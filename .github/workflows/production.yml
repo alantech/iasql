@@ -41,6 +41,8 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           context: .
+          build-args: |
+            IASQL_ENV=production
           push: true
           cache-from: type=gha
           cache-to: type=gha
@@ -65,7 +67,7 @@ jobs:
             sudo docker pull $DOCKER_URL
             sudo docker container stop iasql
             sudo docker container rm iasql
-            sudo docker run -d --env-file=.env -p 5432:5432 -v /iasqldb:/var/lib/postgresql/14 --name iasql $DOCKER_URL
+            sudo docker run -d --env-file=.env -p 5432:5432 -p 8888:8888 -v /iasqldb:/var/lib/postgresql/14 --name iasql $DOCKER_URL
             sudo docker image prune -af
           "
           rm production.pem
