@@ -44,6 +44,8 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           context: .
+          build-args: |
+            IASQL_ENV=staging
           push: true
           cache-from: type=gha
           cache-to: type=gha
