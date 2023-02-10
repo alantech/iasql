@@ -236,28 +236,6 @@ curl ${QUICKSTART_LB_DNS}:8088/health
 Delete the resources created by this tutorial using the following SQL code:
 
 ```sql title="psql postgres://qpp3pzqb:LN6jnHfhRJTBD6ia@localhost:5432/_3ba201e349a11daf -c"
-SELECT iasql_begin();
 DELETE FROM repository_image WHERE private_repository_id = (SELECT id FROM repository WHERE repository_name = 'quickstart-repository');
 DELETE FROM ecs_simplified WHERE app_name = 'quickstart';
-SELECT iasql_commit();
-```
-
-The `iasql_begin()` and `iasql_commit()` functions are IaSQL RPCs that are used to start and then end a transaction. We use those two functions to bundle changes to be pushed to the cloud immediately. If you don't wrap the changes in a transaction, they'll be applied to the cloud in an eventually-consistent way.
-
-If the function call is successful, it will return a virtual table with a record for each cloud resource that has been created, deleted or updated.
-
-```text
- action |     table_name      |   id   |                                                         description                                                         
---------+---------------------+--------+-----------------------------------------------------------------------------------------------------------------------------
- delete | cluster             | [NULL] | arn:aws:ecs:sa-east-1:658401754851:cluster/quickstart-cluster
- delete | task_definition     | [NULL] | arn:aws:ecs:sa-east-1:658401754851:task-definition/quickstart-td:1
- delete | service             | [NULL] | arn:aws:ecs:sa-east-1:658401754851:service/quickstart-cluster/quickstart-service
- delete | listener            | [NULL] | arn:aws:elasticloadbalancing:sa-east-1:658401754851:listener/app/quickstart-load-balancer/3925cdb9acada7c1/7a459d6259dac5c9
- delete | load_balancer       | [NULL] | arn:aws:elasticloadbalancing:sa-east-1:658401754851:loadbalancer/app/quickstart-load-balancer/3925cdb9acada7c1
- delete | target_group        | [NULL] | arn:aws:elasticloadbalancing:sa-east-1:658401754851:targetgroup/quickstart-target/826f804f496d0a90
- delete | security_group      | [NULL] | sg-0015b0e07bd10b7d2
- delete | security_group      | [NULL] | sg-e0df1095
- delete | security_group_rule | [NULL] | sgr-06aa0915b15fd23a9
- delete | security_group_rule | [NULL] | sgr-02e2096ac9e77a5bf
- delete | iam_role            | [NULL] | ecsTaskExecRole
 ```
