@@ -20,9 +20,9 @@ const staging: ConfigInterface = {
     environment: 'staging',
   },
   engine: {
-    pgHost: 'pg-staging.iasql.com',
+    pgHost: 'localhost',
     pgForceSsl: true,
-    backendUrl: 'https://run-staging.iasql.com',
+    backendUrl: 'http://localhost:8888',
   },
 };
 

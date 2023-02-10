@@ -6,7 +6,7 @@ export interface ConfigInterface {
   };
   http: {
     port: number;
-    corsOrigin: string;
+    corsOrigin?: string;
   };
   db: {
     host: string;

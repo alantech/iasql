@@ -1,16 +1,12 @@
 import { ConfigInterface, throwError } from './config';
 
-const production: ConfigInterface = {
-  auth: {
-    domain: 'https://auth.iasql.com/',
-    audience: 'https://api.iasql.com', // id of this api in auth0
-  },
+const bootstrap: ConfigInterface = {
   http: {
     port: 8888,
   },
   db: {
-    host: 'pg.iasql.com',
-    // TODO: Move away from env var to secrets
+    host: 'db-bootstrap.iasql.com',
+    // TODO: Move away from env var to secret
     user: process.env.DB_USER ?? throwError('No DB User defined'),
     password: process.env.DB_PASSWORD ?? throwError('No DB Password defined'),
     port: 5432,
@@ -21,4 +17,4 @@ const production: ConfigInterface = {
   },
 };
 
-export default production;
+export default bootstrap;
