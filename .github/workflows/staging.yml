@@ -75,16 +75,16 @@ jobs:
           "
           rm staging.pem
 
-  notify:
-    name: Discord Notification
-    runs-on: ubuntu-latest
-    needs: # make sure the notification is sent AFTER the jobs you want included have completed
-      - deploy
-    if: ${{ always() }} # You always want to be notified: success, failure, or cancelled
+  # notify:
+  #   name: Discord Notification
+  #   runs-on: ubuntu-latest
+  #   needs: # make sure the notification is sent AFTER the jobs you want included have completed
+  #     - deploy
+  #   if: ${{ always() }} # You always want to be notified: success, failure, or cancelled
 
-    steps:
-      - name: Notify
-        uses: nobrayner/discord-webhook@v1
-        with:
-          github-token: ${{ secrets.github_token }}
-          discord-webhook: ${{ secrets.DISCORD_WEBHOOK }}
+  #   steps:
+  #     - name: Notify
+  #       uses: nobrayner/discord-webhook@v1
+  #       with:
+  #         github-token: ${{ secrets.github_token }}
+  #         discord-webhook: ${{ secrets.DISCORD_WEBHOOK }}
