@@ -1,14 +1,3 @@
-# Default ENVs that can be overwritten
-ARG IASQL_ENV=local
-ENV IASQL_ENV=$IASQL_ENV
-ENV REACT_APP_IASQL_ENV=$IASQL_ENV
-ARG DB_USER=postgres
-ENV DB_USER=$DB_USER
-ARG DB_PASSWORD=test
-ENV DB_PASSWORD=$DB_PASSWORD
-# Default ENVs
-ENV GENERATE_SOURCEMAP=false
-
 # Base image
 FROM debian:bullseye AS base
 
@@ -99,6 +88,17 @@ RUN yarn install --production
 
 # Main stage
 FROM base AS main-stage
+
+# Default ENVs that can be overwritten
+ARG IASQL_ENV=local
+ENV IASQL_ENV=$IASQL_ENV
+ENV REACT_APP_IASQL_ENV=$IASQL_ENV
+ARG DB_USER=postgres
+ENV DB_USER=$DB_USER
+ARG DB_PASSWORD=test
+ENV DB_PASSWORD=$DB_PASSWORD
+# Default ENVs
+ENV GENERATE_SOURCEMAP=false
 
 ## Copy from run-stage
 WORKDIR /dashboard/run
