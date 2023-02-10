@@ -2,6 +2,7 @@
   "name": "iasql",
   "version": "0.0.26",
   "description": "Infrastructure as SQL",
+  "license": "AGPL-3.0-only",
   "main": "dist/index.js",
   "scripts": {
     "build": "yarn clean && tsc && copyfiles -u 1 src/**/*.sql dist/ && copyfiles -u 1 src/**/*.json dist/",

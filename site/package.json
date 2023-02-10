@@ -1,7 +1,7 @@
 {
   "name": "docs",
-  "version": "0.0.16",
-  "private": true,
+  "version": "0.0.26",
+  "license": "AGPL-3.0-only",
   "scripts": {
     "docusaurus": "docusaurus",
     "start:local": "IASQL_ENV=local docusaurus start",
