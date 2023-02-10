@@ -55,7 +55,7 @@ For full documentation, visit [iasql.com/docs](https://iasql.com/docs)
 
 ## 🚀 Contribute
 
-To contribute, visit [Contributing.md](https://github.com/reference/sql.md/blob/main/CONTRIBUTING.md)
+To contribute, visit [Contributing.md](https://github.com/iasql/iasql/blob/main/CONTRIBUTING.md)
 
 ## ☁️ Cloud Providers
 

@@ -69,12 +69,12 @@ FROM
   iasql_commit ();
 ```
 
-After some period of time, and assuming that the domain nameservers are pointing to <a href="https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/migrate-dns-domain-in-use.html#migrate-dns-change-name-servers-with-provider">AWS nameservers</a>,
+After waiting for some time, and assuming that the domain nameservers are pointing to <a href="https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/migrate-dns-domain-in-use.html#migrate-dns-change-name-servers-with-provider">AWS nameservers</a>,
 the `blog.test-ghost.com` subdomain should be resolved to the EC2 instance IP.
 
 Finally, Ghost needs to be configured to serve this new domain. This can be achieved by connecting by SSH to the instance:
 
-```console
+```bash
 ssh ubuntu@<instance_public_ip>
 sudo su ghostuser
 cd /var/www/ghost
@@ -326,7 +326,7 @@ If the domain is managed externally, please create an A record with the domain o
 
 After the components have been created and instance properly associated, the Ghost configuration can be changed accordingly:
 
-```console
+```bash
 ssh ubuntu@<instance_public_ip>
 sudo su ghostuser
 cd /var/www/ghost
@@ -421,7 +421,7 @@ FROM
 
 The database can be associated via Ghost configuration. Then the local database can be removed:
 
-```console
+```bash
 ssh ubuntu@<instance_public_ip>
 sudo su ghostuser
 cd /var/www/ghost
