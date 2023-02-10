@@ -1,3 +1,14 @@
+# Default ENVs that can be overwritten
+ARG IASQL_ENV=local
+ENV IASQL_ENV=$IASQL_ENV
+ENV REACT_APP_IASQL_ENV=$IASQL_ENV
+ARG DB_USER=postgres
+ENV DB_USER=$DB_USER
+ARG DB_PASSWORD=test
+ENV DB_PASSWORD=$DB_PASSWORD
+# Default ENVs
+ENV GENERATE_SOURCEMAP=false
+
 # Base image
 FROM debian:bullseye AS base
 
@@ -57,11 +68,6 @@ COPY dashboard/src src
 COPY dashboard/package.json dashboard/yarn.lock ./
 RUN yarn install
 
-## Default ENVs that can be overwritten
-ARG IASQL_ENV=local
-ENV REACT_APP_IASQL_ENV=$IASQL_ENV
-ENV GENERATE_SOURCEMAP=false
-
 ## Build
 RUN yarn build
 
@@ -115,14 +121,6 @@ COPY ./src/scripts/postgresql.conf /etc/postgresql/14/main/postgresql.conf
 COPY ./src/scripts/pg_hba.conf /etc/postgresql/14/main/pg_hba.conf
 COPY docker-entrypoint.sh /engine/docker-entrypoint.sh
 COPY src/scripts /engine/src/scripts
-
-## Default ENVs that can be overwritten
-ARG IASQL_ENV=local
-ENV IASQL_ENV=$IASQL_ENV
-ARG DB_USER=postgres
-ENV DB_USER=$DB_USER
-ARG DB_PASSWORD=test
-ENV DB_PASSWORD=$DB_PASSWORD
 
 ## Ports
 EXPOSE 5432
