@@ -6,7 +6,7 @@ unlisted: true
 authors: [mtp1376]
 ---
 
-If you have ever tried to deploy your containerized application to ECS, you know that it's not going to be an easy click-to-deploy journey. In order to get your application up and running on ECS, you have to go through a bunch of resource creation. You'll need to:
+If you have ever tried to deploy your containerized application to ECS, you know that it's not going to be an easy click-to-deploy journey. To get your application up and running on ECS, you have to go through a bunch of resource creation. You'll need to:
 
 - Deploy a load balancer as the point-of-contact for your app
 - Create a target group for the load balancer and register the ECS tasks in it
@@ -29,7 +29,7 @@ Let's say we are going to deploy [this simple Express.js app](https://github.com
 `aws_ecs_simplified` is a high-level module we have created to make scalable ECS deployments easier. For more info on high-level vs low-level modules, you can check [this guide](https://iasql.com/docs/low-level-vs-high-level/).
 :::
 
-Let's go and deploy the above app to your AWS account. Don't worry if you don't have an IaSQL database already, you can create one for free when you click the "Deploy Now" button.
+Let's go and deploy the above app to your AWS account. Don't worry if you don't have an IaSQL database already, you can run IaSQL locally and run one locally for free [here](/docs/).
 
 ```sql title="Deploy a simple Express.js app from a Github repository to ECS" showLineNumbers
 SELECT

@@ -1,31 +1,31 @@
 ---
 slug: clean-your-aws-account
-title: Clean your AWS account with one click
+title: Clean your AWS account with a SQL query
 date: 2022-10-27
 authors: [yrobla]
 ---
 
-# Clean your AWS account by simply clicking a button
+# Clean your AWS account with a SQL query
 
 One of the main complexities of working with AWS is the number of resources that can be created, either by manual or automated workflows. The chained resources and their dependencies can quickly get out of control,
 and it could be a nightmare to clean up then.
 
-This is a common problem when using tests accounts, either for developing or testing some integrations. Often these accounts have resources out of control, causing you to incur on extra costs, or causing unexpected conflicts.
+This is a common problem when using test accounts, either for developing or testing some integrations. Often these accounts have resources out of control, causing extra costs, or unexpected conflicts.
 Cleaning those manually can be a hard task... manually visiting each resource, investigating the dependencies, manually cleaning... it is a time-consuming, error-prone task. If we consider that those resources may be created in
 multiple regions, the manual procedure can become a very difficult task.
 
-To solve this problem you can use IaSQL. By simply clicking a button, IaSQL will get a snapshot of the status of your cloud, and will schedule deletion of the existing resources and their dependencies until your account is completely cleaned.
+To solve this problem you can use [AWS Nuke](https://github.com/rebuy-de/aws-nuke) or IaSQL. IaSQL is a tool that lets you manage your cloud account using a PostgreSQL database. IaSQL will backfill a PostgreSQL database with the contents of your cloud and with a query that schedules the deletion of the existing resources and their dependencies until your account is completely cleaned.
 
-**Want to try? Connect your AWS account to [IaSQL](https://iasql.com) for free. Read more about AWS account management in this part of our [docs](https://iasql.com/docs/aws/).**
-
-:::info
-
-Please note that IaSQL can offer this cleanup only for the resources covered by our system. You can get a full coverage list <a href="https://github.com/iasql/iasql#aws-services-with-significant-api-coverage">here</a>.
+**Want to try? Connect your AWS account to [IaSQL](https://iasql.com) for free. Read more about AWS account management in this part of our [docs](/docs/manage_aws/).**
 
 :::info
 
+Please note that IaSQL can offer this cleanup only for the resources covered by our system. You can get a full coverage list <a href="https://github.com/iasql/iasql#aws-services-with-significant-api-coverage">hååere</a>.
 
-```sql TheButton[AWS account cleanup]="Clean your AWS Account"
+:::info
+
+
+```sql
 -- Install all IaSQL modules
 SELECT iasql_install(variadic array(select module_name from iasql_modules_list()));
 SELECT iasql_begin();
@@ -40,6 +40,6 @@ SELECT iasql_rollback();
 ```
 
 After the initial module install, IaSQL will inspect your cloud and propose the resources to delete.
-If you agree with the proposed changes, please uncomment the apply statement and execute it, to let IaSQL completely cleans up your account.
+If you agree with the proposed changes, uncomment the `commit` statement, comment the `rollback` statement and run the SQL query again. This time IaSQL will completely clean up your account.
 
 <img src="/img/clean_all_screenshot.png" style={{ maxWidth: 800 }} />

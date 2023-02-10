@@ -5,22 +5,22 @@ date: 2022-12-21
 authors: [mtp1376]
 ---
 
-Did you know you can deploy a static website without leaving your SQL REPL? In this post we'll show you how to leverage IaSQL's capabilities to simply deploy a static website from your GitHub repository to AWS using only SQL commands.
+Did you know you can deploy a static website using a SQL REPL? In this post, we'll show you how to use IaSQL to deploy a static website from your GitHub repository to AWS using SQL commands.
 
 ## Overview
 
-We will create and configure a S3 bucket to serve our static website. To enable support for HTTPS, we'll also add a CloudFront distribution. We will also leverage CodeBuild to automatically build the files for our project and copy them to the S3 bucket created already.
+We will create and configure an S3 bucket to serve our static website. To enable support for HTTPS, we'll also add a CloudFront distribution. We will also leverage CodeBuild to automatically build the files for our project and copy them to the S3 bucket created already.
 
 ## Create a S3 Bucket
 
-To be able to work with S3, we should first install corresponding IaSQL module.
+To be able to work with S3, we should first install the corresponding IaSQL module.
 
 ```sql title="Install S3 Module"
 SELECT
   iasql_install ('aws_s3');
 ```
 
-Installing a module gives us ability to use tables and RPCs provided by it. `aws_s3` module gives us ability to manage a S3 bucket, S3 static website hosting and other related stuff. So let's create a S3 bucket first.
+Installing a module gives us ability to use tables and RPCs provided by it. `aws_s3` module gives us the ability to manage an S3 bucket, S3 static website hosting, and other related stuff. So let's create an S3 bucket first.
 
 ```sql title="Create a S3 Bucket"
 SELECT
@@ -54,7 +54,7 @@ SELECT
   iasql_commit ();
 ```
 
-The above command will direct IaSQL to create a new bucket in the `us-east-1` region with the name `<bucket-name>` and with the given policy. The `iasql_begin` and `iasql_commit` functions are RPCs that will start and finish an IaSQL transaction. For more info on this topic you can read [this doc](https://iasql.com/docs/transaction/).
+The above query will have IaSQL to create a new bucket in the `us-east-1` region with the defined name `<bucket-name>` and the given policy. The `iasql_begin` and `iasql_commit` functions are RPCs that will start and finish an IaSQL transaction. Learn more about IaSQL transactions in this part of our [documentation](/docs/transaction/).
 
 Now that we have a bucket, we can upload a file to it and see if we're able to view it using our web browser. Let's use IaSQL to upload a file to our newly created bucket:
 
@@ -68,7 +68,7 @@ FROM
 This is going to upload a file named `hello.txt` in our bucket whose content is `Hello IaSQL!`.
 
 :::note
-You can read the code for [`s3_upload_object` RPC](https://github.com/iasql/iasql/blob/c70f068c7520baf00cea9ddd3a76b8c6dbd2b23b/src/modules/aws_s3/rpcs/s3_upload_object.ts#L27-L33) as well as all other IaSQL modules and RPCs in [our GitHub repository](https://github.com/iasql/iasql/) to see how they work.
+You can read the code for [`s3_upload_object` RPC](https://github.com/iasql/iasql/blob/c70f068c7520baf00cea9ddd3a76b8c6dbd2b23b/src/modules/aws_s3/rpcs/s3_upload_object.ts#L27-L33) as well as all other IaSQL modules and RPCs in our GitHub [repository](https://github.com/iasql/iasql/) to see how they work.
 :::
 
 Let's see if we can access our file using the S3 bucket URL. It should be as follows:
@@ -83,10 +83,12 @@ But we're unable to access the file directly because S3 blocks the public access
 
 ## Make The Bucket Public
 
-So we need to enable public access to our bucket files in order to be able to directly access the files. We can use `public_access_block` table provided by `aws_s3` module to allow for public requests to reach our objects.
+We need to enable public access to our bucket files to be able to directly access the files. We can use the `public_access_block` table provided by `aws_s3` module to allow for public requests to reach our objects.
+
+<!-- TODO replace with aws_s3 doc url -->
 
 :::note
-If you want to know which resources (via tables) an IaSQL module handles, you can visit our documentation page. It also provides a list and explanation of all the RPCs that are provided by a module. In our case we can visit [this link](https://iasql.com/docs/reference/sql/#aws_s3) to get a list of tables and RPCs available for `aws_s3` module.
+If you want to know which resources (via tables) an IaSQL module handles, you can visit our documentation page. It also provides a list and explanation of all the RPCs that are provided by a module. In our case, we can visit [this link](https://iasql.com/docs/reference/sql/#aws_s3) to get a list of tables and RPCs available for `aws_s3` module.
 :::
 
 ```sql title="Enable Public Access to The Bucket"
@@ -136,7 +138,7 @@ SELECT
   iasql_commit ();
 ```
 
-So we'll use this functionality to route all the requests to `index.html` file. This way we can deploy a sample React application and serve it through S3. To get the link for our S3 bucket's static website, we can use `get_bucket_website_endpoint` function.
+We'll use this functionality to route all the requests to `index.html` file. This way we can deploy a sample React application and serve it through S3. To get the link for our S3 bucket's static website, we can use `get_bucket_website_endpoint` function.
 
 ```sql
 SELECT
@@ -153,15 +155,15 @@ Now that everything is set, we just need to build our React app and deploy it to
 https://github.com/iasql/sample-react-app
 ```
 
-But you can use whatever codebase you'd like by changing the URLs so that they point to your own codebase.
+But you can use whatever codebase you'd like by changing the URLs so that they point to the Github repository hosting your React app.
 
-Now it's the time to create a CodeBuild project that does the following:
+Now it's the time to create a CodeBuild project. CodeBuild is an AWS CI/CD system that is free of cost. The CodeBuild project will do the following:
 
 - Pull the codebase from the GitHub repository
 - Build the app
 - Copy the resulting files (`build/*`) to the S3 bucket
 
-To do so, we can run the following SQL command:
+We can do this with the following SQL query:
 
 ```sql title="Create a CodeBuild Project to Build and Deploy The Website"
 SELECT
