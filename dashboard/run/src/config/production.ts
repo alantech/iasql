@@ -7,6 +7,7 @@ const production: ConfigInterface = {
   },
   http: {
     port: 8888,
+    corsOrigin: 'https://app.iasql.com',
   },
   db: {
     host: 'pg.iasql.com',

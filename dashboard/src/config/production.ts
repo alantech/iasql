@@ -20,9 +20,9 @@ const production: ConfigInterface = {
     environment: 'production',
   },
   engine: {
-    pgHost: 'localhost',
+    pgHost: 'pg.iasql.com',
     pgForceSsl: true,
-    backendUrl: 'http://localhost:8888',
+    backendUrl: 'https://run.iasql.com',
   },
 };
 
