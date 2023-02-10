@@ -1,6 +1,6 @@
 ---
 sidebar_position: 1
-slug: '/manage_aws'
+slug: '/aws'
 ---
 
 # Manage an AWS Account
