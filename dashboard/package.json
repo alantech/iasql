@@ -3,9 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "start:local": "NEXT_PUBLIC_IASQL_ENV=local next dev -p 8888",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "start:docker": "next dev -p 8888",
     "lint": "next lint"
   },
   "dependencies": {

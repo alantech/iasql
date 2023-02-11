@@ -22,34 +22,13 @@ RUN npm install -g yarn
 
 #####################################################################################################################################################
 
-# Run service
-FROM base AS run-stage
-
-WORKDIR /run
-
-## Copy files
-COPY dashboard/run/tsconfig.json tsconfig.json
-COPY dashboard/run/src src
-
-## Install stage dependencies
-COPY dashboard/run/package.json dashboard/run/yarn.lock ./
-RUN yarn install
-
-## Build
-RUN yarn build
-
-## Prune dev dependencies
-RUN yarn install --production
-
-#####################################################################################################################################################
-
 # Dashboard
 FROM base AS dashboard-stage
 
 WORKDIR /dashboard
 
 ## Copy files
-COPY dashboard/tsconfig.json dashboard/tailwind.config.js dashboard/craco.config.js ./
+COPY dashboard/.eslintrc.json dashboard/next-env.d.ts dashboard/next.config.js dashboard/postcss.config.js dashboard/tailwind.config.js dashboard/tsconfig.json dashboard/tslint.json ./
 COPY dashboard/public public
 COPY dashboard/src src
 
@@ -59,8 +38,7 @@ RUN yarn install
 
 ## Default ENVs that can be overwritten
 ARG IASQL_ENV=local
-ENV REACT_APP_IASQL_ENV=$IASQL_ENV
-ENV GENERATE_SOURCEMAP=false
+ENV NEXT_PUBLIC_IASQL_ENV=$IASQL_ENV
 
 ## Build
 RUN yarn build
@@ -94,15 +72,9 @@ RUN yarn install --production
 # Main stage
 FROM base AS main-stage
 
-## Copy from run-stage
-WORKDIR /dashboard/run
-COPY --from=run-stage /run/package.json package.json
-COPY --from=run-stage /run/node_modules node_modules
-COPY --from=run-stage /run/dist dist
-
 ## Copy from dashboard-stage
 WORKDIR /dashboard
-COPY --from=dashboard-stage /dashboard/build build
+COPY --from=dashboard-stage /dashboard/* .
 
 ## Copy from engine-stage
 WORKDIR /engine
