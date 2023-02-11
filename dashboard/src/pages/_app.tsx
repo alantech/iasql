@@ -6,7 +6,7 @@ import { Auth0Provider } from '@auth0/auth0-react';
 import * as Posthog from '@/services/posthog';
 import * as Sentry from '@/services/sentry';
 import config from '@/config';
-import reportWebVitals from './reportWebVitals';
+import reportWebVitals from '@/services/reportWebVitals';
 import { AppProvider } from '@/components/AppProvider';
 
 Posthog.init();

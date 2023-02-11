@@ -124,7 +124,7 @@ export default function Navbar({ userPic }: { userPic: string }) {
                                   },
                                 });
                                 Posthog.reset();
-                                logout({ returnTo: homeUrl });
+                                logout({ returnTo: homeUrl } as any);
                               }}
                               className={classNames(
                                 active ? 'bg-gray-100 dark:bg-gray-900 cursor-pointer' : '',

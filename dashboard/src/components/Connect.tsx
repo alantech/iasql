@@ -68,7 +68,7 @@ export default function Connect({ closable }: { closable: boolean }) {
     >
       <Step id='createdb'>
         <Label>
-          <b>Let's create a database to connect to your cloud account</b>
+          <b>Let&apos;s create a database to connect to your cloud account</b>
         </Label>
         <form className='mb-10'>
           <VBox>

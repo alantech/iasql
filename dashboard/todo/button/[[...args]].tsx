@@ -3,7 +3,7 @@ import { useRouter } from 'next/router'
 
 import { CloudUploadIcon } from '@heroicons/react/solid';
 
-import { ActionType, useAppContext } from '../AppProvider';
+import { ActionType, useAppContext } from '@/components/AppProvider';
 import { useAuth } from '@/hooks/useAuth';
 import { regions } from '@/services/connectDb';
 import ConnectionString from '@/components/ConnectionString';
@@ -67,7 +67,7 @@ export default function TheButton() {
         },
       });
     }
-    window.location.href = `/#/?alias=${db}&sql=${encodeURI(params.query ?? '')}`;
+    window.location.href = `/#/?alias=${db}&sql=${encodeURI((params.query ?? '') as string)}`;
   };
   let nextEnabled = true;
   let current = stack[stack.length - 1];
@@ -113,7 +113,7 @@ export default function TheButton() {
         <>
           <Wizard
             icon={<CloudUploadIcon className='h-6 w-6 text-primary' aria-hidden='true' />}
-            title={params.title ?? ''}
+            title={(params.title ?? '') as string}
             start='start'
             stack={stack}
             setStack={setStack}
