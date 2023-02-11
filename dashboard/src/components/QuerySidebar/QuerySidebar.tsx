@@ -1,6 +1,6 @@
 import { Tab as ReactTab } from '@headlessui/react';
 
-import { useAppContext } from '../../AppProvider';
+import { useAppContext } from '../AppProvider';
 import { align, Tab, VBox } from '../common';
 import Modules from './Modules';
 import Schema from './Schema';

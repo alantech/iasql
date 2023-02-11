@@ -1,14 +1,13 @@
-import { Fragment, useState } from 'react';
+import { Fragment, useState, useEffect } from 'react';
 
 import { useAuth0 } from '@auth0/auth0-react';
 import { Disclosure, Menu, Transition } from '@headlessui/react';
 import { MenuIcon, XIcon, SunIcon, MoonIcon } from '@heroicons/react/outline';
 import { UserIcon } from '@heroicons/react/solid';
 
-import { ActionType, useAppContext } from '../AppProvider';
-import logo from '../assets/logo.png';
-import config from '../config';
-import * as Posthog from '../services/posthog';
+import { ActionType, useAppContext } from './AppProvider';
+import config from '@/config';
+import * as Posthog from '@/services/posthog';
 
 function classNames(...classes: any[]) {
   return classes.filter(Boolean).join(' ');
@@ -48,8 +47,8 @@ export default function Navbar({ userPic }: { userPic: string }) {
               </div>
               <div className='flex-1 flex items-center justify-center sm:items-stretch sm:justify-start'>
                 <a href={homeUrl} className='flex-shrink-0 flex items-center mr-6'>
-                  <img className='block lg:hidden h-8 w-auto' src={logo} alt='Workflow' />
-                  <img className='hidden lg:block h-8 w-auto' src={logo} alt='Workflow' />
+                  <img className='block lg:hidden h-8 w-auto' src='./logo.png' alt='Workflow' />
+                  <img className='hidden lg:block h-8 w-auto' src='./logo.png' alt='Workflow' />
                 </a>
                 <div className='hidden sm:block sm:ml-6'>
                   <div className='flex space-x-4'>

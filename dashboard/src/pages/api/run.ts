@@ -1,7 +1,3 @@
-import path from 'path';
-import express from 'express';
-import cors from 'cors';
-import { Request, Response } from 'express';
 import { createLogger } from '@logdna/logger';
 import { verify as jwtVerify, decode as jwtDecode, JwtPayload } from 'jsonwebtoken';
 import jwksRsa from 'jwks-rsa';
@@ -12,8 +8,9 @@ import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConne
 import format from 'pg-format';
 import { v4 as uuidv4 } from 'uuid';
 
-import config from './config';
-import { throwError } from './config/config';
+import type { NextApiRequest, NextApiResponse } from 'next'
+import config from '@/server-config';
+import { throwError } from '@/config/config';
 
 export function isString(obj: unknown): obj is string {
   return typeof obj === 'string';
@@ -24,15 +21,6 @@ const logger = !!config.logDna ? createLogger(config.logDna.key, { levels: ['inf
   if (event.retrying) return;
   console.log('Fatal error in LogDNA');
 });
-
-const port = config.http.port;
-const app = express();
-
-app.use(cors({ origin: config.http.corsOrigin, }));
-app.use(express.json({ limit: '10000MB' }));
-app.use(express.text({ limit: '10000MB' }));
-
-app.get('/health', (_req: Request, res: Response) => res.end('OK'));
 
 // Special user for lambda with access to iasql_metadata
 export const baseConnConfig: PostgresConnectionOptions = {
@@ -47,7 +35,7 @@ export const baseConnConfig: PostgresConnectionOptions = {
   }, // TODO: remove once DB instance with custom ssl cert is in place
 };
 
-function extractTokenFromHeader(e: Request) {
+function extractTokenFromHeader(e: NextApiRequest) {
   if (Object.keys(e.headers ?? {})?.length && e.headers.authorization?.split(' ')[0] === 'Bearer') {
     return e.headers.authorization?.split(' ')[1];
   } else {
@@ -242,7 +230,7 @@ function until<T>(p: Promise<T>, timeout: number): Promise<T> {
   });
 }
 
-app.post('/', async (req: Request, res: Response) => {
+export default async (req: NextApiRequest, res: NextApiResponse) => {
   logger.log('Handling request', {
     level: 'info',
     app: 'run',
@@ -277,24 +265,4 @@ app.post('/', async (req: Request, res: Response) => {
   } catch (e: any) {
     return res.status(401).json({ message: e?.message ?? 'Unknown error', });
   }
-});
-
-app.use('/', express.static(path.resolve(__dirname, '../../build')));
-
-app.listen(port);
-logger.log(`Listening on port ${port}`, {
-  level: 'info',
-  app: 'run',
-  env: process.env.IASQL_ENV,
-});
-process.on('uncaughtException', (event) => {
-  logger.log('Uncaught exception', {
-    level: 'error',
-    app: 'run',
-    meta: {
-      event,
-    },
-    env: process.env.IASQL_ENV,
-  });
-  process.exit(1);
-});
+};

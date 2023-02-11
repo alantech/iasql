@@ -1,10 +1,10 @@
 import { useMemo } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useRouter } from 'next/router';
 
 // A custom hook that builds on useLocation to parse
 // the query string for you.
 export function useQueryParams() {
-  const { search } = useLocation();
+  const { search } = useRouter().query;
 
-  return useMemo(() => new URLSearchParams(search), [search]);
+  return useMemo(() => new URLSearchParams(search as string), [search]);
 }

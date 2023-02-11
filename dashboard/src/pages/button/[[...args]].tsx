@@ -1,20 +1,20 @@
 import { useState, useEffect, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useRouter } from 'next/router'
 
 import { CloudUploadIcon } from '@heroicons/react/solid';
 
 import { ActionType, useAppContext } from '../AppProvider';
-import { useAuth } from '../hooks/useAuth';
-import { regions } from '../services/connectDb';
-import ConnectionString from './ConnectionString';
-import Loader from './Loader/Loader';
-import Navbar from './Navbar';
-import { Combobox, ErrorDialog, Input, Label, Option, Radio, Step, VBox, Wizard } from './common';
+import { useAuth } from '@/hooks/useAuth';
+import { regions } from '@/services/connectDb';
+import ConnectionString from '@/components/ConnectionString';
+import Loader from '@/components/Loader/Loader';
+import Navbar from '@/components/Navbar';
+import { Combobox, ErrorDialog, Input, Label, Option, Radio, Step, VBox, Wizard } from '@/components/common';
 
 export default function TheButton() {
   const { dispatch, databases, newDb, latestVersion, error } = useAppContext();
 
-  const params = useParams();
+  const params = useRouter().query;
   const { token, user } = useAuth();
 
   const [selectedDbAlias, setSelectedDbAlias] = useState('');

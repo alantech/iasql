@@ -1,20 +1,21 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
-import AceEditor from 'react-ace';
-import ReactAce from 'react-ace/lib/ace';
+import dynamic from 'next/dynamic';
 
-import 'ace-builds/src-noconflict/ext-language_tools';
-import 'ace-builds/src-noconflict/mode-pgsql';
-import 'ace-builds/src-noconflict/theme-monokai';
-import 'ace-builds/src-noconflict/theme-tomorrow';
+import ReactAce from 'react-ace/lib/ace';
 import LZString from 'lz-string';
 import Cookies from 'universal-cookie';
 
-import { ActionType, useAppContext } from '../AppProvider';
-import { useQueryParams } from '../hooks/useQueryParams';
+import { ActionType, useAppContext } from './AppProvider';
+import { useQueryParams } from '@/hooks/useQueryParams';
 import QuerySidebar from './QuerySidebar/QuerySidebar';
 import { HBox, align, VBox, Spinner } from './common';
 
 export default function IasqlEditor() {
+  dynamic(() => import('ace-builds/src-noconflict/ext-language_tools'), { ssr: false });
+  dynamic(() => import('ace-builds/src-noconflict/mode-pgsql'), { ssr: false });
+  dynamic(() => import('ace-builds/src-noconflict/theme-monokai'), { ssr: false });
+  dynamic(() => import('ace-builds/src-noconflict/theme-tomorrow'), { ssr: false });
+  const AceEditor = dynamic(() => import('react-ace'), { ssr: false });
   const {
     dispatch,
     isDarkMode,

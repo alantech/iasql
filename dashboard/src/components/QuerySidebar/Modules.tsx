@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { ActionType, useAppContext } from '../../AppProvider';
+import { ActionType, useAppContext } from '../AppProvider';
 import { align, Button, HBox, Input, VBox } from '../common';
 
 export default function Modules({

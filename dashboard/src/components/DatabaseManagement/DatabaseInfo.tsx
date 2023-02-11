@@ -1,4 +1,4 @@
-import { useAppContext } from '../../AppProvider';
+import { useAppContext } from '@/components/AppProvider';
 import { HBox, DoubleBox, Spinner } from '../common';
 import { DatabaseStatus } from './DatabaseStatus';
 
