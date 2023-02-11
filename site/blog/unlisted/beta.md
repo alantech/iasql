@@ -1,7 +1,7 @@
 ---
 slug: beta
 title: IaSQL is in beta!
-date: 2023-02-05
+date: 2023-02-14
 authors: [yrobla, mtp1376, depombo, dfellis, aguillenv]
 tags: [announcement]
 ---
@@ -31,6 +31,14 @@ Additionally, we completely redid our architecture to scale and our UX to make i
 
 Here are the new features that ship in the Beta versions of IaSQL:
 
+### 🏡 Home is where your local env is
+
+We made IaSQL easier to run locally by bundling up our dashboard into the IaSQL docker container and publishing it to [Dockerhub](https://hub.docker.com/r/iasql/iasql). This makes IaSQL easier to try out without having your cloud credentials ever leave your local environment. It is as simple as running the command below and going to `http://localhost:8888` on your preferred browser.
+
+```bash
+docker run -p 5432:5432 -p 8888:8888 --name iasql iasql/iasql
+```
+
 ### 🎛️ AWS Multiregion
 
 Support for multiple AWS regions with default region behavior in part because we also hate changing regions in the AWS console. The default region is defined when connecting your database to your AWS account. Thereon, IaSQL's data model will assume the default data model unless you explicitly override it in the column that represents your cloud resource.
@@ -45,7 +53,7 @@ We redid the UX to allow handling infrastructure changes automatically and wrapp
 
 ### 🎚️ Moar coverage of AWS services
 
-Increased AWS service coverage for EC2, CodeDeploy, CodeBuild, CodePipeline, SNS, ACM, Route53 amongst a few others.
+Increased AWS service coverage for EC2, CodeDeploy, CodeBuild, CodePipeline, SNS, ACM, Route53 amongst a few others. Additionally, we have a new `aws_sdk` module that lets you invoke the AWS SDK directly using PostgreSQL functions with added type safety.
 
 [See an up-to-date list of covered AWS services &#8594;](https://github.com/iasql/iasql#aws-services-with-significant-api-coverage)
 
