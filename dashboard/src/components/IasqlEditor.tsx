@@ -156,7 +156,7 @@ export default function IasqlEditor() {
       <HBox alignment={align.between}>
         {!functions.length ? <Spinner /> : <QuerySidebar />}
         <AceEditor
-          // ref={editorRef}
+          ref={editorRef}
           // `dark:` selector is not working here, I guess it is not compatible with AceEditor component
           className={`my-3 ${isDarkMode ? 'border-none' : 'border'}`}
           width='80%'

@@ -36,14 +36,6 @@ COPY dashboard/src src
 COPY dashboard/package.json dashboard/yarn.lock ./
 RUN yarn install
 
-## Default ENVs that can be overwritten
-ARG IASQL_ENV=local
-ENV REACT_APP_IASQL_ENV=$IASQL_ENV
-ENV GENERATE_SOURCEMAP=false
-
-## Build
-RUN yarn build
-
 #####################################################################################################################################################
 
 # Engine
@@ -69,7 +61,10 @@ FROM base AS main-stage
 
 ## Copy from dashboard-stage
 WORKDIR /dashboard
-COPY --from=dashboard-stage /dashboard/* .
+COPY --from=dashboard-stage /dashboard/*.* ./
+COPY --from=dashboard-stage /dashboard/src src
+COPY --from=dashboard-stage /dashboard/public public
+COPY --from=dashboard-stage /dashboard/node_modules node_modules
 
 ## Copy from engine-stage
 WORKDIR /engine
@@ -86,6 +81,7 @@ COPY src/scripts /engine/src/scripts
 ## Default ENVs that can be overwritten
 ARG IASQL_ENV=dev
 ENV IASQL_ENV=$IASQL_ENV
+ENV NEXT_PUBLIC_IASQL_ENV=$IASQL_ENV
 ARG DB_USER=postgres
 ENV DB_USER=$DB_USER
 ARG DB_PASSWORD=test
