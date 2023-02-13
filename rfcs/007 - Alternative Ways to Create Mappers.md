@@ -29,9 +29,16 @@ Having Pure-SQL modules would help us expand more. One key advantage is that we 
 ```postgresql
 SELECT iasql_install('https://github.com/someModuleDeveloper/awsEc2Module');
 ```
-That's where we started, but it might be useful to assess different paths we might take for creation of an IaSQL module/mapper.
 
-## Proposal
+By the way we already have the `aws_ecs_simplified` module, and it's written purely in SQL. But it does not add a new mapper functionality. It maps a new entity to the entities that already exist, therefore leveraging those entities' mappers. Specifically, `ecs_simplified` and other modules like it can only reduce down the functionality that has been already exposed through mappers we have written, it can't go beyond any functionality we didn't hand-expose, which makes us the bottleneck for the whole ecosystem.
+
+In this RFC we'll explore different ways to create a mapper, with an eye on being able to create "detachable" mappers that can be decoupled from the engine codebase and make it easier for developers to create new mappers. That has other values, like it will clear the way for development of an ecosystem for modules. Summarizing pros for this approach, we can say it:
+- Enables 3rd Party Modules for an actual user ecosystem to exist.
+- Reduces pressure on us to cover 100% of all AWS services before getting our first customer, because users can customize their modules to their own needs.
+- Potentially improves development/testing turn-around times by segmenting the engine testing from module testing (changes to a module would only trigger tests within the module's repo, changes to the engine would still trigger all officially-supported modules for testing, but would potentially be done much less often, and primarily for confirming newer version(s) of the AWS SDK still work with our modules.
+- Adding support for other clouds/SaaSes would be simpler within the engine.
+
+## Definition of Mapper
 
 To create a module, we need a mapper. I'll continue this RFC with my proposed solution for mappers, since a module is a set of mappers, and entities (with a bit of oversimplification).
 
@@ -51,7 +58,7 @@ We need to get the mapper-like behavior working. I'll explain some ways we might
   - Mapper Logic Inside IaSQL Engine
   - Mapper Logic Inside Postgres
 
-### A Stand-Alone Mapper Design (Remote Mappers)
+## A Stand-Alone Mapper Design (Remote Mappers)
 
 We can run standalone versions of mappers. A standalone mapper means that its logic won't be inside the Postgres, nor in the engine code. But it'll run anywhere outside these two places. Therefore, we need a communication mechanism for this design (which can be something like gRPC, or HTTP as in other places). We also might want to run that standalone mapper on our own server, or on somewhere else. Two approaches:
 
@@ -66,7 +73,9 @@ A positive point for having standalone mappers is that it's language agnostic: m
 
 One negative point is that they'll be provided with the AWS credentials, and they can perform out-of-band data extraction on it on both of the above ways.
 
-### In-IaSQL-Container Mappers
+The other issue with this way is that it'll be at least as hard as the ways under [Mapper Logic Inside Postgres](#Mapper-Logic-Inside-Postgres) section. So we need a "virtual" mapper to be created and the calls to that mapper should be funneled into these standalone mappers. Also, at the module level we need the entity creation logic (and uninstall logic, of course) to somehow be transmitted to the engine. Given all these, together with the security issues that are purely "wild west situation", I don't think if this would be a good approach neither in the short, nor in long term.  
+
+## In-IaSQL-Container Mappers
 
 In this approach, the logic of the mappers will be executed on IaSQL: either on the Postgres server or on the Engine. Our current mappers are under this category.
 - Mapper logic is in IaSQL engine: `aws_acm`'s `CertificateMapper`, `aws_ecr`'s `RepositoryImageMapper`, etc.
@@ -74,18 +83,37 @@ In this approach, the logic of the mappers will be executed on IaSQL: either on 
 
 Before diving into "Pure-SQL Modules" category, first let's see if our current mappers are surjective to the space of "Mapper logics inside IaSQL engine".
 
-#### Mapper Logic Inside IaSQL Engine
+### Mapper Logic Inside IaSQL Engine
 
 Currently, we're developing our mappers in this category. But there might be other ways to integrate the logic inside the engine, without having to exactly follow our current pattern. I'm getting inspired by [Strapi](https://github.com/strapi/strapi), which is a headless CMS. You can create models using a GUI from Strapi's admin panel and the database will be changed on-air, new API routes will be added with proper logic, and it achieves these without losing performance or being in need of pushing new files to the codebase (but the codebase is changing on-air).
 
 So we can get inspired and create on-air mapper codes. But to ensure safety, we might take one of the two approaches: either by narrowing down the available variables, or the by narrowing down the available functionality.
 - Create a sandbox and run mapper's JavaScript code on IaSQL engine: in that sandbox, we can narrow down the context and not pass variables that might cause problems (not sure if that's technically possible currently, but I've found see some links: [1](https://nodejs.org/api/vm.html#vm_vm_runinthiscontext_code_options), [2](https://github.com/patriksimek/vm2)).
   - The only issue that comes to my mind is that we will be vulnerable to SSRF attacks, which can be dangerous [in EC2](https://scalesec.com/blog/exploit-ssrf-to-gain-aws-credentials/). Our other vulnerability to SSRF would be related to the engine's Express server, which will be accessible by the running code. Therefore, we'll need authorization measures for that internal API.
-- Providing a new "safe" Domain Specific Language for IaSQL: developers can use this language to create new mappers, and we can translate that to TypeScript code on-air, while narrowing down the DSL interface to something that is "safe" (no code-execution, no unwanted database access, etc). The DSL does not have to be capable of creating all possible mappers (at least not at first) since if they want to do something very professional, they can just submit a PR to the engine.
+  - An alternative is to use WebWorkers and provide an event-based API into and out of the worker. We could expose something similar to the `invoke_` functions in Postgres as events and event payloads (also including a worker-defined unique token) and they call the same named event back into the worker with the result. 
+  - This would be much safer as a pure JS context not allowed to require or import anything, but is a very awkward experience for the authors. That awkwardness can be alleviated somewhat by providing our own SDK to take more normal-looking Typescript that automatically has some implicit global functions baked in and then generating the JS bundle out.
+  - The entities and Postgres upgrade/downgrade code could also be written using this IaSQL SDK and perhaps structured fairly closely to the current module code.
+- Providing a new "safe" Domain Specific Language for IaSQL: developers can use this language to create new mappers, and we can translate that to JavaScript code on-air, while narrowing down the DSL interface to something that is "safe" (no code-execution, no unwanted database access, etc). The DSL does not have to be capable of creating all possible mappers (at least not at first) since if they want to do something very professional, they can just submit a PR to the engine.
   - For example: we can supply a base provider like AWS. And using DSL people can dynamically invoke AWS client's methods and write their logic. The DSL then gets parsed and converted to JavaScript code, and we'll use its interface when we need the mapper.
+  - The biggest problem with DSLs, are that the module developers should learn a new language that does not help them anywhere else.
 
 
-#### Mapper Logic Inside Postgres
+### Mapper Logic Inside Postgres
+
+#### Using Triggers Together With `aws_sdk`
+
+Now that we have `aws_sdk` module, we can simply call whatever AWS SDK call we want. So why not just add some Postgres triggers in case a `INSERT`, `UPDATE`, or `DELETE` happens?
+
+I can think of some downsides to this approach:
+1. What about the `cloud.read` functionality? It should be called from time to time. You may think that we can expose a `{entity}_cloud_read` Postgres function (as in the next solution) that is periodically called by the engine, and the result of that function will be used to populate the entries in the entity table. That works. But combined with the next bullet points, seems like it's becoming pretty much like "Exposing Mapper-Like Postgres Interface" option.
+2. If we don't tie the `cloud.read` functionality to the engine's inner loop (like syncing from time to time by a cronjob trigger independently), problems related to eventual consistency will arise. Then some parts of the data will be synced, while the other parts may not be up-to-date with the cloud state. That might seem like a small thing at the first sight, but would break things in the long run. For example, we depend on the "Vpc" entity being up-to-date at some point from the "Subnet" mapper. So the subnet mapper keeps throwing errors until the Vpc is synced, then it'll proceed. That functionality is available because both of them are interplaying in the engine's inner loop. I can't see of an easy way to ensure data consistency in some points in time while having two independent cloud sync procedures (engine's inner loop vs cronjob for Pure-SQL modules in this case).
+   - If there's no interplay between the Pure-SQL mapper and the engine's inner loop, it's not possible to have co-dependency between different entities (as in Vpc <-> Subnet).
+3. For `INSERT`, let's suppose we are using triggers for doing the cloud manipulation. If there's a transaction already open, we'll need to differ the changes until the transaction is being committed. But there's no communication between the engine and the mapper, right? So we should somehow "wait" for the transaction to be committed and then apply the changes, but we can't! If we add a `get_transaction_lock` in the beginning of the `cloud_create` trigger, it'll take forever and the `INSERT` statement [won't return](https://stackoverflow.com/a/48566996/2594912) until it's happened on the cloud. If we don't, we need another cronjob to periodically check and therefore replicating the engine's loop logic inside Postgres to make it work.  
+4. We'd need to replicate the engine's diff checker (+ cloud id) logic in Postgres to be able to update an entry when a change comes from the cloud. That's going to add more complexity to the implementation of this approach.
+
+Given all above bullet points, I think this approach hasn't a merit compared to the "Exposing Mapper-Like Postgres Interface" way. It has complexities that option has, and does not provide a better way for the issues that one introduces.
+
+#### Exposing Mapper-Like Postgres Interface
 
 We can put the mapper's logic inside Postgres. And then provide an interface for the engine to call mapper functions. In this approach, the interface will be provided through the Postgres, and therefore this is the approach that is most consistent with "Pure-SQL". The DSL idea from the above way can still be applied here (developer writes DSL, PL/pgSQL code is generated).
 
@@ -101,13 +129,17 @@ So let's consider one possible implementation of the mapper structure (all as Po
   - `call_mapper('{module_name}', '{entity_name}', 'cloud|db', 'create|read|update|delete', {}::json) -> json`
   - It would be easy to add support for normal modules with the above definition. It will call `ec2_cloud_read` if that Postgres function exists. Otherwise, it'll send an RPC to the engine to ask engine to call that function from the mapper.
 
-We also need some other things for this to work:
-- Dynamically creating a module that provides the same interface as `MapperBase`, but calls corresponding SQL functions. 
-
-### Alternatives Considered
-
-I also considered the functions to be strongly-typed inside Postgres. More info here:
+We can also consider the above functions to be strongly-typed inside Postgres. More info here:
 https://rounded-apology-58d.notion.site/What-Does-a-Mapper-Need-9402ce7e35244405876f4cf660365c86
+
+### Common Parts
+We also need these added functionalities in order for any of the above solutions to work:
+- Dynamically creating a mapper that provides the same interface as `MapperBase`, but calls corresponding SQL functions.
+- Registering/de-registering logic for the module entities be transmitted to the engine: security concerns here, since the module should not be able to `DROP` tables for other modules (for example).
+
+### Security Can't Be Guaranteed
+Suppose this scenario:
+> We have a new Pure-SQL module. It has access to do `INSERT`s and `SELECT`s on behalf of the user. So it can create a CodeBuild project that calls a curl, with the AWS credentials coming from the `aws_credentials` table, right? So I think security can't be guaranteed in neither of the above ways, given our tables keep the current permissioning system.
 
 ## Expected Semver Impact
 
