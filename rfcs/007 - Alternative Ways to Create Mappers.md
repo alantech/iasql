@@ -141,6 +141,11 @@ We also need these added functionalities in order for any of the above solutions
 Suppose this scenario:
 > We have a new Pure-SQL module. It has access to do `INSERT`s and `SELECT`s on behalf of the user. So it can create a CodeBuild project that calls a curl, with the AWS credentials coming from the `aws_credentials` table, right? So I think security can't be guaranteed in neither of the above ways, given our tables keep the current permissioning system.
 
+One way to fix the above issue, is to create a new Postgres role for each user (like `{username}_module`) which will be used by the Pure-SQL modules to execute SQL commands. It won't have access to the `aws_credentials` table.
+
+But the above idea can be also bypassed:
+> Use `aws_sdk` module to create a new set of AWS AccessKeyId and SecretAccessKey. Then create a CodeBuild project to send them to the malicious endpoint :D.
+
 ## Expected Semver Impact
 
 A minor update. Just adding some Postgres functions, the ability to install a Pure-SQL module from remote link, and the engine having the ability to work with Pure-SQL modules. 
