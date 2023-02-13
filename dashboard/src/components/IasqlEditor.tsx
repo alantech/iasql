@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { forwardRef, useCallback, useEffect, useMemo, useRef } from 'react';
 import dynamic from 'next/dynamic';
 
-import ReactAce from 'react-ace/lib/ace';
 import LZString from 'lz-string';
 import Cookies from 'universal-cookie';
 
@@ -9,13 +8,23 @@ import { ActionType, useAppContext } from './AppProvider';
 import { useQueryParams } from '@/hooks/useQueryParams';
 import QuerySidebar from './QuerySidebar/QuerySidebar';
 import { HBox, align, VBox, Spinner } from './common';
+import ReactAce, { IAceEditorProps } from 'react-ace/lib/ace';
+
+const AceEdit = dynamic(async ()=>{
+  require('ace-builds/src-noconflict/ace');
+  const ace = await import('./AceEditor');
+  require('ace-builds/src-noconflict/ext-language_tools');
+  require('ace-builds/src-noconflict/theme-monokai');
+  require('ace-builds/src-noconflict/mode-pgsql');
+  require('ace-builds/src-noconflict/theme-tomorrow');
+  return ace;
+}, {ssr:false});
+
+const ForwardRefEditor = forwardRef((props: IAceEditorProps, ref: any) => (
+  <AceEdit props={props} editorRef={ref} />
+));
 
 export default function IasqlEditor() {
-  dynamic(() => import('ace-builds/src-noconflict/ext-language_tools'), { ssr: false });
-  dynamic(() => import('ace-builds/src-noconflict/mode-pgsql'), { ssr: false });
-  dynamic(() => import('ace-builds/src-noconflict/theme-monokai'), { ssr: false });
-  dynamic(() => import('ace-builds/src-noconflict/theme-tomorrow'), { ssr: false });
-  const AceEditor = dynamic(() => import('react-ace'), { ssr: false });
   const {
     dispatch,
     isDarkMode,
@@ -154,18 +163,19 @@ export default function IasqlEditor() {
   return (
     <VBox>
       <HBox alignment={align.between}>
-        {!functions.length ? <Spinner /> : <QuerySidebar />}
-        <AceEditor
+        {!functions?.length ? <Spinner /> : <QuerySidebar />}
+        <ForwardRefEditor
           ref={editorRef}
           // `dark:` selector is not working here, I guess it is not compatible with AceEditor component
-          className={`my-3 ${isDarkMode ? 'border-none' : 'border'}`}
+          className='my-3 border-none'
           width='80%'
           height='50vh'
           name='iasql-editor'
-          mode='pgsql'
           value={editorContent}
           onChange={handleEditorContentUpdate}
+          mode='pgsql'
           setOptions={{
+            useWorker: false,
             enableBasicAutocompletion: true,
             enableLiveAutocompletion: true,
             enableSnippets: false,
