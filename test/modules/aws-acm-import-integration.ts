@@ -88,7 +88,7 @@ describe('AwsAcm Import Integration Testing', () => {
   `),
   );
 
-  itDocs(
+  it(
     'check new certificate added',
     query(
       `
@@ -104,7 +104,7 @@ describe('AwsAcm Import Integration Testing', () => {
 
   it('installs modules', install(modules));
 
-  itDocs(
+  it(
     'check certificate count after uninstall/install',
     query(
       `
@@ -116,7 +116,7 @@ describe('AwsAcm Import Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'deletes a certificate imported',
@@ -131,9 +131,9 @@ describe('AwsAcm Import Integration Testing', () => {
     ),
   );
 
-  itDocs('applies the delete', commit());
+  it('applies the delete', commit());
 
-  itDocs(
+  it(
     'check certificate count after delete',
     query(
       `

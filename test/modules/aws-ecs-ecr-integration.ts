@@ -212,7 +212,7 @@ describe('ECS Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'adds a new cluster',
@@ -227,7 +227,7 @@ describe('ECS Integration Testing', () => {
     ),
   );
 
-  itDocs('applies adds a new cluster', commit());
+  it('applies adds a new cluster', commit());
 
   itDocs(
     'check cluster insertion',
@@ -242,7 +242,7 @@ describe('ECS Integration Testing', () => {
   );
 
   // Service dependencies
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'adds service dependencies',
@@ -285,7 +285,7 @@ describe('ECS Integration Testing', () => {
     ),
   );
 
-  itDocs('applies service dependencies', commit());
+  it('applies service dependencies', commit());
 
   itDocs(
     'check target group insertion',
@@ -313,7 +313,7 @@ describe('ECS Integration Testing', () => {
 
   // Service spinning up a task definition with container using a private ecr
   // ECR
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'adds a new ECR',
@@ -427,7 +427,7 @@ describe('ECS Integration Testing', () => {
     ),
   );
 
-  itDocs('applies adds a new task definition with container definition', commit());
+  it('applies adds a new task definition with container definition', commit());
 
   itDocs(
     'check task_definition insertion',
@@ -453,7 +453,7 @@ describe('ECS Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   // Service
   it('fails adding a service', done => {
@@ -535,7 +535,7 @@ describe('ECS Integration Testing', () => {
     ),
   );
 
-  itDocs('applies service insertion', commit());
+  it('applies service insertion', commit());
 
   it('starts a transaction', sidecarBegin());
 
@@ -692,7 +692,7 @@ describe('ECS Integration Testing', () => {
   it('installs the ecs module', install(['aws_ecs_fargate']));
 
   // deletes service dependencies
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'deletes service dependencies',
@@ -727,7 +727,7 @@ describe('ECS Integration Testing', () => {
     ),
   );
 
-  itDocs('applies deletes service dependencies', commit());
+  it('applies deletes service dependencies', commit());
 
   it('starts a transaction', begin());
 

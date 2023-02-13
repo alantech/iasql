@@ -151,7 +151,7 @@ describe('S3 Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'adds a new s3 bucket without policy',
@@ -166,7 +166,7 @@ describe('S3 Integration Testing', () => {
     ),
   );
 
-  itDocs('applies the s3 bucket change', commit());
+  it('applies the s3 bucket change', commit());
 
   itDocs(
     'check s3 insertion',
@@ -239,7 +239,7 @@ describe('S3 Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'adds a new s3 bucket',
@@ -254,7 +254,7 @@ describe('S3 Integration Testing', () => {
     ),
   );
 
-  itDocs('applies the s3 bucket change', commit());
+  it('applies the s3 bucket change', commit());
 
   it(
     'check s3 insertion',
@@ -320,7 +320,7 @@ describe('S3 Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'deletes one object of the bucket',
@@ -334,7 +334,7 @@ describe('S3 Integration Testing', () => {
     ),
   );
 
-  itDocs('applies the s3 object removal', commit());
+  it('applies the s3 object removal', commit());
 
   itDocs(
     'check object deletion',
@@ -477,7 +477,7 @@ describe('S3 Integration Testing', () => {
     );
   });
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'adds a new public access block entry',
@@ -493,7 +493,7 @@ describe('S3 Integration Testing', () => {
     ),
   );
 
-  itDocs('applies creation of public access block', commit());
+  it('applies creation of public access block', commit());
 
   itDocs(
     'checks the public access block exists',
@@ -527,7 +527,7 @@ describe('S3 Integration Testing', () => {
     }
   });
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'change the public access block',
@@ -543,7 +543,7 @@ describe('S3 Integration Testing', () => {
     ),
   );
 
-  itDocs('applies update of public access block', commit());
+  it('applies update of public access block', commit());
 
   itDocs(
     'checks public access block is updated',
@@ -579,7 +579,7 @@ describe('S3 Integration Testing', () => {
 
   it('applies deletion of public access block', commit());
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'adds a static website to bucket',
@@ -594,7 +594,7 @@ describe('S3 Integration Testing', () => {
     ),
   );
 
-  itDocs('applies creation of static website', commit());
+  it('applies creation of static website', commit());
 
   itDocs(
     'checks the static website exists',
@@ -625,7 +625,7 @@ describe('S3 Integration Testing', () => {
     }
   });
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'change the static website',
@@ -641,7 +641,7 @@ describe('S3 Integration Testing', () => {
     ),
   );
 
-  itDocs('applies update of static website', commit());
+  it('applies update of static website', commit());
 
   itDocs(
     'checks static website is updated',

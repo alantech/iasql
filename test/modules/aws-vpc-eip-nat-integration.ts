@@ -96,7 +96,7 @@ describe('VPC Elastic IP Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'adds a new vpc',
@@ -111,7 +111,7 @@ describe('VPC Elastic IP Integration Testing', () => {
     ),
   );
 
-  itDocs('applies the vpc change', commit());
+  it('applies the vpc change', commit());
 
   it(
     'check no vpc is pending',
@@ -153,7 +153,7 @@ describe('VPC Elastic IP Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'adds a subnet',
@@ -198,7 +198,7 @@ describe('VPC Elastic IP Integration Testing', () => {
     ),
   );
 
-  itDocs('applies the elastic ip change', commit());
+  it('applies the elastic ip change', commit());
 
   itDocs(
     'check elastic ip count',
@@ -210,7 +210,7 @@ describe('VPC Elastic IP Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'adds a private nat gateway',
@@ -227,7 +227,7 @@ describe('VPC Elastic IP Integration Testing', () => {
     ),
   );
 
-  itDocs('applies the private nat gateway change', commit());
+  it('applies the private nat gateway change', commit());
 
   itDocs(
     'checks private nat gateway count',
@@ -239,7 +239,7 @@ describe('VPC Elastic IP Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'adds a public nat gateway with existing elastic ip',
@@ -256,7 +256,7 @@ describe('VPC Elastic IP Integration Testing', () => {
     ),
   );
 
-  itDocs('applies the public nat gateway with existing elastic ip change', commit());
+  it('applies the public nat gateway with existing elastic ip change', commit());
 
   itDocs(
     'checks public nat gateway with existing elastic ip count',
@@ -268,7 +268,7 @@ describe('VPC Elastic IP Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'adds a public nat gateway with no existing elastic ip',
@@ -285,7 +285,7 @@ describe('VPC Elastic IP Integration Testing', () => {
     ),
   );
 
-  itDocs('applies the public nat gateway with no existing elastic ip change', commit());
+  it('applies the public nat gateway with no existing elastic ip change', commit());
 
   itDocs(
     'checks public nat gateway with no existing elastic ip count',
@@ -352,7 +352,7 @@ describe('VPC Elastic IP Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'updates a elastic ip',
@@ -368,7 +368,7 @@ describe('VPC Elastic IP Integration Testing', () => {
     ),
   );
 
-  itDocs('applies the elastic ip change', commit());
+  it('applies the elastic ip change', commit());
 
   itDocs(
     'check elastic ip count',
@@ -390,7 +390,7 @@ describe('VPC Elastic IP Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'updates a public nat gateway with existing elastic ip to be private',
@@ -406,7 +406,7 @@ describe('VPC Elastic IP Integration Testing', () => {
     ),
   );
 
-  itDocs('applies the public nat gateway with existing elastic ip to be private change', commit());
+  it('applies the public nat gateway with existing elastic ip to be private change', commit());
 
   itDocs(
     'checks public nat gateway with existing elastic ip to be private count',
@@ -428,7 +428,7 @@ describe('VPC Elastic IP Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'updates a public nat gateway with no existing elastic ip',
@@ -445,7 +445,7 @@ describe('VPC Elastic IP Integration Testing', () => {
     ),
   );
 
-  itDocs('applies the public nat gateway with no existing elastic ip change', commit());
+  it('applies the public nat gateway with no existing elastic ip change', commit());
 
   itDocs(
     'checks public nat gateway with no existing elastic ip count',

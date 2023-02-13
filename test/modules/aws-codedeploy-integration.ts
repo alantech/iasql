@@ -343,7 +343,7 @@ describe('AwsCodedeploy Integration Testing', () => {
 
   it('undo changes', rollback());
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'adds a new codedeploy_application',
@@ -358,7 +358,7 @@ describe('AwsCodedeploy Integration Testing', () => {
     ),
   );
 
-  itDocs('apply codedeploy_application creation', commit());
+  it('apply codedeploy_application creation', commit());
 
   itDocs(
     'check codedeploy_application is available',
@@ -443,7 +443,7 @@ describe('AwsCodedeploy Integration Testing', () => {
   it('applies the application deletion', commit());
 
   // deployment group testing
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'adds a new codedeploy_application for deployment',
@@ -471,7 +471,7 @@ describe('AwsCodedeploy Integration Testing', () => {
     ),
   );
 
-  itDocs('apply codedeploy_deployment_group creation', commit());
+  it('apply codedeploy_deployment_group creation', commit());
 
   itDocs(
     'check codedeploy_deployment_group is available',
@@ -515,7 +515,7 @@ describe('AwsCodedeploy Integration Testing', () => {
 });
 
 // creates codedeploy application for Lambda
-itDocs('starts a transaction', begin());
+it('starts a transaction', begin());
 
 itDocs(
   'adds a new codedeploy_application for lambda',
@@ -542,7 +542,7 @@ itDocs(
     () => ({ username, password }),
   ),
 );
-itDocs('applies lambda deployment app and group creation', commit());
+it('applies lambda deployment app and group creation', commit());
 
 // triggers a deployment
 itDocs(

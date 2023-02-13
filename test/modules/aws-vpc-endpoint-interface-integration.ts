@@ -105,7 +105,7 @@ describe('VPC Endpoint interface Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'adds a new vpc',
@@ -120,7 +120,7 @@ describe('VPC Endpoint interface Integration Testing', () => {
     ),
   );
 
-  itDocs('applies the vpc change', commit());
+  it('applies the vpc change', commit());
 
   it(
     'check no vpc is pending',
@@ -162,7 +162,7 @@ describe('VPC Endpoint interface Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'adds a subnet',
@@ -180,9 +180,9 @@ describe('VPC Endpoint interface Integration Testing', () => {
     ),
   );
 
-  itDocs('applies the subnet change', commit());
+  it('applies the subnet change', commit());
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'adds a new lambda endpoint interface',
@@ -210,7 +210,7 @@ describe('VPC Endpoint interface Integration Testing', () => {
     ),
   );
 
-  itDocs('applies the endpoint interface creation', commit());
+  it('applies the endpoint interface creation', commit());
 
   itDocs(
     'checks endpoint interface count',
@@ -293,7 +293,7 @@ describe('VPC Endpoint interface Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'updates a endpoint interface policy',
@@ -309,7 +309,7 @@ describe('VPC Endpoint interface Integration Testing', () => {
     ),
   );
 
-  itDocs('applies the endpoint_interface change', commit());
+  it('applies the endpoint_interface change', commit());
 
   itDocs(
     'checks endpoint_interface count',
@@ -331,7 +331,7 @@ describe('VPC Endpoint interface Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'updates a endpoint interface tags',
@@ -347,7 +347,7 @@ describe('VPC Endpoint interface Integration Testing', () => {
     ),
   );
 
-  itDocs('applies the endpoint_interface change', commit());
+  it('applies the endpoint_interface change', commit());
 
   itDocs(
     'checks endpoint_interface count',
@@ -369,7 +369,7 @@ describe('VPC Endpoint interface Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'removes the current endpoint subnets',
@@ -383,7 +383,7 @@ describe('VPC Endpoint interface Integration Testing', () => {
     ),
   );
 
-  itDocs('applies the endpoint_interface subnet removal', commit());
+  it('applies the endpoint_interface subnet removal', commit());
 
   it(
     'checks endpoint_interface subnet count',
@@ -395,7 +395,7 @@ describe('VPC Endpoint interface Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'adds new endpoint subnet',
@@ -410,7 +410,7 @@ describe('VPC Endpoint interface Integration Testing', () => {
     ),
   );
 
-  itDocs('applies the endpoint_interface subnet change', commit());
+  it('applies the endpoint_interface subnet change', commit());
 
   itDocs(
     'checks endpoint_interface subnet count',
@@ -449,7 +449,7 @@ describe('VPC Endpoint interface Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'deletes the subnet',
@@ -529,7 +529,7 @@ describe('VPC Endpoint interface Integration Testing', () => {
     ),
   );
 
-  itDocs('applies the vpc removal', commit());
+  it('applies the vpc removal', commit());
 
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 });

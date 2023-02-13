@@ -130,7 +130,7 @@ describe('MemoryDB Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'creates a subnet group',
@@ -145,7 +145,7 @@ describe('MemoryDB Integration Testing', () => {
     ),
   );
 
-  itDocs('applies the change', commit());
+  it('applies the change', commit());
 
   itDocs(
     'checks the subnet group was added',
@@ -209,7 +209,7 @@ describe('MemoryDB Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'creates a memory db cluster',
@@ -227,7 +227,7 @@ describe('MemoryDB Integration Testing', () => {
     ),
   );
 
-  itDocs('applies the change', commit());
+  it('applies the change', commit());
 
   itDocs(
     'checks the memory db cluster was added',

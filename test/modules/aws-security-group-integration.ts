@@ -114,7 +114,7 @@ describe('Security Group Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'adds a new security group',
@@ -129,7 +129,7 @@ describe('Security Group Integration Testing', () => {
     ),
   );
 
-  itDocs('applies the security group change', commit());
+  it('applies the security group change', commit());
 
   itDocs(
     'check security_group insertion',
@@ -143,7 +143,7 @@ describe('Security Group Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'adds security group rules',
@@ -164,7 +164,7 @@ describe('Security Group Integration Testing', () => {
     ),
   );
 
-  itDocs('applies the security group rule change', commit());
+  it('applies the security group rule change', commit());
 
   it('starts a transaction', begin());
 
@@ -421,7 +421,7 @@ describe('Security Group Integration Testing', () => {
   );
 
   // tests self referencing security group
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'adds a new security group rule pointing to itself',
@@ -436,7 +436,7 @@ describe('Security Group Integration Testing', () => {
       () => ({ username, password }),
     ),
   );
-  itDocs('creates the source security group rule pointing to itself', commit());
+  it('creates the source security group rule pointing to itself', commit());
 
   itDocs(
     'check security group rule expanded for TCP pointing to itself',
@@ -550,7 +550,7 @@ describe('Security Group Integration Testing', () => {
   it('applies the vpc removal', commit());
 
   // tests cycle in security rules
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'adds self-referential security groups A and B',
@@ -573,7 +573,7 @@ describe('Security Group Integration Testing', () => {
     ),
   );
 
-  itDocs('creates the source groups and rules', commit());
+  it('creates the source groups and rules', commit());
 
   itDocs(
     'check that security group and rules are correctly created - tcp, udp, icmp',

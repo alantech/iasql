@@ -101,7 +101,7 @@ describe('Secrets Manager Integration Testing', () => {
 
   it('undo changes', rollback());
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'adds a new secret',
@@ -116,7 +116,7 @@ describe('Secrets Manager Integration Testing', () => {
     ),
   );
 
-  itDocs('applies the secret change', commit());
+  it('applies the secret change', commit());
 
   itDocs(
     'check secret is available',
@@ -210,7 +210,7 @@ describe('Secrets Manager Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'moves the secret to another region with a new value',
@@ -224,7 +224,7 @@ describe('Secrets Manager Integration Testing', () => {
     ),
   );
 
-  itDocs('applies the secret region update', commit());
+  it('applies the secret region update', commit());
 
   itDocs(
     'confirms that the secret was moved',

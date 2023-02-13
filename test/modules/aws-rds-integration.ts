@@ -131,7 +131,7 @@ describe('RDS Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'creates an RDS instance',
@@ -151,7 +151,7 @@ describe('RDS Integration Testing', () => {
     ),
   );
 
-  itDocs('applies the change', commit());
+  it('applies the change', commit());
 
   itDocs(
     'check adds a new repository',
@@ -194,7 +194,7 @@ describe('RDS Integration Testing', () => {
 
   it('applies the change', commit());
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'creates an RDS parameter group',
@@ -209,7 +209,7 @@ describe('RDS Integration Testing', () => {
     ),
   );
 
-  itDocs('applies the change', commit());
+  it('applies the change', commit());
 
   itDocs(
     'check parameter group insertion',

@@ -120,7 +120,7 @@ describe('Lambda Integration Testing', () => {
 
   itDocs('installs the lambda module', install(modules));
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'adds a new security group',
@@ -153,7 +153,7 @@ describe('Lambda Integration Testing', () => {
       () => ({ username, password }),
     ),
   );
-  itDocs('applies the security group and rules creation', commit());
+  it('applies the security group and rules creation', commit());
 
   it('starts a transaction', begin());
 
@@ -189,7 +189,7 @@ describe('Lambda Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'adds a new lambda role',
@@ -204,9 +204,9 @@ describe('Lambda Integration Testing', () => {
     ),
   );
 
-  itDocs('applies the iam role creation', commit());
+  it('applies the iam role creation', commit());
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'adds a new lambda function',
@@ -227,7 +227,7 @@ describe('Lambda Integration Testing', () => {
     ),
   );
 
-  itDocs('applies the lambda function change', commit());
+  it('applies the lambda function change', commit());
 
   itDocs(
     'check function insertion',
@@ -340,7 +340,7 @@ describe('Lambda Integration Testing', () => {
   );
 
   // Check subnet modification
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'adds a new vpc',
@@ -435,7 +435,7 @@ describe('Lambda Integration Testing', () => {
     ),
   );
 
-  itDocs('applies the lambda subnet and security group function update', commit());
+  it('applies the lambda subnet and security group function update', commit());
 
   it(
     'check subnets after modification',
@@ -661,7 +661,7 @@ describe('Lambda Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'deletes security group rules',
@@ -755,7 +755,7 @@ describe('Lambda Integration Testing', () => {
     ),
   );
 
-  itDocs('applies the subnet removal', commit());
+  it('applies the subnet removal', commit());
 
   it(
     'check no vpc is pending',

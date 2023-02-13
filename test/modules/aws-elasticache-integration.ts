@@ -138,7 +138,7 @@ describe('Elasticache Integration Testing', () => {
 
   it('undo changes', rollback());
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs('adds a new cacheCluster', (done: (arg0: any) => any) => {
     query(
@@ -155,7 +155,7 @@ describe('Elasticache Integration Testing', () => {
     });
   });
 
-  itDocs('applies the cache_cluster change', commit());
+  it('applies the cache_cluster change', commit());
 
   itDocs(
     'check cache_cluster is available',

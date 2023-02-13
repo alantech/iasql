@@ -117,7 +117,7 @@ describe('RouteTable Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
   itDocs(
     'creates a new vpc',
     query(
@@ -145,9 +145,9 @@ describe('RouteTable Integration Testing', () => {
       () => ({ username, password }),
     ),
   );
-  itDocs('applies creation of the vpc', commit());
+  it('applies creation of the vpc', commit());
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
   itDocs(
     'adds a new route table to the vpc in the region',
     query(
@@ -161,7 +161,7 @@ describe('RouteTable Integration Testing', () => {
       () => ({ username, password }),
     ),
   );
-  itDocs('applies creation of the route table', commit());
+  it('applies creation of the route table', commit());
 
   itDocs(
     'confirms that the default route is created',
@@ -190,7 +190,7 @@ describe('RouteTable Integration Testing', () => {
       },
     ),
   );
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
   itDocs(
     'associates the route table to the subnet',
     query(
@@ -208,7 +208,7 @@ describe('RouteTable Integration Testing', () => {
       () => ({ username, password }),
     ),
   );
-  itDocs('applies creation of the route table', commit());
+  it('applies creation of the route table', commit());
   itDocs(
     'checks whether the route table is associated to the subnet',
     query(

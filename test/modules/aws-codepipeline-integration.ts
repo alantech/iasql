@@ -431,7 +431,7 @@ describe('AwsCodepipeline Integration Testing', () => {
 
   itDocs('installs the codepipeline module', install(modules));
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'adds a new role',
@@ -519,10 +519,10 @@ describe('AwsCodepipeline Integration Testing', () => {
       () => ({ username, password }),
     ),
   );
-  itDocs('apply creation of resources', commit());
+  it('apply creation of resources', commit());
 
   // testing of lambda deployment function
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'adds a new pipeline',
@@ -538,7 +538,7 @@ describe('AwsCodepipeline Integration Testing', () => {
     ),
   );
 
-  itDocs('apply pipeline creation', commit());
+  it('apply pipeline creation', commit());
 
   itDocs(
     'check pipeline is created',
@@ -552,7 +552,7 @@ describe('AwsCodepipeline Integration Testing', () => {
   );
 
   // testing of ec2 pipeline
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'adds a new security group',
@@ -590,10 +590,10 @@ describe('AwsCodepipeline Integration Testing', () => {
       () => ({ username, password }),
     ),
   );
-  itDocs('applies the security group and rules creation', commit());
+  it('applies the security group and rules creation', commit());
 
   // create sample ec2 instance
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs('adds an ec2 instance', (done: (arg0: any) => any) => {
     query(
@@ -618,9 +618,9 @@ describe('AwsCodepipeline Integration Testing', () => {
     });
   });
 
-  itDocs('applies the created instance', commit());
+  it('applies the created instance', commit());
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'adds a new codedeploy_application for deployment',
@@ -648,7 +648,7 @@ describe('AwsCodepipeline Integration Testing', () => {
     ),
   );
 
-  itDocs('applies the deployment group creation', commit());
+  it('applies the deployment group creation', commit());
 
   it('starts a transaction', begin());
 
@@ -678,7 +678,7 @@ describe('AwsCodepipeline Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'adds a new pipeline',
@@ -693,7 +693,7 @@ describe('AwsCodepipeline Integration Testing', () => {
     ),
   );
 
-  itDocs('apply pipeline creation', commit());
+  it('apply pipeline creation', commit());
 
   itDocs(
     'check pipeline is created',

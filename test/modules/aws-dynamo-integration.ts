@@ -116,7 +116,7 @@ describe('Dynamo Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'creates a Dynamo table',
@@ -136,7 +136,7 @@ describe('Dynamo Integration Testing', () => {
     ),
   );
 
-  itDocs('applies the change', commit());
+  it('applies the change', commit());
 
   itDocs(
     'checks the table was added',
@@ -225,7 +225,7 @@ describe('Dynamo Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'creates a table in a non-default region',
@@ -246,7 +246,7 @@ describe('Dynamo Integration Testing', () => {
     ),
   );
 
-  itDocs('applies the change', commit());
+  it('applies the change', commit());
 
   itDocs(
     'checks the table was added',
@@ -263,7 +263,7 @@ describe('Dynamo Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'changes the region the table is located in',
@@ -279,7 +279,7 @@ describe('Dynamo Integration Testing', () => {
     ),
   );
 
-  itDocs('applies the replacement', commit());
+  it('applies the replacement', commit());
 
   itDocs(
     'checks the table was moved',

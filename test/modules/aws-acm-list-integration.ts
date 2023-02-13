@@ -112,7 +112,7 @@ describe('AwsAcm List Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'adds a new certificate',
@@ -139,7 +139,7 @@ describe('AwsAcm List Integration Testing', () => {
     ),
   );
 
-  itDocs('applies the new certificate (should delete the record)', commit());
+  it('applies the new certificate (should delete the record)', commit());
 
   itDocs(
     'check adds new certificate',

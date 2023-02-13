@@ -104,7 +104,7 @@ describe('App Sync Integration Testing', () => {
 
   it('undo changes', rollback());
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'adds a new GraphQL API entry',
@@ -119,7 +119,7 @@ describe('App Sync Integration Testing', () => {
     ),
   );
 
-  itDocs('applies the Graphql API change', commit());
+  it('applies the Graphql API change', commit());
 
   itDocs(
     'check Graphql API is available',
@@ -131,7 +131,7 @@ describe('App Sync Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'tries to update Graphql API auth type',
@@ -145,7 +145,7 @@ describe('App Sync Integration Testing', () => {
     ),
   );
 
-  itDocs('applies the Graphql API auth type update', commit());
+  it('applies the Graphql API auth type update', commit());
 
   itDocs(
     'checks that Graphql API has been been modified',

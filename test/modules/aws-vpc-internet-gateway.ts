@@ -77,7 +77,7 @@ describe('InternetGateway Integration Testing', () => {
 
   itDocs('installs the vpc module', install(['aws_vpc']));
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
   itDocs(
     'creates a new vpc',
     query(
@@ -108,9 +108,9 @@ describe('InternetGateway Integration Testing', () => {
       () => ({ username, password }),
     ),
   );
-  itDocs('applies creation of the vpc', commit());
+  it('applies creation of the vpc', commit());
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
   itDocs(
     'adds a new internet gateway to the vpc in the region',
     query(
@@ -124,7 +124,7 @@ describe('InternetGateway Integration Testing', () => {
       () => ({ username, password }),
     ),
   );
-  itDocs('applies creation of the internet gateway', commit());
+  it('applies creation of the internet gateway', commit());
 
   itDocs(
     'confirms that the internet gateway is created',
@@ -140,7 +140,7 @@ describe('InternetGateway Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'adds a new route pointing the recently created internet gateway to the vpc in the region',
@@ -155,7 +155,7 @@ describe('InternetGateway Integration Testing', () => {
     ),
   );
 
-  itDocs('applies creation of the internet gateway route', commit());
+  it('applies creation of the internet gateway route', commit());
 
   itDocs(
     'confirms that the internet gateway route is created',
@@ -171,7 +171,7 @@ describe('InternetGateway Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
   itDocs(
     'creates another vpc',
     query(
@@ -184,7 +184,7 @@ describe('InternetGateway Integration Testing', () => {
       () => ({ username, password }),
     ),
   );
-  itDocs('applies creation of the second vpc', commit());
+  it('applies creation of the second vpc', commit());
 
   itDocs(
     'verifies there is no internet gateway associated with the new vpc',
@@ -198,7 +198,7 @@ describe('InternetGateway Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
   itDocs(
     'associates the internet gateway with the new vpc',
     query(
@@ -212,7 +212,7 @@ describe('InternetGateway Integration Testing', () => {
       () => ({ username, password }),
     ),
   );
-  itDocs('applies association of the internet gateway to the new vpc', commit());
+  it('applies association of the internet gateway to the new vpc', commit());
 
   itDocs(
     'checks the internet gateway is associated with the new vpc',
@@ -254,7 +254,7 @@ describe('InternetGateway Integration Testing', () => {
   );
   it('applies deletion of the internet gateway', commit());
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
   itDocs(
     'deletes the vpcs',
     query(
@@ -272,7 +272,7 @@ describe('InternetGateway Integration Testing', () => {
       () => ({ username, password }),
     ),
   );
-  itDocs('applies deletion of the vpcs', commit());
+  it('applies deletion of the vpcs', commit());
 
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 });

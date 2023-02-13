@@ -162,7 +162,7 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs('adds new volumes', (done: (arg0: any) => any) => {
     query(
@@ -193,7 +193,7 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
     ),
   );
 
-  itDocs('applies the change', commit());
+  it('applies the change', commit());
 
   it(
     'checks volume count',
@@ -251,7 +251,7 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'tries to update a volume size',
@@ -265,7 +265,7 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
     ),
   );
 
-  itDocs('applies the change', commit());
+  it('applies the change', commit());
 
   itDocs(
     'checks volume update',
@@ -279,7 +279,7 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs('tries to update a volume availability zone', (done: (arg0: any) => any) => {
     query(
@@ -294,7 +294,7 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
     )((e?: any) => (!!e ? done(e) : done(undefined)));
   });
 
-  itDocs('applies the change', commit());
+  it('applies the change', commit());
 
   it(
     'checks volume count',
