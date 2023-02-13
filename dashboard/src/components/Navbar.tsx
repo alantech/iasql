@@ -14,6 +14,7 @@ function classNames(...classes: any[]) {
 }
 
 export default function Navbar({ userPic }: { userPic: string }) {
+  console.log('Really re-running every keystroke');
   const { token, dispatch } = useAppContext();
   const { logout } = useAuth0();
   const homeUrl = 'https://iasql.com';
@@ -21,13 +22,17 @@ export default function Navbar({ userPic }: { userPic: string }) {
     { name: 'Docs', href: 'https://iasql.com/docs', current: false },
     { name: 'Discord', href: 'https://discord.com/invite/machGGczea', current: false },
   ];
-  if (!('theme' in localStorage)) {
-    localStorage.setItem(
-      'theme',
-      window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',
-    );
-  }
-  const [isDarkMode, setDarkMode] = useState(localStorage.theme === 'dark');
+  // Start off with light mode if not otherwise defined
+  const [isDarkMode, setDarkMode] = useState(false);
+  useEffect(() => {
+    if (!('theme' in localStorage)) {
+      localStorage.setItem(
+        'theme',
+        window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',
+      );
+    }
+    if ((localStorage.theme === 'dark') !== isDarkMode) setDarkMode(localStorage.theme === 'dark');
+  });
   return (
     <Disclosure as='nav' className='bg-gray-800'>
       {({ open }) => (
@@ -75,14 +80,16 @@ export default function Navbar({ userPic }: { userPic: string }) {
                   id='darkmodelightmodetoggle'
                   className='h-8 w-8'
                   onClick={() => {
-                    const newIsDarkMode = !isDarkMode;
-                    localStorage.setItem('theme', newIsDarkMode ? 'dark' : 'light');
-                    if (newIsDarkMode) {
-                      document.documentElement.classList.add('dark');
-                    } else {
-                      document.documentElement.classList.remove('dark');
-                    }
-                    setDarkMode(newIsDarkMode);
+                    (() => {
+                      const newIsDarkMode = !isDarkMode;
+                      localStorage.setItem('theme', newIsDarkMode ? 'dark' : 'light');
+                      if (newIsDarkMode) {
+                        document.documentElement.classList.add('dark');
+                      } else {
+                        document.documentElement.classList.remove('dark');
+                      }
+                      setDarkMode(newIsDarkMode);
+                    })();
                   }}
                 >
                   <div className='h-8 text-white'>{isDarkMode ? <MoonIcon /> : <SunIcon />}</div>

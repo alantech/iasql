@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
 
-import dynamic from 'next/dynamic';
-
 import { ActionType, useAppContext } from '@/components/AppProvider';
 import Connect from '@/components/Connect';
 import { DatabaseManagement } from '@/components/DatabaseManagement/DatabaseManagement';
 import Disconnect from '@/components/Disconnect';
 import EmptyState from '@/components/EmptyState';
+import Navbar from '@/components/Navbar';
 import Loader from '@/components/Loader/Loader';
 import Query from '@/components/Query';
 import SmallViewport from '@/components/SmallViewport';
@@ -16,7 +15,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { DatabaseIcon, PlusSmIcon } from '@heroicons/react/outline';
 
 export default function App() {
-  const Navbar = dynamic(() => import('@/components/Navbar'), { ssr: false });
   const {
     dispatch,
     databases,
@@ -31,7 +29,10 @@ export default function App() {
   const [isSmallViewport, showSmallViewport] = useState(innerWidth < MIN_WIDTH);
 
   useEffect(() => {
-    innerWidth = window.innerWidth;
+    if (innerWidth !== window.innerWidth) {
+      innerWidth = window.innerWidth;
+      showSmallViewport(innerWidth < MIN_WIDTH);
+    }
     if (token && !latestVersion) {
       dispatch({ token: token ?? '', action: ActionType.InitialLoad });
     }

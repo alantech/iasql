@@ -31,7 +31,7 @@ ENV NEXT_PUBLIC_IASQL_ENV=$IASQL_ENV
 WORKDIR /dashboard
 
 ## Copy files
-COPY dashboard/.eslintrc.json dashboard/next-env.d.ts dashboard/next.config.js dashboard/postcss.config.js dashboard/tailwind.config.js dashboard/tsconfig.json dashboard/tslint.json ./
+COPY dashboard/.eslintrc.json dashboard/next.config.js dashboard/postcss.config.js dashboard/tailwind.config.js dashboard/tsconfig.json dashboard/tslint.json ./
 COPY dashboard/public public
 COPY dashboard/src src
 
