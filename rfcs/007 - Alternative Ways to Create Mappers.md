@@ -30,7 +30,7 @@ Having Pure-SQL modules would help us expand more. One key advantage is that we 
 SELECT iasql_install('https://github.com/someModuleDeveloper/awsEc2Module');
 ```
 
-By the way we already have the `aws_ecs_simplified` module, and it's written purely in SQL. But it does not add a new mapper functionality. It maps a new entity to the entities that already exist, therefore leveraging those entities' mappers. Specifically, `ecs_simplified` and other modules like it can only reduce down the functionality that has been already exposed through mappers we have written, it can't go beyond any functionality we didn't hand-expose, which makes us the bottleneck for the whole ecosystem.
+We already have the `aws_ecs_simplified` module, and it's written purely in SQL, but it does not add a new mapper functionality. It maps a new entity to the entities that already exist, therefore leveraging those entities' mappers. Specifically, `ecs_simplified` and other modules like it can only reduce down the functionality that has been already exposed through mappers we have written, it can't go beyond any functionality we didn't hand-expose, which makes us the bottleneck for the whole ecosystem.
 
 In this RFC we'll explore different ways to create a mapper, with an eye on being able to create "detachable" mappers that can be decoupled from the engine codebase and make it easier for developers to create new mappers. That has other values, like it will clear the way for development of an ecosystem for modules. Summarizing pros for this approach, we can say it:
 - Enables 3rd Party Modules for an actual user ecosystem to exist.
