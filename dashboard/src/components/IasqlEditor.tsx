@@ -1,24 +1,28 @@
 import { forwardRef, useCallback, useEffect, useMemo, useRef } from 'react';
-import dynamic from 'next/dynamic';
-
-import LZString from 'lz-string';
-import Cookies from 'universal-cookie';
-
-import { ActionType, useAppContext } from './AppProvider';
-import { useQueryParams } from '@/hooks/useQueryParams';
-import QuerySidebar from './QuerySidebar/QuerySidebar';
-import { HBox, align, VBox, Spinner } from './common';
 import ReactAce, { IAceEditorProps } from 'react-ace/lib/ace';
 
-const AceEdit = dynamic(async ()=>{
-  require('ace-builds/src-noconflict/ace');
-  const ace = await import('./AceEditor');
-  require('ace-builds/src-noconflict/ext-language_tools');
-  require('ace-builds/src-noconflict/theme-monokai');
-  require('ace-builds/src-noconflict/mode-pgsql');
-  require('ace-builds/src-noconflict/theme-tomorrow');
-  return ace;
-}, {ssr:false});
+import LZString from 'lz-string';
+import dynamic from 'next/dynamic';
+import Cookies from 'universal-cookie';
+
+import { useQueryParams } from '@/hooks/useQueryParams';
+
+import { ActionType, useAppContext } from './AppProvider';
+import QuerySidebar from './QuerySidebar/QuerySidebar';
+import { HBox, align, VBox, Spinner } from './common';
+
+const AceEdit = dynamic(
+  async () => {
+    require('ace-builds/src-noconflict/ace');
+    const ace = await import('./AceEditor');
+    require('ace-builds/src-noconflict/ext-language_tools');
+    require('ace-builds/src-noconflict/theme-monokai');
+    require('ace-builds/src-noconflict/mode-pgsql');
+    require('ace-builds/src-noconflict/theme-tomorrow');
+    return ace;
+  },
+  { ssr: false },
+);
 
 const ForwardRefEditor = forwardRef((props: IAceEditorProps, ref: any) => (
   <AceEdit props={props} editorRef={ref} />

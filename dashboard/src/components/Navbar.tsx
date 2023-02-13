@@ -1,13 +1,13 @@
 import { Fragment, useState, useEffect } from 'react';
 
+import config from '@/config';
+import * as Posthog from '@/services/posthog';
 import { useAuth0 } from '@auth0/auth0-react';
 import { Disclosure, Menu, Transition } from '@headlessui/react';
 import { MenuIcon, XIcon, SunIcon, MoonIcon } from '@heroicons/react/outline';
 import { UserIcon } from '@heroicons/react/solid';
 
 import { ActionType, useAppContext } from './AppProvider';
-import config from '@/config';
-import * as Posthog from '@/services/posthog';
 
 function classNames(...classes: any[]) {
   return classes.filter(Boolean).join(' ');

@@ -1,10 +1,10 @@
 import { useEffect } from 'react';
 
+import { ActionType, useAppContext } from '@/components/AppProvider';
+import { useQueryParams } from '@/hooks/useQueryParams';
 import { Menu } from '@headlessui/react';
 import { DatabaseIcon, PlusSmIcon } from '@heroicons/react/outline';
 
-import { ActionType, useAppContext } from '@/components/AppProvider';
-import { useQueryParams } from '@/hooks/useQueryParams';
 import { align, Button, Dropdown, HBox, Spinner, VBox } from '../common';
 import { DatabaseStatus } from './DatabaseStatus';
 

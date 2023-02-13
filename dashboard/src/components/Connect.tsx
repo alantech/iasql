@@ -1,9 +1,9 @@
 import { useRef, useState } from 'react';
 
+import { regions } from '@/services/connectDb';
 import { LinkIcon } from '@heroicons/react/outline';
 
 import { ActionType, useAppContext } from './AppProvider';
-import { regions } from '@/services/connectDb';
 import ConnectionString from './ConnectionString';
 import { Combobox, Input, Label, Step, VBox, Wizard } from './common';
 

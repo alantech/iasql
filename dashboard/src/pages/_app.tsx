@@ -1,13 +1,14 @@
-import '@/styles/globals.css';
 import { useEffect } from 'react';
-import type { AppProps } from 'next/app';
-import { Auth0Provider } from '@auth0/auth0-react';
 
-import * as Posthog from '@/services/posthog';
-import * as Sentry from '@/services/sentry';
-import config from '@/config';
-import reportWebVitals from '@/services/reportWebVitals';
+import type { AppProps } from 'next/app';
+
 import { AppProvider } from '@/components/AppProvider';
+import config from '@/config';
+import * as Posthog from '@/services/posthog';
+import reportWebVitals from '@/services/reportWebVitals';
+import * as Sentry from '@/services/sentry';
+import '@/styles/globals.css';
+import { Auth0Provider } from '@auth0/auth0-react';
 
 Posthog.init();
 Sentry.init();

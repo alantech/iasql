@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 
 import dynamic from 'next/dynamic';
-import { DatabaseIcon, PlusSmIcon } from '@heroicons/react/outline';
 
 import { ActionType, useAppContext } from '@/components/AppProvider';
 import Connect from '@/components/Connect';
@@ -14,6 +13,7 @@ import SmallViewport from '@/components/SmallViewport';
 import { align, Button, HBox } from '@/components/common';
 import ErrorDialog from '@/components/common/ErrorDialog';
 import { useAuth } from '@/hooks/useAuth';
+import { DatabaseIcon, PlusSmIcon } from '@heroicons/react/outline';
 
 export default function App() {
   const Navbar = dynamic(() => import('@/components/Navbar'), { ssr: false });

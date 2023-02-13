@@ -1,22 +1,24 @@
-import { createLogger } from '@logdna/logger';
 import { verify as jwtVerify, decode as jwtDecode, JwtPayload } from 'jsonwebtoken';
 import jwksRsa from 'jwks-rsa';
+import type { NextApiRequest, NextApiResponse } from 'next';
 import pg from 'pg';
+import format from 'pg-format';
 import { parse, deparse } from 'pgsql-parser';
 import { createConnection, Connection } from 'typeorm';
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
-import format from 'pg-format';
 import { v4 as uuidv4 } from 'uuid';
 
-import type { NextApiRequest, NextApiResponse } from 'next'
-import config from '@/server-config';
 import { throwError } from '@/config/config';
+import config from '@/server-config';
+import { createLogger } from '@logdna/logger';
 
 export function isString(obj: unknown): obj is string {
   return typeof obj === 'string';
 }
 
-const logger = !!config.logDna ? createLogger(config.logDna.key, { levels: ['info', 'warn', 'error'], }) : console;
+const logger = !!config.logDna
+  ? createLogger(config.logDna.key, { levels: ['info', 'warn', 'error'] })
+  : console;
 (logger as any)?.on?.('error', (event: any) => {
   if (event.retrying) return;
   console.log('Fatal error in LogDNA');
@@ -77,12 +79,15 @@ async function metaQuery(sql: string, params?: any[]): Promise<any> {
 async function runSql(sql: string, dbAlias: string, username: string, password: string) {
   const dbId = await (async () => {
     if (dbAlias === 'iasql_metadata') return dbAlias;
-    const res = await metaQuery(`
+    const res = await metaQuery(
+      `
       SELECT pg_name
       FROM iasql_database id
       INNER JOIN iasql_user_databases iud ON id.pg_name = iud.iasql_database_pg_name
       WHERE iud.iasql_user_id = $1 AND id.alias = $2;
-    `, [username, dbAlias]);
+    `,
+      [username, dbAlias],
+    );
     const dbId = res?.[0]?.pg_name ?? throwError(`dbAlias ${dbAlias} not found`);
     return dbId;
   })();
@@ -179,12 +184,15 @@ async function getUserAndPassword(
     $$;
   `);
   if (dbAlias !== 'iasql_metadata') {
-    const res = await metaQuery(`
+    const res = await metaQuery(
+      `
       SELECT pg_name
       FROM iasql_database id
       INNER JOIN iasql_user_databases iud ON id.pg_name = iud.iasql_database_pg_name
       WHERE iud.iasql_user_id = $1 AND id.alias = $2;
-    `, [username, dbAlias]);
+    `,
+      [username, dbAlias],
+    );
     const dbId = res?.[0]?.pg_name ?? throwError(`dbAlias ${dbAlias} not found`);
     // Apparently GRANT and REVOKE can run into concurrency issues in Postgres. Serializing it would
     // be best, but https://www.postgresql.org/message-id/3473.1393693757%40sss.pgh.pa.us says that
@@ -194,9 +202,12 @@ async function getUserAndPassword(
     let success = true;
     do {
       try {
-        await metaQuery(`
+        await metaQuery(
+          `
           GRANT $1 TO $2;
-        `, [`group_role_${dbId}`, username]);
+        `,
+          [`group_role_${dbId}`, username],
+        );
         success = true;
       } catch (_) {
         success = false;
@@ -235,7 +246,7 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
     level: 'info',
     app: 'run',
     env: process.env.IASQL_ENV,
-    meta: req.body
+    meta: req.body,
   });
   const execTime = 15 * 60 * 1000; // 15 minutes ought to be enough for anyone ;)
   const t1 = Date.now();
@@ -263,6 +274,6 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
     });
     return res.status(200).json(output);
   } catch (e: any) {
-    return res.status(401).json({ message: e?.message ?? 'Unknown error', });
+    return res.status(401).json({ message: e?.message ?? 'Unknown error' });
   }
 };

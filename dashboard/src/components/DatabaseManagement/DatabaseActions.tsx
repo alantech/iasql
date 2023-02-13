@@ -1,10 +1,10 @@
 import { useEffect } from 'react';
 
+import { ActionType, useAppContext } from '@/components/AppProvider';
 import { Menu } from '@headlessui/react';
 import { CogIcon, DownloadIcon } from '@heroicons/react/outline';
 import { PauseIcon, PlayIcon } from '@heroicons/react/solid';
 
-import { ActionType, useAppContext } from '@/components/AppProvider';
 import { align, Button, Dropdown, HBox, VBox } from '../common';
 
 export function DatabaseActions() {
