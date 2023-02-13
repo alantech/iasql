@@ -30,7 +30,7 @@
     "react": "^17.0.1",
     "react-dom": "^17.0.1",
     "trim": "1.0.1",
-    "typedoc": "^0.23.24",
+    "typedoc": "^0.23.25",
     "typedoc-plugin-markdown": "^3.14.0",
     "unist-util-visit": "^2.0.3",
     "url-loader": "^4.1.1"
