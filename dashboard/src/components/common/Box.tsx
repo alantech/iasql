@@ -1,3 +1,5 @@
+import React from 'react';
+
 export enum align {
   start = 'justify-start',
   end = 'justify-end',
@@ -7,23 +9,27 @@ export enum align {
 
 const classes = 'flex nowrap';
 
-export function HBox({
-  children,
-  id,
-  alignment = align.around,
-  customStyles = '',
-  width = 'w-full',
-  onClick,
-}: {
-  children: any[] | any;
-  id?: string;
-  alignment?: align;
-  customStyles?: string;
-  width?: string;
-  onClick?: (...args: any[]) => void;
-}) {
+function HBox_(
+  {
+    children,
+    id,
+    alignment = align.around,
+    customStyles = '',
+    width = 'w-full',
+    onClick,
+  }: {
+    children: any[] | any;
+    id?: string;
+    alignment?: align;
+    customStyles?: string;
+    width?: string;
+    onClick?: (...args: any[]) => void;
+  },
+  ref: any,
+) {
   return (
     <div
+      ref={ref}
       className={`${classes} flex-row ${width} items-center ${alignment} ${customStyles}`}
       id={id}
       onClick={onClick}
@@ -32,26 +38,35 @@ export function HBox({
     </div>
   );
 }
+export const HBox = React.forwardRef(HBox_);
 
-export function VBox({
-  children,
-  id,
-  alignment = align.around,
-  customStyles = '',
-  height = 'h-full',
-}: {
-  children: any[] | any;
-  id?: string;
-  alignment?: align;
-  customStyles?: string;
-  height?: string;
-}) {
+function VBox_(
+  {
+    children,
+    id,
+    alignment = align.around,
+    customStyles = '',
+    height = 'h-full',
+  }: {
+    children: any[] | any;
+    id?: string;
+    alignment?: align;
+    customStyles?: string;
+    height?: string;
+  },
+  ref: any,
+) {
   return (
-    <div className={`${classes} flex-col ${height} content-around ${alignment} ${customStyles}`} id={id}>
+    <div
+      className={`${classes} flex-col ${height} content-around ${alignment} ${customStyles}`}
+      id={id}
+      ref={ref}
+    >
       {children}
     </div>
   );
 }
+export const VBox = React.forwardRef(VBox_);
 
 export function DoubleBox({
   firstChildren,
