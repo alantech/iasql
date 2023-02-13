@@ -1,5 +1,5 @@
 import * as iasql from '../../src/services/iasql';
-import { runQuery, finish, execComposeUp, execComposeDown, runInstall, runBegin } from '../helpers';
+import { runQuery, finish, execComposeUp, execComposeDown, runInstall, runBegin, itDocs } from '../helpers';
 
 const dbAlias = 'rollbacktest';
 
@@ -46,11 +46,11 @@ describe('basic rollback functionality', () => {
     ),
   );
 
-  it('installs the aws_cloudwatch module', install(['aws_cloudwatch']));
+  itDocs('installs the aws_cloudwatch module', install(['aws_cloudwatch']));
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'insert a log group',
     query(
       `
@@ -74,7 +74,7 @@ describe('basic rollback functionality', () => {
     ),
   );
 
-  it(
+  itDocs(
     'calls iasql_rollback should delete',
     query(
       `
@@ -86,7 +86,7 @@ describe('basic rollback functionality', () => {
     ),
   );
 
-  it(
+  itDocs(
     'checks the log group',
     query(
       `
