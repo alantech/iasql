@@ -54,6 +54,10 @@ export class IasqlFunctions extends ModuleBase {
 }
 
 /**
- * @internal
+ * ```testdoc
+ * basic_integration/commit.ts#basic begin, commit and preview functionality#Begin, commit and preview
+ * basic_integration/rollback.ts#basic rollback functionality#Basic rollback functionality
+ * common/get_sql_since.ts#iasql_get_sql_since functionality#iasql_get_sql_since functionality
+ * ```
  */
 export const iasqlFunctions = new IasqlFunctions();
