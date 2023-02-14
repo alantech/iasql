@@ -11,7 +11,6 @@ import * as Sentry from '@/services/sentry';
 import '@/styles/globals.css';
 import { Auth0Provider } from '@auth0/auth0-react';
 
-Posthog.init();
 Sentry.init();
 
 // If you want to start measuring performance in your app, pass a function
@@ -21,6 +20,7 @@ reportWebVitals();
 
 export default function App({ Component, pageProps }: AppProps) {
   useEffect(() => {
+    Posthog.init();
     const isDarkMode = localStorage.theme === 'dark';
     if (isDarkMode) {
       document.documentElement.classList.add('dark');
