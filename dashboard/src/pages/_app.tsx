@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 
 import type { AppProps } from 'next/app';
+import Head from 'next/head';
 
 import { AppProvider } from '@/components/AppProvider';
 import config from '@/config';
@@ -33,5 +34,17 @@ export default function App({ Component, pageProps }: AppProps) {
       <Component {...pageProps} />
     </AppProvider>
   );
-  return config.auth ? <Auth0Provider {...config.auth}>{body}</Auth0Provider> : body;
+
+  const app = (
+    <>
+      <Head>
+        <meta name='viewport' content='width=device-width, initial-scale=1' />
+        <meta name='theme-color' content='#000000' />
+        <meta name='description' content='Cloud infrastructure as a PostgreSQL DB' />
+        <title>IaSQL Dashboard</title>
+      </Head>
+      {config.auth ? <Auth0Provider {...config.auth}>{body}</Auth0Provider> : body}
+    </>
+  );
+  return app;
 }
