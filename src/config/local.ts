@@ -20,8 +20,10 @@ const config: ConfigInterface = {
     forceLocal: false,
   },
 };
-if (process.env.IASQL_TELEMETRY === 'on') config.telemetry = {
-  posthogKey: 'phc_xvAQWfpHug7G0SuU5P9wwAbvP9ZawgAfIEZ9FUsiarS',
-};
+if (process.env.IASQL_TELEMETRY === 'on') {
+  config.telemetry = {
+    posthogKey: 'phc_xvAQWfpHug7G0SuU5P9wwAbvP9ZawgAfIEZ9FUsiarS',
+  };
+}
 
 export default config;
