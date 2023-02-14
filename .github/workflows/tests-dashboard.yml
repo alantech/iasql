@@ -77,16 +77,20 @@ jobs:
         with:
           node-version: "16"
 
-      - name: Start local iasql engine
+      - name: Start local iasql container
         run: |
           docker build -t iasql:latest .
-          docker run -p 5432:5432 -p 8888:8888 -e IASQL_ENV=ci --name iasql iasql:latest &
+          docker run -p 5432:5432 -p 8888:8888 -e IASQL_ENV=$IASQL_ENV --name iasql iasql:latest &
           while ! psql postgres://postgres:test@localhost:5432/iasql_metadata -b -q -c "SELECT iasql_engine_health()"; do sleep 1 && echo -n .; done;
+        env:
+          IASQL_ENV: test
 
-      - name: Install and Run Playwright tests
+      - name: Install Playwright
+        run: npx playwright install --with-deps
+
+      - name: Run Playwright tests
         run: |
           cd dashboard
-          yarn
           yarn test
           cd ..
         env:
@@ -97,6 +101,7 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.STAGING_SECRET_ACCESS_KEY }}
           NEXT_PUBLIC_IASQL_ENV: test
           WEBSITE_URL: http://localhost:8888/
+
       # https://github.com/actions/upload-artifact#where-does-the-upload-go
       # Download artifact and upload to https://trace.playwright.dev
       - uses: actions/upload-artifact@v2
