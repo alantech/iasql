@@ -25,9 +25,6 @@ RUN npm install -g yarn
 # Dashboard
 FROM base AS dashboard-stage
 
-ARG IASQL_ENV=local
-ENV NEXT_PUBLIC_IASQL_ENV=$IASQL_ENV
-
 WORKDIR /dashboard
 
 ## Copy files
