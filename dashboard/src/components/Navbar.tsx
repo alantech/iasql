@@ -14,7 +14,6 @@ function classNames(...classes: any[]) {
 }
 
 export default function Navbar({ userPic }: { userPic: string }) {
-  console.log('Really re-running every keystroke');
   const { token, dispatch } = useAppContext();
   const { logout } = useAuth0();
   const homeUrl = 'https://iasql.com';
