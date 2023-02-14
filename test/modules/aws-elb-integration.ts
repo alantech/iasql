@@ -147,7 +147,7 @@ describe('ELB Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'adds a new targetGroup',
@@ -241,7 +241,7 @@ describe('ELB Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'adds new security groups',
@@ -305,7 +305,7 @@ describe('ELB Integration Testing', () => {
     ),
   );
 
-  itDocs('applies the change', commit());
+  it('applies the change', commit());
 
   it('starts a transaction', begin());
 
@@ -392,7 +392,7 @@ describe('ELB Integration Testing', () => {
 
   it('applies the change', commit());
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'adds a new listener',
@@ -422,7 +422,7 @@ describe('ELB Integration Testing', () => {
     ),
   );
 
-  itDocs('applies the change', commit());
+  it('applies the change', commit());
 
   it('starts a transaction', begin());
 
@@ -461,7 +461,7 @@ describe('ELB Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'adds a new HTTPS listener',
@@ -492,7 +492,7 @@ describe('ELB Integration Testing', () => {
     ),
   );
 
-  itDocs('applies the https listener change', commit());
+  it('applies the https listener change', commit());
 
   itDocs(
     'check https listener insertion',
@@ -666,7 +666,7 @@ describe('ELB Integration Testing', () => {
 
   it('applies the cert delete change', commit());
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'creates a target group in non-default region',
@@ -681,7 +681,7 @@ describe('ELB Integration Testing', () => {
     ),
   );
 
-  itDocs('applies creation of the target group in non-default region', commit());
+  it('applies creation of the target group in non-default region', commit());
 
   itDocs(
     'verifies the target group is created',
@@ -698,7 +698,7 @@ describe('ELB Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'creates a security group in non-default region',
@@ -732,7 +732,7 @@ describe('ELB Integration Testing', () => {
     ),
   );
 
-  itDocs('applies the creation of load balancer and security group in non-default region', commit());
+  it('applies the creation of load balancer and security group in non-default region', commit());
 
   itDocs(
     'verifies that load balancer in non-default region is created',
@@ -749,7 +749,7 @@ describe('ELB Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'adds a listener to the load balancer in non-default region',
@@ -767,7 +767,7 @@ describe('ELB Integration Testing', () => {
     ),
   );
 
-  itDocs('applies creation of the listener in non-default region', commit());
+  it('applies creation of the listener in non-default region', commit());
 
   itDocs(
     'verifies the listener in non-default region is created',

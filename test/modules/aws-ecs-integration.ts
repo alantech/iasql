@@ -219,7 +219,7 @@ describe('ECS Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'adds a new cluster',
@@ -234,7 +234,7 @@ describe('ECS Integration Testing', () => {
     ),
   );
 
-  itDocs('applies adds a new cluster', commit());
+  it('applies adds a new cluster', commit());
 
   itDocs(
     'check cluster insertion',
@@ -249,7 +249,7 @@ describe('ECS Integration Testing', () => {
   );
 
   // Service dependencies
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'adds service dependencies',
@@ -292,7 +292,7 @@ describe('ECS Integration Testing', () => {
     ),
   );
 
-  itDocs('applies service dependencies', commit());
+  it('applies service dependencies', commit());
 
   it(
     'check target group insertion',
@@ -320,7 +320,7 @@ describe('ECS Integration Testing', () => {
 
   // Service spinning up a task definition with container using a docker image
   // Container definition
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'adds container dependencies',
@@ -339,7 +339,7 @@ describe('ECS Integration Testing', () => {
     ),
   );
 
-  itDocs('applies adds container dependencies', commit());
+  it('applies adds container dependencies', commit());
 
   it(
     'check target group insertion',
@@ -366,7 +366,7 @@ describe('ECS Integration Testing', () => {
   );
 
   // Task definition
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'adds a new task definition',
@@ -456,7 +456,7 @@ describe('ECS Integration Testing', () => {
     ),
   );
 
-  itDocs('applies adds a new task definition with container definition', commit());
+  it('applies adds a new task definition with container definition', commit());
 
   itDocs(
     'check task_definition insertion',
@@ -507,7 +507,7 @@ describe('ECS Integration Testing', () => {
   );
 
   // Service
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'adds a new service',
@@ -570,7 +570,7 @@ describe('ECS Integration Testing', () => {
     ),
   );
 
-  itDocs('applies tries to update a task definition field', commit());
+  it('applies tries to update a task definition field', commit());
 
   itDocs(
     'check service insertion',

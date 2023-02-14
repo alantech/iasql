@@ -337,7 +337,7 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
   itDocs('adds an instance without security groups and key', (done: (arg0: any) => any) => {
     query(
       `
@@ -364,7 +364,7 @@ describe('EC2 Integration Testing', () => {
     });
   });
 
-  itDocs('applies the created instances', commit());
+  it('applies the created instances', commit());
 
   itDocs(
     'check number of instances',
@@ -378,7 +378,7 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'deletes security group and instance',
@@ -400,9 +400,9 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
-  itDocs('applies the security group and instance deletion', commit());
+  it('applies the security group and instance deletion', commit());
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs('adds two ec2 instance', (done: (arg0: any) => any) => {
     query(
@@ -451,7 +451,7 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
-  itDocs('applies the created instances', commit());
+  it('applies the created instances', commit());
 
   it(
     'check number of instances',
@@ -560,7 +560,7 @@ describe('EC2 Integration Testing', () => {
   );
 
   describe('create IAM role', () => {
-    itDocs('starts a transaction', begin());
+    it('starts a transaction', begin());
 
     itDocs(
       'creates ec2 instance role',
@@ -587,7 +587,7 @@ describe('EC2 Integration Testing', () => {
       ),
     );
 
-    itDocs('applies the role creation', commit());
+    it('applies the role creation', commit());
 
     itDocs(
       'checks role count',
@@ -602,7 +602,7 @@ describe('EC2 Integration Testing', () => {
     );
   });
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'create target group and register instance to it',
@@ -646,7 +646,7 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
-  itDocs('applies the instance registration', commit());
+  it('applies the instance registration', commit());
 
   itDocs(
     'check registered instance count',
@@ -675,7 +675,7 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'register instance with custom port to target group',
@@ -702,7 +702,7 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
-  itDocs('applies the instance registration', commit());
+  it('applies the instance registration', commit());
 
   it(
     'check registered instance count',
@@ -989,7 +989,7 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs('adds an ec2 instance with no security group', (done: (arg0: any) => any) => {
     query(
@@ -1021,7 +1021,7 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
-  itDocs('applies the created instances', commit());
+  it('applies the created instances', commit());
 
   itDocs(
     'check number of instances',

@@ -129,7 +129,7 @@ describe('Cloudfront Integration Testing', () => {
 
   itDocs('installs the cloudfront module', install(modules));
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'creates a dummy s3 resource',
@@ -141,7 +141,7 @@ describe('Cloudfront Integration Testing', () => {
       () => ({ username, password }),
     ),
   );
-  itDocs('applies the s3 creation', commit());
+  it('applies the s3 creation', commit());
 
   it('starts a transaction', begin());
 
@@ -160,7 +160,7 @@ describe('Cloudfront Integration Testing', () => {
 
   it('undo changes', rollback());
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs('adds a new s3 distribution', (done: (arg0: any) => any) => {
     query(
@@ -177,7 +177,7 @@ describe('Cloudfront Integration Testing', () => {
     });
   });
 
-  itDocs('applies the distribution change', commit());
+  it('applies the distribution change', commit());
 
   itDocs(
     'check distribution is available',
@@ -189,7 +189,7 @@ describe('Cloudfront Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'adds a new distribution',
@@ -204,7 +204,7 @@ describe('Cloudfront Integration Testing', () => {
     ),
   );
 
-  itDocs('applies the distribution change', commit());
+  it('applies the distribution change', commit());
 
   itDocs(
     'check distribution is available',
@@ -216,7 +216,7 @@ describe('Cloudfront Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'tries to update distribution comment',
@@ -230,7 +230,7 @@ describe('Cloudfront Integration Testing', () => {
     ),
   );
 
-  itDocs('applies the distribution comment update', commit());
+  it('applies the distribution comment update', commit());
 
   itDocs(
     'checks that distribution have been modified',

@@ -154,7 +154,7 @@ describe('Route53 Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'adds a new hosted zone',
@@ -181,7 +181,7 @@ describe('Route53 Integration Testing', () => {
     ),
   );
 
-  itDocs('applies the hosted zone change', commit());
+  it('applies the hosted zone change', commit());
 
   itDocs(
     'check adds a new hosted zone',
@@ -286,7 +286,7 @@ describe('Route53 Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'adds a new record to hosted zone',
@@ -316,7 +316,7 @@ describe('Route53 Integration Testing', () => {
     ),
   );
 
-  itDocs('applies new resource record set', commit());
+  it('applies new resource record set', commit());
 
   itDocs(
     'check default record sets have been added',
@@ -331,7 +331,7 @@ describe('Route53 Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'adds a new A record to hosted zone',
@@ -370,7 +370,7 @@ describe('Route53 Integration Testing', () => {
     ),
   );
 
-  itDocs('applies new resource record set', commit());
+  it('applies new resource record set', commit());
 
   itDocs(
     'check alias target record has been added',
@@ -439,7 +439,7 @@ describe('Route53 Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'adds a new record to hosted zone',
@@ -469,7 +469,7 @@ describe('Route53 Integration Testing', () => {
     ),
   );
 
-  itDocs('applies new multiline resource record set', commit());
+  it('applies new multiline resource record set', commit());
 
   itDocs(
     'check multiline record set have been added',
@@ -493,7 +493,7 @@ describe('Route53 Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'updates a record name',
@@ -510,7 +510,7 @@ describe('Route53 Integration Testing', () => {
     ),
   );
 
-  itDocs('applies updates a record name', commit());
+  it('applies updates a record name', commit());
 
   itDocs(
     'check records after update',

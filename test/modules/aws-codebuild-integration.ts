@@ -208,7 +208,7 @@ phases:
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'adds a new repository',
@@ -252,7 +252,7 @@ phases:
     ),
   );
 
-  itDocs('apply codebuild_project codepipeline creation', commit());
+  it('apply codebuild_project codepipeline creation', commit());
 
   itDocs(
     'check new project exists',
@@ -334,7 +334,7 @@ phases:
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
   itDocs(
     'creates a project that pushes to ecr',
     query(
@@ -362,7 +362,7 @@ phases:
       () => ({ username, password }),
     ),
   );
-  itDocs('apply creation of codebuild project', commit());
+  it('apply creation of codebuild project', commit());
 
   itDocs(
     'start ecr build and wait',

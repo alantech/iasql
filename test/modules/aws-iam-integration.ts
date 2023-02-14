@@ -204,7 +204,7 @@ describe('IAM Role Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'adds a new role',
@@ -318,7 +318,7 @@ describe('IAM Role Integration Testing', () => {
     ),
   );
 
-  itDocs('applies the role additions', commit());
+  it('applies the role additions', commit());
 
   it('starts a transaction', begin());
 
@@ -837,7 +837,7 @@ describe('IAM User Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'adds a new user',
@@ -852,7 +852,7 @@ describe('IAM User Integration Testing', () => {
     ),
   );
 
-  itDocs('applies change', commit());
+  it('applies change', commit());
 
   itDocs(
     'check a new user addition',

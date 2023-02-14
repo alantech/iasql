@@ -112,7 +112,7 @@ describe('AwsSNS Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'adds a new topic',
@@ -139,7 +139,7 @@ describe('AwsSNS Integration Testing', () => {
     ),
   );
 
-  itDocs('applies the topic change', commit());
+  it('applies the topic change', commit());
 
   it('uninstalls the SNS module', uninstall(modules));
 

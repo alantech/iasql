@@ -221,7 +221,7 @@ describe('ECS Integration Testing', () => {
   );
 
   // Service dependencies
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'adds service dependencies',
@@ -264,7 +264,7 @@ describe('ECS Integration Testing', () => {
     ),
   );
 
-  itDocs('applies service dependencies', commit());
+  it('applies service dependencies', commit());
 
   it(
     'check target group insertion',
@@ -292,7 +292,7 @@ describe('ECS Integration Testing', () => {
 
   // Service spinning up a task definition with container using a public ecr
   // ECR
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'adds a new public ECR',
@@ -372,7 +372,7 @@ describe('ECS Integration Testing', () => {
     ),
   );
 
-  itDocs('applies adds a new task definition with container definition', commit());
+  it('applies adds a new task definition with container definition', commit());
 
   it('starts a transaction', sidecarBegin());
 
@@ -415,7 +415,7 @@ describe('ECS Integration Testing', () => {
   );
 
   // Service
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'adds a new service',
@@ -459,7 +459,7 @@ describe('ECS Integration Testing', () => {
     ),
   );
 
-  itDocs('applies service insertion', commit());
+  it('applies service insertion', commit());
 
   it('starts a transaction', sidecarBegin());
 

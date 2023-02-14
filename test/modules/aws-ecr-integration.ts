@@ -134,7 +134,7 @@ describe('ECR Integration Testing', () => {
       ),
     );
 
-    itDocs('starts a transaction', begin());
+    it('starts a transaction', begin());
 
     itDocs(
       'adds a new repository',
@@ -165,7 +165,7 @@ describe('ECR Integration Testing', () => {
       ),
     );
 
-    itDocs('applies the repository change', commit());
+    it('applies the repository change', commit());
 
     it('starts a transaction', begin());
 
@@ -460,7 +460,7 @@ describe('ECR Integration Testing', () => {
       ),
     );
 
-    itDocs('starts a transaction', begin());
+    it('starts a transaction', begin());
 
     itDocs(
       'adds a new public repository',
@@ -487,7 +487,7 @@ describe('ECR Integration Testing', () => {
       ),
     );
 
-    itDocs('applies the public repository change', commit());
+    it('applies the public repository change', commit());
 
     it('starts a transaction', begin());
 

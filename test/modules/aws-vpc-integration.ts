@@ -113,7 +113,7 @@ describe('VPC Integration Testing', () => {
 
   it('undo changes', rollback());
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'adds a new vpc',
@@ -128,7 +128,7 @@ describe('VPC Integration Testing', () => {
     ),
   );
 
-  itDocs('applies the vpc change', commit());
+  it('applies the vpc change', commit());
 
   it(
     'check no vpc is pending',
@@ -170,7 +170,7 @@ describe('VPC Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'adds a subnet',
@@ -188,7 +188,7 @@ describe('VPC Integration Testing', () => {
     ),
   );
 
-  itDocs('applies the subnet change', commit());
+  it('applies the subnet change', commit());
 
   it('starts a transaction', begin());
 
@@ -218,7 +218,7 @@ describe('VPC Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'tries to update vpc tags',
@@ -232,7 +232,7 @@ describe('VPC Integration Testing', () => {
     ),
   );
 
-  itDocs('applies the vpc tags update', commit());
+  it('applies the vpc tags update', commit());
 
   itDocs(
     'checks that tags have been modified',
@@ -244,7 +244,7 @@ describe('VPC Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'tries to update vpc cidr',
@@ -259,7 +259,7 @@ describe('VPC Integration Testing', () => {
     ),
   );
 
-  itDocs('applies the vpc cidr update', commit());
+  it('applies the vpc cidr update', commit());
 
   itDocs(
     'checks that cidr have been modified',
@@ -285,7 +285,7 @@ describe('VPC Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
   itDocs(
     'creates a second vpc in another region',
     query(
@@ -312,9 +312,9 @@ describe('VPC Integration Testing', () => {
       () => ({ username, password }),
     ),
   );
-  itDocs('applies the creation of the second vpc', commit());
+  it('applies the creation of the second vpc', commit());
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
   itDocs(
     'creates a peering connection between the first and second vpc',
     query(
@@ -329,7 +329,7 @@ describe('VPC Integration Testing', () => {
       () => ({ username, password }),
     ),
   );
-  itDocs('applies creation of the peering connection', commit());
+  it('applies creation of the peering connection', commit());
 
   itDocs(
     'checks the state for peering connection is active',
@@ -359,7 +359,7 @@ describe('VPC Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
   itDocs(
     'changes the tags for the peering connection',
     query(
@@ -373,7 +373,7 @@ describe('VPC Integration Testing', () => {
       () => ({ username, password }),
     ),
   );
-  itDocs('applies creation of the peering connection', commit());
+  it('applies creation of the peering connection', commit());
 
   itDocs(
     'checks the peering connection tags are changed',
@@ -487,7 +487,7 @@ describe('VPC Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'deletes the subnet',
@@ -557,7 +557,7 @@ describe('VPC Integration Testing', () => {
     ),
   );
 
-  itDocs('applies the vpc removal', commit());
+  it('applies the vpc removal', commit());
 
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 });

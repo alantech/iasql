@@ -116,7 +116,7 @@ describe('API Gateway Integration Testing', () => {
 
   it('undo changes', rollback());
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'adds a new API gateway',
@@ -131,7 +131,7 @@ describe('API Gateway Integration Testing', () => {
     ),
   );
 
-  itDocs('applies the API gateway change', commit());
+  it('applies the API gateway change', commit());
 
   itDocs(
     'check API gateway is available',
@@ -143,7 +143,7 @@ describe('API Gateway Integration Testing', () => {
     ),
   );
 
-  itDocs('starts a transaction', begin());
+  it('starts a transaction', begin());
 
   itDocs(
     'tries to update API description',
@@ -157,7 +157,7 @@ describe('API Gateway Integration Testing', () => {
     ),
   );
 
-  itDocs('applies the API description update', commit());
+  it('applies the API description update', commit());
 
   itDocs(
     'checks that API has been been modified',
