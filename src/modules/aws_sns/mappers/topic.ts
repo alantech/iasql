@@ -147,11 +147,8 @@ export class TopicMapper extends MapperBase<Topic> {
       if (!!id) {
         const { arn, region } = this.idFields(id);
         if (enabledRegions.includes(region)) {
-          const client = (await ctx.getAwsClient(region)) as AWS;
-
           // we retrieve topic attributes and policy
-          const entry = await this.topicMapper(arn, region, ctx);
-          return entry;
+          return await this.topicMapper(arn, region, ctx);
         }
       } else {
         const out: Topic[] = [];
