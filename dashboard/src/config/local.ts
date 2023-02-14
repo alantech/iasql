@@ -9,7 +9,7 @@ const local: ConfigInterface = {
     backendUrl: '/api/run',
   },
 };
-if (process.env.IASQL_TELEMETRY === 'on') {
+if (process.env.NEXT_PUBLIC_IASQL_TELEMETRY === 'on') {
   local.posthog = {
     key: 'phc_WjwJsXXSuEl2R2zElUWL55mWpNIfWR8HrFvjxwlTGWH',
   };
