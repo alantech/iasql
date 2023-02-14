@@ -27,6 +27,7 @@ const AceEdit = dynamic(
 const ForwardRefEditor = forwardRef((props: IAceEditorProps, ref: any) => (
   <AceEdit props={props} editorRef={ref} />
 ));
+ForwardRefEditor.displayName = 'ForwardRefEditor';
 
 export default function IasqlEditor() {
   const {
