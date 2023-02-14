@@ -84,7 +84,11 @@ jobs:
           while ! psql postgres://postgres:test@localhost:5432/iasql_metadata -b -q -c "SELECT iasql_engine_health()"; do sleep 1 && echo -n .; done;
 
       - name: Install Playwright
-        run: npx playwright install --with-deps
+        run: |
+          cd dashboard
+          yarn
+          npx playwright install --with-deps
+          cd ..
 
       - name: Run Playwright tests
         run: |
