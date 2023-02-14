@@ -1,4 +1,4 @@
-import { forwardRef, useCallback, useEffect, useMemo, useRef } from 'react';
+import { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ReactAce, { IAceEditorProps } from 'react-ace/lib/ace';
 
 import LZString from 'lz-string';
@@ -9,7 +9,7 @@ import { useQueryParams } from '@/hooks/useQueryParams';
 
 import { ActionType, useAppContext } from './AppProvider';
 import QuerySidebar from './QuerySidebar/QuerySidebar';
-import { HBox, align, VBox, Spinner } from './common';
+import { HBox, align, VBox, Spinner, Tab } from './common';
 
 const AceEdit = dynamic(
   async () => {
@@ -39,6 +39,7 @@ export default function IasqlEditor() {
     installedModules,
     functions,
     token,
+    editorTabs,
   } = useAppContext();
   const editorRef = useRef(null as null | ReactAce);
   const cookies = useMemo(() => new Cookies(), []);
@@ -166,29 +167,32 @@ export default function IasqlEditor() {
   }
 
   return (
-    <VBox>
+    <VBox customStyles='mb-3'>
       <HBox alignment={align.between}>
         {!functions?.length ? <Spinner /> : <QuerySidebar />}
-        <ForwardRefEditor
-          ref={editorRef}
-          // `dark:` selector is not working here, I guess it is not compatible with AceEditor component
-          className='my-3 border-none'
-          width='80%'
-          height='50vh'
-          name='iasql-editor'
-          value={editorContent}
-          onChange={handleEditorContentUpdate}
-          mode='pgsql'
-          setOptions={{
-            useWorker: false,
-            enableBasicAutocompletion: true,
-            enableLiveAutocompletion: true,
-            enableSnippets: false,
-            showLineNumbers: true,
-            tabSize: 2,
-            theme: isDarkMode ? 'ace/theme/monokai' : 'ace/theme/tomorrow',
-          }}
-        />
+        <VBox customStyles='w-full' height='h-50vh'>
+          <Tab tabs={editorTabs} defaultIndex={0}></Tab>
+          <ForwardRefEditor
+            ref={editorRef}
+            // `dark:` selector is not working here, I guess it is not compatible with AceEditor component
+            className='border-none'
+            width='100%'
+            height='100%'
+            name='iasql-editor'
+            value={editorContent}
+            onChange={handleEditorContentUpdate}
+            mode='pgsql'
+            setOptions={{
+              useWorker: false,
+              enableBasicAutocompletion: true,
+              enableLiveAutocompletion: true,
+              enableSnippets: false,
+              showLineNumbers: true,
+              tabSize: 2,
+              theme: isDarkMode ? 'ace/theme/monokai' : 'ace/theme/tomorrow',
+            }}
+          />
+        </VBox>
       </HBox>
     </VBox>
   );

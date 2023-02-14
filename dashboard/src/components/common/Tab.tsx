@@ -5,29 +5,32 @@ function classNames(...classes: string[]) {
 }
 
 export default function Tab({
-  titles,
+  tabs,
   children,
   defaultIndex = 0,
 }: {
-  titles: string[];
-  children: JSX.Element | JSX.Element[];
+  tabs: { title: string; action?: (e: any) => void; className?: string; width?: string }[];
+  children?: JSX.Element | JSX.Element[];
   defaultIndex?: number;
 }) {
   return (
     <div className='w-full'>
       <ReactTab.Group defaultIndex={defaultIndex}>
-        <ReactTab.List className='flex h-8 bg-blue-900/20'>
-          {titles.map(category => (
+        <ReactTab.List className='flex justify-start h-8 bg-blue-900/20'>
+          {tabs.map(t => (
             <ReactTab
-              key={category}
+              key={t.title}
+              onClick={t.action ?? (() => ({}))}
               className={({ selected }) =>
                 classNames(
-                  'w-full py-1 text-xs font-medium dark:text-white',
+                  'py-1 text-xs font-medium dark:text-white',
                   selected ? 'bg-primary shadow' : 'dark:text-white hover:bg-primary',
+                  t.className ?? '',
+                  t.width ? t.width : 'w-full',
                 )
               }
             >
-              {category}
+              {t.title}
             </ReactTab>
           ))}
         </ReactTab.List>

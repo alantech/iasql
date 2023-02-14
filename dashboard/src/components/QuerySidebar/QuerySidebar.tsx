@@ -9,7 +9,7 @@ export default function QuerySidebar() {
   const { functions, allModules, installedModules } = useAppContext();
   return (
     <div className='h-50vh w-1/5 font-normal text-xs' id='query-sidebar'>
-      <Tab titles={['Schema', 'Modules']} defaultIndex={1}>
+      <Tab tabs={[{ title: 'Schema' }, { title: 'Modules' }]} defaultIndex={1}>
         <VBox alignment={align.start} customStyles='h-sidebar bg-gray-200 dark:bg-gray-800 w-full'>
           <ReactTab.Panel className='w-full p-2 font-mono bg-gray-200 dark:bg-gray-800'>
             <Schema moduleData={installedModules} functionData={functions} />

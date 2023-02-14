@@ -41,6 +41,7 @@ export enum ActionType {
   ResetNewDb = 'ResetNewDb',
   ResetError = 'ResetError',
   SetError = 'SerError',
+  EditorNewTab = 'EditorNewTab',
 }
 
 interface Payload {
@@ -69,6 +70,7 @@ interface AppState {
   queryRes?: any | null;
   shouldShowDisconnect: boolean;
   shouldShowConnect: boolean;
+  editorTabs: { title: string; action?: () => void; className?: string; width?: string }[];
 }
 
 interface AppStore extends AppState {
@@ -187,6 +189,12 @@ SELECT * FROM iasql_uninstall('${uninstallModule}');
     case ActionType.SetError:
       const { error: customError } = payload.data;
       return { ...state, error: customError };
+    case ActionType.EditorNewTab:
+      const tabsCopy = [...state.editorTabs];
+      const newTab = tabsCopy.pop();
+      tabsCopy.push({ title: `Query-${state.editorTabs.length - 1}` });
+      if (newTab) tabsCopy.push(newTab);
+      return { ...state, editorTabs: tabsCopy };
   }
   return state;
 };
@@ -458,6 +466,19 @@ const AppProvider = ({ children }: { children: any }) => {
     isDarkMode: local?.theme === 'dark',
     shouldShowDisconnect: false,
     shouldShowConnect: false,
+    editorTabs: [
+      { title: 'Welcome' },
+      {
+        title: '+',
+        width: 'w-auto',
+        className: 'px-4',
+        action: () => {
+          dispatch({
+            action: ActionType.EditorNewTab,
+          });
+        },
+      },
+    ],
   };
   const [state, dispatch] = useReducer(reducer, initialState);
   const customDispatch = useCallback(async (payload: Payload) => {
@@ -484,6 +505,7 @@ const AppProvider = ({ children }: { children: any }) => {
         queryRes: state.queryRes,
         shouldShowDisconnect: state.shouldShowDisconnect,
         shouldShowConnect: state.shouldShowConnect,
+        editorTabs: state.editorTabs,
         dispatch: customDispatch,
       }}
     >
