@@ -92,6 +92,6 @@ ENV DB_PASSWORD=$DB_PASSWORD
 
 ## Ports
 EXPOSE 5432
-EXPOSE 8888
+EXPOSE 9876
 
 ENTRYPOINT ["/engine/docker-entrypoint.sh"]

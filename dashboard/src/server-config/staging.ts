@@ -5,10 +5,6 @@ const staging: ConfigInterface = {
     domain: 'https://auth-staging.iasql.com/',
     audience: 'https://api-staging.iasql.com', // id of this api in auth0
   },
-  http: {
-    port: 8888,
-    corsOrigin: 'https://app-staging.iasql.com',
-  },
   db: {
     host: 'pg-staging.iasql.com',
     // TODO: Move away from env var to secret
