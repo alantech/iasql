@@ -1,7 +1,7 @@
 {
   "name": "dashboard",
-  "version": "0.1.0",
-  "private": true,
+  "version": "0.0.26",
+  "license": "AGPL-3.0-only",
   "scripts": {
     "start:local": "NEXT_PUBLIC_IASQL_ENV=local next dev -p 8888",
     "dev": "next dev",

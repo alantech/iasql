@@ -12,6 +12,7 @@ import {
   runInstall,
   runBegin,
   defaultRegion,
+  itDocs,
 } from '../helpers';
 
 const dbAlias = 'getsqlsince';
@@ -47,9 +48,9 @@ describe('iasql_get_sql_since functionality', () => {
     })();
   });
 
-  it('installs the aws_account module', install(['aws_account']));
+  itDocs('installs the aws_account module', install(['aws_account']));
 
-  it(
+  itDocs(
     'inserts aws credentials',
     query(
       `
@@ -62,7 +63,7 @@ describe('iasql_get_sql_since functionality', () => {
     ),
   );
 
-  it(
+  itDocs(
     'should work with no arguments retrieving all logs',
     query(
       `
@@ -74,7 +75,7 @@ describe('iasql_get_sql_since functionality', () => {
     ),
   );
 
-  it(
+  itDocs(
     'should work with a valid text timestamp',
     query(
       `
@@ -86,7 +87,7 @@ describe('iasql_get_sql_since functionality', () => {
     ),
   );
 
-  it(
+  itDocs(
     'should work with a dynamic date',
     query(
       `
@@ -205,11 +206,11 @@ describe('iasql_get_sql_since functionality', () => {
     ),
   );
 
-  it('installs the aws_elb module', install(['aws_elb']));
+  itDocs('installs the aws_elb module', install(['aws_elb']));
 
-  it('begin a transaction', begin());
+  itDocs('begin a transaction', begin());
 
-  it(
+  itDocs(
     'adds a new load balancer',
     query(
       `
@@ -252,7 +253,7 @@ describe('iasql_get_sql_since functionality', () => {
     ),
   );
 
-  it(
+  itDocs(
     'checks sql sub-query tables load_balancer and security_group for load_balancer_security_group join table',
     query(
       `

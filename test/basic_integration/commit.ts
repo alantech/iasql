@@ -1,5 +1,5 @@
 import * as iasql from '../../src/services/iasql';
-import { runQuery, finish, execComposeUp, execComposeDown, runInstall, runBegin } from '../helpers';
+import { runQuery, finish, execComposeUp, execComposeDown, runInstall, runBegin, itDocs } from '../helpers';
 
 const dbAlias = 'allmodulestest';
 
@@ -46,11 +46,11 @@ describe('basic begin, commit and preview functionality', () => {
     ),
   );
 
-  it('installs the aws_cloudwatch module', install(['aws_cloudwatch']));
+  itDocs('installs the aws_cloudwatch module', install(['aws_cloudwatch']));
 
-  it('starts a transaction', begin());
+  itDocs('starts a transaction', begin());
 
-  it(
+  itDocs(
     'insert a log group',
     query(
       `
@@ -62,7 +62,7 @@ describe('basic begin, commit and preview functionality', () => {
     ),
   );
 
-  it(
+  itDocs(
     'calls iasql_preview should expect a creation',
     query(
       `
@@ -88,7 +88,7 @@ describe('basic begin, commit and preview functionality', () => {
       return {};
     }));
 
-  it(
+  itDocs(
     'calls iasql_commit should create',
     query(
       `
