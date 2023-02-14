@@ -1,3 +1,4 @@
+import config from '@/config';
 import { expect, Locator, Page, } from '@playwright/test';
 
 export async function isVisible(loc: Locator) {
@@ -42,7 +43,7 @@ export async function auth0(page: Page, path?: string) {
   const { TEST_ACCOUNT_EMAIL, TEST_ACCOUNT_PASSWORD } = process.env;
 
   await goTo(page, path);
-  try {
+  if (config.auth) {
     // Check if we are redirected to auth0
     await page.waitForSelector('input[name="username"]');
     // If selector found we login
@@ -66,7 +67,5 @@ export async function auth0(page: Page, path?: string) {
       ),
       page.waitForNavigation()
     ]);
-  } catch (_) {
-    // if timeout means we are not being redirected and we are good to continue
   }
 }
