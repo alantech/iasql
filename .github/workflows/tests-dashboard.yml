@@ -67,40 +67,6 @@ jobs:
           yarn style
           cd ..
 
-  setup-build:
-    runs-on: ubuntu-latest
-    outputs:
-      registry-image-tag: ${{ steps['set-registry-image-tag'].outputs['registry-image-tag'] }}
-    steps:
-      - uses: actions/checkout@v3
-      - run: yarn --prefer-offline
-      - id: set-registry-image-tag
-        name: Set registry image tag
-        run: echo "::set-output name=registry-image-tag::ghcr.io/iasql/iasql:$GITHUB_SHA-run"
-
-  build-and-push:
-    runs-on: ubuntu-latest
-    needs:
-      - setup-build
-    steps:
-      - uses: actions/checkout@v3
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v2
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build and push
-        uses: docker/build-push-action@v3
-        with:
-          context: ./dashboard/run/
-          push: true
-          cache-from: type=gha
-          cache-to: type=gha
-          tags: ${{ needs.setup-build.outputs.registry-image-tag }}
-
   test:
     timeout-minutes: 40
     runs-on: ubuntu-latest
@@ -117,26 +83,15 @@ jobs:
           docker run -p 5432:5432 -e IASQL_ENV=ci --name iasql iasql:latest &
           while ! psql postgres://postgres:test@localhost:5432/iasql_metadata -b -q -c "SELECT iasql_engine_health()"; do sleep 1 && echo -n .; done;
 
-      - name: Start local run service
-        run: |
-          cd dashboard/run
-          yarn
-          yarn build
-          IASQL_ENV=test yarn start &
-          sleep 1
-          cd ../..
-
       - name: Start local dashboard
         run: |
           cd dashboard
           yarn
           yarn install 
-          yarn build
-          yarn global add serve
-          serve -s build &
+          yarn dev
           cd ..
         env:
-          REACT_APP_IASQL_ENV: test
+          NEXT_PUBLIC_IASQL_ENV: test
 
       - name: Install Playwright
         run: |
