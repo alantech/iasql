@@ -86,8 +86,8 @@ jobs:
       - name: Install and Run Playwright tests
         run: |
           cd dashboard
-          npx playwright install --with-deps
-          npx playwright test
+          yarn
+          yarn test
           cd ..
         env:
           TEST_ACCOUNT_EMAIL: dev+dashboard-testing@iasql.com
