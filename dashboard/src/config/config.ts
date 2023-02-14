@@ -11,7 +11,6 @@ export interface ConfigInterface {
   posthog?: {
     key: string;
   };
-  // Configuration for the hotjar tracking system
   // Configuration for Sentry
   sentry?: {
     // Not including this sub-object implies it is not enabled

@@ -3,7 +3,7 @@
   "name": "Cloud infrastructure as a PostgreSQL DB",
   "icons": [
     {
-      "src": "logo.png",
+      "src": "logo-icon.png",
       "sizes": "192x192 64x64 32x32 24x24 16x16",
       "type": "image/png"
     }

@@ -1,10 +1,10 @@
-import React, { useCallback, useContext, useReducer } from 'react';
+import React, { useCallback, useContext, useReducer, useEffect } from 'react';
 
 import * as semver from 'semver';
 import { uniqueNamesGenerator, adjectives, colors, animals } from 'unique-names-generator';
 
-import * as DbActions from './services/dbApi';
-import * as Posthog from './services/posthog';
+import * as DbActions from '@/services/dbApi';
+import * as Posthog from '@/services/posthog';
 
 const nameGenConfig = {
   dictionaries: [adjectives, colors, animals],
@@ -85,23 +85,6 @@ const initializingQueries = `
     table_name, ordinal_position;
   select * from iasql_modules_list();
 `;
-
-const initialState: AppState = {
-  selectedDb: null,
-  oldestVersion: undefined,
-  latestVersion: undefined,
-  isRunningSql: false,
-  databases: [],
-  error: null,
-  dump: null,
-  editorContent: '',
-  allModules: {},
-  functions: [],
-  installedModules: {},
-  isDarkMode: localStorage.theme === 'dark',
-  shouldShowDisconnect: false,
-  shouldShowConnect: false,
-};
 
 const reducer = (state: AppState, payload: Payload): AppState => {
   const { error } = payload?.data ?? { error: null };
@@ -455,6 +438,27 @@ const middlewareReducer = async (dispatch: (payload: Payload) => void, payload: 
 };
 
 const AppProvider = ({ children }: { children: any }) => {
+  let local: any;
+  useEffect(() => {
+    local = localStorage;
+  });
+
+  const initialState: AppState = {
+    selectedDb: null,
+    oldestVersion: undefined,
+    latestVersion: undefined,
+    isRunningSql: false,
+    databases: [],
+    error: null,
+    dump: null,
+    editorContent: '',
+    allModules: {},
+    functions: [],
+    installedModules: {},
+    isDarkMode: local?.theme === 'dark',
+    shouldShowDisconnect: false,
+    shouldShowConnect: false,
+  };
   const [state, dispatch] = useReducer(reducer, initialState);
   const customDispatch = useCallback(async (payload: Payload) => {
     middlewareReducer(dispatch, payload);

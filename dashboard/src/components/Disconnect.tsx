@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 import { PauseIcon } from '@heroicons/react/outline';
 
-import { ActionType, useAppContext } from '../AppProvider';
+import { ActionType, useAppContext } from './AppProvider';
 import { Button, Modal, Label, Spinner } from './common';
 
 export default function Disconnect() {

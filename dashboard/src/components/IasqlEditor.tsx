@@ -1,18 +1,33 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react';
-import AceEditor from 'react-ace';
-import ReactAce from 'react-ace/lib/ace';
+import { forwardRef, useCallback, useEffect, useMemo, useRef } from 'react';
+import ReactAce, { IAceEditorProps } from 'react-ace/lib/ace';
 
-import 'ace-builds/src-noconflict/ext-language_tools';
-import 'ace-builds/src-noconflict/mode-pgsql';
-import 'ace-builds/src-noconflict/theme-monokai';
-import 'ace-builds/src-noconflict/theme-tomorrow';
 import LZString from 'lz-string';
+import dynamic from 'next/dynamic';
 import Cookies from 'universal-cookie';
 
-import { ActionType, useAppContext } from '../AppProvider';
-import { useQueryParams } from '../hooks/useQueryParams';
+import { useQueryParams } from '@/hooks/useQueryParams';
+
+import { ActionType, useAppContext } from './AppProvider';
 import QuerySidebar from './QuerySidebar/QuerySidebar';
 import { HBox, align, VBox, Spinner } from './common';
+
+const AceEdit = dynamic(
+  async () => {
+    require('ace-builds/src-noconflict/ace');
+    const ace = await import('./AceEditor');
+    require('ace-builds/src-noconflict/ext-language_tools');
+    require('ace-builds/src-noconflict/theme-monokai');
+    require('ace-builds/src-noconflict/mode-pgsql');
+    require('ace-builds/src-noconflict/theme-tomorrow');
+    return ace;
+  },
+  { ssr: false },
+);
+
+const ForwardRefEditor = forwardRef((props: IAceEditorProps, ref: any) => (
+  <AceEdit props={props} editorRef={ref} />
+));
+ForwardRefEditor.displayName = 'ForwardRefEditor';
 
 export default function IasqlEditor() {
   const {
@@ -153,18 +168,19 @@ export default function IasqlEditor() {
   return (
     <VBox>
       <HBox alignment={align.between}>
-        {!functions.length ? <Spinner /> : <QuerySidebar />}
-        <AceEditor
+        {!functions?.length ? <Spinner /> : <QuerySidebar />}
+        <ForwardRefEditor
           ref={editorRef}
           // `dark:` selector is not working here, I guess it is not compatible with AceEditor component
-          className={`my-3 ${isDarkMode ? 'border-none' : 'border'}`}
+          className='my-3 border-none'
           width='80%'
           height='50vh'
           name='iasql-editor'
-          mode='pgsql'
           value={editorContent}
           onChange={handleEditorContentUpdate}
+          mode='pgsql'
           setOptions={{
+            useWorker: false,
             enableBasicAutocompletion: true,
             enableLiveAutocompletion: true,
             enableSnippets: false,

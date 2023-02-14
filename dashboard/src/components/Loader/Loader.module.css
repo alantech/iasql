@@ -9,7 +9,7 @@
 }
 
 .loader-logo {
-  background-image: url(../../assets/logo-black.png);
+  background-image: url(/logo-black.png);
   background-repeat: no-repeat;
   background-position: center center;
   background-size: contain;
@@ -27,7 +27,7 @@
     background: linear-gradient(45deg, rgb(36, 38, 33) 0%, rgb(33, 36, 38) 100%);
   }
   .loader-logo {
-    background-image: url(../../assets/logo.png);
+    background-image: url(/logo.png);
   }
 }
 

@@ -70,7 +70,7 @@ wait-for-url() {
   curl -I $1
 }
 
-# Dashboard/Run service (TODO: Merge this more tightly in the future)
-(cd /dashboard/run; wait-for-url localhost:8088/v1/version && yarn start) &
+# Dashboard service
+(cd /dashboard; wait-for-url localhost:8088/v1/version && yarn start:docker) &
 
 yarn start

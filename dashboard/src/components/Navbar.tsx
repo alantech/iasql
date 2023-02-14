@@ -1,14 +1,13 @@
-import { Fragment, useState } from 'react';
+import { Fragment, useState, useEffect } from 'react';
 
+import config from '@/config';
+import * as Posthog from '@/services/posthog';
 import { useAuth0 } from '@auth0/auth0-react';
 import { Disclosure, Menu, Transition } from '@headlessui/react';
 import { MenuIcon, XIcon, SunIcon, MoonIcon } from '@heroicons/react/outline';
 import { UserIcon } from '@heroicons/react/solid';
 
-import { ActionType, useAppContext } from '../AppProvider';
-import logo from '../assets/logo.png';
-import config from '../config';
-import * as Posthog from '../services/posthog';
+import { ActionType, useAppContext } from './AppProvider';
 
 function classNames(...classes: any[]) {
   return classes.filter(Boolean).join(' ');
@@ -22,13 +21,17 @@ export default function Navbar({ userPic }: { userPic: string }) {
     { name: 'Docs', href: 'https://iasql.com/docs', current: false },
     { name: 'Discord', href: 'https://discord.com/invite/machGGczea', current: false },
   ];
-  if (!('theme' in localStorage)) {
-    localStorage.setItem(
-      'theme',
-      window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',
-    );
-  }
-  const [isDarkMode, setDarkMode] = useState(localStorage.theme === 'dark');
+  // Start off with light mode if not otherwise defined
+  const [isDarkMode, setDarkMode] = useState(false);
+  useEffect(() => {
+    if (!('theme' in localStorage)) {
+      localStorage.setItem(
+        'theme',
+        window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',
+      );
+    }
+    if ((localStorage.theme === 'dark') !== isDarkMode) setDarkMode(localStorage.theme === 'dark');
+  });
   return (
     <Disclosure as='nav' className='bg-gray-800'>
       {({ open }) => (
@@ -48,8 +51,8 @@ export default function Navbar({ userPic }: { userPic: string }) {
               </div>
               <div className='flex-1 flex items-center justify-center sm:items-stretch sm:justify-start'>
                 <a href={homeUrl} className='flex-shrink-0 flex items-center mr-6'>
-                  <img className='block lg:hidden h-8 w-auto' src={logo} alt='Workflow' />
-                  <img className='hidden lg:block h-8 w-auto' src={logo} alt='Workflow' />
+                  <img className='block lg:hidden h-8 w-auto' src='./logo.png' alt='Workflow' />
+                  <img className='hidden lg:block h-8 w-auto' src='./logo.png' alt='Workflow' />
                 </a>
                 <div className='hidden sm:block sm:ml-6'>
                   <div className='flex space-x-4'>
@@ -76,14 +79,16 @@ export default function Navbar({ userPic }: { userPic: string }) {
                   id='darkmodelightmodetoggle'
                   className='h-8 w-8'
                   onClick={() => {
-                    const newIsDarkMode = !isDarkMode;
-                    localStorage.setItem('theme', newIsDarkMode ? 'dark' : 'light');
-                    if (newIsDarkMode) {
-                      document.documentElement.classList.add('dark');
-                    } else {
-                      document.documentElement.classList.remove('dark');
-                    }
-                    setDarkMode(newIsDarkMode);
+                    (() => {
+                      const newIsDarkMode = !isDarkMode;
+                      localStorage.setItem('theme', newIsDarkMode ? 'dark' : 'light');
+                      if (newIsDarkMode) {
+                        document.documentElement.classList.add('dark');
+                      } else {
+                        document.documentElement.classList.remove('dark');
+                      }
+                      setDarkMode(newIsDarkMode);
+                    })();
                   }}
                 >
                   <div className='h-8 text-white'>{isDarkMode ? <MoonIcon /> : <SunIcon />}</div>
@@ -125,7 +130,7 @@ export default function Navbar({ userPic }: { userPic: string }) {
                                   },
                                 });
                                 Posthog.reset();
-                                logout({ returnTo: homeUrl });
+                                logout({ returnTo: homeUrl } as any);
                               }}
                               className={classNames(
                                 active ? 'bg-gray-100 dark:bg-gray-900 cursor-pointer' : '',

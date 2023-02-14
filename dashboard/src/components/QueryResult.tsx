@@ -1,4 +1,4 @@
-import { useAppContext } from '../AppProvider';
+import { useAppContext } from './AppProvider';
 import EmptyState from './EmptyState';
 import { Label, Spinner, Table, VBox } from './common';
 

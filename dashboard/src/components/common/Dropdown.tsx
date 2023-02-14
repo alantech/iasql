@@ -31,6 +31,7 @@ const DropdownTitleButton = forwardRef(
     </Button>
   ),
 );
+DropdownTitleButton.displayName = 'DropdownTitleButton';
 
 export default function Dropdown({
   buttonTitle,

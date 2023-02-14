@@ -1,8 +1,7 @@
 import * as semver from 'semver';
 
+import { useAppContext } from '@/components/AppProvider';
 import { CheckCircleIcon, ClockIcon, ExclamationCircleIcon } from '@heroicons/react/outline';
-
-import { useAppContext } from '../../AppProvider';
 
 export function DatabaseStatus({ db }: { db: any }) {
   const { latestVersion, oldestVersion } = useAppContext();

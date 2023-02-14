@@ -1,9 +1,9 @@
 import { useRef, useState } from 'react';
 
+import { regions } from '@/services/connectDb';
 import { LinkIcon } from '@heroicons/react/outline';
 
-import { ActionType, useAppContext } from '../AppProvider';
-import { regions } from '../services/connectDb';
+import { ActionType, useAppContext } from './AppProvider';
 import ConnectionString from './ConnectionString';
 import { Combobox, Input, Label, Step, VBox, Wizard } from './common';
 
@@ -68,7 +68,7 @@ export default function Connect({ closable }: { closable: boolean }) {
     >
       <Step id='createdb'>
         <Label>
-          <b>Let's create a database to connect to your cloud account</b>
+          <b>Let&apos;s create a database to connect to your cloud account</b>
         </Label>
         <form className='mb-10'>
           <VBox>

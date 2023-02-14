@@ -1,53 +1,38 @@
-# Dashboard
+This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
 
-SPA for the IaSQL dashboard. This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app) and the TailwindUI examples https://tailwindui.com/components/application-ui/. It also uses Flux to manage state management roughly as described [here](https://www.freecodecamp.org/news/how-to-use-flux-in-react-example/)
+## Getting Started
 
-## Debugging CI failures
+First, run the development server:
 
-Playwright trace and screenshots get uploaded to GH actions https://github.com/actions/upload-artifact#where-does-the-upload-go. Download artifact and upload to https://trace.playwright.dev
+```bash
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+```
 
-## Available Scripts
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-In the project directory, you can run:
+You can start editing the page by modifying `pages/index.tsx`. The page auto-updates as you edit the file.
 
-### `yarn start`
+[API routes](https://nextjs.org/docs/api-routes/introduction) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.ts`.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/api-routes/introduction) instead of React pages.
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
 
-### `yarn test`
+## Learn More
 
-Launches the test runner in headless mode
+To learn more about Next.js, take a look at the following resources:
 
-### `yarn debug-test`
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
-Launches the test runner in headed mode and launches the [Playwright Inspector](https://playwright.dev/docs/inspector)
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
 
-### `yarn gen-test`
+## Deploy on Vercel
 
-Opens a localhost:3000 in headed mode and [generates a test](https://playwright.dev/docs/codegen) by recording all actions performed using the [Playwright Inspector](https://playwright.dev/docs/inspector)
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
-### `yarn run build`
-
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
-
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
-
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-## Issues
-
-- React hot reload was thowing an error in the web console: `ReferenceError: Cant't find variable: process`. Solution applied: https://stackoverflow.com/questions/70357360/process-is-not-defined-on-hot-reload. Take this into account for future dependencies upgrades.
-
-## How Is IaSQL Front-End Communicating The Database?
-
-If the only thing the IaSQL container exposes is the `5432` port which is a Postgres port, so how does the IaSQL dashboard communicate with it?
-
-We have created a `run` service (listening on `https://run.iasql.com/` - under [run folder](./run) in this repo) which is taking the requests from the users and communicating with the IaSQL container's Postgres port. It's basically an "HTTP to Postgres" service with authentication and a bit of additional spices.
-
-<img alt="IaSQL Run" src="assets/IaSQL-run.png" width="450"/>
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.

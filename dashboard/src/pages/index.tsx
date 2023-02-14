@@ -1,19 +1,18 @@
 import { useState, useEffect } from 'react';
 
+import { ActionType, useAppContext } from '@/components/AppProvider';
+import Connect from '@/components/Connect';
+import { DatabaseManagement } from '@/components/DatabaseManagement/DatabaseManagement';
+import Disconnect from '@/components/Disconnect';
+import EmptyState from '@/components/EmptyState';
+import Loader from '@/components/Loader/Loader';
+import Navbar from '@/components/Navbar';
+import Query from '@/components/Query';
+import SmallViewport from '@/components/SmallViewport';
+import { align, Button, HBox } from '@/components/common';
+import ErrorDialog from '@/components/common/ErrorDialog';
+import { useAuth } from '@/hooks/useAuth';
 import { DatabaseIcon, PlusSmIcon } from '@heroicons/react/outline';
-
-import { ActionType, useAppContext } from './AppProvider';
-import Connect from './components/Connect';
-import { DatabaseManagement } from './components/DatabaseManagement/DatabaseManagement';
-import Disconnect from './components/Disconnect';
-import EmptyState from './components/EmptyState';
-import Loader from './components/Loader/Loader';
-import Navbar from './components/Navbar';
-import Query from './components/Query';
-import SmallViewport from './components/SmallViewport';
-import { align, Button, HBox } from './components/common';
-import ErrorDialog from './components/common/ErrorDialog';
-import { useAuth } from './hooks/useAuth';
 
 export default function App() {
   const {
@@ -26,9 +25,14 @@ export default function App() {
   } = useAppContext();
   const { user, token } = useAuth();
   const MIN_WIDTH = 640; // measure in px
-  const [isSmallViewport, showSmallViewport] = useState(window.innerWidth < MIN_WIDTH);
+  let innerWidth = 1024; // Server-side default
+  const [isSmallViewport, showSmallViewport] = useState(innerWidth < MIN_WIDTH);
 
   useEffect(() => {
+    if (innerWidth !== window.innerWidth) {
+      innerWidth = window.innerWidth;
+      showSmallViewport(innerWidth < MIN_WIDTH);
+    }
     if (token && !latestVersion) {
       dispatch({ token: token ?? '', action: ActionType.InitialLoad });
     }
