@@ -5,10 +5,6 @@ const test: ConfigInterface = {
     domain: 'https://auth-staging.iasql.com/',
     audience: 'https://api-staging.iasql.com', // id of this api in auth0
   },
-  http: {
-    port: 8888,
-    corsOrigin: 'http://localhost:3000',
-  },
   db: {
     host: 'localhost',
     user: 'postgres',

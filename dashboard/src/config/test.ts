@@ -4,7 +4,7 @@ const test: ConfigInterface = {
   engine: {
     pgHost: 'localhost',
     pgForceSsl: false,
-    backendUrl: 'http://localhost:8888',
+    backendUrl: 'http://localhost:9876',
   },
 };
 

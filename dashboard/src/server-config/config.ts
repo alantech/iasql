@@ -4,10 +4,6 @@ export interface ConfigInterface {
     domain: string;
     audience: string;
   };
-  http: {
-    port: number;
-    corsOrigin: string;
-  };
   db: {
     host: string;
     user: string; // For the server's own user

@@ -31,7 +31,7 @@
 To connect your AWS account to a PostgreSQL database running locally make sure docker is installed and run:
 
 ```bash
-docker run -p 5432:5432 -p 8888:8888 --name iasql iasql/iasql
+docker run -p 9876:9876 -p 5432:5432 --name iasql iasql/iasql
 ```
 
 Alternatively, use a hosted version of IaSQL at [app.iasql.com](https://app.iasql.com)

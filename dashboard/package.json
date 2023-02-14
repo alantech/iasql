@@ -3,17 +3,17 @@
   "version": "0.0.26",
   "license": "AGPL-3.0-only",
   "scripts": {
-    "start:local": "NEXT_PUBLIC_IASQL_ENV=local next dev -p 8888",
+    "start:local": "NEXT_PUBLIC_IASQL_ENV=local next dev -p 9876",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "start:docker": "next dev -p 8888",
+    "start:docker": "next dev -p 9876",
     "lint": "next lint",
     "style": "npx prettier --config .prettierrc 'src/**/*.{ts,tsx}' --check",
     "format": "npx prettier --config .prettierrc 'src/**/*.{ts,tsx}' --write",
     "test": "npx playwright test",
     "debug-test": "PWDEBUG=console npx playwright test",
-    "gen-test": "npx playwright codegen localhost:8888"
+    "gen-test": "npx playwright codegen localhost:9876"
   },
   "dependencies": {
     "@auth0/auth0-react": "^2.0.0",
