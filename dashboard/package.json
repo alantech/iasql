@@ -10,8 +10,10 @@
     "start:docker": "next dev -p 8888",
     "lint": "next lint",
     "style": "npx prettier --config .prettierrc 'src/**/*.{ts,tsx}' --check",
+    "format": "npx prettier --config .prettierrc 'src/**/*.{ts,tsx}' --write",
     "test": "npx playwright test",
-    "format": "npx prettier --config .prettierrc 'src/**/*.{ts,tsx}' --write"
+    "debug-test": "PWDEBUG=console npx playwright test",
+    "gen-test": "npx playwright codegen localhost:8888"
   },
   "dependencies": {
     "@auth0/auth0-react": "^2.0.0",
