@@ -24,7 +24,7 @@ function checkGlobalEnv() {
 function throwError(message: string): never { throw new Error(message); }
 
 async function configureBrowserAction(config: FullConfig, browserType: BrowserType, action: string) {
-  const { REACT_APP_IASQL_ENV } = process.env;
+  const { NEXT_PUBLIC_IASQL_ENV } = process.env;
   const projectConfig = config.projects.find(p => p.name === browserType.name());
   if (projectConfig) {
     const browser = await browserType.launch();
@@ -35,7 +35,7 @@ async function configureBrowserAction(config: FullConfig, browserType: BrowserTy
       switch (action) {
         case 'setup':
           const isOSx = (await page.evaluate(() => navigator.userAgent)).indexOf("Mac") !== -1;
-          process.env[`IS_OSX_${browserType.name()}`] = (REACT_APP_IASQL_ENV === 'test' || REACT_APP_IASQL_ENV === 'staging') ? 'false' : `${isOSx}`;
+          process.env[`IS_OSX_${browserType.name()}`] = (NEXT_PUBLIC_IASQL_ENV === 'test' || NEXT_PUBLIC_IASQL_ENV === 'staging') ? 'false' : `${isOSx}`;
           const { storageState } = projectConfig.use;
           const setUpDBAlias = `_${getRandStr()}`;
           process.env[`DB_ALIAS_${browserType.name()}`] = setUpDBAlias;
