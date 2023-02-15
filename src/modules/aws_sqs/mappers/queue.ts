@@ -95,7 +95,7 @@ export class QueueMapper extends MapperBase<Queue> {
         maxDelay: 4,
       },
       {},
-      async (cl) => {
+      async cl => {
         try {
           const queueUrls = await this.getQueues(cl);
           if (queueUrls.includes(queueUrl)) return { state: WaiterState.SUCCESS };
