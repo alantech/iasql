@@ -1,9 +1,9 @@
-# Base image
+# Base run image
 FROM debian:bullseye AS base
 
 ## Install OS Packages
 RUN apt update
-RUN apt install curl ca-certificates gnupg build-essential git jq make g++ locales-all -y
+RUN apt install curl ca-certificates gnupg jq locales-all -y
 
 ## Install Postgres
 ### Update postgresql APT repository [apt.postgresql.org](https://wiki.postgresql.org/wiki/Apt)
@@ -11,19 +11,38 @@ RUN ["bash", "-c", "curl https://www.postgresql.org/media/keys/ACCC4CF8.asc | gp
 RUN ["bash", "-c", "echo 'deb http://apt.postgresql.org/pub/repos/apt/ bullseye-pgdg main' > /etc/apt/sources.list.d/postgresql.list"]
 RUN apt update
 RUN apt upgrade -y
-RUN apt install postgresql-client-14 postgresql-14 postgresql-14-cron pgbouncer postgresql-server-dev-14 libcurl4-openssl-dev -y
-RUN git clone --depth 1 https://github.com/pramsey/pgsql-http
-RUN cd pgsql-http && make && make install
+RUN apt install postgresql-client-14 postgresql-14 postgresql-14-cron -y
 
 ## Install NodeJS
 RUN ["bash", "-c", "curl -fsSL https://deb.nodesource.com/setup_16.x | bash -"]
 RUN apt install nodejs -y
 RUN npm install -g yarn
 
+# Delete unnecessary cache files
+RUN apt clean
+
+#####################################################################################################################################################
+
+# Base build image
+FROM base AS build
+
+## Install OS and Postgres Dev Packages
+RUN apt update
+RUN apt install build-essential git make g++ postgresql-server-dev-14 libcurl4-openssl-dev -y
+
+#####################################################################################################################################################
+
+# pgsql-http
+FROM build AS pgsql-stage
+WORKDIR /
+
+RUN git clone --depth 1 https://github.com/pramsey/pgsql-http
+RUN cd pgsql-http && make && make install
+
 #####################################################################################################################################################
 
 # Dashboard
-FROM base AS dashboard-stage
+FROM build AS dashboard-stage
 
 WORKDIR /dashboard
 
@@ -34,12 +53,12 @@ COPY dashboard/src src
 
 ## Install stage dependencies
 COPY dashboard/package.json dashboard/yarn.lock ./
-RUN yarn install
+RUN yarn install --production
 
 #####################################################################################################################################################
 
 # Engine
-FROM base AS engine-stage
+FROM build AS engine-stage
 
 WORKDIR /engine
 
@@ -61,6 +80,11 @@ RUN yarn install --production
 
 # Main stage
 FROM base AS main-stage
+
+## Copy from pgsql-stage
+WORKDIR /
+COPY --from=pgsql-stage /usr/lib/postgresql /usr/lib/postgresql
+COPY --from=pgsql-stage /usr/share/postgresql /usr/share/postgresql
 
 ## Copy from dashboard-stage
 WORKDIR /dashboard
