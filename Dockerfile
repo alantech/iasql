@@ -1,4 +1,3 @@
-
 # Base run image
 FROM debian:bullseye AS base
 
@@ -12,7 +11,7 @@ RUN ["bash", "-c", "curl https://www.postgresql.org/media/keys/ACCC4CF8.asc | gp
 RUN ["bash", "-c", "echo 'deb http://apt.postgresql.org/pub/repos/apt/ bullseye-pgdg main' > /etc/apt/sources.list.d/postgresql.list"]
 RUN apt update
 RUN apt upgrade -y
-RUN apt install postgresql-client-14 postgresql-14 postgresql-14-cron pgbouncer -y
+RUN apt install postgresql-client-14 postgresql-14 postgresql-14-cron -y
 
 ## Install NodeJS
 RUN ["bash", "-c", "curl -fsSL https://deb.nodesource.com/setup_16.x | bash -"]
@@ -27,7 +26,7 @@ RUN apt clean
 # Base build image
 FROM base AS build
 
-## Install OS and Postgres Dev Packages Packages
+## Install OS and Postgres Dev Packages
 RUN apt update
 RUN apt install build-essential git make g++ postgresql-server-dev-14 libcurl4-openssl-dev -y
 
