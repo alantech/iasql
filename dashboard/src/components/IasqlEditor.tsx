@@ -33,13 +33,13 @@ export default function IasqlEditor() {
   const {
     dispatch,
     isDarkMode,
-    editorContent,
     selectedDb,
     isRunningSql,
     installedModules,
     functions,
     token,
     editorTabs,
+    editorSelectedTab,
   } = useAppContext();
   const editorRef = useRef(null as null | ReactAce);
   const cookies = useMemo(() => new Cookies(), []);
@@ -166,12 +166,24 @@ export default function IasqlEditor() {
     );
   }
 
+  const onTabChange = (i: number) => {
+    dispatch({
+      action: ActionType.EditorSelectTab,
+      data: { index: i },
+    });
+  };
+
   return (
     <VBox customStyles='mb-3'>
       <HBox alignment={align.between}>
         {!functions?.length ? <Spinner /> : <QuerySidebar />}
         <VBox customStyles='w-full' height='h-50vh'>
-          <Tab tabs={editorTabs} defaultIndex={0}></Tab>
+          <Tab
+            tabs={editorTabs}
+            defaultIndex={0}
+            onChange={onTabChange}
+            selectedIndex={editorSelectedTab}
+          ></Tab>
           <ForwardRefEditor
             ref={editorRef}
             // `dark:` selector is not working here, I guess it is not compatible with AceEditor component
@@ -179,7 +191,7 @@ export default function IasqlEditor() {
             width='100%'
             height='100%'
             name='iasql-editor'
-            value={editorContent}
+            value={editorTabs[editorSelectedTab].content}
             onChange={handleEditorContentUpdate}
             mode='pgsql'
             setOptions={{

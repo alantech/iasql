@@ -42,6 +42,7 @@ export enum ActionType {
   ResetError = 'ResetError',
   SetError = 'SerError',
   EditorNewTab = 'EditorNewTab',
+  EditorSelectTab = 'EditorSelectTab',
 }
 
 interface Payload {
@@ -62,15 +63,21 @@ interface AppState {
   error: string | null;
   newDb?: any;
   dump: Blob | null;
-  editorContent: string;
   allModules: { [moduleName: string]: string[] };
   functions: any[];
   installedModules: { [moduleName: string]: { [tableName: string]: { [columnName: string]: string } } };
   isDarkMode: boolean;
-  queryRes?: any | null;
   shouldShowDisconnect: boolean;
   shouldShowConnect: boolean;
-  editorTabs: { title: string; action?: () => void; className?: string; width?: string }[];
+  editorSelectedTab: number;
+  editorTabs: {
+    title: string;
+    action?: () => void;
+    className?: string;
+    width?: string;
+    content: string;
+    queryRes: any | null;
+  }[];
 }
 
 interface AppStore extends AppState {
@@ -116,17 +123,21 @@ const reducer = (state: AppState, payload: Payload): AppState => {
       return { ...state, dump: null };
     case ActionType.EditContent:
       const { content: editorContent } = payload.data;
-      return { ...state, editorContent };
+      const relevantTab = state.editorTabs[state.editorSelectedTab];
+      relevantTab.content = editorContent;
+      return { ...state };
     case ActionType.RunningSql:
       const { isRunning } = payload.data;
       return { ...state, isRunningSql: isRunning };
     case ActionType.RunSql:
       const { queryRes, databases: runSqlUpdatedDbs } = payload.data;
+      const relevantTab2 = state.editorTabs[state.editorSelectedTab];
+      relevantTab2.queryRes = queryRes;
       if (runSqlUpdatedDbs !== null) {
         const current = runSqlUpdatedDbs.find((d: any) => d.alias === state.selectedDb.alias);
-        return { ...state, queryRes, databases: runSqlUpdatedDbs, selectedDb: current };
+        return { ...state, databases: runSqlUpdatedDbs, selectedDb: current };
       }
-      return { ...state, queryRes };
+      return { ...state };
     case ActionType.RunAutocompleteSql:
       const { autoCompleteRes } = payload.data;
       const moduleData = {} as {
@@ -161,14 +172,22 @@ const reducer = (state: AppState, payload: Payload): AppState => {
 SELECT * FROM iasql_install('${installModule}');
 /* END IaSQL auto-generated statement */
 `;
-      return { ...state, editorContent: installContent };
+      // todo: this should be opening a new tab
+      const tabsinstall = state.editorTabs;
+      const tabinstall = tabsinstall[state.editorSelectedTab];
+      tabinstall.content = installContent;
+      return { ...state, editorTabs: tabsinstall };
     case ActionType.UninstallModule:
       const { moduleName: uninstallModule } = payload.data;
       const uninstallContent = `/* BEGIN IaSQL auto-generated statement */
 SELECT * FROM iasql_uninstall('${uninstallModule}');
 /* END IaSQL auto-generated statement */
 `;
-      return { ...state, editorContent: uninstallContent };
+      // todo: this should be opening a new tab
+      const tabs = state.editorTabs;
+      const tab = tabs[state.editorSelectedTab];
+      tab.content = uninstallContent;
+      return { ...state, editorTabs: tabs };
     case ActionType.DisconnectDb:
       const { databases: updatedDbsAfterDisconnect } = payload.data;
       const updatedSelectedDb = updatedDbsAfterDisconnect.length ? updatedDbsAfterDisconnect[0] : null;
@@ -192,9 +211,13 @@ SELECT * FROM iasql_uninstall('${uninstallModule}');
     case ActionType.EditorNewTab:
       const tabsCopy = [...state.editorTabs];
       const newTab = tabsCopy.pop();
-      tabsCopy.push({ title: `Query-${state.editorTabs.length - 1}` });
+      tabsCopy.push({ title: `Query-${state.editorTabs.length - 1}`, content: '', queryRes: null });
       if (newTab) tabsCopy.push(newTab);
-      return { ...state, editorTabs: tabsCopy };
+      const editorSelectedTab = tabsCopy.length - 2;
+      return { ...state, editorTabs: tabsCopy, editorSelectedTab };
+    case ActionType.EditorSelectTab:
+      const { index } = payload.data;
+      return { ...state, editorSelectedTab: index };
   }
   return state;
 };
@@ -459,17 +482,19 @@ const AppProvider = ({ children }: { children: any }) => {
     databases: [],
     error: null,
     dump: null,
-    editorContent: '',
     allModules: {},
     functions: [],
     installedModules: {},
     isDarkMode: local?.theme === 'dark',
     shouldShowDisconnect: false,
     shouldShowConnect: false,
+    editorSelectedTab: 0,
     editorTabs: [
-      { title: 'Welcome' },
+      { title: 'Welcome', content: ``, queryRes: null },
       {
         title: '+',
+        content: '',
+        queryRes: null,
         width: 'w-auto',
         className: 'px-4',
         action: () => {
@@ -497,15 +522,14 @@ const AppProvider = ({ children }: { children: any }) => {
         oldestVersion: state.oldestVersion,
         newDb: state.newDb,
         dump: state.dump,
-        editorContent: state.editorContent,
         allModules: state.allModules,
         functions: state.functions,
         installedModules: state.installedModules,
         isRunningSql: state.isRunningSql,
-        queryRes: state.queryRes,
         shouldShowDisconnect: state.shouldShowDisconnect,
         shouldShowConnect: state.shouldShowConnect,
         editorTabs: state.editorTabs,
+        editorSelectedTab: state.editorSelectedTab,
         dispatch: customDispatch,
       }}
     >

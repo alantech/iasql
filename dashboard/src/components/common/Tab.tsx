@@ -8,19 +8,25 @@ export default function Tab({
   tabs,
   children,
   defaultIndex = 0,
+  selectedIndex,
+  onChange = () => {},
 }: {
-  tabs: { title: string; action?: (e: any) => void; className?: string; width?: string }[];
+  tabs: { title: string; action?: () => void; className?: string; width?: string }[];
   children?: JSX.Element | JSX.Element[];
   defaultIndex?: number;
+  selectedIndex?: number;
+  onChange?: (index: number) => void;
 }) {
   return (
     <div className='w-full'>
-      <ReactTab.Group defaultIndex={defaultIndex}>
+      <ReactTab.Group defaultIndex={defaultIndex} onChange={onChange} selectedIndex={selectedIndex}>
         <ReactTab.List className='flex justify-start h-8 bg-blue-900/20'>
           {tabs.map(t => (
             <ReactTab
               key={t.title}
-              onClick={t.action ?? (() => ({}))}
+              onClick={() => {
+                t.action ? t.action() : (() => ({}))();
+              }}
               className={({ selected }) =>
                 classNames(
                   'py-1 text-xs font-medium dark:text-white',
