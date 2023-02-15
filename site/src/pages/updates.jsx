@@ -7,17 +7,12 @@ const ERROR = "ERROR";
 const SUCCESS = "SUCCESS";
 const formStyles = {
   "id": "cle3aaabg0025l30f3f5mewao",
-  "name": "Default",
   "formStyle": "buttonBelow",
   "placeholderText": "you@example.com",
   "formFont": "Roboto",
   "formFontColor": "#000000",
   "formFontSizePx": 14,
-  "buttonText": "Stay tuned",
-  "buttonFont": "Roboto",
-  "buttonFontColor": "#ffffff",
-  "buttonColor": "#0D9488",
-  "buttonFontSizePx": 14,
+  "buttonText": "Subscribe",
   "successMessage": "Awesome! We'll be in touch!",
   "successFont": "Roboto",
   "successFontColor": "#000000",
@@ -117,23 +112,10 @@ function SignUpFormReact() {
   switch (formState) {
     case SUCCESS:
       return (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            width: "100%",
-          }}
-        >
-          <p
-            style={{
-              fontFamily: `'${formStyles.successFont}', sans-serif`,
-              color: formStyles.successFontColor,
-              fontSize: `${formStyles.successFontSizePx}px`,
-            }}
-          >
+        <div className="col col--6 col--offset-3">
+          <div className="alert alert--success" role="alert">
             {formStyles.successMessage}
-          </p>
+          </div>
         </div>
       );
     case ERROR:
@@ -187,30 +169,18 @@ function SignUpFormReact() {
 
   function SignUpFormError() {
     return (
-      <div
-        style={{
-          alignItems: "center",
-          justifyContent: "center",
-          width: "100%",
-        }}
-      >
-        <p
-          style={{
-            fontFamily: "Roboto, sans-serif",
-            color: "rgb(185, 28, 28)",
-            fontSize: "14px",
-          }}
-        >
-          {errorMessage || "Oops! Something went wrong, please try again"}
-        </p>
-      </div>
+        <div className="col col--6 col--offset-3">
+          <div className="alert alert--danger" role="alert">
+            {errorMessage || "Oops! Something went wrong, please try again"}
+          </div>
+        </div>
     );
   }
 
   function BackButton() {
     return (  
       <button
-        className="button button--primary button--lg "
+        className="button button--primary button--outline button--lg margin--lg"
         onClick={resetForm}
       >
         &larr; Back
@@ -220,7 +190,7 @@ function SignUpFormReact() {
 
   function SignUpFormButton({ props }) {
     return (
-      <button className="button button--primary button--lg " type="submit">
+      <button className="button button--primary button--lg margin--lg" type="submit">
         {formState === SUBMITTING ? "Please wait..." : formStyles.buttonText}
       </button>
     );
@@ -234,7 +204,17 @@ function isValidEmail(email) {
 export default function Updates() {
   return (
     <Layout title="Updates" description="Cloud infrastructure as data in PostgreSQL">
-      <SignUpFormReact/>
+      <div className="container text--center">
+        <div className="row padding--lg">
+          <div className="col">
+            <h1>Stay up to date 📬</h1>
+            <p className="hero__subtitle">Be the first to know when we ship new features and updates!</p>
+            <div className="padding--md">
+              <SignUpFormReact/>
+            </div>
+          </div>
+        </div>
+      </div>
     </Layout>
   );
 }
