@@ -135,16 +135,6 @@ export class Queue {
 
   /**
    * @public
-   * Approximate number of messages in this queue
-   */
-  @Column({
-    nullable: true,
-    type: 'integer',
-  })
-  approximateNumberOfMessages: number;
-
-  /**
-   * @public
    * Region for the SQS queue
    */
   @Column({

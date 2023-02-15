@@ -1,8 +1,16 @@
 import isEqual from 'lodash.isequal';
 
-import { CreateQueueCommandInput, paginateListQueues, SQS } from '@aws-sdk/client-sqs';
+import {
+  CreateQueueCommandInput,
+  GetQueueAttributesCommandInput,
+  paginateListQueues,
+  SQS,
+} from '@aws-sdk/client-sqs';
+import { ListQueuesCommandInput } from '@aws-sdk/client-sqs/dist-types/commands/ListQueuesCommand';
 import { parse as parseArn } from '@aws-sdk/util-arn-parser';
+import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 
+import { policiesAreSame } from '../../../services/aws-diff';
 import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
 import { Context, Crud2, MapperBase } from '../../interfaces';
 import { Queue } from '../entity';
@@ -38,7 +46,7 @@ export class QueueMapper extends MapperBase<Queue> {
       isEqual(a.receiveMessageWaitTimeSeconds, b.receiveMessageWaitTimeSeconds) &&
       isEqual(a.messageRetentionPeriod, b.messageRetentionPeriod) &&
       isEqual(a.maximumMessageSize, b.maximumMessageSize) &&
-      isEqual(a.policy, b.policy)
+      policiesAreSame(a.policy, b.policy)
     );
   };
 
@@ -58,14 +66,13 @@ export class QueueMapper extends MapperBase<Queue> {
     out.maximumMessageSize = parseInt(queueAttributes.MaximumMessageSize, 10);
     out.policy = JSON.parse(queueAttributes.Policy);
     out.arn = queueAttributes.QueueArn;
-    out.approximateNumberOfMessages = parseInt(queueAttributes!.approximateNumberOfMessages, 10);
+    out.region = region;
 
     return out;
   }
 
   private createAttributesObject(e: Queue) {
-    return {
-      FifoQueue: e.fifoQueue.toString(),
+    const attributes: Record<string, string> = {
       VisibilityTimeout: e.visibilityTimeout.toString(),
       DelaySeconds: e.delaySeconds.toString(),
       ReceiveMessageWaitTimeSeconds: e.receiveMessageWaitTimeSeconds.toString(),
@@ -73,6 +80,56 @@ export class QueueMapper extends MapperBase<Queue> {
       MaximumMessageSize: e.maximumMessageSize.toString(),
       Policy: JSON.stringify(e.policy),
     };
+    if (e.fifoQueue) attributes.FifoQueue = 'true'; // https://github.com/aws/aws-cdk/issues/8550
+    return attributes;
+  }
+
+  async creationWaiter(client: SQS, queueName: string, queueUrl: string) {
+    // first, we should wait for the queue url to show up in the list
+    // no input other than QueueNamePrefix is accepted - and the response has no name in it, so this is the best shot
+    await createWaiter<SQS, ListQueuesCommandInput>(
+      {
+        client,
+        maxWaitTime: 300,
+        minDelay: 1,
+        maxDelay: 4,
+      },
+      {},
+      async (cl) => {
+        try {
+          const queueUrls = await this.getQueues(cl);
+          if (queueUrls.includes(queueUrl)) return { state: WaiterState.SUCCESS };
+          return { state: WaiterState.RETRY };
+        } catch (e: any) {
+          return { state: WaiterState.RETRY };
+        }
+      },
+    );
+
+    // now we should make sure the queue attributes are available
+    const getAttributesInput: GetQueueAttributesCommandInput = {
+      QueueUrl: queueUrl,
+      AttributeNames: ['All'],
+    };
+    await createWaiter<SQS, GetQueueAttributesCommandInput>(
+      {
+        client,
+        maxWaitTime: 300,
+        minDelay: 1,
+        maxDelay: 4,
+      },
+      getAttributesInput,
+      async (cl, cmd) => {
+        try {
+          const data = await cl.getQueueAttributes(cmd);
+          if (!data.Attributes) return { state: WaiterState.RETRY };
+          if (!!data.Attributes.QueueArn) return { state: WaiterState.SUCCESS };
+          return { state: WaiterState.RETRY };
+        } catch (e: any) {
+          return { state: WaiterState.RETRY };
+        }
+      },
+    );
   }
 
   cloud: Crud2<Queue> = new Crud2<Queue>({
@@ -85,9 +142,12 @@ export class QueueMapper extends MapperBase<Queue> {
           Attributes: this.createAttributesObject(e),
         };
         const queueUrl = await this.createQueue(client.sqsClient, input);
+        if (!queueUrl) throw new Error('Cannot create queue');
+        await this.creationWaiter(client.sqsClient, e.name, queueUrl);
         const queueAttributes = await this.getQueueAttributes(client.sqsClient, queueUrl);
         e.arn = queueAttributes!.QueueArn;
         e.url = queueUrl;
+        e.policy = JSON.parse(queueAttributes!.Policy); // AWS changes the policy we submit, this is to avoid failures in apply
         await this.module.queue.db.update(e, ctx);
         out.push(e);
       }
@@ -106,8 +166,12 @@ export class QueueMapper extends MapperBase<Queue> {
             const client = (await ctx.getAwsClient(region)) as AWS;
             const queueUrls = await this.getQueues(client.sqsClient);
             for (const queueUrl of queueUrls) {
-              const queue = await this.queueMapper(queueUrl, region, client.sqsClient);
-              out.push(queue);
+              try {
+                const queue = await this.queueMapper(queueUrl, region, client.sqsClient);
+                out.push(queue);
+              } catch (e: any) {
+                // the queue is recently created/deleted, so it shows up in getQueues but not here
+              }
             }
           }),
         );
