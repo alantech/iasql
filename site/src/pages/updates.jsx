@@ -208,7 +208,7 @@ export default function Updates() {
         <div className="row padding--lg">
           <div className="col">
             <h1>Stay up to date 📬</h1>
-            <p className="hero__subtitle">Be the first to know when we ship new features and updates!</p>
+            <p className="hero__subtitle">Be the first to know when we ship new features and updates. See past updates <a href='/blog/tags/updates'>here</a>!</p>
             <div className="padding--md">
               <SignUpFormReact/>
             </div>

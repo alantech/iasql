@@ -46,7 +46,6 @@ const testDoc = require('./src/rehype/testdoc');
             blogSidebarTitle: 'All posts',
             blogSidebarCount: 'ALL',
             editUrl: 'https://github.com/iasql/iasql/tree/main/site/',
-            postsPerPage: 1,
           },
           theme: {
             customCss: require.resolve('./src/css/custom.css'),
