@@ -213,8 +213,7 @@ SELECT * FROM iasql_uninstall('${uninstallModule}');
       const newTab = tabsCopy.pop();
       tabsCopy.push({ title: `Query-${state.editorTabs.length - 1}`, content: '', queryRes: null });
       if (newTab) tabsCopy.push(newTab);
-      const editorSelectedTab = tabsCopy.length - 2;
-      return { ...state, editorTabs: tabsCopy, editorSelectedTab };
+      return { ...state, editorTabs: tabsCopy };
     case ActionType.EditorSelectTab:
       const { index } = payload.data;
       return { ...state, editorSelectedTab: index };

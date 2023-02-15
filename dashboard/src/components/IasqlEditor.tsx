@@ -169,7 +169,7 @@ export default function IasqlEditor() {
   const onTabChange = (i: number) => {
     dispatch({
       action: ActionType.EditorSelectTab,
-      data: { index: i },
+      data: { index: i === editorTabs.length - 1 ? i - 1 : i },
     });
   };
 
@@ -180,7 +180,7 @@ export default function IasqlEditor() {
         <VBox customStyles='w-full' height='h-50vh'>
           <Tab
             tabs={editorTabs}
-            defaultIndex={0}
+            defaultIndex={editorSelectedTab}
             onChange={onTabChange}
             selectedIndex={editorSelectedTab}
           ></Tab>
