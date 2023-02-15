@@ -118,9 +118,9 @@ export class Queue {
    */
   @Column({
     type: 'json',
-    nullable: false,
+    nullable: true,
   })
-  policy: object;
+  policy?: object;
 
   /**
    * @public

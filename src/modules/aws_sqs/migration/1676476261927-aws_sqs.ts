@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class awsSqs1676456595699 implements MigrationInterface {
-  name = 'awsSqs1676456595699';
+export class awsSqs1676476261927 implements MigrationInterface {
+  name = 'awsSqs1676476261927';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`CREATE TABLE "queue"
@@ -15,7 +15,7 @@ export class awsSqs1676456595699 implements MigrationInterface {
                                  "receive_message_wait_time_seconds" integer           NOT NULL DEFAULT '0',
                                  "message_retention_period"          integer           NOT NULL DEFAULT '345600',
                                  "maximum_message_size"              integer           NOT NULL DEFAULT '262144',
-                                 "policy"                            json              NOT NULL,
+                                 "policy"                            json,
                                  "arn"                               character varying,
                                  "region"                            character varying NOT NULL DEFAULT default_aws_region(),
                                  CONSTRAINT "UQ_519fda5975fbe7a3a379e5d3b54" UNIQUE ("arn"),
