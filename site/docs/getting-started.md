@@ -8,7 +8,7 @@ slug: '/'
 [IaSQL](https://iasql.com) is open-source software to manage cloud infrastructure using an unmodified PostgreSQL database by maintaining a 2-way connection between a database and your AWS account. The rows in the database tables represent the infrastructure in your cloud account. The database is automatically backfilled with all your existing cloud resources. Which tables are loaded into an [IaSQL database](./concepts/db.md) is configured based on what [IaSQL modules](./concepts/module.md) are installed in a db. Every IaSQL module represents a cloud service like `aws_ec2` or `aws_elb`. Once the desired modules are installed with the `install` [IaSQL PostgreSQL function](./modules/builtin/iasql_functions.md), run `INSERT` or `UPDATE` queries on the database by using the PG connection string displayed when you first set up in the dashboard with your preferred [PostgreSQL client](./how-to/connect.md). Finally, IaSQL will push the changes in your database to the cloud. To run IaSQL locally run:
 
 ```bash
-docker run -9876:9876 -p 5432:5432 --name iasql iasql/iasql
+docker run -p 9876:9876 -p 5432:5432 --name iasql iasql/iasql
 ```
 
 Now simply open `http://localhost:9876` in your preferred browser to open the IaSQL dashboard.
