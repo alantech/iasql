@@ -79,7 +79,7 @@ describe('AwsSQS Integration Testing', () => {
   itDocs('installs the SQS module', install(modules));
 
   it('starts a transaction', begin());
-  it(
+  itDocs(
     'adds a new non-fifo queue',
     query(
       `
@@ -93,7 +93,7 @@ describe('AwsSQS Integration Testing', () => {
   );
   it('commits creation of the non-fifo queue', commit());
 
-  it(
+  itDocs(
     'checks the queue still exists after commit',
     query(
       `
@@ -105,7 +105,7 @@ describe('AwsSQS Integration Testing', () => {
         expect(res.length).toBe(1);
         // also, the policy should be auto-generated
         expect(res[0].policy).toBeTruthy();
-        expect(res[0].policy).toContain('SQS:*');
+        expect(res[0].policy.Statement[0].Action.toLowerCase()).toContain('sqs:*');
       },
     ),
   );
@@ -126,7 +126,7 @@ describe('AwsSQS Integration Testing', () => {
       expect(e?.message).toContain('The name of a fifo queue should end with .fifo');
     }
   });
-  it(
+  itDocs(
     'creates a new fifo queue, this time with a correct name',
     query(
       `
@@ -140,7 +140,7 @@ describe('AwsSQS Integration Testing', () => {
   );
   it('commits creation of fifo queue', commit());
 
-  it(
+  itDocs(
     'checks the fifo queue still exists after commit',
     query(
       `
@@ -155,7 +155,7 @@ describe('AwsSQS Integration Testing', () => {
   );
 
   it('starts a transaction', begin());
-  it(
+  itDocs(
     'moves the queue to non-default region',
     query(
       `
@@ -186,7 +186,7 @@ describe('AwsSQS Integration Testing', () => {
   );
 
   it('starts a transaction', begin());
-  it(
+  itDocs(
     'deletes the queues',
     query(
       `
