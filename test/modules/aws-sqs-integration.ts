@@ -1,3 +1,4 @@
+import * as iasql from '../../src/services/iasql';
 import {
   defaultRegion,
   execComposeDown,
@@ -10,7 +11,6 @@ import {
   runInstall,
   runQuery,
 } from '../helpers';
-import * as iasql from '../../src/services/iasql';
 
 const prefix = getPrefix();
 const dbAlias = 'sqstest';
@@ -93,84 +93,123 @@ describe('AwsSQS Integration Testing', () => {
   );
   it('commits creation of the non-fifo queue', commit());
 
-  it('checks the queue still exists after commit', query(`
+  it(
+    'checks the queue still exists after commit',
+    query(
+      `
       SELECT *
       FROM queue
       WHERE name = '${prefix}';
-  `, (res: any) => {
-    expect(res.length).toBe(1);
-    // also, the policy should be auto-generated
-    expect(res.policy).toBeTruthy();
-    expect(res.policy).toContain('SQS:*');
-  }));
+  `,
+      (res: any) => {
+        expect(res.length).toBe(1);
+        // also, the policy should be auto-generated
+        expect(res[0].policy).toBeTruthy();
+        expect(res[0].policy).toContain('SQS:*');
+      },
+    ),
+  );
 
   it('starts a transaction', begin());
-  it(
-    'creates a new fifo queue, but the name is problematic',
-    () => {
-      try {
-        query(
-          `
+  it('creates a new fifo queue, but the name is problematic', () => {
+    try {
+      query(
+        `
               INSERT INTO queue (name, fifo_queue, region)
               VALUES ('${prefix}', true, '${region}');
           `,
-          undefined,
-          true,
-          () => ({ username, password }),
-        );
-      } catch (e: any) {
-        expect(e?.message).toContain('The name of a fifo queue should end with .fifo');
-      }
-    },
-  );
-  it('creates a new fifo queue, this time with a correct name', query(`
+        undefined,
+        true,
+        () => ({ username, password }),
+      );
+    } catch (e: any) {
+      expect(e?.message).toContain('The name of a fifo queue should end with .fifo');
+    }
+  });
+  it(
+    'creates a new fifo queue, this time with a correct name',
+    query(
+      `
               INSERT INTO queue (name, fifo_queue, region)
               VALUES ('${prefix}.fifo', true, '${region}');
-    `, undefined,
-    true,
-    () => ({ username, password })));
+    `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
   it('commits creation of fifo queue', commit());
 
-  it('checks the fifo queue still exists after commit', query(`
+  it(
+    'checks the fifo queue still exists after commit',
+    query(
+      `
       SELECT *
       FROM queue
       WHERE name = '${prefix}.fifo';
-  `, (res: any) => {
-    expect(res.length).toBe(1);
-  }));
+  `,
+      (res: any) => {
+        expect(res.length).toBe(1);
+      },
+    ),
+  );
 
   it('starts a transaction', begin());
-  it('moves the queue to non-default region', query(`
+  it(
+    'moves the queue to non-default region',
+    query(
+      `
               UPDATE queue
               SET region = 'us-east-1'
               WHERE name = '${prefix}.fifo';
-    `, undefined,
-    true,
-    () => ({ username, password })));
+    `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
   it('commits moving of queue to another region', commit());
 
-  it('checks the queue is still there after sync', query(`
+  it(
+    'checks the queue is still there after sync',
+    query(
+      `
       SELECT *
       FROM queue
       WHERE name = '${prefix}.fifo'
         AND region = 'us-east-1';
-  `, (res: any) => {
-    expect(res.length).toBe(1);
-  }));
+  `,
+      (res: any) => {
+        expect(res.length).toBe(1);
+      },
+    ),
+  );
 
   it('starts a transaction', begin());
-  it('deletes the queues', query(`
+  it(
+    'deletes the queues',
+    query(
+      `
               DELETE
               FROM queue;
-    `, undefined,
-    true,
-    () => ({ username, password })));
+    `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
   it('commits deletion of queue', commit());
 
-  it('makes sure there is no queues left', query(`
+  it(
+    'makes sure there is no queues left',
+    query(
+      `
       SELECT *
       FROM queue;
-  `, (res: any) => expect(res.length).toBe(0)));
+  `,
+      (res: any) => expect(res.length).toBe(0),
+    ),
+  );
 
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 });
