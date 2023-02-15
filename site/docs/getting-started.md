@@ -21,7 +21,7 @@ Read more about managing your AWS account [here](./how-to/aws.md). There is also
 
 A high-level overview of how the IaSQL documentation is organized will help you know how to quickly find what you are looking for:
 
-- The [tutorials](/blog/tags/tutorial/) will guide you from 0 to an HTTP server to your AWS account using ECS, ECR, RDS and ELB using IaSQL. Start here if you’re new to IaSQL.
+- The [guides](/blog/tags/guides/) will guide you from 0 to an HTTP server to your AWS account using ECS, ECR, RDS and ELB using IaSQL. Start here if you’re new to IaSQL.
 - [How-to guides](./how-to/connect.md) are recipes. They guide you through the steps involved in addressing key problems and use-cases. They are more advanced than the quickstart and assume some knowledge of how IaSQL works.
 - [Concepts](./concepts/db.md) provides useful background and describes at a fairly high level the internals of how IaSQL works.
-- Technical [reference](./modules/) and code samples about IaSQL modules. They describe how it works and how to use it but assume some knowledge of how IaSQL works.
+- Reference and code samples about IaSQL [modules](./modules/). They describe how it works and how to use it but assume some knowledge of how IaSQL works.
