@@ -65,4 +65,4 @@ AWS is our main focus at the moment, but we plan to support GCP, Azure and other
 
 An IaSQL module roughly maps to an AWS service. Check out our supported modules in this [part](https://iasql.com/docs/modules/) of our docs. 
 
-AWS services that are going to be added next can be found [here](https://github.com/iasql/iasql/issues?q=is%3Aissue+is%3Aopen+label%3A%22cloud+coverage%22) and let us know if you would like to see one that is not listed!
+AWS services that are going to be added next can be found [here](https://github.com/iasql/iasql/issues?q=is%3Aissue+is%3Aopen+label%3A%22cloud+coverage%22). Let us know if you would like to see one that is not listed!
