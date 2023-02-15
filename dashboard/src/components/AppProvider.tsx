@@ -76,7 +76,7 @@ interface AppState {
     className?: string;
     width?: string;
     content: string;
-    queryRes: any | null;
+    queryRes?: any | null;
   }[];
 }
 
@@ -105,7 +105,9 @@ const reducer = (state: AppState, payload: Payload): AppState => {
       const { db } = payload.data;
       db.isUnsupported =
         !semver.valid(db?.version) || (!!state.oldestVersion && semver.lt(db?.version, state.oldestVersion));
-      return { ...state, selectedDb: db };
+      const tabsClone = [...state.editorTabs];
+      tabsClone.map(t => (t.queryRes = undefined));
+      return { ...state, selectedDb: db, editorTabs: tabsClone };
     case ActionType.InitialLoad:
       const { token } = payload;
       const { initialDatabases, latestVersion, oldestVersion } = payload.data;
