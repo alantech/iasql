@@ -183,6 +183,7 @@ export default function IasqlEditor() {
             defaultIndex={editorSelectedTab}
             onChange={onTabChange}
             selectedIndex={editorSelectedTab}
+            style='outline'
           ></Tab>
           <ForwardRefEditor
             ref={editorRef}
