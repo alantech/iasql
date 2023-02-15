@@ -213,7 +213,7 @@ SELECT * FROM iasql_uninstall('${uninstallModule}');
     case ActionType.EditorNewTab:
       const tabsCopy = [...state.editorTabs];
       const newTab = tabsCopy.pop();
-      tabsCopy.push({ title: `Query-${state.editorTabs.length - 1}`, content: '', queryRes: null });
+      tabsCopy.push({ title: `Query-${state.editorTabs.length - 1}`, content: '' });
       if (newTab) tabsCopy.push(newTab);
       return { ...state, editorTabs: tabsCopy };
     case ActionType.EditorSelectTab:
@@ -491,11 +491,10 @@ const AppProvider = ({ children }: { children: any }) => {
     shouldShowConnect: false,
     editorSelectedTab: 0,
     editorTabs: [
-      { title: 'Welcome', content: ``, queryRes: null },
+      { title: 'Welcome', content: '' },
       {
         title: '+',
         content: '',
-        queryRes: null,
         width: 'w-auto',
         className: 'px-4',
         action: () => {
