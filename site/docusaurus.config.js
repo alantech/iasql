@@ -157,6 +157,11 @@ const testDoc = require('./src/rehype/testdoc');
                   to: 'blog',
                   target: '_self',
                 },
+                {
+                  label: 'Updates',
+                  to: 'updates',
+                  target: '_self',
+                },
               ],
             },
             {
