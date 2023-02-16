@@ -103,7 +103,7 @@ export class QueueMapper extends MapperBase<Queue> {
       ReceiveMessageWaitTimeSeconds: e.receiveMessageWaitTimeSeconds.toString(),
       MessageRetentionPeriod: e.messageRetentionPeriod.toString(),
       MaximumMessageSize: e.maximumMessageSize.toString(),
-      Policy: e.policy ? JSON.stringify(e.policy) : JSON.stringify(await this.generateDefaultPolicy(ctx, e)),
+      Policy: JSON.stringify(e.policy),
     };
     if (e.fifoQueue) attributes.FifoQueue = 'true'; // https://github.com/aws/aws-cdk/issues/8550
     return attributes;
@@ -162,6 +162,7 @@ export class QueueMapper extends MapperBase<Queue> {
       const out = [];
       for (const e of es) {
         const client = (await ctx.getAwsClient(e.region)) as AWS;
+        if (!e.policy) e.policy = await this.generateDefaultPolicy(ctx, e);
         const input: CreateQueueCommandInput = {
           QueueName: e.name,
           Attributes: await this.createAttributesObject(e, ctx),
@@ -172,7 +173,6 @@ export class QueueMapper extends MapperBase<Queue> {
         const queueAttributes = await this.getQueueAttributes(client.sqsClient, queueUrl);
         e.arn = queueAttributes!.QueueArn;
         e.url = queueUrl;
-        e.policy = JSON.parse(queueAttributes!.Policy); // AWS changes the policy we submit, this is to avoid failures in apply
         await this.module.queue.db.update(e, ctx);
         out.push(e);
       }
