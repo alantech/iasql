@@ -37,7 +37,7 @@ export default function Tab({
               }}
               className={({ selected }) =>
                 classNames(
-                  'py-1 text-xs font-medium dark:text-white focus-visible:outline-none',
+                  'py-1 text-xs font-medium dark:text-white focus-visible:outline-none border-r border-primary',
                   style === 'solid' && selected
                     ? 'bg-primary shadow'
                     : style === 'solid' && !selected
@@ -55,10 +55,10 @@ export default function Tab({
                   <span className='ml-2'>{t.title}</span>
                   <div
                     id='close-bttn'
-                    className='flex-none inline-flex justify-center p-1 mr-2 border border-transparent text-sm font-medium bg-gray-200 dark:bg-gray-600 rounded-md text-gray-400 hover:text-primary hover:bg-gray-300 dark:hover:bg-gray-700'
+                    className='flex-none inline-flex justify-center p-1 mr-2 border border-transparent text-sm font-medium bg-gray-300 dark:bg-gray-600 rounded-md hover:bg-gray-400 dark:hover:bg-gray-700'
                   >
                     <XIcon
-                      className='h-2 w-2 text-gray-400 cursor-pointer'
+                      className='h-2 w-2 cursor-pointer'
                       aria-hidden='true'
                       onClick={() => {
                         onTabClose(i);
