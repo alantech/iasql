@@ -154,8 +154,10 @@ async function getUserAndPassword(
   dbAlias: string,
 ): Promise<{ username: string; password: string }> {
   let username;
+  let email;
   if (config.auth) {
     username = tokenInfo.sub ?? throwError('No username found on auth token');
+    email = tokenInfo[`${config.auth?.domain}email`] ?? 'hello@iasql.com';
   } else {
     const res = await metaQuery(`
       SELECT id
@@ -163,8 +165,8 @@ async function getUserAndPassword(
       LIMIT 1;
     `);
     username = res?.[0]?.id ?? uuidv4().split('-').join('');
+    email = `hello+${username}@iasql.com`;
   }
-  const email = tokenInfo[`${config.auth?.domain}email`] ?? 'hello@iasql.com';
   const password = Array(16)
     .fill('')
     .map(() => randChar(passwordCharset))
