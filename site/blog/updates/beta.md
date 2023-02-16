@@ -1,9 +1,9 @@
 ---
 slug: beta
-title: IaSQL is in beta!
-date: 2023-02-14
+title: "IaSQL is in beta: AWS multiregion, automatic two-way mode, smooth local setup"
+date: 2023-02-15
 authors: [yrobla, mtp1376, depombo, dfellis, aguillenv]
-tags: [announcement]
+tags: [updates]
 ---
 
 IaSQL lets developers manage their cloud infrastructure as data in PostgreSQL as an alternative to the AWS console and infrastructure as code (IaC) tools like Pulumi and Terraform. We open-sourced IaSQL's Alpha version (v0.0.x) in [April 2022](/blog/os-iasql). We’ve been fortunate to work with lots of early adopters who helped us shape the product and prioritize the features to build.
@@ -20,23 +20,23 @@ Additionally, we completely redid our architecture to scale and our UX to make i
 
 ## Alpha phase in numbers​
 
-- 25 Alpha versions
+- 26 Alpha versions
 - 170 databases created
-- 198 GitHub stars
+- 199 GitHub stars
 - 11 GitHub contributors
-- 434 GitHub issues closed
-- 116,840 lines of code
-- 20 AWS services covered
-- 88 Discord members
+- 481 GitHub issues closed
+- 140,755 lines of code and markdown
+- 24 AWS services covered
+- 90 Discord members
 
 Here are the new features that ship in the Beta versions of IaSQL:
 
 ### 🏡 Home is where your local env is
 
-We made IaSQL easier to run locally by bundling up our dashboard into the IaSQL docker container and publishing it to [Dockerhub](https://hub.docker.com/r/iasql/iasql). This makes IaSQL easier to try out without having your cloud credentials ever leave your local environment. It is as simple as running the command below and going to `http://localhost:8888` on your preferred browser.
+We made IaSQL easier to run locally by bundling up our dashboard into the IaSQL docker container and publishing it to [Dockerhub](https://hub.docker.com/r/iasql/iasql). This makes IaSQL easier to try out without having your cloud credentials ever leave your local environment. It is as simple as running the command below and going to `http://localhost:9876` on your preferred browser.
 
 ```bash
-docker run -p 5432:5432 -p 8888:8888 --name iasql iasql/iasql
+docker run -p 5432:5432 -p 9876:9876 --name iasql iasql/iasql
 ```
 
 ### 🎛️ AWS Multiregion
@@ -45,7 +45,7 @@ Support for multiple AWS regions with default region behavior in part because we
 
 [Learn more about it in the RFC for this feature &#8594;](https://github.com/iasql/iasql/blob/main/rfcs/003%20-%20Multi-Region%20Support%20RFC.md)
 
-### 🪄 Automagically, please
+### 🪄 Automagical two-way mode, please
 
 We redid the UX to allow handling infrastructure changes automatically and wrapping delicate, or complex, changes within a special [IaSQL transaction](/docs/transaction) akin to transactions in a regular database. This means no more `apply`. Do you want to programmatically modify your infra or control plane? We got you!
 
@@ -77,3 +77,5 @@ The next features are going to be about making IaSQL easier to use:
 - continuously improving our documentation
 
 Longer term, we’ll add support for 3rd party high-level modules, extensive support for AWS, and support for more cloud providers. If there is something in particular you would like to see please drop us a line on Discord or email via hello at our domain.
+
+*Want to stay in the loop? → [Join our newsletter!](/updates)*
