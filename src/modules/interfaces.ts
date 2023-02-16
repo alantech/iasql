@@ -504,8 +504,8 @@ export class RpcBase implements RpcInterface {
 }
 
 export class AwsSdkInvoker extends RpcBase {
-  preTransactionCheck = PreTransactionCheck.NO_CHECK;
-  postTransactionCheck = PostTransactionCheck.NO_CHECK;
+  preTransactionCheck = PreTransactionCheck.WAIT_FOR_LOCK;
+  postTransactionCheck = PostTransactionCheck.UNLOCK_ALWAYS;
 
   clientType: keyof AWS;
 
