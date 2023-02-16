@@ -13,7 +13,6 @@ export default function Tab({
   defaultIndex = 0,
   selectedIndex,
   onChange = () => {},
-  style = 'solid',
   onTabClose = () => {},
 }: {
   tabs: { title: string; action?: () => void; className?: string; width?: string; closable?: boolean }[];
@@ -21,13 +20,12 @@ export default function Tab({
   defaultIndex?: number;
   selectedIndex?: number;
   onChange?: (index: number) => void;
-  style?: 'solid' | 'outline';
   onTabClose?: (i: number) => void;
 }) {
   return (
     <div className='w-full'>
       <ReactTab.Group defaultIndex={defaultIndex} onChange={onChange} selectedIndex={selectedIndex}>
-        <ReactTab.List className='flex justify-start h-8 bg-blue-900/20'>
+        <ReactTab.List className='flex justify-start h-8 border border-transparent'>
           {tabs.map((t, i) => (
             <ReactTab
               id={t.title}
@@ -37,14 +35,10 @@ export default function Tab({
               }}
               className={({ selected }) =>
                 classNames(
-                  'py-1 text-xs font-medium dark:text-white focus-visible:outline-none border-r border-primary',
-                  style === 'solid' && selected
-                    ? 'bg-primary shadow'
-                    : style === 'solid' && !selected
-                    ? 'dark:text-white hover:bg-primary'
-                    : style === 'outline' && selected
-                    ? 'border border-primary shadow dark:text-primary text-primary'
-                    : 'dark:text-white hover:border hover:border-primary',
+                  'py-1 text-xs font-medium focus-visible:outline-none rounded-sm',
+                  selected
+                    ? 'border-b-2 border-primary shadow text-primary dark:text-primary'
+                    : 'dark:text-white hover:bg-primary hover:text-white',
                   t.className ?? '',
                   t.width ? t.width : 'w-full',
                 )

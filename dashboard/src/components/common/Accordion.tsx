@@ -17,9 +17,9 @@ export default function Accordion({
   return (
     <Disclosure as='div' defaultOpen={defaultOpen}>
       {({ open }) => (
-        <div className='bg-gray-200 dark:bg-gray-800 pl-2'>
+        <div className='bg-transparent dark:bg-gray-800 pl-2'>
           <Disclosure.Button className='w-full'>
-            <div className='border-b-4 pl-1 border-solid border-gray-200 dark:border-gray-800'>
+            <div className='border-b-4 pl-1 border-transparent dark:border-gray-800'>
               <HBox alignment={align.end} customStyles='flex-row-reverse'>
                 <span id={`accordion-${id}`}>{title}</span>
                 {open ? (
