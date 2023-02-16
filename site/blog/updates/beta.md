@@ -55,7 +55,7 @@ We redid the UX to allow handling infrastructure changes automatically and for d
 
 Increased AWS service coverage for EC2, CodeDeploy, CodeBuild, CodePipeline, SNS, ACM, Route53 amongst a few others. Additionally, we have a new `aws_sdk` module that lets you invoke the AWS SDK directly using PostgreSQL functions with added type safety.
 
-[See an up-to-date list of covered AWS services &#8594;](https://github.com/iasql/iasql#aws-services-with-significant-api-coverage)
+[See an up-to-date list of covered AWS services &#8594;](/docs/modules/)
 
 ### 💨 Breeze through a simplified AWS
 
