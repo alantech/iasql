@@ -165,6 +165,14 @@ export default function IasqlEditor() {
     });
   };
 
+  const onTabClose = (i: number) => {
+    console.log(`index ${i}`);
+    dispatch({
+      action: ActionType.EditorCloseTab,
+      data: { index: i },
+    });
+  };
+
   return (
     <VBox customStyles='mb-3'>
       <HBox alignment={align.between}>
@@ -176,6 +184,7 @@ export default function IasqlEditor() {
             onChange={onTabChange}
             selectedIndex={editorSelectedTab}
             style='outline'
+            onTabClose={onTabClose}
           ></Tab>
           <ForwardRefEditor
             ref={editorRef}

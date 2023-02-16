@@ -44,6 +44,7 @@ export enum ActionType {
   EditorNewTab = 'EditorNewTab',
   EditorSelectTab = 'EditorSelectTab',
   SelectAppTheme = 'SelectAppTheme',
+  EditorCloseTab = 'EditorCloseTab',
 }
 
 interface Payload {
@@ -78,6 +79,7 @@ interface AppState {
     width?: string;
     content: string;
     queryRes?: any | null;
+    closable?: boolean;
   }[];
 }
 
@@ -97,6 +99,7 @@ const initializingQueries = `
 `;
 
 const reducer = (state: AppState, payload: Payload): AppState => {
+  let tabsCopy;
   const { error } = payload?.data ?? { error: null };
   if (error) {
     return { ...state, error };
@@ -106,9 +109,9 @@ const reducer = (state: AppState, payload: Payload): AppState => {
       const { db } = payload.data;
       db.isUnsupported =
         !semver.valid(db?.version) || (!!state.oldestVersion && semver.lt(db?.version, state.oldestVersion));
-      const tabsClone = [...state.editorTabs];
-      tabsClone.map(t => (t.queryRes = undefined));
-      return { ...state, selectedDb: db, editorTabs: tabsClone };
+      tabsCopy = [...state.editorTabs];
+      tabsCopy.map(t => (t.queryRes = undefined));
+      return { ...state, selectedDb: db, editorTabs: tabsCopy };
     case ActionType.InitialLoad:
       const { token } = payload;
       const { initialDatabases, latestVersion, oldestVersion } = payload.data;
@@ -212,14 +215,19 @@ SELECT * FROM iasql_uninstall('${uninstallModule}');
       const { error: customError } = payload.data;
       return { ...state, error: customError };
     case ActionType.EditorNewTab:
-      const tabsCopy = [...state.editorTabs];
+      tabsCopy = [...state.editorTabs];
       const newTab = tabsCopy.pop();
-      tabsCopy.push({ title: `Query-${state.editorTabs.length - 1}`, content: '' });
+      tabsCopy.push({ title: `Query-${state.editorTabs.length - 1}`, content: '', closable: true });
       if (newTab) tabsCopy.push(newTab);
       return { ...state, editorTabs: tabsCopy };
     case ActionType.EditorSelectTab:
       const { index } = payload.data;
       return { ...state, editorSelectedTab: index };
+    case ActionType.EditorCloseTab:
+      const { index: idx } = payload.data;
+      tabsCopy = [...state.editorTabs];
+      tabsCopy.splice(idx, 1);
+      return { ...state, editorTabs: tabsCopy };
     case ActionType.SelectAppTheme:
       const { theme } = payload.data;
       return { ...state, isDarkMode: theme === 'dark' };
@@ -490,12 +498,12 @@ const AppProvider = ({ children }: { children: any }) => {
     shouldShowConnect: false,
     editorSelectedTab: 0,
     editorTabs: [
-      { title: 'Welcome', content: '' },
+      { title: 'Welcome', content: '', closable: true },
       {
         title: '+',
         content: '',
         width: 'w-auto',
-        className: 'px-4',
+        className: 'px-4 border border-transparent',
         action: () => {
           dispatch({
             action: ActionType.EditorNewTab,
