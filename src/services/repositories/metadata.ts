@@ -159,13 +159,6 @@ class MetadataRepo {
   }
 
   async delDb(a0Id: string, dbAlias: string) {
-    // Absolutely terrible hacky comment to delete later
-    if (dbAlias === 'to_upgrade') console.log({
-      hacky: 'hack',
-      stack: new Error().stack,
-      a0Id,
-      dbAlias,
-    });
     const user = await this.userRepo.findOneOrFail(a0Id);
     const dbToDel = user.iasqlDatabases.find(db => db.alias === dbAlias);
     if (!dbToDel) throw new Error(`User with ID ${a0Id} has no IaSQL database with alias ${dbAlias}`);

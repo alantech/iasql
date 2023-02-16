@@ -83,18 +83,7 @@ export async function connect(
     // delete db in psql and metadata
     if (dbSaved) await conn1?.query(`DROP DATABASE IF EXISTS "${dbId}" WITH (FORCE);`);
     if (dbUser && roleGranted) await conn1?.query(dbMan.dropPostgresRoleQuery(dbUser, dbId, true));
-    if (dbSaved && !dbPregen) {
-      console.log({
-        expected: 'this is not',
-        yoda: 'yes, hmmmm',
-        e,
-        dbSaved,
-        dbPregen,
-        uid,
-        dbAlias,
-      });
-      await MetadataRepo.delDb(uid, dbAlias);
-    }
+    if (dbSaved && !dbPregen) await MetadataRepo.delDb(uid, dbAlias);
     // rethrow the error
     throw e;
   } finally {
@@ -137,12 +126,6 @@ export async function disconnect(dbAlias: string, uid: string) {
       DROP DATABASE IF EXISTS ${db.pgName} WITH (FORCE);
     `);
     await conn.query(dbMan.dropPostgresRoleQuery(db.pgUser, db.pgName, true));
-    console.log({
-      vader: 'if only you knew the power of the dark side',
-      expected: 'most unexpected',
-      uid,
-      dbAlias,
-    }); 
     await MetadataRepo.delDb(uid, dbAlias);
     return db.pgName;
   } catch (e: any) {
@@ -258,7 +241,6 @@ export async function dump(dbId: string, dataOnly: boolean) {
 export async function upgrade() {
   logger.debug('Starting upgrade...');
   const dbs = await MetadataRepo.getAllDbs();
-  console.log({ dbs, starting: 'upgrade', });
   const dbsDone: { [key: string]: boolean } = {};
   for (const db of dbs) {
     logger.debug(`Starting Part 2 of 3 for ${db.pgName}`);
