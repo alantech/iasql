@@ -100,29 +100,30 @@ const initializingQueries = `
 `;
 
 const reducer = (state: AppState, payload: Payload): AppState => {
-  let tabsCopy;
   const { error } = payload?.data ?? { error: null };
   if (error) {
     return { ...state, error };
   }
   switch (payload.action) {
-    case ActionType.SelectDb:
+    case ActionType.SelectDb: {
       const { db } = payload.data;
       db.isUnsupported =
         !semver.valid(db?.version) || (!!state.oldestVersion && semver.lt(db?.version, state.oldestVersion));
-      tabsCopy = [...state.editorTabs];
+      const tabsCopy = [...state.editorTabs];
       if (db?.alias !== state.selectedDb?.alias) {
         tabsCopy.map(t => (t.queryRes = undefined));
       }
       return { ...state, selectedDb: db, editorTabs: tabsCopy };
-    case ActionType.InitialLoad:
+    }
+    case ActionType.InitialLoad: {
       const { token } = payload;
       const { initialDatabases, latestVersion, oldestVersion } = payload.data;
       return { ...state, databases: initialDatabases, latestVersion, oldestVersion, token };
-    case ActionType.NewDb:
+    }
+    case ActionType.NewDb: {
       const { newDb, updatedDatabases } = payload.data;
       const newSelectedDb = updatedDatabases.find((d: any) => d.alias === newDb.alias);
-      tabsCopy = [...state.editorTabs];
+      const tabsCopy = [...state.editorTabs];
       tabsCopy.map(t => (t.queryRes = undefined));
       return {
         ...state,
@@ -131,21 +132,27 @@ const reducer = (state: AppState, payload: Payload): AppState => {
         newDb,
         editorTabs: tabsCopy,
       };
-    case ActionType.ResetNewDb:
+    }
+    case ActionType.ResetNewDb: {
       return { ...state, newDb: undefined };
-    case ActionType.ExportDb:
+    }
+    case ActionType.ExportDb: {
       const { dump } = payload.data;
       return { ...state, dump };
-    case ActionType.ExportedDb:
+    }
+    case ActionType.ExportedDb: {
       return { ...state, dump: null };
-    case ActionType.EditContent:
+    }
+    case ActionType.EditContent: {
       const { content: editorContent } = payload.data;
       const relevantTab = state.editorTabs[state.editorSelectedTab];
       relevantTab.content = editorContent;
       return { ...state };
-    case ActionType.RunningSql:
+    }
+    case ActionType.RunningSql: {
       const { isRunning } = payload.data;
       return { ...state, isRunningSql: isRunning };
+    }
     case ActionType.RunSql: {
       const { queryRes, databases: runSqlUpdatedDbs } = payload.data;
       const tabsCopy = [...state.editorTabs];
@@ -156,7 +163,7 @@ const reducer = (state: AppState, payload: Payload): AppState => {
       }
       return { ...state, editorTabs: tabsCopy };
     }
-    case ActionType.RunAutocompleteSql:
+    case ActionType.RunAutocompleteSql: {
       const { autoCompleteRes } = payload.data;
       const moduleData = {} as {
         [moduleName: string]: { [tableName: string]: { [columnName: string]: string } };
@@ -184,29 +191,30 @@ const reducer = (state: AppState, payload: Payload): AppState => {
         allModules,
         installedModules: moduleData,
       };
-    case ActionType.InstallModule:
+    }
+    case ActionType.InstallModule: {
       const { moduleName: installModule } = payload.data;
       const installContent = `/* BEGIN IaSQL auto-generated statement */
 SELECT * FROM iasql_install('${installModule}');
 /* END IaSQL auto-generated statement */
 `;
       // todo: this should be opening a new tab
-      const tabsinstall = state.editorTabs;
-      const tabinstall = tabsinstall[state.editorSelectedTab];
-      tabinstall.content = installContent;
-      return { ...state, editorTabs: tabsinstall };
-    case ActionType.UninstallModule:
+      const tabsCopy = [...state.editorTabs];
+      tabsCopy[state.editorSelectedTab].content = installContent;
+      return { ...state, editorTabs: tabsCopy };
+    }
+    case ActionType.UninstallModule: {
       const { moduleName: uninstallModule } = payload.data;
       const uninstallContent = `/* BEGIN IaSQL auto-generated statement */
 SELECT * FROM iasql_uninstall('${uninstallModule}');
 /* END IaSQL auto-generated statement */
 `;
       // todo: this should be opening a new tab
-      const tabs = state.editorTabs;
-      const tab = tabs[state.editorSelectedTab];
-      tab.content = uninstallContent;
-      return { ...state, editorTabs: tabs };
-    case ActionType.DisconnectDb:
+      const tabsCopy = [...state.editorTabs];
+      tabsCopy[state.editorSelectedTab].content = uninstallContent;
+      return { ...state, editorTabs: tabsCopy };
+    }
+    case ActionType.DisconnectDb: {
       const { databases: updatedDbsAfterDisconnect } = payload.data;
       const updatedSelectedDb = updatedDbsAfterDisconnect.length ? updatedDbsAfterDisconnect[0] : null;
       return {
@@ -215,34 +223,43 @@ SELECT * FROM iasql_uninstall('${uninstallModule}');
         databases: updatedDbsAfterDisconnect,
         shouldShowDisconnect: false,
       };
-    case ActionType.ShowDisconnect:
+    }
+    case ActionType.ShowDisconnect: {
       const { show } = payload.data;
       return { ...state, shouldShowDisconnect: show };
-    case ActionType.ShowConnect:
+    }
+    case ActionType.ShowConnect: {
       const { showConnect } = payload.data;
       return { ...state, shouldShowConnect: showConnect };
-    case ActionType.ResetError:
+    }
+    case ActionType.ResetError: {
       return { ...state, error: null };
-    case ActionType.SetError:
+    }
+    case ActionType.SetError: {
       const { error: customError } = payload.data;
       return { ...state, error: customError };
-    case ActionType.EditorNewTab:
-      tabsCopy = [...state.editorTabs];
+    }
+    case ActionType.EditorNewTab: {
+      const tabsCopy = [...state.editorTabs];
       const newTab = tabsCopy.pop();
       tabsCopy.push({ title: `Query-${state.editorTabsCreated}`, content: '', closable: true });
       if (newTab) tabsCopy.push(newTab);
       return { ...state, editorTabs: tabsCopy, editorTabsCreated: state.editorTabsCreated + 1 };
-    case ActionType.EditorSelectTab:
+    }
+    case ActionType.EditorSelectTab: {
       const { index } = payload.data;
       return { ...state, editorSelectedTab: index };
-    case ActionType.EditorCloseTab:
-      const { index: idx } = payload.data;
-      tabsCopy = [...state.editorTabs];
-      tabsCopy.splice(idx, 1);
+    }
+    case ActionType.EditorCloseTab: {
+      const { index } = payload.data;
+      const tabsCopy = [...state.editorTabs];
+      tabsCopy.splice(index, 1);
       return { ...state, editorTabs: tabsCopy };
-    case ActionType.SelectAppTheme:
+    }
+    case ActionType.SelectAppTheme: {
       const { theme } = payload.data;
       return { ...state, isDarkMode: theme === 'dark' };
+    }
   }
   return state;
 };
@@ -250,7 +267,7 @@ SELECT * FROM iasql_uninstall('${uninstallModule}');
 const middlewareReducer = async (dispatch: (payload: Payload) => void, payload: Payload) => {
   const { token } = payload;
   switch (payload.action) {
-    case ActionType.InitialLoad:
+    case ActionType.InitialLoad: {
       try {
         const initialDatabases = await DbActions.list(token ?? '');
         const oldestVer = await DbActions.getOldestVersion(token ?? '');
@@ -269,8 +286,8 @@ const middlewareReducer = async (dispatch: (payload: Payload) => void, payload: 
         dispatch({ ...payload, data: { error } });
         break;
       }
-
-    case ActionType.NewDb:
+    }
+    case ActionType.NewDb: {
       if (!token) {
         dispatch({ ...payload, data: { error: 'No auth token defined.' } });
         break;
@@ -352,15 +369,15 @@ const middlewareReducer = async (dispatch: (payload: Payload) => void, payload: 
         dispatch({ ...payload, data: { newDb, updatedDatabases } });
       }
       break;
-
-    case ActionType.ExportDb:
+    }
+    case ActionType.ExportDb: {
       if (!token) {
         dispatch({ ...payload, data: { error: 'No auth token defined.' } });
         break;
       }
-      const { dbAlias: dumpDbAlias, dataOnly } = payload.data;
+      const { dbAlias, dataOnly } = payload.data;
       try {
-        const dump = await DbActions.dump(token, dumpDbAlias, dataOnly);
+        const dump = await DbActions.dump(token, dbAlias, dataOnly);
         if (dump) {
           dispatch({ ...payload, data: { dump } });
         }
@@ -370,8 +387,8 @@ const middlewareReducer = async (dispatch: (payload: Payload) => void, payload: 
         break;
       }
       break;
-
-    case ActionType.RunSql:
+    }
+    case ActionType.RunSql: {
       if (!token) {
         dispatch({ ...payload, data: { error: 'No auth token defined.' } });
         break;
@@ -431,8 +448,8 @@ const middlewareReducer = async (dispatch: (payload: Payload) => void, payload: 
         });
       }
       break;
-
-    case ActionType.RunAutocompleteSql:
+    }
+    case ActionType.RunAutocompleteSql: {
       if (!token) {
         dispatch({ ...payload, data: { error: 'No auth token defined.' } });
         break;
@@ -449,8 +466,8 @@ const middlewareReducer = async (dispatch: (payload: Payload) => void, payload: 
         dispatch({ action: ActionType.RunningSql, data: { isRunning: false } });
       }
       break;
-
-    case ActionType.DisconnectDb:
+    }
+    case ActionType.DisconnectDb: {
       if (!token) {
         dispatch({ ...payload, data: { error: 'No auth token defined.' } });
         break;
@@ -465,8 +482,8 @@ const middlewareReducer = async (dispatch: (payload: Payload) => void, payload: 
         dispatch({ ...payload, data: { error } });
       }
       break;
-
-    case ActionType.TrackEvent:
+    }
+    case ActionType.TrackEvent: {
       if (!token) {
         dispatch({ ...payload, data: { error: 'No auth token defined.' } });
         break;
@@ -487,9 +504,10 @@ const middlewareReducer = async (dispatch: (payload: Payload) => void, payload: 
         dispatch({ ...payload, data: { error } });
       }
       break;
-
-    default:
+    }
+    default: {
       dispatch(payload);
+    }
   }
 };
 
