@@ -42,7 +42,7 @@ jobs:
         with:
           context: .
           push: true
-          platforms: linux/amd64,linux/arm64,linux/arm/v7,darwin/amd64,darwin/arm64
+          platforms: linux/amd64,linux/arm64,linux/arm/v7
           tags: iasql/iasql:latest, iasql/iasql:${{ github.event.client_payload.version }}${{ github.event.client_payload.message.version }}${{ github.event.inputs.version }}
           labels: ${{ steps.meta.outputs.labels }}
 
