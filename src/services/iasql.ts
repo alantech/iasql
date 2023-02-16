@@ -137,6 +137,12 @@ export async function disconnect(dbAlias: string, uid: string) {
       DROP DATABASE IF EXISTS ${db.pgName} WITH (FORCE);
     `);
     await conn.query(dbMan.dropPostgresRoleQuery(db.pgUser, db.pgName, true));
+    console.log({
+      vader: 'if only you knew the power of the dark side',
+      expected: 'most unexpected',
+      uid,
+      dbAlias,
+    }); 
     await MetadataRepo.delDb(uid, dbAlias);
     return db.pgName;
   } catch (e: any) {
