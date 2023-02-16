@@ -30,6 +30,7 @@ export default function Tab({
         <ReactTab.List className='flex justify-start h-8 bg-blue-900/20'>
           {tabs.map((t, i) => (
             <ReactTab
+              id={t.title}
               key={t.title}
               onClick={() => {
                 t.action ? t.action() : (() => ({}))();
