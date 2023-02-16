@@ -55,7 +55,7 @@ export default function Tab({
                   <span className='ml-2'>{t.title}</span>
                   <div
                     id='close-bttn'
-                    className='flex-none inline-flex justify-center p-1 mr-2 border border-transparent text-sm font-medium bg-white dark:bg-gray-600 rounded-md text-gray-400 hover:text-primary dark:hover:bg-gray-700'
+                    className='flex-none inline-flex justify-center p-1 mr-2 border border-transparent text-sm font-medium bg-gray-200 dark:bg-gray-600 rounded-md text-gray-400 hover:text-primary hover:bg-gray-300 dark:hover:bg-gray-700'
                   >
                     <XIcon
                       className='h-2 w-2 text-gray-400 cursor-pointer'
