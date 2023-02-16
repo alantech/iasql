@@ -47,7 +47,7 @@ Support for multiple AWS regions with default region behavior in part because we
 
 ### 🪄 Infrastructure changes as transactions, please
 
-We redid the UX to allow handling infrastructure changes automatically. Do you want to programmatically modify your infra or control plane? We got you! However, for delicate, or complex, changes to your cloud account use an [IaSQL transaction](/docs/transaction) akin to transactions in a regular database.
+We redid the UX to allow handling infrastructure changes automatically and for delicate, or complex, changes to your cloud account use an [IaSQL transaction](/docs/transaction) akin to transactions in a regular database. Do you want to programmatically modify your infra or control plane? We got you!
 
 [Learn more about it in the RFC for this feature &#8594;](https://github.com/iasql/iasql/blob/main/rfcs/004%20-%20Continuous%20Two-Way%20Synchronization%20RFC.md)
 
