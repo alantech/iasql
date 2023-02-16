@@ -1,6 +1,6 @@
 ---
 slug: beta
-title: "IaSQL is in beta: AWS multiregion, automatic two-way mode, smooth local setup"
+title: "IaSQL is in beta: AWS multiregion + infra changes as transactions + smooth local setup"
 date: 2023-02-15
 authors: [yrobla, mtp1376, depombo, dfellis, aguillenv]
 tags: [updates]
@@ -45,9 +45,9 @@ Support for multiple AWS regions with default region behavior in part because we
 
 [Learn more about it in the RFC for this feature &#8594;](https://github.com/iasql/iasql/blob/main/rfcs/003%20-%20Multi-Region%20Support%20RFC.md)
 
-### 🪄 Automagical two-way mode, please
+### 🪄 Infrastructure changes as transactions, please
 
-We redid the UX to allow handling infrastructure changes automatically and wrapping delicate, or complex, changes within a special [IaSQL transaction](/docs/transaction) akin to transactions in a regular database. This means no more `apply`. Do you want to programmatically modify your infra or control plane? We got you!
+We redid the UX to allow handling infrastructure changes automatically. Do you want to programmatically modify your infra or control plane? We got you! However, for delicate, or complex, changes to your cloud account use an [IaSQL transaction](/docs/transaction) akin to transactions in a regular database.
 
 [Learn more about it in the RFC for this feature &#8594;](https://github.com/iasql/iasql/blob/main/rfcs/004%20-%20Continuous%20Two-Way%20Synchronization%20RFC.md)
 
