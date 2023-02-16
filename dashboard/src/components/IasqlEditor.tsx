@@ -158,6 +158,13 @@ export default function IasqlEditor() {
     });
   }, [installedModules, functions]);
 
+  useEffect(() => {
+    dispatch({
+      action: ActionType.EditorSelectTab,
+      data: { index: editorTabs.length - 2 >= 0 ? editorTabs.length - 2 : 0 },
+    });
+  }, [editorTabs, dispatch]);
+
   const onTabChange = (i: number) => {
     dispatch({
       action: ActionType.EditorSelectTab,
