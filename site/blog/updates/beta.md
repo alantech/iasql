@@ -1,7 +1,7 @@
 ---
 slug: beta
 title: "IaSQL is in beta: AWS multiregion + infra changes as transactions + smooth local setup"
-date: 2023-02-15
+date: 2023-02-16
 authors: [yrobla, mtp1376, depombo, dfellis, aguillenv]
 tags: [updates]
 ---
