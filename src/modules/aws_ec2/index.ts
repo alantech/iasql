@@ -5,7 +5,7 @@ import {
   KeyPairMapper,
   RegisteredInstanceMapper,
 } from './mappers';
-import { KeyPairImportRpc, KeyPairRequestRpc } from './rpcs';
+import { DescribeAmiRpc, KeyPairImportRpc, KeyPairRequestRpc } from './rpcs';
 
 export class AwsEc2Module extends ModuleBase {
   /** @internal */
@@ -22,6 +22,7 @@ export class AwsEc2Module extends ModuleBase {
 
   keyPairImport: KeyPairImportRpc;
   keyPairRequest: KeyPairRequestRpc;
+  describeAmi: DescribeAmiRpc;
 
   constructor() {
     super();
@@ -33,6 +34,7 @@ export class AwsEc2Module extends ModuleBase {
     // RPCs
     this.keyPairImport = new KeyPairImportRpc(this);
     this.keyPairRequest = new KeyPairRequestRpc(this);
+    this.describeAmi = new DescribeAmiRpc(this);
     super.init();
   }
 }

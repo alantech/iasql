@@ -28,6 +28,8 @@ const ec2client = new EC2({
   },
   region,
 });
+const ubuntuAmiId =
+  'resolve:ssm:/aws/service/canonical/ubuntu/server/20.04/stable/current/amd64/hvm/ebs-gp2/ami-id';
 
 const getAvailabilityZones = async () => {
   return await ec2client.describeAvailabilityZones({
@@ -374,6 +376,19 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
     WHERE tags ->> 'Name' = '${gp2VolumeName}' OR tags ->> 'Name' = '${gp3VolumeName}';
     `,
       (res: any[]) => expect(res.length).toBe(0),
+    ),
+  );
+
+  itDocs(
+    'gets information about an AMI',
+    query(
+      `
+      SELECT * from describe_ami('${ubuntuAmiId}')
+  `,
+      (res: any[]) => {
+        expect(res.length).toBe(1);
+        expect(res[0].status).toBe('OK');
+      },
     ),
   );
 
