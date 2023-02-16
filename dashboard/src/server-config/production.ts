@@ -5,10 +5,6 @@ const production: ConfigInterface = {
     domain: 'https://auth.iasql.com/',
     audience: 'https://api.iasql.com', // id of this api in auth0
   },
-  http: {
-    port: 8888,
-    corsOrigin: 'https://app.iasql.com',
-  },
   db: {
     host: 'pg.iasql.com',
     // TODO: Move away from env var to secrets
