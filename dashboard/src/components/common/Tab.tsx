@@ -49,7 +49,7 @@ export default function Tab({
                 )
               }
             >
-              {t.closable && selectedIndex === i ? (
+              {t.closable && selectedIndex === i && tabs.length > 2 ? (
                 <HBox alignment={align.between}>
                   <span className='ml-2'>{t.title}</span>
                   <div

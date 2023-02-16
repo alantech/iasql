@@ -166,7 +166,6 @@ export default function IasqlEditor() {
   };
 
   const onTabClose = (i: number) => {
-    console.log(`index ${i}`);
     dispatch({
       action: ActionType.EditorCloseTab,
       data: { index: i },

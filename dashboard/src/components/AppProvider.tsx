@@ -71,6 +71,7 @@ interface AppState {
   isDarkMode: boolean;
   shouldShowDisconnect: boolean;
   shouldShowConnect: boolean;
+  editorTabsCreated: number;
   editorSelectedTab: number;
   editorTabs: {
     title: string;
@@ -217,9 +218,9 @@ SELECT * FROM iasql_uninstall('${uninstallModule}');
     case ActionType.EditorNewTab:
       tabsCopy = [...state.editorTabs];
       const newTab = tabsCopy.pop();
-      tabsCopy.push({ title: `Query-${state.editorTabs.length - 1}`, content: '', closable: true });
+      tabsCopy.push({ title: `Query-${state.editorTabsCreated}`, content: '', closable: true });
       if (newTab) tabsCopy.push(newTab);
-      return { ...state, editorTabs: tabsCopy };
+      return { ...state, editorTabs: tabsCopy, editorTabsCreated: state.editorTabsCreated + 1 };
     case ActionType.EditorSelectTab:
       const { index } = payload.data;
       return { ...state, editorSelectedTab: index };
@@ -497,6 +498,7 @@ const AppProvider = ({ children }: { children: any }) => {
     shouldShowDisconnect: false,
     shouldShowConnect: false,
     editorSelectedTab: 0,
+    editorTabsCreated: 1,
     editorTabs: [
       { title: 'Welcome', content: '', closable: true },
       {
@@ -537,6 +539,7 @@ const AppProvider = ({ children }: { children: any }) => {
         shouldShowConnect: state.shouldShowConnect,
         editorTabs: state.editorTabs,
         editorSelectedTab: state.editorSelectedTab,
+        editorTabsCreated: state.editorTabsCreated,
         dispatch: customDispatch,
       }}
     >
