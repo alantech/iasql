@@ -7,7 +7,7 @@ import {
   SQS,
 } from '@aws-sdk/client-sqs';
 import { ListQueuesCommandInput } from '@aws-sdk/client-sqs/dist-types/commands/ListQueuesCommand';
-import { parse as parseArn } from '@aws-sdk/util-arn-parser';
+import { build as buildArn, parse as parseArn } from '@aws-sdk/util-arn-parser';
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 
 import { policiesAreSame } from '../../../services/aws-diff';
@@ -71,14 +71,39 @@ export class QueueMapper extends MapperBase<Queue> {
     return out;
   }
 
-  private createAttributesObject(e: Queue) {
+  private async generateDefaultPolicy(ctx: Context, queue: Queue) {
+    const client = (await ctx.getAwsClient(await ctx.getDefaultRegion())) as AWS;
+    const callerIdentityResponse = await client.stsClient.getCallerIdentity({});
+    // only the queue owner has access to send/receive message
+    return {
+      Version: '2008-10-17',
+      Statement: [
+        {
+          Effect: 'Allow',
+          Principal: {
+            AWS: callerIdentityResponse.Arn,
+          },
+          Action: ['SQS:*'],
+          Resource: buildArn({
+            partition: 'aws',
+            service: 'sqs',
+            region: queue.region,
+            accountId: callerIdentityResponse.Account!,
+            resource: queue.name,
+          }),
+        },
+      ],
+    };
+  }
+
+  private async createAttributesObject(e: Queue, ctx: Context) {
     const attributes: Record<string, string> = {
       VisibilityTimeout: e.visibilityTimeout.toString(),
       DelaySeconds: e.delaySeconds.toString(),
       ReceiveMessageWaitTimeSeconds: e.receiveMessageWaitTimeSeconds.toString(),
       MessageRetentionPeriod: e.messageRetentionPeriod.toString(),
       MaximumMessageSize: e.maximumMessageSize.toString(),
-      Policy: JSON.stringify(e.policy),
+      Policy: e.policy ? JSON.stringify(e.policy) : JSON.stringify(await this.generateDefaultPolicy(ctx, e)),
     };
     if (e.fifoQueue) attributes.FifoQueue = 'true'; // https://github.com/aws/aws-cdk/issues/8550
     return attributes;
@@ -139,7 +164,7 @@ export class QueueMapper extends MapperBase<Queue> {
         const client = (await ctx.getAwsClient(e.region)) as AWS;
         const input: CreateQueueCommandInput = {
           QueueName: e.name,
-          Attributes: this.createAttributesObject(e),
+          Attributes: await this.createAttributesObject(e, ctx),
         };
         const queueUrl = await this.createQueue(client.sqsClient, input);
         if (!queueUrl) throw new Error('Cannot create queue');
@@ -201,7 +226,7 @@ export class QueueMapper extends MapperBase<Queue> {
           const client = (await ctx.getAwsClient(e.region)) as AWS;
           await this.setQueueAttributes(client.sqsClient, {
             QueueUrl: e.url,
-            Attributes: this.createAttributesObject(e),
+            Attributes: await this.createAttributesObject(e, ctx),
           });
           out.push(e);
         }
