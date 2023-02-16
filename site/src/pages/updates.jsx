@@ -17,7 +17,7 @@ const formStyles = {
   "successFont": "Roboto",
   "successFontColor": "#000000",
   "successFontSizePx": 14,
-  "userGroup": "newsletter"
+  "userGroup": "beta"
 }
 const domain = "app.loops.so"
 
