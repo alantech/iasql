@@ -111,7 +111,9 @@ const reducer = (state: AppState, payload: Payload): AppState => {
       db.isUnsupported =
         !semver.valid(db?.version) || (!!state.oldestVersion && semver.lt(db?.version, state.oldestVersion));
       tabsCopy = [...state.editorTabs];
-      tabsCopy.map(t => (t.queryRes = undefined));
+      if (db?.alias !== state.selectedDb?.alias) {
+        tabsCopy.map(t => (t.queryRes = undefined));
+      }
       return { ...state, selectedDb: db, editorTabs: tabsCopy };
     case ActionType.InitialLoad:
       const { token } = payload;
@@ -120,7 +122,15 @@ const reducer = (state: AppState, payload: Payload): AppState => {
     case ActionType.NewDb:
       const { newDb, updatedDatabases } = payload.data;
       const newSelectedDb = updatedDatabases.find((d: any) => d.alias === newDb.alias);
-      return { ...state, databases: updatedDatabases, selectedDb: newSelectedDb, newDb };
+      tabsCopy = [...state.editorTabs];
+      tabsCopy.map(t => (t.queryRes = undefined));
+      return {
+        ...state,
+        databases: updatedDatabases,
+        selectedDb: newSelectedDb,
+        newDb,
+        editorTabs: tabsCopy,
+      };
     case ActionType.ResetNewDb:
       return { ...state, newDb: undefined };
     case ActionType.ExportDb:
@@ -136,15 +146,16 @@ const reducer = (state: AppState, payload: Payload): AppState => {
     case ActionType.RunningSql:
       const { isRunning } = payload.data;
       return { ...state, isRunningSql: isRunning };
-    case ActionType.RunSql:
+    case ActionType.RunSql: {
       const { queryRes, databases: runSqlUpdatedDbs } = payload.data;
-      const relevantTab2 = state.editorTabs[state.editorSelectedTab];
-      relevantTab2.queryRes = queryRes;
+      const tabsCopy = [...state.editorTabs];
+      tabsCopy[state.editorSelectedTab].queryRes = queryRes;
       if (runSqlUpdatedDbs !== null) {
         const current = runSqlUpdatedDbs.find((d: any) => d.alias === state.selectedDb.alias);
-        return { ...state, databases: runSqlUpdatedDbs, selectedDb: current };
+        return { ...state, databases: runSqlUpdatedDbs, selectedDb: current, editorTabs: tabsCopy };
       }
-      return { ...state };
+      return { ...state, editorTabs: tabsCopy };
+    }
     case ActionType.RunAutocompleteSql:
       const { autoCompleteRes } = payload.data;
       const moduleData = {} as {

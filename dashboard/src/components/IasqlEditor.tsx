@@ -42,6 +42,7 @@ export default function IasqlEditor() {
     editorSelectedTab,
   } = useAppContext();
   const editorRef = useRef(null as null | ReactAce);
+  const prevTabsLenRef = useRef(null as null | number);
   const cookies = useMemo(() => new Cookies(), []);
   const queryParams = useQueryParams();
 
@@ -90,6 +91,20 @@ export default function IasqlEditor() {
     },
     [dispatch, token],
   );
+
+  const onTabChange = (i: number) => {
+    dispatch({
+      action: ActionType.EditorSelectTab,
+      data: { index: i === editorTabs.length - 1 ? i - 1 : i },
+    });
+  };
+
+  const onTabClose = (i: number) => {
+    dispatch({
+      action: ActionType.EditorCloseTab,
+      data: { index: i },
+    });
+  };
 
   // Set up initial query in editor content
   useEffect(() => {
@@ -159,25 +174,19 @@ export default function IasqlEditor() {
   }, [installedModules, functions]);
 
   useEffect(() => {
-    dispatch({
-      action: ActionType.EditorSelectTab,
-      data: { index: editorTabs.length - 2 >= 0 ? editorTabs.length - 2 : 0 },
-    });
+    if (editorTabs.length !== prevTabsLenRef.current) {
+      dispatch({
+        action: ActionType.EditorSelectTab,
+        data: { index: editorTabs.length - 2 >= 0 ? editorTabs.length - 2 : 0 },
+      });
+    }
   }, [editorTabs, dispatch]);
 
-  const onTabChange = (i: number) => {
-    dispatch({
-      action: ActionType.EditorSelectTab,
-      data: { index: i === editorTabs.length - 1 ? i - 1 : i },
-    });
-  };
-
-  const onTabClose = (i: number) => {
-    dispatch({
-      action: ActionType.EditorCloseTab,
-      data: { index: i },
-    });
-  };
+  useEffect(() => {
+    if (!prevTabsLenRef.current || prevTabsLenRef.current !== editorTabs.length) {
+      prevTabsLenRef.current = editorTabs.length;
+    }
+  }, [editorTabs]);
 
   return (
     <VBox customStyles='mb-3'>
