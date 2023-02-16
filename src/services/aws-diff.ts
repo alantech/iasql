@@ -1,3 +1,6 @@
+import _ from 'lodash';
+
+import { normalizePolicy } from './canonical-iam-policy';
 import { isString } from './common';
 
 function isStringArray(obj: unknown): obj is string[] {
@@ -55,50 +58,9 @@ export function objectsAreSame(obj1: any = {}, obj2: any = {}): boolean {
 
 // Returns true if the policies mean the same thing (regardless of structure), and false if they aren't
 export function policiesAreSame(obj1: any, obj2: any): boolean {
-  // comparison for when one or both values are undefined
   if (!obj1 || !obj2) return obj1 === obj2;
 
-  if (Array.isArray(obj1) && obj1.length === 1) return policiesAreSame(obj1[0], obj2);
-  if (Array.isArray(obj2) && obj2.length === 1) return policiesAreSame(obj1, obj2[0]);
-
-  let same = Object.keys(obj1).length === Object.keys(obj2).length;
-  if (!same) return same;
-
-  same = true;
-  for (const key of Object.keys(obj1)) {
-    switch (key) {
-      // Can be String-only
-      case IAM_KEY.Version:
-      case IAM_KEY.Effect:
-      case IAM_KEY.Sid:
-        if (obj1[key] !== obj2[key]) {
-          same = false;
-        }
-        break;
-      // Can be an array of single object or just an object
-      case IAM_KEY.Statement:
-        same = policiesAreSame(obj1[key], obj2[key]);
-        break;
-      // Can be JSON or string
-      case IAM_KEY.Principal:
-      // Can be string or array of strings
-      case IAM_KEY.Action:
-      case IAM_KEY.Resource:
-      // Can only be JSON
-      case IAM_KEY.Condition:
-      default:
-        if (isString(obj1[key]) && isString(obj2[key]) && obj1[key] !== obj2[key]) {
-          same = false;
-          break;
-        }
-
-        same = objectsAreSame(obj1[key], obj2[key]);
-        break;
-    }
-
-    // If we've found a difference, stop looping.
-    if (!same) break;
-  }
-
-  return same;
+  const normObj1 = normalizePolicy(obj1),
+    normObj2 = normalizePolicy(obj2);
+  return _.isEqual(normObj1, normObj2);
 }
