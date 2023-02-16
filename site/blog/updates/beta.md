@@ -59,7 +59,7 @@ Increased AWS service coverage for EC2, CodeDeploy, CodeBuild, CodePipeline, SNS
 
 ### 💨 Breeze through a simplified AWS
 
-AWS is well... complicated. We set forth simplified modules that focus on specific use cases like deploying a docker container to ECS and exposing it to the internet which involves ECR, ECS, ACM, and Route53. The simplified modules are written in pure SQL on top of the existing IaSQL modules, or AWS services, and are meant to abstract the complexity of coordinating multiple AWS services while still letting you peek under the hood when needed. Think of a simplified module as a PaaS hosted in your AWS account that is built on top of known AWS services but also lets you eject back into these AWS services when needed.
+AWS is well... complicated. Our modules let you create, update, and delete your cloud resources as relational tables with the configurability AWS provides, but sometimes those details are not relevant to what you are trying to accomplish. So we have developed simplified modules that focus on specific use cases. For instance deploying a docker container to ECS and exposing it to the internet which is not just ECS but involves ECR, ECS, ACM, and Route53. These simplified modules are written in pure SQL on top of the existing IaSQL modules and are meant to abstract the complexity of coordinating multiple AWS services while still letting you peek under the hood when needed. Think of a simplified module as a PaaS hosted in your AWS account that is built on top of known AWS services but also lets you eject back into these AWS services if necessary.
 
 [Learn more about simplified modules here &#8594;](/blog/ecs-simplified)
 
