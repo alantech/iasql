@@ -4,7 +4,7 @@ const config: ConfigInterface = {
   http: {
     host: 'localhost',
     port: 8088,
-    workerPool: true,
+    workerPool: false,
   },
   db: {
     host: 'localhost',
