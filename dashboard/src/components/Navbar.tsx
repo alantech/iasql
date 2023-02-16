@@ -14,24 +14,13 @@ function classNames(...classes: any[]) {
 }
 
 export default function Navbar({ userPic }: { userPic: string }) {
-  const { token, dispatch } = useAppContext();
+  const { token, isDarkMode, dispatch } = useAppContext();
   const { logout } = useAuth0();
   const homeUrl = 'https://iasql.com';
   const navigation = [
     { name: 'Docs', href: 'https://iasql.com/docs', current: false },
     { name: 'Discord', href: 'https://discord.com/invite/machGGczea', current: false },
   ];
-  // Start off with light mode if not otherwise defined
-  const [isDarkMode, setDarkMode] = useState(false);
-  useEffect(() => {
-    if (!('theme' in localStorage)) {
-      localStorage.setItem(
-        'theme',
-        window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',
-      );
-    }
-    if ((localStorage.theme === 'dark') !== isDarkMode) setDarkMode(localStorage.theme === 'dark');
-  });
   return (
     <Disclosure as='nav' className='bg-gray-800'>
       {({ open }) => (
@@ -87,7 +76,10 @@ export default function Navbar({ userPic }: { userPic: string }) {
                       } else {
                         document.documentElement.classList.remove('dark');
                       }
-                      setDarkMode(newIsDarkMode);
+                      dispatch({
+                        action: ActionType.SelectAppTheme,
+                        data: { theme: newIsDarkMode ? 'dark' : 'light' },
+                      });
                     })();
                   }}
                 >

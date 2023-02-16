@@ -43,6 +43,7 @@ export enum ActionType {
   SetError = 'SerError',
   EditorNewTab = 'EditorNewTab',
   EditorSelectTab = 'EditorSelectTab',
+  SelectAppTheme = 'SelectAppTheme',
 }
 
 interface Payload {
@@ -219,6 +220,9 @@ SELECT * FROM iasql_uninstall('${uninstallModule}');
     case ActionType.EditorSelectTab:
       const { index } = payload.data;
       return { ...state, editorSelectedTab: index };
+    case ActionType.SelectAppTheme:
+      const { theme } = payload.data;
+      return { ...state, isDarkMode: theme === 'dark' };
   }
   return state;
 };
@@ -470,11 +474,6 @@ const middlewareReducer = async (dispatch: (payload: Payload) => void, payload: 
 };
 
 const AppProvider = ({ children }: { children: any }) => {
-  let local: any;
-  useEffect(() => {
-    local = localStorage;
-  });
-
   const initialState: AppState = {
     selectedDb: null,
     oldestVersion: undefined,
@@ -486,7 +485,7 @@ const AppProvider = ({ children }: { children: any }) => {
     allModules: {},
     functions: [],
     installedModules: {},
-    isDarkMode: local?.theme === 'dark',
+    isDarkMode: false,
     shouldShowDisconnect: false,
     shouldShowConnect: false,
     editorSelectedTab: 0,

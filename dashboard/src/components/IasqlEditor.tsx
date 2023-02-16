@@ -158,14 +158,6 @@ export default function IasqlEditor() {
     });
   }, [installedModules, functions]);
 
-  // TODO: Handle this in app context
-  if (!('theme' in localStorage)) {
-    localStorage.setItem(
-      'theme',
-      window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',
-    );
-  }
-
   const onTabChange = (i: number) => {
     dispatch({
       action: ActionType.EditorSelectTab,

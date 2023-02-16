@@ -34,7 +34,22 @@ export default function App() {
       showSmallViewport(innerWidth < MIN_WIDTH);
     }
     if (token && !latestVersion) {
+      // Dispatch initial load
       dispatch({ token: token ?? '', action: ActionType.InitialLoad });
+
+      // Set initial theme config
+      if (!('theme' in localStorage)) {
+        localStorage.setItem(
+          'theme',
+          window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',
+        );
+      }
+      if (localStorage.getItem('theme') === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+      dispatch({ action: ActionType.SelectAppTheme, data: { theme: localStorage.getItem('theme') } });
     }
   }, [dispatch, token, latestVersion]);
 
