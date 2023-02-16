@@ -47,7 +47,7 @@ FROM build AS dashboard-stage
 WORKDIR /dashboard
 
 ## Copy files
-COPY dashboard/.eslintrc.json dashboard/next.config.js dashboard/postcss.config.js dashboard/tailwind.config.js dashboard/tsconfig.json dashboard/tslint.json ./
+COPY dashboard/.yarnrc dashboard/.eslintrc.json dashboard/next.config.js dashboard/postcss.config.js dashboard/tailwind.config.js dashboard/tsconfig.json dashboard/tslint.json ./
 COPY dashboard/public public
 COPY dashboard/src src
 
@@ -63,7 +63,7 @@ FROM build AS engine-stage
 WORKDIR /engine
 
 ## Copy files
-COPY ormconfig.js tsconfig.json ./
+COPY .yarnrc ormconfig.js tsconfig.json ./
 COPY src src
 
 ## Install stage dependencies
