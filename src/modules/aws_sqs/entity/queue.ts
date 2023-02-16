@@ -91,9 +91,9 @@ export class Queue {
    * @see https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-sqs/interfaces/createqueuecommandinput.html
    */
   @Min(60)
-  @Max(1_209_600)
+  @Max(1_209_600) // 14 days
   @Column({
-    default: 345_600,
+    default: 345_600, // 4 days
     type: 'integer',
   })
   messageRetentionPeriod: number;
