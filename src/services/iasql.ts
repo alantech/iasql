@@ -258,6 +258,7 @@ export async function dump(dbId: string, dataOnly: boolean) {
 export async function upgrade() {
   logger.debug('Starting upgrade...');
   const dbs = await MetadataRepo.getAllDbs();
+  console.log({ dbs, starting: 'upgrade', });
   const dbsDone: { [key: string]: boolean } = {};
   for (const db of dbs) {
     logger.debug(`Starting Part 2 of 3 for ${db.pgName}`);
@@ -444,6 +445,8 @@ export async function upgrade() {
       await lastConn.query(`
         DROP DATABASE "OLD${db.pgName}";
       `);
+      // Restore the DB into the metadata repo (deleted during initialization of the child processes)
+      await MetadataRepo.saveDb(user.id, user.email, db);
       clearInterval(upgradeHandle);
       logger.debug(`Part 3 of 3 for ${db} complete!`);
       if (
