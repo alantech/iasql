@@ -427,6 +427,8 @@ export async function upgrade() {
       await lastConn.query(`
         DROP DATABASE "OLD${db.pgName}";
       `);
+      // Restore the DB into the metadata repo (deleted during initialization of the child processes)
+      await MetadataRepo.saveDb(user.id, user.email, db);
       clearInterval(upgradeHandle);
       logger.debug(`Part 3 of 3 for ${db} complete!`);
       if (

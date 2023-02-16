@@ -91,5 +91,13 @@ if [ "${ISUPGRADED}" == "false" ]; then
   exit 2
 fi
 
+# Check to make sure the database still exists in the metadata repo
+metares=$(psql "postgres://postgres:test@localhost:5432/iasql_metadata" -t -c "SELECT * FROM iasql_database WHERE alias = 'to_upgrade';")
+echo $metares
+if [ "${metares}" == "" ]; then
+  echo "Metadata dropped during upgrade from version ${PRIORVERSION} to ${CURRENTVERSION}!"
+  exit 3
+fi
+
 echo "Successfully upgraded from ${PRIORVERSION} to ${CURRENTVERSION}!"
 
