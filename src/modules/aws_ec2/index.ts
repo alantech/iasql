@@ -1,6 +1,7 @@
 import { ModuleBase } from '../interfaces';
 import {
   GeneralPurposeVolumeMapper,
+  InstanceBlockDeviceMappingMapper,
   InstanceMapper,
   KeyPairMapper,
   RegisteredInstanceMapper,
@@ -10,6 +11,9 @@ import { DescribeAmiRpc, KeyPairImportRpc, KeyPairRequestRpc } from './rpcs';
 export class AwsEc2Module extends ModuleBase {
   /** @internal */
   instance: InstanceMapper;
+
+  /** @internal */
+  instanceBlockDeviceMapping: InstanceBlockDeviceMappingMapper;
 
   /** @internal */
   registeredInstance: RegisteredInstanceMapper;
@@ -28,6 +32,7 @@ export class AwsEc2Module extends ModuleBase {
     super();
     // Mappers
     this.instance = new InstanceMapper(this);
+    this.instanceBlockDeviceMapping = new InstanceBlockDeviceMappingMapper(this);
     this.registeredInstance = new RegisteredInstanceMapper(this);
     this.generalPurposeVolume = new GeneralPurposeVolumeMapper(this);
     this.keypair = new KeyPairMapper(this);

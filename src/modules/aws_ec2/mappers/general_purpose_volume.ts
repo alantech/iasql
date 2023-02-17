@@ -21,8 +21,6 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
   module: AwsEc2Module;
   entity = GeneralPurposeVolume;
   equals = (a: GeneralPurposeVolume, b: GeneralPurposeVolume) =>
-    Object.is(a.attachedInstance?.instanceId, b.attachedInstance?.instanceId) &&
-    Object.is(a.instanceDeviceName, b.instanceDeviceName) &&
     Object.is(a?.availabilityZone?.name, b?.availabilityZone?.name) &&
     Object.is(a.iops, b.iops) &&
     Object.is(a.size, b.size) &&
@@ -51,19 +49,6 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
     out.throughput = vol.Throughput;
     out.state = vol.State as VolumeState;
     out.snapshotId = vol.SnapshotId;
-    if (vol.Attachments?.length) {
-      const attachment = vol.Attachments.pop();
-      out.attachedInstance =
-        (await this.module.instance.db.read(
-          ctx,
-          this.module.instance.generateId({ instanceId: attachment?.InstanceId ?? '', region }),
-        )) ??
-        (await this.module.instance.cloud.read(
-          ctx,
-          this.module.instance.generateId({ instanceId: attachment?.InstanceId ?? '', region }),
-        ));
-      out.instanceDeviceName = attachment?.Device;
-    }
     if (vol.Tags?.length) {
       const tags: { [key: string]: string } = {};
       vol.Tags.filter((t: any) => !!t.Key && !!t.Value).forEach((t: any) => {
@@ -244,9 +229,6 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
       const out = [];
       for (const e of es) {
         const client = (await ctx.getAwsClient(e.region)) as AWS;
-        if (e.attachedInstance && !e.attachedInstance.instanceId) {
-          throw new Error('Want to attach volume to an instance not created yet');
-        }
         const input: CreateVolumeCommandInput = {
           AvailabilityZone: e.availabilityZone.name,
           VolumeType: e.volumeType,
@@ -270,14 +252,6 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
           ];
         }
         const newVolumeId = await this.createVolume(client.ec2client, input);
-        if (newVolumeId && e.attachedInstance?.instanceId && e.instanceDeviceName) {
-          await this.attachVolume(
-            client.ec2client,
-            newVolumeId,
-            e.attachedInstance.instanceId,
-            e.instanceDeviceName,
-          );
-        }
         // Re-get the inserted record to get all of the relevant records we care about
         const newObject = await this.getVolume(client.ec2client, newVolumeId);
         if (!newObject) continue;
@@ -358,33 +332,6 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
             await updateTags(client.ec2client, e.volumeId ?? '', e.tags);
             update = true;
           }
-          // Attach/detach instance
-          if (
-            !(
-              Object.is(cloudRecord.attachedInstance?.instanceId, e.attachedInstance?.instanceId) &&
-              Object.is(cloudRecord.instanceDeviceName, e.instanceDeviceName)
-            )
-          ) {
-            if (!cloudRecord.attachedInstance?.instanceId && e.attachedInstance?.instanceId) {
-              await this.attachVolume(
-                client.ec2client,
-                e.volumeId ?? '',
-                e.attachedInstance.instanceId,
-                e.instanceDeviceName ?? '',
-              );
-            } else if (cloudRecord.attachedInstance?.instanceId && !e.attachedInstance?.instanceId) {
-              await this.detachVolume(client.ec2client, e.volumeId ?? '');
-            } else {
-              await this.detachVolume(client.ec2client, e.volumeId ?? '');
-              await this.attachVolume(
-                client.ec2client,
-                e.volumeId ?? '',
-                e.attachedInstance?.instanceId ?? '',
-                e.instanceDeviceName ?? '',
-              );
-            }
-            update = true;
-          }
           if (update) {
             const rawVolume = await this.getVolume(client.ec2client, e.volumeId);
             if (!rawVolume) continue;
@@ -411,9 +358,6 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
     delete: async (vol: GeneralPurposeVolume[], ctx: Context) => {
       for (const e of vol) {
         const client = (await ctx.getAwsClient(e.region)) as AWS;
-        if (e.attachedInstance) {
-          await this.detachVolume(client.ec2client, e.volumeId ?? '');
-        }
         await this.deleteVolume(client.ec2client, e.volumeId ?? '');
       }
     },
