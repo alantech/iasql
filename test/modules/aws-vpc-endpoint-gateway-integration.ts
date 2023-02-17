@@ -319,7 +319,7 @@ describe('VPC Integration Testing', () => {
       `
     SELECT * FROM endpoint_gateway WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
   `,
-      (res: any) => expect(res[0]['policy_document']).toBe(testPolicy),
+      (res: any) => expect(res[0]['policy_document']).toEqual(testPolicy),
     ),
   );
 

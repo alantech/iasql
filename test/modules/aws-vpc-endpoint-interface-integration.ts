@@ -327,7 +327,7 @@ describe('VPC Endpoint interface Integration Testing', () => {
       `
     SELECT * FROM endpoint_interface WHERE tags ->> 'Name' = '${lambdaVpcEndpoint}';
   `,
-      (res: any) => expect(res[0]['policy_document']).toBe(testPolicy),
+      (res: any) => expect(res[0]['policy_document']).toEqual(testPolicy),
     ),
   );
 
