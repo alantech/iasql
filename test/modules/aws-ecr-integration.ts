@@ -296,7 +296,7 @@ describe('ECR Integration Testing', () => {
       'adds a new repository policy',
       query(
         `
-      INSERT INTO repository_policy (repository_id, policy_text)
+      INSERT INTO repository_policy (repository_id, policy)
       VALUES ((select id from repository where repository_name = '${repositoryName}'), '${policyMock}');
     `,
         undefined,
@@ -344,7 +344,7 @@ describe('ECR Integration Testing', () => {
       query(
         `
       UPDATE repository_policy
-      SET policy_text = '${updatePolicyMock}'
+      SET policy = '${updatePolicyMock}'
       WHERE repository_id = (select id from repository where repository_name = '${repositoryName}');
     `,
         undefined,

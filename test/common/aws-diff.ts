@@ -1,4 +1,5 @@
 import { objectsAreSame, policiesAreSame } from '../../src/services/aws-diff';
+import { Policy } from '../../src/services/canonical-iam-policy';
 
 jest.setTimeout(30000);
 
@@ -6,7 +7,7 @@ describe('policiesAreSame', () => {
   describe('when cloud and DB policies are exactly the same', () => {
     it('should return true', () => {
       // Arrange
-      const policy1 = {
+      const policy1: Policy = {
         Version: '2012-10-17',
         Statement: [
           {
@@ -17,7 +18,7 @@ describe('policiesAreSame', () => {
         ],
       };
 
-      const policy2 = {
+      const policy2: Policy = {
         Version: '2012-10-17',
         Statement: [
           {
@@ -40,7 +41,7 @@ describe('policiesAreSame', () => {
     describe('when one policy has "Action" as single-element array of string, instead of string', () => {
       it('should return true', () => {
         // Arrange
-        const dbPolicy = {
+        const dbPolicy: Policy = {
           Version: '2012-10-17',
           Statement: [
             {
@@ -51,7 +52,7 @@ describe('policiesAreSame', () => {
           ],
         };
 
-        const cloudPolicy = {
+        const cloudPolicy: Policy = {
           Version: '2012-10-17',
           Statement: [
             {
@@ -73,7 +74,7 @@ describe('policiesAreSame', () => {
     describe('when one policy has "Statement" as single-element array of object, instead of object', () => {
       it('should return true', () => {
         // Arrange
-        const dbPolicy = {
+        const dbPolicy: Policy = {
           Version: '2012-10-17',
           Statement: [
             // <-- single-element array of object
@@ -85,7 +86,7 @@ describe('policiesAreSame', () => {
           ],
         };
 
-        const cloudPolicy = {
+        const cloudPolicy: Policy = {
           Version: '2012-10-17',
           Statement: {
             // <-- single-element object
@@ -106,7 +107,7 @@ describe('policiesAreSame', () => {
     describe('when both policies have "Action" as array of strings but reordered', () => {
       it('should return true', () => {
         // Arrange
-        const dbPolicy = {
+        const dbPolicy: Policy = {
           Version: '2012-10-17',
           Statement: [
             {
@@ -117,7 +118,7 @@ describe('policiesAreSame', () => {
           ],
         };
 
-        const cloudPolicy = {
+        const cloudPolicy: Policy = {
           Version: '2012-10-17',
           Statement: {
             Effect: 'Allow',
@@ -136,22 +137,22 @@ describe('policiesAreSame', () => {
     describe('when both policies have their [nested] keys reordered', () => {
       it('should return true', () => {
         // Arrange
-        const dbPolicy = {
+        const dbPolicy: Policy = {
           Statement: [
             {
+              Sid: 'some_sid',
               Resource: 'arn:aws:s3:::mybucket/*',
               Effect: 'Allow',
               Action: ['s3:GetObject', 's3:PutObject', 's3:DeleteObject'],
             },
           ],
           Version: '2012-10-17',
-          Sid: 'some_sid',
         };
 
-        const cloudPolicy = {
-          Sid: 'some_sid',
+        const cloudPolicy: Policy = {
           Version: '2012-10-17',
           Statement: {
+            Sid: 'some_sid',
             Effect: 'Allow',
             Action: ['s3:PutObject', 's3:GetObject', 's3:DeleteObject'],
             Resource: 'arn:aws:s3:::mybucket/*', // <-- different order
@@ -169,32 +170,32 @@ describe('policiesAreSame', () => {
 
   describe('when the policies have different meaning', () => {
     it('should return false', () => {
-      const dbPolicy = {
+      const dbPolicy: Policy = {
         Version: '2012-10-17',
         Statement: [
           {
             Effect: 'Allow',
             Action: 's3:GetObject',
             Resource: 'arn:aws:s3:::mybucket/*',
+            Principal: {
+              AWS: 'arn:aws:iam::123456789012:root',
+            },
           },
         ],
-        Principal: {
-          AWS: 'arn:aws:iam::123456789012:root',
-        },
       };
 
-      const cloudPolicy = {
+      const cloudPolicy: Policy = {
         Version: '2012-10-17',
         Statement: [
           {
             Effect: 'Allow',
             Action: 's3:GetObject',
             Resource: 'arn:aws:s3:::mybucket/*',
+            Principal: {
+              Federated: 'arn:aws:iam::123456789012:root', // <-- different
+            },
           },
         ],
-        Principal: {
-          Canonical: 'arn:aws:iam::123456789012:root', // <-- different
-        },
       };
 
       // Act
@@ -209,18 +210,18 @@ describe('policiesAreSame', () => {
     it('should return false', () => {
       const dbPolicy = undefined;
 
-      const cloudPolicy = {
+      const cloudPolicy: Policy = {
         Version: '2012-10-17',
         Statement: [
           {
             Effect: 'Allow',
             Action: 's3:GetObject',
             Resource: 'arn:aws:s3:::mybucket/*',
+            Principal: {
+              Federated: 'arn:aws:iam::123456789012:root', // <-- different
+            },
           },
         ],
-        Principal: {
-          Canonical: 'arn:aws:iam::123456789012:root', // <-- different
-        },
       };
 
       // Act
