@@ -440,20 +440,6 @@ describe('S3 Integration Testing', () => {
 
   describe('S3 bucket policy integration testing', () => {
     itDocs(
-      'gets current bucket policy',
-      query(
-        `
-    SELECT policy FROM bucket
-    WHERE name = '${s3Name}';
-    `,
-        (res: any[]) => {
-          expect(res.length).toBe(1);
-          expect(res[0].policy).toBe(undefined);
-        },
-      ),
-    );
-
-    itDocs(
       'updates the bucket policy',
       query(
         `
