@@ -16,7 +16,7 @@ import {
 const prefix = getPrefix();
 const dbAlias = 'vpctest';
 const lambdaVpcEndpoint = `${prefix}${dbAlias}-lambda-vpce`;
-const testPolicy = JSON.stringify({
+const testPolicy = {
   Version: '2012-10-17',
   Statement: [
     {
@@ -27,7 +27,7 @@ const testPolicy = JSON.stringify({
       Action: 'sts:AssumeRole',
     },
   ],
-});
+};
 
 const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
@@ -300,7 +300,7 @@ describe('VPC Endpoint interface Integration Testing', () => {
     query(
       `
     UPDATE endpoint_interface
-    SET policy_document = '${testPolicy}'
+    SET policy_document = '${JSON.stringify(testPolicy)}'
     WHERE tags ->> 'Name' = '${lambdaVpcEndpoint}';
   `,
       undefined,

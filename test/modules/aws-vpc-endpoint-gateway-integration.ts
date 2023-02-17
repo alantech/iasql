@@ -17,7 +17,7 @@ const prefix = getPrefix();
 const dbAlias = 'vpctest';
 const s3VpcEndpoint = `${prefix}${dbAlias}-s3-vpce`;
 const dynamodbVpcEndpoint = `${prefix}${dbAlias}-dynamodb-vpce`;
-const testPolicy = JSON.stringify({
+const testPolicy = {
   Version: '2012-10-17',
   Statement: [
     {
@@ -28,7 +28,7 @@ const testPolicy = JSON.stringify({
       Action: 'sts:AssumeRole',
     },
   ],
-});
+};
 
 const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
@@ -292,7 +292,7 @@ describe('VPC Integration Testing', () => {
     query(
       `
     UPDATE endpoint_gateway
-    SET policy_document = '${testPolicy}'
+    SET policy_document = '${JSON.stringify(testPolicy)}'
     WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
   `,
       undefined,

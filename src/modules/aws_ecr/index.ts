@@ -623,7 +623,7 @@ class RepositoryPolicyMapper extends MapperBase<RepositoryPolicy> {
         const client = (await ctx.getAwsClient(e.region)) as AWS;
         const result = await this.setECRRepositoryPolicy(client.ecrClient, {
           repositoryName: e.repository.repositoryName,
-          policyText: e.policy,
+          policyText: JSON.stringify(e.policy),
         });
         // TODO: Handle if it fails (somehow)
         if (!result?.hasOwnProperty('repositoryName')) {
