@@ -35,7 +35,11 @@ export default function Accordion({
               </div>
             </Disclosure.Button>
             {action && (
-              <div id={`action-${title}`} className='cursor-pointer hover:text-primary action' onClick={() => action.handler(title)}>
+              <div
+                id={`action-${title}`}
+                className='cursor-pointer hover:text-primary action'
+                onClick={() => action.handler(title)}
+              >
                 {action.icon}
               </div>
             )}
