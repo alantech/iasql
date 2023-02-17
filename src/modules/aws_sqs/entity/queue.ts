@@ -1,6 +1,7 @@
 import { Max, Min } from 'class-validator';
 import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 
+import { Policy } from '../../../services/canonical-iam-policy';
 import { cloudId } from '../../../services/cloud-id';
 import { AwsRegions } from '../../aws_account/entity';
 
@@ -120,7 +121,7 @@ export class Queue {
     type: 'json',
     nullable: true,
   })
-  policy?: object;
+  policy?: Policy;
 
   /**
    * @public

@@ -1,6 +1,6 @@
 import _ from 'lodash';
 
-import { normalizePolicy } from './canonical-iam-policy';
+import { normalizePolicy, Policy } from './canonical-iam-policy';
 import { isString } from './common';
 
 function isStringArray(obj: unknown): obj is string[] {
@@ -9,17 +9,6 @@ function isStringArray(obj: unknown): obj is string[] {
 
 function isObject(obj: unknown): obj is object {
   return typeof obj === 'object';
-}
-
-enum IAM_KEY {
-  Version = 'Version',
-  Statement = 'Statement',
-  Effect = 'Effect',
-  Principal = 'Principal',
-  Action = 'Action',
-  Resource = 'Resource',
-  Sid = 'Sid',
-  Condition = 'Condition',
 }
 
 // Returns true if the objects are the same, and false if they aren't
@@ -57,7 +46,7 @@ export function objectsAreSame(obj1: any = {}, obj2: any = {}): boolean {
 }
 
 // Returns true if the policies mean the same thing (regardless of structure), and false if they aren't
-export function policiesAreSame(obj1: any, obj2: any): boolean {
+export function policiesAreSame(obj1: Policy | undefined, obj2: Policy | undefined): boolean {
   if (!obj1 || !obj2) return obj1 === obj2;
 
   const normObj1 = normalizePolicy(obj1),

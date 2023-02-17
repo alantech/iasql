@@ -12,6 +12,7 @@ import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 
 import { policiesAreSame } from '../../../services/aws-diff';
 import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
+import { CanonicalPolicy } from '../../../services/canonical-iam-policy';
 import { Context, Crud2, MapperBase } from '../../interfaces';
 import { Queue } from '../entity';
 import { AwsSqsModule } from '../index';
@@ -71,7 +72,7 @@ export class QueueMapper extends MapperBase<Queue> {
     return out;
   }
 
-  private async generateDefaultPolicy(ctx: Context, queue: Queue) {
+  private async generateDefaultPolicy(ctx: Context, queue: Queue): Promise<CanonicalPolicy> {
     const client = (await ctx.getAwsClient(await ctx.getDefaultRegion())) as AWS;
     const callerIdentityResponse = await client.stsClient.getCallerIdentity({});
     // only the queue owner has access to send/receive message
@@ -81,16 +82,18 @@ export class QueueMapper extends MapperBase<Queue> {
         {
           Effect: 'Allow',
           Principal: {
-            AWS: callerIdentityResponse.Arn,
+            AWS: [callerIdentityResponse.Arn!],
           },
           Action: ['SQS:*'],
-          Resource: buildArn({
-            partition: 'aws',
-            service: 'sqs',
-            region: queue.region,
-            accountId: callerIdentityResponse.Account!,
-            resource: queue.name,
-          }),
+          Resource: [
+            buildArn({
+              partition: 'aws',
+              service: 'sqs',
+              region: queue.region,
+              accountId: callerIdentityResponse.Account!,
+              resource: queue.name,
+            }),
+          ],
         },
       ],
     };

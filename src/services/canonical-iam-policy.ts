@@ -1,13 +1,28 @@
 import _ from 'lodash';
 
+type CanonicalPrincipal = { AWS?: string[]; Service?: string[]; Federated?: string[] };
 type Principal =
   | '*'
   | { AWS?: string | string[]; Service?: string | string[]; Federated?: string | string[] };
 
+type CanonicalCondition = {
+  [operator: string]: { [key: string]: string[] };
+};
 type Condition = {
   [operator: string]: { [key: string]: string | boolean | number | (string | boolean | number)[] };
 };
 
+export type CanonicalStatement = {
+  Action?: string[]; // case insensitive
+  NotAction?: string[]; // case insensitive
+  Principal?: CanonicalPrincipal;
+  NotPrincipal?: CanonicalPrincipal; // case sensitive
+  Resource?: string[]; // case sensitive
+  NotResource?: string[]; // case sensitive
+  Condition?: CanonicalCondition; // key is case-insensitive
+  Effect: 'Allow' | 'Deny';
+  Sid?: string;
+};
 type Statement = {
   Action?: string | string[]; // case insensitive
   NotAction?: string | string[]; // case insensitive
@@ -18,6 +33,12 @@ type Statement = {
   Condition?: Condition; // key is case-insensitive
   Effect: 'Allow' | 'Deny';
   Sid?: string;
+};
+
+export type CanonicalPolicy = {
+  Id?: string;
+  Statement: CanonicalStatement[];
+  Version: string;
 };
 export type Policy = {
   Id?: string; // case sensitive
@@ -73,10 +94,10 @@ function normalizeStatement(statement: Statement) {
   return statement;
 }
 
-export function normalizePolicy(policy: Policy) {
+export function normalizePolicy(policy: Policy): CanonicalPolicy {
   const clone: Policy = JSON.parse(JSON.stringify(policy)); // deep clone
 
   if (!Array.isArray(clone.Statement)) clone.Statement = [clone.Statement];
   clone.Statement = clone.Statement.map(s => normalizeStatement(s));
-  return clone;
+  return clone as CanonicalPolicy;
 }

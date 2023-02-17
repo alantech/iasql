@@ -31,10 +31,7 @@ export class EndpointGatewayMapper extends MapperBase<EndpointGateway> {
     Object.is(a.service, b.service) &&
     // the policy document is stringified json
     // we are trusting aws won't change it from under us
-    policiesAreSame(
-      isString(a.policyDocument) ? JSON.parse(a.policyDocument) : a.policyDocument,
-      isString(b.policyDocument) ? JSON.parse(b.policyDocument) : b.policyDocument,
-    ) &&
+    policiesAreSame(a.policyDocument, b.policyDocument) &&
     Object.is(a.state, b.state) &&
     Object.is(a.vpc?.vpcId, b.vpc?.vpcId) &&
     Object.is(a.routeTableIds?.length, b.routeTableIds?.length) &&
@@ -53,7 +50,7 @@ export class EndpointGatewayMapper extends MapperBase<EndpointGateway> {
       (await this.module.vpc.db.read(ctx, this.module.vpc.generateId({ vpcId: eg.VpcId ?? '', region }))) ??
       (await this.module.vpc.cloud.read(ctx, this.module.vpc.generateId({ vpcId: eg.VpcId ?? '', region })));
     if (!out.vpc) return undefined;
-    out.policyDocument = eg.PolicyDocument;
+    out.policyDocument = eg.PolicyDocument ? JSON.parse(eg.PolicyDocument) : null;
     out.state = eg.State;
     out.routeTableIds = eg.RouteTableIds;
     if (eg.Tags?.length) {
@@ -94,7 +91,7 @@ export class EndpointGatewayMapper extends MapperBase<EndpointGateway> {
           VpcId: e.vpc?.vpcId,
         };
         if (e.policyDocument) {
-          input.PolicyDocument = e.policyDocument;
+          input.PolicyDocument = JSON.stringify(e.policyDocument);
         }
         if (e.routeTableIds?.length) {
           input.RouteTableIds = e.routeTableIds;
@@ -161,11 +158,11 @@ export class EndpointGatewayMapper extends MapperBase<EndpointGateway> {
         const isUpdate = this.module.endpointGateway.cloud.updateOrReplace(cloudRecord, e) === 'update';
         if (isUpdate) {
           let update = false;
-          if (!Object.is(cloudRecord.policyDocument, e.policyDocument)) {
+          if (!policiesAreSame(cloudRecord.policyDocument, e.policyDocument)) {
             // VPC endpoint policy document update
             const input: ModifyVpcEndpointCommandInput = {
               VpcEndpointId: e.vpcEndpointId,
-              PolicyDocument: e.policyDocument,
+              PolicyDocument: JSON.stringify(e.policyDocument),
               ResetPolicy: !e.policyDocument,
             };
             await modifyVpcEndpoint(client.ec2client, input);
