@@ -29,5 +29,11 @@ export default function createTests() {
       page.locator(`#accordion-functions`)
     );
 
+    // Click first table with action enabled
+    await click(page.locator(`:nth-match(.action, 2)`));
+
+    // Check response
+    await click(page.locator(`#query-builder-result table`));
+
   });
 }
