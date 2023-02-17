@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 
+import { throwError } from '@/config/config';
 import { useAuth0 } from '@auth0/auth0-react';
 
 import config from '../config';
 import * as Posthog from '../services/posthog';
 import * as Sentry from '../services/sentry';
-import { throwError } from '@/config/config';
 
 export function useAuth() {
   const [token, setToken] = useState(null) as unknown as [string | null, (arg0: string) => void];
