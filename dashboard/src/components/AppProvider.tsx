@@ -85,6 +85,7 @@ interface AppState {
     queryRes?: any | null;
     closable?: boolean;
   }[];
+  forceRun: boolean;
 }
 
 interface AppStore extends AppState {
@@ -164,11 +165,11 @@ const reducer = (state: AppState, payload: Payload): AppState => {
       const { queryRes, databases: runSqlUpdatedDbs } = payload.data;
       const tabsCopy = [...state.editorTabs];
       tabsCopy[state.editorSelectedTab].queryRes = queryRes;
-      if (runSqlUpdatedDbs !== null) {
+      if (runSqlUpdatedDbs !== null && runSqlUpdatedDbs !== undefined) {
         const current = runSqlUpdatedDbs.find((d: any) => d.alias === state.selectedDb.alias);
         return { ...state, databases: runSqlUpdatedDbs, selectedDb: current, editorTabs: tabsCopy };
       }
-      return { ...state, editorTabs: tabsCopy };
+      return { ...state, editorTabs: tabsCopy, forceRun: false };
     }
     case ActionType.RunAutocompleteSql: {
       const { autoCompleteRes } = payload.data;
@@ -279,7 +280,12 @@ SELECT * FROM iasql_uninstall('${uninstallModule}');
       const tabContent = `SELECT * FROM ${tableName};`;
       tabsCopy.push({ title: `Query-${state.editorTabsCreated}`, content: tabContent, closable: true });
       if (newTab) tabsCopy.push(newTab);
-      return { ...state, editorTabs: tabsCopy, editorTabsCreated: state.editorTabsCreated + 1 };
+      return {
+        ...state,
+        editorTabs: tabsCopy,
+        editorTabsCreated: state.editorTabsCreated + 1,
+        forceRun: true,
+      };
     }
   }
   return state;
@@ -526,6 +532,21 @@ const middlewareReducer = async (dispatch: (payload: Payload) => void, payload: 
       }
       break;
     }
+    case ActionType.EditorSelectTab: {
+      const { selectedDb, forceRun, isRunningSql, index, editorTabs } = payload.data;
+      const contentToBeRun = editorTabs?.[index]?.content ?? '';
+      if (token && forceRun && contentToBeRun) {
+        middlewareReducer(dispatch, {
+          token,
+          action: ActionType.RunSql,
+          data: {
+            db: selectedDb,
+            content: contentToBeRun,
+            isRunning: isRunningSql,
+          },
+        });
+      }
+    }
     default: {
       dispatch(payload);
     }
@@ -563,6 +584,7 @@ const AppProvider = ({ children }: { children: any }) => {
         },
       },
     ],
+    forceRun: false,
   };
   const [state, dispatch] = useReducer(reducer, initialState);
   const customDispatch = useCallback(async (payload: Payload) => {
@@ -590,6 +612,7 @@ const AppProvider = ({ children }: { children: any }) => {
         editorTabs: state.editorTabs,
         editorSelectedTab: state.editorSelectedTab,
         editorTabsCreated: state.editorTabsCreated,
+        forceRun: state.forceRun,
         dispatch: customDispatch,
       }}
     >

@@ -40,6 +40,7 @@ export default function IasqlEditor() {
     token,
     editorTabs,
     editorSelectedTab,
+    forceRun,
   } = useAppContext();
   const editorRef = useRef(null as null | ReactAce);
   const prevTabsLenRef = useRef(null as null | number);
@@ -176,11 +177,18 @@ export default function IasqlEditor() {
   useEffect(() => {
     if (editorTabs.length !== prevTabsLenRef.current) {
       dispatch({
+        token,
         action: ActionType.EditorSelectTab,
-        data: { index: editorTabs.length - 2 >= 0 ? editorTabs.length - 2 : 0 },
+        data: {
+          index: editorTabs.length - 2 >= 0 ? editorTabs.length - 2 : 0,
+          forceRun,
+          editorTabs,
+          selectedDb,
+          isRunningSql,
+        },
       });
     }
-  }, [editorTabs, dispatch]);
+  }, [editorTabs, dispatch, forceRun, selectedDb, isRunningSql, token]);
 
   useEffect(() => {
     if (!prevTabsLenRef.current || prevTabsLenRef.current !== editorTabs.length) {
