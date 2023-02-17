@@ -350,7 +350,7 @@ phases:
   build:
     commands:
       - echo Building the Docker image...
-      - docker pull ubuntu:latest
+      - docker pull public.ecr.aws/docker/library/ubuntu:latest
       - docker tag public.ecr.aws/docker/library/ubuntu:latest ' || (SELECT repository_uri FROM repository WHERE repository_name = '${dbAlias}' ) || ':latest
   post_build:
     commands:
