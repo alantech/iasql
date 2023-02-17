@@ -12,6 +12,7 @@ import {
 
 import { policiesAreSame } from '../../services/aws-diff';
 import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../services/aws_macros';
+import { safeParse } from '../../services/common';
 import logger from '../../services/logger';
 import { Context, Crud2, IdFields, MapperBase, ModuleBase } from '../interfaces';
 import {
@@ -580,7 +581,7 @@ class RepositoryPolicyMapper extends MapperBase<RepositoryPolicy> {
         ctx,
         this.module.repository.generateId({ repositoryName: rp.repositoryName, region }),
       ));
-    out.policy = JSON.parse(rp?.policyText?.replace(/\n/g, '').replace(/\s+/g, ' ') ?? null);
+    out.policy = safeParse(rp?.policyText);
     out.region = region;
     return out;
   }

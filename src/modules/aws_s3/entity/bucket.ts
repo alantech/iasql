@@ -40,7 +40,7 @@ export class Bucket {
     type: 'json',
     nullable: true,
   })
-  policyDocument?: Policy;
+  policy?: Policy;
 
   /**
    * @public

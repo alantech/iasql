@@ -56,7 +56,7 @@ export class EndpointGateway {
    * @see https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-resource-policies-examples.html
    */
   @Column({ nullable: true, type: 'json' })
-  policyDocument?: Policy;
+  policy?: Policy;
 
   /**
    * @public

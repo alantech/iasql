@@ -13,6 +13,7 @@ import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 import { policiesAreSame } from '../../../services/aws-diff';
 import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
 import { CanonicalPolicy } from '../../../services/canonical-iam-policy';
+import { safeParse } from '../../../services/common';
 import { Context, Crud2, MapperBase } from '../../interfaces';
 import { Queue } from '../entity';
 import { AwsSqsModule } from '../index';
@@ -65,7 +66,7 @@ export class QueueMapper extends MapperBase<Queue> {
     out.receiveMessageWaitTimeSeconds = parseInt(queueAttributes.ReceiveMessageWaitTimeSeconds, 10);
     out.messageRetentionPeriod = parseInt(queueAttributes.MessageRetentionPeriod, 10);
     out.maximumMessageSize = parseInt(queueAttributes.MaximumMessageSize, 10);
-    out.policy = JSON.parse(queueAttributes.Policy);
+    out.policy = safeParse(queueAttributes.Policy);
     out.arn = queueAttributes.QueueArn;
     out.region = region;
 

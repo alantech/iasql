@@ -292,7 +292,7 @@ describe('VPC Integration Testing', () => {
     query(
       `
     UPDATE endpoint_gateway
-    SET policy_document = '${JSON.stringify(testPolicy)}'
+    SET policy = '${JSON.stringify(testPolicy)}'
     WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
   `,
       undefined,
@@ -319,7 +319,7 @@ describe('VPC Integration Testing', () => {
       `
     SELECT * FROM endpoint_gateway WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
   `,
-      (res: any) => expect(res[0]['policy_document']).toEqual(testPolicy),
+      (res: any) => expect(res[0]['policy']).toEqual(testPolicy),
     ),
   );
 

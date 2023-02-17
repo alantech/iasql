@@ -78,7 +78,7 @@ export class EndpointInterface {
    * @see https://docs.aws.amazon.com/vpc/latest/privatelink/vpc-endpoints-access.html
    */
   @Column({ nullable: true, type: 'json' })
-  policyDocument?: Policy;
+  policy?: Policy;
 
   /**
    * @public

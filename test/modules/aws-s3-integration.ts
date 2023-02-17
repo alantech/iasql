@@ -187,7 +187,7 @@ describe('S3 Integration Testing', () => {
     query(
       `  
         UPDATE bucket
-        SET policy_document = '{"fake": "policy"}'
+        SET policy = '{"fake": "policy"}'
         WHERE name = '${s3NameNoPolicy}';
       `,
       undefined,
@@ -245,7 +245,7 @@ describe('S3 Integration Testing', () => {
     'adds a new s3 bucket',
     query(
       `  
-    INSERT INTO bucket (name, policy_document)
+    INSERT INTO bucket (name, policy)
     VALUES ('${s3Name}', '${policyDocument}');
   `,
       undefined,
@@ -365,7 +365,7 @@ describe('S3 Integration Testing', () => {
       `
     SELECT * FROM bucket WHERE name = '${s3Name}';
     `,
-      (res: any[]) => expect(res[0].policy_document).toStrictEqual(JSON.parse(updatedPolicyDocument)),
+      (res: any[]) => expect(res[0].policy).toStrictEqual(JSON.parse(updatedPolicyDocument)),
     ),
   );
 
@@ -443,12 +443,12 @@ describe('S3 Integration Testing', () => {
       'gets current bucket policy',
       query(
         `
-    SELECT policy_document FROM bucket
+    SELECT policy FROM bucket
     WHERE name = '${s3Name}';
     `,
         (res: any[]) => {
           expect(res.length).toBe(1);
-          expect(res[0].policyDocument).toBe(undefined);
+          expect(res[0].policy).toBe(undefined);
         },
       ),
     );
@@ -457,7 +457,7 @@ describe('S3 Integration Testing', () => {
       'updates the bucket policy',
       query(
         `
-          UPDATE bucket SET policy_document='${newPolicyDocument}' WHERE name = '${s3Name}';
+          UPDATE bucket SET policy='${newPolicyDocument}' WHERE name = '${s3Name}';
         `,
         undefined,
         true,
@@ -472,7 +472,7 @@ describe('S3 Integration Testing', () => {
         `
     SELECT * FROM bucket WHERE name = '${s3Name}';
     `,
-        (res: any[]) => expect(res[0].policy_document).toStrictEqual(JSON.parse(updatedNewPolicyDocument)),
+        (res: any[]) => expect(res[0].policy).toStrictEqual(JSON.parse(updatedNewPolicyDocument)),
       ),
     );
   });
