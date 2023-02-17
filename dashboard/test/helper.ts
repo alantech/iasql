@@ -22,9 +22,9 @@ export async function press(loc: Locator, keys: string) {
   await loc.press(keys);
 }
 
-export async function click(loc: Locator) {
+export async function click(loc: Locator, force=false) {
   await isVisible(loc);
-  await loc.click();
+  await loc.click({ force });
 }
 
 export async function fill(loc: Locator, val: string, validate=true) {

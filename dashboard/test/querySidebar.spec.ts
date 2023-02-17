@@ -20,14 +20,14 @@ export default function createTests() {
     await click(
       page.locator(`#query-sidebar button:has-text("Schema")`)
     );
-  
+
     await click(
-      page.locator(`#accordion-modules`)
+      page.locator(`#accordion-modules`), true
     );
   
     await click(
       page.locator(`#accordion-functions`)
     );
-  
+
   });
 }
