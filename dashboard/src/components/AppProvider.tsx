@@ -211,10 +211,11 @@ const reducer = (state: AppState, payload: Payload): AppState => {
 SELECT * FROM iasql_install('${installModule}');
 /* END IaSQL auto-generated statement */
 `;
-      // todo: this should be opening a new tab
       const tabsCopy = [...state.editorTabs];
-      tabsCopy[state.editorSelectedTab].content = installContent;
-      return { ...state, editorTabs: tabsCopy };
+      const newTab = tabsCopy.pop();
+      tabsCopy.push({ title: `Query-${state.editorTabsCreated}`, content: installContent, closable: true });
+      if (newTab) tabsCopy.push(newTab);
+      return { ...state, editorTabs: tabsCopy, editorTabsCreated: state.editorTabsCreated + 1 };
     }
     case ActionType.UninstallModule: {
       const { moduleName: uninstallModule } = payload.data;
@@ -222,10 +223,11 @@ SELECT * FROM iasql_install('${installModule}');
 SELECT * FROM iasql_uninstall('${uninstallModule}');
 /* END IaSQL auto-generated statement */
 `;
-      // todo: this should be opening a new tab
       const tabsCopy = [...state.editorTabs];
-      tabsCopy[state.editorSelectedTab].content = uninstallContent;
-      return { ...state, editorTabs: tabsCopy };
+      const newTab = tabsCopy.pop();
+      tabsCopy.push({ title: `Query-${state.editorTabsCreated}`, content: uninstallContent, closable: true });
+      if (newTab) tabsCopy.push(newTab);
+      return { ...state, editorTabs: tabsCopy, editorTabsCreated: state.editorTabsCreated + 1 };
     }
     case ActionType.DisconnectDb: {
       const { databases: updatedDbsAfterDisconnect } = payload.data;
