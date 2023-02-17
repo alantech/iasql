@@ -15,7 +15,7 @@ export default function Modules({
   const installedModules = Object.keys(modulesInstalledData ?? {});
   const moduleList: any = {};
   for (const key in allModules) {
-    if (key === 'aws_account') continue;
+    if (['aws_account', 'iasql_functions', 'iasql_platform'].includes(key)) continue;
     moduleList[key] = {
       dependencies: allModules[key],
       installed: !!installedModules.find(mod => mod.indexOf(key) === 0),

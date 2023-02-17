@@ -31,6 +31,9 @@ export async function migrate(conn: Connection) {
   await qr.query(
     `INSERT INTO iasql_dependencies VALUES ('iasql_functions@${version}', 'iasql_platform@${version}')`,
   );
+  await qr.query(`INSERT INTO iasql_tables ("table", "module") VALUES
+    ${iasqlPlatform.provides.tables.map(tbl => `('${tbl}', 'iasql_platform@${version}')`).join(', ')};
+  `);
   await qr.release();
 }
 

@@ -11,7 +11,6 @@ import config from '../../config';
 import { throwError } from '../../config/config';
 import * as AllModules from '../../modules';
 import { Context, MapperInterface, ModuleInterface, MapperBase } from '../../modules';
-import * as dbMan from '../../services/db-manager';
 import { findDiff } from '../../services/diff';
 import { DepError, lazyLoader } from '../../services/lazy-dep';
 import logger, { debugObj, logErrSentry, mergeErrorMessages } from '../../services/logger';
@@ -73,13 +72,11 @@ function colToRow(cols: { [key: string]: any[] }): { [key: string]: any }[] {
 export async function modules(all: boolean, installed: boolean, dbId: string) {
   await throwIfUpgrading(dbId, false);
   const allModules = Object.values(AllModules)
-    .filter(
-      (m: any) => m.hasOwnProperty('dependencies') && m.hasOwnProperty('name') && !/iasql_.*/.test(m.name),
-    )
+    .filter((m: any) => m.hasOwnProperty('dependencies') && m.hasOwnProperty('name'))
     .map((m: any) => ({
       moduleName: m.name,
       moduleVersion: m.version,
-      dependencies: m.dependencies.filter((d: any) => !/iasql_.*/.test(d)),
+      dependencies: m.dependencies,
     }));
   if (all) {
     return allModules;
@@ -99,7 +96,7 @@ export async function modules(all: boolean, installed: boolean, dbId: string) {
 export async function install(
   moduleList: string[],
   dbId: string,
-  dbUser: string,
+  _dbUser: string,
   allModules = false,
   force = false,
   syncContext?: Context,
