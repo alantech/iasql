@@ -96,7 +96,7 @@ export class QueueMapper extends MapperBase<Queue> {
     };
   }
 
-  private async createAttributesObject(e: Queue, ctx: Context) {
+  private async createAttributesObject(e: Queue) {
     const attributes: Record<string, string> = {
       VisibilityTimeout: e.visibilityTimeout.toString(),
       DelaySeconds: e.delaySeconds.toString(),
@@ -165,7 +165,7 @@ export class QueueMapper extends MapperBase<Queue> {
         if (!e.policy) e.policy = await this.generateDefaultPolicy(ctx, e);
         const input: CreateQueueCommandInput = {
           QueueName: e.name,
-          Attributes: await this.createAttributesObject(e, ctx),
+          Attributes: await this.createAttributesObject(e),
         };
         const queueUrl = await this.createQueue(client.sqsClient, input);
         if (!queueUrl) throw new Error('Cannot create queue');
@@ -226,7 +226,7 @@ export class QueueMapper extends MapperBase<Queue> {
           const client = (await ctx.getAwsClient(e.region)) as AWS;
           await this.setQueueAttributes(client.sqsClient, {
             QueueUrl: e.url,
-            Attributes: await this.createAttributesObject(e, ctx),
+            Attributes: await this.createAttributesObject(e),
           });
           out.push(e);
         }

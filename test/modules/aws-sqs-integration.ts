@@ -105,7 +105,7 @@ describe('AwsSQS Integration Testing', () => {
         expect(res.length).toBe(1);
         // also, the policy should be auto-generated
         expect(res[0].policy).toBeTruthy();
-        expect(res[0].policy.Statement[0].Action.toLowerCase()).toContain('sqs:*');
+        expect(res[0].policy.Statement[0].Action[0].toLowerCase()).toContain('sqs:*');
       },
     ),
   );

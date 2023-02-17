@@ -184,7 +184,7 @@ export class BucketMapper extends MapperBase<Bucket> {
       return out;
     },
     updateOrReplace: (a: Bucket, b: Bucket) => {
-      if (!policiesAreSame(a.policyDocument ?? [], b.policyDocument ?? [])) return 'update';
+      if (!policiesAreSame(a.policyDocument, b.policyDocument)) return 'update';
       else return 'replace';
     },
     // TODO: With the model this simple it is actually impossible to really update this thing
