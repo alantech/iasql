@@ -3,7 +3,8 @@ import EmptyState from './EmptyState';
 import { Label, Spinner, Table, VBox } from './common';
 
 export default function QueryResult() {
-  const { queryRes, isRunningSql } = useAppContext();
+  const { editorSelectedTab, editorTabs, isRunningSql } = useAppContext();
+  const queryRes = editorTabs[editorSelectedTab]?.queryRes;
 
   // TODO: show all statements with its respective query and not just the last one
   return isRunningSql ? (
@@ -24,18 +25,20 @@ export default function QueryResult() {
       {!!queryRes &&
         queryRes instanceof Array &&
         queryRes[0]?.result instanceof Array &&
-        queryRes.filter(r => (r.result ?? []).length > 0).length > 0 && (
+        queryRes.filter((r: any) => (r.result ?? []).length > 0).length > 0 && (
           <Table
             data={queryRes
-              .filter(r => (r.result ?? []).length > 0)
-              .map(r => r.result ?? [])
+              .filter((r: any) => (r.result ?? []).length > 0)
+              .map((r: any) => r.result ?? [])
               .at(-1)}
           />
         )}
       {!!queryRes &&
         queryRes instanceof Array &&
         (queryRes[0]?.result ?? []) instanceof Array &&
-        queryRes.filter(r => (r.result ?? []).length > 0).length === 0 && <Label>Empty response</Label>}
+        queryRes.filter((r: any) => (r.result ?? []).length > 0).length === 0 && (
+          <Label>Empty response</Label>
+        )}
     </VBox>
   );
 }

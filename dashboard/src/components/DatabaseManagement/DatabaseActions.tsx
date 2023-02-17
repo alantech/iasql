@@ -8,7 +8,7 @@ import { PauseIcon, PlayIcon } from '@heroicons/react/solid';
 import { align, Button, Dropdown, HBox, VBox } from '../common';
 
 export function DatabaseActions() {
-  const { editorContent, selectedDb, isRunningSql, dump, dispatch, token } = useAppContext();
+  const { editorSelectedTab, editorTabs, selectedDb, isRunningSql, dump, dispatch, token } = useAppContext();
 
   const handleDisconnect = () => {
     dispatch({ action: ActionType.ShowDisconnect, data: { show: true } });
@@ -92,7 +92,7 @@ export function DatabaseActions() {
       <HBox alignment={align.end}>
         <Button
           look='iasql'
-          onClick={() => handleRunSql(selectedDb, isRunningSql, editorContent)}
+          onClick={() => handleRunSql(selectedDb, isRunningSql, editorTabs?.[editorSelectedTab]?.content)}
           disabled={!selectedDb?.alias || !!isRunningSql}
         >
           <PlayIcon className='h-4 w-4 mr-1' aria-hidden='true' />

@@ -6,6 +6,7 @@ import disconnectAll from './disconnectAll.spec';
 import install from './install.spec';
 import query from './query.spec';
 import querySidebar from './querySidebar.spec';
+import queryTabs from './queryTabs.spec';
 // import theButtonExistingDb from './theButtonExistingDb.spec';
 // import theButtonNewDb from './theButtonNewDb.spec';
 // import theButtonNewDbCleanAccount from './theButtonNewDbCleanAccount.spec';
@@ -17,6 +18,7 @@ test.describe('install', install);
 test.describe('uninstall', uninstall);
 test.describe('query', query);
 test.describe('querySidebar', querySidebar);
+test.describe('queryTabs', queryTabs);
 // TODO: revive
 // test.describe('theButton new db', theButtonNewDb);
 // test.describe('theButton existing db', theButtonExistingDb);

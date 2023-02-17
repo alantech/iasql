@@ -41,6 +41,10 @@ export enum ActionType {
   ResetNewDb = 'ResetNewDb',
   ResetError = 'ResetError',
   SetError = 'SerError',
+  EditorNewTab = 'EditorNewTab',
+  EditorSelectTab = 'EditorSelectTab',
+  SelectAppTheme = 'SelectAppTheme',
+  EditorCloseTab = 'EditorCloseTab',
 }
 
 interface Payload {
@@ -61,14 +65,23 @@ interface AppState {
   error: string | null;
   newDb?: any;
   dump: Blob | null;
-  editorContent: string;
   allModules: { [moduleName: string]: string[] };
   functions: any[];
   installedModules: { [moduleName: string]: { [tableName: string]: { [columnName: string]: string } } };
   isDarkMode: boolean;
-  queryRes?: any | null;
   shouldShowDisconnect: boolean;
   shouldShowConnect: boolean;
+  editorTabsCreated: number;
+  editorSelectedTab: number;
+  editorTabs: {
+    title: string;
+    action?: () => void;
+    className?: string;
+    width?: string;
+    content: string;
+    queryRes?: any | null;
+    closable?: boolean;
+  }[];
 }
 
 interface AppStore extends AppState {
@@ -92,40 +105,65 @@ const reducer = (state: AppState, payload: Payload): AppState => {
     return { ...state, error };
   }
   switch (payload.action) {
-    case ActionType.SelectDb:
+    case ActionType.SelectDb: {
       const { db } = payload.data;
       db.isUnsupported =
         !semver.valid(db?.version) || (!!state.oldestVersion && semver.lt(db?.version, state.oldestVersion));
-      return { ...state, selectedDb: db };
-    case ActionType.InitialLoad:
+      const tabsCopy = [...state.editorTabs];
+      if (db?.alias !== state.selectedDb?.alias) {
+        tabsCopy.map(t => (t.queryRes = undefined));
+      }
+      return { ...state, selectedDb: db, editorTabs: tabsCopy };
+    }
+    case ActionType.InitialLoad: {
       const { token } = payload;
       const { initialDatabases, latestVersion, oldestVersion } = payload.data;
       return { ...state, databases: initialDatabases, latestVersion, oldestVersion, token };
-    case ActionType.NewDb:
+    }
+    case ActionType.NewDb: {
       const { newDb, updatedDatabases } = payload.data;
       const newSelectedDb = updatedDatabases.find((d: any) => d.alias === newDb.alias);
-      return { ...state, databases: updatedDatabases, selectedDb: newSelectedDb, newDb };
-    case ActionType.ResetNewDb:
+      const tabsCopy = [...state.editorTabs];
+      tabsCopy.map(t => (t.queryRes = undefined));
+      return {
+        ...state,
+        databases: updatedDatabases,
+        selectedDb: newSelectedDb,
+        newDb,
+        editorTabs: tabsCopy,
+      };
+    }
+    case ActionType.ResetNewDb: {
       return { ...state, newDb: undefined };
-    case ActionType.ExportDb:
+    }
+    case ActionType.ExportDb: {
       const { dump } = payload.data;
       return { ...state, dump };
-    case ActionType.ExportedDb:
+    }
+    case ActionType.ExportedDb: {
       return { ...state, dump: null };
-    case ActionType.EditContent:
+    }
+    case ActionType.EditContent: {
       const { content: editorContent } = payload.data;
-      return { ...state, editorContent };
-    case ActionType.RunningSql:
+      const relevantTab = state.editorTabs[state.editorSelectedTab];
+      relevantTab.content = editorContent;
+      return { ...state };
+    }
+    case ActionType.RunningSql: {
       const { isRunning } = payload.data;
       return { ...state, isRunningSql: isRunning };
-    case ActionType.RunSql:
+    }
+    case ActionType.RunSql: {
       const { queryRes, databases: runSqlUpdatedDbs } = payload.data;
+      const tabsCopy = [...state.editorTabs];
+      tabsCopy[state.editorSelectedTab].queryRes = queryRes;
       if (runSqlUpdatedDbs !== null) {
         const current = runSqlUpdatedDbs.find((d: any) => d.alias === state.selectedDb.alias);
-        return { ...state, queryRes, databases: runSqlUpdatedDbs, selectedDb: current };
+        return { ...state, databases: runSqlUpdatedDbs, selectedDb: current, editorTabs: tabsCopy };
       }
-      return { ...state, queryRes };
-    case ActionType.RunAutocompleteSql:
+      return { ...state, editorTabs: tabsCopy };
+    }
+    case ActionType.RunAutocompleteSql: {
       const { autoCompleteRes } = payload.data;
       const moduleData = {} as {
         [moduleName: string]: { [tableName: string]: { [columnName: string]: string } };
@@ -153,21 +191,30 @@ const reducer = (state: AppState, payload: Payload): AppState => {
         allModules,
         installedModules: moduleData,
       };
-    case ActionType.InstallModule:
+    }
+    case ActionType.InstallModule: {
       const { moduleName: installModule } = payload.data;
       const installContent = `/* BEGIN IaSQL auto-generated statement */
 SELECT * FROM iasql_install('${installModule}');
 /* END IaSQL auto-generated statement */
 `;
-      return { ...state, editorContent: installContent };
-    case ActionType.UninstallModule:
+      // todo: this should be opening a new tab
+      const tabsCopy = [...state.editorTabs];
+      tabsCopy[state.editorSelectedTab].content = installContent;
+      return { ...state, editorTabs: tabsCopy };
+    }
+    case ActionType.UninstallModule: {
       const { moduleName: uninstallModule } = payload.data;
       const uninstallContent = `/* BEGIN IaSQL auto-generated statement */
 SELECT * FROM iasql_uninstall('${uninstallModule}');
 /* END IaSQL auto-generated statement */
 `;
-      return { ...state, editorContent: uninstallContent };
-    case ActionType.DisconnectDb:
+      // todo: this should be opening a new tab
+      const tabsCopy = [...state.editorTabs];
+      tabsCopy[state.editorSelectedTab].content = uninstallContent;
+      return { ...state, editorTabs: tabsCopy };
+    }
+    case ActionType.DisconnectDb: {
       const { databases: updatedDbsAfterDisconnect } = payload.data;
       const updatedSelectedDb = updatedDbsAfterDisconnect.length ? updatedDbsAfterDisconnect[0] : null;
       return {
@@ -176,17 +223,43 @@ SELECT * FROM iasql_uninstall('${uninstallModule}');
         databases: updatedDbsAfterDisconnect,
         shouldShowDisconnect: false,
       };
-    case ActionType.ShowDisconnect:
+    }
+    case ActionType.ShowDisconnect: {
       const { show } = payload.data;
       return { ...state, shouldShowDisconnect: show };
-    case ActionType.ShowConnect:
+    }
+    case ActionType.ShowConnect: {
       const { showConnect } = payload.data;
       return { ...state, shouldShowConnect: showConnect };
-    case ActionType.ResetError:
+    }
+    case ActionType.ResetError: {
       return { ...state, error: null };
-    case ActionType.SetError:
+    }
+    case ActionType.SetError: {
       const { error: customError } = payload.data;
       return { ...state, error: customError };
+    }
+    case ActionType.EditorNewTab: {
+      const tabsCopy = [...state.editorTabs];
+      const newTab = tabsCopy.pop();
+      tabsCopy.push({ title: `Query-${state.editorTabsCreated}`, content: '', closable: true });
+      if (newTab) tabsCopy.push(newTab);
+      return { ...state, editorTabs: tabsCopy, editorTabsCreated: state.editorTabsCreated + 1 };
+    }
+    case ActionType.EditorSelectTab: {
+      const { index } = payload.data;
+      return { ...state, editorSelectedTab: index };
+    }
+    case ActionType.EditorCloseTab: {
+      const { index } = payload.data;
+      const tabsCopy = [...state.editorTabs];
+      tabsCopy.splice(index, 1);
+      return { ...state, editorTabs: tabsCopy };
+    }
+    case ActionType.SelectAppTheme: {
+      const { theme } = payload.data;
+      return { ...state, isDarkMode: theme === 'dark' };
+    }
   }
   return state;
 };
@@ -194,7 +267,7 @@ SELECT * FROM iasql_uninstall('${uninstallModule}');
 const middlewareReducer = async (dispatch: (payload: Payload) => void, payload: Payload) => {
   const { token } = payload;
   switch (payload.action) {
-    case ActionType.InitialLoad:
+    case ActionType.InitialLoad: {
       try {
         const initialDatabases = await DbActions.list(token ?? '');
         const oldestVer = await DbActions.getOldestVersion(token ?? '');
@@ -213,8 +286,8 @@ const middlewareReducer = async (dispatch: (payload: Payload) => void, payload: 
         dispatch({ ...payload, data: { error } });
         break;
       }
-
-    case ActionType.NewDb:
+    }
+    case ActionType.NewDb: {
       if (!token) {
         dispatch({ ...payload, data: { error: 'No auth token defined.' } });
         break;
@@ -296,15 +369,15 @@ const middlewareReducer = async (dispatch: (payload: Payload) => void, payload: 
         dispatch({ ...payload, data: { newDb, updatedDatabases } });
       }
       break;
-
-    case ActionType.ExportDb:
+    }
+    case ActionType.ExportDb: {
       if (!token) {
         dispatch({ ...payload, data: { error: 'No auth token defined.' } });
         break;
       }
-      const { dbAlias: dumpDbAlias, dataOnly } = payload.data;
+      const { dbAlias, dataOnly } = payload.data;
       try {
-        const dump = await DbActions.dump(token, dumpDbAlias, dataOnly);
+        const dump = await DbActions.dump(token, dbAlias, dataOnly);
         if (dump) {
           dispatch({ ...payload, data: { dump } });
         }
@@ -314,8 +387,8 @@ const middlewareReducer = async (dispatch: (payload: Payload) => void, payload: 
         break;
       }
       break;
-
-    case ActionType.RunSql:
+    }
+    case ActionType.RunSql: {
       if (!token) {
         dispatch({ ...payload, data: { error: 'No auth token defined.' } });
         break;
@@ -375,8 +448,8 @@ const middlewareReducer = async (dispatch: (payload: Payload) => void, payload: 
         });
       }
       break;
-
-    case ActionType.RunAutocompleteSql:
+    }
+    case ActionType.RunAutocompleteSql: {
       if (!token) {
         dispatch({ ...payload, data: { error: 'No auth token defined.' } });
         break;
@@ -393,8 +466,8 @@ const middlewareReducer = async (dispatch: (payload: Payload) => void, payload: 
         dispatch({ action: ActionType.RunningSql, data: { isRunning: false } });
       }
       break;
-
-    case ActionType.DisconnectDb:
+    }
+    case ActionType.DisconnectDb: {
       if (!token) {
         dispatch({ ...payload, data: { error: 'No auth token defined.' } });
         break;
@@ -409,8 +482,8 @@ const middlewareReducer = async (dispatch: (payload: Payload) => void, payload: 
         dispatch({ ...payload, data: { error } });
       }
       break;
-
-    case ActionType.TrackEvent:
+    }
+    case ActionType.TrackEvent: {
       if (!token) {
         dispatch({ ...payload, data: { error: 'No auth token defined.' } });
         break;
@@ -431,18 +504,14 @@ const middlewareReducer = async (dispatch: (payload: Payload) => void, payload: 
         dispatch({ ...payload, data: { error } });
       }
       break;
-
-    default:
+    }
+    default: {
       dispatch(payload);
+    }
   }
 };
 
 const AppProvider = ({ children }: { children: any }) => {
-  let local: any;
-  useEffect(() => {
-    local = localStorage;
-  });
-
   const initialState: AppState = {
     selectedDb: null,
     oldestVersion: undefined,
@@ -451,13 +520,28 @@ const AppProvider = ({ children }: { children: any }) => {
     databases: [],
     error: null,
     dump: null,
-    editorContent: '',
     allModules: {},
     functions: [],
     installedModules: {},
-    isDarkMode: local?.theme === 'dark',
+    isDarkMode: false,
     shouldShowDisconnect: false,
     shouldShowConnect: false,
+    editorSelectedTab: 0,
+    editorTabsCreated: 1,
+    editorTabs: [
+      { title: 'Welcome', content: '', closable: true },
+      {
+        title: '+',
+        content: '',
+        width: 'w-auto',
+        className: 'px-4 border border-transparent',
+        action: () => {
+          dispatch({
+            action: ActionType.EditorNewTab,
+          });
+        },
+      },
+    ],
   };
   const [state, dispatch] = useReducer(reducer, initialState);
   const customDispatch = useCallback(async (payload: Payload) => {
@@ -476,14 +560,15 @@ const AppProvider = ({ children }: { children: any }) => {
         oldestVersion: state.oldestVersion,
         newDb: state.newDb,
         dump: state.dump,
-        editorContent: state.editorContent,
         allModules: state.allModules,
         functions: state.functions,
         installedModules: state.installedModules,
         isRunningSql: state.isRunningSql,
-        queryRes: state.queryRes,
         shouldShowDisconnect: state.shouldShowDisconnect,
         shouldShowConnect: state.shouldShowConnect,
+        editorTabs: state.editorTabs,
+        editorSelectedTab: state.editorSelectedTab,
+        editorTabsCreated: state.editorTabsCreated,
         dispatch: customDispatch,
       }}
     >

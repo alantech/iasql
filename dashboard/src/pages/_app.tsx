@@ -21,12 +21,6 @@ reportWebVitals();
 export default function App({ Component, pageProps }: AppProps) {
   useEffect(() => {
     Posthog.init();
-    const isDarkMode = localStorage.theme === 'dark';
-    if (isDarkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
   });
 
   const body = (
