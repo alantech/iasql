@@ -1,5 +1,5 @@
 import * as iasql from '../../src/services/iasql';
-import { runQuery, finish, execComposeUp, execComposeDown, runInstall, } from '../helpers';
+import { runQuery, finish, execComposeUp, execComposeDown, runInstall } from '../helpers';
 
 const dbAlias = 'uninstalltest';
 
@@ -46,20 +46,19 @@ describe('uninstall SQL injection prevention', () => {
 
   it('installs the aws_security_group module', install(['aws_security_group']));
 
-  it('fails on an attempted SQL injection attack', done => void query(`
+  it('fails on an attempted SQL injection attack', done =>
+    void query(`
     SELECT * FROM iasql_uninstall('aws_security_group'', (DROP TABLE aws_account)]) as module) as mo on true --')
   `)((e?: any) => {
-    try {
-      expect(e?.message?.length).toBeGreaterThan(0);
-      console.log(e?.message);
-    } catch (err) {
-      done(err);
+      try {
+        expect(e?.message).toContain('The following modules do not exist');
+      } catch (err) {
+        done(err);
+        return {};
+      }
+      done();
       return {};
-    }
-    done();
-    return {};
-  }));
-
+    }));
 
   it('deletes the test db', done => void iasql.disconnect(dbAlias, uid).then(...finish(done)));
 });
