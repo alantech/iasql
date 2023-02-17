@@ -11,7 +11,7 @@ const local: ConfigInterface = {
 };
 if (process.env.NEXT_PUBLIC_IASQL_TELEMETRY === 'on') {
   local.posthog = {
-    key: 'phc_WjwJsXXSuEl2R2zElUWL55mWpNIfWR8HrFvjxwlTGWH',
+    key: 'phc_xvAQWfpHug7G0SuU5P9wwAbvP9ZawgAfIEZ9FUsiarS',
   };
   local.sentry = {
     dsn: 'https://8ba9a3820f7f4179b5dc12754da9c943@o1090662.ingest.sentry.io/6544238',
