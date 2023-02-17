@@ -45,6 +45,7 @@ export enum ActionType {
   EditorSelectTab = 'EditorSelectTab',
   SelectAppTheme = 'SelectAppTheme',
   EditorCloseTab = 'EditorCloseTab',
+  SelectTable = 'SelectTable',
 }
 
 interface Payload {
@@ -67,7 +68,9 @@ interface AppState {
   dump: Blob | null;
   allModules: { [moduleName: string]: string[] };
   functions: any[];
-  installedModules: { [moduleName: string]: { [tableName: string]: { [columnName: string]: string } } };
+  installedModules: {
+    [moduleName: string]: { [tableName: string]: { [columnName: string]: string } & { recordCount: number } };
+  };
   isDarkMode: boolean;
   shouldShowDisconnect: boolean;
   shouldShowConnect: boolean;
@@ -97,6 +100,10 @@ const initializingQueries = `
   order by
     table_name, ordinal_position;
   select * from iasql_modules_list();
+  select
+    t.table as table_name,
+    (xpath('/row/c/text()', query_to_xml(format('select count(*) as c from public.%I', t.table), FALSE, TRUE, '')))[1]::text::int AS record_count
+  from iasql_tables as t;
 `;
 
 const reducer = (state: AppState, payload: Payload): AppState => {
@@ -166,7 +173,9 @@ const reducer = (state: AppState, payload: Payload): AppState => {
     case ActionType.RunAutocompleteSql: {
       const { autoCompleteRes } = payload.data;
       const moduleData = {} as {
-        [moduleName: string]: { [tableName: string]: { [columnName: string]: string } };
+        [moduleName: string]: {
+          [tableName: string]: { [columnName: string]: string } & { recordCount: number };
+        };
       };
       const allModules = {} as { [moduleName: string]: string[] };
       const functionData = new Set() as Set<any>;
@@ -176,9 +185,12 @@ const reducer = (state: AppState, payload: Payload): AppState => {
         const tableName = row.table_name;
         const columnName = row.column_name;
         const dataType = row.data_type;
+        const recordCount =
+          autoCompleteRes?.[3]?.result?.find((r: any) => r.table_name === tableName)?.record_count ?? 0;
         moduleData[moduleName] = moduleData[moduleName] || {};
         moduleData[moduleName][tableName] = moduleData[moduleName][tableName] || {};
         moduleData[moduleName][tableName][columnName] = dataType;
+        moduleData[moduleName][tableName]['recordCount'] = recordCount;
       });
       (autoCompleteRes?.[2]?.result ?? []).forEach((row: any) => {
         const moduleName = row.module_name;
@@ -259,6 +271,15 @@ SELECT * FROM iasql_uninstall('${uninstallModule}');
     case ActionType.SelectAppTheme: {
       const { theme } = payload.data;
       return { ...state, isDarkMode: theme === 'dark' };
+    }
+    case ActionType.SelectTable: {
+      const { tableName } = payload.data;
+      const tabsCopy = [...state.editorTabs];
+      const newTab = tabsCopy.pop();
+      const tabContent = `SELECT * FROM ${tableName};`;
+      tabsCopy.push({ title: `Query-${state.editorTabsCreated}`, content: tabContent, closable: true });
+      if (newTab) tabsCopy.push(newTab);
+      return { ...state, editorTabs: tabsCopy, editorTabsCreated: state.editorTabsCreated + 1 };
     }
   }
   return state;
