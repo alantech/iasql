@@ -37,6 +37,8 @@ export class IasqlUninstall extends RpcBase {
     ctx: Context,
     ...params: string[]
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
+    // Built-in iasql_* modules not allowed to be uninstalled
+    params = params.filter(mod => !['iasql_functions', 'iasql_platform'].includes(mod));
     const query = `
       select
           m.name as module_name,
