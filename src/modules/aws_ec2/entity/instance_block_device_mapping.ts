@@ -1,4 +1,4 @@
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, Unique } from 'typeorm';
+import { Column, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn, Unique } from 'typeorm';
 
 import { cloudId } from '../../../services/cloud-id';
 import { AwsRegions } from '../../aws_account/entity';
@@ -13,7 +13,6 @@ import { Instance } from './instance';
  * @see https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/block-device-mapping-concepts.html
  *
  */
-@Unique('uq_volume', ['volume'])
 @Entity()
 export class InstanceBlockDeviceMapping {
   /**
@@ -30,22 +29,14 @@ export class InstanceBlockDeviceMapping {
   @Column()
   deviceName: string;
 
+  @cloudId
   @Column({ nullable: false })
-  @cloudId
-  instance_id: number;
+  instanceId: number;
 
+  @cloudId
   @Column({ nullable: true })
-  @cloudId
-  volume_id?: number;
-
-  /**
-   * @public
-   * The volume that is associated with this specific instance
-   */
-  @ManyToOne(() => GeneralPurposeVolume, volume => volume.instanceBlockDeviceMappings, {
-    nullable: true,
-  })
-  volume?: GeneralPurposeVolume;
+  @Index({ unique: true, where: 'volume_id IS NOT NULL' })
+  volumeId?: number;
 
   /**
    * @public
@@ -53,8 +44,20 @@ export class InstanceBlockDeviceMapping {
    */
   @ManyToOne(() => Instance, instance => instance.instanceBlockDeviceMappings, {
     nullable: false,
+    cascade: true,
+    onDelete: 'CASCADE',
   })
   instance: Instance;
+
+  /**
+   * @public
+   * The volume that is associated with this specific instance
+   */
+  @ManyToOne(() => GeneralPurposeVolume, volume => volume.instanceBlockDeviceMappings, {
+    nullable: true,
+    cascade: true,
+  })
+  volume?: GeneralPurposeVolume;
 
   /**
    * @public

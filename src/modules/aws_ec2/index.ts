@@ -13,13 +13,13 @@ export class AwsEc2Module extends ModuleBase {
   instance: InstanceMapper;
 
   /** @internal */
-  instanceBlockDeviceMapping: InstanceBlockDeviceMappingMapper;
-
-  /** @internal */
   registeredInstance: RegisteredInstanceMapper;
 
   /** @internal */
   generalPurposeVolume: GeneralPurposeVolumeMapper;
+
+  /** @internal */
+  instanceBlockDeviceMapping: InstanceBlockDeviceMappingMapper;
 
   /** @internal */
   keypair: KeyPairMapper;
@@ -32,9 +32,9 @@ export class AwsEc2Module extends ModuleBase {
     super();
     // Mappers
     this.instance = new InstanceMapper(this);
-    this.instanceBlockDeviceMapping = new InstanceBlockDeviceMappingMapper(this);
     this.registeredInstance = new RegisteredInstanceMapper(this);
     this.generalPurposeVolume = new GeneralPurposeVolumeMapper(this);
+    this.instanceBlockDeviceMapping = new InstanceBlockDeviceMappingMapper(this);
     this.keypair = new KeyPairMapper(this);
     // RPCs
     this.keyPairImport = new KeyPairImportRpc(this);
