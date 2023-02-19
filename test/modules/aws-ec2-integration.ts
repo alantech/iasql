@@ -385,11 +385,6 @@ describe('EC2 Integration Testing', () => {
     query(
       `
       BEGIN;
-        DELETE FROM general_purpose_volume
-        USING instance
-        WHERE instance.id = general_purpose_volume.attached_instance_id AND
-          (instance.tags ->> 'name' = '${prefix}-2');
-
         DELETE FROM instance  WHERE tags ->> 'name' = '${prefix}-2';
         DELETE FROM security_group WHERE group_name = 'fake-security-group';
       COMMIT;

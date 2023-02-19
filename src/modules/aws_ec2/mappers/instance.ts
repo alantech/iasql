@@ -91,6 +91,7 @@ export class InstanceMapper extends MapperBase<Instance> {
       ));
     out.hibernationEnabled = instance.HibernationOptions?.Configured ?? false;
     out.region = region;
+
     return out;
   }
 
@@ -193,16 +194,6 @@ export class InstanceMapper extends MapperBase<Instance> {
         }
       },
     );
-  }
-
-  waitUntilInUse(client: EC2, volumeId: string) {
-    return this.volumeWaiter(client, volumeId, (vol: AWSVolume | undefined) => {
-      // If state is not 'in-use' retry
-      if (!Object.is(vol?.State, VolumeState.IN_USE)) {
-        return { state: WaiterState.RETRY };
-      }
-      return { state: WaiterState.SUCCESS };
-    });
   }
 
   waitUntilDeleted(client: EC2, volumeId: string) {
@@ -313,12 +304,15 @@ export class InstanceMapper extends MapperBase<Instance> {
           // if region is different than instance, throw an error
           if (vol.region != instance.region) throw new Error('Volume and instance must be on same region');
 
-          if (vol.volume_id) {
+          if (vol.volumeId) {
             // find volume by id
             const volumedata: GeneralPurposeVolume = await ctx.orm.findOne(GeneralPurposeVolume, {
-              id: vol.volume_id,
+              id: vol.volumeId,
             });
             if (volumedata) {
+              // check that are on the same AZ
+              if (volumedata.availabilityZone != instance.subnet?.availabilityZone)
+                throw new Error('Volume and instance must be on the same availability zone');
               // map it to the ebs mapping
               map.Ebs = {
                 DeleteOnTermination: volumedata.deleteOnTermination,
@@ -343,6 +337,19 @@ export class InstanceMapper extends MapperBase<Instance> {
       }
       return mapping;
     } else throw new Error('Could not find instance image');
+  }
+
+  async generateAmiId(client: AWS, ami: string) {
+    let amiId;
+    // Resolve amiId if necessary
+    if (ami.includes('resolve:ssm:')) {
+      const amiPath = ami.split('resolve:ssm:').pop() ?? '';
+      const ssmParameter = await this.getParameter(client.ssmClient, amiPath);
+      amiId = ssmParameter?.Parameter?.Value;
+    } else {
+      amiId = ami;
+    }
+    return amiId;
   }
 
   cloud: Crud<Instance> = new Crud({
@@ -395,16 +402,7 @@ export class InstanceMapper extends MapperBase<Instance> {
           };
           // Add security groups if any
           if (sgIds?.length) instanceParams.SecurityGroupIds = sgIds;
-
-          let amiId;
-          // Resolve amiId if necessary
-          if (instance.ami.includes('resolve:ssm:')) {
-            const amiPath = instance.ami.split('resolve:ssm:').pop() ?? '';
-            const ssmParameter = await this.getParameter(client.ssmClient, amiPath);
-            amiId = ssmParameter?.Parameter?.Value;
-          } else {
-            amiId = instance.ami;
-          }
+          const amiId = await this.generateAmiId(client, instance.ami);
 
           if (instance.hibernationEnabled) {
             // Update input object
@@ -518,33 +516,23 @@ export class InstanceMapper extends MapperBase<Instance> {
     delete: async (es: Instance[], ctx: Context) => {
       for (const entity of es) {
         const client = (await ctx.getAwsClient(entity.region)) as AWS;
-        // Remove attached volume
-        const rawAttachedVolume = (
-          await this.getVolumesByInstanceId(client.ec2client, entity.instanceId ?? '')
-        )?.pop();
+
         if (entity.instanceId) await this.terminateInstance(client.ec2client, entity.instanceId);
-        await this.waitUntilDeleted(client.ec2client, rawAttachedVolume?.VolumeId ?? '');
-        delete ctx?.memo?.cloud?.GeneralPurposeVolume?.[
-          this.module.generalPurposeVolume.generateId({
-            volumeId: rawAttachedVolume?.VolumeId ?? '',
-            region: entity.region,
-          })
-        ];
-        delete ctx?.memo?.db?.GeneralPurposeVolume?.[
-          this.module.generalPurposeVolume.generateId({
-            volumeId: rawAttachedVolume?.VolumeId ?? '',
-            region: entity.region,
-          })
-        ];
-        const attachedVolume = await this.module.generalPurposeVolume.db.read(
-          ctx,
-          this.module.generalPurposeVolume.generateId({
-            volumeId: rawAttachedVolume?.VolumeId ?? '',
-            region: entity.region,
-          }),
-        );
-        if (attachedVolume && !Array.isArray(attachedVolume))
-          await this.module.generalPurposeVolume.db.delete(attachedVolume, ctx);
+
+        // read the attached volumes and wait until terminated
+        const mappings = entity.instanceBlockDeviceMappings;
+        for (const map of mappings ?? []) {
+          if (map.volumeId) {
+            // find volume by id
+            const volumedata: GeneralPurposeVolume = await ctx.orm.findOne(GeneralPurposeVolume, {
+              id: map.volumeId,
+            });
+            // if volume needs to be deleted do it
+            if (volumedata.deleteOnTermination)
+              await this.module.generalPurposeVolume.db.delete(volumedata, ctx);
+            await this.waitUntilDeleted(client.ec2client, volumedata?.volumeId ?? '');
+          }
+        }
       }
     },
   });

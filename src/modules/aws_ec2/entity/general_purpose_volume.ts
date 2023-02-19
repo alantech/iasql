@@ -12,7 +12,7 @@ import {
 import { cloudId } from '../../../services/cloud-id';
 import { AwsRegions } from '../../aws_account/entity';
 import { AvailabilityZone } from '../../aws_vpc/entity';
-import { Instance, InstanceBlockDeviceMapping } from '../entity';
+import { InstanceBlockDeviceMapping } from '../entity';
 
 /**
  * @enum
@@ -172,7 +172,6 @@ export class GeneralPurposeVolume {
    */
   @OneToMany(() => InstanceBlockDeviceMapping, mappings => mappings.volume, {
     nullable: true,
-    cascade: true,
     eager: true,
   })
   @JoinColumn({ referencedColumnName: 'volume_id' })

@@ -1,12 +1,12 @@
 import {
   CreateVolumeCommandInput,
-  DescribeVolumesCommandInput,
   DescribeVolumesModificationsCommandInput,
   EC2,
   ModifyVolumeCommandInput,
   Tag as AWSTag,
   Volume as AWSVolume,
   paginateDescribeVolumes,
+  DescribeVolumesCommandInput,
 } from '@aws-sdk/client-ec2';
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 
@@ -58,6 +58,35 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
     }
     out.region = region;
     return out;
+  }
+
+  // TODO: Figure out if/how to macro-ify this thing
+  async volumeWaiter(
+    client: EC2,
+    volumeId: string,
+    handleState: (vol: AWSVolume | undefined) => { state: WaiterState },
+  ) {
+    return createWaiter<EC2, DescribeVolumesCommandInput>(
+      {
+        client,
+        // all in seconds
+        maxWaitTime: 300,
+        minDelay: 1,
+        maxDelay: 4,
+      },
+      {
+        VolumeIds: [volumeId],
+      },
+      async (cl, input) => {
+        const data = await cl.describeVolumes(input);
+        try {
+          const vol = data.Volumes?.pop();
+          return handleState(vol);
+        } catch (e: any) {
+          throw e;
+        }
+      },
+    );
   }
 
   createVolumeInternal = crudBuilderFormat<EC2, 'createVolume', string | undefined>(
