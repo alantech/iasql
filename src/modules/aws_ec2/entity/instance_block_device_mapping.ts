@@ -44,7 +44,6 @@ export class InstanceBlockDeviceMapping {
    */
   @ManyToOne(() => Instance, instance => instance.instanceBlockDeviceMappings, {
     nullable: false,
-    cascade: true,
     onDelete: 'CASCADE',
   })
   instance: Instance;
@@ -55,7 +54,6 @@ export class InstanceBlockDeviceMapping {
    */
   @ManyToOne(() => GeneralPurposeVolume, volume => volume.instanceBlockDeviceMappings, {
     nullable: true,
-    cascade: true,
   })
   volume?: GeneralPurposeVolume;
 
