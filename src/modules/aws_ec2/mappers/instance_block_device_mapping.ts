@@ -16,6 +16,9 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
   module: AwsEc2Module;
   entity = InstanceBlockDeviceMapping;
   equals = (a: InstanceBlockDeviceMapping, b: InstanceBlockDeviceMapping) => {
+    console.log('in equals');
+    console.log(a);
+    console.log(b);
     return Object.is(a.deviceName, b.deviceName);
   };
 
@@ -93,6 +96,8 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
     create: async (es: InstanceBlockDeviceMapping[], ctx: Context) => {
       const out: InstanceBlockDeviceMapping[] = [];
       for (const e of es) {
+        console.log('i create');
+        console.log(e);
         // read instance details
         const instance: Instance = await ctx.orm.findOne(Instance, {
           id: e.instanceId,
@@ -126,8 +131,11 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
     },
     read: async (ctx: Context, id?: string) => {
       if (id) {
+        console.log('i try to read');
+        console.log(id);
         return undefined;
       } else {
+        console.log('in read all');
         const out: InstanceBlockDeviceMapping[] = [];
         const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
         await Promise.all(
@@ -156,12 +164,15 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
             }
           }),
         );
+        console.log(out);
         return out;
       }
     },
     update: async (es: InstanceBlockDeviceMapping[], ctx: Context) => {
       const out: InstanceBlockDeviceMapping[] = [];
       for (const e of es) {
+        console.log('i need to update');
+        console.log(e);
         // the only case for update is to change the device name, we will need to delete and recreate
         await this.module.instanceBlockDeviceMapping.cloud.delete(e, ctx);
         await this.module.instanceBlockDeviceMapping.cloud.create(e, ctx);
@@ -170,6 +181,8 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
     },
     delete: async (es: InstanceBlockDeviceMapping[], ctx: Context) => {
       for (const e of es) {
+        console.log('i delete mapping');
+        console.log(e);
         // read instance details
         const instance: Instance = await ctx.orm.findOne(Instance, {
           id: e.instanceId,

@@ -255,8 +255,10 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
 
   cloud: Crud<GeneralPurposeVolume> = new Crud({
     create: async (es: GeneralPurposeVolume[], ctx: Context) => {
+      console.log('in create volume');
       const out = [];
       for (const e of es) {
+        console.log(e);
         const client = (await ctx.getAwsClient(e.region)) as AWS;
         const input: CreateVolumeCommandInput = {
           AvailabilityZone: e.availabilityZone.name,
@@ -295,6 +297,7 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
       return out;
     },
     read: async (ctx: Context, id?: string) => {
+      console.log('i read volume');
       if (id) {
         const { volumeId, region } = this.idFields(id);
         const client = (await ctx.getAwsClient(region)) as AWS;
@@ -318,6 +321,9 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
       }
     },
     updateOrReplace: (prev: GeneralPurposeVolume, next: GeneralPurposeVolume) => {
+      console.log('in update or replace');
+      console.log(prev);
+      console.log(next);
       if (
         !Object.is(prev?.availabilityZone?.name, next?.availabilityZone?.name) ||
         !Object.is(prev.snapshotId, next.snapshotId)
@@ -326,6 +332,7 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
       return 'update';
     },
     update: async (es: GeneralPurposeVolume[], ctx: Context) => {
+      console.log('i neeed to update');
       const out = [];
       for (const e of es) {
         const client = (await ctx.getAwsClient(e.region)) as AWS;
@@ -376,6 +383,7 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
             out.push(cloudRecord);
           }
         } else {
+          console.log('i am replacing');
           // Replace
           const newVolume = await this.module.generalPurposeVolume.cloud.create(e, ctx);
           await this.module.generalPurposeVolume.cloud.delete(cloudRecord, ctx);

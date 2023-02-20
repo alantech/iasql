@@ -504,8 +504,10 @@ export class InstanceMapper extends MapperBase<Instance> {
     updateOrReplace: (a: Instance, b: Instance) =>
       this.instanceEqReplaceableFields(a, b) ? 'update' : 'replace',
     update: async (es: Instance[], ctx: Context) => {
+      console.log('in update instnace');
       const out = [];
       for (const e of es) {
+        console.log(e);
         const client = (await ctx.getAwsClient(e.region)) as AWS;
         const cloudRecord = ctx?.memo?.cloud?.Instance?.[this.entityId(e)];
         if (this.instanceEqReplaceableFields(e, cloudRecord)) {
