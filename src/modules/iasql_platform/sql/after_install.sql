@@ -9,4 +9,4 @@ ALTER DEFAULT PRIVILEGES FOR USER CURRENT_USER IN SCHEMA public
 GRANT USAGE, SELECT ON SEQUENCES TO PUBLIC;
 
 -- Just GRANT SELECT privilege for iasql_platform tables
-GRANT SELECT ON iasql_module, iasql_tables, iasql_audit_log TO PUBLIC;
+GRANT SELECT ON iasql_module, iasql_dependencies, iasql_tables, iasql_audit_log TO PUBLIC;
