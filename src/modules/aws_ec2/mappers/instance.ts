@@ -427,6 +427,7 @@ export class InstanceMapper extends MapperBase<Instance> {
           }
 
           // get block device mapping parameter
+          console.log('before mapping');
           const mappings = await this.generateBlockDeviceMapping(
             ctx,
             amiId!,
@@ -434,19 +435,19 @@ export class InstanceMapper extends MapperBase<Instance> {
             instance.hibernationEnabled,
           );
           if (mappings) instanceParams.BlockDeviceMappings = mappings;
+          console.log(instanceParams);
 
           const instanceId = await this.newInstance(client.ec2client, instanceParams);
+          console.log('i created');
+          console.log(instanceId);
           if (!instanceId) {
             // then who?
             throw new Error('should not be possible');
           }
-          const newEntity = await this.module.instance.cloud.read(
-            ctx,
-            this.module.instance.generateId({ instanceId, region: instance.region }),
-          );
-
           // read block device mapping from instance and wait for volumes in use
           const mapping = await this.getInstanceBlockDeviceMapping(client.ec2client, instanceId);
+          console.log('created volumes mapping is');
+          console.log(mapping);
           for (const map of mapping ?? []) {
             if (map.DeviceName && map.Ebs?.VolumeId) {
               await this.module.instanceBlockDeviceMapping.waitUntilInUse(
@@ -456,11 +457,22 @@ export class InstanceMapper extends MapperBase<Instance> {
             }
           }
 
+          const newEntity = await this.module.instance.cloud.read(
+            ctx,
+            this.module.instance.generateId({ instanceId, region: instance.region }),
+          );
+          console.log('entity is');
+          console.log(newEntity);
+
           newEntity.id = instance.id;
+          console.log('i update');
+          console.log(newEntity);
           await this.module.instance.db.update(newEntity, ctx);
           out.push(newEntity);
         }
       }
+      console.log('i created');
+      console.log(out);
       return out;
     },
     read: async (ctx: Context, id?: string) => {
@@ -518,6 +530,7 @@ export class InstanceMapper extends MapperBase<Instance> {
           }
           out.push(e);
         } else {
+          console.log('i need to replace');
           const created = await this.module.instance.cloud.create(e, ctx);
           await this.module.instance.cloud.delete(cloudRecord, ctx);
           if (!!created && created instanceof Array) {
@@ -530,6 +543,7 @@ export class InstanceMapper extends MapperBase<Instance> {
       return out;
     },
     delete: async (es: Instance[], ctx: Context) => {
+      console.log('i need to delete');
       for (const entity of es) {
         const client = (await ctx.getAwsClient(entity.region)) as AWS;
         const mapping = await this.getInstanceBlockDeviceMapping(client.ec2client, entity.instanceId);
