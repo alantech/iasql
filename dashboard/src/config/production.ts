@@ -22,7 +22,7 @@ const production: ConfigInterface = {
   engine: {
     pgHost: 'pg.iasql.com',
     pgForceSsl: true,
-    backendUrl: 'https://run.iasql.com',
+    backendUrl: 'https://app.iasql.com',
   },
 };
 
