@@ -1,3 +1,5 @@
+import format from 'pg-format';
+
 import { IasqlFunctions } from '..';
 import { TypeormWrapper } from '../../../services/typeorm';
 import {
@@ -54,7 +56,7 @@ export class IasqlInstall extends RpcBase {
           (xpath('/row/c/text()', query_to_xml(format('select count(*) as c from public.%I', t.table), FALSE, TRUE, '')))[1]::text::int AS record_count
       from iasql_module as m
       inner join iasql_tables as t on m.name = t.module
-      inner join (select unnest(array[${params.map(mod => `'${mod}'`).join(',')}]) as module) as mo on true
+      inner join (select unnest(array[${format('%L', params)}]) as module) as mo on true
       where left(m.name, length(mo.module)) = mo.module;
     `;
     const modulesInstalled = await (ctx.orm as TypeormWrapper).query(query);
