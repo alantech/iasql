@@ -59,7 +59,6 @@ su - postgres -c "psql iasql_metadata -c \"GRANT EXECUTE ON FUNCTION cron.schedu
 
 wait-for-url() {
   echo "Testing $1"
-  echo $(curl -s -o /dev/null -L -w ''%{http_code}'' ${0})
   timeout -s TERM 360 bash -c \
     'while [[ "$(curl -s -o /dev/null -L -w ''%{http_code}'' ${0})" != "200" ]];\
   do echo "Waiting for ${0}" && sleep 5;\
