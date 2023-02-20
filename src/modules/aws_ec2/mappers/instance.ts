@@ -547,27 +547,37 @@ export class InstanceMapper extends MapperBase<Instance> {
       return out;
     },
     delete: async (es: Instance[], ctx: Context) => {
-      console.log('i need to delete');
       for (const entity of es) {
+        if (!entity.instanceId) continue;
         const client = (await ctx.getAwsClient(entity.region)) as AWS;
         const mapping = await this.getInstanceBlockDeviceMapping(client.ec2client, entity.instanceId);
-        console.log('maps are');
-        console.log(mapping);
 
         if (entity.instanceId) await this.terminateInstance(client.ec2client, entity.instanceId);
+        const region = entity.region;
 
         // read the attached volumes and wait until terminated
         for (const map of mapping ?? []) {
-          // find volume by id
-          console.log('volume is');
-          console.log(map);
-          if (map.Ebs?.VolumeId && map.Ebs?.DeleteOnTermination) {
-            await this.waitUntilDeleted(client.ec2client, map.Ebs?.VolumeId ?? '');
+          // find related volume
+          if (map.DeviceName && map.Ebs?.VolumeId && entity.id) {
+            const volume = await this.module.generalPurposeVolume.db.read(
+              ctx,
+              this.module.generalPurposeVolume.generateId({ volumeId: map.Ebs?.VolumeId, region }),
+            );
 
-            const volumedata: GeneralPurposeVolume = await ctx.orm.findOne(GeneralPurposeVolume, {
-              id: map.Ebs?.VolumeId,
-            });
-            if (volumedata) await this.module.generalPurposeVolume.db.delete(volumedata, ctx);
+            if (volume) {
+              // delete the related mapping to detach
+              await this.module.instanceBlockDeviceMapping.db.delete(
+                {
+                  instanceId: entity.id,
+                  volumeId: volume.id,
+                  deviceName: map.DeviceName!,
+                  region: entity.region,
+                  instance: entity,
+                  volume: volume,
+                },
+                ctx,
+              );
+            }
           }
         }
       }
