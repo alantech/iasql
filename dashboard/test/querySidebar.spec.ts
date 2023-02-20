@@ -16,17 +16,24 @@ export default function createTests() {
       page.locator(`span[role="none"]:has-text("${dbAlias}")`)
     );
 
-    // Check sidebar
+    // Click on schema in sidebar
     await click(
       page.locator(`#query-sidebar button:has-text("Schema")`)
     );
 
+    // Close modules accordion
     await click(
       page.locator(`#accordion-modules`), true
     );
   
+    // Close functions accordion
     await click(
       page.locator(`#accordion-functions`)
+    );
+
+    // Open modules accordion
+    await click(
+      page.locator(`#accordion-modules`), true
     );
 
     // Click first table with action enabled
