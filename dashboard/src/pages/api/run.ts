@@ -6,7 +6,6 @@ import format from 'pg-format';
 import { parse, deparse } from 'pgsql-parser';
 import { createConnection, Connection } from 'typeorm';
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
-import { v4 as uuidv4 } from 'uuid';
 
 import { throwError } from '@/config/config';
 import config from '@/server-config';
@@ -159,12 +158,7 @@ async function getUserAndPassword(
     username = tokenInfo.sub ?? throwError('No username found on auth token');
     email = tokenInfo[`${config.auth?.domain}email`] ?? 'hello@iasql.com';
   } else {
-    const res = await metaQuery(`
-      SELECT id
-      FROM iasql_user
-      LIMIT 1;
-    `);
-    username = res?.[0]?.id ?? uuidv4().split('-').join('');
+    username = process.env.NEXT_PUBLIC_UID;
     email = `hello+${username}@iasql.com`;
   }
   const password = Array(16)
