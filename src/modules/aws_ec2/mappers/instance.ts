@@ -439,9 +439,14 @@ export class InstanceMapper extends MapperBase<Instance> {
             instance.hibernationEnabled,
           );
           if (mappings) instanceParams.BlockDeviceMappings = mappings;
-          console.log(instanceParams);
+          console.log(instanceParams.BlockDeviceMappings);
 
-          const instanceId = await this.newInstance(client.ec2client, instanceParams);
+          let instanceId;
+          try {
+            instanceId = await this.newInstance(client.ec2client, instanceParams);
+          } catch (e) {
+            console.log(e);
+          }
           console.log('i created');
           console.log(instanceId);
           if (!instanceId) {
