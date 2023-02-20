@@ -42,16 +42,31 @@ export class IasqlModule {
   tables: IasqlTables[];
 }
 
+/**
+ * Table to track the list of tables used in iasql, and the related module.
+ */
 @Entity()
 export class IasqlTables {
+  /**
+   * @public
+   * Module name
+   */
   @ManyToOne(() => IasqlModule, m => m.name, { primary: true })
   @JoinColumn({ name: 'module' })
   module: IasqlModule;
 
+  /**
+   * @public
+   * Table name
+   */
   @Column({ nullable: false, primary: true })
   table: string;
 }
 
+/**
+ * @enum
+ * The different types of changes that can be performed in a given table
+ */
 export enum AuditLogChangeType {
   INSERT = 'INSERT',
   UPDATE = 'UPDATE',
@@ -67,23 +82,47 @@ export enum AuditLogChangeType {
   END_REVERT = 'END_REVERT',
 }
 
+/**
+ * Table to track the changes performed in the tables managed by IaSQL.
+ * It contains information about user, performed change and timestamp.
+ */
 @Entity()
 export class IasqlAuditLog {
+  /**
+   * @private
+   * Auto-incremented ID field
+   */
   @PrimaryGeneratedColumn()
   id: number;
 
+  /**
+   * @public
+   * Timestamp of the change
+   */
   @Index()
   @Column({
     type: 'timestamp with time zone',
   })
   ts: Date;
 
+  /**
+   * @public
+   * User that committed the change
+   */
   @Column()
   user: string;
 
+  /**
+   * @public
+   * Name of the affected table
+   */
   @Column()
   tableName: string;
 
+  /**
+   * @public
+   * Type of change
+   */
   @Column({
     type: 'enum',
     enum: AuditLogChangeType,
@@ -94,11 +133,19 @@ export class IasqlAuditLog {
   // `original` and `change`. An UPDATE will have both properties specified, an INSERT will only
   // contain `change`, and a DELETE will only contain `original`. I do not know how to enforce this
   // any better than by comment. :_)
+  /**
+   * @public
+   * Complex type to reflect the performed change
+   */
   @Column({
     type: 'json',
   })
   change: { original?: any; change?: any };
 
+  /**
+   * @public
+   * Descriptive message of the change
+   */
   @Column({
     nullable: true,
   })

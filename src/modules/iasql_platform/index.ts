@@ -11,4 +11,11 @@ class IasqlPlatform extends ModuleBase {
   iasqlTables = IasqlTables;
   iasqlAuditLog = IasqlAuditLog;
 }
+
+/**
+ * ```testdoc
+ * common/get_sql_since.ts#iasql_get_sql_since functionality#iasql_audit_log functionality
+ * common/all-modules-have-tables.ts#Every module installed need to have at least a table#List tables functionality
+ * ```
+ */
 export const iasqlPlatform = new IasqlPlatform();
