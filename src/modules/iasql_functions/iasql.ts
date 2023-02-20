@@ -849,7 +849,7 @@ async function getInverseQueries(
         inverseQuery = format(
           `
             UPDATE %I
-            SET ${originalAugmentedValues.map(av => `${av.isJson ? '%I::jsonb = %s' : '%I = %s'}`).join(', ')}
+            SET ${originalAugmentedValues.map(() => `%I = %s`).join(', ')}
             WHERE ${changedAugmentedValues
               // We need to add an special case for AMIs since we know the revolve string can be used and it will not match with the actual AMI assigned
               .filter(av => av.key !== 'ami')
