@@ -48,7 +48,7 @@
   "devDependencies": {
     "@trivago/prettier-plugin-sort-imports": "^3.3.0",
     "@types/callsite": "^1.0.31",
-    "@types/express": "^4.17.14",
+    "@types/express": "^4.17.17",
     "@types/jest": "^27.5.0",
     "@types/lodash.clonedeep": "^4.5.7",
     "@types/lodash.isequal": "^4.5.6",
