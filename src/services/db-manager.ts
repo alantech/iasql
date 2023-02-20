@@ -12,24 +12,19 @@ export async function migrate(conn: Connection) {
   const version = iasqlPlatform.version;
   const qr = conn.createQueryRunner();
   await qr.connect();
-  if (iasqlPlatform.migrations?.beforeInstall) {
-    await iasqlPlatform.migrations.beforeInstall(qr);
-  }
+  await iasqlPlatform.migrations.beforeInstall?.(qr);
   await iasqlPlatform.migrations.install(qr);
-  if (iasqlPlatform.migrations.afterInstall) {
-    await iasqlPlatform.migrations.afterInstall(qr);
-  }
-  await qr.query(`INSERT INTO iasql_module VALUES ('iasql_platform@${version}')`);
-  if (Modules.iasqlFunctions?.migrations?.beforeInstall) {
-    await Modules.iasqlFunctions?.migrations?.beforeInstall(qr);
-  }
+  await iasqlPlatform.migrations.afterInstall?.(qr);
+  await qr.query(`INSERT INTO iasql_module
+                  VALUES ('iasql_platform@${version}')`);
+  await Modules.iasqlFunctions?.migrations?.beforeInstall?.(qr);
   await Modules.iasqlFunctions?.migrations?.install(qr);
-  if (Modules.iasqlFunctions?.migrations?.afterInstall) {
-    await Modules.iasqlFunctions?.migrations?.afterInstall(qr);
-  }
-  await qr.query(`INSERT INTO iasql_module VALUES ('iasql_functions@${version}')`);
+  await Modules.iasqlFunctions?.migrations?.afterInstall?.(qr);
+  await qr.query(`INSERT INTO iasql_module
+                  VALUES ('iasql_functions@${version}')`);
   await qr.query(
-    `INSERT INTO iasql_dependencies VALUES ('iasql_functions@${version}', 'iasql_platform@${version}')`,
+    `INSERT INTO iasql_dependencies
+     VALUES ('iasql_functions@${version}', 'iasql_platform@${version}')`,
   );
   await qr.query(`INSERT INTO iasql_tables ("table", "module") VALUES
     ${iasqlPlatform.provides.tables.map(tbl => `('${tbl}', 'iasql_platform@${version}')`).join(', ')};

@@ -33,6 +33,10 @@ export class IasqlUninstall extends RpcBase {
     dropped_table_name: 'varchar',
     record_count: 'integer',
   } as const;
+
+  helpDescription = 'Uninstall modules in the hosted db';
+  helpSampleUsage = "SELECT * FROM iasql_uninstall('aws_vpc', 'aws_ec2')";
+
   call = async (
     dbId: string,
     _dbUser: string,

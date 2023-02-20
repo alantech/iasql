@@ -44,6 +44,9 @@ export class IasqlRollback extends RpcBase {
     description: 'varchar',
   } as const;
 
+  helpDescription = 'Rollback changes done to the database by synchronizing cloud resources';
+  helpSampleUsage = 'SELECT * FROM iasql_rollback()';
+
   /** @internal */
   call = async (
     dbId: string,

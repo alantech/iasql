@@ -43,6 +43,9 @@ export class IasqlGetSqlSince extends RpcBase {
     sql: 'varchar',
   } as const;
 
+  helpDescription = 'Generate SQL from the audit log from a given point in time';
+  helpSampleUsage = "SELECT * FROM iasql_get_sql_since((now() - interval '30 minutes')::text)";
+
   /** @internal */
   call = async (
     _dbId: string,
