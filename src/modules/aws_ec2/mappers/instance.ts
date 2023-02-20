@@ -371,6 +371,7 @@ export class InstanceMapper extends MapperBase<Instance> {
     create: async (es: Instance[], ctx: Context) => {
       const out = [];
       for (const instance of es) {
+        console.log('in create instance');
         const client = (await ctx.getAwsClient(instance.region)) as AWS;
         const previousInstanceId = instance.instanceId;
         if (instance.ami) {
@@ -389,6 +390,7 @@ export class InstanceMapper extends MapperBase<Instance> {
           // check if we have some entry without security group id
           const without = instance.securityGroups.filter(sg => !sg.groupId);
           if (without.length > 0) continue;
+          console.log('pass security groups');
 
           const sgIds = instance.securityGroups.map(sg => sg.groupId).filter(id => !!id) as string[];
 
@@ -415,6 +417,8 @@ export class InstanceMapper extends MapperBase<Instance> {
             IamInstanceProfile: iamInstanceProfile,
             SubnetId: instance.subnet?.subnetId,
           };
+          console.log('params are');
+          console.log(instanceParams);
           // Add security groups if any
           if (sgIds?.length) instanceParams.SecurityGroupIds = sgIds;
           const amiId = await this.generateAmiId(client, instance.ami);
@@ -471,8 +475,6 @@ export class InstanceMapper extends MapperBase<Instance> {
           out.push(newEntity);
         }
       }
-      console.log('i created');
-      console.log(out);
       return out;
     },
     read: async (ctx: Context, id?: string) => {
@@ -549,20 +551,23 @@ export class InstanceMapper extends MapperBase<Instance> {
       for (const entity of es) {
         const client = (await ctx.getAwsClient(entity.region)) as AWS;
         const mapping = await this.getInstanceBlockDeviceMapping(client.ec2client, entity.instanceId);
+        console.log('maps are');
+        console.log(mapping);
 
         if (entity.instanceId) await this.terminateInstance(client.ec2client, entity.instanceId);
 
         // read the attached volumes and wait until terminated
         for (const map of mapping ?? []) {
           // find volume by id
-          if (map.Ebs?.VolumeId) {
+          console.log('volume is');
+          console.log(map);
+          if (map.Ebs?.VolumeId && map.Ebs?.DeleteOnTermination) {
+            await this.waitUntilDeleted(client.ec2client, map.Ebs?.VolumeId ?? '');
+
             const volumedata: GeneralPurposeVolume = await ctx.orm.findOne(GeneralPurposeVolume, {
               id: map.Ebs?.VolumeId,
             });
-            if (volumedata && volumedata.deleteOnTermination) {
-              await this.waitUntilDeleted(client.ec2client, map.Ebs?.VolumeId ?? '');
-              await this.module.generalPurposeVolume.db.delete(volumedata, ctx);
-            }
+            if (volumedata) await this.module.generalPurposeVolume.db.delete(volumedata, ctx);
           }
         }
       }
