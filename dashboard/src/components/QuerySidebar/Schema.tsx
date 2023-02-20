@@ -35,7 +35,11 @@ export default function Schema({
                 id={tableName}
                 title={tableName}
                 defaultOpen={false}
-                action={moduleData[moduleName][tableName]?.recordCount > 0 ? { icon: searchIcon, handler: selectTable } : undefined}
+                action={
+                  moduleData[moduleName][tableName]?.recordCount > 0
+                    ? { icon: searchIcon, handler: selectTable }
+                    : undefined
+                }
               >
                 {Object.entries(moduleData[moduleName][tableName])
                   .filter(([col, _]) => col !== 'recordCount')

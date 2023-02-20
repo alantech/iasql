@@ -10,7 +10,10 @@ export default function QuerySidebar() {
   return (
     <div className='h-50vh w-1/4 font-normal text-xs mr-2 overflow-auto' id='query-sidebar'>
       <Tab tabs={[{ title: 'Schema' }, { title: 'Modules' }]} defaultIndex={1}>
-        <VBox alignment={align.start} customStyles='h-sidebar bg-gray-100/20 dark:bg-gray-800 w-full overflow-auto'>
+        <VBox
+          alignment={align.start}
+          customStyles='h-sidebar bg-gray-100/20 dark:bg-gray-800 w-full overflow-auto'
+        >
           <ReactTab.Panel className='w-full p-2 font-mono bg-gray-100/20 dark:bg-gray-800'>
             <div className='overflow-auto'>
               <Schema moduleData={installedModules} functionData={functions} />
