@@ -351,7 +351,7 @@ describe('EC2 Integration Testing', () => {
           WHERE availability_zone = '${availabilityZone2}'
           LIMIT 1;
         INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
-          (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-2'),
+          (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-2' AND region='${region}'),
           (SELECT id FROM security_group WHERE group_name='fake-security-group' AND region = '${region}');
       COMMIT;
     `,
@@ -409,7 +409,7 @@ describe('EC2 Integration Testing', () => {
           WHERE availability_zone = '${availabilityZone1}'
           LIMIT 1;
         INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
-          (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'),
+          (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1' AND region='${region}'),
           (SELECT id FROM security_group WHERE group_name='default' AND region = '${region}');
       COMMIT;
 
@@ -420,7 +420,7 @@ describe('EC2 Integration Testing', () => {
           WHERE availability_zone = '${availabilityZone2}'
           LIMIT 1;
         INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
-          (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-2'),
+          (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-2' AND region='${region}'),
           (SELECT id FROM security_group WHERE group_name='default' AND region = '${region}');
       COMMIT;
     `,
@@ -497,11 +497,11 @@ describe('EC2 Integration Testing', () => {
     'check number of volumes',
     query(
       `
-    SELECT *
-    FROM general_purpose_volume
-    INNER JOIN instance on instance.id = general_purpose_volume.attached_instance_id
-    WHERE instance.tags ->> 'name' = '${prefix}-1' OR
-      instance.tags ->> 'name' = '${prefix}-2';
+    SELECT id FROM volume INNER JOIN instance_block_device_mapping
+    ON volume.id=instance_block_device_mapping.volume_id
+    WHERE instance_block_device_mapping.instance_id=(SELECT id FROM instance
+    WHERE (instance.tags ->> 'name' = '${prefix}-1' OR
+      instance.tags ->> 'name' = '${prefix}-2') AND region='${region}');
   `,
       (res: any[]) => expect(res.length).toBe(2),
     ),
@@ -608,7 +608,7 @@ describe('EC2 Integration Testing', () => {
       VALUES ('${tgName}', '${tgType}', '${protocol}', ${tgPort}, '/health');
 
       INSERT INTO registered_instance (instance, target_group_id)
-      SELECT (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'), (SELECT id FROM target_group WHERE target_group_name = '${tgName}');
+      SELECT (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1' AND region='${region}'), (SELECT id FROM target_group WHERE target_group_name = '${tgName}');
     COMMIT;
   `,
       undefined,
@@ -677,7 +677,7 @@ describe('EC2 Integration Testing', () => {
     query(
       `
     INSERT INTO registered_instance (instance, target_group_id, port)
-    SELECT (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-2'), (SELECT id FROM target_group WHERE target_group_name = '${tgName}'), ${instancePort}
+    SELECT (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-2' AND region='${region}'), (SELECT id FROM target_group WHERE target_group_name = '${tgName}'), ${instancePort}
   `,
       undefined,
       true,
@@ -1151,19 +1151,10 @@ describe('EC2 Integration Testing', () => {
     'deletes all ec2 instances',
     query(
       `
-    BEGIN;
-      DELETE FROM general_purpose_volume
-      USING instance
-      WHERE instance.id = general_purpose_volume.attached_instance_id AND
-        (instance.tags ->> 'name' = '${prefix}-nosg' OR
-        instance.tags ->> 'name' = '${prefix}-1' OR
-        instance.tags ->> 'name' = '${prefix}-2');
-
       DELETE FROM instance
       WHERE tags ->> 'name' = '${prefix}-nosg' OR
         tags ->> 'name' = '${prefix}-1' OR
         tags ->> 'name' = '${prefix}-2';
-    COMMIT;
   `,
       undefined,
       true,
@@ -1191,11 +1182,11 @@ describe('EC2 Integration Testing', () => {
     'check number of volumes',
     query(
       `
-    SELECT *
-    FROM general_purpose_volume
-    INNER JOIN instance on instance.id = general_purpose_volume.attached_instance_id
-    WHERE instance.tags ->> 'name' = '${prefix}-1' OR
-      instance.tags ->> 'name' = '${prefix}-2';
+    SELECT id FROM volume INNER JOIN instance_block_device_mapping
+    ON volume.id=instance_block_device_mapping.volume_id
+    WHERE instance_block_device_Mapping.instance_id=(SELECT id FROM instance
+      WHERE (instance.tags ->> 'name' = '${prefix}-1' OR
+      instance.tags ->> 'name' = '${prefix}-2') AND region='${region}');
   `,
       (res: any[]) => expect(res.length).toBe(0),
     ),

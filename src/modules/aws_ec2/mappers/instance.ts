@@ -6,7 +6,12 @@ import {
   Volume as AWSVolume,
   DescribeVolumesCommandInput,
 } from '@aws-sdk/client-ec2';
-import { Instance as AWSInstance, InstanceLifecycle, Tag as AWSTag } from '@aws-sdk/client-ec2';
+import {
+  Instance as AWSInstance,
+  InstanceLifecycle,
+  Tag as AWSTag,
+  InstanceBlockDeviceMapping as AWSInstanceBlockDeviceMapping,
+} from '@aws-sdk/client-ec2';
 import { SSM } from '@aws-sdk/client-ssm';
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 
@@ -99,6 +104,16 @@ export class InstanceMapper extends MapperBase<Instance> {
     'describeInstanceAttribute',
     InstanceId => ({ Attribute: 'userData', InstanceId }),
     res => res?.UserData?.Value,
+  );
+
+  getInstanceBlockDeviceMapping = crudBuilderFormat<
+    EC2,
+    'describeInstanceAttribute',
+    AWSInstanceBlockDeviceMapping[] | undefined
+  >(
+    'describeInstanceAttribute',
+    InstanceId => ({ Attribute: 'blockDeviceMapping', InstanceId }),
+    res => res?.BlockDeviceMappings,
   );
 
   getVolumesByInstanceId = crudBuilderFormat<EC2, 'describeVolumes', AWSVolume[] | undefined>(
@@ -311,7 +326,7 @@ export class InstanceMapper extends MapperBase<Instance> {
             });
             if (volumedata) {
               // check that are on the same AZ
-              if (volumedata.availabilityZone != instance.subnet?.availabilityZone)
+              if (volumedata.availabilityZone.name != instance.subnet?.availabilityZone.name)
                 throw new Error('Volume and instance must be on the same availability zone');
               // map it to the ebs mapping
               map.Ebs = {
@@ -429,6 +444,18 @@ export class InstanceMapper extends MapperBase<Instance> {
             ctx,
             this.module.instance.generateId({ instanceId, region: instance.region }),
           );
+
+          // read block device mapping from instance and wait for volumes in use
+          const mapping = await this.getInstanceBlockDeviceMapping(client.ec2client, instanceId);
+          for (const map of mapping ?? []) {
+            if (map.DeviceName && map.Ebs?.VolumeId) {
+              await this.module.instanceBlockDeviceMapping.waitUntilInUse(
+                client.ec2client,
+                map.Ebs.VolumeId!,
+              );
+            }
+          }
+
           newEntity.id = instance.id;
           await this.module.instance.db.update(newEntity, ctx);
           out.push(newEntity);
@@ -505,21 +532,21 @@ export class InstanceMapper extends MapperBase<Instance> {
     delete: async (es: Instance[], ctx: Context) => {
       for (const entity of es) {
         const client = (await ctx.getAwsClient(entity.region)) as AWS;
+        const mapping = await this.getInstanceBlockDeviceMapping(client.ec2client, entity.instanceId);
 
         if (entity.instanceId) await this.terminateInstance(client.ec2client, entity.instanceId);
 
         // read the attached volumes and wait until terminated
-        const mappings = entity.instanceBlockDeviceMappings;
-        for (const map of mappings ?? []) {
-          if (map.volumeId) {
-            // find volume by id
+        for (const map of mapping ?? []) {
+          // find volume by id
+          if (map.Ebs?.VolumeId) {
             const volumedata: GeneralPurposeVolume = await ctx.orm.findOne(GeneralPurposeVolume, {
-              id: map.volumeId,
+              id: map.Ebs?.VolumeId,
             });
-            // if volume needs to be deleted do it
-            if (volumedata.deleteOnTermination)
+            if (volumedata && volumedata.deleteOnTermination) {
+              await this.waitUntilDeleted(client.ec2client, map.Ebs?.VolumeId ?? '');
               await this.module.generalPurposeVolume.db.delete(volumedata, ctx);
-            await this.waitUntilDeleted(client.ec2client, volumedata?.volumeId ?? '');
+            }
           }
         }
       }

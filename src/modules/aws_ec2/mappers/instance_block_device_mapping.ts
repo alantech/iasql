@@ -2,6 +2,7 @@ import {
   DescribeVolumesCommandInput,
   EC2,
   InstanceBlockDeviceMapping as AWSInstanceBlockDeviceMapping,
+  InstanceLifecycle,
 } from '@aws-sdk/client-ec2';
 import { Volume as AWSVolume } from '@aws-sdk/client-ec2';
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
@@ -134,6 +135,11 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
             const client = (await ctx.getAwsClient(region)) as AWS;
             const rawInstances = (await this.module.instance.getInstances(client.ec2client)) ?? [];
             for (const i of rawInstances) {
+              // exclude spot instances and terminating ones
+              if (i.InstanceLifecycle === InstanceLifecycle.SPOT) continue;
+
+              if (i.State?.Name === 'terminated' || i.State?.Name === 'shutting-down') continue;
+
               // read the instance mapping
               const instance = await this.module.instance.db.read(
                 ctx,
