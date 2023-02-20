@@ -250,6 +250,8 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
             }
           }),
         );
+        console.log('i have volumes');
+        console.log(out);
         return out;
       }
     },
@@ -327,7 +329,10 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
     },
     delete: async (vol: GeneralPurposeVolume[], ctx: Context) => {
       for (const e of vol) {
+        // cannot delete volumes in use, let mapper detach it
         const client = (await ctx.getAwsClient(e.region)) as AWS;
+        if (e.state == VolumeState.IN_USE) continue;
+
         await this.deleteVolume(client.ec2client, e.volumeId ?? '');
       }
     },
