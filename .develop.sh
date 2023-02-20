@@ -27,7 +27,6 @@ yarn format
 # Same for the dashboard
 cd dashboard
 yarn
-yarn format
 cd ..
 
 # Same for the site
