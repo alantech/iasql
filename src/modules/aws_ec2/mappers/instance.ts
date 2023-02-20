@@ -571,32 +571,30 @@ export class InstanceMapper extends MapperBase<Instance> {
         if (!entity.instanceId) continue;
         const client = (await ctx.getAwsClient(entity.region)) as AWS;
         const mapping = await this.getInstanceBlockDeviceMapping(client.ec2client, entity.instanceId);
+        console.log('mapping is');
+        console.log(mapping);
 
-        if (entity.instanceId) await this.terminateInstance(client.ec2client, entity.instanceId);
+        await this.terminateInstance(client.ec2client, entity.instanceId);
         const region = entity.region;
 
         // read the attached volumes and wait until terminated
         for (const map of mapping ?? []) {
+          console.log(map);
           // find related volume
-          if (map.DeviceName && map.Ebs?.VolumeId && entity.id) {
-            const volume = await this.module.generalPurposeVolume.db.read(
-              ctx,
-              this.module.generalPurposeVolume.generateId({ volumeId: map.Ebs?.VolumeId, region }),
-            );
+          if (map.DeviceName && map.Ebs?.VolumeId) {
+            // detach existing volume before delete
+            console.log('i detach');
+            await this.module.instanceBlockDeviceMapping.detachVolume(client.ec2client, map.Ebs.VolumeId);
 
-            if (volume) {
-              // delete the related mapping to detach
-              await this.module.instanceBlockDeviceMapping.db.delete(
-                {
-                  instanceId: entity.id,
-                  volumeId: volume.id,
-                  deviceName: map.DeviceName!,
-                  region: entity.region,
-                  instance: entity,
-                  volume: volume,
-                },
-                ctx,
-              );
+            // delete volume if needed
+            if (map.Ebs?.DeleteOnTermination) {
+              console.log('i delete');
+              await this.waitUntilDeleted(client.ec2client, map.Ebs?.VolumeId ?? '');
+
+              const volumedata: GeneralPurposeVolume = await ctx.orm.findOne(GeneralPurposeVolume, {
+                id: map.Ebs?.VolumeId,
+              });
+              if (volumedata) await this.module.generalPurposeVolume.db.delete(volumedata, ctx);
             }
           }
         }
