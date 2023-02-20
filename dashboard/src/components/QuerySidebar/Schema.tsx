@@ -24,7 +24,7 @@ export default function Schema({
   };
 
   return (
-    <VBox customStyles='w-max bg-transparent dark:bg-gray-800' id='schema-tab'>
+    <VBox customStyles='w-full bg-transparent dark:bg-gray-800' id='schema-tab'>
       {/* TODO: make this a component */}
       <Accordion id='modules' title={<b>Modules</b>} defaultOpen={true}>
         {Object.keys(moduleData ?? {}).map((moduleName: string) => (
@@ -35,7 +35,7 @@ export default function Schema({
                 id={tableName}
                 title={tableName}
                 defaultOpen={false}
-                action={{ icon: searchIcon, handler: selectTable }}
+                action={moduleData[moduleName][tableName]?.recordCount > 0 ? { icon: searchIcon, handler: selectTable } : undefined}
               >
                 {Object.entries(moduleData[moduleName][tableName])
                   .filter(([col, _]) => col !== 'recordCount')
