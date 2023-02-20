@@ -59,4 +59,8 @@ import TabItem from '@theme/TabItem';
 
 • **invoke\_sns**: `aws_sdk_invoker`
 
+• **invoke\_sqs**: `aws_sdk_invoker`
+
 • **invoke\_ssm**: `aws_sdk_invoker`
+
+• **invoke\_sts**: `aws_sdk_invoker`

@@ -21,7 +21,7 @@ https://docs.aws.amazon.com/AmazonECR/latest/userguide/repository-policies.html
 
 ## Columns
 
-• `Optional` **policy\_text**: `string`
+• `Optional` **policy**: `policy`
 
 Text containing the policy for that repository
 

@@ -54,6 +54,15 @@
                 "fragment": "",
                 "label": "iasql_functions"
               }
+            },
+            {
+              "type": "doc",
+              "label": "iasql_platform",
+              "id": "modules/builtin/iasql_platform",
+              "customProps": {
+                "fragment": "",
+                "label": "iasql_platform"
+              }
             }
           ]
         },
@@ -217,14 +226,6 @@
             },
             {
               "type": "doc",
-              "label": "aws_lambda_aws",
-              "id": "modules/aws/aws_lambda_aws",
-              "customProps": {
-                "label": "aws_lambda_aws"
-              }
-            },
-            {
-              "type": "doc",
               "label": "aws_memory_db",
               "id": "modules/aws/aws_memory_db",
               "customProps": {
@@ -285,6 +286,14 @@
               "id": "modules/aws/aws_sns",
               "customProps": {
                 "label": "aws_sns"
+              }
+            },
+            {
+              "type": "doc",
+              "label": "aws_sqs",
+              "id": "modules/aws/aws_sqs",
+              "customProps": {
+                "label": "aws_sqs"
               }
             },
             {

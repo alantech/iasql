@@ -9,6 +9,8 @@ displayed_sidebar: "docs"
 ### Builtin
 #### [iasql_functions](builtin/iasql_functions.md)
 
+#### [iasql_platform](builtin/iasql_platform.md)
+
 ### AWS
 #### [aws_account](aws/aws_account.md)
 
@@ -63,5 +65,7 @@ displayed_sidebar: "docs"
 #### [aws_security_group](aws/aws_security_group.md)
 
 #### [aws_sns](aws/aws_sns.md)
+
+#### [aws_sqs](aws/aws_sqs.md)
 
 #### [aws_vpc](aws/aws_vpc.md)

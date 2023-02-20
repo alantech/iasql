@@ -24,7 +24,7 @@ https://aws.amazon.com/s3/
 
 Creation date
 
-• `Optional` **policy\_document**: `any`
+• `Optional` **policy**: `policy`
 
 Complex type representing the policy attached to the bucket
 

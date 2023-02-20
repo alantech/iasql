@@ -27,7 +27,7 @@ Type of DNS record to use for exposing the endpoint
 
 https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-ec2/enums/dnsrecordiptype.html
 
-• `Optional` **policy\_document**: `string`
+• `Optional` **policy**: `policy`
 
 Complex type representing the policy associated to this endpoint
 

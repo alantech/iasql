@@ -27,7 +27,7 @@ https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles.html
 
 AWS ARN to identify the role
 
-• **assume\_role\_policy\_document**: `Object`
+• **assume\_role\_policy\_document**: `policy`
 
 JSON blob to define the policy for the role
 Returns a set of temporary security credentials that you can use to access AWS resources that you might not normally have access to.
@@ -35,10 +35,6 @@ Returns a set of temporary security credentials that you can use to access AWS r
 **`See`**
 
 https://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRole.html
-
-#### Type definition
-
-▪ [key: `string`]: `any`
 
 • `Optional` **attached\_policies\_arns**: `string`[]
 

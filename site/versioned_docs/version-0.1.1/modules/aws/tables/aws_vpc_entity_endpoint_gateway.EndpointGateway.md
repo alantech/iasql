@@ -19,7 +19,7 @@ https://docs.aws.amazon.com/vpc/latest/privatelink/gateway-endpoints.html
 
 ## Columns
 
-• `Optional` **policy\_document**: `string`
+• `Optional` **policy**: `policy`
 
 Complex type representing the policy associated to this gateway
 
