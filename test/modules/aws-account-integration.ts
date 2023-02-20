@@ -269,6 +269,7 @@ describe('AwsAccount Integration Testing', () => {
     'updates the iasql_* modules to pretend to be an ancient version',
     query(
       `
+    DELETE FROM iasql_tables WHERE "module" = 'iasql_platform@${latestVersion}';
     UPDATE iasql_module SET name = 'iasql_platform@0.0.2' WHERE name = 'iasql_platform@${latestVersion}';
     UPDATE iasql_module SET name = 'iasql_functions@0.0.2' WHERE name = 'iasql_functions@${latestVersion}';
   `,
