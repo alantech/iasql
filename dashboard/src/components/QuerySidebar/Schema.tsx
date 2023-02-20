@@ -1,4 +1,4 @@
-import { SearchIcon } from '@heroicons/react/outline';
+import { TableIcon } from '@heroicons/react/outline';
 
 import { ActionType, useAppContext } from '../AppProvider';
 import { Accordion, align, HBox, VBox } from '../common';
@@ -13,7 +13,7 @@ export default function Schema({
   functionData: any[];
 }) {
   const { dispatch } = useAppContext();
-  const searchIcon = <SearchIcon className='w-4 h-4 m-2' aria-hidden='true' />;
+  const selectTableIcon = <TableIcon className='w-4 h-4 m-2' aria-hidden='true' />;
   const selectTable = (tableName: string) => {
     dispatch({
       action: ActionType.SelectTable,
@@ -37,7 +37,7 @@ export default function Schema({
                 defaultOpen={false}
                 action={
                   moduleData[moduleName][tableName]?.recordCount > 0
-                    ? { icon: searchIcon, handler: selectTable }
+                    ? { icon: selectTableIcon, handler: selectTable }
                     : undefined
                 }
               >
