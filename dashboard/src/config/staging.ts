@@ -22,7 +22,7 @@ const staging: ConfigInterface = {
   engine: {
     pgHost: 'pg-staging.iasql.com',
     pgForceSsl: true,
-    backendUrl: 'https://app-staging.iasql.com',
+    backendUrl: 'https://run-staging.iasql.com',
   },
 };
 
