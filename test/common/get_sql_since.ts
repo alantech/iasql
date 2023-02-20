@@ -113,7 +113,7 @@ describe('iasql_get_sql_since functionality', () => {
       return {};
     }));
 
-  it(
+  itDocs(
     'manual inserts on iasql audit logs',
     query(
       `
@@ -159,7 +159,7 @@ describe('iasql_get_sql_since functionality', () => {
     ),
   );
 
-  it(
+  itDocs(
     'checks update sql',
     query(
       `
@@ -191,7 +191,7 @@ describe('iasql_get_sql_since functionality', () => {
     ),
   );
 
-  it(
+  itDocs(
     'checks delete sql',
     query(
       `
@@ -291,7 +291,7 @@ describe('iasql_get_sql_since functionality', () => {
     ),
   );
 
-  it(
+  itDocs(
     'checks timestamp update',
     query(
       `

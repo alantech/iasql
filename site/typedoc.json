@@ -9,7 +9,7 @@
   "categorizeByGroup": false,
   "disableSources": true,
   "readme": "default",
-  "exclude": ["../src/modules/**/mappers/*", "../src/modules/**/migration/*", "../src/modules/interfaces.ts", "../src/modules/subscribers.ts", "../src/modules/iasql_platform/**",
+  "exclude": ["../src/modules/**/mappers/*", "../src/modules/**/migration/*", "../src/modules/interfaces.ts", "../src/modules/subscribers.ts",
   "../src/modules/rpcs/iasql_preview_apply.ts", "../src/modules/rpcs/iasql_preview_sync.ts", "../src/modules/rpcs/iasql_apply.ts", "../src/modules/rpcs/iasql_sync.ts",
   "../src/modules/rpcs/iasql_upgrade.ts", "../src/modules/aws_lambda/aws.ts"],
   "tsconfig": "../tsconfig.json"

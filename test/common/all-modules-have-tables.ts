@@ -9,6 +9,7 @@ import {
   runQuery,
   runCommit,
   runBegin,
+  itDocs,
 } from '../helpers';
 
 const dbAlias = 'allmodulestest';
@@ -74,7 +75,7 @@ describe('Every module installed need to have at least a table', () => {
 
   it('installs all modules', installAll());
 
-  it(
+  itDocs(
     'compare iasql_tables with iasql_modules_installed',
     query(
       `

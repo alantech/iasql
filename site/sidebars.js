@@ -59,6 +59,15 @@ async function getDocsLinks() {
             label: 'iasql_functions',
           },
         },
+        {
+          type: 'doc',
+          label: 'iasql_platform',
+          id: 'modules/builtin/iasql_platform',
+          customProps: {
+            fragment: '',
+            label: 'iasql_platform',
+          },
+        },
       ],
     },
     {
