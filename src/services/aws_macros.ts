@@ -22,7 +22,9 @@ import { Route53 } from '@aws-sdk/client-route-53';
 import { S3 } from '@aws-sdk/client-s3';
 import { SecretsManager } from '@aws-sdk/client-secrets-manager';
 import { SNS } from '@aws-sdk/client-sns';
+import { SQS } from '@aws-sdk/client-sqs';
 import { SSM } from '@aws-sdk/client-ssm';
+import { STS } from '@aws-sdk/client-sts';
 import { defaultRetryDecider, StandardRetryStrategy } from '@aws-sdk/middleware-retry';
 
 import config from '../config';
@@ -74,6 +76,8 @@ export class AWS {
   route53Client: Route53;
   s3Client: S3;
   snsClient: SNS;
+  stsClient: STS;
+  sqsClient: SQS;
   ssmClient: SSM;
   dynamoClient: DynamoDB;
   lambdaClient: Lambda;
@@ -160,6 +164,8 @@ export class AWS {
     this.route53Client = new Route53(awsConfig);
     this.secretsClient = new SecretsManager(awsConfig);
     this.snsClient = new SNS(awsConfig);
+    this.sqsClient = new SQS(awsConfig);
+    this.stsClient = new STS(awsConfig);
     this.ssmClient = new SSM(awsConfig);
     this.memoryDBClient = new MemoryDB(awsConfig);
     this.s3Client = new S3(awsConfig);

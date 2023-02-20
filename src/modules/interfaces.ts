@@ -519,7 +519,7 @@ export class AwsSdkInvoker extends RpcBase {
       .map(([columnName, columnType]) => `${columnName} ${columnType}`)
       .join(', ');
     const inputEnumName = `${snakeCase(key)}_method_names`;
-    const enumSql = this.getMethodNamesEnumCreateSql(key, inputEnumName);
+    const enumSql = this.getMethodNamesEnumCreateSql(inputEnumName);
     const afterInstallSql =
       enumSql +
       `
@@ -576,7 +576,7 @@ export class AwsSdkInvoker extends RpcBase {
     return { beforeUninstallSql, afterInstallSql };
   }
 
-  private getMethodNamesEnumCreateSql(key: string, inputEnumName: string) {
+  private getMethodNamesEnumCreateSql(inputEnumName: string) {
     const dummyClient = new AWS({
       region: 'us-east-1',
       credentials: { accessKeyId: '', secretAccessKey: '' },

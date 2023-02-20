@@ -26,6 +26,8 @@ export class AwsSdkModule extends ModuleBase {
   invokeS3: AwsSdkInvoker;
   invokeSecretManager: AwsSdkInvoker;
   invokeSns: AwsSdkInvoker;
+  invokeSts: AwsSdkInvoker;
+  invokeSqs: AwsSdkInvoker;
 
   constructor() {
     super();
@@ -54,6 +56,8 @@ export class AwsSdkModule extends ModuleBase {
     this.invokeS3 = new AwsSdkInvoker('s3Client', this);
     this.invokeSecretManager = new AwsSdkInvoker('secretsClient', this);
     this.invokeSns = new AwsSdkInvoker('snsClient', this);
+    this.invokeSts = new AwsSdkInvoker('stsClient', this);
+    this.invokeSqs = new AwsSdkInvoker('sqsClient', this);
     super.init();
   }
 }

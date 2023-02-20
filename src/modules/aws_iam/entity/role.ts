@@ -1,5 +1,6 @@
 import { Column, Entity, PrimaryColumn } from 'typeorm';
 
+import { Policy } from '../../../services/canonical-iam-policy';
 import { cloudId } from '../../../services/cloud-id';
 
 /**
@@ -46,7 +47,7 @@ export class IamRole {
   @Column({
     type: 'jsonb',
   })
-  assumeRolePolicyDocument: { [key: string]: any };
+  assumeRolePolicyDocument: Policy;
 
   /**
    * @public

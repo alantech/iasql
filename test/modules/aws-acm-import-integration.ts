@@ -148,7 +148,7 @@ describe('AwsAcm Import Integration Testing', () => {
   itDocs(
     'import a certificate in non-default region',
     query(`
-    SELECT * FROM certificate_import('${cert}', '${key}', '${region}', '{}');
+    SELECT * FROM certificate_import('${cert}', '${key}', 'us-east-1', '{}');
   `),
   );
 

@@ -2,9 +2,9 @@ import { ACM, ImportCertificateCommandInput, paginateListCertificates } from '@a
 
 import { AwsAcmModule } from '..';
 import { AWS, paginateBuilder } from '../../../services/aws_macros';
+import { safeParse } from '../../../services/common';
 import { Context, RpcBase, RpcInput, RpcResponseObject } from '../../interfaces';
 import { Certificate } from '../entity';
-import { safeParse } from './common';
 
 /**
  * Method for importing an AWS certificate, based on a local one.

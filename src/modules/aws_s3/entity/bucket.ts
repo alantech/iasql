@@ -1,5 +1,6 @@
 import { Column, Entity, JoinColumn, ManyToOne, PrimaryColumn, Unique } from 'typeorm';
 
+import { Policy } from '../../../services/canonical-iam-policy';
 import { cloudId } from '../../../services/cloud-id';
 import { AwsRegions } from '../../aws_account/entity';
 
@@ -39,7 +40,7 @@ export class Bucket {
     type: 'json',
     nullable: true,
   })
-  policyDocument?: any;
+  policy?: Policy;
 
   /**
    * @public

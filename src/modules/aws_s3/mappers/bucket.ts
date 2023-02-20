@@ -25,8 +25,7 @@ export class BucketMapper extends MapperBase<Bucket> {
   }
 
   equals = (a: Bucket, b: Bucket) =>
-    Object.is(a.createdAt?.toISOString(), b.createdAt?.toISOString()) &&
-    policiesAreSame(a.policyDocument, b.policyDocument);
+    Object.is(a.createdAt?.toISOString(), b.createdAt?.toISOString()) && policiesAreSame(a.policy, b.policy);
 
   getBuckets = crudBuilderFormat<S3, 'listBuckets', BucketAWS[]>(
     'listBuckets',
@@ -69,7 +68,7 @@ export class BucketMapper extends MapperBase<Bucket> {
   async createBucketPolicy(client: S3, bucket: Bucket, ctx: Context) {
     const input: PutBucketPolicyCommandInput = {
       Bucket: bucket.name,
-      Policy: JSON.stringify(bucket.policyDocument ?? {}),
+      Policy: JSON.stringify(bucket.policy ?? {}),
     };
     await this.updateBucketPolicy(client, input);
 
@@ -79,13 +78,13 @@ export class BucketMapper extends MapperBase<Bucket> {
     };
     const bucketPolicy = await this.getBucketPolicy(client, inputGet);
     if (bucketPolicy && bucketPolicy.Policy) {
-      bucket.policyDocument = JSON.parse(bucketPolicy.Policy);
+      bucket.policy = JSON.parse(bucketPolicy.Policy);
     } else {
-      bucket.policyDocument = undefined;
+      bucket.policy = undefined;
     }
     await this.module.bucket.db.update(bucket, ctx);
 
-    return bucket.policyDocument;
+    return bucket.policy;
   }
 
   cloud = new Crud2<Bucket>({
@@ -136,9 +135,9 @@ export class BucketMapper extends MapperBase<Bucket> {
             const b: Bucket = this.bucketMapper(foundBucket, region);
 
             if (bucketPolicy && bucketPolicy.Policy) {
-              b.policyDocument = JSON.parse(bucketPolicy.Policy);
+              b.policy = JSON.parse(bucketPolicy.Policy);
             } else {
-              b.policyDocument = undefined;
+              b.policy = undefined;
             }
             return b;
           }
@@ -173,9 +172,9 @@ export class BucketMapper extends MapperBase<Bucket> {
             const b: Bucket = this.bucketMapper(rawBucket, location);
 
             if (bucketPolicy && bucketPolicy.Policy) {
-              b.policyDocument = JSON.parse(bucketPolicy.Policy);
+              b.policy = JSON.parse(bucketPolicy.Policy);
             } else {
-              b.policyDocument = undefined;
+              b.policy = undefined;
             }
             out.push(b);
           }
@@ -184,7 +183,7 @@ export class BucketMapper extends MapperBase<Bucket> {
       return out;
     },
     updateOrReplace: (a: Bucket, b: Bucket) => {
-      if (!policiesAreSame(a.policyDocument ?? [], b.policyDocument ?? [])) return 'update';
+      if (!policiesAreSame(a.policy, b.policy)) return 'update';
       else return 'replace';
     },
     // TODO: With the model this simple it is actually impossible to really update this thing
@@ -201,7 +200,7 @@ export class BucketMapper extends MapperBase<Bucket> {
           const isUpdate = Object.is(this.module.bucket.cloud.updateOrReplace(cloudRecord, e), 'update');
           if (isUpdate) {
             e.createdAt = cloudRecord.createdAt;
-            e.policyDocument = await this.module.bucket.createBucketPolicy(client.s3Client, e, ctx);
+            e.policy = await this.module.bucket.createBucketPolicy(client.s3Client, e, ctx);
             out.push(e);
           } else {
             // we cannot modify bucket name or region of the bucket, replace it

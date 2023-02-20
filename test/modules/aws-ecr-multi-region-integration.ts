@@ -192,7 +192,7 @@ describe('ECR Multi-region Integration Testing', () => {
     'adds a new repository policy',
     query(
       `
-    INSERT INTO repository_policy (repository_id, policy_text, region)
+    INSERT INTO repository_policy (repository_id, policy, region)
     VALUES ((select id from repository where repository_name = '${repositoryName}'), '${policyMock}', '${nonDefaultRegion}');
   `,
       undefined,

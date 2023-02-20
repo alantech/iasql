@@ -1,6 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, JoinColumn, OneToOne, Unique, ManyToOne } from 'typeorm';
 
 import { Repository } from '.';
+import { Policy } from '../../../services/canonical-iam-policy';
 import { AwsRegions } from '../../aws_account/entity';
 
 /**
@@ -56,8 +57,9 @@ export class RepositoryPolicy {
    */
   @Column({
     nullable: true,
+    type: 'json',
   })
-  policyText?: string;
+  policy?: Policy;
 
   /**
    * @public

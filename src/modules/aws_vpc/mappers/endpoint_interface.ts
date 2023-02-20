@@ -13,7 +13,7 @@ import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 import { AwsVpcModule } from '..';
 import { policiesAreSame } from '../../../services/aws-diff';
 import { AWS, crudBuilderFormat } from '../../../services/aws_macros';
-import { isString } from '../../../services/common';
+import { safeParse } from '../../../services/common';
 import { Context, Crud2, MapperBase } from '../../interfaces';
 import { Subnet } from '../entity';
 import { EndpointInterface, EndpointInterfaceService } from '../entity/endpoint_interface';
@@ -33,10 +33,7 @@ export class EndpointInterfaceMapper extends MapperBase<EndpointInterface> {
   entity = EndpointInterface;
   equals = (a: EndpointInterface, b: EndpointInterface) =>
     Object.is(a.dnsNameRecordType, b.dnsNameRecordType) &&
-    policiesAreSame(
-      isString(a.policyDocument) ? JSON.parse(a.policyDocument) : a.policyDocument,
-      isString(b.policyDocument) ? JSON.parse(b.policyDocument) : b.policyDocument,
-    ) &&
+    policiesAreSame(a.policy, b.policy) &&
     Object.is(a.state, b.state) &&
     Object.is(a.vpc?.vpcId, b.vpc?.vpcId) &&
     Object.is(a.subnets.length, b.subnets.length) &&
@@ -121,7 +118,7 @@ export class EndpointInterfaceMapper extends MapperBase<EndpointInterface> {
       (await this.module.vpc.db.read(ctx, this.module.vpc.generateId({ vpcId: eg.VpcId ?? '', region }))) ??
       (await this.module.vpc.cloud.read(ctx, this.module.vpc.generateId({ vpcId: eg.VpcId ?? '', region })));
     if (!out.vpc) return undefined;
-    out.policyDocument = eg.PolicyDocument;
+    out.policy = eg.PolicyDocument ? safeParse(eg.PolicyDocument) : null;
     out.state = eg.State;
     out.dnsNameRecordType = eg.DnsOptions?.DnsRecordIpType as DnsRecordIpType;
     out.privateDnsEnabled = eg.PrivateDnsEnabled ?? false;
@@ -169,8 +166,8 @@ export class EndpointInterfaceMapper extends MapperBase<EndpointInterface> {
           PrivateDnsEnabled: e.privateDnsEnabled,
           DnsOptions: { DnsRecordIpType: e.dnsNameRecordType },
         };
-        if (e.policyDocument) {
-          input.PolicyDocument = e.policyDocument;
+        if (e.policy) {
+          input.PolicyDocument = JSON.stringify(e.policy);
         }
         if (e.subnets.length) {
           const subnets = [];
@@ -250,12 +247,12 @@ export class EndpointInterfaceMapper extends MapperBase<EndpointInterface> {
         const isUpdate = this.module.endpointInterface.cloud.updateOrReplace(cloudRecord, e) === 'update';
         if (isUpdate) {
           let update = false;
-          if (!Object.is(cloudRecord.policyDocument, e.policyDocument)) {
+          if (!policiesAreSame(cloudRecord.policy, e.policy)) {
             // VPC endpoint policy document update
             const input: ModifyVpcEndpointCommandInput = {
               VpcEndpointId: e.vpcEndpointId,
-              PolicyDocument: e.policyDocument,
-              ResetPolicy: !e.policyDocument,
+              PolicyDocument: JSON.stringify(e.policy),
+              ResetPolicy: !e.policy,
             };
             await modifyVpcEndpoint(client.ec2client, input);
             update = true;

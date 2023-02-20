@@ -11,6 +11,7 @@ import {
 import { DnsRecordIpType } from '@aws-sdk/client-ec2';
 
 import { Subnet, Vpc } from '.';
+import { Policy } from '../../../services/canonical-iam-policy';
 import { cloudId } from '../../../services/cloud-id';
 import { AwsRegions } from '../../aws_account/entity';
 
@@ -76,8 +77,8 @@ export class EndpointInterface {
    * Complex type representing the policy associated to this endpoint
    * @see https://docs.aws.amazon.com/vpc/latest/privatelink/vpc-endpoints-access.html
    */
-  @Column({ nullable: true })
-  policyDocument?: string;
+  @Column({ nullable: true, type: 'json' })
+  policy?: Policy;
 
   /**
    * @public

@@ -12,6 +12,7 @@ import {
 
 import { policiesAreSame } from '../../services/aws-diff';
 import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../services/aws_macros';
+import { safeParse } from '../../services/common';
 import logger from '../../services/logger';
 import { Context, Crud2, IdFields, MapperBase, ModuleBase } from '../interfaces';
 import {
@@ -562,10 +563,7 @@ class RepositoryPolicyMapper extends MapperBase<RepositoryPolicy> {
   };
   equals = (a: RepositoryPolicy, b: RepositoryPolicy) => {
     try {
-      return (
-        Object.is(a.registryId, b.registryId) &&
-        policiesAreSame(JSON.parse(a.policyText!), JSON.parse(b.policyText!))
-      );
+      return Object.is(a.registryId, b.registryId) && policiesAreSame(a.policy, b.policy);
     } catch (e) {
       return false;
     }
@@ -583,7 +581,7 @@ class RepositoryPolicyMapper extends MapperBase<RepositoryPolicy> {
         ctx,
         this.module.repository.generateId({ repositoryName: rp.repositoryName, region }),
       ));
-    out.policyText = rp?.policyText?.replace(/\n/g, '').replace(/\s+/g, ' ') ?? null;
+    out.policy = safeParse(rp?.policyText);
     out.region = region;
     return out;
   }
@@ -626,7 +624,7 @@ class RepositoryPolicyMapper extends MapperBase<RepositoryPolicy> {
         const client = (await ctx.getAwsClient(e.region)) as AWS;
         const result = await this.setECRRepositoryPolicy(client.ecrClient, {
           repositoryName: e.repository.repositoryName,
-          policyText: e.policyText,
+          policyText: JSON.stringify(e.policy),
         });
         // TODO: Handle if it fails (somehow)
         if (!result?.hasOwnProperty('repositoryName')) {
@@ -688,7 +686,7 @@ class RepositoryPolicyMapper extends MapperBase<RepositoryPolicy> {
         const cloudRecord = ctx?.memo?.cloud?.RepositoryPolicy?.[this.entityId(e)] as RepositoryPolicy;
         let policyUpdated = false;
         try {
-          if (!policiesAreSame(JSON.parse(cloudRecord.policyText!), JSON.parse(e.policyText!))) {
+          if (!policiesAreSame(cloudRecord.policy, e.policy)) {
             const outPolicy = await this.module.repositoryPolicy.cloud.create(e, ctx);
             if (outPolicy instanceof RepositoryPolicy) out.push(outPolicy);
             if (outPolicy instanceof Array) {

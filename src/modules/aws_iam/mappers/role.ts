@@ -10,6 +10,7 @@ import { createWaiter, WaiterOptions, WaiterState } from '@aws-sdk/util-waiter';
 import { AwsIamModule } from '..';
 import { objectsAreSame, policiesAreSame } from '../../../services/aws-diff';
 import { AWS, crudBuilder2, crudBuilderFormat, mapLin, paginateBuilder } from '../../../services/aws_macros';
+import { CanonicalStatement, normalizePolicy } from '../../../services/canonical-iam-policy';
 import { Context, Crud2, MapperBase } from '../../interfaces';
 import { IamRole } from '../entity';
 
@@ -163,13 +164,14 @@ export class RoleMapper extends MapperBase<IamRole> {
     // EC2 role instance profile ARN example - arn:aws:iam::257682470237:instance-profile/test-role
     return arn.split('/').pop();
   }
+
   allowEc2Service(a: IamRole) {
-    return a.assumeRolePolicyDocument?.Statement?.find(
-      (s: any) =>
-        s.Effect === 'Allow' &&
-        ((Array.isArray(s.Principal?.Service) && s.Principal?.Service.includes('ec2.amazonaws.com')) ||
-          s.Principal?.Service === 'ec2.amazonaws.com'),
-    );
+    if (a.assumeRolePolicyDocument)
+      return normalizePolicy(a.assumeRolePolicyDocument).Statement.find(
+        (s: CanonicalStatement) =>
+          s.Effect === 'Allow' && s.Principal?.Service?.includes('ec2.amazonaws.com'),
+      );
+    return false;
   }
 
   cloud = new Crud2({
@@ -241,7 +243,7 @@ export class RoleMapper extends MapperBase<IamRole> {
       for (const e of es) {
         const cloudRecord = ctx?.memo?.cloud?.IamRole?.[e.roleName ?? ''];
         // aws-service-roles are immutable so undo change and return
-        if (cloudRecord.arn.includes(':role/aws-service-role/')) {
+        if (cloudRecord.arn?.includes(':role/aws-service-role/')) {
           await this.module.role.db.update(cloudRecord, ctx);
           out.push(cloudRecord);
           continue;
