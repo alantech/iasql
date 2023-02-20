@@ -71,9 +71,9 @@ In the 2nd way, we should post the AWS credentials to the mapper through the int
 
 A positive point for having standalone mappers is that it's language agnostic: mapper developers can write the logic in whatever language they want, and it's fine, until they follow the guidelines for the Engine -> Mapper communication protocol.
 
-One negative point is that they'll be provided with the AWS credentials, and they can perform out-of-band data extraction on it on both of the above ways.
+One negative point is that they'll be provided with the AWS credentials, and they can perform out-of-band data extraction on it on both of the above ways. The security profile for this approach is the worst of all.
 
-The other issue with this way is that it'll be at least as hard as the ways under [Mapper Logic Inside Postgres](#Mapper-Logic-Inside-Postgres) section. So we need a "virtual" mapper to be created and the calls to that mapper should be funneled into these standalone mappers. Also, at the module level we need the entity creation logic (and uninstall logic, of course) to somehow be transmitted to the engine. Given all these, together with the security issues that are purely "wild west situation", I don't think if this would be a good approach neither in the short, nor in long term.  
+The other issue with this way is that it'll be at least as hard as the ways under [Mapper Logic Inside Postgres](#Mapper-Logic-Inside-Postgres) section. So we need a "virtual" mapper to be created and the calls to that mapper should be funneled into these standalone mappers. Also, at the module level we need the entity creation logic (and uninstall logic, of course) to somehow be transmitted to the engine. Given all these, together with the security issues that are purely "wild west situation", I don't think if this would be a good approach neither in the short, nor in long term.
 
 ## In-IaSQL-Container Mappers
 
@@ -88,12 +88,13 @@ Before diving into "Pure-SQL Modules" category, first let's see if our current m
 Currently, we're developing our mappers in this category. But there might be other ways to integrate the logic inside the engine, without having to exactly follow our current pattern. I'm getting inspired by [Strapi](https://github.com/strapi/strapi), which is a headless CMS. You can create models using a GUI from Strapi's admin panel and the database will be changed on-air, new API routes will be added with proper logic, and it achieves these without losing performance or being in need of pushing new files to the codebase (but the codebase is changing on-air).
 
 So we can get inspired and create on-air mapper codes. But to ensure safety, we might take one of the two approaches: either by narrowing down the available variables, or the by narrowing down the available functionality.
-- Create a sandbox and run mapper's JavaScript code on IaSQL engine: in that sandbox, we can narrow down the context and not pass variables that might cause problems (not sure if that's technically possible currently, but I've found see some links: [1](https://nodejs.org/api/vm.html#vm_vm_runinthiscontext_code_options), [2](https://github.com/patriksimek/vm2)).
-  - The only issue that comes to my mind is that we will be vulnerable to SSRF attacks, which can be dangerous [in EC2](https://scalesec.com/blog/exploit-ssrf-to-gain-aws-credentials/). Our other vulnerability to SSRF would be related to the engine's Express server, which will be accessible by the running code. Therefore, we'll need authorization measures for that internal API.
-  - An alternative is to use WebWorkers and provide an event-based API into and out of the worker. We could expose something similar to the `invoke_` functions in Postgres as events and event payloads (also including a worker-defined unique token) and they call the same named event back into the worker with the result. 
+- Create a sandbox and run mapper's JavaScript code on IaSQL engine: in that sandbox, we can narrow down the context and not pass variables that might cause problems.
+  - One issue that comes to my mind is that we will be vulnerable to SSRF attacks, which can be dangerous [in EC2](https://scalesec.com/blog/exploit-ssrf-to-gain-aws-credentials/). Our other vulnerability to SSRF would be related to the engine's Express server, which will be accessible by the running code. Therefore, we can't let that code use `fetch` API, `fs` API, or any other APIs that might cause issues. 
+  - One way is to use VM2 to run the module code on a separate process, and provide an event-based API into and out of the worker. We could expose something similar to the `invoke_` functions in Postgres as events and event payloads (also including a worker-defined unique token) and they call the same named event back into the worker with the result.
   - This would be much safer as a pure JS context not allowed to require or import anything, but is a very awkward experience for the authors. That awkwardness can be alleviated somewhat by providing our own SDK to take more normal-looking Typescript that automatically has some implicit global functions baked in and then generating the JS bundle out.
+  - We won't pass the AWS credentials to the script provided by the developer. We'll provide an interface like `invoke_*` functions so that when the code needs to query the cloud or the database, it can do a message-passing with the parent process.
   - The entities and Postgres upgrade/downgrade code could also be written using this IaSQL SDK and perhaps structured fairly closely to the current module code.
-- Providing a new "safe" Domain Specific Language for IaSQL: developers can use this language to create new mappers, and we can translate that to JavaScript code on-air, while narrowing down the DSL interface to something that is "safe" (no code-execution, no unwanted database access, etc). The DSL does not have to be capable of creating all possible mappers (at least not at first) since if they want to do something very professional, they can just submit a PR to the engine.
+- Providing a new "safe" Domain Specific Language for IaSQL: developers can use this language to create new mappers, and we can translate that to JavaScript code on-air, while narrowing down the DSL interface to something that is "safe" (no code-execution, no unwanted database access, etc.). The DSL does not have to be capable of creating all possible mappers (at least not at first) since if they want to do something very professional, they can just submit a PR to the engine.
   - For example: we can supply a base provider like AWS. And using DSL people can dynamically invoke AWS client's methods and write their logic. The DSL then gets parsed and converted to JavaScript code, and we'll use its interface when we need the mapper.
   - The biggest problem with DSLs, are that the module developers should learn a new language that does not help them anywhere else.
 
@@ -132,19 +133,24 @@ So let's consider one possible implementation of the mapper structure (all as Po
 We can also consider the above functions to be strongly-typed inside Postgres. More info here:
 https://rounded-apology-58d.notion.site/What-Does-a-Mapper-Need-9402ce7e35244405876f4cf660365c86
 
-### Common Parts
-We also need these added functionalities in order for any of the above solutions to work:
-- Dynamically creating a mapper that provides the same interface as `MapperBase`, but calls corresponding SQL functions.
-- Registering/de-registering logic for the module entities be transmitted to the engine: security concerns here, since the module should not be able to `DROP` tables for other modules (for example).
-
-### Security Can't Be Guaranteed
-Suppose this scenario:
+##### Security Can't Be Guaranteed
+In the Pure-SQL way, it's not easy to guarantee security. Suppose this scenario:
 > We have a new Pure-SQL module. It has access to do `INSERT`s and `SELECT`s on behalf of the user. So it can create a CodeBuild project that calls a curl, with the AWS credentials coming from the `aws_credentials` table, right? So I think security can't be guaranteed in neither of the above ways, given our tables keep the current permissioning system.
 
 One way to fix the above issue, is to create a new Postgres role for each user (like `{username}_module`) which will be used by the Pure-SQL modules to execute SQL commands. It won't have access to the `aws_credentials` table.
 
 But the above idea can be also bypassed:
 > Use `aws_sdk` module to create a new set of AWS AccessKeyId and SecretAccessKey. Then create a CodeBuild project to send them to the malicious endpoint :D.
+
+Being explicit about module capabilities and dependencies up-front can help mitigate this. A third party module that depends on CodeBuild and AWS account key management APIs should declare that it needs these things and if they seem incongruous to the purpose of the module that's another flag for users.
+
+We could also classify certain API calls as requiring manual confirmation because of their sensitivity (particularly the AWS credential management APIs, but also anything that allows arbitrary code execution, such as CodeBuild or even the startup script you can give to an EC2 instance) as further hardening in the future.
+
+### Common Parts
+We also need these added functionalities in order for any of the above solutions to work:
+- Dynamically creating a mapper that provides the same interface as `MapperBase`, but calls corresponding SQL functions.
+- Registering/de-registering logic for the module entities be transmitted to the engine: security concerns here, since the module should not be able to `DROP` tables for other modules (for example).
+- Dependency declaration mechanism: each module should tell IaSQL engine which modules it needs to work properly. And we should be able to get user's manual approval in case it's using sensitive modules. 
 
 ## Expected Semver Impact
 
