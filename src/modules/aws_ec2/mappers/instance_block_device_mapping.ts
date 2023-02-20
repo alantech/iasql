@@ -160,8 +160,6 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
             }
           }),
         );
-        console.log('my mappers are');
-        console.log(out);
         return out;
       }
     },
