@@ -247,7 +247,7 @@ export class EndpointInterfaceMapper extends MapperBase<EndpointInterface> {
         const isUpdate = this.module.endpointInterface.cloud.updateOrReplace(cloudRecord, e) === 'update';
         if (isUpdate) {
           let update = false;
-          if (!policiesAreSame(cloudRecord.policyDocument, e.policy)) {
+          if (!policiesAreSame(cloudRecord.policy, e.policy)) {
             // VPC endpoint policy document update
             const input: ModifyVpcEndpointCommandInput = {
               VpcEndpointId: e.vpcEndpointId,

@@ -243,7 +243,7 @@ export class RoleMapper extends MapperBase<IamRole> {
       for (const e of es) {
         const cloudRecord = ctx?.memo?.cloud?.IamRole?.[e.roleName ?? ''];
         // aws-service-roles are immutable so undo change and return
-        if (cloudRecord.arn.includes(':role/aws-service-role/')) {
+        if (cloudRecord.arn?.includes(':role/aws-service-role/')) {
           await this.module.role.db.update(cloudRecord, ctx);
           out.push(cloudRecord);
           continue;

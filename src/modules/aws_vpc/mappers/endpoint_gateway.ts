@@ -158,7 +158,7 @@ export class EndpointGatewayMapper extends MapperBase<EndpointGateway> {
         const isUpdate = this.module.endpointGateway.cloud.updateOrReplace(cloudRecord, e) === 'update';
         if (isUpdate) {
           let update = false;
-          if (!policiesAreSame(cloudRecord.policyDocument, e.policy)) {
+          if (!policiesAreSame(cloudRecord.policy, e.policy)) {
             // VPC endpoint policy document update
             const input: ModifyVpcEndpointCommandInput = {
               VpcEndpointId: e.vpcEndpointId,
