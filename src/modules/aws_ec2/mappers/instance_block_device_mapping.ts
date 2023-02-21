@@ -1,6 +1,6 @@
 import { EC2, InstanceLifecycle } from '@aws-sdk/client-ec2';
 import { Volume as AWSVolume } from '@aws-sdk/client-ec2';
-import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
+import { WaiterState } from '@aws-sdk/util-waiter';
 
 import { AwsEc2Module } from '..';
 import { AWS, crudBuilder2 } from '../../../services/aws_macros';
