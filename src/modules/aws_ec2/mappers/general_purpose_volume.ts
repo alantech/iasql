@@ -396,11 +396,16 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
     },
     delete: async (vol: GeneralPurposeVolume[], ctx: Context) => {
       for (const e of vol) {
-        // cannot delete volumes in use, let mapper detach it
         const client = (await ctx.getAwsClient(e.region)) as AWS;
-        if (e.state == VolumeState.IN_USE) continue;
 
-        await this.deleteVolume(client.ec2client, e.volumeId ?? '');
+        // check if volume still exists and delete
+        const rawVolume = await this.getVolume(client.ec2client, e.volumeId);
+        if (rawVolume && rawVolume.VolumeId) {
+          // cannot delete volumes in use, let mapper detach it
+          if (rawVolume.State == VolumeState.IN_USE) continue;
+
+          await this.deleteVolume(client.ec2client, rawVolume.VolumeId);
+        }
       }
     },
   });

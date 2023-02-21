@@ -8,8 +8,8 @@ import { Volume as AWSVolume } from '@aws-sdk/client-ec2';
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 
 import { AwsEc2Module } from '..';
-import { AWS, crudBuilder2 } from '../../../services/aws_macros';
-import { Context, Crud2, MapperBase } from '../../interfaces';
+import { AWS, crudBuilder } from '../../../services/aws_macros';
+import { Context, Crud, MapperBase } from '../../interfaces';
 import { GeneralPurposeVolume, Instance, InstanceBlockDeviceMapping, VolumeState } from '../entity';
 
 export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDeviceMapping> {
@@ -46,14 +46,11 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
     return out;
   }
 
-  attachVolumeInternal = crudBuilder2<EC2, 'attachVolume'>(
-    'attachVolume',
-    (VolumeId, InstanceId, Device) => ({
-      VolumeId,
-      InstanceId,
-      Device,
-    }),
-  );
+  attachVolumeInternal = crudBuilder<EC2, 'attachVolume'>('attachVolume', (VolumeId, InstanceId, Device) => ({
+    VolumeId,
+    InstanceId,
+    Device,
+  }));
 
   waitUntilAvailable(client: EC2, volumeId: string) {
     return this.module.generalPurposeVolume.volumeWaiter(client, volumeId, (vol: AWSVolume | undefined) => {
@@ -65,7 +62,7 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
     });
   }
 
-  detachVolumeInternal = crudBuilder2<EC2, 'detachVolume'>('detachVolume', VolumeId => ({ VolumeId }));
+  detachVolumeInternal = crudBuilder<EC2, 'detachVolume'>('detachVolume', VolumeId => ({ VolumeId }));
 
   detachVolume = async (client: EC2, VolumeId: string) => {
     await this.detachVolumeInternal(client, VolumeId);
@@ -89,7 +86,7 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
     return true;
   };
 
-  cloud: Crud2<InstanceBlockDeviceMapping> = new Crud2({
+  cloud: Crud<InstanceBlockDeviceMapping> = new Crud({
     create: async (es: InstanceBlockDeviceMapping[], ctx: Context) => {
       const out: InstanceBlockDeviceMapping[] = [];
       for (const e of es) {
@@ -174,13 +171,7 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
     },
     delete: async (es: InstanceBlockDeviceMapping[], ctx: Context) => {
       for (const e of es) {
-        // read instance details
-        const instance: Instance = await ctx.orm.findOne(Instance, {
-          id: e.instanceId,
-        });
-
-        // if instance is not created, it would not be attached, so do nothing
-        if (!instance?.instanceId) continue;
+        console.log(e);
         const client = (await ctx.getAwsClient(e.region)) as AWS;
 
         // if no volume is attached, no need to do anything
