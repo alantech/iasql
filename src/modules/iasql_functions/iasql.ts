@@ -437,7 +437,7 @@ export async function uninstall(moduleList: string[], dbId: string, force = fals
       const mt =
         (await orm.find(iasqlTables, {
           where: {
-            module: e,
+            module: e.name,
           },
           relations: ['module'],
         })) ?? [];
@@ -701,8 +701,9 @@ export async function commit(
         logger.scope({ dbId }).info(`Starting apply phase for all modules`);
         await apply(dbId, installedModulesSorted, context, force, crupdes, dryRun);
         applyErr = null;
-      } catch (e) {
+      } catch (e: any) {
         logger.scope({ dbId }).warn(`Something failed applying for all modules.\n${e}`);
+        console.log(e);
         applyErr = e;
       }
     }
@@ -1271,6 +1272,12 @@ async function apply(
           const replaces: any[] = [];
           r.diff.entitiesChanged.forEach((e: any) => {
             const isUpdate = r.mapper.cloud.updateOrReplace(e.cloud, e.db) === 'update';
+            console.log({
+              updateOrReplace: 'checkstr',
+              apply: 'pathstr',
+              isUpdate,
+              e,
+            });
             if (isUpdate) {
               updates.push(e.db);
             } else {
@@ -1513,6 +1520,10 @@ async function sync(
           r.diff.entitiesChanged.forEach((e: any) => {
             updates.push(e.cloud);
           });
+          console.log({
+            sync: 'pathstr',
+            updates,
+          })
           if (updates.length > 0) updateCommitPlan(toUpdate, r.table, r.mapper, updates);
         }
       });
@@ -1660,6 +1671,9 @@ function updateCommitPlan(crupde: Crupde, entityName: string, mapper: MapperInte
     if (!crupde[entityName].some(r2 => Object.is(r2.id, r.id) && Object.is(r2.description, r.description)))
       crupde[entityName].push(r);
   });
+  if (entityName === 'RegisteredInstance') {
+    console.log({ updateCommitPlan: 'strdebug', es, rs, entities: crupde[entityName], });
+  }
 }
 
 async function getChangesByEntity(

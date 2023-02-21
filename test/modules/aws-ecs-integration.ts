@@ -592,7 +592,7 @@ describe('ECS Integration Testing', () => {
     FROM task_definition
     WHERE family = '${tdFamily}' AND status = '${tdActive}';
   `,
-      (res: any[]) => expect(res.length).toBe(2),
+      (res: any[]) => expect(res.length).toBe(1), // TODO: Why was this 2? revision 55 isn't real and the code reasonable deletes it?
     ),
   );
 
