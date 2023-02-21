@@ -6,6 +6,10 @@ authors: [mtp1376]
 tags: [tutorial]
 ---
 
+In this post, we're going to discover an IaSQL module that's built to make deploying to ECS, simplified. Most of the details for deploying a container to ECS are the same (load balancers, security groups, IAM roles, etc), and we have created the `aws_ecs_simplified` module for you so that you can give it any Github repo with a `Dockerfile` and get your app deployed to ECS in the fastest time possible, with scalability available! All the needed resources are going to be created automatically in your AWS account, and you'll have the full access to the details while you're gaining the benefit of a higher-level simple deployment.
+
+<!--truncate-->
+
 If you have ever tried to deploy your containerized application to ECS, you know that it's not going to be an easy click-to-deploy journey. To get your application up and running on ECS, you have to go through a bunch of resource creation. You'll need to:
 
 - Deploy a load balancer as the point-of-contact for your app
@@ -18,8 +22,6 @@ If you have ever tried to deploy your containerized application to ECS, you know
 - Oh, and create an ECR repository to push your images to be run on the container
 
 I'm not going to continue this long list, since I've already got a headache. Doing those steps manually is going to give you a headache as well, so why bother doing all those steps yourself and risking different errors you might face when deploying your containerized app? You don't really have the time for the random IAM-related errors AWS is demanding you to resolve. Besides, you already have your codebase ready and the `Dockerfile` is there, so why not just run a simple command doing something that should be simply done?
-
-In this post, we're going to discover an IaSQL module that's built to make deploying to ECS, simplified. Most of the details for deploying a container to ECS are the same (load balancers, security groups, IAM roles, etc), and we have created the `aws_ecs_simplified` module for you so that you can give it any Github repo with a `Dockerfile` and get your app deployed to ECS in the fastest time possible, with scalability available! All the needed resources are going to be created automatically in your AWS account, and you'll have the full access to the details while you're gaining the benefit of a higher-level simple deployment.
 
 ## ** An Example Usage of the `aws_ecs_simplified` Module **
 

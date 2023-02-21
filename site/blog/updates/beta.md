@@ -1,6 +1,7 @@
 ---
 slug: beta
-title: "IaSQL is in beta: AWS multiregion + infra changes as transactions + smooth local setup"
+title: "IaSQL is in beta!"
+description: "IaSQL is in beta: AWS multiregion + infra changes as transactions + smooth local setup"
 image: https://iasql.com/img/iasql-connector_dark.gif
 date: 2023-02-16
 authors: [yrobla, mtp1376, depombo, dfellis, aguillenv]
@@ -29,6 +30,8 @@ Additionally, we completely redid our architecture to scale and our UX to make i
 - 140,755 lines of code and markdown
 - 24 AWS services covered
 - 90 Discord members
+
+## New features
 
 Here are the new features that ship in the Beta versions of IaSQL:
 
