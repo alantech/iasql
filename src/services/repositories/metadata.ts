@@ -52,7 +52,7 @@ class MetadataRepo {
   }
 
   async saveDb(a0Id: string, email: string, db: IasqlDatabase): Promise<IasqlDatabase> {
-    let user = await this.userRepo.findOne(a0Id);
+    let user = await this.userRepo.findOne({ where: { id: a0Id } });
     if (!user) {
       user = new IasqlUser();
       user.id = a0Id;
@@ -72,7 +72,7 @@ class MetadataRepo {
   }
 
   async getDb(a0Id: string, dbAlias: string): Promise<IasqlDatabase> {
-    const user = await this.userRepo.findOneOrFail(a0Id);
+    const user = await this.userRepo.findOneOrFail({ where: { id: a0Id } });
     const db = user.iasqlDatabases.find(d => d.alias === dbAlias);
     if (!db) throw new Error(`User with ID ${a0Id} has no IaSQL database with alias ${dbAlias}`);
     return db;
@@ -87,12 +87,12 @@ class MetadataRepo {
   }
 
   async getEmailByUid(a0Id: string) {
-    const user = await this.userRepo.findOne(a0Id);
+    const user = await this.userRepo.findOne({ where: { id: a0Id } });
     return user?.email ?? 'hello@iasql.com';
   }
 
   async updateRecordCount(dbId: string, recCount: number) {
-    const db = await this.dbRepo.findOne(dbId);
+    const db = await this.dbRepo.findOne({ where: { pgName: dbId } });
     if (!db) {
       logger.warn(`No db with id ${dbId} found`);
       return;
@@ -102,7 +102,7 @@ class MetadataRepo {
   }
 
   async incrementRecordsSynced(dbId: string, recordsSynced: number): Promise<number | undefined> {
-    const db = await this.dbRepo.findOne(dbId);
+    const db = await this.dbRepo.findOne({ where: { pgName: dbId } });
     if (!db) {
       logger.warn(`No db with id ${dbId} found`);
       return;
@@ -113,7 +113,7 @@ class MetadataRepo {
   }
 
   async incrementRecordsApplied(dbId: string, recordsApplied: number): Promise<number | undefined> {
-    const db = await this.dbRepo.findOne(dbId);
+    const db = await this.dbRepo.findOne({ where: { pgName: dbId } });
     if (!db) {
       logger.warn(`No db with id ${dbId} found`);
       return;
@@ -124,7 +124,8 @@ class MetadataRepo {
   }
 
   async getUserFromDbId(dbId: string): Promise<IasqlUser | undefined> {
-    const db = await this.dbRepo.findOne(dbId, {
+    const db = await this.dbRepo.findOne({
+      where: { pgName: dbId },
       relations: ['iasqlUsers'],
     });
     if (!db) {
@@ -136,7 +137,7 @@ class MetadataRepo {
   }
 
   async getDbs(a0Id: string, email: string): Promise<IasqlDatabase[]> {
-    const user = await this.userRepo.findOne(a0Id);
+    const user = await this.userRepo.findOne({ where: { id: a0Id } });
     if (!user) {
       // create the new user
       const newUser = new IasqlUser();
@@ -159,7 +160,7 @@ class MetadataRepo {
   }
 
   async delDb(a0Id: string, dbAlias: string) {
-    const user = await this.userRepo.findOneOrFail(a0Id);
+    const user = await this.userRepo.findOneOrFail({ where: { id: a0Id } });
     const dbToDel = user.iasqlDatabases.find(db => db.alias === dbAlias);
     if (!dbToDel) throw new Error(`User with ID ${a0Id} has no IaSQL database with alias ${dbAlias}`);
     user.iasqlDatabases = user.iasqlDatabases.filter(db => db.alias !== dbAlias);

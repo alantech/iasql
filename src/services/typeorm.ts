@@ -1,5 +1,5 @@
 import { Pool } from 'pg';
-import { Connection, EntityMetadata, EntityTarget } from 'typeorm';
+import { Connection, EntityMetadata, EntityTarget, FindOneOptions, FindManyOptions } from 'typeorm';
 import { SnakeNamingStrategy } from 'typeorm-naming-strategies';
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
 import { PostgresDriver } from 'typeorm/driver/postgres/PostgresDriver';
@@ -87,12 +87,12 @@ export class TypeormWrapper {
     await this.connection.close();
   }
 
-  async find(entity: EntityTarget<any>, options?: any): Promise<any> {
-    return await this.connection.manager.getRepository(entity).find(options);
+  async find(entity: EntityTarget<any>, options?: FindManyOptions): Promise<any> {
+    return await this.connection.manager.getRepository(entity).find(options ?? {});
   }
 
-  async findOne(entity: EntityTarget<any>, options?: any): Promise<any> {
-    return await this.connection.manager.getRepository(entity).findOne(options);
+  async findOne(entity: EntityTarget<any>, options?: FindOneOptions): Promise<any> {
+    return await this.connection.manager.getRepository(entity).findOne(options ?? {});
   }
 
   async query(query: string): Promise<any> {

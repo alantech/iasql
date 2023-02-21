@@ -13,6 +13,7 @@ import { AWS, crudBuilder2 } from '../services/aws_macros';
 import { getCloudId } from '../services/cloud-id';
 import { safeParse } from '../services/common';
 import logger from '../services/logger';
+import { TypeormWrapper } from '../services/typeorm';
 
 // The exported interfaces are meant to provide better type checking both at compile time and in the
 // editor. They *shouldn't* have to be ever imported directly, only the classes ought to be, but as
@@ -21,7 +22,8 @@ import logger from '../services/logger';
 
 export type IdFields = { [key: string]: string };
 
-export type Context = { [key: string]: any };
+export type PartialContext = { [key: string]: any };
+export type Context = PartialContext & { orm: TypeormWrapper };
 
 // TODO: use something better than ColumnType for possible postgres colum types
 export type RpcOutput = { [key: string]: ColumnType };
@@ -647,7 +649,7 @@ export interface ModuleInterface {
     // mappers, which can then make use of logic defined and exposed through this that they depend
     // on, so things like the `awsClient` just becomes part of the responsibility of the
     // `aws_account` module, for instance.
-    context?: Context;
+    context?: PartialContext;
   };
   rpc?: { [key: string]: RpcInterface };
   migrations?: {
@@ -669,9 +671,9 @@ export class ModuleBase {
     entities: { [key: string]: any };
     tables: string[];
     functions: { [key: string]: { description?: string; sample_usage?: string; signature?: string } };
-    context?: Context;
+    context?: PartialContext;
   };
-  context?: Context;
+  context?: PartialContext;
   rpc?: { [key: string]: RpcInterface };
   migrations: {
     beforeInstall?: (q: QueryRunner) => Promise<void>;

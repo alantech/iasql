@@ -240,7 +240,7 @@ ${Object.keys(tableCollisions)
       e.name = `${md.name}@${md.version}`;
       // Promise.all is okay here because it's guaranteed to not hit the cloud services
       e.dependencies = await Promise.all(
-        md.dependencies.map(async dep => await orm.findOne(iasqlModule, { name: dep })),
+        md.dependencies.map(async dep => await orm.findOne(iasqlModule, { where: { name: dep, }, })),
       );
       await orm.save(iasqlModule, e);
 
@@ -433,7 +433,7 @@ export async function uninstall(moduleList: string[], dbId: string, force = fals
       if (md.migrations?.afterRemove) {
         await md.migrations.afterRemove(queryRunner);
       }
-      const e = await orm.findOne(iasqlModule, { name: `${md.name}@${md.version}` });
+      const e = await orm.findOne(iasqlModule, { where: { name: `${md.name}@${md.version}`, }, });
       const mt =
         (await orm.find(iasqlTables, {
           where: {
@@ -767,8 +767,8 @@ async function revert(
 async function getChangeLogsSinceLastBegin(orm: TypeormWrapper): Promise<IasqlAuditLog[]> {
   const transaction: IasqlAuditLog = await orm.findOne(IasqlAuditLog, {
     order: { ts: 'DESC' },
-    skip: 0,
-    take: 1,
+    /* skip: 0,
+    take: 1, */ // @aguillenv, what is this? It's a `findOne` why are these needed?
     where: {
       changeType: AuditLogChangeType.OPEN_TRANSACTION,
     },
