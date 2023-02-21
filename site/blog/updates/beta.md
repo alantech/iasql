@@ -7,13 +7,13 @@ authors: [yrobla, mtp1376, depombo, dfellis, aguillenv]
 tags: [updates]
 ---
 
-IaSQL lets developers manage their cloud infrastructure as data in PostgreSQL as an alternative to the AWS console and infrastructure as code (IaC) tools like Pulumi and Terraform. We open-sourced IaSQL's Alpha version (v0.0.x) in [April 2022](/blog/os-iasql). We’ve been fortunate to work with lots of early adopters who helped us shape the product and prioritize the features to build.
+IaSQL lets developers manage their cloud infrastructure as data in PostgreSQL as an alternative to the AWS console and infrastructure as code (IaC) tools like Pulumi and Terraform. We open-sourced IaSQL's Alpha version (v0.0.x) in [April 2022](/blog/os-iasql). We still have a long way to go, but we feel ready for what is next. Today, we’re moving IaSQL to Beta (v0.x)!
 
-We have been quietly fixing bugs and adding goodies to IaSQL non-stop for the past few months. Some of the bugs have led to some difficult outages. We love open source and that includes airing our dirty laundry. We keep our postmorterms [here](https://github.com/iasql/iasql/tree/main/postmortems) in case you are curious.
+<!--truncate-->
+
+We’ve been fortunate to work with lots of early adopters who helped us shape the product and prioritize the features to build. We have been quietly fixing bugs and adding goodies to IaSQL non-stop for the past few months. Some of the bugs have led to some difficult outages. We love open source and that includes airing our dirty laundry. We keep our postmortems [here](https://github.com/iasql/iasql/tree/main/postmortems) in case you are curious.
 
 <img width={340} src={'https://media.tenor.com/znsYWE0DQKsAAAAC/cats-laundry.gif'} />
-
-We still have a long way to go, but we feel ready for what is next. Today, we’re moving IaSQL to Beta (v0.x)!
 
 Additionally, we completely redid our architecture to scale and our UX to make it more intuitive and just plain simpler. More on that later. Several hundred SQL queries and cloud resources have been created on top of IaSQL. Blood, sweat, and tears went into the Alpha phase. Okay, that may be an overdramatization, but it did take a lot of thoughtful hours from us to help you manage cloud infrastructure more seamlessly.
 
