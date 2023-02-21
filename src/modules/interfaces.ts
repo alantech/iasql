@@ -2,6 +2,7 @@ import callsite from 'callsite';
 import fs from 'fs';
 import _ from 'lodash';
 import path from 'path';
+import format from 'pg-format';
 import { parse } from 'pgsql-parser';
 import { ColumnType, getMetadataArgsStorage, QueryRunner } from 'typeorm';
 import { snakeCase } from 'typeorm/util/StringUtils';
@@ -11,6 +12,7 @@ import { throwError } from '../config/config';
 import { AWS, crudBuilder2 } from '../services/aws_macros';
 import { getCloudId } from '../services/cloud-id';
 import logger from '../services/logger';
+import { safeParse } from './aws_acm/rpcs/common';
 
 // The exported interfaces are meant to provide better type checking both at compile time and in the
 // editor. They *shouldn't* have to be ever imported directly, only the classes ought to be, but as
@@ -391,6 +393,8 @@ export class RpcBase implements RpcInterface {
   inputTable: RpcInput = {
     _args: { argType: 'TEXT[]', default: 'ARRAY[]::text[]', variadic: true, rawDefault: true },
   };
+  helpDescription?: string;
+  helpSampleUsage?: string;
   preTransactionCheck: PreTransactionCheck;
   postTransactionCheck: PostTransactionCheck;
   call: (
@@ -453,7 +457,7 @@ export class RpcBase implements RpcInterface {
     const rpcOutputTable = rpcOutputEntries
       .map(([columnName, columnType]) => `${columnName} ${columnType}`)
       .join(', ');
-    const afterInstallSql = `
+    let afterInstallSql = `
         create or replace function ${snakeCase(key)}(${rpcInputArgs}) returns table (${rpcOutputTable})
         language plpgsql security definer
         as $$
@@ -496,6 +500,17 @@ export class RpcBase implements RpcInterface {
         end;
         $$;
       `;
+    if (this.helpDescription && this.helpSampleUsage) {
+      const documentationObject = {
+        description: this.helpDescription,
+        sample_usage: this.helpSampleUsage,
+      };
+      afterInstallSql += format(
+        'COMMENT ON FUNCTION %I IS %L;',
+        snakeCase(key),
+        JSON.stringify(documentationObject),
+      );
+    }
     const beforeUninstallSql = `
         DROP FUNCTION "${snakeCase(key)}";
       `;
@@ -625,7 +640,7 @@ export interface ModuleInterface {
   dependencies: string[];
   provides?: {
     tables?: string[];
-    functions?: string[];
+    functions?: { [key: string]: { description?: string; sample_usage?: string } };
     // TODO: What other PSQL things should be tracked?
     // Context is special, it is merged between all installed modules and becomes the input to the
     // mappers, which can then make use of logic defined and exposed through this that they depend
@@ -652,7 +667,7 @@ export class ModuleBase {
   provides: {
     entities: { [key: string]: any };
     tables: string[];
-    functions: string[];
+    functions: { [key: string]: { description?: string; sample_usage?: string; signature?: string } };
     context?: Context;
   };
   context?: Context;
@@ -729,7 +744,7 @@ export class ModuleBase {
     this.provides = {
       entities: {},
       tables: [],
-      functions: [],
+      functions: {},
     };
     if (this.context) this.provides.context = this.context;
     this.migrations = {
@@ -739,15 +754,18 @@ export class ModuleBase {
     const afterInstallMigration = afterInstallSql + rpcAfterInstallSql;
     const beforeUninstallMigration = rpcBeforeUninstallSql + beforeUninstallSql;
     if (beforeInstallSql) {
-      this.provides.tables.push(...this.getFromSql('tables', beforeInstallSql));
-      this.provides.functions.push(...this.getFromSql('functions', beforeInstallSql));
+      this.provides.tables.push(...this.getTablesFromSql(beforeInstallSql));
+      this.provides.functions = { ...this.provides.functions, ...this.getFunctionsFromSql(beforeInstallSql) };
       this.migrations.beforeInstall = async (q: QueryRunner) => {
         await q.query(beforeInstallSql);
       };
     }
     if (afterInstallMigration) {
-      this.provides.tables.push(...this.getFromSql('tables', afterInstallMigration));
-      this.provides.functions.push(...this.getFromSql('functions', afterInstallMigration));
+      this.provides.tables.push(...this.getTablesFromSql(afterInstallMigration));
+      this.provides.functions = {
+        ...this.provides.functions,
+        ...this.getFunctionsFromSql(afterInstallMigration),
+      };
       this.migrations.afterInstall = async (q: QueryRunner) => {
         await q.query(afterInstallMigration);
       };
@@ -764,22 +782,75 @@ export class ModuleBase {
     }
   }
 
-  getFromSql(stmtType: 'tables' | 'functions', sql: string): string[] {
+  getTablesFromSql(sql: string): string[] {
     try {
       const sqlParsed = parse(sql);
-      const stmtKey = stmtType === 'tables' ? 'CreateStmt' : 'CreateFunctionStmt';
       return sqlParsed
-        .filter((s: any) => Object.keys(s.RawStmt?.stmt ?? {}).includes(stmtKey))
+        .filter((s: any) => Object.keys(s.RawStmt?.stmt ?? {}).includes('CreateStmt'))
         .map((s: any) => {
-          return stmtType === 'tables'
-            ? s.RawStmt?.stmt?.CreateStmt?.relation?.relname
-            : s.RawStmt?.stmt?.CreateFunctionStmt?.funcname?.pop()?.String?.str;
+          return s.RawStmt?.stmt?.CreateStmt?.relation?.relname;
         })
         .filter((v: string | undefined) => !!v);
     } catch (_) {
       /** Do nothing */
     }
     return [];
+  }
+
+  getFunctionsFromSql(sql: string): {
+    [key: string]: { description?: string; sample_usage?: string; signature?: string };
+  } {
+    const returnValue: {
+      [key: string]: { description?: string; sample_usage?: string; signature?: string };
+    } = {};
+    try {
+      const sqlParsed = parse(sql);
+      const functionsAndParams = sqlParsed
+        .filter((s: any) => _.has(s, ['RawStmt', 'stmt', 'CreateFunctionStmt']))
+        .map((s: any) => s.RawStmt.stmt.CreateFunctionStmt)
+        .map((s: any) => [s.funcname?.pop()?.String?.str, s.parameters])
+        .filter((v: any[]) => !!v[0]);
+
+      for (const [functionName, functionParams] of functionsAndParams) {
+        const inputs: string[] = [],
+          outputs: string[] = [];
+        functionParams?.map((p: any) => {
+          if (['FUNC_PARAM_IN', 'FUNC_PARAM_VARIADIC'].includes(p.FunctionParameter.mode)) {
+            const variadic = p.FunctionParameter.mode === 'FUNC_PARAM_VARIADIC';
+            inputs.push(
+              `${variadic ? 'variadic ' : ''}${p.FunctionParameter.name} ${
+                p.FunctionParameter.argType?.names?.pop()?.String?.str
+              }${variadic ? '[]' : ''}`,
+            );
+          } else
+            outputs.push(
+              `${p.FunctionParameter.name} ${p.FunctionParameter.argType?.names?.pop()?.String?.str}`,
+            );
+        });
+        returnValue[functionName] = { signature: `(${inputs.join(', ')}) => (${outputs.join(', ')})` };
+      }
+
+      sqlParsed
+        .filter((s: any) => _.has(s, ['RawStmt', 'stmt', 'CommentStmt']))
+        .map((s: any) => {
+          return [
+            s.RawStmt.stmt.CommentStmt.object?.ObjectWithArgs?.objname?.pop().String?.str,
+            safeParse(s.RawStmt.stmt.CommentStmt.comment),
+          ];
+        })
+        .filter((v: any[]) => !!v[0] && !!v[1])
+        .map((v: [string, { description?: string; sample_usage?: string }]) => {
+          returnValue[v[0]] = {
+            ...returnValue[v[0]],
+            description: v[1].description,
+            sample_usage: v[1].sample_usage,
+          };
+        });
+      return returnValue;
+    } catch (_) {
+      /** Do nothing */
+    }
+    return {};
   }
 
   loadTypeORM() {
@@ -828,6 +899,6 @@ export class ModuleBase {
       },
     });
     this.provides.tables = tables;
-    this.provides.functions = functions;
+    this.provides.functions = Object.fromEntries(functions.map(name => [name, {}]));
   }
 }

@@ -1,11 +1,11 @@
-import _ from 'lodash';
-import { snakeCase } from 'typeorm/util/StringUtils';
-
-
-
 import { IasqlFunctions } from '..';
-import { Context, PostTransactionCheck, PreTransactionCheck, RpcBase, RpcInput, RpcResponseObject } from '../../interfaces';
-
+import {
+  Context,
+  PostTransactionCheck,
+  PreTransactionCheck,
+  RpcBase,
+  RpcResponseObject,
+} from '../../interfaces';
 
 /**
  * Method to list IaSQL functions, their description and usage example
@@ -44,25 +44,14 @@ export class IasqlHelp extends RpcBase {
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
     const returnList = [];
 
-    const iasqlFunctionsRpcs = Object.entries(this.module)
-      .filter(([, m]: [string, any]) => m instanceof RpcBase)
-      .filter(([, m]) => _.has(m, 'helpDescription') && _.has(m, 'helpSampleUsage'));
-
-    for (const [rpcName, rpc] of iasqlFunctionsRpcs) {
-      const signature = [];
-      for (const [k, v] of Object.entries(rpc.inputTable as RpcInput)) {
-        if (typeof v === 'string') signature.push(`${snakeCase(k)} ${v}`);
-        else {
-          if (v.variadic) signature.push(`VARIADIC ${v.argType}`);
-          else signature.push(`${snakeCase(k)} ${v.argType}`);
-        }
-      }
-      returnList.push({
-        name: snakeCase(rpcName),
-        signature: signature.join(', '),
-        description: rpc.helpDescription,
-        sample_usage: rpc.helpSampleUsage,
-      });
+    for (const [functionName, documentation] of Object.entries(this.module.provides.functions)) {
+      if (!!documentation.description && !!documentation.sample_usage)
+        returnList.push({
+          name: functionName,
+          signature: documentation.signature,
+          description: documentation.description,
+          sample_usage: documentation.sample_usage,
+        });
     }
 
     return returnList;

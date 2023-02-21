@@ -38,6 +38,9 @@ begin
 end;
 $$;
 
+COMMENT
+  ON FUNCTION iasql_modules_installed () IS '{"description": "Returns list of currently installed modules", "sample_usage": "SELECT * FROM iasql_modules_installed()"}';
+
 CREATE
 OR REPLACE FUNCTION delete_all_records () RETURNS void LANGUAGE plpgsql AS $$
 DECLARE
@@ -71,6 +74,9 @@ begin
   return query select split_part(name, '@', 2) as version from iasql_module limit 1;
 end;
 $$;
+
+COMMENT
+  ON FUNCTION iasql_version () IS '{"description": "Returns the IaSQL engine version", "sample_usage": "SELECT * FROM iasql_version()"}';
 
 CREATE
 OR REPLACE FUNCTION maybe_commit () RETURNS TEXT LANGUAGE plpgsql SECURITY INVOKER AS $$
