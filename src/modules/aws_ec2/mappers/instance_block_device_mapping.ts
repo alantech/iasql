@@ -93,25 +93,30 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
     create: async (es: InstanceBlockDeviceMapping[], ctx: Context) => {
       const out: InstanceBlockDeviceMapping[] = [];
       for (const e of es) {
+        console.log("in attach");
         // read instance details
         const instance: Instance = await ctx.orm.findOne(Instance, {
           id: e.instanceId,
         });
+        console.log(instance);
         if (instance.region != e.region) throw new Error('Cannot create a mapping between different regions');
 
         // if instance is not created we are in the first step, no need to create anything
         if (!instance?.instanceId) continue;
         const client = (await ctx.getAwsClient(e.region)) as AWS;
+        console.log("after instance");
 
         // read volume details
         if (!e.volumeId) throw new Error('Cannot attach empty volumes to an instance already created');
         const volume: GeneralPurposeVolume = await ctx.orm.findOne(GeneralPurposeVolume, {
           id: e.volumeId,
         });
+        console.log("after reading volumes");
         if (!volume.volumeId) throw new Error('Tried to attach an unexisting volume');
         if (volume.state == VolumeState.IN_USE)
           throw new Error('Cannot attach volumes that are already in use');
         if (volume.region != e.region) throw new Error('Cannot create a mapping between different regions');
+        console.log("before attach");
 
         // if it is a volume for an existing instance we need to attach it
         const result = await this.attachVolume(
@@ -120,8 +125,10 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
           instance.instanceId,
           e.deviceName,
         );
+        console.log("after attach");
         if (result) out.push(e);
       }
+      console.log(out);
       return out;
     },
     read: async (ctx: Context, id?: string) => {
