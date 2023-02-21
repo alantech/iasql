@@ -11,8 +11,8 @@ import config from '../config';
 import { throwError } from '../config/config';
 import { AWS, crudBuilder2 } from '../services/aws_macros';
 import { getCloudId } from '../services/cloud-id';
+import { safeParse } from '../services/common';
 import logger from '../services/logger';
-import { safeParse } from './aws_acm/rpcs/common';
 
 // The exported interfaces are meant to provide better type checking both at compile time and in the
 // editor. They *shouldn't* have to be ever imported directly, only the classes ought to be, but as
