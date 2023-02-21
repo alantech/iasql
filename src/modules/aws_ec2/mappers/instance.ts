@@ -463,8 +463,6 @@ export class InstanceMapper extends MapperBase<Instance> {
             instance.hibernationEnabled,
           );
           if (mappings) instanceParams.BlockDeviceMappings = mappings;
-          console.log("mappings are");
-          console.log(mappings);
 
           let instanceId;
           instanceId = await this.newInstance(client.ec2client, instanceParams);
@@ -472,8 +470,6 @@ export class InstanceMapper extends MapperBase<Instance> {
             // then who?
             throw new Error('should not be possible');
           }
-          console.log("i created");
-          console.log(instanceId);
 
           // read block device mapping from instance and wait for volumes in use
           const mapping = await this.getInstanceBlockDeviceMapping(client.ec2client, instanceId);
@@ -485,7 +481,6 @@ export class InstanceMapper extends MapperBase<Instance> {
               );
             }
           }
-          console.log("after waiting for volumes");
 
           const newEntity = await this.module.instance.cloud.read(
             ctx,
@@ -494,10 +489,8 @@ export class InstanceMapper extends MapperBase<Instance> {
 
           newEntity.id = instance.id;
           await this.module.instance.db.update(newEntity, ctx);
-          console.log("after update");
 
           // if there are previous volumes, we delete it as the instance will recreate it
-          console.log('i want to delete');
           if (instance.instanceBlockDeviceMappings) {
             for (const map of instance.instanceBlockDeviceMappings) {
               await this.module.instanceBlockDeviceMapping.db.delete(map, ctx);
@@ -513,11 +506,11 @@ export class InstanceMapper extends MapperBase<Instance> {
             }
           }
           
-          console.log("finishing");
-
           out.push(newEntity);
         }
       }
+      console.log("i created");
+      console.log(out);
       return out;
     },
     read: async (ctx: Context, id?: string) => {
@@ -549,6 +542,7 @@ export class InstanceMapper extends MapperBase<Instance> {
     updateOrReplace: (a: Instance, b: Instance) =>
       this.instanceEqReplaceableFields(a, b) ? 'update' : 'replace',
     update: async (es: Instance[], ctx: Context) => {
+      console.log("in update");
       const out = [];
       for (const e of es) {
         const client = (await ctx.getAwsClient(e.region)) as AWS;
@@ -576,6 +570,8 @@ export class InstanceMapper extends MapperBase<Instance> {
           }
           out.push(e);
         } else {
+          console.log("i recreate instance");
+          console.log(e);
           const created = await this.module.instance.cloud.create(e, ctx);
           await this.module.instance.cloud.delete(cloudRecord, ctx);
           if (!!created && created instanceof Array) {
