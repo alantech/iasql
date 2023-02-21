@@ -382,6 +382,7 @@ export class InstanceMapper extends MapperBase<Instance> {
         const client = (await ctx.getAwsClient(instance.region)) as AWS;
         const previousInstanceId = instance.instanceId;
         if (instance.ami) {
+          console.log("i want to create");
           let tgs: AWSTag[] = [];
           if (instance.tags !== undefined) {
             const tags: { [key: string]: string } = instance.tags;
@@ -397,6 +398,7 @@ export class InstanceMapper extends MapperBase<Instance> {
           // check if we have some entry without security group id
           const without = instance.securityGroups.filter(sg => !sg.groupId);
           if (without.length > 0) continue;
+          console.log("after security groups");
 
           const sgIds = instance.securityGroups.map(sg => sg.groupId).filter(id => !!id) as string[];
 
@@ -433,6 +435,7 @@ export class InstanceMapper extends MapperBase<Instance> {
               Configured: true,
             };
           }
+          console.log(instanceParams);
 
           // do not proceed with instance creation until all the volumes are ready
           let volumesNotReady = false;
@@ -448,6 +451,8 @@ export class InstanceMapper extends MapperBase<Instance> {
               }
             }
           }
+          console.log("after volumes");
+          console.log(volumesNotReady);
           if (volumesNotReady) continue;
 
           // get block device mapping parameter
@@ -458,6 +463,8 @@ export class InstanceMapper extends MapperBase<Instance> {
             instance.hibernationEnabled,
           );
           if (mappings) instanceParams.BlockDeviceMappings = mappings;
+          console.log("mappings are");
+          console.log(mappings);
 
           let instanceId;
           instanceId = await this.newInstance(client.ec2client, instanceParams);
@@ -465,6 +472,8 @@ export class InstanceMapper extends MapperBase<Instance> {
             // then who?
             throw new Error('should not be possible');
           }
+          console.log("i created");
+          console.log(instanceId);
 
           // read block device mapping from instance and wait for volumes in use
           const mapping = await this.getInstanceBlockDeviceMapping(client.ec2client, instanceId);
@@ -476,6 +485,7 @@ export class InstanceMapper extends MapperBase<Instance> {
               );
             }
           }
+          console.log("after waiting for volumes");
 
           const newEntity = await this.module.instance.cloud.read(
             ctx,
@@ -484,6 +494,7 @@ export class InstanceMapper extends MapperBase<Instance> {
 
           newEntity.id = instance.id;
           await this.module.instance.db.update(newEntity, ctx);
+          console.log("after update");
 
           // if there are previous volumes, we delete it as the instance will recreate it
           console.log('i want to delete');
@@ -501,6 +512,8 @@ export class InstanceMapper extends MapperBase<Instance> {
               }
             }
           }
+          
+          console.log("finishing");
 
           out.push(newEntity);
         }
