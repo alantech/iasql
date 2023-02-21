@@ -240,7 +240,7 @@ ${Object.keys(tableCollisions)
       e.name = `${md.name}@${md.version}`;
       // Promise.all is okay here because it's guaranteed to not hit the cloud services
       e.dependencies = await Promise.all(
-        md.dependencies.map(async dep => await orm.findOne(iasqlModule, { where: { name: dep, }, })),
+        md.dependencies.map(async dep => await orm.findOne(iasqlModule, { where: { name: dep } })),
       );
       await orm.save(iasqlModule, e);
 
@@ -433,7 +433,7 @@ export async function uninstall(moduleList: string[], dbId: string, force = fals
       if (md.migrations?.afterRemove) {
         await md.migrations.afterRemove(queryRunner);
       }
-      const e = await orm.findOne(iasqlModule, { where: { name: `${md.name}@${md.version}`, }, });
+      const e = await orm.findOne(iasqlModule, { where: { name: `${md.name}@${md.version}` } });
       const mt =
         (await orm.find(iasqlTables, {
           where: {

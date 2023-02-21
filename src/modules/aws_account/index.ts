@@ -1,5 +1,6 @@
+import { Not, IsNull } from 'typeorm';
+
 import { EC2 } from '@aws-sdk/client-ec2';
-import { Not, IsNull, } from 'typeorm';
 
 import { AWS, crudBuilderFormat } from '../../services/aws_macros';
 import { Context, Crud2, MapperBase, ModuleBase, PartialContext } from '../interfaces';
@@ -122,7 +123,7 @@ class AwsAccount extends ModuleBase {
         'us-east-1'; // TODO: Eliminate this last fallback
       if (this.awsClient[region]) return this.awsClient[region];
       // :( https://github.com/typeorm/typeorm/issues/9208
-      const awsCreds = await orm.findOne(AwsCredentials, { where: { accessKeyId: Not(IsNull()), }, });
+      const awsCreds = await orm.findOne(AwsCredentials, { where: { accessKeyId: Not(IsNull()) } });
       if (!awsCreds) throw new Error('No credentials found');
       this.awsClient[region] = new AWS({
         region,
