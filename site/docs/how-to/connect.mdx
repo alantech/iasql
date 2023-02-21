@@ -7,11 +7,29 @@ slug: '/connect'
 
 The IaSQL dashboard provides an IDE-like SQL editor built specifically for the IaSQL needs that can be used to run queries on the database(s) connected to your cloud account(s).
 
-<img src={require('@site/static/screenshots/dashboard.png').default} />
+import useBaseUrl from '@docusaurus/useBaseUrl';
+import ThemedImage from '@theme/ThemedImage';
+
+<ThemedImage
+  alt="Dashboard"
+  style={{border: '2px solid rgba(52, 52, 52, 0.1)' }}
+  sources={{
+    light: useBaseUrl('/screenshots/dashboard.png'),
+    dark: useBaseUrl('/screenshots/dashboard_dark.png'),
+  }}
+/>
+
 
 It is also possible to connect to an IaSQL PostgreSQL database without the dashboard because it is just a vanilla PostgreSQL database. The required information to connect to a PostgreSQL database will be provided when you connect an AWS account when provisioning the database. IaSQL does not store your database password so it will only be displayed when the database is provisioned. If you lose the password, you can recreate the database by disconnecting and connecting your account again using the same region and AWS credentials.
 
-<img width={440} src={require('@site/static/screenshots/credentials.png').default} />
+<ThemedImage
+  alt="Credentials"
+  style={{width: '440', border: '2px solid rgba(52, 52, 52, 0.1)' }}
+  sources={{
+    light: useBaseUrl('/screenshots/credentials.png'),
+    dark: useBaseUrl('/screenshots/credentials_dark.png'),
+  }}
+/>
 
 ## PostgreSQL Clients
 

@@ -9,7 +9,7 @@ IaSQL requires AWS credentials to manage the resources within an AWS account via
 
 There are two parts to each [access key](https://docs.aws.amazon.com/general/latest/gr/aws-sec-cred-types.html#access-keys-and-secret-access-keys), which you’ll see in the IAM console/CLI after you create it, an id and a secret.
 
-<img width={440} src={require('@site/static/screenshots/connect-manual.png').default} />
+<img width={440} src={require('@site/static/screenshots/connect.png').default} />
 
 ## View existing AWS CLI credentials
 

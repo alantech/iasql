@@ -110,7 +110,7 @@ export default function Home() {
                 className='shadow--tl browser-content'
                 sources={{
                   light: useBaseUrl('/screenshots/dashboard.png'),
-                  dark: useBaseUrl('/screenshots/dashboard.png'),
+                  dark: useBaseUrl('/screenshots/dashboard_dark.png'),
                 }}
               />
             </BrowserWindow>
