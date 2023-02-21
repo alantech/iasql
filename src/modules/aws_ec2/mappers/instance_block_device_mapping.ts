@@ -1,9 +1,4 @@
-import {
-  DescribeVolumesCommandInput,
-  EC2,
-  InstanceBlockDeviceMapping as AWSInstanceBlockDeviceMapping,
-  InstanceLifecycle,
-} from '@aws-sdk/client-ec2';
+import { EC2, InstanceLifecycle } from '@aws-sdk/client-ec2';
 import { Volume as AWSVolume } from '@aws-sdk/client-ec2';
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 
@@ -18,33 +13,6 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
   equals = (a: InstanceBlockDeviceMapping, b: InstanceBlockDeviceMapping) => {
     return Object.is(a.deviceName, b.deviceName);
   };
-
-  async instanceBlockDeviceMappingMapper(
-    vol: AWSInstanceBlockDeviceMapping,
-    instance: Instance,
-    ctx: Context,
-  ) {
-    const out = new InstanceBlockDeviceMapping();
-    if (!vol.DeviceName) return undefined;
-    out.instanceId = instance.id!;
-    out.instance = instance;
-    out.deviceName = vol.DeviceName;
-    out.region = instance.region;
-
-    // read id for the volume
-    if (vol.Ebs?.VolumeId) {
-      const region = instance.region;
-      const volume = await this.module.generalPurposeVolume.db.read(
-        ctx,
-        this.module.generalPurposeVolume.generateId({ volumeId: vol.Ebs?.VolumeId, region }),
-      );
-
-      if (!volume) return undefined; // we still do not have the volume mapped
-      out.volumeId = volume.id;
-      out.volume = volume;
-    } else out.volumeId = undefined;
-    return out;
-  }
 
   attachVolumeInternal = crudBuilder2<EC2, 'attachVolume'>(
     'attachVolume',
@@ -93,30 +61,25 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
     create: async (es: InstanceBlockDeviceMapping[], ctx: Context) => {
       const out: InstanceBlockDeviceMapping[] = [];
       for (const e of es) {
-        console.log("in attach");
         // read instance details
         const instance: Instance = await ctx.orm.findOne(Instance, {
           id: e.instanceId,
         });
-        console.log(instance);
         if (instance.region != e.region) throw new Error('Cannot create a mapping between different regions');
 
         // if instance is not created we are in the first step, no need to create anything
         if (!instance?.instanceId) continue;
         const client = (await ctx.getAwsClient(e.region)) as AWS;
-        console.log("after instance");
 
         // read volume details
         if (!e.volumeId) throw new Error('Cannot attach empty volumes to an instance already created');
         const volume: GeneralPurposeVolume = await ctx.orm.findOne(GeneralPurposeVolume, {
           id: e.volumeId,
         });
-        console.log("after reading volumes");
         if (!volume.volumeId) throw new Error('Tried to attach an unexisting volume');
         if (volume.state == VolumeState.IN_USE)
           throw new Error('Cannot attach volumes that are already in use');
         if (volume.region != e.region) throw new Error('Cannot create a mapping between different regions');
-        console.log("before attach");
 
         // if it is a volume for an existing instance we need to attach it
         const result = await this.attachVolume(
@@ -125,7 +88,10 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
           instance.instanceId,
           e.deviceName,
         );
-        console.log("after attach");
+
+        // add missing fields
+        e.cloudInstanceId = instance.instanceId;
+        e.cloudVolumeId = volume.volumeId;
         if (result) out.push(e);
       }
       console.log(out);
@@ -133,7 +99,26 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
     },
     read: async (ctx: Context, id?: string) => {
       if (id) {
-        return undefined;
+        // decompose the id
+        const { instanceId, volumeId, region } = this.idFields(id);
+        const client = (await ctx.getAwsClient(region)) as AWS;
+
+        // read the instance mapping
+        const mapping = await this.module.instance.getInstanceBlockDeviceMapping(
+          client.ec2client,
+          instanceId,
+        );
+        for (const map of mapping ?? []) {
+          if (map.DeviceName && map.Ebs?.VolumeId == volumeId) {
+            const res: InstanceBlockDeviceMapping = {
+              deviceName: map.DeviceName,
+              cloudInstanceId: instanceId,
+              cloudVolumeId: volumeId,
+              region: region,
+            };
+            return res;
+          }
+        }
       } else {
         const out: InstanceBlockDeviceMapping[] = [];
         const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
@@ -144,24 +129,21 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
             for (const i of rawInstances) {
               // exclude spot instances and terminating ones
               if (i.InstanceLifecycle === InstanceLifecycle.SPOT) continue;
-
               if (i.State?.Name === 'terminated' || i.State?.Name === 'shutting-down') continue;
 
-              // read the instance mapping
-              const instance = await this.module.instance.db.read(
-                ctx,
-                this.module.instance.generateId({ instanceId: i.InstanceId ?? '', region }),
+              // check instance block device mappings
+              const mapping = await this.module.instance.getInstanceBlockDeviceMapping(
+                client.ec2client,
+                i.InstanceId,
               );
-
-              if (instance) {
-                // check instance block device mappings
-                const mapping = await this.module.instance.getInstanceBlockDeviceMapping(
-                  client.ec2client,
-                  i.InstanceId,
-                );
-                for (const map of i.BlockDeviceMappings ?? []) {
-                  const m = await this.instanceBlockDeviceMappingMapper(map, instance, ctx);
-                  if (m) out.push(m);
+              for (const map of mapping ?? []) {
+                if (map.DeviceName && map.Ebs?.VolumeId) {
+                  const res: InstanceBlockDeviceMapping = {
+                    deviceName: map.DeviceName,
+                    cloudInstanceId: i.instanceId,
+                    cloudVolumeId: map.Ebs.VolumeId,
+                    region: region,
+                  };
                 }
               }
             }
@@ -181,19 +163,15 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
     },
     delete: async (es: InstanceBlockDeviceMapping[], ctx: Context) => {
       for (const e of es) {
-        console.log(e);
         const client = (await ctx.getAwsClient(e.region)) as AWS;
 
         // if no volume is attached, no need to do anything
-        if (!e.volumeId) continue;
-
-        const volume: GeneralPurposeVolume = await ctx.orm.findOne(GeneralPurposeVolume, {
-          id: e.volumeId,
-        });
-        if (!volume.volumeId) throw new Error('Tried to detach an unexisting volume');
+        if (!e.cloudVolumeId) continue;
 
         // we need to detach the volume
-        await this.detachVolume(client.ec2client, volume.volumeId ?? '');
+        try {
+          await this.detachVolume(client.ec2client, e.cloudVolumeId ?? '');
+        } catch (_) {}
       }
     },
   });

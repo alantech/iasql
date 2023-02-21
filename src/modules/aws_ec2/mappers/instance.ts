@@ -19,14 +19,7 @@ import { AwsEc2Module } from '..';
 import { awsIamModule, awsSecurityGroupModule, awsVpcModule } from '../..';
 import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
 import { Context, Crud2, MapperBase } from '../../interfaces';
-import {
-  GeneralPurposeVolume,
-  GeneralPurposeVolumeType,
-  Instance,
-  InstanceBlockDeviceMapping,
-  State,
-  VolumeState,
-} from '../entity';
+import { GeneralPurposeVolume, GeneralPurposeVolumeType, Instance, State, VolumeState } from '../entity';
 import { updateTags, eqTags } from './tags';
 
 export class InstanceMapper extends MapperBase<Instance> {
@@ -382,7 +375,6 @@ export class InstanceMapper extends MapperBase<Instance> {
         const client = (await ctx.getAwsClient(instance.region)) as AWS;
         const previousInstanceId = instance.instanceId;
         if (instance.ami) {
-          console.log("i want to create");
           let tgs: AWSTag[] = [];
           if (instance.tags !== undefined) {
             const tags: { [key: string]: string } = instance.tags;
@@ -398,7 +390,7 @@ export class InstanceMapper extends MapperBase<Instance> {
           // check if we have some entry without security group id
           const without = instance.securityGroups.filter(sg => !sg.groupId);
           if (without.length > 0) continue;
-          console.log("after security groups");
+          console.log('after security groups');
 
           const sgIds = instance.securityGroups.map(sg => sg.groupId).filter(id => !!id) as string[];
 
@@ -435,7 +427,6 @@ export class InstanceMapper extends MapperBase<Instance> {
               Configured: true,
             };
           }
-          console.log(instanceParams);
 
           // do not proceed with instance creation until all the volumes are ready
           let volumesNotReady = false;
@@ -451,8 +442,6 @@ export class InstanceMapper extends MapperBase<Instance> {
               }
             }
           }
-          console.log("after volumes");
-          console.log(volumesNotReady);
           if (volumesNotReady) continue;
 
           // get block device mapping parameter
@@ -471,25 +460,6 @@ export class InstanceMapper extends MapperBase<Instance> {
             throw new Error('should not be possible');
           }
 
-          // read block device mapping from instance and wait for volumes in use
-          const mapping = await this.getInstanceBlockDeviceMapping(client.ec2client, instanceId);
-          for (const map of mapping ?? []) {
-            if (map.DeviceName && map.Ebs?.VolumeId) {
-              await this.module.instanceBlockDeviceMapping.waitUntilInUse(
-                client.ec2client,
-                map.Ebs.VolumeId!,
-              );
-            }
-          }
-
-          const newEntity = await this.module.instance.cloud.read(
-            ctx,
-            this.module.instance.generateId({ instanceId, region: instance.region }),
-          );
-
-          newEntity.id = instance.id;
-          await this.module.instance.db.update(newEntity, ctx);
-
           // if there are previous volumes, we delete it as the instance will recreate it
           if (instance.instanceBlockDeviceMappings) {
             for (const map of instance.instanceBlockDeviceMappings) {
@@ -505,12 +475,41 @@ export class InstanceMapper extends MapperBase<Instance> {
               }
             }
           }
-          
+
+          // read block device mapping from instance and wait for volumes in use
+          const mapping = await this.getInstanceBlockDeviceMapping(client.ec2client, instanceId);
+          for (const map of mapping ?? []) {
+            if (map.DeviceName && map.Ebs?.VolumeId) {
+              await this.module.instanceBlockDeviceMapping.waitUntilInUse(
+                client.ec2client,
+                map.Ebs.VolumeId!,
+              );
+
+              // if it does not exist, create on the db
+              const region = instance.region;
+              const volId = this.module.generalPurposeVolume.generateId({
+                volumeId: map.Ebs.VolumeId,
+                region,
+              });
+              const volDb = await this.module.generalPurposeVolume.db.read(ctx, volId);
+              if (!volDb) {
+                const volFromCloud = await this.module.generalPurposeVolume.cloud.read(ctx, volId);
+                await this.module.generalPurposeVolume.db.create(volFromCloud, ctx);
+              }
+            }
+          }
+
+          const newEntity = await this.module.instance.cloud.read(
+            ctx,
+            this.module.instance.generateId({ instanceId, region: instance.region }),
+          );
+
+          newEntity.id = instance.id;
+          await this.module.instance.db.update(newEntity, ctx);
+
           out.push(newEntity);
         }
       }
-      console.log("i created");
-      console.log(out);
       return out;
     },
     read: async (ctx: Context, id?: string) => {
@@ -541,7 +540,6 @@ export class InstanceMapper extends MapperBase<Instance> {
     },
     updateOrReplace: (_a: Instance, _b: Instance) => 'replace',
     update: async (es: Instance[], ctx: Context) => {
-      console.log("in update");
       const out = [];
       for (const e of es) {
         const client = (await ctx.getAwsClient(e.region)) as AWS;
@@ -569,8 +567,6 @@ export class InstanceMapper extends MapperBase<Instance> {
           }
           out.push(e);
         } else {
-          console.log("i recreate instance");
-          console.log(e);
           const created = await this.module.instance.cloud.create(e, ctx);
           await this.module.instance.cloud.delete(cloudRecord, ctx);
           if (!!created && created instanceof Array) {
@@ -595,8 +591,14 @@ export class InstanceMapper extends MapperBase<Instance> {
         for (const map of mapping ?? []) {
           // find related volume
           if (map.DeviceName && map.Ebs?.VolumeId) {
-            // detach existing volume before delete
-            await this.module.instanceBlockDeviceMapping.detachVolume(client.ec2client, map.Ebs.VolumeId);
+            // delete mapping
+            const mapId = this.module.instanceBlockDeviceMapping.generateId({
+              cloudInstanceId: entity.instanceId,
+              cloudVolumeId: map.Ebs.VolumeId,
+              region: region,
+            });
+            const mapObject = await this.module.instanceBlockDeviceMapping.cloud.read(ctx, mapId);
+            if (mapObject) await this.module.instanceBlockDeviceMapping.cloud.delete(mapObject, ctx);
 
             // delete volume if needed
             if (map.Ebs?.DeleteOnTermination) {

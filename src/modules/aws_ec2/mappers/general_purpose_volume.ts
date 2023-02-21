@@ -188,10 +188,8 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
 
   cloud: Crud2<GeneralPurposeVolume> = new Crud2({
     create: async (es: GeneralPurposeVolume[], ctx: Context) => {
-      console.log('in create volume');
       const out = [];
       for (const e of es) {
-        console.log(e);
         const client = (await ctx.getAwsClient(e.region)) as AWS;
         const input: CreateVolumeCommandInput = {
           AvailabilityZone: e.availabilityZone.name,
@@ -230,7 +228,6 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
       return out;
     },
     read: async (ctx: Context, id?: string) => {
-      console.log('i read volume');
       if (id) {
         const { volumeId, region } = this.idFields(id);
         const client = (await ctx.getAwsClient(region)) as AWS;
@@ -250,15 +247,10 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
             }
           }),
         );
-        console.log('i have volumes');
-        console.log(out);
         return out;
       }
     },
     updateOrReplace: (prev: GeneralPurposeVolume, next: GeneralPurposeVolume) => {
-      console.log('in update or replace');
-      console.log(prev);
-      console.log(next);
       if (
         !Object.is(prev?.availabilityZone?.name, next?.availabilityZone?.name) ||
         !Object.is(prev.snapshotId, next.snapshotId)
@@ -267,7 +259,6 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
       return 'update';
     },
     update: async (es: GeneralPurposeVolume[], ctx: Context) => {
-      console.log('i neeed to update');
       const out = [];
       for (const e of es) {
         const client = (await ctx.getAwsClient(e.region)) as AWS;
@@ -318,7 +309,6 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
             out.push(cloudRecord);
           }
         } else {
-          console.log('i am replacing');
           // Replace
           const newVolume = await this.module.generalPurposeVolume.cloud.create(e, ctx);
           await this.module.generalPurposeVolume.cloud.delete(cloudRecord, ctx);
@@ -332,7 +322,13 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
         const client = (await ctx.getAwsClient(e.region)) as AWS;
 
         // check if volume still exists and delete
-        const rawVolume = await this.getVolume(client.ec2client, e.volumeId);
+        let rawVolume;
+        try {
+          rawVolume = await this.getVolume(client.ec2client, e.volumeId);
+        } catch (e: any) {
+          if (e.Code == 'InvalidVolume.NotFound') continue;
+        }
+
         if (rawVolume && rawVolume.VolumeId) {
           // cannot delete volumes in use, let mapper detach it
           if (rawVolume.State == VolumeState.IN_USE) continue;

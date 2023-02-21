@@ -1,11 +1,11 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class awsEc21676878182887 implements MigrationInterface {
-  name = 'awsEc21676878182887';
+export class awsEc21677006830811 implements MigrationInterface {
+  name = 'awsEc21677006830811';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
-      `CREATE TABLE "instance_block_device_mapping" ("id" SERIAL NOT NULL, "device_name" character varying NOT NULL, "instance_id" integer NOT NULL, "volume_id" integer, "region" character varying NOT NULL DEFAULT default_aws_region(), CONSTRAINT "PK_b798e916409eefb1193854452e4" PRIMARY KEY ("id"))`,
+      `CREATE TABLE "instance_block_device_mapping" ("id" SERIAL NOT NULL, "device_name" character varying NOT NULL, "instance_id" integer NOT NULL, "cloud_instance_id" character varying, "volume_id" integer, "cloud_volume_id" character varying, "region" character varying NOT NULL DEFAULT default_aws_region(), CONSTRAINT "PK_b798e916409eefb1193854452e4" PRIMARY KEY ("id")); COMMENT ON COLUMN "instance_block_device_mapping"."cloud_instance_id" IS 'Unique identifier provided by AWS once the instance is provisioned'; COMMENT ON COLUMN "instance_block_device_mapping"."cloud_volume_id" IS 'Unique identifier provided by AWS once the volume is provisioned'`,
     );
     await queryRunner.query(
       `CREATE UNIQUE INDEX "IDX_33f2e790466c1e3603f32ff37b" ON "instance_block_device_mapping" ("volume_id") WHERE volume_id IS NOT NULL`,
