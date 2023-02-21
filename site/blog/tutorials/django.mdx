@@ -17,7 +17,18 @@ First, make sure you have an [IAM user](https://docs.aws.amazon.com/IAM/latest/U
 
 There are two parts to each [access key](https://docs.aws.amazon.com/general/latest/gr/aws-sec-cred-types.html#access-keys-and-secret-access-keys), which you’ll see in the IAM console/CLI after you create it, an id and a secret. Input these in the connect account modal:
 
-<img width={440} src={require('@site/static/screenshots/connect-manual.png').default} />
+import useBaseUrl from '@docusaurus/useBaseUrl';
+import ThemedImage from '@theme/ThemedImage';
+
+<ThemedImage
+  alt="Connect"
+  style={{width: '440'}}
+  sources={{
+    light: useBaseUrl('/screenshots/connect.png'),
+    dark: useBaseUrl('/screenshots/connect_dark.png'),
+  }}
+/>
+
 
 If you use the [AWS CLI](https://docs.aws.amazon.com/cli/), you can look at the [credentials configured locally](https://docs.aws.amazon.com/sdkref/latest/guide/file-location.html). In macOS and Linux this is as simple as:
 
@@ -30,7 +41,15 @@ aws_secret_access_key = <YOUR_SECRET_ACCESS_KEY>
 
 You will be able to see your PostgreSQL connection information when you press Connect.
 
-<img width={440} src={require('@site/static/screenshots/credentials.png').default} />
+
+<ThemedImage
+  alt="Credentials"
+  style={{width: '440', border: '2px solid rgba(52, 52, 52, 0.1)' }}
+  sources={{
+    light: useBaseUrl('/screenshots/credentials.png'),
+    dark: useBaseUrl('/screenshots/credentials_dark.png'),
+  }}
+/>
 
 Make sure to copy the PostgreSQL connection string as you will not see it again.
 
@@ -105,7 +124,7 @@ If the function call is successful, it will return a virtual table with a record
 
    :::
 
-6. Per the [Django database documentation](https://docs.djangoproject.com/en/4.0/ref/databases/#postgresql-connection-settings-1), to connect to a new database you have to update the `DATABASES` in the `my_project/app/app/settings.py` file. This is already configure in the example project.
+6. Per the [Django database documentation](https://docs.djangoproject.com/en/4.0/ref/databases/#postgresql-connection-settings-1), to connect to a new database you have to update the `DATABASES` in the `my_project/app/app/settings.py` file. This is already configured in the example project.
 
    ```python title="django/app/app/settings.py"
    DATABASES = {

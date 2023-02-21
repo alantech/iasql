@@ -15,7 +15,17 @@ First, make sure you have an [IAM user](https://docs.aws.amazon.com/IAM/latest/U
 
 There are two parts to each [access key](https://docs.aws.amazon.com/general/latest/gr/aws-sec-cred-types.html#access-keys-and-secret-access-keys), which you’ll see in the IAM console/CLI after you create it, an id and a secret. Input these in the connect account modal:
 
-<img width={440} src={require('@site/static/screenshots/connect-manual.png').default} />
+import useBaseUrl from '@docusaurus/useBaseUrl';
+import ThemedImage from '@theme/ThemedImage';
+
+<ThemedImage
+  alt="Connect"
+  style={{width: '440'}}
+  sources={{
+    light: useBaseUrl('/screenshots/connect.png'),
+    dark: useBaseUrl('/screenshots/connect_dark.png'),
+  }}
+/>
 
 If you use the [AWS CLI](https://docs.aws.amazon.com/cli/), you can look at the [credentials configured locally](https://docs.aws.amazon.com/sdkref/latest/guide/file-location.html). In macOS and Linux this is as simple as:
 
@@ -27,7 +37,14 @@ aws_secret_access_key = <YOUR_SECRET_ACCESS_KEY>
 ```
 You will be able to see your PostgreSQL connection information when you press Connect.
 
-<img width={440} src={require('@site/static/screenshots/credentials.png').default} />
+<ThemedImage
+   alt="Credentials"
+   style={{width: '440', border: '2px solid rgba(52, 52, 52, 0.1)' }}
+   sources={{
+   light: useBaseUrl('/screenshots/credentials.png'),
+   dark: useBaseUrl('/screenshots/credentials_dark.png'),
+   }}
+/>
 
 If you want to [connect](/docs/connect) to the PostgreSQL database outside of the IaSQL [dashboard](https://app.iasql.com) SQL editor, make sure to copy the PostgreSQL connection string as you will not see it again.
 
