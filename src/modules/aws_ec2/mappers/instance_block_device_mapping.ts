@@ -174,13 +174,7 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
     },
     delete: async (es: InstanceBlockDeviceMapping[], ctx: Context) => {
       for (const e of es) {
-        // read instance details
-        const instance: Instance = await ctx.orm.findOne(Instance, {
-          id: e.instanceId,
-        });
-
-        // if instance is not created, it would not be attached, so do nothing
-        if (!instance?.instanceId) continue;
+        console.log(e);
         const client = (await ctx.getAwsClient(e.region)) as AWS;
 
         // if no volume is attached, no need to do anything
