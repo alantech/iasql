@@ -19,7 +19,14 @@ import { AwsEc2Module } from '..';
 import { awsIamModule, awsSecurityGroupModule, awsVpcModule } from '../..';
 import { AWS, crudBuilder, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
 import { Context, Crud, MapperBase } from '../../interfaces';
-import { GeneralPurposeVolume, GeneralPurposeVolumeType, Instance, State, VolumeState } from '../entity';
+import {
+  GeneralPurposeVolume,
+  GeneralPurposeVolumeType,
+  Instance,
+  InstanceBlockDeviceMapping,
+  State,
+  VolumeState,
+} from '../entity';
 import { updateTags, eqTags } from './tags';
 
 export class InstanceMapper extends MapperBase<Instance> {
@@ -96,6 +103,21 @@ export class InstanceMapper extends MapperBase<Instance> {
       ));
     out.hibernationEnabled = instance.HibernationOptions?.Configured ?? false;
     out.region = region;
+
+    // volume mapping
+    const vol: InstanceBlockDeviceMapping[] = [];
+    for (const map of instance.BlockDeviceMappings ?? []) {
+      if (map.DeviceName && map.Ebs?.VolumeId) {
+        const entry: InstanceBlockDeviceMapping = {
+          deviceName: map.DeviceName,
+          cloudInstanceId: instance.InstanceId,
+          cloudVolumeId: map.Ebs.VolumeId,
+          region: region,
+        };
+        vol.push(entry);
+      }
+    }
+    out.instanceBlockDeviceMappings = vol;
 
     return out;
   }
@@ -312,32 +334,35 @@ export class InstanceMapper extends MapperBase<Instance> {
         const vol = amiImage.BlockDeviceMappings?.find(item => item.DeviceName == dev.deviceName);
         if (!vol) throw new Error('Error mapping volume to a device that does not exist for the AMI');
       }
+      const region = instance.region;
       for (const map of mapping ?? []) {
         // check if there is an associated volume for that instance, volume and device name
         const vol = instance.instanceBlockDeviceMappings?.find(item => item.deviceName == map.DeviceName);
         if (vol) {
           // if region is different than instance, throw an error
           if (vol.region != instance.region) throw new Error('Volume and instance must be on same region');
-
-          if (vol.volumeId) {
-            // find volume by id
-            const volumedata: GeneralPurposeVolume = await ctx.orm.findOne(GeneralPurposeVolume, {
-              id: vol.volumeId,
+          if (vol.cloudVolumeId) {
+            // read volume
+            const volId = this.module.generalPurposeVolume.generateId({
+              volumeId: vol.cloudVolumeId,
+              region,
             });
-            if (volumedata) {
+            const volObj =
+              (await this.module.generalPurposeVolume.db.read(ctx, volId)) ??
+              (await this.module.generalPurposeVolume.cloud.read(ctx, volId));
+            if (volObj) {
               // check that are on the same AZ
-              if (volumedata.availabilityZone.name != instance.subnet?.availabilityZone.name)
+              if (volObj.availabilityZone.name != instance.subnet?.availabilityZone.name)
                 throw new Error('Volume and instance must be on the same availability zone');
               // map it to the ebs mapping
               map.Ebs = {
-                DeleteOnTermination: volumedata.deleteOnTermination,
-                Iops: volumedata.volumeType != GeneralPurposeVolumeType.GP2 ? volumedata.iops : undefined,
-                SnapshotId:
-                  (volumedata.snapshotId ?? '').length > 0 ? volumedata.snapshotId : map.Ebs?.SnapshotId,
-                VolumeSize: volumedata.size,
-                VolumeType: volumedata.volumeType,
+                DeleteOnTermination: volObj.deleteOnTermination,
+                Iops: volObj.volumeType != GeneralPurposeVolumeType.GP2 ? volObj.iops : undefined,
+                SnapshotId: (volObj.snapshotId ?? '').length > 0 ? volObj.snapshotId : map.Ebs?.SnapshotId,
+                VolumeSize: volObj.size,
+                VolumeType: volObj.volumeType,
                 KmsKeyId: map.Ebs?.KmsKeyId,
-                Throughput: volumedata.throughput,
+                Throughput: volObj.throughput,
                 OutpostArn: map.Ebs?.OutpostArn,
                 Encrypted: encrypted,
               };
@@ -428,22 +453,6 @@ export class InstanceMapper extends MapperBase<Instance> {
             };
           }
 
-          // do not proceed with instance creation until all the volumes are ready
-          let volumesNotReady = false;
-          for (const map of instance.instanceBlockDeviceMappings ?? []) {
-            if (map.volumeId) {
-              // check if it exists in cloud
-              const volumedata: GeneralPurposeVolume = await ctx.orm.findOne(GeneralPurposeVolume, {
-                id: map.volumeId,
-              });
-              if (!volumedata || !volumedata.volumeId) {
-                volumesNotReady = true;
-                break;
-              }
-            }
-          }
-          if (volumesNotReady) continue;
-
           // get block device mapping parameter
           const mappings = await this.generateBlockDeviceMapping(
             ctx,
@@ -461,17 +470,23 @@ export class InstanceMapper extends MapperBase<Instance> {
           }
 
           // if there are previous volumes, we delete it as the instance will recreate it
-          if (instance.instanceBlockDeviceMappings) {
-            for (const map of instance.instanceBlockDeviceMappings) {
+          for (const map of instance.instanceBlockDeviceMappings ?? []) {
+            const region = instance.region;
+            if (map.cloudVolumeId) {
               await this.module.instanceBlockDeviceMapping.db.delete(map, ctx);
 
-              // read volume by id
-              const volumedata: GeneralPurposeVolume = await ctx.orm.findOne(GeneralPurposeVolume, {
-                id: map.volumeId,
+              // read it and delete
+              const volId = this.module.generalPurposeVolume.generateId({
+                volumeId: map.cloudVolumeId,
+                region,
               });
-              if (volumedata && volumedata.volumeId) {
-                await this.module.generalPurposeVolume.db.delete(volumedata, ctx);
-                await this.module.generalPurposeVolume.cloud.delete([volumedata], ctx);
+              const volObj =
+                (await this.module.generalPurposeVolume.db.read(ctx, volId)) ??
+                (await this.module.generalPurposeVolume.cloud.read(ctx, volId));
+
+              if (volObj) {
+                await this.module.generalPurposeVolume.db.delete(volObj, ctx);
+                await this.module.generalPurposeVolume.cloud.delete([volObj], ctx);
               }
             }
           }
@@ -591,32 +606,29 @@ export class InstanceMapper extends MapperBase<Instance> {
       for (const entity of es) {
         if (!entity.instanceId) continue;
         const client = (await ctx.getAwsClient(entity.region)) as AWS;
-        const mapping = await this.getInstanceBlockDeviceMapping(client.ec2client, entity.instanceId);
 
         await this.terminateInstance(client.ec2client, entity.instanceId);
         const region = entity.region;
 
         // read the attached volumes and wait until terminated
-        for (const map of mapping ?? []) {
+        for (const map of entity.instanceBlockDeviceMappings ?? []) {
           // find related volume
-          if (map.DeviceName && map.Ebs?.VolumeId) {
-            // delete mapping
-            const mapId = this.module.instanceBlockDeviceMapping.generateId({
-              cloudInstanceId: entity.instanceId,
-              cloudVolumeId: map.Ebs.VolumeId,
-              region: region,
-            });
-            const mapObject = await this.module.instanceBlockDeviceMapping.cloud.read(ctx, mapId);
-            if (mapObject) await this.module.instanceBlockDeviceMapping.cloud.delete(mapObject, ctx);
+          if (map.deviceName && map.cloudVolumeId) {
+            await this.module.instanceBlockDeviceMapping.cloud.delete(map, ctx);
 
             // delete volume if needed
-            if (map.Ebs?.DeleteOnTermination) {
-              await this.waitUntilDeleted(client.ec2client, map.Ebs?.VolumeId ?? '');
+            const volId = this.module.generalPurposeVolume.generateId({
+              volumeId: map.cloudVolumeId,
+              region,
+            });
 
-              const volumedata: GeneralPurposeVolume = await ctx.orm.findOne(GeneralPurposeVolume, {
-                id: map.Ebs?.VolumeId,
-              });
-              if (volumedata) await this.module.generalPurposeVolume.db.delete(volumedata, ctx);
+            const volObj =
+              (await this.module.generalPurposeVolume.db.read(ctx, volId)) ??
+              (await this.module.generalPurposeVolume.cloud.read(ctx, volId));
+
+            if (volObj && volObj.DeleteOnTermination) {
+              await this.waitUntilDeleted(client.ec2client, map.cloudVolumeId);
+              await this.module.generalPurposeVolume.db.delete(volObj, ctx);
             }
           }
         }
