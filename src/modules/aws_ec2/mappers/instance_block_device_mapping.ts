@@ -91,7 +91,6 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
         e.cloudVolumeId = volume.volumeId;
         if (result) out.push(e);
       }
-      console.log(out);
       return out;
     },
     read: async (ctx: Context, id?: string) => {
@@ -100,6 +99,12 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
         const { instanceId, volumeId, region } = this.idFields(id);
         const client = (await ctx.getAwsClient(region)) as AWS;
 
+        // check if we can find the instance in database
+        const instance = await this.module.instance.db.read(
+          ctx,
+          this.module.instance.generateId({ instanceId: instanceId ?? '', region }),
+        );
+
         // read the instance mapping
         const mapping = await this.module.instance.getInstanceBlockDeviceMapping(
           client.ec2client,
@@ -107,7 +112,16 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
         );
         for (const map of mapping ?? []) {
           if (map.DeviceName && map.Ebs?.VolumeId == volumeId) {
+            const volume = await this.module.generalPurposeVolume.db.read(
+              ctx,
+              this.module.generalPurposeVolume.generateId({ volumeId: map.Ebs.VolumeId ?? '', region }),
+            );
+
             const res: InstanceBlockDeviceMapping = {
+              instanceId: instance?.id ?? undefined,
+              volumeId: volume?.id ?? undefined,
+              instance: instance,
+              volume: volume,
               deviceName: map.DeviceName,
               cloudInstanceId: instanceId,
               cloudVolumeId: volumeId,
@@ -133,14 +147,31 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
                 client.ec2client,
                 i.InstanceId,
               );
+
+              // check if we can find the instance in database
+              const instance = await this.module.instance.db.read(
+                ctx,
+                this.module.instance.generateId({ instanceId: i.InstanceId ?? '', region }),
+              );
+
               for (const map of mapping ?? []) {
                 if (map.DeviceName && map.Ebs?.VolumeId) {
+                  const volume = await this.module.generalPurposeVolume.db.read(
+                    ctx,
+                    this.module.generalPurposeVolume.generateId({ volumeId: map.Ebs.VolumeId ?? '', region }),
+                  );
+
                   const res: InstanceBlockDeviceMapping = {
+                    instanceId: instance?.id ?? undefined,
+                    instance: instance,
+                    volumeId: volume?.id ?? undefined,
+                    volume: volume,
                     deviceName: map.DeviceName,
-                    cloudInstanceId: i.instanceId,
+                    cloudInstanceId: i.InstanceId,
                     cloudVolumeId: map.Ebs.VolumeId,
                     region: region,
                   };
+                  out.push(res);
                 }
               }
             }

@@ -104,11 +104,26 @@ export class InstanceMapper extends MapperBase<Instance> {
     out.hibernationEnabled = instance.HibernationOptions?.Configured ?? false;
     out.region = region;
 
+    // check if we can find the instance in database
+    const instanceObj = await this.module.instance.db.read(
+      ctx,
+      this.module.instance.generateId({ instanceId: instance.InstanceId ?? '', region }),
+    );
+
     // volume mapping
     const vol: InstanceBlockDeviceMapping[] = [];
     for (const map of instance.BlockDeviceMappings ?? []) {
       if (map.DeviceName && map.Ebs?.VolumeId) {
+        const volume = await this.module.generalPurposeVolume.db.read(
+          ctx,
+          this.module.generalPurposeVolume.generateId({ volumeId: map.Ebs.VolumeId ?? '', region }),
+        );
+
         const entry: InstanceBlockDeviceMapping = {
+          instance: instanceObj,
+          volume: volume,
+          instanceId: instanceObj?.id ?? undefined,
+          volumeId: volume?.id ?? undefined,
           deviceName: map.DeviceName,
           cloudInstanceId: instance.InstanceId,
           cloudVolumeId: map.Ebs.VolumeId,
