@@ -595,31 +595,42 @@ export class InstanceMapper extends MapperBase<Instance> {
     },
     delete: async (es: Instance[], ctx: Context) => {
       for (const entity of es) {
+        console.log('in delete');
+        console.log(entity);
         if (!entity.instanceId) continue;
         const client = (await ctx.getAwsClient(entity.region)) as AWS;
 
         await this.terminateInstance(client.ec2client, entity.instanceId);
+        console.log('after termination');
         const region = entity.region;
 
         // read the attached volumes and wait until terminated
         for (const map of entity.instanceBlockDeviceMappings ?? []) {
           // find related volume
+          console.log(map);
           if (map.deviceName && map.cloudVolumeId) {
             await this.module.instanceBlockDeviceMapping.cloud.delete(map, ctx);
+            console.log('after map deletion in cloud');
 
             // delete volume if needed
             const volId = this.module.generalPurposeVolume.generateId({
               volumeId: map.cloudVolumeId,
               region,
             });
+            console.log('vol id is');
+            console.log(volId);
 
             const volObj =
               (await this.module.generalPurposeVolume.db.read(ctx, volId)) ??
               (await this.module.generalPurposeVolume.cloud.read(ctx, volId));
+            console.log('obj is');
+            console.log(volObj);
 
-            if (volObj && volObj.DeleteOnTermination) {
+            if (volObj && volObj.deleteOnTermination) {
+              console.log('i wait until terminated');
               await this.waitUntilDeleted(client.ec2client, map.cloudVolumeId);
               await this.module.generalPurposeVolume.db.delete(volObj, ctx);
+              console.log('after');
             }
           }
         }
