@@ -14,7 +14,7 @@ RUN apt upgrade -y
 RUN apt install postgresql-client-14 postgresql-14 postgresql-14-cron -y
 
 ## Install NodeJS
-RUN ["bash", "-c", "curl -fsSL https://deb.nodesource.com/setup_16.x | bash -"]
+RUN ["bash", "-c", "curl -fsSL https://deb.nodesource.com/setup_lts.x | bash -"]
 RUN apt install nodejs -y
 RUN npm install -g yarn
 
