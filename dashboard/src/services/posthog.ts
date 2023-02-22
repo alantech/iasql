@@ -12,7 +12,7 @@ export type EventProps = {
 
 export function init() {
   if (config.posthog) {
-    posthog.init(config.posthog.key, { api_host: 'https://app.posthog.com' });
+    posthog.init(config.posthog.key, { api_host: 'https://app.posthog.com', autocapture: false });
   }
 }
 
