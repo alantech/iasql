@@ -44,8 +44,10 @@ export class IasqlGetErrors extends RpcBase {
     message: 'varchar',
   } as const;
 
-  helpDescription = 'Get latest error messages occurred during a commit or a rollback';
-  helpSampleUsage = 'SELECT * FROM iasql_get_errors()';
+  documentation = {
+    description: 'Get latest error messages occurred during a commit or a rollback',
+    sampleUsage: 'SELECT * FROM iasql_get_errors()',
+  };
 
   call = async (
     _dbId: string,

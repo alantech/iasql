@@ -43,8 +43,10 @@ export class IasqlInstall extends RpcBase {
     record_count: 'integer',
   } as const;
 
-  helpDescription = 'Install modules in the hosted db';
-  helpSampleUsage = "SELECT * FROM iasql_install('aws_vpc', 'aws_ec2')";
+  documentation = {
+    description: 'Install modules in the hosted db',
+    sampleUsage: "SELECT * FROM iasql_install('aws_vpc', 'aws_ec2')",
+  };
 
   call = async (
     dbId: string,

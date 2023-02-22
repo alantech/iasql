@@ -35,8 +35,10 @@ export class IasqlCommit extends RpcBase {
     description: 'varchar',
   } as const;
 
-  helpDescription = 'Commit changes done to the database by creating, updating or deleting cloud resources';
-  helpSampleUsage = 'SELECT * FROM iasql_commit()';
+  documentation = {
+    description: 'Commit changes done to the database by creating, updating or deleting cloud resources',
+    sampleUsage: 'SELECT * FROM iasql_commit()',
+  };
 
   /** @internal */
   call = async (

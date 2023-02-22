@@ -43,8 +43,10 @@ export class IasqlGetSqlSince extends RpcBase {
     sql: 'varchar',
   } as const;
 
-  helpDescription = 'Generate SQL from the audit log from a given point in time';
-  helpSampleUsage = "SELECT * FROM iasql_get_sql_since((now() - interval '30 minutes')::text)";
+  documentation = {
+    description: 'Generate SQL from the audit log from a given point in time',
+    sampleUsage: "SELECT * FROM iasql_get_sql_since((now() - interval '30 minutes')::text)",
+  };
 
   /** @internal */
   call = async (
@@ -96,7 +98,7 @@ async function getChangeLogs(limitDate: string, orm: TypeormWrapper): Promise<Ia
 }
 
 /** @internal */
-async function getInstalledModules(orm: TypeormWrapper): Promise<ModuleInterface[]> {
+export async function getInstalledModules(orm: TypeormWrapper): Promise<ModuleInterface[]> {
   const installedModulesNames = (await orm.find(IasqlModule)).map((m: any) => m.name);
   return (Object.values(AllModules) as ModuleInterface[]).filter(mod =>
     installedModulesNames.includes(`${mod.name}@${mod.version}`),

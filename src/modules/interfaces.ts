@@ -393,8 +393,10 @@ export class RpcBase implements RpcInterface {
   inputTable: RpcInput = {
     _args: { argType: 'TEXT[]', default: 'ARRAY[]::text[]', variadic: true, rawDefault: true },
   };
-  helpDescription?: string;
-  helpSampleUsage?: string;
+  documentation?: {
+    description: string;
+    sampleUsage: string;
+  };
   preTransactionCheck: PreTransactionCheck;
   postTransactionCheck: PostTransactionCheck;
   call: (
@@ -500,15 +502,14 @@ export class RpcBase implements RpcInterface {
         end;
         $$;
       `;
-    if (this.helpDescription && this.helpSampleUsage) {
-      const documentationObject = {
-        description: this.helpDescription,
-        sample_usage: this.helpSampleUsage,
-      };
+    if (this.documentation) {
       afterInstallSql += format(
         'COMMENT ON FUNCTION %I IS %L;',
         snakeCase(key),
-        JSON.stringify(documentationObject),
+        JSON.stringify({
+          description: this.documentation.description,
+          sample_usage: this.documentation.sampleUsage,
+        }),
       );
     }
     const beforeUninstallSql = `
@@ -640,7 +641,7 @@ export interface ModuleInterface {
   dependencies: string[];
   provides?: {
     tables?: string[];
-    functions?: { [key: string]: { description?: string; sample_usage?: string } };
+    functions?: { [key: string]: { description?: string; sample_usage?: string; signature?: string } };
     // TODO: What other PSQL things should be tracked?
     // Context is special, it is merged between all installed modules and becomes the input to the
     // mappers, which can then make use of logic defined and exposed through this that they depend
@@ -806,8 +807,9 @@ export class ModuleBase {
     try {
       const sqlParsed = parse(sql);
       const functionsAndParams = sqlParsed
-        .filter((s: any) => _.has(s, ['RawStmt', 'stmt', 'CreateFunctionStmt']))
+        .filter((s: any) => !!s?.RawStmt?.stmt?.CreateFunctionStmt)
         .map((s: any) => s.RawStmt.stmt.CreateFunctionStmt)
+        .filter((s: any) => s.returnType?.names?.pop()?.String?.str !== 'trigger')
         .map((s: any) => [s.funcname?.pop()?.String?.str, s.parameters])
         .filter((v: any[]) => !!v[0]);
 
@@ -831,7 +833,7 @@ export class ModuleBase {
       }
 
       sqlParsed
-        .filter((s: any) => _.has(s, ['RawStmt', 'stmt', 'CommentStmt']))
+        .filter((s: any) => !!s?.RawStmt?.stmt?.CommentStmt)
         .map((s: any) => {
           return [
             s.RawStmt.stmt.CommentStmt.object?.ObjectWithArgs?.objname?.pop().String?.str,
@@ -899,6 +901,9 @@ export class ModuleBase {
       },
     });
     this.provides.tables = tables;
-    this.provides.functions = Object.fromEntries(functions.map(name => [name, {}]));
+    this.provides.functions = {
+      ...this.provides.functions,
+      ...Object.fromEntries(functions.map(name => [name, {}])),
+    };
   }
 }

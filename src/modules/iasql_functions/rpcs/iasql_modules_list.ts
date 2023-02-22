@@ -41,8 +41,10 @@ export class IasqlModulesList extends RpcBase {
     dependencies: 'json',
   } as const;
 
-  helpDescription = 'Lists all modules available to be installed';
-  helpSampleUsage = 'SELECT * FROM iasql_modules_list()';
+  documentation = {
+    description: 'Lists all modules available to be installed',
+    sampleUsage: 'SELECT * FROM iasql_modules_list()',
+  };
 
   call = async (
     dbId: string,

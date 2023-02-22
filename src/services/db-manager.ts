@@ -17,9 +17,9 @@ export async function migrate(conn: Connection) {
   await iasqlPlatform.migrations.afterInstall?.(qr);
   await qr.query(`INSERT INTO iasql_module
                   VALUES ('iasql_platform@${version}')`);
-  await Modules.iasqlFunctions?.migrations?.beforeInstall?.(qr);
-  await Modules.iasqlFunctions?.migrations?.install(qr);
-  await Modules.iasqlFunctions?.migrations?.afterInstall?.(qr);
+  await Modules.iasqlFunctions.migrations.beforeInstall?.(qr);
+  await Modules.iasqlFunctions.migrations.install(qr);
+  await Modules.iasqlFunctions.migrations.afterInstall?.(qr);
   await qr.query(`INSERT INTO iasql_module
                   VALUES ('iasql_functions@${version}')`);
   await qr.query(
