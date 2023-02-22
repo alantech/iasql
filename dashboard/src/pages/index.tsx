@@ -37,13 +37,11 @@ export default function App() {
 
   useEffect(() => {
     if (telemetry !== undefined && telemetry === 'on') {
-      console.log('Initializing telemetry!');
       Sentry.init();
       Posthog.init();
-      if (!config.auth && uid !== undefined && !uid) {
+      if (!config.auth && uid !== undefined && uid === 'nouid') {
         throwError('No uid found');
-      } else if (!config.auth && uid !== undefined && uid) {
-        console.log(`Identifying UID ${uid}`);
+      } else if (!config.auth && uid !== undefined && uid !== 'nouid') {
         Sentry.identify(uid);
         Posthog.identify(uid);
       }
