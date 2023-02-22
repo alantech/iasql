@@ -7,7 +7,7 @@ import { Disclosure, Menu, Transition } from '@headlessui/react';
 import { MenuIcon, XIcon, SunIcon, MoonIcon } from '@heroicons/react/outline';
 import { UserIcon } from '@heroicons/react/solid';
 
-import { ActionType, useAppContext } from './AppProvider';
+import { ActionType, useAppContext } from './providers/AppProvider';
 
 function classNames(...classes: any[]) {
   return classes.filter(Boolean).join(' ');

@@ -4,7 +4,7 @@ import { Dialog, Transition } from '@headlessui/react';
 import { XIcon } from '@heroicons/react/outline';
 import { ExclamationCircleIcon } from '@heroicons/react/solid';
 
-import { ActionType, useAppContext } from '../AppProvider';
+import { ActionType, useAppContext } from '../providers/AppProvider';
 
 export default function ErrorDialog() {
   const { dispatch, error } = useAppContext();

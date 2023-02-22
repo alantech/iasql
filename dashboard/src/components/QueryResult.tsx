@@ -1,6 +1,6 @@
-import { useAppContext } from './AppProvider';
 import EmptyState from './EmptyState';
 import { Label, Spinner, Table, VBox } from './common';
+import { useAppContext } from './providers/AppProvider';
 
 export default function QueryResult() {
   const { editorSelectedTab, editorTabs, isRunningSql } = useAppContext();

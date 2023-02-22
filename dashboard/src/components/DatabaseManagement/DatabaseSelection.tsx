@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 
-import { ActionType, useAppContext } from '@/components/AppProvider';
+import { ActionType, useAppContext } from '@/components/providers/AppProvider';
 import { useQueryParams } from '@/hooks/useQueryParams';
 import { Menu } from '@headlessui/react';
 import { DatabaseIcon, PlusSmIcon } from '@heroicons/react/outline';

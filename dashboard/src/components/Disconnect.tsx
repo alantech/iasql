@@ -2,8 +2,8 @@ import { useState } from 'react';
 
 import { PauseIcon } from '@heroicons/react/outline';
 
-import { ActionType, useAppContext } from './AppProvider';
 import { Button, Modal, Label, Spinner } from './common';
+import { ActionType, useAppContext } from './providers/AppProvider';
 
 export default function Disconnect() {
   const { dispatch, token, selectedDb } = useAppContext();

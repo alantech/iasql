@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 
-import { throwError } from '@/config/config';
 import { useAuth0 } from '@auth0/auth0-react';
 
 import config from '../config';
@@ -12,9 +11,6 @@ export function useAuth() {
   const { getAccessTokenSilently, loginWithRedirect, isAuthenticated, isLoading, user } = useAuth0();
   useEffect(() => {
     if (!config.auth) {
-      const uid = process.env.NEXT_PUBLIC_UID ?? throwError('No uid found');
-      Sentry.identify(uid);
-      Posthog.identify(uid);
       return setToken('noauth');
     }
     if (!isAuthenticated && !isLoading) {

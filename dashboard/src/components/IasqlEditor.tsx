@@ -7,9 +7,9 @@ import Cookies from 'universal-cookie';
 
 import { useQueryParams } from '@/hooks/useQueryParams';
 
-import { ActionType, useAppContext } from './AppProvider';
 import QuerySidebar from './QuerySidebar/QuerySidebar';
 import { HBox, align, VBox, Spinner, Tab } from './common';
+import { ActionType, useAppContext } from './providers/AppProvider';
 
 const AceEdit = dynamic(
   async () => {

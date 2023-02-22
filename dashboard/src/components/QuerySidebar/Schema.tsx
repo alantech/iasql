@@ -1,7 +1,7 @@
 import { TableIcon } from '@heroicons/react/outline';
 
-import { ActionType, useAppContext } from '../AppProvider';
 import { Accordion, align, HBox, VBox } from '../common';
+import { ActionType, useAppContext } from '../providers/AppProvider';
 
 export default function Schema({
   moduleData,

@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 
-import { ActionType, useAppContext } from '@/components/AppProvider';
 import Connect from '@/components/Connect';
 import { DatabaseManagement } from '@/components/DatabaseManagement/DatabaseManagement';
 import Disconnect from '@/components/Disconnect';
@@ -11,10 +10,18 @@ import Query from '@/components/Query';
 import SmallViewport from '@/components/SmallViewport';
 import { align, Button, HBox } from '@/components/common';
 import ErrorDialog from '@/components/common/ErrorDialog';
+import { ActionType, useAppContext } from '@/components/providers/AppProvider';
+import { useRuntimeConfigContext } from '@/components/providers/RuntimeConfigProvider';
+import config from '@/config';
+import { throwError } from '@/config/config';
 import { useAuth } from '@/hooks/useAuth';
 import { DatabaseIcon, PlusSmIcon } from '@heroicons/react/outline';
 
+import * as Posthog from '../services/posthog';
+import * as Sentry from '../services/sentry';
+
 export default function App() {
+  const { telemetry, uid } = useRuntimeConfigContext();
   const {
     dispatch,
     databases,
@@ -27,6 +34,21 @@ export default function App() {
   const MIN_WIDTH = 640; // measure in px
   let innerWidth = 1024; // Server-side default
   const [isSmallViewport, showSmallViewport] = useState(innerWidth < MIN_WIDTH);
+
+  useEffect(() => {
+    if (telemetry !== undefined && telemetry === 'on') {
+      console.log('Initializing telemetry!');
+      Sentry.init();
+      Posthog.init();
+      if (!config.auth && uid !== undefined && !uid) {
+        throwError('No uid found');
+      } else if (!config.auth && uid !== undefined && uid) {
+        console.log(`Identifying UID ${uid}`);
+        Sentry.identify(uid);
+        Posthog.identify(uid);
+      }
+    }
+  }, [telemetry, uid]);
 
   useEffect(() => {
     if (innerWidth !== window.innerWidth) {

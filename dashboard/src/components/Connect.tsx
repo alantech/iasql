@@ -3,9 +3,9 @@ import { useRef, useState } from 'react';
 import { regions } from '@/services/connectDb';
 import { LinkIcon } from '@heroicons/react/outline';
 
-import { ActionType, useAppContext } from './AppProvider';
 import ConnectionString from './ConnectionString';
 import { Combobox, Input, Label, Step, VBox, Wizard } from './common';
+import { ActionType, useAppContext } from './providers/AppProvider';
 
 export default function Connect({ closable }: { closable: boolean }) {
   const { error, latestVersion, newDb, dispatch, token } = useAppContext();

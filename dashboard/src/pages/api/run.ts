@@ -158,7 +158,7 @@ async function getUserAndPassword(
     username = tokenInfo.sub ?? throwError('No username found on auth token');
     email = tokenInfo[`${config.auth?.domain}email`] ?? 'hello@iasql.com';
   } else {
-    username = process.env.NEXT_PUBLIC_UID;
+    username = process.env.IASQL_UID ?? '';
     email = `hello+${username}@iasql.com`;
   }
   const password = Array(16)
@@ -237,7 +237,7 @@ function until<T>(p: Promise<T>, timeout: number): Promise<T> {
   });
 }
 
-export default async (req: NextApiRequest, res: NextApiResponse) => {
+async function run(req: NextApiRequest, res: NextApiResponse) {
   logger.log('Handling request', {
     level: 'info',
     app: 'run',
@@ -272,4 +272,6 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
   } catch (e: any) {
     return res.status(401).json({ message: e?.message ?? 'Unknown error' });
   }
-};
+}
+
+export default run;
