@@ -7,7 +7,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "start:docker": "next dev -p 9876",
+    "start:docker": "node server.js",
     "lint": "next lint",
     "style": "npx prettier --config .prettierrc 'src/**/*.{ts,tsx}' --check",
     "format": "npx prettier --config .prettierrc 'src/**/*.{ts,tsx}' --write",
