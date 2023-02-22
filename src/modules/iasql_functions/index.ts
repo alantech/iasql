@@ -64,4 +64,3 @@ export class IasqlFunctions extends ModuleBase {
  * ```
  */
 export const iasqlFunctions = new IasqlFunctions();
-export { getInstalledModules } from './iasql';

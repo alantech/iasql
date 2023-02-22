@@ -1,4 +1,4 @@
-import { getInstalledModules, IasqlFunctions } from '..';
+import { IasqlFunctions } from '..';
 import {
   Context,
   PostTransactionCheck,
@@ -6,6 +6,7 @@ import {
   RpcBase,
   RpcResponseObject,
 } from '../../interfaces';
+import { getInstalledModules } from '../iasql';
 
 /**
  * Method to list IaSQL functions, their description and usage example

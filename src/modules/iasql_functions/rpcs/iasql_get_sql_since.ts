@@ -4,7 +4,7 @@ import { ColumnMetadata } from 'typeorm/metadata/ColumnMetadata';
 import { RelationMetadata } from 'typeorm/metadata/RelationMetadata';
 import { snakeCase } from 'typeorm/util/StringUtils';
 
-import { getInstalledModules, IasqlFunctions } from '..';
+import { IasqlFunctions } from '..';
 import { RpcInput } from '../../../modules';
 import { getCloudId } from '../../../services/cloud-id';
 import logger from '../../../services/logger';
@@ -19,6 +19,7 @@ import {
   RpcBase,
   RpcResponseObject,
 } from '../../interfaces';
+import { getInstalledModules } from '../iasql';
 import { indexModsByTable } from '../iasql';
 
 /**
