@@ -45,14 +45,11 @@ export default function IasqlEditor() {
   const queryParams = useQueryParams();
 
   // Handlers
-  const getInitialQuery = useCallback(
-    (sql: string | null) => {
-      let initialQuery = 'SELECT * FROM iasql_help();';
-      if (sql && sql.length > 0) initialQuery = sql;
-      return initialQuery;
-    },
-    [],
-  );
+  const getInitialQuery = useCallback((sql: string | null) => {
+    let initialQuery = 'SELECT * FROM iasql_help();';
+    if (sql && sql.length > 0) initialQuery = sql;
+    return initialQuery;
+  }, []);
 
   const handleEditorContentUpdate = useCallback(
     (content: string) => {
