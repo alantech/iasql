@@ -1,9 +1,7 @@
-import { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { forwardRef, useCallback, useEffect, useRef } from 'react';
 import ReactAce, { IAceEditorProps } from 'react-ace/lib/ace';
 
-import LZString from 'lz-string';
 import dynamic from 'next/dynamic';
-import Cookies from 'universal-cookie';
 
 import { useQueryParams } from '@/hooks/useQueryParams';
 
@@ -44,7 +42,6 @@ export default function IasqlEditor() {
   } = useAppContext();
   const editorRef = useRef(null as null | ReactAce);
   const prevTabsLenRef = useRef(null as null | number);
-  const cookies = useMemo(() => new Cookies(), []);
   const queryParams = useQueryParams();
 
   // Handlers
@@ -52,18 +49,9 @@ export default function IasqlEditor() {
     (sql: string | null) => {
       let initialQuery = 'SELECT * FROM iasql_help();';
       if (sql && sql.length > 0) initialQuery = sql;
-      // check if the query is an ID for the cookie
-      const regexExp = /^[a-f0-9]{64}$/gi;
-      if (regexExp.test(initialQuery)) {
-        const queryContent = cookies.get(initialQuery);
-        if (queryContent) {
-          // decompress it
-          initialQuery = decodeURIComponent(LZString.decompressFromBase64(queryContent) ?? '');
-        }
-      }
       return initialQuery;
     },
-    [cookies],
+    [],
   );
 
   const handleEditorContentUpdate = useCallback(
