@@ -4,13 +4,12 @@ import { ColumnMetadata } from 'typeorm/metadata/ColumnMetadata';
 import { RelationMetadata } from 'typeorm/metadata/RelationMetadata';
 import { snakeCase } from 'typeorm/util/StringUtils';
 
-import { IasqlFunctions } from '..';
-import * as AllModules from '../../../modules';
+import { getInstalledModules, IasqlFunctions } from '..';
 import { RpcInput } from '../../../modules';
 import { getCloudId } from '../../../services/cloud-id';
 import logger from '../../../services/logger';
 import { TypeormWrapper } from '../../../services/typeorm';
-import { AuditLogChangeType, IasqlAuditLog, IasqlModule } from '../../iasql_platform/entity';
+import { AuditLogChangeType, IasqlAuditLog } from '../../iasql_platform/entity';
 import {
   Context,
   MapperBase,
@@ -95,14 +94,6 @@ async function getChangeLogs(limitDate: string, orm: TypeormWrapper): Promise<Ia
     order: { ts: 'ASC', id: 'ASC' },
     where: whereClause,
   });
-}
-
-/** @internal */
-export async function getInstalledModules(orm: TypeormWrapper): Promise<ModuleInterface[]> {
-  const installedModulesNames = (await orm.find(IasqlModule)).map((m: any) => m.name);
-  return (Object.values(AllModules) as ModuleInterface[]).filter(mod =>
-    installedModulesNames.includes(`${mod.name}@${mod.version}`),
-  );
 }
 
 /**

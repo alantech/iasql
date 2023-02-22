@@ -1,7 +1,7 @@
 import * as levenshtein from 'fastest-levenshtein';
 import { default as cloneDeep } from 'lodash.clonedeep';
 import format from 'pg-format';
-import { Not, In, Between, LessThan, MoreThan, EntityMetadata } from 'typeorm';
+import { Between, EntityMetadata, In, LessThan, MoreThan, Not } from 'typeorm';
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
 import { ColumnMetadata } from 'typeorm/metadata/ColumnMetadata';
 import { RelationMetadata } from 'typeorm/metadata/RelationMetadata';
@@ -9,8 +9,7 @@ import { camelCase, snakeCase } from 'typeorm/util/StringUtils';
 
 import config from '../../config';
 import { throwError } from '../../config/config';
-import * as AllModules from '../../modules';
-import { Context, MapperInterface, ModuleInterface, MapperBase } from '../../modules';
+import { Context, MapperBase, MapperInterface, ModuleInterface } from '../../modules';
 import { findDiff } from '../../services/diff';
 import { DepError, lazyLoader } from '../../services/lazy-dep';
 import logger, { debugObj, logErrSentry, mergeErrorMessages } from '../../services/logger';
@@ -19,6 +18,7 @@ import MetadataRepo from '../../services/repositories/metadata';
 import * as telemetry from '../../services/telemetry';
 import { TypeormWrapper } from '../../services/typeorm';
 import { AuditLogChangeType, IasqlAuditLog, IasqlModule } from '../iasql_platform/entity';
+import * as AllModules from '../index';
 
 // Crupde = CR-UP-DE, Create/Update/Delete
 type Crupde = { [key: string]: { id: string; description: string }[] };
@@ -1888,4 +1888,12 @@ export async function insertErrorLog(orm: TypeormWrapper | null, err: string): P
   errorLog.tableName = 'iasql_audit_log';
   errorLog.ts = new Date();
   await orm?.save(IasqlAuditLog, errorLog);
+}
+
+/** @internal */
+export async function getInstalledModules(orm: TypeormWrapper): Promise<ModuleInterface[]> {
+  const installedModulesNames = (await orm.find(IasqlModule)).map((m: any) => m.name);
+  return (Object.values(AllModules) as ModuleInterface[]).filter(mod =>
+    installedModulesNames.includes(`${mod.name}@${mod.version}`),
+  );
 }
