@@ -94,7 +94,6 @@ COPY --from=pgsql-stage /usr/share/postgresql /usr/share/postgresql
 
 ## Copy from dashboard-stage
 WORKDIR /dashboard
-# COPY --from=dashboard-stage /dashboard/node_modules node_modules
 COPY --from=dashboard-stage /dashboard/public ./public
 COPY --from=dashboard-stage /dashboard/.next/standalone ./
 COPY --from=dashboard-stage /dashboard/.next/static ./.next/static
