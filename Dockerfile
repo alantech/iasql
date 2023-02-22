@@ -55,6 +55,12 @@ COPY dashboard/src src
 COPY dashboard/package.json dashboard/yarn.lock ./
 RUN yarn install --production
 
+ARG IASQL_ENV=local
+ENV IASQL_ENV=$IASQL_ENV
+ENV NEXT_PUBLIC_IASQL_ENV=$IASQL_ENV
+
+RUN yarn build
+
 #####################################################################################################################################################
 
 # Engine
@@ -88,10 +94,10 @@ COPY --from=pgsql-stage /usr/share/postgresql /usr/share/postgresql
 
 ## Copy from dashboard-stage
 WORKDIR /dashboard
-COPY --from=dashboard-stage /dashboard/*.* ./
-COPY --from=dashboard-stage /dashboard/src src
-COPY --from=dashboard-stage /dashboard/public public
-COPY --from=dashboard-stage /dashboard/node_modules node_modules
+# COPY --from=dashboard-stage /dashboard/node_modules node_modules
+COPY --from=dashboard-stage /dashboard/public ./public
+COPY --from=dashboard-stage /dashboard/.next/standalone ./
+COPY --from=dashboard-stage /dashboard/.next/static ./.next/static
 
 ## Copy from engine-stage
 WORKDIR /engine
@@ -111,11 +117,11 @@ ENV IASQL_ENV=$IASQL_ENV
 ENV NEXT_PUBLIC_IASQL_ENV=$IASQL_ENV
 ARG IASQL_TELEMETRY=on
 ENV IASQL_TELEMETRY=$IASQL_TELEMETRY
-ENV NEXT_PUBLIC_IASQL_TELEMETRY=$IASQL_TELEMETRY
 ARG DB_USER=postgres
 ENV DB_USER=$DB_USER
 ARG DB_PASSWORD=test
 ENV DB_PASSWORD=$DB_PASSWORD
+ENV PORT=9876
 
 ## Ports
 EXPOSE 5432
