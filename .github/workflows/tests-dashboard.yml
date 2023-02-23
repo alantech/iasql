@@ -101,7 +101,7 @@ jobs:
           AWS_REGION: us-east-2
           AWS_ACCESS_KEY_ID: ${{ secrets.STAGING_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.STAGING_SECRET_ACCESS_KEY }}
-          NEXT_PUBLIC_IASQL_ENV: test
+          IASQL_ENV: test
           WEBSITE_URL: http://localhost:9876/
 
       # https://github.com/actions/upload-artifact#where-does-the-upload-go
