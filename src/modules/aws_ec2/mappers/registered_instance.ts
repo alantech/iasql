@@ -14,24 +14,25 @@ export class RegisteredInstanceMapper extends MapperBase<RegisteredInstance> {
   module: AwsEc2Module;
   entity = RegisteredInstance;
   generateId = (fields: IdFields) => {
-    const requiredFields = ['instanceId', 'targetGroupArn', 'region'];
+    const requiredFields = ['instanceId', 'targetGroupArn', 'port', 'region'];
     if (
       Object.keys(fields).length !== requiredFields.length &&
       !Object.keys(fields).every(fk => requiredFields.includes(fk))
     ) {
       throw new Error(`Id generation error. Valid fields to generate id are: ${requiredFields.join(', ')}`);
     }
-    return `${fields.instanceId}|${fields.targetGroupArn}|${fields.region}`;
+    return `${fields.instanceId}|${fields.targetGroupArn}|${fields.port}|${fields.region}`;
   };
   entityId = (e: RegisteredInstance) =>
     this.generateId({
       instanceId: e.instance.instanceId ?? '',
       targetGroupArn: e.targetGroup.targetGroupArn ?? '',
+      port: (e.port ?? e.targetGroup.port ?? '') + '',
       region: e.region,
     });
-  equals = (a: RegisteredInstance, b: RegisteredInstance) => {
-    console.log({ registeredInstance: 'debugstr', a, b, result: Object.is(a.port, b.port), });
-    return Object.is(a.port, b.port);
+  equals = (_a: RegisteredInstance, _b: RegisteredInstance) => {
+    // Because *all* fields are part of the ID, this is always true
+    return true;
   };
 
   async registeredInstanceMapper(
@@ -138,18 +139,18 @@ export class RegisteredInstanceMapper extends MapperBase<RegisteredInstance> {
     create: (es: RegisteredInstance[], ctx: Context) => ctx.orm.save(RegisteredInstance, es),
     update: (es: RegisteredInstance[], ctx: Context) => ctx.orm.save(RegisteredInstance, es),
     delete: (es: RegisteredInstance[], ctx: Context) => ctx.orm.remove(RegisteredInstance, es),
-    read: async (ctx: Context, instAndTgArnAndRegion?: string) => {
-      console.log({ registeredInstance: 'dbread', instAndTgArnAndRegion, });
-      const opts = instAndTgArnAndRegion
+    read: async (ctx: Context, id?: string) => {
+      const opts = id
         ? {
             where: {
               instance: {
-                instanceId: instAndTgArnAndRegion.split('|')[0],
+                instanceId: id.split('|')[0],
               },
               targetGroup: {
-                targetGroupArn: instAndTgArnAndRegion.split('|')[1],
+                targetGroupArn: id.split('|')[1],
               },
-              region: instAndTgArnAndRegion.split('|')[2],
+              port: id.split('|')[2],
+              region: id.split('|')[3],
             },
           }
         : undefined;
@@ -182,13 +183,14 @@ export class RegisteredInstanceMapper extends MapperBase<RegisteredInstance> {
     },
     read: async (ctx: Context, id?: string) => {
       if (id) {
-        const [instanceId, targetGroupArn, region] = id.split('|');
+        const [instanceId, targetGroupArn, port, region] = id.split('|');
         const client = (await ctx.getAwsClient(region)) as AWS;
         if (!instanceId || !targetGroupArn) return undefined;
         const registeredInstance = await this.getRegisteredInstance(
           client.elbClient,
           instanceId,
           targetGroupArn,
+          port,
         );
         if (!registeredInstance) return undefined;
         return await this.registeredInstanceMapper(registeredInstance, region, ctx);
@@ -207,43 +209,8 @@ export class RegisteredInstanceMapper extends MapperBase<RegisteredInstance> {
       );
       return out;
     },
-    updateOrReplace: () => 'replace',
-    update: async (es: RegisteredInstance[], ctx: Context) => {
-      const out = [];
-      for (const e of es) {
-        const client = (await ctx.getAwsClient(e.region)) as AWS;
-        const cloudRecord = ctx?.memo?.cloud?.RegisteredInstance?.[this.entityId(e)];
-        if (!e.instance?.instanceId || !e.targetGroup?.targetGroupArn)
-          throw new Error('Valid targetGroup and instance needed.');
-        if (!cloudRecord.instance?.instanceId || !cloudRecord.targetGroup?.targetGroupArn)
-          throw new Error('Valid targetGroup and instance needed.');
-        if (!e.port) e.port = e.targetGroup.port;
-        // To update, the instance ID, target group ARN and region all have to match, the only thing
-        // actually changing is the port. But we need to replace things to make that change, so we
-        // have to deregister first, then register
-        await this.deregisterInstance(
-          client.elbClient,
-          cloudRecord.instance.instanceId,
-          cloudRecord.targetGroup.targetGroupArn,
-          cloudRecord.port,
-        );
-        await this.registerInstance(
-          client.elbClient,
-          e.instance.instanceId,
-          e.targetGroup.targetGroupArn,
-          e.port,
-        );
-        // Delete the local cloud cache of this instance to make sure the cloud read goes back to AWS
-        delete ctx?.memo?.cloud?.RegisteredInstance?.[this.entityId(e)];
-        // Delete the db cache, as well, to make sure it doesn't accidentally restore something it shouldn't
-        delete ctx?.memo?.db?.RegisteredInstance?.[this.entityId(e)];
-        const registeredInstance = await this.module.registeredInstance.cloud.read(ctx, this.entityId(e));
-        registeredInstance.id = e.id;
-        console.log({ registeredInstance, e, cloudRecord, });
-        await this.module.registeredInstance.db.update(registeredInstance, ctx);
-        out.push(registeredInstance);
-      }
-      return out;
+    update: async (_es: RegisteredInstance[], _ctx: Context) => {
+      throw new Error('This should be unreachable');
     },
     delete: async (es: RegisteredInstance[], ctx: Context) => {
       for (const e of es) {
