@@ -15,8 +15,8 @@ export function isString(obj: unknown): obj is string {
   return typeof obj === 'string';
 }
 
-const logger = !!config.logDna
-  ? createLogger(config.logDna.key, { levels: ['info', 'warn', 'error'] })
+const logger = !!config?.logDna
+  ? createLogger(config?.logDna.key, { levels: ['info', 'warn', 'error'] })
   : console;
 (logger as any)?.on?.('error', (event: any) => {
   if (event.retrying) return;
@@ -27,9 +27,9 @@ const logger = !!config.logDna
 export const baseConnConfig: PostgresConnectionOptions = {
   name: 'base', // If you use multiple connections they must have unique names or typeorm bails
   type: 'postgres',
-  username: config.db.user,
-  password: config.db.password,
-  host: config.db.host,
+  username: config?.db.user,
+  password: config?.db.password,
+  host: config?.db.host,
   database: 'iasql_metadata',
   extra: {
     ssl: { rejectUnauthorized: false },
@@ -45,11 +45,11 @@ function extractTokenFromHeader(e: NextApiRequest) {
 }
 
 async function validateToken(token: string): Promise<JwtPayload> {
-  if (!config.auth) return {};
-  const jwkClient = new jwksRsa.JwksClient({ jwksUri: `${config.auth?.domain}.well-known/jwks.json` });
+  if (!config?.auth) return {};
+  const jwkClient = new jwksRsa.JwksClient({ jwksUri: `${config?.auth?.domain}.well-known/jwks.json` });
   const verificationOptions = {
-    audience: config.auth?.audience,
-    issuer: config.auth?.domain,
+    audience: config?.auth?.audience,
+    issuer: config?.auth?.domain,
     algorithm: 'RS256',
   };
 
@@ -154,9 +154,9 @@ async function getUserAndPassword(
 ): Promise<{ username: string; password: string }> {
   let username;
   let email;
-  if (config.auth) {
+  if (config?.auth) {
     username = tokenInfo.sub ?? throwError('No username found on auth token');
-    email = tokenInfo[`${config.auth?.domain}email`] ?? 'hello@iasql.com';
+    email = tokenInfo[`${config?.auth?.domain}email`] ?? 'hello@iasql.com';
   } else {
     username = process.env.IASQL_UID ?? '';
     email = `hello+${username}@iasql.com`;

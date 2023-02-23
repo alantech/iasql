@@ -1,12 +1,9 @@
 import type { AppProps } from 'next/app';
 import Head from 'next/head';
 
-import { AppProvider } from '@/components/providers/AppProvider';
 import { RuntimeConfigProvider } from '@/components/providers/RuntimeConfigProvider';
-import config from '@/config';
 import reportWebVitals from '@/services/reportWebVitals';
 import '@/styles/globals.css';
-import { Auth0Provider } from '@auth0/auth0-react';
 
 // If you want to start measuring performance in your app, pass a function
 // to log results (for example: reportWebVitals(console.log))
@@ -14,12 +11,6 @@ import { Auth0Provider } from '@auth0/auth0-react';
 reportWebVitals();
 
 export default function App({ Component, pageProps }: AppProps) {
-  const body = (
-    <AppProvider>
-      <Component {...pageProps} />
-    </AppProvider>
-  );
-
   const app = (
     <>
       <Head>
@@ -28,11 +19,9 @@ export default function App({ Component, pageProps }: AppProps) {
         <meta name='description' content='Cloud infrastructure as a PostgreSQL DB' />
         <title>IaSQL Dashboard</title>
       </Head>
-      {config.auth ? (
-        <Auth0Provider {...config.auth}>{body}</Auth0Provider>
-      ) : (
-        <RuntimeConfigProvider>{body}</RuntimeConfigProvider>
-      )}
+      <RuntimeConfigProvider>
+        <Component {...pageProps} />
+      </RuntimeConfigProvider>
     </>
   );
   return app;

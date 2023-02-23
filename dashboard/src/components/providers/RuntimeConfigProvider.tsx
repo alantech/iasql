@@ -1,35 +1,50 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 
-interface RuntimeConfig {
+import config from '@/config';
+import { ConfigEnvironments, ConfigInterface, throwError } from '@/config/config';
+
+interface AppConfig {
   uid?: string;
   telemetry?: 'on' | 'off';
+  iasqlEnv: ConfigEnvironments;
+  config: ConfigInterface;
+  error?: string | null;
 }
 
-const RuntimeConfigContext = createContext<RuntimeConfig>({});
+const AppConfigContext = createContext<AppConfig>({} as AppConfig);
 
-const useRuntimeConfigContext = () => {
-  return useContext(RuntimeConfigContext);
+const useAppConfigContext = () => {
+  return useContext(AppConfigContext);
 };
 
-const RuntimeConfigProvider = ({ children }: { children: any }) => {
-  const [runtimeConfig, setRuntimeConfig] = useState({} as RuntimeConfig);
+const AppConfigProvider = ({ children }: { children: any }) => {
+  const [appConfig, setAppConfig] = useState({} as AppConfig);
   useEffect(() => {
     if (!!global.window) {
-      const execute = async () => {
-        try {
-          const response = await fetch(`${window.location.origin}/api/runtime-config`);
-          if (response.status === 200) {
-            const configJson = await response.json();
-            if (!Object.keys(runtimeConfig).length) {
-              setRuntimeConfig(configJson);
-            }
+      const getConfig = async () => {
+        const response = await fetch(`${window.location.origin}/api/config`);
+        if (response.status === 200) {
+          const configJson = await response.json();
+          if (!Object.keys(appConfig).length) {
+            const initialAppConfig: AppConfig = {} as AppConfig;
+            if (!configJson.iasqlEnv) throwError('No IASQL_ENV provided');
+            initialAppConfig.iasqlEnv = configJson.iasqlEnv;
+            const envConfig = config[configJson?.iasqlEnv as ConfigEnvironments];
+            if (!envConfig) throwError('Invalid IASQL_ENV provided');
+            initialAppConfig.config = envConfig;
+            if (!initialAppConfig.config?.auth && !configJson.uid) throwError('No UID provided');
+            initialAppConfig.uid = configJson.uid;
+            initialAppConfig.telemetry = configJson.telemetry;
+            setAppConfig(initialAppConfig);
           }
-        } catch {}
+        }
       };
-      execute();
+      getConfig().catch((e: any) => {
+        setAppConfig({ error: e.message ?? 'An error occurred getting initialization values.' } as AppConfig);
+      });
     }
-  }, [runtimeConfig]);
-  return <RuntimeConfigContext.Provider value={runtimeConfig}>{children}</RuntimeConfigContext.Provider>;
+  }, [appConfig]);
+  return <AppConfigContext.Provider value={appConfig}>{children}</AppConfigContext.Provider>;
 };
 
-export { RuntimeConfigProvider, useRuntimeConfigContext };
+export { AppConfigProvider as RuntimeConfigProvider, useAppConfigContext as useRuntimeConfigContext };

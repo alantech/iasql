@@ -1,6 +1,5 @@
 import { Fragment, useState, useEffect } from 'react';
 
-import config from '@/config';
 import * as Posthog from '@/services/posthog';
 import { useAuth0 } from '@auth0/auth0-react';
 import { Disclosure, Menu, Transition } from '@headlessui/react';
@@ -8,12 +7,14 @@ import { MenuIcon, XIcon, SunIcon, MoonIcon } from '@heroicons/react/outline';
 import { UserIcon } from '@heroicons/react/solid';
 
 import { ActionType, useAppContext } from './providers/AppProvider';
+import { useRuntimeConfigContext } from './providers/RuntimeConfigProvider';
 
 function classNames(...classes: any[]) {
   return classes.filter(Boolean).join(' ');
 }
 
 export default function Navbar({ userPic }: { userPic: string }) {
+  const { config } = useRuntimeConfigContext();
   const { token, isDarkMode, dispatch } = useAppContext();
   const { logout } = useAuth0();
   const homeUrl = 'https://iasql.com';
@@ -86,7 +87,7 @@ export default function Navbar({ userPic }: { userPic: string }) {
                   <div className='h-8 text-white'>{isDarkMode ? <MoonIcon /> : <SunIcon />}</div>
                 </button>
               </div>
-              {token && config.auth && (
+              {token && config?.auth && (
                 <div className='absolute inset-y-0 right-0 flex items-center pr-2 sm:static sm:inset-auto sm:pr-0'>
                   {/* Profile dropdown */}
                   <Menu as='div' className='ml-3 relative'>
@@ -121,7 +122,7 @@ export default function Navbar({ userPic }: { userPic: string }) {
                                     trackEventName: 'LOGOUT',
                                   },
                                 });
-                                Posthog.reset();
+                                Posthog.reset(config);
                                 logout({ returnTo: homeUrl } as any);
                               }}
                               className={classNames(

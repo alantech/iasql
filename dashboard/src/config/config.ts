@@ -1,3 +1,5 @@
+export type ConfigEnvironments = 'production' | 'staging' | 'local' | 'test' | 'ci' | 'dev';
+
 export interface ConfigInterface {
   // Configuration for the auth0 access control
   auth?: {

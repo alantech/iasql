@@ -1,6 +1,6 @@
 import posthog from 'posthog-js';
 
-import config from '../config';
+import { ConfigInterface } from '@/config/config';
 
 export type EventProps = {
   dbAlias?: string;
@@ -10,26 +10,26 @@ export type EventProps = {
   buttonAlias?: string;
 };
 
-export function init() {
-  if (config.posthog) {
-    posthog.init(config.posthog.key, { api_host: 'https://app.posthog.com', autocapture: false });
+export function init(config: ConfigInterface) {
+  if (config?.posthog) {
+    posthog.init(config?.posthog.key, { api_host: 'https://app.posthog.com', autocapture: false });
   }
 }
 
-export function identify(uid: string) {
-  if (config.posthog) {
+export function identify(config: ConfigInterface, uid: string) {
+  if (config?.posthog) {
     posthog.identify(uid);
   }
 }
 
-export function reset() {
-  if (config.posthog) {
+export function reset(config: ConfigInterface) {
+  if (config?.posthog) {
     posthog.reset();
   }
 }
 
-export async function capture(eventName: string, event: EventProps) {
-  if (config.posthog) {
+export async function capture(config: ConfigInterface, eventName: string, event: EventProps) {
+  if (config?.posthog) {
     posthog.capture(eventName, event);
   }
 }

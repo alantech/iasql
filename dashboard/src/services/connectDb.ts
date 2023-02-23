@@ -1,5 +1,3 @@
-import config from '../config';
-
 export const regions = [
   { id: 1, name: 'ap-northeast-1' },
   { id: 2, name: 'ap-northeast-2' },
@@ -22,9 +20,10 @@ export const regions = [
 
 export function generateConnectionString(
   dbInfo: { user: string; password: string; id: string },
+  pgHost: string,
   forceSsl?: boolean,
 ) {
-  return `postgres://${dbInfo.user}:${dbInfo.password}@${config.engine.pgHost}/${dbInfo.id}${
+  return `postgres://${dbInfo.user}:${dbInfo.password}@${pgHost}/${dbInfo.id}${
     forceSsl ? '?sslmode=no-verify' : ''
   }`;
 }

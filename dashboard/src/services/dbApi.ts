@@ -1,6 +1,7 @@
 import * as semver from 'semver';
 
-import config from '../config';
+import { ConfigInterface } from '@/config/config';
+
 import * as Sentry from './sentry';
 
 async function maybeHandleFetchError(response: any) {
@@ -22,8 +23,8 @@ async function maybeHandleFetchError(response: any) {
   }
 }
 
-async function post(token: string, endpoint: string, body: any, raw = false) {
-  const resp = await fetch(`${config.engine.backendUrl}/${endpoint}`, {
+async function post(token: string, backendUrl: string, endpoint: string, body: any, raw = false) {
+  const resp = await fetch(`${backendUrl}/${endpoint}`, {
     method: 'POST',
     body: raw ? body : JSON.stringify(body),
     headers: {
@@ -35,17 +36,19 @@ async function post(token: string, endpoint: string, body: any, raw = false) {
   return resp;
 }
 
-export async function newDb(token: string, dbAlias: string) {
-  return (await run(token, 'iasql_metadata', `SELECT * FROM iasql_connect('${dbAlias}');`))?.[0]?.result?.[0];
+export async function newDb(token: string, backendUrl: string, dbAlias: string) {
+  return (await run(token, backendUrl, 'iasql_metadata', `SELECT * FROM iasql_connect('${dbAlias}');`))?.[0]
+    ?.result?.[0];
 }
 
-export async function list(token: string) {
+export async function list(token: string, backendUrl: string, config: ConfigInterface) {
   let dbs = [];
   const getDbs = async (tk: string) => {
     try {
       dbs = (
         await run(
           token,
+          backendUrl,
           'iasql_metadata',
           `
             SELECT pg_name as "pgName", alias, record_count as "recordCount", upgrading, created_at as "createdAt", updated_at as "updatedAt", pg_user as "pgUser"
@@ -65,6 +68,7 @@ export async function list(token: string) {
           const results = (
             await run(
               tk,
+              backendUrl,
               dbAlias,
               `
             SELECT * FROM iasql_modules_installed();
@@ -76,6 +80,7 @@ export async function list(token: string) {
           const hasAwsAccount = !!(
             await run(
               tk,
+              backendUrl,
               dbAlias,
               `
             SELECT * FROM iasql_module WHERE name = 'aws_account@${version}';
@@ -91,6 +96,7 @@ export async function list(token: string) {
               ? (
                   await run(
                     tk,
+                    backendUrl,
                     dbAlias,
                     `
                 SELECT * FROM aws_account
@@ -106,6 +112,7 @@ export async function list(token: string) {
               ? (
                   await run(
                     tk,
+                    backendUrl,
                     dbAlias,
                     `
                 SELECT * FROM aws_credentials
@@ -117,6 +124,7 @@ export async function list(token: string) {
               ? (
                   await run(
                     tk,
+                    backendUrl,
                     dbAlias,
                     `
                 SELECT * FROM default_aws_region();
@@ -129,10 +137,10 @@ export async function list(token: string) {
             const awsMods = mods.filter((n: any) => n.includes('aws'));
             if (awsMods.length === 1 && awsMods[0] === 'aws_account') {
               if (semver.lt(version, '0.0.23')) {
-                await run(tk, dbAlias, `SELECT * FROM iasql_preview_sync();`);
+                await run(tk, backendUrl, dbAlias, `SELECT * FROM iasql_preview_sync();`);
               } else {
-                await run(tk, dbAlias, `SELECT * FROM iasql_begin();`);
-                await run(tk, dbAlias, `SELECT * FROM iasql_rollback();`);
+                await run(tk, backendUrl, dbAlias, `SELECT * FROM iasql_begin();`);
+                await run(tk, backendUrl, dbAlias, `SELECT * FROM iasql_rollback();`);
               }
             }
             db.version = version;
@@ -140,7 +148,7 @@ export async function list(token: string) {
             db.isReady = !!access_key_id && !!secret_access_key;
           }
         } catch (e: any) {
-          Sentry.captureException(e);
+          Sentry.captureException(config, e);
           db.version = 'Unknown';
           db.region = 'Unknown';
           db.isReady = false;
@@ -157,25 +165,29 @@ export async function list(token: string) {
   return dbs;
 }
 
-export async function run(token: string, dbAlias: string, sql: string) {
-  const resp = await post(token, '', { dbAlias, sql });
+export async function run(token: string, backendUrl: string, dbAlias: string, sql: string) {
+  const resp = await post(token, backendUrl, '', { dbAlias, sql });
   return resp.json();
 }
 
-export async function disconnect(token: string, dbAlias: string) {
-  return (await run(token, 'iasql_metadata', `SELECT * FROM iasql_disconnect('${dbAlias}');`))?.[0]
-    ?.result?.[0];
+export async function disconnect(token: string, backendUrl: string, dbAlias: string) {
+  return (
+    await run(token, backendUrl, 'iasql_metadata', `SELECT * FROM iasql_disconnect('${dbAlias}');`)
+  )?.[0]?.result?.[0];
 }
 
-export async function dump(token: string, dbAlias: string, dataOnly = true) {
-  return (await run(token, 'iasql_metadata', `SELECT iasql_dump('${dbAlias}', ${dataOnly});`))?.[0]
-    ?.result?.[0]?.iasql_dump;
+export async function dump(token: string, backendUrl: string, dbAlias: string, dataOnly = true) {
+  return (
+    await run(token, backendUrl, 'iasql_metadata', `SELECT iasql_dump('${dbAlias}', ${dataOnly});`)
+  )?.[0]?.result?.[0]?.iasql_dump;
 }
 
-export async function getLatestVersion(token: string) {
-  return (await run(token, 'iasql_metadata', `SELECT iasql_version();`))?.[0]?.result?.[0]?.iasql_version;
+export async function getLatestVersion(token: string, backendUrl: string) {
+  return (await run(token, backendUrl, 'iasql_metadata', `SELECT iasql_version();`))?.[0]?.result?.[0]
+    ?.iasql_version;
 }
 
-export async function getOldestVersion(token: string) {
-  return (await run(token, 'iasql_metadata', `SELECT iasql_version();`))?.[0]?.result?.[0]?.iasql_version;
+export async function getOldestVersion(token: string, backendUrl: string) {
+  return (await run(token, backendUrl, 'iasql_metadata', `SELECT iasql_version();`))?.[0]?.result?.[0]
+    ?.iasql_version;
 }
