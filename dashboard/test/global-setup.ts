@@ -2,8 +2,7 @@ import { chromium, firefox, webkit, FullConfig, BrowserType } from '@playwright/
 
 async function globalSetup(config: FullConfig) {
   checkGlobalEnv();
-  // const browsers = [chromium, firefox, webkit];
-  const browsers = [chromium];
+  const browsers = [chromium, firefox, webkit];
   for (const browser of browsers) {
     await configureBrowserAction(config, browser, 'setup');
   }
