@@ -5,12 +5,11 @@ import { RelationMetadata } from 'typeorm/metadata/RelationMetadata';
 import { snakeCase } from 'typeorm/util/StringUtils';
 
 import { IasqlFunctions } from '..';
-import * as AllModules from '../../../modules';
 import { RpcInput } from '../../../modules';
 import { getCloudId } from '../../../services/cloud-id';
 import logger from '../../../services/logger';
 import { TypeormWrapper } from '../../../services/typeorm';
-import { AuditLogChangeType, IasqlAuditLog, IasqlModule } from '../../iasql_platform/entity';
+import { AuditLogChangeType, IasqlAuditLog } from '../../iasql_platform/entity';
 import {
   Context,
   MapperBase,
@@ -20,6 +19,7 @@ import {
   RpcBase,
   RpcResponseObject,
 } from '../../interfaces';
+import { getInstalledModules } from '../iasql';
 import { indexModsByTable } from '../iasql';
 
 /**
@@ -42,6 +42,11 @@ export class IasqlGetSqlSince extends RpcBase {
   outputTable = {
     sql: 'varchar',
   } as const;
+
+  documentation = {
+    description: 'Generate SQL from the audit log from a given point in time',
+    sampleUsage: "SELECT * FROM iasql_get_sql_since((now() - interval '30 minutes')::text)",
+  };
 
   /** @internal */
   call = async (
@@ -90,14 +95,6 @@ async function getChangeLogs(limitDate: string, orm: TypeormWrapper): Promise<Ia
     order: { ts: 'ASC', id: 'ASC' },
     where: whereClause,
   });
-}
-
-/** @internal */
-async function getInstalledModules(orm: TypeormWrapper): Promise<ModuleInterface[]> {
-  const installedModulesNames = (await orm.find(IasqlModule)).map((m: any) => m.name);
-  return (Object.values(AllModules) as ModuleInterface[]).filter(mod =>
-    installedModulesNames.includes(`${mod.name}@${mod.version}`),
-  );
 }
 
 /**

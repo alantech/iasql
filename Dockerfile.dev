@@ -16,7 +16,7 @@ RUN git clone --depth 1 https://github.com/pramsey/pgsql-http
 RUN cd pgsql-http && make && make install
 
 ## Install NodeJS
-RUN ["bash", "-c", "curl -fsSL https://deb.nodesource.com/setup_16.x | bash -"]
+RUN ["bash", "-c", "curl -fsSL https://deb.nodesource.com/setup_lts.x | bash -"]
 RUN apt install nodejs -y
 RUN npm install -g yarn
 

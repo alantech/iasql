@@ -15,6 +15,7 @@ import {
   IasqlGetErrors,
   IasqlGetSqlSince,
 } from './rpcs';
+import { IasqlHelp } from './rpcs/iasql_help';
 
 /**
  * @internal
@@ -33,6 +34,7 @@ export class IasqlFunctions extends ModuleBase {
   iasqlBegin: IasqlBegin;
   iasqlGetErrors: IasqlGetErrors;
   iasqlGetSqlSince: IasqlGetSqlSince;
+  iasqlHelp: IasqlHelp;
 
   constructor() {
     super();
@@ -49,6 +51,7 @@ export class IasqlFunctions extends ModuleBase {
     this.iasqlBegin = new IasqlBegin(this);
     this.iasqlGetErrors = new IasqlGetErrors(this);
     this.iasqlGetSqlSince = new IasqlGetSqlSince(this);
+    this.iasqlHelp = new IasqlHelp(this);
     super.loadBasics();
   }
 }

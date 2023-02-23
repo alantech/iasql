@@ -38,6 +38,9 @@ begin
 end;
 $$;
 
+COMMENT
+  ON FUNCTION iasql_modules_installed () IS '{"description": "Returns list of currently installed modules", "sample_usage": "SELECT * FROM iasql_modules_installed()"}';
+
 CREATE
 OR REPLACE FUNCTION delete_all_records () RETURNS void LANGUAGE plpgsql AS $$
 DECLARE
@@ -72,25 +75,8 @@ begin
 end;
 $$;
 
-CREATE
-OR REPLACE FUNCTION iasql_help () RETURNS TABLE (NAME TEXT, signature TEXT, description TEXT, sample_usage TEXT) LANGUAGE plpgsql SECURITY DEFINER AS $$
-begin
-  return query select
-    x.name, x.signature, x.description, x.sample_usage
-  from json_to_recordset('[
-    {"name": "preview", "signature": "iasql_preview()", "description": "Preview of the resources in the db to be modified on the next `commit`", "sample_usage": "SELECT * FROM iasql_preview()"},
-    {"name": "commit", "signature": "iasql_commit()", "description": "Commit changes done to the database by creating, updating or deleting cloud resources", "sample_usage": "SELECT * FROM iasql_commit()"},
-    {"name": "rollback", "signature": "iasql_rollback()", "description": "Rollback changes done to the database by synchronizing cloud resources", "sample_usage": "SELECT * FROM iasql_rollback()"},
-    {"name": "get_sql_since", "signature": "iasql_get_sql_since()", "description": "Generate SQL from the audit log from a given point in time", "sample_usage": "SELECT * FROM iasql_get_sql_since((now() - interval ''30 minutes'')::text)"},
-    {"name": "get_errors", "signature": "iasql_get_errors()", "description": "Get latest error messages ocurred during a commit or a rollback", "sample_usage": "SELECT * FROM iasql_get_errors()"},
-    {"name": "install", "signature": "iasql_install(variadic text[])", "description": "Install modules in the hosted db", "sample_usage": "SELECT * FROM iasql_install(''aws_vpc'', ''aws_ec2'')"},
-    {"name": "uninstall", "signature": "iasql_uninstall(variadic text[])", "description": "Uninstall modules in the hosted db", "sample_usage": "SELECT * FROM iasql_uninstall(''aws_vpc'', ''aws_ec2'')"},
-    {"name": "modules_list", "signature": "iasql_modules_list()", "description": "Lists all modules available to be installed", "sample_usage": "SELECT * FROM iasql_modules_list()"},
-    {"name": "modules_installed", "signature": "iasql_modules_installed()", "description": "Lists all modules currently installed in the hosted db", "sample_usage": "SELECT * FROM iasql_modules_installed()"},
-    {"name": "version", "signature": "iasql_version()", "description": "Lists the currently installed IaSQL Platform version", "sample_usage": "SELECT * from iasql_version()"}
-  ]') as x(name text, signature text, description text, sample_usage text);
-end;
-$$;
+COMMENT
+  ON FUNCTION iasql_version () IS '{"description": "Returns the IaSQL engine version", "sample_usage": "SELECT * FROM iasql_version()"}';
 
 CREATE
 OR REPLACE FUNCTION maybe_commit () RETURNS TEXT LANGUAGE plpgsql SECURITY INVOKER AS $$

@@ -2,7 +2,6 @@
 // sense there. Need to think a bit more on that, but module manipulation that way could allow for
 // meta operations within the module code itself, if desirable.
 import { exec as execNode } from 'child_process';
-import fetch from 'node-fetch';
 import { Connection } from 'typeorm';
 import { promisify } from 'util';
 
