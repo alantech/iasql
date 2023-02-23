@@ -88,6 +88,7 @@ jobs:
           cd dashboard
           yarn --frozen-lockfile
           npx playwright install --with-deps
+          npx playwright --version
           cd ..
 
       - name: Run Playwright tests
