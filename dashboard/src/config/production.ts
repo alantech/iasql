@@ -4,6 +4,7 @@ import { ConfigInterface } from './config';
 
 const production: ConfigInterface = !!global.window
   ? {
+      name: 'production',
       auth: {
         domain: 'https://auth.iasql.com',
         clientId: 'OLQAngfr1LnenTt6wmQOYKmzx1c1dSxg',

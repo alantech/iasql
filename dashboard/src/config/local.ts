@@ -3,6 +3,7 @@ import posthog from 'posthog-js';
 import { ConfigInterface } from './config';
 
 const local: ConfigInterface = {
+  name: 'local',
   engine: {
     pgHost: 'localhost',
     pgForceSsl: false,

@@ -4,6 +4,7 @@ import { ConfigInterface } from './config';
 
 const staging: ConfigInterface = !!global.window
   ? {
+      name: 'staging',
       auth: {
         domain: 'https://auth-staging.iasql.com',
         clientId: 'OLziMRcBX7XN0ZNSkOcQW4XPufTdWR7l',

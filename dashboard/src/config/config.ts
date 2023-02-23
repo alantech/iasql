@@ -1,6 +1,7 @@
 export type ConfigEnvironments = 'production' | 'staging' | 'local' | 'test' | 'ci' | 'dev';
 
 export interface ConfigInterface {
+  name: string;
   // Configuration for the auth0 access control
   auth?: {
     domain: string;
