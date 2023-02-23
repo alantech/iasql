@@ -46,19 +46,16 @@ FROM build AS dashboard-stage
 
 WORKDIR /dashboard
 
+## Install stage dependencies
+COPY dashboard/package.json dashboard/yarn.lock ./
+RUN yarn install
+
 ## Copy files
 COPY dashboard/.yarnrc dashboard/.eslintrc.json dashboard/next.config.js dashboard/postcss.config.js dashboard/tailwind.config.js dashboard/tsconfig.json dashboard/tslint.json ./
 COPY dashboard/public public
 COPY dashboard/src src
 
-## Install stage dependencies
-COPY dashboard/package.json dashboard/yarn.lock ./
-RUN yarn install --production
-
-ARG IASQL_ENV=local
-ENV IASQL_ENV=$IASQL_ENV
-ENV NEXT_PUBLIC_IASQL_ENV=$IASQL_ENV
-
+## Build
 RUN yarn build
 
 #####################################################################################################################################################
@@ -68,13 +65,13 @@ FROM build AS engine-stage
 
 WORKDIR /engine
 
-## Copy files
-COPY .yarnrc ormconfig.js tsconfig.json ./
-COPY src src
-
 ## Install stage dependencies
 COPY package.json yarn.lock ./
 RUN yarn install
+
+## Copy files
+COPY .yarnrc ormconfig.js tsconfig.json ./
+COPY src src
 
 ## Build
 RUN yarn build
@@ -92,28 +89,27 @@ WORKDIR /
 COPY --from=pgsql-stage /usr/lib/postgresql /usr/lib/postgresql
 COPY --from=pgsql-stage /usr/share/postgresql /usr/share/postgresql
 
-## Copy from dashboard-stage
-WORKDIR /dashboard
-COPY --from=dashboard-stage /dashboard/public ./public
-COPY --from=dashboard-stage /dashboard/.next/standalone ./
-COPY --from=dashboard-stage /dashboard/.next/static ./.next/static
-
-## Copy from engine-stage
-WORKDIR /engine
-COPY --from=engine-stage /engine/package.json ./
-COPY --from=engine-stage /engine/node_modules node_modules
-COPY --from=engine-stage /engine/dist dist
-
 ## Copy files
 COPY ./src/scripts/postgresql.conf /etc/postgresql/14/main/postgresql.conf
 COPY ./src/scripts/pg_hba.conf /etc/postgresql/14/main/pg_hba.conf
 COPY docker-entrypoint.sh /engine/docker-entrypoint.sh
 COPY src/scripts /engine/src/scripts
 
+## Copy from engine-stage
+WORKDIR /engine
+COPY --from=engine-stage /engine/node_modules node_modules
+COPY --from=engine-stage /engine/package.json ./
+COPY --from=engine-stage /engine/dist dist
+
+## Copy from dashboard-stage
+WORKDIR /dashboard
+COPY --from=dashboard-stage /dashboard/public ./public
+COPY --from=dashboard-stage /dashboard/.next/standalone ./
+COPY --from=dashboard-stage /dashboard/.next/static ./.next/static
+
 ## Default ENVs that can be overwritten
 ARG IASQL_ENV=local
 ENV IASQL_ENV=$IASQL_ENV
-ENV NEXT_PUBLIC_IASQL_ENV=$IASQL_ENV
 ARG IASQL_TELEMETRY=on
 ENV IASQL_TELEMETRY=$IASQL_TELEMETRY
 ARG DB_USER=postgres
