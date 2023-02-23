@@ -41,6 +41,12 @@ export class IasqlPreview extends RpcBase {
     id: 'varchar',
     description: 'varchar',
   } as const;
+
+  documentation = {
+    description: 'Preview of the resources in the db to be modified on the next `commit`',
+    sampleUsage: 'SELECT * FROM iasql_preview()',
+  };
+
   call = async (
     dbId: string,
     _dbUser: string,

@@ -83,12 +83,6 @@ export class TypeormWrapper {
     return typeorm;
   }
 
-  getMasterConnection(): Pool | undefined {
-    if (this.connection.driver instanceof PostgresDriver) {
-      return this.connection.driver.master as Pool;
-    }
-  }
-
   async dropConn() {
     await this.connection.close();
   }
