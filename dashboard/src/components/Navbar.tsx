@@ -7,14 +7,14 @@ import { MenuIcon, XIcon, SunIcon, MoonIcon } from '@heroicons/react/outline';
 import { UserIcon } from '@heroicons/react/solid';
 
 import { ActionType, useAppContext } from './providers/AppProvider';
-import { useRuntimeConfigContext } from './providers/RuntimeConfigProvider';
+import { useAppConfigContext } from './providers/ConfigProvider';
 
 function classNames(...classes: any[]) {
   return classes.filter(Boolean).join(' ');
 }
 
 export default function Navbar({ userPic }: { userPic: string }) {
-  const { config } = useRuntimeConfigContext();
+  const { config } = useAppConfigContext();
   const { token, isDarkMode, dispatch } = useAppContext();
   const { logout } = useAuth0();
   const homeUrl = 'https://iasql.com';

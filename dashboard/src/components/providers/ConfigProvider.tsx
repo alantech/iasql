@@ -47,4 +47,4 @@ const AppConfigProvider = ({ children }: { children: any }) => {
   return <AppConfigContext.Provider value={appConfig}>{children}</AppConfigContext.Provider>;
 };
 
-export { AppConfigProvider as RuntimeConfigProvider, useAppConfigContext as useRuntimeConfigContext };
+export { AppConfigProvider, useAppConfigContext };

@@ -7,7 +7,7 @@ import { ConfigInterface } from '@/config/config';
 import * as DbActions from '@/services/dbApi';
 import * as Posthog from '@/services/posthog';
 
-import { useRuntimeConfigContext } from './RuntimeConfigProvider';
+import { useAppConfigContext } from './ConfigProvider';
 
 const nameGenConfig = {
   dictionaries: [adjectives, colors, animals],
@@ -581,7 +581,7 @@ const middlewareReducer = async (
 };
 
 const AppProvider = ({ children }: { children: any }) => {
-  const { config } = useRuntimeConfigContext();
+  const { config } = useAppConfigContext();
   const initialState: AppState = {
     selectedDb: null,
     oldestVersion: undefined,

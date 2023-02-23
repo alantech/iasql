@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-import { useRuntimeConfigContext } from '@/components/providers/RuntimeConfigProvider';
+import { useAppConfigContext } from '@/components/providers/ConfigProvider';
 import { useAuth0 } from '@auth0/auth0-react';
 
 import * as Posthog from '../services/posthog';
@@ -9,7 +9,7 @@ import * as Sentry from '../services/sentry';
 export function useAuth() {
   const [token, setToken] = useState(null) as unknown as [string | null, (arg0: string) => void];
   const { getAccessTokenSilently, loginWithRedirect, isAuthenticated, isLoading, user } = useAuth0();
-  const { config } = useRuntimeConfigContext();
+  const { config } = useAppConfigContext();
   useEffect(() => {
     if (!config?.auth) {
       return setToken('noauth');

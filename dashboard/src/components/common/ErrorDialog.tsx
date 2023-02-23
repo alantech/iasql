@@ -5,11 +5,11 @@ import { XIcon } from '@heroicons/react/outline';
 import { ExclamationCircleIcon } from '@heroicons/react/solid';
 
 import { ActionType, useAppContext } from '../providers/AppProvider';
-import { useRuntimeConfigContext } from '../providers/RuntimeConfigProvider';
+import { useAppConfigContext } from '../providers/ConfigProvider';
 
 export default function ErrorDialog() {
   const { dispatch, error } = useAppContext();
-  const { error: configError } = useRuntimeConfigContext();
+  const { error: configError } = useAppConfigContext();
   const cancelButtonRef = useRef(null);
 
   return (

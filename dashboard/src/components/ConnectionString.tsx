@@ -1,13 +1,13 @@
 import { generateConnectionString } from '../services/connectDb';
 import { Copyable, Label } from './common';
-import { useRuntimeConfigContext } from './providers/RuntimeConfigProvider';
+import { useAppConfigContext } from './providers/ConfigProvider';
 
 export default function ConnectionString({
   dbInfo,
 }: {
   dbInfo: { user: string; password: string; id: string };
 }) {
-  const { config } = useRuntimeConfigContext();
+  const { config } = useAppConfigContext();
   return (
     <>
       <Label mode='info'>IaSQL Database is connected to your AWS Account</Label>

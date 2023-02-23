@@ -11,12 +11,12 @@ import SmallViewport from '@/components/SmallViewport';
 import { align, Button, HBox } from '@/components/common';
 import ErrorDialog from '@/components/common/ErrorDialog';
 import { ActionType, useAppContext } from '@/components/providers/AppProvider';
-import { useRuntimeConfigContext } from '@/components/providers/RuntimeConfigProvider';
+import { useAppConfigContext } from '@/components/providers/ConfigProvider';
 import { useAuth } from '@/hooks/useAuth';
 import { DatabaseIcon, PlusSmIcon } from '@heroicons/react/outline';
 
 export default function Main() {
-  const { config } = useRuntimeConfigContext();
+  const { config } = useAppConfigContext();
   const {
     dispatch,
     databases,

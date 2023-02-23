@@ -1,7 +1,7 @@
 import type { AppProps } from 'next/app';
 import Head from 'next/head';
 
-import { RuntimeConfigProvider } from '@/components/providers/RuntimeConfigProvider';
+import { AppConfigProvider } from '@/components/providers/ConfigProvider';
 import reportWebVitals from '@/services/reportWebVitals';
 import '@/styles/globals.css';
 
@@ -19,9 +19,9 @@ export default function App({ Component, pageProps }: AppProps) {
         <meta name='description' content='Cloud infrastructure as a PostgreSQL DB' />
         <title>IaSQL Dashboard</title>
       </Head>
-      <RuntimeConfigProvider>
+      <AppConfigProvider>
         <Component {...pageProps} />
-      </RuntimeConfigProvider>
+      </AppConfigProvider>
     </>
   );
   return app;

@@ -4,14 +4,14 @@ import Loader from '@/components/Loader/Loader';
 import Main from '@/components/Main';
 import { ErrorDialog } from '@/components/common';
 import { AppProvider } from '@/components/providers/AppProvider';
-import { useRuntimeConfigContext } from '@/components/providers/RuntimeConfigProvider';
+import { useAppConfigContext } from '@/components/providers/ConfigProvider';
 import { Auth0Provider } from '@auth0/auth0-react';
 
 import * as Posthog from '../services/posthog';
 import * as Sentry from '../services/sentry';
 
 export default function App() {
-  const { config, error, telemetry, uid } = useRuntimeConfigContext();
+  const { config, error, telemetry, uid } = useAppConfigContext();
 
   useEffect(() => {
     if (telemetry !== undefined && telemetry === 'on') {
