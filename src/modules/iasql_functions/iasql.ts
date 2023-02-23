@@ -1240,6 +1240,12 @@ async function apply(
         r.diff = findDiff(r.dbEntity, r.cloudEntity, r.idGen, r.comparator);
         if (r.table === 'RegisteredInstance') {
           console.dir({ record: 'diffstr', r, changesByEntity, }, { depth: 4, });
+          console.log({
+            changesByEntityIds: changesByEntity[r.table]?.map(e => r.idGen(e)),
+            dbOnlyIds: r.diff.entitiesInDbOnly.map((e: any) => r.idGen(e)),
+            awsOnlyIds: r.diff.entitiesInAwsOnly.map((e: any) => r.idGen(e)),
+            bothIds: r.diff.entitiesChanged.map((e: any) => r.idGen(e)),
+          });
         }
         // If we have changes done by the user to be applied, then filter them.
         // Else, only filter changes done after this commit started to avoid overrides.
@@ -1289,6 +1295,10 @@ async function apply(
           });
           if (updates.length > 0) updateCommitPlan(toUpdate, r.table, r.mapper, updates);
           if (replaces.length > 0) updateCommitPlan(toReplace, r.table, r.mapper, replaces);
+        }
+        if (r.table === 'RegisteredInstance') {
+          // This *should* hae both `toCreate` and `toDelete`, but why is it not apparently running?
+          console.log({ toCreate, toDelete, toUpdate, toReplace, });
         }
       });
       if (dryRun) {
