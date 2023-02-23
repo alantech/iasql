@@ -756,7 +756,10 @@ describe('EC2 Integration Testing', () => {
     FROM registered_instance
     WHERE target_group_id = (SELECT id FROM target_group WHERE target_group_name = '${tgName}');
   `,
-      (res: any[]) => expect(res.length).toBe(2),
+      (res: any[]) => {
+        console.log(res);
+        expect(res.length).toBe(2)
+      },
     ),
   );
 

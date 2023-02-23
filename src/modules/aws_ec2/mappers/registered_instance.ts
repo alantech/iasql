@@ -207,6 +207,7 @@ export class RegisteredInstanceMapper extends MapperBase<RegisteredInstance> {
           }
         }),
       );
+      console.log({ registeredInstance: 'cloud.read', out, });
       return out;
     },
     update: async (_es: RegisteredInstance[], _ctx: Context) => {
