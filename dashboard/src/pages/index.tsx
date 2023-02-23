@@ -11,7 +11,7 @@ import * as Posthog from '../services/posthog';
 import * as Sentry from '../services/sentry';
 
 export default function App() {
-  const { config, error, telemetry, uid } = useAppConfigContext();
+  const { config, configError, telemetry, uid } = useAppConfigContext();
 
   useEffect(() => {
     if (telemetry !== undefined && telemetry === 'on') {
@@ -32,7 +32,7 @@ export default function App() {
 
   const app = (
     <div className='min-h-full dark:text-white'>
-      {error && <ErrorDialog />}
+      {configError && <ErrorDialog />}
       {!config?.engine ? (
         <Loader />
       ) : (

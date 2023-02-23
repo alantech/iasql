@@ -9,7 +9,7 @@ import { useAppConfigContext } from '../providers/ConfigProvider';
 
 export default function ErrorDialog() {
   const { dispatch, error } = useAppContext();
-  const { error: configError } = useAppConfigContext();
+  const { configError } = useAppConfigContext();
   const cancelButtonRef = useRef(null);
 
   return (

@@ -8,7 +8,7 @@ interface AppConfig {
   telemetry?: 'on' | 'off';
   iasqlEnv: ConfigEnvironments;
   config: ConfigInterface;
-  error?: string | null;
+  configError?: string | null;
 }
 
 const AppConfigContext = createContext<AppConfig>({} as AppConfig);
@@ -40,7 +40,9 @@ const AppConfigProvider = ({ children }: { children: any }) => {
         }
       };
       getConfig().catch((e: any) => {
-        setAppConfig({ error: e.message ?? 'An error occurred getting initialization values.' } as AppConfig);
+        setAppConfig({
+          configError: e.message ?? 'An error occurred getting initialization values.',
+        } as AppConfig);
       });
     }
   }, [appConfig]);
