@@ -218,7 +218,6 @@ export class RegisteredInstanceMapper extends MapperBase<RegisteredInstance> {
         if (!cloudRecord.instance?.instanceId || !cloudRecord.targetGroup?.targetGroupArn)
           throw new Error('Valid targetGroup and instance needed.');
         if (!e.port) e.port = e.targetGroup.port;
-        console.log({ registeredInstance: 'cloudupdate', e, cloudRecord, });
         // To update, the instance ID, target group ARN and region all have to match, the only thing
         // actually changing is the port. But we need to replace things to make that change, so we
         // have to deregister first, then register
@@ -236,6 +235,7 @@ export class RegisteredInstanceMapper extends MapperBase<RegisteredInstance> {
         );
         const registeredInstance = await this.module.registeredInstance.cloud.read(ctx, this.entityId(e));
         registeredInstance.id = e.id;
+        console.log({ registeredInstance, e, cloudRecord, });
         await this.module.registeredInstance.db.update(registeredInstance, ctx);
         out.push(registeredInstance);
       }
