@@ -48,7 +48,7 @@ WORKDIR /dashboard
 
 ## Install stage dependencies
 COPY dashboard/package.json dashboard/yarn.lock ./
-RUN yarn install
+RUN yarn install --frozen-lockfile
 
 ## Copy files
 COPY dashboard/.yarnrc dashboard/.eslintrc.json dashboard/next.config.js dashboard/postcss.config.js dashboard/tailwind.config.js dashboard/tsconfig.json dashboard/tslint.json ./
@@ -67,7 +67,7 @@ WORKDIR /engine
 
 ## Install stage dependencies
 COPY package.json yarn.lock ./
-RUN yarn install
+RUN yarn install --frozen-lockfile
 
 ## Copy files
 COPY .yarnrc ormconfig.js tsconfig.json ./
