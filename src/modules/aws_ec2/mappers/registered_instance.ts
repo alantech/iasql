@@ -235,6 +235,8 @@ export class RegisteredInstanceMapper extends MapperBase<RegisteredInstance> {
         );
         // Delete the local cloud cache of this instance to make sure the cloud read goes back to AWS
         delete ctx?.memo?.cloud?.RegisteredInstance?.[this.entityId(e)];
+        // Delete the db cache, as well, to make sure it doesn't accidentally restore something it shouldn't
+        delete ctx?.memo?.db?.RegisteredInstance?.[this.entityId(e)];
         const registeredInstance = await this.module.registeredInstance.cloud.read(ctx, this.entityId(e));
         registeredInstance.id = e.id;
         console.log({ registeredInstance, e, cloudRecord, });
