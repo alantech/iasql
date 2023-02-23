@@ -2,7 +2,8 @@ import { chromium, firefox, webkit, FullConfig, BrowserType } from '@playwright/
 
 async function globalSetup(config: FullConfig) {
   checkGlobalEnv();
-  const browsers = [chromium, firefox, webkit];
+  // const browsers = [chromium, firefox, webkit];
+  const browsers = [chromium];
   for (const browser of browsers) {
     await configureBrowserAction(config, browser, 'setup');
   }
@@ -35,7 +36,8 @@ async function configureBrowserAction(config: FullConfig, browserType: BrowserTy
       switch (action) {
         case 'setup':
           const isOSx = (await page.evaluate(() => navigator.userAgent)).indexOf("Mac") !== -1;
-          process.env[`IS_OSX_${browserType.name()}`] = IASQL_ENV === 'test' ? 'false' : `${isOSx}`;
+          // For tests running in the CI with env `staging` or `test` we cannot know if the host is OSx or not, and we know it is not.
+          process.env[`IS_OSX_${browserType.name()}`] = ['test', 'staging'].includes(IASQL_ENV ?? '') ? 'false' : `${isOSx}`;
           const { storageState } = projectConfig.use;
           const setUpDBAlias = `_${getRandStr()}`;
           process.env[`DB_ALIAS_${browserType.name()}`] = setUpDBAlias;

@@ -42,6 +42,7 @@ export async function auth0(page: Page, path?: string) {
   const { TEST_ACCOUNT_EMAIL, TEST_ACCOUNT_PASSWORD, IASQL_ENV } = process.env;
 
   await goTo(page, path);
+  // Auth is only enabled when testing directly against staging.
   if (IASQL_ENV === 'staging') {
     // Check if we are redirected to auth0
     await page.waitForSelector('input[name="username"]');
