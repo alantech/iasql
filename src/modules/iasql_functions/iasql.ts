@@ -1238,6 +1238,9 @@ async function apply(
 
       records.forEach(r => {
         r.diff = findDiff(r.dbEntity, r.cloudEntity, r.idGen, r.comparator);
+        if (r.table === 'RegisteredInstance') {
+          console.dir({ record: 'diffstr', r, changesByEntity, }, { depth: 4, });
+        }
         // If we have changes done by the user to be applied, then filter them.
         // Else, only filter changes done after this commit started to avoid overrides.
         if (changesByEntity) {
