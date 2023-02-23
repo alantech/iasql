@@ -66,11 +66,11 @@ FROM build AS engine-stage
 WORKDIR /engine
 
 ## Install stage dependencies
-COPY package.json yarn.lock ./
+COPY .yarnrc package.json yarn.lock ./
 RUN yarn install --frozen-lockfile
 
 ## Copy files
-COPY .yarnrc ormconfig.js tsconfig.json ./
+COPY ormconfig.js tsconfig.json ./
 COPY src src
 
 ## Build
