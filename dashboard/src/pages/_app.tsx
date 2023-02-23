@@ -11,6 +11,9 @@ import * as Sentry from '@/services/sentry';
 import '@/styles/globals.css';
 import { Auth0Provider } from '@auth0/auth0-react';
 
+console.log('IASQL_ENV', process.env.NEXT_PUBLIC_IASQL_ENV);
+console.log('Posthog Config', config.posthog);
+
 Sentry.init();
 
 // If you want to start measuring performance in your app, pass a function

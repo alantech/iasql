@@ -69,6 +69,9 @@ wait-for-url() {
   curl -I $1
 }
 
+echo "NEXT_PUBLIC_IASQL_ENV $NEXT_PUBLIC_IASQL_ENV"
+echo "IASQL_ENV $IASQL_ENV"
+
 # Dashboard service
 (cd /dashboard; wait-for-url localhost:8088/v1/version && NEXT_PUBLIC_UID=$(cat /proc/sys/kernel/random/uuid) yarn start:docker) &
 
