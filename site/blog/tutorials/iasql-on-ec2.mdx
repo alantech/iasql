@@ -77,7 +77,7 @@ WHERE security_group.group_name = 'iasql_sg';
 ```
 The first query simply creates a security group named `iasql_sg`. The second query seems a bit hard at the first sight, but it can be re-written as multiple `INSERT` queries:
 ```sql
-INSERT INTO security_group (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
+INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
 VALUES (FALSE, 'tcp', 22, 22, '0.0.0.0/0', 'ssh port is accessible from all ips',
         (SELECT id FROM security_group WHERE group_name = 'iasql_sg'));
 ```
@@ -89,3 +89,96 @@ Since the IaSQL dashboard does not have a default authorization mechanism set, r
 You can find your current IP address by visiting [api.ipify.org](https://api.ipify.org/). Just remember that most internet users don't have a static IP address and your IP address will be changed each time your router reconnects.
 :::
 
+It's now time to actually create the EC2 instance. We'll issue a query as follows to do so:
+
+```sql
+INSERT INTO instance (ami, instance_type, subnet_id, tags, user_data, key_pair_name, region)
+VALUES (...);
+```
+
+Before we write the query, let's investigate each column in the `instance` table. As you've already noticed, we create AWS resources by `INSERT`ing rows into corresponding tables. For example, we created a security group by executing the `INESRT INTO security_group` query. With that in mind, let's look into the columns of the `instance` table (which is in charge of managing EC2 servers) that will be used in our query:
+- `ami`: this column is the [Amazon Machine Image](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AMIs.html) ID that is used to launch the EC2 server. We can either directly insert the AMI ID (like `ami-0f1a5f5ada0e7da53`), or use a parameter reference to the AWS Systems Manager Parameter Store (like `resolve:ssm:/aws/service/canonical/ubuntu/server/22.04/stable/current/amd64/hvm/ebs-gp2/ami-id`). We'll go with the parameter reference choice.
+
+:::info
+The parameter reference `resolve:ssm:/aws/service/canonical/ubuntu/server/22.04/stable/current/amd64/hvm/ebs-gp2/ami-id` uses the `resolve` syntax to retrieve the value of an [SSM](https://docs.aws.amazon.com/systems-manager/latest/userguide/what-is-systems-manager.html) parameter.
+
+The `ssm` protocol specifies that the parameter is stored in the AWS Systems Manager Parameter Store. The rest of the path `/aws/service/canonical/ubuntu/server/22.04/stable/current/amd64/hvm/ebs-gp2/ami-id` is the path to the SSM parameter containing the Amazon Machine Image (AMI) ID for a specific Ubuntu Server 22.04 AMI that is optimized for use with Amazon Elastic Block Store (EBS) General Purpose SSD volumes.
+:::
+
+:::info
+AWS Resolve syntax is a feature that allows you to retrieve and use the values of AWS Systems Manager Parameter Store parameters, AWS Secrets Manager secrets, and Amazon S3 bucket objects in AWS SDK and Amazon EC2 user data scripts.
+
+The AWS Resolve syntax uses the following format:
+```
+resolve:<protocol>:<value>
+```
+- `protocol`: Specifies the type of resource that is being referenced. The currently supported protocols are `ssm` for AWS Systems Manager Parameter Store, `secretsmanager` for AWS Secrets Manager secrets, and `s3` for Amazon S3 bucket objects.
+- `value`: Specifies the path to the resource that is being referenced.
+
+Using the AWS Resolve syntax in AWS SDK or EC2 user data script allows you to dynamically reference and use the values of resources in other AWS services, which can be useful for automating the deployment of AWS resources.
+
+For example, you could use `resolve:ssm:/my/parameter/path` to reference a parameter stored in AWS Systems Manager Parameter Store, `resolve:secretsmanager:/my/secret/path` to reference a secret stored in AWS Secrets Manager, or `resolve:s3:/my/bucket/path/myobject.txt` to reference an object stored in an Amazon S3 bucket.
+:::
+
+- `instance_type`: this column contains the [instance type](https://aws.amazon.com/ec2/instance-types/) of the EC2 server. We'll use a `t2.small` instance for our deployment.
+- `subnet_id`: this is a foreign key to `subnet` table based on its `id` column. Good thing about IaSQL is that it'll automatically import every subnet in your cloud environment when you install the `iasql_vpc` module. This is not just for the subnets, but all the resources will be imported when installing the module that manages them. You can also manage the infrastructure outside IaSQL afterwards, having IaSQL also import your subsequent changes to the database. We'll use a `SELECT` query from the `subnet` table to fill this column.
+- `tags`: this column is a JSON column. It'll contain all the tags for this instance. We'll use `{"name":"iasql"}` as the value for this column since AWS treats the instance name as a tag.
+- `user_data`: when you launch an instance in Amazon EC2, you have the option of passing user data to the instance that can be used to perform common automated configuration tasks and even run scripts after the instance starts. You can pass two types of user data to Amazon EC2: shell scripts and [cloud-init](https://cloud-init.io/) directives [[1]](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/user-data.html). We'll write the deployment scripts in both of those types to demonstrate, and to have more fun!
+- `key_pair_name`: AWS accepts a key pair for the instance. It can be used to log into the instance through SSH. We'll use the `iasql` key pair we initially created using `key_pair_import` RPC.
+- `region`: we can choose the [AWS region](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.RegionsAndAvailabilityZones.html#Concepts.RegionsAndAvailabilityZones.Availability) in which the instance will be launched. IaSQL is already multi-region, which means it'll manage your resources in all the regions. So this additional `region` column can be used to determine which region the instance is in, and while `INSERT`ing used to direct IaSQL to create the instance in that region.
+
+Alright, we can now write our query to deploy IaSQL on EC2. Let's first write the query with EC2 startup script being a shell script, and then write the query with same functionality using [cloud-init](https://cloud-init.io/) directives.
+
+```sql
+INSERT INTO instance (ami, instance_type, subnet_id, tags, user_data, key_pair_name, region)
+SELECT 'resolve:ssm:/aws/service/canonical/ubuntu/server/22.04/stable/current/amd64/hvm/ebs-gp2/ami-id',
+       't2.small',
+       subnet.id,
+       '{"name":"iasql"}',
+       '#!/bin/bash
+     curl -fsSL https://get.docker.com -o get-docker.sh
+     sudo apt-get upgrade -y
+     sudo sh get-docker.sh
+     docker run -p 9876:9876 -p 5432:5432 --name iasql iasql/iasql
+     ',
+       'iasql',
+       'us-east-1'
+FROM subnet
+         INNER JOIN vpc ON vpc.id = subnet.vpc_id
+    AND vpc.is_default
+WHERE vpc.region = 'us-east-1'
+  AND subnet.availability_zone = 'us-east-1a'
+LIMIT 1;
+```
+
+There's just one last step needed. Remember the security group we created earlier? We never assigned our instance to it. So let's do it and let IaSQL do the rest:
+```sql
+INSERT INTO instance_security_groups (instance_id, security_group_id)
+SELECT (SELECT id
+        FROM instance
+        WHERE tags ->> 'name' = 'iasql'
+        LIMIT 1),
+       (SELECT id
+        FROM security_group
+        WHERE group_name = 'iasql_sg'
+        LIMIT 1);
+```
+The `instace_security_groups` table is a Many-to-Many join table that connects `instance`s to their `security_group`s. Now we need to wait for IaSQL to start syncing the state of the cloud with our local changes. This will normally happen every 2 minutes. There is a way to make the cloud apply/sync happen immediately using [IaSQL transactions](https://iasql.com/docs/transaction/), but for the purpose of this post we'll wait for the next cronjob tick to apply our changes.
+
+After waiting long enough for the server to start and for the startup script to finish, we can use instance's public IP to access our self-hosted IaSQL dashboard:
+
+```sql
+SELECT public_ip_address
+FROM instance_metadata
+WHERE id = (SELECT id
+            FROM instance
+            WHERE tags ->> 'name' = 'iasql'
+            LIMIT 1);
+```
+
+Now we can go to `http://<instance-ip>:9876/` URL, and we'll see the beautiful IaSQL dashboard deployed on our EC2 server.
+
+### TODO: add cloud-init script.
+
+### Next Steps
+In this post, we deployed IaSQL on EC2 server with just using IaSQL and PostgreSQL queries. We'll continue this post with example deployments of other famous apps from now on. Deploying them won't be any harder than this one!
