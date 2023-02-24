@@ -305,14 +305,6 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha
           tags: ${{ needs.setup-module-test.outputs.registry-image-tag }}
-      - name: Output image size
-        id: get-image-size
-        env:
-          IMAGE_TAG: ${{ needs.setup-module-test.outputs.registry-image-tag }}
-        run: |
-          image_size_bytes=$(docker manifest inspect -v $IMAGE_TAG | jq -r '[ .SchemaV2Manifest.layers[].size ] | add' | numfmt --to iec --format '%.2f')
-          echo "::set-output name=image-size::$(numfmt --to=iec --suffix=B --format="%.2f" $image_size_bytes)"
-
 
   module-test:
     runs-on: ubuntu-latest
@@ -520,7 +512,7 @@ jobs:
 
           # Spin up IaSQL container and a postgres instance
           # Temporarily export the server port until it's only the Postgres port needed
-          docker pull iasql ghcr.io/iasql/iasql:$GITHUB_SHA
+          docker pull ghcr.io/iasql/iasql:$GITHUB_SHA
           compressed_image_size=$(docker manifest inspect -v $IMAGE_TAG | jq -r '[ .SchemaV2Manifest.layers[].size ] | add')
           echo "compressed-image-size=$(numfmt --to=iec --suffix=B --format='%.2f' $compressed_image_size)" >> $GITHUB_OUTPUT
           uncompressed_image_size=$(docker image inspect ghcr.io/iasql/iasql:$GITHUB_SHA | jq -r '.[0].Size')
