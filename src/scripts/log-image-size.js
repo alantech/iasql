@@ -6,8 +6,8 @@ module.exports = async ({ github, context, core }) => {
     repo: context.repo.repo,
     issue_number: context.issue.number,
   });
-  const sizeComment = prComments.data.findLast(c => c.body.startsWith(PREFIX));
-  if (sizeComment) {
+  const sizeComment = prComments.data.find(c => c.body.startsWith(PREFIX));
+  if (!!sizeComment.length) {
     // update the existing comment
     await github.rest.issues.updateComment({
       owner: context.repo.owner,
