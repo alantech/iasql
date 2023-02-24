@@ -464,8 +464,8 @@ jobs:
     if: ${{ github.event.pull_request }}
     outputs:
       install-time: ${{ steps.install-all-modules.outputs.set-install-time }}
-      uninstall-time: ${{ steps.install-all-modules.outputs.compressed-image-size }}
-      compressed-image-size: ${{ steps.install-all-modules.outputs.set-install-time }}
+      uninstall-time: ${{ steps.install-all-modules.outputs.set-uninstall-time }}
+      compressed-image-size: ${{ steps.install-all-modules.outputs.compressed-image-size }}
       uncompressed-image-size: ${{ steps.install-all-modules.outputs.uncompressed-image-size }}
     steps:
       - uses: actions/checkout@v3
