@@ -28,7 +28,7 @@
 
 ## ⚡️ Try out IaSQL
 
-To connect your AWS account to a PostgreSQL database running locally make sure docker is installed and run:
+To [connect your AWS account](https://iasql.com/docs/aws) to a PostgreSQL database running locally generate AWS credentials, make sure docker is installed, and run:
 
 ```bash
 docker run -p 9876:9876 -p 5432:5432 --name iasql iasql/iasql
@@ -36,26 +36,22 @@ docker run -p 9876:9876 -p 5432:5432 --name iasql iasql/iasql
 
 Alternatively, use a hosted version of IaSQL at [app.iasql.com](https://app.iasql.com)
 
-## 💬 Community, Support and Questions
+## 💬 Community, Support, and Questions
 
-Reach out on Discord to:
-
-- Get help with errors you encounter using IaSQL
-- Ask about general problems with databases or infrastructure
-- Discuss database and infrastructure best practices
-- Share what you built
+Reach out on Discord
 
 <a href="https://discord.com/invite/machGGczea">
   <img src="https://discord.com/assets/ff41b628a47ef3141164bfedb04fb220.png" height="40px" />
 </a>
 
+## 🔨 Use cases
+
+- [Get started with ECR+ECS+ELB quickly by using our simplified version of those services directly in your AWS account](https://iasql.com/blog/ecs-simplified)
+- [Save on AWS by deleting untagged ECR images](https://iasql.com/blog/ecr-save)
+
 ## 📄 Documentation
 
-For full documentation, visit [iasql.com/docs](https://iasql.com/docs)
-
-## 🚀 Contribute
-
-To contribute, visit [Contributing.md](https://github.com/iasql/iasql/blob/main/CONTRIBUTING.md)
+To get started with IaSQL our documentation. Visit [iasql.com/docs](https://iasql.com/docs)
 
 ## ☁️ Cloud Providers
 
@@ -66,3 +62,7 @@ AWS is our main focus at the moment, but we plan to support GCP, Azure and other
 An IaSQL module roughly maps to an AWS service. Check out our supported modules in this [part](https://iasql.com/docs/modules/) of our docs. 
 
 AWS services that are going to be added next can be found [here](https://github.com/iasql/iasql/issues?q=is%3Aissue+is%3Aopen+label%3A%22cloud+coverage%22). Let us know if you would like to see one that is not listed!
+
+## 🚀 Contribute
+
+To contribute, visit [Contributing.md](https://github.com/iasql/iasql/blob/main/CONTRIBUTING.md)
