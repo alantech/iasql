@@ -1724,15 +1724,11 @@ async function getChangesByEntity(
               .map(([k, v]: [string, any]) => [camelCase(k), v]),
           ), primaryCols, changedE, });
           if (changedE) changedEntities.push(changedE);
-          if (!changedE) {
-            // Try to recreate it
-            const changedE2 = await recreateEntity(c.change.change, metadata, orm);
-            if (changedE2) changedEntities.push(changedE2);
-          }
           // If it is an UPDATE case we need to save as a change the original entity in case a `cloudId` property changed.
           // We cannot query the original entity since it is not in the DB, but we can do our best recreating it.
           if (c.change.original) {
             const originalE = await recreateEntity(c.change.original, metadata, orm);
+            console.log({ old: 'here', original: c.change.original, metadata, originalE, });
             if (originalE) changedEntities.push(originalE);
           }
         } else if (c.changeType === AuditLogChangeType.DELETE) {
