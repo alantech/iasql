@@ -282,6 +282,8 @@ jobs:
 
   build-and-push:
     runs-on: ubuntu-latest
+    outputs:
+      image-size: ${{ steps['get-image-size'].outputs['image-size'] }}
     needs:
       - setup-module-test
     steps:
@@ -295,13 +297,21 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and push
+        id: docker-build
         uses: docker/build-push-action@v3
         with:
           context: .
           push: true
+          load: true
           cache-from: type=gha
           cache-to: type=gha
           tags: ${{ needs.setup-module-test.outputs.registry-image-tag }}
+      - name: Output image size
+        id: get-image-size
+        run: |
+          image_size_bytes=$(docker image inspect ${{ steps.docker-build.outputs.imageid }} | jq -r '.[0].Size')
+          echo "::set-output name=image-size::$(numfmt --to=iec --suffix=B --format="%.2f" $image_size_bytes)"
+
 
   module-test:
     runs-on: ubuntu-latest
@@ -601,6 +611,8 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: actions/github-script@v6
+        env:
+          IMAGE_SIZE: ${{ needs.build-and-push.outputs['image-size'] }}
         with:
           script: |
             const script = require('./src/scripts/log-image-size.js')
