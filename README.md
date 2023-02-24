@@ -46,7 +46,7 @@ Reach out on Discord
 
 ## 🔨 Use cases
 
-- [Get started with ECR+ECS+ELB quickly by using our simplified version of those services directly in your AWS account](https://iasql.com/blog/ecs-simplified)
+- [Get started with ECR+ECS+ELB in minutes by using our ejectable abstraction for those services directly in your AWS account](https://iasql.com/blog/ecs-simplified)
 - [Save on AWS by deleting untagged ECR images](https://iasql.com/blog/ecr-save)
 
 ## 📄 Documentation
