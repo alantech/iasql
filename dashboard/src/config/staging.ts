@@ -7,7 +7,7 @@ const staging: ConfigInterface = {
       auth: {
         domain: 'https://auth-staging.iasql.com',
         clientId: 'OLziMRcBX7XN0ZNSkOcQW4XPufTdWR7l',
-        redirectUri: 'https://app-staging.iasql.com',
+        redirectUri: window.location.origin,
         scope: 'read:current_user',
         audience: 'https://api-staging.iasql.com',
         useRefreshTokens: true,

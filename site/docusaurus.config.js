@@ -107,7 +107,13 @@ const testDoc = require('./src/rehype/testdoc');
               href: 'https://discord.com/invite/machGGczea',
               position: 'right',
               className: 'header-discord-link',
-              'aria-label': 'Community',
+              'aria-label': 'Discord',
+            },
+            {
+              href: 'https://reddit.com/r/iasql',
+              position: 'right',
+              className: 'header-reddit-link',
+              'aria-label': 'Reddit',
             },
             {
               href: 'https://github.com/iasql/iasql',
@@ -119,6 +125,11 @@ const testDoc = require('./src/rehype/testdoc');
               type: 'search',
             },
           ],
+        },
+        announcementBar: {
+          id: 'announcementBar',
+          content: 'If you like IaSQL, subscribe to <a href="/updates">email updates</a> on new features and use cases 📬',
+          isCloseable: true,
         },
         footer: {
           style: 'light',
@@ -161,6 +172,10 @@ const testDoc = require('./src/rehype/testdoc');
                   to: 'updates',
                   target: '_self',
                 },
+                {
+                  label: 'RSS Feed',
+                  to: 'blog/rss.xml',
+                },
               ],
             },
             {
@@ -169,6 +184,10 @@ const testDoc = require('./src/rehype/testdoc');
                 {
                   label: 'Discord',
                   to: 'https://discord.com/invite/yxNBQugGbH',
+                },
+                {
+                  label: 'Reddit',
+                  to: 'https://reddit.com/r/iasql',
                 },
                 {
                   label: 'Twitter',
