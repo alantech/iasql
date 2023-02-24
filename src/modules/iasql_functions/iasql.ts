@@ -1728,7 +1728,7 @@ async function getChangesByEntity(
           // We cannot query the original entity since it is not in the DB, but we can do our best recreating it.
           if (c.change.original) {
             const originalE = await recreateEntity(c.change.original, metadata, orm);
-            console.log({ old: 'here', original: c.change.original, metadata, originalE, });
+            console.dir({ old: 'here', original: c.change.original, metadata, originalE, }, { depth: 4 });
             if (originalE) changedEntities.push(originalE);
           }
         } else if (c.changeType === AuditLogChangeType.DELETE) {
