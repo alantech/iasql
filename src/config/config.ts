@@ -21,7 +21,7 @@ export interface ConfigInterface {
     forceLocal: boolean; // Whether or not to always log to stdout regardless of LogDNA usage
     logDnaKey?: string; // Indicates that logdna should be used if present
   };
-  // Configuration for amplitude telemetry
+  // Configuration for telemetry
   telemetry?: {
     // Not including this sub-object implies it is not enabled
     posthogKey: string;
