@@ -302,14 +302,15 @@ jobs:
         with:
           context: .
           push: true
-          load: true
           cache-from: type=gha
           cache-to: type=gha
           tags: ${{ needs.setup-module-test.outputs.registry-image-tag }}
       - name: Output image size
         id: get-image-size
+        env:
+          IMAGE_TAG: ${{ needs.setup-module-test.outputs.registry-image-tag }}
         run: |
-          image_size_bytes=$(docker image inspect ${{ steps.docker-build.outputs.imageid }} | jq -r '.[0].Size')
+          image_size_bytes=$(docker image inspect $IMAGE_TAG | jq -r '.[0].Size')
           echo "::set-output name=image-size::$(numfmt --to=iec --suffix=B --format="%.2f" $image_size_bytes)"
 
 
