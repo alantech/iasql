@@ -703,7 +703,6 @@ export async function commit(
         applyErr = null;
       } catch (e: any) {
         logger.scope({ dbId }).warn(`Something failed applying for all modules.\n${e}`);
-        console.log(e);
         applyErr = e;
       }
     }
@@ -1238,15 +1237,6 @@ async function apply(
 
       records.forEach(r => {
         r.diff = findDiff(r.dbEntity, r.cloudEntity, r.idGen, r.comparator);
-        if (r.table === 'RegisteredInstance') {
-          console.dir({ record: 'diffstr', r, changesByEntity, }, { depth: 4, });
-          console.log({
-            changesByEntityIds: changesByEntity?.[r.table]?.map(e => r.idGen(e)),
-            dbOnlyIds: r.diff.entitiesInDbOnly.map((e: any) => r.idGen(e)),
-            awsOnlyIds: r.diff.entitiesInAwsOnly.map((e: any) => r.idGen(e)),
-            bothIds: r.diff.entitiesChanged.map((e: any) => r.idGen(e)),
-          });
-        }
         // If we have changes done by the user to be applied, then filter them.
         // Else, only filter changes done after this commit started to avoid overrides.
         if (changesByEntity) {
@@ -1281,12 +1271,6 @@ async function apply(
           const replaces: any[] = [];
           r.diff.entitiesChanged.forEach((e: any) => {
             const isUpdate = r.mapper.cloud.updateOrReplace(e.cloud, e.db) === 'update';
-            console.log({
-              updateOrReplace: 'checkstr',
-              apply: 'pathstr',
-              isUpdate,
-              e,
-            });
             if (isUpdate) {
               updates.push(e.db);
             } else {
@@ -1295,10 +1279,6 @@ async function apply(
           });
           if (updates.length > 0) updateCommitPlan(toUpdate, r.table, r.mapper, updates);
           if (replaces.length > 0) updateCommitPlan(toReplace, r.table, r.mapper, replaces);
-        }
-        if (r.table === 'RegisteredInstance') {
-          // This *should* hae both `toCreate` and `toDelete`, but why is it not apparently running?
-          console.log({ toCreate, toDelete, toUpdate, toReplace, });
         }
       });
       if (dryRun) {
@@ -1533,10 +1513,6 @@ async function sync(
           r.diff.entitiesChanged.forEach((e: any) => {
             updates.push(e.cloud);
           });
-          console.log({
-            sync: 'pathstr',
-            updates,
-          })
           if (updates.length > 0) updateCommitPlan(toUpdate, r.table, r.mapper, updates);
         }
       });
@@ -1684,9 +1660,6 @@ function updateCommitPlan(crupde: Crupde, entityName: string, mapper: MapperInte
     if (!crupde[entityName].some(r2 => Object.is(r2.id, r.id) && Object.is(r2.description, r.description)))
       crupde[entityName].push(r);
   });
-  if (entityName === 'RegisteredInstance') {
-    console.log({ updateCommitPlan: 'strdebug', es, rs, entities: crupde[entityName], });
-  }
 }
 
 async function getChangesByEntity(
@@ -1717,18 +1690,11 @@ async function getChangesByEntity(
                 .map(([k, v]: [string, any]) => [camelCase(k), v]),
             ),
           });
-          // Let's see log what the query tried to do when it failed before
-          console.log({ changed: 'failure', where: Object.fromEntries(
-            Object.entries(c.change.change)
-              .filter(([k, _]: [string, any]) => primaryCols.includes(k))
-              .map(([k, v]: [string, any]) => [camelCase(k), v]),
-          ), primaryCols, changedE, });
           if (changedE) changedEntities.push(changedE);
           // If it is an UPDATE case we need to save as a change the original entity in case a `cloudId` property changed.
           // We cannot query the original entity since it is not in the DB, but we can do our best recreating it.
           if (c.change.original) {
             const originalE = await recreateEntity(c.change.original, metadata, orm);
-            console.dir({ old: 'here', original: c.change.original, metadata, originalE, }, { depth: 4 });
             if (originalE) changedEntities.push(originalE);
           }
         } else if (c.changeType === AuditLogChangeType.DELETE) {
