@@ -3,7 +3,7 @@ FROM debian:bullseye AS base
 
 ## Install OS Packages
 RUN apt update
-RUN apt install curl ca-certificates gnupg jq locales-all -y
+RUN apt install curl ca-certificates gnupg jq -y
 
 ## Install Postgres
 ### Update postgresql APT repository [apt.postgresql.org](https://wiki.postgresql.org/wiki/Apt)
