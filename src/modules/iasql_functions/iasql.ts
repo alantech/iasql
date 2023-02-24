@@ -1805,7 +1805,7 @@ async function recreateRelation(
     .map(or => ({
       targetEntity: or.inverseEntityMetadata.target,
       propertyName: or.propertyName,
-      colsWithReferences: or.joinColumns.map(jc => [jc.databaseName, jc.referencedColumn?.databaseName]),
+      colsWithReferences: or.joinColumns.map(jc => [jc.propertyName, jc.referencedColumn?.propertyName]),
     }));
   for (const r of relations) {
     if (isSingleResult) {
