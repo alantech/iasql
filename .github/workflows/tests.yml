@@ -310,7 +310,7 @@ jobs:
         env:
           IMAGE_TAG: ${{ needs.setup-module-test.outputs.registry-image-tag }}
         run: |
-          image_size_bytes=$(docker image inspect $IMAGE_TAG | jq -r '.[0].Size')
+          image_size_bytes=$(docker manifest inspect -v $IMAGE_TAG | jq -r '[ .SchemaV2Manifest.layers[].size ] | add' | numfmt --to iec --format '%.2f')
           echo "::set-output name=image-size::$(numfmt --to=iec --suffix=B --format="%.2f" $image_size_bytes)"
 
 
