@@ -1,18 +1,23 @@
 ---
 slug: deploy-nodejs-ec2
-title: Deploy a NodeJS App on AWS using EC2
+title: Deploy a NodeJS App on AWS using EC2 + CI/CD
 date: 2022-12-23
 unlisted: true
 authors: [yrobla]
 ---
 
-# Continuously Deploy a NodeJS app to AWS EC2 with a SQL query
+In this post, we will deploy a NodeJS server that is hosted on Github to AWS using an EC2 instance and CodePipeline. We will do this using IaSQL. 
 
-[CodePipeline](https://aws.amazon.com/codepipeline/) is a service provided by AWS to provide a fully automated [Continuous Delivery](https://en.wikipedia.org/wiki/Continuous_delivery) service.
-It allows you to fully manage all the steps in the code delivery lifecycle, from checking out the source code, building it, testing it, and deploying to production.
+<!-- truncate -->
+IaSQL is an [open-source](https://github.com/iasql/iasql) software tool that creates a two-way connection between an unmodified PostgreSQL database and an AWS account so you can manage your infrastructure from a database.
+
+## What is CodePipeline?
+
+[CodePipeline](https://aws.amazon.com/codepipeline/) is an AWS service that provides a fully automated [Continuous Delivery](https://en.wikipedia.org/wiki/Continuous_delivery) service.
+It allows you to fully manage all the steps in the code delivery lifecycle, from checking out, building, testing, and deploying source code.
 The whole process is managed by CodePipeline using specific configuration files without manual intervention, offering a safe and reliable way to deploy to the cloud.
 The following example will showcase the automated build and deployment of a NodeJS app from a Github repository to an EC2 instance that exposes the app with an elastic IP address.
-The testing part is intentionally not covered by this scope, but would be an important part to cover when deploying to production.
+The testing part is intentionally not covered by this post, but would be an important part to cover when deploying to production.
 
 ## The NodeJS application
 
