@@ -8,9 +8,11 @@ const production: ConfigInterface = !!global.window
       auth: {
         domain: 'https://auth.iasql.com',
         clientId: 'OLQAngfr1LnenTt6wmQOYKmzx1c1dSxg',
-        redirectUri: window.location.origin,
-        scope: 'read:current_user',
-        audience: 'https://api.iasql.com',
+        authorizationParams: {
+          redirect_uri: window.location.origin,
+          scope: 'read:current_user',
+          audience: 'https://api.iasql.com',
+        },
         useRefreshTokens: true,
       },
       posthog: {
