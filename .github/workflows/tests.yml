@@ -472,7 +472,9 @@ jobs:
     if: ${{ github.event.pull_request }}
     outputs:
       install-time: ${{ steps.install-all-modules.outputs.set-install-time }}
-      uninstall-time: ${{ steps.install-all-modules.outputs.set-uninstall-time }}
+      uninstall-time: ${{ steps.install-all-modules.outputs.compressed-image-size }}
+      compressed-image-size: ${{ steps.install-all-modules.outputs.set-install-time }}
+      uncompressed-image-size: ${{ steps.install-all-modules.outputs.uncompressed-image-size }}
     steps:
       - uses: actions/checkout@v3
 
@@ -518,6 +520,12 @@ jobs:
 
           # Spin up IaSQL container and a postgres instance
           # Temporarily export the server port until it's only the Postgres port needed
+          docker pull iasql ghcr.io/iasql/iasql:$GITHUB_SHA
+          compressed_image_size=$(docker manifest inspect -v $IMAGE_TAG | jq -r '[ .SchemaV2Manifest.layers[].size ] | add')
+          echo "compressed-image-size=$(numfmt --to=iec --suffix=B --format='%.2f' $compressed_image_size)" >> $GITHUB_OUTPUT
+          uncompressed_image_size=$(docker image inspect ghcr.io/iasql/iasql:$GITHUB_SHA | jq -r '.[0].Size')
+          echo "uncompressed-image-size=$(numfmt --to=iec --suffix=B --format="%.2f" $uncompressed_image_size)" >> $GITHUB_OUTPUT
+
           docker run -p 5432:5432 -e IASQL_ENV=ci --name iasql ghcr.io/iasql/iasql:$GITHUB_SHA &
           while ! psql postgres://postgres:test@localhost:5432/iasql_metadata -b -q -c "SELECT iasql_engine_health()"; do sleep 1 && echo -n .; done;
 
@@ -608,12 +616,13 @@ jobs:
   log-image-size:
     runs-on: ubuntu-latest
     needs:
-      - build-and-push
+      - get-install-times
     steps:
       - uses: actions/checkout@v3
       - uses: actions/github-script@v6
         env:
-          IMAGE_SIZE: ${{ needs.build-and-push.outputs['image-size'] }}
+          COMPRESSED_IMAGE_SIZE: ${{ needs.get-install-times.outputs['compressed-image-size'] }}
+          UNCOMPRESSED_IMAGE_SIZE: ${{ needs.get-install-times.outputs['uncompressed-image-size'] }}
         with:
           script: |
             const script = require('./src/scripts/log-image-size.js')

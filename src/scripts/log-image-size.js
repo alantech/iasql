@@ -1,6 +1,6 @@
 const PREFIX = '📏 Image size:';
 module.exports = async ({ github, context, core }) => {
-  const { IMAGE_SIZE } = process.env;
+  const { COMPRESSED_IMAGE_SIZE, UNCOMPRESSED_IMAGE_SIZE } = process.env;
   const prComments = await github.rest.issues.listComments({
     owner: context.repo.owner,
     repo: context.repo.repo,
@@ -13,7 +13,7 @@ module.exports = async ({ github, context, core }) => {
       owner: context.repo.owner,
       repo: context.repo.repo,
       comment_id: sizeComment.id,
-      body: `${PREFIX} ${IMAGE_SIZE}`,
+      body: `${PREFIX} ${COMPRESSED_IMAGE_SIZE} (compressed) - ${UNCOMPRESSED_IMAGE_SIZE} (uncompressed)`,
     });
   } else {
     // submit a new comment
@@ -21,7 +21,7 @@ module.exports = async ({ github, context, core }) => {
       owner: context.repo.owner,
       repo: context.repo.repo,
       issue_number: context.issue.number,
-      body: `${PREFIX} ${IMAGE_SIZE}`,
+      body: `${PREFIX} ${COMPRESSED_IMAGE_SIZE} (compressed) - ${UNCOMPRESSED_IMAGE_SIZE} (uncompressed)`,
     });
   }
 };
