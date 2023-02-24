@@ -2,13 +2,12 @@ import posthog from 'posthog-js';
 
 import { ConfigInterface } from './config';
 
-const staging: ConfigInterface = !!global.window
-  ? {
+const staging: ConfigInterface = {
       name: 'staging',
       auth: {
         domain: 'https://auth-staging.iasql.com',
         clientId: 'OLziMRcBX7XN0ZNSkOcQW4XPufTdWR7l',
-        redirectUri: window.location.origin,
+        redirectUri: 'https://app-staging.iasql.com',
         scope: 'read:current_user',
         audience: 'https://api-staging.iasql.com',
         useRefreshTokens: true,
@@ -24,9 +23,8 @@ const staging: ConfigInterface = !!global.window
       engine: {
         pgHost: 'pg-staging.iasql.com',
         pgForceSsl: true,
-        backendUrl: 'https://run-staging.iasql.com',
+        backendUrl: 'https://app-staging.iasql.com/api/run',
       },
-    }
-  : ({} as ConfigInterface);
+    };
 
 export default staging;
