@@ -1241,7 +1241,7 @@ async function apply(
         if (r.table === 'RegisteredInstance') {
           console.dir({ record: 'diffstr', r, changesByEntity, }, { depth: 4, });
           console.log({
-            changesByEntityIds: changesByEntity[r.table]?.map(e => r.idGen(e)),
+            changesByEntityIds: changesByEntity?.[r.table]?.map(e => r.idGen(e)),
             dbOnlyIds: r.diff.entitiesInDbOnly.map((e: any) => r.idGen(e)),
             awsOnlyIds: r.diff.entitiesInAwsOnly.map((e: any) => r.idGen(e)),
             bothIds: r.diff.entitiesChanged.map((e: any) => r.idGen(e)),
