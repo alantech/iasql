@@ -1717,14 +1717,14 @@ async function getChangesByEntity(
                 .map(([k, v]: [string, any]) => [camelCase(k), v]),
             ),
           });
+          // Let's see log what the query tried to do when it failed before
+          console.log({ changed: 'failure', where: Object.fromEntries(
+            Object.entries(c.change.change)
+              .filter(([k, _]: [string, any]) => primaryCols.includes(k))
+              .map(([k, v]: [string, any]) => [camelCase(k), v]),
+          ), primaryCols, changedE, });
           if (changedE) changedEntities.push(changedE);
           if (!changedE) {
-            // Let's see log what the query tried to do when it failed before
-            console.log({ changed: 'failure', where: Object.fromEntries(
-              Object.entries(c.change.change)
-                .filter(([k, _]: [string, any]) => primaryCols.includes(k))
-                .map(([k, v]: [string, any]) => [camelCase(k), v]),
-            ), primaryCols });
             // Try to recreate it
             const changedE2 = await recreateEntity(c.change.change, metadata, orm);
             if (changedE2) changedEntities.push(changedE2);
