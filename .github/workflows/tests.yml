@@ -593,3 +593,15 @@ jobs:
               repo: context.repo.repo,
               body: '⏳ All modules installed in: ' + process.env.INSTALL_TIME + ' seconds ⌛️\n⏳ All modules uninstalled in: ' + process.env.UNINSTALL_TIME + ' seconds ⌛️'
             })
+
+  log-image-size:
+    runs-on: ubuntu-latest
+    needs:
+      - build-and-push
+    steps:
+      - uses: actions/github-script@v6
+        with:
+          script: |
+            const script = require('./src/scripts/log-image-size.js')
+            await script({github, context, core})
+
