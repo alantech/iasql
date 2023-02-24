@@ -513,7 +513,7 @@ jobs:
           # Spin up IaSQL container and a postgres instance
           # Temporarily export the server port until it's only the Postgres port needed
           docker pull ghcr.io/iasql/iasql:$GITHUB_SHA
-          compressed_image_size=$(docker manifest inspect -v $IMAGE_TAG | jq -r '[ .SchemaV2Manifest.layers[].size ] | add')
+          compressed_image_size=$(docker manifest inspect -v ghcr.io/iasql/iasql:$GITHUB_SHA | jq -r '[ .SchemaV2Manifest.layers[].size ] | add')
           echo "compressed-image-size=$(numfmt --to=iec --suffix=B --format='%.2f' $compressed_image_size)" >> $GITHUB_OUTPUT
           uncompressed_image_size=$(docker image inspect ghcr.io/iasql/iasql:$GITHUB_SHA | jq -r '.[0].Size')
           echo "uncompressed-image-size=$(numfmt --to=iec --suffix=B --format="%.2f" $uncompressed_image_size)" >> $GITHUB_OUTPUT
