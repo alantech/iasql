@@ -2,7 +2,8 @@ import posthog from 'posthog-js';
 
 import { ConfigInterface } from './config';
 
-const staging: ConfigInterface = {
+const staging: ConfigInterface = !!global.window
+  ? {
       name: 'staging',
       auth: {
         domain: 'https://auth-staging.iasql.com',
@@ -25,6 +26,7 @@ const staging: ConfigInterface = {
         pgForceSsl: true,
         backendUrl: 'https://app-staging.iasql.com/api/run',
       },
-    };
+    }
+  : ({} as ConfigInterface);
 
 export default staging;

@@ -14,6 +14,8 @@ export default function App() {
   const { config, configError, telemetry, uid } = useAppConfigContext();
 
   useEffect(() => {
+    console.log(config?.auth);
+    
     if (telemetry !== undefined && telemetry === 'on') {
       Sentry.init(config);
       Posthog.init(config);
@@ -29,7 +31,7 @@ export default function App() {
       <Main />
     </AppProvider>
   );
-
+  
   const app = (
     <div className='min-h-full dark:text-white'>
       {configError && <ErrorDialog />}
