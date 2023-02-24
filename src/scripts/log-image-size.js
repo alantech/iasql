@@ -1,6 +1,13 @@
 const PREFIX = '📏 Image size:';
+
+function getMessage(compressedImageSize, uncompressedImageSize, installTime, uninstallTime) {
+  return `${PREFIX} ${compressedImageSize} (compressed) - ${uncompressedImageSize} (uncompressed)
+⏳ All modules installed in: ${installTime} seconds ⌛️
+⏳ All modules uninstalled in: ${uninstallTime} seconds ⌛️`;
+}
+
 module.exports = async ({ github, context, core }) => {
-  const { COMPRESSED_IMAGE_SIZE, UNCOMPRESSED_IMAGE_SIZE } = process.env;
+  const { COMPRESSED_IMAGE_SIZE, UNCOMPRESSED_IMAGE_SIZE, INSTALL_TIME, UNINSTALL_TIME } = process.env;
   const prComments = await github.rest.issues.listComments({
     owner: context.repo.owner,
     repo: context.repo.repo,
@@ -13,7 +20,7 @@ module.exports = async ({ github, context, core }) => {
       owner: context.repo.owner,
       repo: context.repo.repo,
       comment_id: sizeComment.id,
-      body: `${PREFIX} ${COMPRESSED_IMAGE_SIZE} (compressed) - ${UNCOMPRESSED_IMAGE_SIZE} (uncompressed)`,
+      body: getMessage(COMPRESSED_IMAGE_SIZE, UNCOMPRESSED_IMAGE_SIZE, INSTALL_TIME, UNINSTALL_TIME),
     });
   } else {
     // submit a new comment
@@ -21,7 +28,7 @@ module.exports = async ({ github, context, core }) => {
       owner: context.repo.owner,
       repo: context.repo.repo,
       issue_number: context.issue.number,
-      body: `${PREFIX} ${COMPRESSED_IMAGE_SIZE} (compressed) - ${UNCOMPRESSED_IMAGE_SIZE} (uncompressed)`,
+      body: getMessage(COMPRESSED_IMAGE_SIZE, UNCOMPRESSED_IMAGE_SIZE, INSTALL_TIME, UNINSTALL_TIME),
     });
   }
 };
