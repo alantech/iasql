@@ -1747,12 +1747,12 @@ async function recreateEntity(
 ): Promise<any | undefined> {
   const originalE: any = {};
   // Recreate object with original properties
-  Object.entries(originalChange).forEach(([k, v]: [string, any]) => (originalE[entityMetadata
-    .ownColumns
-    .find(
-      col => col.databaseName === k
-    )?.propertyName ?? camelCase(k)
-  ] = v));
+  Object.entries(originalChange).forEach(
+    ([k, v]: [string, any]) =>
+      (originalE[
+        entityMetadata.ownColumns.find(col => col.databaseName === k)?.propertyName ?? camelCase(k)
+      ] = v),
+  );
   await recreateRelation('OneToMany', originalE, entityMetadata, orm);
   await recreateRelation('ManyToOne', originalE, entityMetadata, orm);
   await recreateRelation('OneToOne', originalE, entityMetadata, orm);
