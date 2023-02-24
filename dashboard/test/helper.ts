@@ -1,4 +1,3 @@
-import config from '@/config';
 import { expect, Locator, Page, } from '@playwright/test';
 
 export async function isVisible(loc: Locator) {
@@ -40,10 +39,11 @@ export async function goTo(page: Page, path?: string) {
 }
 
 export async function auth0(page: Page, path?: string) {
-  const { TEST_ACCOUNT_EMAIL, TEST_ACCOUNT_PASSWORD } = process.env;
+  const { TEST_ACCOUNT_EMAIL, TEST_ACCOUNT_PASSWORD, IASQL_ENV } = process.env;
 
   await goTo(page, path);
-  if (config.auth) {
+  // Auth is only enabled when testing directly against staging.
+  if (IASQL_ENV === 'staging') {
     // Check if we are redirected to auth0
     await page.waitForSelector('input[name="username"]');
     // If selector found we login

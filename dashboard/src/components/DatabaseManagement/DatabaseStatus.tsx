@@ -1,6 +1,6 @@
 import * as semver from 'semver';
 
-import { useAppContext } from '@/components/AppProvider';
+import { useAppContext } from '@/components/providers/AppProvider';
 import { CheckCircleIcon, ClockIcon, ExclamationCircleIcon } from '@heroicons/react/outline';
 
 export function DatabaseStatus({ db }: { db: any }) {

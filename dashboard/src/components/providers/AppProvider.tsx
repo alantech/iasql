@@ -1,10 +1,13 @@
-import React, { useCallback, useContext, useReducer, useEffect } from 'react';
+import React, { useCallback, useContext, useReducer } from 'react';
 
 import * as semver from 'semver';
 import { uniqueNamesGenerator, adjectives, colors, animals } from 'unique-names-generator';
 
+import { ConfigInterface } from '@/config/config';
 import * as DbActions from '@/services/dbApi';
 import * as Posthog from '@/services/posthog';
+
+import { useAppConfigContext } from './ConfigProvider';
 
 const nameGenConfig = {
   dictionaries: [adjectives, colors, animals],
@@ -293,14 +296,19 @@ SELECT * FROM iasql_uninstall('${uninstallModule}');
   return state;
 };
 
-const middlewareReducer = async (dispatch: (payload: Payload) => void, payload: Payload) => {
+const middlewareReducer = async (
+  config: ConfigInterface,
+  dispatch: (payload: Payload) => void,
+  payload: Payload,
+) => {
   const { token } = payload;
+  const { backendUrl } = config?.engine;
   switch (payload.action) {
     case ActionType.InitialLoad: {
       try {
-        const initialDatabases = await DbActions.list(token ?? '');
-        const oldestVer = await DbActions.getOldestVersion(token ?? '');
-        const latestVer = await DbActions.getLatestVersion(token ?? '');
+        const initialDatabases = await DbActions.list(token ?? '', backendUrl, config);
+        const oldestVer = await DbActions.getOldestVersion(token ?? '', backendUrl);
+        const latestVer = await DbActions.getLatestVersion(token ?? '', backendUrl);
         dispatch({
           ...payload,
           data: {
@@ -325,7 +333,7 @@ const middlewareReducer = async (dispatch: (payload: Payload) => void, payload: 
       const alias = dbAlias ? dbAlias : uniqueNamesGenerator(nameGenConfig);
       let newDb: any = null;
       try {
-        newDb = await DbActions.newDb(token, alias);
+        newDb = await DbActions.newDb(token, backendUrl, alias);
       } catch (e: any) {
         const error = e.message ? e.message : `Unexpected error connecting database ${alias}`;
         dispatch({ ...payload, data: { error } });
@@ -334,6 +342,7 @@ const middlewareReducer = async (dispatch: (payload: Payload) => void, payload: 
       try {
         await DbActions.run(
           token,
+          backendUrl,
           alias,
           `
           SELECT * FROM iasql_install('aws_account');
@@ -350,6 +359,7 @@ const middlewareReducer = async (dispatch: (payload: Payload) => void, payload: 
       try {
         await DbActions.run(
           token,
+          backendUrl,
           alias,
           `
           INSERT INTO aws_credentials (access_key_id, secret_access_key)
@@ -359,6 +369,7 @@ const middlewareReducer = async (dispatch: (payload: Payload) => void, payload: 
         if (semver.lt(latestVersion ?? '', '0.0.23')) {
           await DbActions.run(
             token,
+            backendUrl,
             alias,
             `
             SELECT * FROM iasql_sync();
@@ -367,6 +378,7 @@ const middlewareReducer = async (dispatch: (payload: Payload) => void, payload: 
         } else {
           await DbActions.run(
             token,
+            backendUrl,
             alias,
             `
             SELECT * FROM iasql_begin();
@@ -374,6 +386,7 @@ const middlewareReducer = async (dispatch: (payload: Payload) => void, payload: 
           );
           await DbActions.run(
             token,
+            backendUrl,
             alias,
             `
             SELECT * FROM iasql_commit();
@@ -382,6 +395,7 @@ const middlewareReducer = async (dispatch: (payload: Payload) => void, payload: 
         }
         await DbActions.run(
           token,
+          backendUrl,
           alias,
           `
           SELECT * FROM default_aws_region('${awsRegion.name}');
@@ -394,7 +408,7 @@ const middlewareReducer = async (dispatch: (payload: Payload) => void, payload: 
       }
       if (newDb) {
         // update the db list before hiding the modal
-        const updatedDatabases = await DbActions.list(token);
+        const updatedDatabases = await DbActions.list(token, backendUrl, config);
         dispatch({ ...payload, data: { newDb, updatedDatabases } });
       }
       break;
@@ -435,7 +449,8 @@ const middlewareReducer = async (dispatch: (payload: Payload) => void, payload: 
         if (!isRunning) {
           dispatch({ action: ActionType.RunningSql, data: { isRunning: true } });
           try {
-            if (token && content) queryRes = await DbActions.run(token, runningDb?.alias, content);
+            if (token && content)
+              queryRes = await DbActions.run(token, backendUrl, runningDb?.alias, content);
             const compFn = (r: any, stmt: string) =>
               r.statement &&
               typeof r.statement === 'string' &&
@@ -444,8 +459,13 @@ const middlewareReducer = async (dispatch: (payload: Payload) => void, payload: 
               if (compFn(r, 'iasql_install(') || compFn(r, 'iasql_uninstall(')) shouldUpdate = true;
             }
             if (shouldUpdate) {
-              databases = await DbActions.list(token);
-              updatedAutoCompleteRes = await DbActions.run(token, runningDb?.alias, initializingQueries);
+              databases = await DbActions.list(token, backendUrl, config);
+              updatedAutoCompleteRes = await DbActions.run(
+                token,
+                backendUrl,
+                runningDb?.alias,
+                initializingQueries,
+              );
             }
           } catch (e: any) {
             queryRes = e.message ? e.message : 'Unhandled error in SQL execution';
@@ -486,7 +506,12 @@ const middlewareReducer = async (dispatch: (payload: Payload) => void, payload: 
       const { dbAlias: autoCompleteDbAlias } = payload.data;
       try {
         dispatch({ action: ActionType.RunningSql, data: { isRunning: true } });
-        const autoCompleteRes = await DbActions.run(token, autoCompleteDbAlias, initializingQueries);
+        const autoCompleteRes = await DbActions.run(
+          token,
+          backendUrl,
+          autoCompleteDbAlias,
+          initializingQueries,
+        );
         dispatch({ ...payload, data: { autoCompleteRes } });
       } catch (e: any) {
         const error = e.message ? e.message : `Unexpected error`;
@@ -503,8 +528,8 @@ const middlewareReducer = async (dispatch: (payload: Payload) => void, payload: 
       }
       const { dbAlias: disconnectDbAlias } = payload.data;
       try {
-        await DbActions.disconnect(token, disconnectDbAlias);
-        const afterDisconnectDbs = await DbActions.list(token);
+        await DbActions.disconnect(token, backendUrl, disconnectDbAlias);
+        const afterDisconnectDbs = await DbActions.list(token, backendUrl, config);
         dispatch({ ...payload, data: { databases: afterDisconnectDbs } });
       } catch (e: any) {
         const error = e.message ? e.message : `Unexpected error disconnecting database ${disconnectDbAlias}`;
@@ -520,7 +545,7 @@ const middlewareReducer = async (dispatch: (payload: Payload) => void, payload: 
       const { trackEventName, trackDbAlias, buttonAlias, queryToRun, queryOutput, queryError } = payload.data;
       try {
         if (trackEventName) {
-          await Posthog.capture(trackEventName, {
+          await Posthog.capture(config, trackEventName, {
             dbAlias: trackDbAlias,
             buttonAlias,
             sql: queryToRun,
@@ -538,7 +563,7 @@ const middlewareReducer = async (dispatch: (payload: Payload) => void, payload: 
       const { selectedDb, forceRun, isRunningSql, index, editorTabs } = payload.data;
       const contentToBeRun = editorTabs?.[index]?.content ?? '';
       if (token && forceRun && contentToBeRun) {
-        middlewareReducer(dispatch, {
+        middlewareReducer(config, dispatch, {
           token,
           action: ActionType.RunSql,
           data: {
@@ -556,6 +581,7 @@ const middlewareReducer = async (dispatch: (payload: Payload) => void, payload: 
 };
 
 const AppProvider = ({ children }: { children: any }) => {
+  const { config } = useAppConfigContext();
   const initialState: AppState = {
     selectedDb: null,
     oldestVersion: undefined,
@@ -589,9 +615,12 @@ const AppProvider = ({ children }: { children: any }) => {
     forceRun: false,
   };
   const [state, dispatch] = useReducer(reducer, initialState);
-  const customDispatch = useCallback(async (payload: Payload) => {
-    middlewareReducer(dispatch, payload);
-  }, []);
+  const customDispatch = useCallback(
+    async (payload: Payload) => {
+      middlewareReducer(config, dispatch, payload);
+    },
+    [config],
+  );
 
   return (
     <AppContext.Provider

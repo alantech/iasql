@@ -1,11 +1,12 @@
 import { ConfigInterface } from './config';
 
-const test: ConfigInterface = {
+const ci: ConfigInterface = {
+  name: 'ci',
   engine: {
     pgHost: 'localhost',
     pgForceSsl: false,
-    backendUrl: 'http://localhost:9876',
+    backendUrl: '/api/run',
   },
 };
 
-export default test;
+export default ci;

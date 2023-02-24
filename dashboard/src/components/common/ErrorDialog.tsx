@@ -4,10 +4,12 @@ import { Dialog, Transition } from '@headlessui/react';
 import { XIcon } from '@heroicons/react/outline';
 import { ExclamationCircleIcon } from '@heroicons/react/solid';
 
-import { ActionType, useAppContext } from '../AppProvider';
+import { ActionType, useAppContext } from '../providers/AppProvider';
+import { useAppConfigContext } from '../providers/ConfigProvider';
 
 export default function ErrorDialog() {
   const { dispatch, error } = useAppContext();
+  const { configError } = useAppConfigContext();
   const cancelButtonRef = useRef(null);
 
   return (
@@ -16,7 +18,7 @@ export default function ErrorDialog() {
         as='div'
         className='fixed z-10 inset-0 overflow-y-auto'
         initialFocus={cancelButtonRef}
-        open={!!error}
+        open={!!error || !!configError}
         onClose={() => {
           return void 0;
         }}
@@ -61,20 +63,26 @@ export default function ErrorDialog() {
                   </Dialog.Title>
                 </div>
                 <div className='inline-flex justify-center py-1 px-1 border border-transparent text-sm font-medium bg-white dark:bg-gray-800 rounded-md text-gray-400 hover:text-gray-900'>
-                  <XIcon
-                    className='h-6 w-6 text-gray-400 cursor-pointer'
-                    aria-hidden='true'
-                    onClick={() => {
-                      dispatch({ action: ActionType.ResetError });
-                    }}
-                  />
+                  {error ? (
+                    <XIcon
+                      className='h-6 w-6 text-gray-400 cursor-pointer'
+                      aria-hidden='true'
+                      onClick={() => {
+                        dispatch({ action: ActionType.ResetError });
+                      }}
+                    />
+                  ) : (
+                    <></>
+                  )}
                 </div>
               </div>
               <div className='bg-white dark:bg-gray-900 px-8 pt-3 pb-4 sm:px-8 sm:pb-4'>
                 <div className='sm:flex-auto sm:items-start'>
                   <div className='mt-3 text-center sm:mt-0 sm:ml-0 sm:text-left'>
                     <div className='my-4 bg-white dark:bg-gray-900 sm:rounded-lg'>
-                      <p className='mt-5 text-sm leading-6 text-gray-900 dark:text-gray-100'>{error}</p>
+                      <p className='mt-5 text-sm leading-6 text-gray-900 dark:text-gray-100'>
+                        {!!error ? error : configError}
+                      </p>
                     </div>
                   </div>
                 </div>

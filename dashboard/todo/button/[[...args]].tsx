@@ -3,7 +3,7 @@ import { useRouter } from 'next/router'
 
 import { CloudUploadIcon } from '@heroicons/react/solid';
 
-import { ActionType, useAppContext } from '@/components/AppProvider';
+import { ActionType, useAppContext } from '@/components/providers/AppProvider';
 import { useAuth } from '@/hooks/useAuth';
 import { regions } from '@/services/connectDb';
 import ConnectionString from '@/components/ConnectionString';

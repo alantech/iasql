@@ -1,7 +1,7 @@
 import { Children } from 'react';
 
 import { Button, HBox, Modal, VBox, align } from '.';
-import { ActionType, useAppContext } from '../AppProvider';
+import { ActionType, useAppContext } from '../providers/AppProvider';
 
 export function Wizard({
   icon,

@@ -1,13 +1,18 @@
-import { ConfigInterface, throwError } from './config';
+import ci from './ci';
+import { ConfigEnvironments, ConfigInterface } from './config';
+import dev from './dev';
+import local from './local';
+import production from './production';
+import staging from './staging';
+import test from './test';
 
-// To prevent side-effects for other environments' error handling, the specific config
-// needs to be dynamically `require`d.
-if (
-  !['production', 'staging', 'local', 'test', 'ci', 'dev'].includes(process.env.NEXT_PUBLIC_IASQL_ENV ?? '')
-) {
-  throwError(`Invalid environment ${process.env.NEXT_PUBLIC_IASQL_ENV}`);
-}
-// tslint:disable-next-line:no-var-requires
-const config: ConfigInterface = require(`./${process.env.NEXT_PUBLIC_IASQL_ENV}`).default;
+const config: { [key in ConfigEnvironments]: ConfigInterface } = {
+  production,
+  staging,
+  test,
+  dev,
+  ci,
+  local,
+};
 
 export default config;
