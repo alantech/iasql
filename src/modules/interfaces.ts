@@ -365,6 +365,9 @@ export class MapperBase<E extends {}> {
         update: (es: E[], ctx: Context) => ctx.orm.save(this.entity, es),
         delete: (es: E[], ctx: Context) => ctx.orm.remove(this.entity, es),
         read: async (ctx: Context, id?: string) => {
+          if (!id && this.module.name === 'Instance') {
+            console.log({ instance: 'debugstr', instances: await ctx.orm.find(this.entity, {}), });
+          }
           const opts = id
             ? {
                 where: Object.fromEntries(id.split('|').map((val, i) => [cloudColumns[i], val])),

@@ -209,6 +209,7 @@ export class RegisteredInstanceMapper extends MapperBase<RegisteredInstance> {
       );
       return out;
     },
+    updateOrReplace: () => 'replace',
     update: async (_es: RegisteredInstance[], _ctx: Context) => {
       throw new Error('This should be unreachable');
     },
