@@ -684,35 +684,48 @@ export class InstanceMapper extends MapperBase<Instance> {
         if (!entity.instanceId) continue;
         const client = (await ctx.getAwsClient(entity.region)) as AWS;
 
+        // read the maps before terminating
+        const maps = await this.getInstanceBlockDeviceMapping(client.ec2client, entity.instanceId);
+        console.log('i have mapping');
+        console.log(maps);
+
         await this.terminateInstance(client.ec2client, entity.instanceId);
-        console.log('after termination');
         const region = entity.region;
 
         // read the attached volumes and wait until terminated
-        for (const map of entity.instanceBlockDeviceMappings ?? []) {
+        for (const map of maps ?? []) {
           // find related volume
           console.log(map);
-          if (map.deviceName && map.cloudVolumeId) {
-            await this.module.instanceBlockDeviceMapping.cloud.delete(map, ctx);
+          if (map.DeviceName && map.Ebs?.VolumeId) {
+            // read map object
+            const mapId = this.module.instanceBlockDeviceMapping.generateId({
+              cloudInstanceId: entity.instanceId,
+              cloudVolumeId: map.Ebs.VolumeId,
+              region: region,
+            });
+            console.log('generated id is');
+            console.log(mapId);
+            const mapObj = await this.module.instanceBlockDeviceMapping.cloud.read(ctx, mapId);
+            console.log(mapObj);
+            await this.module.instanceBlockDeviceMapping.cloud.delete(mapObj, ctx);
+            await this.module.instanceBlockDeviceMapping.db.delete(mapObj, ctx);
             console.log('after map deletion in cloud');
 
             // delete volume if needed
             const volId = this.module.generalPurposeVolume.generateId({
-              volumeId: map.cloudVolumeId,
+              volumeId: map.Ebs.VolumeId,
               region,
             });
             console.log('vol id is');
             console.log(volId);
 
-            const volObj =
-              (await this.module.generalPurposeVolume.db.read(ctx, volId)) ??
-              (await this.module.generalPurposeVolume.cloud.read(ctx, volId));
+            const volObj = await this.module.generalPurposeVolume.cloud.read(ctx, volId);
             console.log('obj is');
             console.log(volObj);
 
             if (volObj && volObj.deleteOnTermination) {
               console.log('i wait until terminated');
-              await this.waitUntilDeleted(client.ec2client, map.cloudVolumeId);
+              await this.waitUntilDeleted(client.ec2client, map.Ebs.VolumeId);
               await this.module.generalPurposeVolume.db.delete(volObj, ctx);
               console.log('after');
             }
