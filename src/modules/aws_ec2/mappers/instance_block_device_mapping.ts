@@ -98,11 +98,14 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
     },
     read: async (ctx: Context, id?: string) => {
       if (id) {
+        console.log('i read by id');
         // decompose the id
         const { instanceId, volumeId, region } = this.idFields(id);
         const client = (await ctx.getAwsClient(region)) as AWS;
 
         // check if we can find the instance in database
+        console.log('i want to read');
+        console.log(instanceId);
         const instance = await this.module.instance.db.read(
           ctx,
           this.module.instance.generateId({ instanceId: instanceId ?? '', region }),
@@ -113,12 +116,17 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
           client.ec2client,
           instanceId,
         );
+        console.log('mapping is');
+        console.log(mapping);
         for (const map of mapping ?? []) {
           if (map.DeviceName && map.Ebs?.VolumeId == volumeId) {
+            console.log('i match');
             const volume = await this.module.generalPurposeVolume.db.read(
               ctx,
               this.module.generalPurposeVolume.generateId({ volumeId: map.Ebs.VolumeId ?? '', region }),
             );
+            console.log('volume is');
+            console.log(volume);
 
             const res: InstanceBlockDeviceMapping = {
               instanceId: instance?.id ?? undefined,
@@ -130,6 +138,8 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
               cloudVolumeId: volumeId,
               region: region,
             };
+            console.log('i return');
+            console.log(res);
             return res;
           }
         }
