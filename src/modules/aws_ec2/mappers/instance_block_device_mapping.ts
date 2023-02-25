@@ -103,10 +103,15 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
         // check if we can find the instance in database
         console.log('i want to read');
         console.log(instanceId);
-        const instance = await this.module.instance.db.read(
-          ctx,
-          this.module.instance.generateId({ instanceId: instanceId ?? '', region }),
-        );
+        const instance =
+          (await this.module.instance.db.read(
+            ctx,
+            this.module.instance.generateId({ instanceId: instanceId ?? '', region }),
+          )) ??
+          (await this.module.instance.cloud.read(
+            ctx,
+            this.module.instance.generateId({ instanceId: instanceId ?? '', region }),
+          ));
 
         // read the instance mapping
         const mapping = await this.module.instance.getInstanceBlockDeviceMapping(
