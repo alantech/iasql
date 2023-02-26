@@ -104,42 +104,41 @@ export class InstanceMapper extends MapperBase<Instance> {
     out.region = region;
 
     // check if we can find the instance in database
-    console.log('i read instance from cloud');
-    console.log('instance id is');
-    console.log(instance.InstanceId);
-    const instanceObj = await this.module.instance.db.read(
-      ctx,
-      this.module.instance.generateId({ instanceId: instance.InstanceId ?? '', region }),
-    );
-    console.log(instanceObj);
+    if (instance.InstanceId) {
+      const instanceObj = await this.module.instance.db.read(
+        ctx,
+        this.module.instance.generateId({ instanceId: instance.InstanceId ?? '', region }),
+      );
+      console.log(instanceObj);
 
-    if (instanceObj) {
-      // volume mapping
-      const vol: InstanceBlockDeviceMapping[] = [];
-      for (const map of instance.BlockDeviceMappings ?? []) {
-        if (map.DeviceName && map.Ebs?.VolumeId) {
-          const volume = await this.module.generalPurposeVolume.db.read(
-            ctx,
-            this.module.generalPurposeVolume.generateId({ volumeId: map.Ebs.VolumeId ?? '', region }),
-          );
-          console.log('volume is');
-          console.log(volume);
+      if (instanceObj) {
+        // volume mapping
+        const vol: InstanceBlockDeviceMapping[] = [];
+        for (const map of instance.BlockDeviceMappings ?? []) {
+          if (map.DeviceName && map.Ebs?.VolumeId) {
+            const volume = await this.module.generalPurposeVolume.db.read(
+              ctx,
+              this.module.generalPurposeVolume.generateId({ volumeId: map.Ebs.VolumeId ?? '', region }),
+            );
+            console.log('volume is');
+            console.log(volume);
 
-          const entry: InstanceBlockDeviceMapping = {
-            instance: instanceObj,
-            volume: volume,
-            instanceId: instanceObj?.id ?? undefined,
-            volumeId: volume?.id ?? undefined,
-            deviceName: map.DeviceName,
-            cloudInstanceId: instance.InstanceId,
-            cloudVolumeId: map.Ebs.VolumeId,
-            region: region,
-            deleteOnTermination: map.Ebs.DeleteOnTermination ?? true,
-          };
-          vol.push(entry);
+            const entry: InstanceBlockDeviceMapping = {
+              instance: instanceObj,
+              volume: volume,
+              instanceId: instanceObj?.id ?? undefined,
+              volumeId: volume?.id ?? undefined,
+              deviceName: map.DeviceName,
+              cloudInstanceId: instance.InstanceId,
+              cloudVolumeId: map.Ebs.VolumeId,
+              region: region,
+              deleteOnTermination: map.Ebs.DeleteOnTermination ?? true,
+            };
+            vol.push(entry);
+          }
         }
+        out.instanceBlockDeviceMappings = vol;
       }
-      out.instanceBlockDeviceMappings = vol;
     }
 
     return out;
@@ -479,7 +478,7 @@ export class InstanceMapper extends MapperBase<Instance> {
             const region = instance.region;
 
             // try to find volume and delete from db and cloud
-            if (map.deviceName && map.volumeId && map.volume) {
+            if (map.deviceName && map.volumeId) {
               console.log('i read volume from db');
               const volumeObj: GeneralPurposeVolume = await ctx.orm.findOne(GeneralPurposeVolume, {
                 id: map.volumeId,
@@ -490,8 +489,9 @@ export class InstanceMapper extends MapperBase<Instance> {
                 // delete from cloud
                 await this.module.generalPurposeVolume.cloud.delete(volumeObj, ctx);
               }
-              await this.module.instanceBlockDeviceMapping.db.delete(map, ctx);
-              await this.module.generalPurposeVolume.db.delete(map.volume, ctx);
+              console.log('after deleting volume ');
+              await ctx.orm.remove(InstanceBlockDeviceMapping, map);
+              await ctx.orm.remove(GeneralPurposeVolume, volumeObj);
             }
           }
 

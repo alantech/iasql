@@ -66,6 +66,9 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
     create: async (es: InstanceBlockDeviceMapping[], ctx: Context) => {
       const out: InstanceBlockDeviceMapping[] = [];
       for (const e of es) {
+        // if we have no ids we cannot create
+        if (!e.cloudInstanceId || !e.cloudVolumeId) continue;
+
         // read instance details
         const instance: Instance = await ctx.orm.findOne(Instance, {
           id: e.instanceId,
@@ -162,6 +165,7 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
           }
         }
       } else {
+        console.log('i read all mappings');
         const out: InstanceBlockDeviceMapping[] = [];
         const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
         await Promise.all(
@@ -172,6 +176,7 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
               // exclude spot instances and terminating ones
               if (i.InstanceLifecycle === InstanceLifecycle.SPOT) continue;
               if (i.State?.Name === 'terminated' || i.State?.Name === 'shutting-down') continue;
+              if (!i.InstanceId) continue; // if we do not have an id we skip
 
               // check instance block device mappings
               const mapping = await this.module.instance.getInstanceBlockDeviceMapping(
@@ -186,6 +191,8 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
               );
 
               for (const map of mapping ?? []) {
+                console.log('map is');
+                console.log(map);
                 if (map.DeviceName && map.Ebs?.VolumeId) {
                   const volume = await this.module.generalPurposeVolume.db.read(
                     ctx,
