@@ -38,7 +38,6 @@ export class InstanceMapper extends MapperBase<Instance> {
   instanceEqReplaceableFields(a: Instance, b: Instance) {
     return (
       Object.is(a.instanceId, b.instanceId) &&
-      Object.is(a.ami, b.ami) &&
       Object.is(a.instanceType, b.instanceType) &&
       Object.is(a.userData, b.userData) &&
       Object.is(a.keyPairName, b.keyPairName) &&
