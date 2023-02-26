@@ -283,12 +283,16 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
         const newVolumeId = await this.createVolume(client.ec2client, input);
         // Re-get the inserted record to get all of the relevant records we care about
         const newObject = await this.getVolume(client.ec2client, newVolumeId);
+        console.log('i created the volume');
+        console.log(newObject);
         if (!newObject) continue;
         // We map this into the same kind of entity as `obj`
         const newEntity = await this.generalPurposeVolumeMapper(newObject, e.region, ctx);
         if (!newEntity) continue;
         // Save the record back into the database to get the new fields updated
         newEntity.id = e.id;
+        console.log('new entity is');
+        console.log(newEntity);
         await this.module.generalPurposeVolume.db.update(newEntity, ctx);
         out.push(newEntity);
       }
@@ -386,21 +390,18 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
     },
     delete: async (vol: GeneralPurposeVolume[], ctx: Context) => {
       for (const e of vol) {
+        if (!e.volumeId) continue;
+
+        console.log('i delete volume');
+        console.log(e);
         const client = (await ctx.getAwsClient(e.region)) as AWS;
 
-        // check if volume still exists and delete
-        let rawVolume;
+        if (e.state == VolumeState.IN_USE) continue;
+
         try {
-          rawVolume = await this.getVolume(client.ec2client, e.volumeId);
-        } catch (e: any) {
-          if (e.Code == 'InvalidVolume.NotFound') continue;
-        }
-
-        if (rawVolume && rawVolume.VolumeId) {
-          // cannot delete volumes in use, let mapper detach it
-          if (rawVolume.State == VolumeState.IN_USE) continue;
-
-          await this.deleteVolume(client.ec2client, rawVolume.VolumeId);
+          await this.deleteVolume(client.ec2client, e.volumeId);
+        } catch (ex: any) {
+          if (ex.Code == 'InvalidVolume.NotFound') continue;
         }
       }
     },

@@ -342,21 +342,19 @@ export class InstanceMapper extends MapperBase<Instance> {
 
   // given an instance reads the mapping from the associate AMI , match
   // it with the current mapped volumes and generate the final mapping
-  async generateBlockDeviceMapping(ctx: Context, ami: string, instance: Instance, encrypted: boolean) {
+  async generateBlockDeviceMapping(
+    ctx: Context,
+    ami: string,
+    maps: InstanceBlockDeviceMapping[],
+    instance: Instance,
+    encrypted: boolean,
+  ) {
     // start reading the block device mapping from the image
     const client = await ctx.getAwsClient(instance.region);
     const amiImage = (await this.describeImages(client.ec2client, [ami]))?.Images?.pop();
 
     if (amiImage) {
       const mapping = amiImage.BlockDeviceMappings;
-
-      // a new created instance still does not have mapping, we need to search for one
-      const opts = {
-        where: {
-          instanceId: instance.id,
-        },
-      };
-      const maps: InstanceBlockDeviceMapping[] = await ctx.orm.find(InstanceBlockDeviceMapping, opts);
 
       // check if there is any mapped volume that doesn't exist on instance mapping, and error
       for (const dev of maps ?? []) {
@@ -369,11 +367,11 @@ export class InstanceMapper extends MapperBase<Instance> {
       const region = instance.region;
       for (const map of mapping ?? []) {
         console.log('i check map');
-        console.log(map);
+        console.log(map.DeviceName);
         // check if there is an associated volume for that instance, volume and device name
         const vol = maps?.find(item => item.deviceName == map.DeviceName);
         if (vol) {
-          console.log('i found');
+          console.log('i found matching device');
           console.log(vol);
 
           if (vol.volumeId) {
@@ -473,28 +471,6 @@ export class InstanceMapper extends MapperBase<Instance> {
           const maps: InstanceBlockDeviceMapping[] = await ctx.orm.find(InstanceBlockDeviceMapping, opts);
           console.log(maps);
 
-          for (const map of maps ?? []) {
-            console.log('i have previous map');
-            const region = instance.region;
-
-            // try to find volume and delete from db and cloud
-            if (map.deviceName && map.volumeId) {
-              console.log('i read volume from db');
-              const volumeObj: GeneralPurposeVolume = await ctx.orm.findOne(GeneralPurposeVolume, {
-                id: map.volumeId,
-              });
-              if (volumeObj) {
-                console.log('i have');
-                console.log(volumeObj);
-                // delete from cloud
-                await this.module.generalPurposeVolume.cloud.delete(volumeObj, ctx);
-              }
-              console.log('after deleting volume ');
-              await ctx.orm.remove(InstanceBlockDeviceMapping, map);
-              await ctx.orm.remove(GeneralPurposeVolume, volumeObj);
-            }
-          }
-
           const instanceParams: RunInstancesCommandInput = {
             ImageId: instance.ami,
             InstanceType: instance.instanceType,
@@ -523,15 +499,49 @@ export class InstanceMapper extends MapperBase<Instance> {
           }
 
           // get block device mapping parameter
+          console.log('i want to check mappings for');
+          console.log(maps);
           const mappings = await this.generateBlockDeviceMapping(
             ctx,
             amiId!,
+            maps ?? [],
             instance,
             instance.hibernationEnabled,
           );
           if (mappings) instanceParams.BlockDeviceMappings = mappings;
           console.log('mappings are');
           console.log(mappings);
+
+          let volumesReady = true;
+          for (const map of maps ?? []) {
+            const region = instance.region;
+
+            // try to find volume and delete from db and cloud
+            if (map.deviceName && map.volumeId) {
+              let volumeObj: GeneralPurposeVolume = await ctx.orm.findOne(GeneralPurposeVolume, {
+                id: map.volumeId,
+              });
+              if (!volumeObj.volumeId) {
+                // we need to skip instance creation as the previous volumes are not ready
+                console.log('volumes not yet ready');
+                volumesReady = false;
+                break;
+              }
+
+              console.log('i delete records from db');
+              console.log(map);
+              console.log(volumeObj);
+              try {
+                await ctx.orm.remove(InstanceBlockDeviceMapping, map);
+                await ctx.orm.remove(GeneralPurposeVolume, volumeObj);
+                await this.module.generalPurposeVolume.cloud.delete([volumeObj], ctx);
+              } catch (e) {
+                console.log('error removing from db');
+                console.log(e);
+              }
+            }
+          }
+          if (!volumesReady) continue;
 
           const instanceId = await this.newInstance(client.ec2client, instanceParams);
           if (!instanceId) {
