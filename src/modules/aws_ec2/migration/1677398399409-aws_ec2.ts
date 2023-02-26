@@ -1,11 +1,11 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class awsEc21677006830811 implements MigrationInterface {
-  name = 'awsEc21677006830811';
+export class awsEc21677398399409 implements MigrationInterface {
+  name = 'awsEc21677398399409';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
-      `CREATE TABLE "instance_block_device_mapping" ("id" SERIAL NOT NULL, "device_name" character varying NOT NULL, "instance_id" integer NOT NULL, "cloud_instance_id" character varying, "volume_id" integer, "cloud_volume_id" character varying, "region" character varying NOT NULL DEFAULT default_aws_region(), CONSTRAINT "PK_b798e916409eefb1193854452e4" PRIMARY KEY ("id")); COMMENT ON COLUMN "instance_block_device_mapping"."cloud_instance_id" IS 'Unique identifier provided by AWS once the instance is provisioned'; COMMENT ON COLUMN "instance_block_device_mapping"."cloud_volume_id" IS 'Unique identifier provided by AWS once the volume is provisioned'`,
+      `CREATE TABLE "instance_block_device_mapping" ("id" SERIAL NOT NULL, "device_name" character varying NOT NULL, "instance_id" integer NOT NULL, "cloud_instance_id" character varying, "volume_id" integer, "cloud_volume_id" character varying, "delete_on_termination" boolean NOT NULL DEFAULT true, "region" character varying NOT NULL DEFAULT default_aws_region(), CONSTRAINT "PK_b798e916409eefb1193854452e4" PRIMARY KEY ("id")); COMMENT ON COLUMN "instance_block_device_mapping"."cloud_instance_id" IS 'Unique identifier provided by AWS once the instance is provisioned'; COMMENT ON COLUMN "instance_block_device_mapping"."cloud_volume_id" IS 'Unique identifier provided by AWS once the volume is provisioned'`,
     );
     await queryRunner.query(
       `CREATE UNIQUE INDEX "IDX_33f2e790466c1e3603f32ff37b" ON "instance_block_device_mapping" ("volume_id") WHERE volume_id IS NOT NULL`,
@@ -30,7 +30,7 @@ export class awsEc21677006830811 implements MigrationInterface {
       `CREATE TYPE "public"."general_purpose_volume_state_enum" AS ENUM('available', 'creating', 'deleted', 'deleting', 'error', 'in-use')`,
     );
     await queryRunner.query(
-      `CREATE TABLE "general_purpose_volume" ("id" SERIAL NOT NULL, "volume_id" character varying, "volume_type" "public"."general_purpose_volume_volume_type_enum" NOT NULL, "size" integer NOT NULL DEFAULT '8', "state" "public"."general_purpose_volume_state_enum", "iops" integer, "throughput" integer, "snapshot_id" character varying, "delete_on_termination" boolean NOT NULL DEFAULT true, "tags" json, "region" character varying NOT NULL DEFAULT default_aws_region(), "availability_zone" character varying NOT NULL, CONSTRAINT "volume_id_region" UNIQUE ("id", "region"), CONSTRAINT "Check_gp_volume_size_min_max" CHECK ("size" > 0 AND "size" < 16385), CONSTRAINT "Check_gp_volume_iops" CHECK ("iops" is NULL OR ("iops" is NOT NULL AND (("volume_type" = 'gp3' AND "iops" <= 16000 AND "iops" >= 3000) OR ("volume_type" = 'gp2' AND "iops" > 0)))), CONSTRAINT "Check_gp_volume_throughput" CHECK ("throughput" IS NULL OR ("throughput" IS NOT NULL AND "volume_type" = 'gp3' AND "throughput" >= 125 AND "throughput" <= 1000)), CONSTRAINT "PK_ded6aa0f99ab2bc666ee032778e" PRIMARY KEY ("id"))`,
+      `CREATE TABLE "general_purpose_volume" ("id" SERIAL NOT NULL, "volume_id" character varying, "volume_type" "public"."general_purpose_volume_volume_type_enum" NOT NULL, "size" integer NOT NULL DEFAULT '8', "state" "public"."general_purpose_volume_state_enum", "iops" integer, "throughput" integer, "snapshot_id" character varying, "tags" json, "region" character varying NOT NULL DEFAULT default_aws_region(), "availability_zone" character varying NOT NULL, CONSTRAINT "volume_id_region" UNIQUE ("id", "region"), CONSTRAINT "Check_gp_volume_size_min_max" CHECK ("size" > 0 AND "size" < 16385), CONSTRAINT "Check_gp_volume_iops" CHECK ("iops" is NULL OR ("iops" is NOT NULL AND (("volume_type" = 'gp3' AND "iops" <= 16000 AND "iops" >= 3000) OR ("volume_type" = 'gp2' AND "iops" > 0)))), CONSTRAINT "Check_gp_volume_throughput" CHECK ("throughput" IS NULL OR ("throughput" IS NOT NULL AND "volume_type" = 'gp3' AND "throughput" >= 125 AND "throughput" <= 1000)), CONSTRAINT "PK_ded6aa0f99ab2bc666ee032778e" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
       `CREATE TABLE "instance_security_groups" ("instance_id" integer NOT NULL, "security_group_id" integer NOT NULL, CONSTRAINT "PK_8045eb55d2a16cf6e4cf80e7ee5" PRIMARY KEY ("instance_id", "security_group_id"))`,

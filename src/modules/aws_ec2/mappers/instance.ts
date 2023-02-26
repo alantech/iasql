@@ -135,6 +135,7 @@ export class InstanceMapper extends MapperBase<Instance> {
             cloudInstanceId: instance.InstanceId,
             cloudVolumeId: map.Ebs.VolumeId,
             region: region,
+            deleteOnTermination: map.Ebs.DeleteOnTermination ?? true,
           };
           vol.push(entry);
         }
@@ -388,7 +389,7 @@ export class InstanceMapper extends MapperBase<Instance> {
                 throw new Error('Volume and instance must be on the same availability zone');
               // map it to the ebs mapping
               map.Ebs = {
-                DeleteOnTermination: volObj.deleteOnTermination,
+                DeleteOnTermination: vol.deleteOnTermination,
                 Iops: volObj.volumeType != GeneralPurposeVolumeType.GP2 ? volObj.iops : undefined,
                 SnapshotId: (volObj.snapshotId ?? '').length > 0 ? volObj.snapshotId : map.Ebs?.SnapshotId,
                 VolumeSize: volObj.size,
@@ -578,6 +579,7 @@ export class InstanceMapper extends MapperBase<Instance> {
                     volume: volFromDb,
                     cloudVolumeId: map.Ebs.VolumeId,
                     region: region,
+                    deleteOnTermination: map.Ebs.DeleteOnTermination ?? true,
                   };
                   console.log(newMap);
                   await this.module.instanceBlockDeviceMapping.db.create(newMap, ctx);
@@ -720,7 +722,8 @@ export class InstanceMapper extends MapperBase<Instance> {
             console.log('obj is');
             console.log(volObj);
 
-            if (volObj && volObj.deleteOnTermination) {
+            // check if volume will be removed on termination
+            if (map.Ebs.DeleteOnTermination) {
               console.log('i wait until terminated');
               await this.waitUntilDeleted(client.ec2client, map.Ebs.VolumeId);
               await this.module.generalPurposeVolume.db.delete(volObj, ctx);
