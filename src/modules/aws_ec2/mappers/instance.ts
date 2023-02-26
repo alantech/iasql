@@ -706,20 +706,6 @@ export class InstanceMapper extends MapperBase<Instance> {
           // find related volume
           console.log(map);
           if (map.DeviceName && map.Ebs?.VolumeId) {
-            // read map object
-            const mapId = this.module.instanceBlockDeviceMapping.generateId({
-              cloudInstanceId: entity.instanceId,
-              cloudVolumeId: map.Ebs.VolumeId,
-              region: region,
-            });
-            console.log('generated id is');
-            console.log(mapId);
-            const mapObj = await this.module.instanceBlockDeviceMapping.cloud.read(ctx, mapId);
-            console.log(mapObj);
-            await this.module.instanceBlockDeviceMapping.cloud.delete(mapObj, ctx);
-            await this.module.instanceBlockDeviceMapping.db.delete(mapObj, ctx);
-            console.log('after map deletion in cloud');
-
             // delete volume if needed
             const volId = this.module.generalPurposeVolume.generateId({
               volumeId: map.Ebs.VolumeId,
@@ -728,7 +714,9 @@ export class InstanceMapper extends MapperBase<Instance> {
             console.log('vol id is');
             console.log(volId);
 
-            const volObj = await this.module.generalPurposeVolume.cloud.read(ctx, volId);
+            const volObj =
+              (await this.module.generalPurposeVolume.cloud.read(ctx, volId)) ??
+              (await this.module.generalPurposeVolume.db.read(ctx, volId));
             console.log('obj is');
             console.log(volObj);
 
