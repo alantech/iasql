@@ -1,0 +1,32 @@
+name: Build Docker image in different arch
+
+on:
+  push:
+    branches: [main, build-arch]
+    paths: ['Dockerfile']
+  pull_request:
+    branches: [main]
+    paths: ['Dockerfile']
+
+jobs:
+  build:
+    name: Build Docker image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v3
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: false
+          platforms: linux/amd64,linux/arm64
+          tags: iasql/iasql:latest, iasql/iasql:${{ github.event.client_payload.version }}${{ github.event.client_payload.message.version }}${{ github.event.inputs.version }}
+          labels: ${{ steps.meta.outputs.labels }}
