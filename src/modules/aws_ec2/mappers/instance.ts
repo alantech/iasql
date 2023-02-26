@@ -673,8 +673,9 @@ export class InstanceMapper extends MapperBase<Instance> {
           }
           out.push(e);
         } else {
-          const created = await this.module.instance.cloud.create(e, ctx);
+          // need to delete previous instance before so block device mapping gets cleared
           await this.module.instance.cloud.delete(cloudRecord, ctx);
+          const created = await this.module.instance.cloud.create(e, ctx);
           if (!!created && created instanceof Array) {
             out.push(...created);
           } else if (!!created) {
