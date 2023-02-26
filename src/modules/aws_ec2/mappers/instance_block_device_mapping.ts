@@ -222,21 +222,17 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
         const cloudRecord = ctx?.memo?.cloud?.InstanceBlockDeviceMapping?.[this.entityId(e)];
 
         if (e.deleteOnTermination != cloudRecord.deleteOnTermination) {
-          // we need to update the delete on termination
-          if (e.cloudInstanceId) {
-            const mapping = {
-              DeviceName: e.deviceName,
-              Ebs: {
-                DeleteOnTermination: e.deleteOnTermination,
-                VolumeId: e.cloudVolumeId,
-              },
-            };
+          // we need to update the delete on termination for that specific device
+          const mappings = await this.module.instance.getInstanceBlockDeviceMapping(
+            client.ec2client,
+            e.cloudInstanceId,
+          );
+          for (const map of mappings ?? []) {
+            if (map.DeviceName == e.deviceName && map.Ebs?.VolumeId == e.cloudVolumeId)
+              map.Ebs!.DeleteOnTermination = e.deleteOnTermination;
             console.log('i modify delete on termination');
-            console.log(e);
-            const result = await this.modifyBlockDeviceMapping(client.ec2client, {
-              InstanceId: e.cloudInstanceId,
-              BlockDeviceMapping: mapping,
-            });
+            console.log(mappings);
+            const result = await this.modifyBlockDeviceMapping(client.ec2client, mappings);
             if (result) out.push(e);
           }
         } else {
