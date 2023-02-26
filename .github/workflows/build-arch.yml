@@ -3,10 +3,10 @@ name: Build Docker image in different arch
 on:
   push:
     branches: [main, build-arch]
-    paths: ['Dockerfile']
+    paths: ['Dockerfile', '.github/workflows/build-arch.yml']
   pull_request:
     branches: [main]
-    paths: ['Dockerfile']
+    paths: ['Dockerfile', '.github/workflows/build-arch.yml']
 
 jobs:
   build:
