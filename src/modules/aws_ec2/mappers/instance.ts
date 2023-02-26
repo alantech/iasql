@@ -721,8 +721,9 @@ export class InstanceMapper extends MapperBase<Instance> {
             if (map.Ebs.DeleteOnTermination) {
               console.log('i wait until terminated');
               await this.waitUntilDeleted(client.ec2client, map.Ebs.VolumeId);
+              console.log('i have been deleted');
               await this.module.generalPurposeVolume.db.delete(volObj, ctx);
-              console.log('after');
+              console.log('after volume delete');
             }
           }
         }
