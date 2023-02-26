@@ -497,9 +497,9 @@ describe('EC2 Integration Testing', () => {
     'check number of volumes',
     query(
       `
-    SELECT id FROM volume INNER JOIN instance_block_device_mapping
-    ON volume.id=instance_block_device_mapping.volume_id
-    WHERE instance_block_device_mapping.instance_id=(SELECT id FROM instance
+    SELECT general_purpose_volume.id FROM general_purpose_volume INNER JOIN instance_block_device_mapping
+    ON general_purpose_volume.id=instance_block_device_mapping.volume_id
+    WHERE instance_block_device_mapping.instance_id IN (SELECT instance.id FROM instance
     WHERE (instance.tags ->> 'name' = '${prefix}-1' OR
       instance.tags ->> 'name' = '${prefix}-2') AND region='${region}');
   `,
@@ -1182,9 +1182,9 @@ describe('EC2 Integration Testing', () => {
     'check number of volumes',
     query(
       `
-    SELECT id FROM volume INNER JOIN instance_block_device_mapping
-    ON volume.id=instance_block_device_mapping.volume_id
-    WHERE instance_block_device_Mapping.instance_id=(SELECT id FROM instance
+    SELECT general_purpose_volume.id FROM general_purpose_volume INNER JOIN instance_block_device_mapping
+    ON general_purpose_volume.id=instance_block_device_mapping.volume_id
+    WHERE instance_block_device_mapping.instance_id IN(SELECT instance.id FROM instance
       WHERE (instance.tags ->> 'name' = '${prefix}-1' OR
       instance.tags ->> 'name' = '${prefix}-2') AND region='${region}');
   `,
