@@ -148,15 +148,6 @@ export class GeneralPurposeVolume {
 
   /**
    * @public
-   * Indicates whether the EBS volume is deleted on instance termination
-   */
-  @Column({
-    default: true,
-  })
-  deleteOnTermination: boolean;
-
-  /**
-   * @public
    * Complex type to provide identifier tags for the volume
    * @see https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-ec2/interfaces/createvolumecommandinput.html#tagspecifications
    */

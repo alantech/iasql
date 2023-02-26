@@ -79,6 +79,15 @@ export class InstanceBlockDeviceMapping {
 
   /**
    * @public
+   * Indicates whether the EBS volume is deleted on instance termination
+   */
+  @Column({
+    default: true,
+  })
+  deleteOnTermination: boolean;
+
+  /**
+   * @public
    * Region for the block device mapping
    */
   @Column({

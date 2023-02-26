@@ -11,7 +11,7 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
   module: AwsEc2Module;
   entity = InstanceBlockDeviceMapping;
   equals = (a: InstanceBlockDeviceMapping, b: InstanceBlockDeviceMapping) => {
-    return Object.is(a.deviceName, b.deviceName);
+    return Object.is(a.deviceName, b.deviceName) && Object.is(a.deleteOnTermination, b.deleteOnTermination);
   };
 
   attachVolumeInternal = crudBuilder2<EC2, 'attachVolume'>(
@@ -20,6 +20,14 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
       VolumeId,
       InstanceId,
       Device,
+    }),
+  );
+
+  modifyBlockDeviceMapping = crudBuilder2<EC2, 'modifyInstanceAttribute'>(
+    'modifyInstanceAttribute',
+    (InstanceId, BlockDeviceMappings) => ({
+      InstanceId,
+      BlockDeviceMappings,
     }),
   );
 
@@ -89,10 +97,20 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
           e.deviceName,
         );
 
-        // add missing fields
-        e.cloudInstanceId = instance.instanceId;
-        e.cloudVolumeId = volume.volumeId;
-        if (result) out.push(e);
+        if (result) {
+          const map: InstanceBlockDeviceMapping = {
+            deviceName: e.deviceName,
+            instanceId: e.instanceId,
+            instance: instance,
+            volumeId: e.volumeId,
+            volume: volume,
+            region: e.region,
+            cloudInstanceId: instance.instanceId,
+            cloudVolumeId: volume.volumeId,
+            deleteOnTermination: e.deleteOnTermination,
+          };
+          out.push(map);
+        }
       }
       return out;
     },
@@ -138,6 +156,7 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
                 cloudInstanceId: instanceId,
                 cloudVolumeId: volumeId,
                 region: region,
+                deleteOnTermination: map.Ebs.DeleteOnTermination ?? true,
               };
               console.log('i return');
               console.log(res);
@@ -185,6 +204,7 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
                     cloudInstanceId: i.InstanceId,
                     cloudVolumeId: map.Ebs.VolumeId,
                     region: region,
+                    deleteOnTermination: map.Ebs.DeleteOnTermination ?? true,
                   };
                   out.push(res);
                 }
@@ -196,11 +216,36 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
       }
     },
     update: async (es: InstanceBlockDeviceMapping[], ctx: Context) => {
-      const out: InstanceBlockDeviceMapping[] = [];
+      const out = [];
       for (const e of es) {
-        // the only case for update is to change the device name, we will need to delete and recreate
-        await this.module.instanceBlockDeviceMapping.cloud.delete(e, ctx);
-        await this.module.instanceBlockDeviceMapping.cloud.create(e, ctx);
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
+        const cloudRecord = ctx?.memo?.cloud?.InstanceBlockDeviceMapping?.[this.entityId(e)];
+
+        if (e.deleteOnTermination != cloudRecord.deleteOnTermination) {
+          // we need to update the delete on termination
+          if (e.cloudInstanceId) {
+            const mapping = {
+              DeviceName: e.deviceName,
+              Ebs: {
+                DeleteOnTermination: e.deleteOnTermination,
+                VolumeId: e.cloudVolumeId,
+              },
+            };
+            console.log('i modify delete on termination');
+            console.log(e);
+            const result = await this.modifyBlockDeviceMapping(client.ec2client, {
+              InstanceId: e.cloudInstanceId,
+              BlockDeviceMapping: mapping,
+            });
+            if (result) out.push(e);
+          }
+        } else {
+          // the only case for update is to change the device name, we will need to delete and recreate
+          await this.module.instanceBlockDeviceMapping.cloud.delete(e, ctx);
+          const newMap = await this.module.instanceBlockDeviceMapping.cloud.create(e, ctx);
+          if (!newMap) continue;
+          out.push(e);
+        }
       }
       return out;
     },
