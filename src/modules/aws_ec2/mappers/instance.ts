@@ -408,7 +408,7 @@ export class InstanceMapper extends MapperBase<Instance> {
             map.Ebs = undefined;
             map.NoDevice = '';
           }
-        }
+        } else map.Ebs!.Encrypted = encrypted; // just modify the encrypted flag
       }
       console.log(mapping);
       return mapping;
