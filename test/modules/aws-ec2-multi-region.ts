@@ -405,11 +405,6 @@ describe('EC2 Integration Testing', () => {
       availability_zone = 'us-east-1a'
     WHERE tags ->> 'name' = '${prefix}-1';
 
-    -- Re-attaching of the volume. But it is given a different name since /dev/xvda is reserved for
-    -- the initial boot volume and can't be re-used here. Technically an equivalent version of this
-    -- volume is automatically re-attached by the new instance being brought up.
-    UPDATE instance_block_device_mapping SET device_name = '/dev/xvdb' WHERE instance_id = ( SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1');
-
     -- Also need to drop the security groups it is currently attached to. This is done with a join
     -- table so we get no good constraint checking on the validity here at the moment
     DELETE FROM instance_security_groups WHERE instance_id = (
@@ -432,10 +427,10 @@ describe('EC2 Integration Testing', () => {
     'attaches initial volume to the new instance',
     query(
       `
-      INSERT INTO instance_block_device_mapping (device_name, instance_id, volume_id, region) VALUES
-      ('/dev/xvdb', (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'),
-      (SELECT id FROM general_purpose_volume WHERE tags ->> 'name' = '${prefix}-1'),
-      'us-east-1');    
+      -- Re-attaching of the volume. But it is given a different name since /dev/xvda is reserved for
+      -- the initial boot volume and can't be re-used here. Technically an equivalent version of this
+      -- volume is automatically re-attached by the new instance being brought up.
+      UPDATE instance_block_device_mapping SET device_name = '/dev/xvdb' WHERE instance_id = ( SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1');
   `,
       undefined,
       true,
