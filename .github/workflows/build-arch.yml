@@ -28,16 +28,26 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push
-        uses: docker/build-push-action@v4
+      # - name: Build and push
+      #   uses: docker/build-push-action@v4
+      #   with:
+      #     context: .
+      #     push: true
+      #     platforms: linux/amd64,linux/arm64
+      #     tags: ghcr.io/iasql/iasql:${{ github.sha }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
         with:
-          context: .
-          push: true
-          platforms: linux/amd64,linux/arm64
-          tags: ghcr.io/iasql/iasql:${{ github.sha }}
+          platforms: linux/arm64
 
       - name: Docker run
+        env:
+          ARCH: ${{runner.arch}}
         run: |
+          echo $ARCH
           # Spin up IaSQL container and a postgres instance
-          docker run -p 9876:9876 -p 5432:5432 -e IASQL_ENV=ci --name iasql ghcr.io/iasql/iasql:$GITHUB_SHA &
+          # docker run -p 9876:9876 -p 5432:5432 -e IASQL_ENV=ci --name iasql ghcr.io/iasql/iasql:$GITHUB_SHA &
+          docker run --platform linux/arm64 -p 9876:9876 -p 5432:5432 -e IASQL_ENV=ci --name iasql ghcr.io/iasql/iasql:cf7089ae5d373379a258a220940ed64435a58033 &
           while ! psql postgres://postgres:test@localhost:5432/iasql_metadata -b -q -c "SELECT iasql_engine_health()"; do sleep 1 && echo -n .; done;
+          docker inspect iasql:cf7089ae5d373379a258a220940ed64435a58033
