@@ -429,8 +429,9 @@ describe('EC2 Integration Testing', () => {
       `
       -- Re-attaching of the volume. But it is given a different name since /dev/xvda is reserved for
       -- the initial boot volume and can't be re-used here. Technically an equivalent version of this
-      -- volume is automatically re-attached by the new instance being brought up.
-      UPDATE instance_block_device_mapping SET device_name = '/dev/xvdb' WHERE instance_id = ( SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1');
+      -- volume is automatically re-attached by the new instance being brought up. 
+      INSERT INTO instance_block_device_mapping (device_name, instance_id, volume_id, region) VALUES ('/dev/xvdb', 
+      ( SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'), (SELECT id FROM general_purpose_volume WHERE tags ->> 'name' = '${prefix}-1'), 'us-east-1');
   `,
       undefined,
       true,

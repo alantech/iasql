@@ -213,7 +213,11 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
             },
           ];
         }
+        console.log('In creating the volume');
+        console.log(input);
         const newVolumeId = await this.createVolume(client.ec2client, input);
+        console.log('after creating the volume');
+        console.log(newVolumeId);
         // Re-get the inserted record to get all of the relevant records we care about
         const newObject = await this.getVolume(client.ec2client, newVolumeId);
         console.log('i created the volume');
