@@ -30,7 +30,7 @@ jobs:
             echo "GH_SHA=$COMMIT_SHA" >> $GITHUB_ENV
           fi
         env:
-          COMMIT_SHA: ${{ inputs.commit_sha }}
+          COMMIT_SHA: 69a04a77a9909311b9d0a39f471d590c672c5aeb
 
       - uses: actions/checkout@v3
         with:
