@@ -236,7 +236,7 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
               map.Ebs!.DeleteOnTermination = e.deleteOnTermination;
             console.log('i modify delete on termination');
             console.log(mappings);
-            const result = await this.modifyBlockDeviceMapping(client.ec2client, mappings);
+            const result = await this.modifyBlockDeviceMapping(client.ec2client, e.cloudInstanceId, mappings);
             if (result) out.push(e);
           }
         } else {
