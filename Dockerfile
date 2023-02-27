@@ -47,7 +47,7 @@ FROM build AS dashboard-stage
 WORKDIR /dashboard
 
 ## Install stage dependencies
-COPY dashboard/package.json dashboard/yarn.lock ./
+COPY .yarnrc dashboard/package.json dashboard/yarn.lock ./
 RUN yarn install --frozen-lockfile
 
 ## Copy files

@@ -1,0 +1,71 @@
+name: Build Docker linux/arm64 image
+
+on:
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: Commit SHA
+        required: false
+        type: string
+  push:
+    branches: [main]
+    paths: ['Dockerfile', '.github/workflows/build-arch.yml', 'yarn.lock', 'dashboard/yarn.lock']
+  pull_request:
+    branches: [main]
+    paths: ['Dockerfile', '.github/workflows/build-arch.yml', 'yarn.lock', 'dashboard/yarn.lock']
+
+jobs:
+  build:
+    name: Build Docker linux/arm64 image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set SHA
+        shell: bash
+        run: |
+          if [ "$COMMIT_SHA" == "" ]; then
+            echo "GH_SHA=$GITHUB_SHA" >> $GITHUB_ENV
+          else
+            echo "GH_SHA=$COMMIT_SHA" >> $GITHUB_ENV
+          fi
+        env:
+          COMMIT_SHA: ${{ inputs.commit_sha }}
+
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{env.GH_SHA}}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          platforms: linux/arm64
+          tags: ghcr.io/iasql/iasql:${{ env.GH_SHA }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+        with:
+          platforms: linux/arm64
+
+      - name: Docker run
+        timeout-minutes: 5
+        run: |
+          # Spin up IaSQL container and a postgres instance
+          docker pull --platform linux/arm64 ghcr.io/iasql/iasql:$GH_SHA
+          docker run --platform linux/arm64 -p 9876:9876 -p 5432:5432 -e IASQL_ENV=ci --name iasql ghcr.io/iasql/iasql:$GH_SHA &
+          docker inspect ghcr.io/iasql/iasql:$GH_SHA --format "{{.Id}} {{.Architecture}}"
+          while ! psql postgres://postgres:test@localhost:5432/iasql_metadata -b -q -c "SELECT iasql_engine_health()"; do sleep 1 && echo -n .; done;
