@@ -24,6 +24,8 @@ Now you can connect your AWS account in the dashboard. This will create a new da
 If you'd prefer to use a hosted version, and not to run a local version of IaSQL, you can visit [app.iasql.com](https://app.iasql.com/) to use our SaaS solution.
 
 ### Deploy IaSQL on EC2 with IaSQL
+
+#### Overview
 Let's begin by taking an overview of what we're going to do to give you a general idea of the parts that are going to be deployed, before we move on to explore the specifics.
 
 To deploy IaSQL on EC2, we need to:
@@ -33,12 +35,16 @@ To deploy IaSQL on EC2, we need to:
 - Import an SSH key pair into AWS to be able to access the EC2 instance afterwards
 - Set a security group for the instance to allow SSH, while disallowing unauthorized access to the dashboard
 
-{diagram here}
+<img src={"/img/iasql-on-ec2.png"} alt={"IaSQL dashboard"} />
+
+#### Install IaSQL Modules
 
 Let's start by installing the needed IaSQL modules. IaSQL has a modular design, and therefore to manage EC2 instances, we need to use [`aws_ec2` module](https://iasql.com/docs/modules/aws/aws_ec2/. Also, [`aws_ec2_metadata`](https://iasql.com/docs/modules/aws/aws_ec2_metadata/) allows us to get more info on our EC2 instance, like its public IP.
 ```sql
 SELECT * FROM iasql_install('aws_ec2', 'aws_ec2_metadata');
 ```
+
+#### Import SSH Key Pair Into AWS
 
 If you want to be able to access the instance through SSH, you can import your public key into AWS by executing the following IaSQL RPC:
 ```sql
@@ -48,8 +54,10 @@ SELECT * FROM key_pair_import('iasql', '<your-public-key-content>', 'us-east-1')
 This will direct IaSQL to create an [AWS key pair](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/create-key-pairs.html#how-to-generate-your-own-key-and-import-it-to-aws) with the name `iasql` in the `us-east-1` region, and with your public key contents.
 
 :::note
-An IaSQL RPC is a function defined in Postgres that upon calling, sends a request to the IaSQL engine to run a pre-define logic and returns results to the Postgres console. In the above example [`key_pair_import`](https://iasql.com/docs/modules/aws/tables/aws_ec2_rpcs_import.KeyPairImportRpc/) is an IaSQL RPC that triggers the IaSQL engine to send a request to AWS for importing the public key.
+An IaSQL RPC is a function available in Postgres that upon calling, sends a request to the IaSQL engine to run a pre-define logic and returns results to the Postgres console. In the above example [`key_pair_import`](https://iasql.com/docs/modules/aws/tables/aws_ec2_rpcs_import.KeyPairImportRpc/) is an IaSQL RPC that triggers the IaSQL engine to send a request to AWS for importing the public key.
 :::
+
+#### Create And Configure Security Group
 
 Now it's time to launch our EC2 instance. Before we go for the instance itself, let's first define the security group that's going to be attached to it. For this purpose, we'll need [`aws_security_group`](https://iasql.com/docs/modules/aws/aws_security_group/) module. But since `aws_ec2` module depends on it, it's already installed because IaSQL automatically installs the dependencies for modules upon an `iasql_install` call.
 
@@ -59,35 +67,37 @@ Now it's time to launch our EC2 instance. Before we go for the instance itself, 
 INSERT INTO security_group (description, group_name)
 VALUES ('IaSQL security group', 'iasql_sg');
 
-INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
-SELECT t.is_egress,
-       t.ip_protocol,
-       t.from_port,
-       t.to_port,
-       t.cidr_ipv4::cidr,
-       t.description,
-       security_group.id
-FROM security_group,
-     (VALUES (FALSE, 'tcp', 22, 22, '0.0.0.0/0', 'ssh port is accessible from all ips'),
-             (FALSE, 'tcp', 9879, 9879, '<your-ip>/0', 'open dashboard to just me'),
-             (FALSE, 'tcp', 5432, 5432, '0.0.0.0/0', 'postgres port is accessible from all ips'),
-             (TRUE, 'tcp', 1, 65535, '0.0.0.0/0',
-              'allow outgoing traffic to anywhere')) AS t (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description)
-WHERE security_group.group_name = 'iasql_sg';
+WITH sg as (SELECT id
+            FROM security_group
+            WHERE group_name = 'iasql_sg')
+INSERT
+INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
+VALUES (FALSE, 'tcp', 22, 22, '0.0.0.0/0', 'ssh port is accessible from all ips', (SELECT id FROM sg)),
+       (FALSE, 'tcp', 9879, 9879, '<your-ip>/0', 'open dashboard to just me', (SELECT id FROM sg)),
+       (FALSE, 'tcp', 5432, 5432, '0.0.0.0/0', 'postgres port is accessible from all ips', (SELECT id FROM sg)),
+       (TRUE, 'tcp', 1, 65535, '0.0.0.0/0', 'allow outgoing traffic to anywhere', (SELECT id FROM sg));
 ```
-The first query simply creates a security group named `iasql_sg`. The second query seems a bit hard at the first sight, but it can be re-written as multiple `INSERT` queries:
+The first query simply creates a security group named `iasql_sg`. The second query uses a [`WITH` Postgres query](https://www.postgresql.org/docs/current/queries-with.html) to select the `id` of our security group to be used later in the `INSERT` query. The `WITH` query can be though of as a temporary table that exists just for one query. By use of `WITH` we can simplify our query and preload the `id` value from the `security_group` table. We could've written the query using [subqueries](https://www.postgresql.org/docs/current/functions-subquery.html) as follows, but that way we should've repeated the `SELECT id FROM security_group WHERE ...` part for each set of values:
 ```sql
 INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
 VALUES (FALSE, 'tcp', 22, 22, '0.0.0.0/0', 'ssh port is accessible from all ips',
+        (SELECT id FROM security_group WHERE group_name = 'iasql_sg')),
+       (FALSE, 'tcp', 9879, 9879, '<your-ip>/0', 'open dashboard to just me',
+        (SELECT id FROM security_group WHERE group_name = 'iasql_sg')),
+       (FALSE, 'tcp', 5432, 5432, '0.0.0.0/0', 'postgres port is accessible from all ips',
+        (SELECT id FROM security_group WHERE group_name = 'iasql_sg')),
+       (TRUE, 'tcp', 1, 65535, '0.0.0.0/0', 'allow outgoing traffic to anywhere',
         (SELECT id FROM security_group WHERE group_name = 'iasql_sg'));
 ```
-The reason we've written it that way is to avoid repeating the inner `SELECT id FROM security_group` query four times. The `security_group_id` column has an FK set to the `security_group` table's `id` column. Therefore, we need to insert the correct `id` for the security group we just created.
+The `security_group_id` column has an FK set to the `security_group` table's `id` column. Therefore, we need to insert the correct `id` for the security group we just created.
 
+:::warning
 Since the IaSQL dashboard does not have a default authorization mechanism set, remember to replace `<your-ip>` value in the above queries with your own IP address.
 
-:::info
 You can find your current IP address by visiting [api.ipify.org](https://api.ipify.org/). Just remember that most internet users don't have a static IP address and your IP address will be changed each time your router reconnects.
 :::
+
+#### Launch EC2 Instance
 
 It's now time to actually create the EC2 instance. We'll issue a query as follows to do so:
 
@@ -127,6 +137,8 @@ For example, you could use `resolve:ssm:/my/parameter/path` to reference a param
 - `key_pair_name`: AWS accepts a key pair for the instance. It can be used to log into the instance through SSH. We'll use the `iasql` key pair we initially created using `key_pair_import` RPC.
 - `region`: we can choose the [AWS region](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.RegionsAndAvailabilityZones.html#Concepts.RegionsAndAvailabilityZones.Availability) in which the instance will be launched. IaSQL is already multi-region, which means it'll manage your resources in all the regions. So this additional `region` column can be used to determine which region the instance is in, and while `INSERT`ing used to direct IaSQL to create the instance in that region.
 
+##### Bash Startup Script
+
 Alright, we can now write our query to deploy IaSQL on EC2. Let's first write the query with EC2 startup script being a shell script, and then write the query with same functionality using [cloud-init](https://cloud-init.io/) directives.
 
 ```sql
@@ -136,11 +148,10 @@ SELECT 'resolve:ssm:/aws/service/canonical/ubuntu/server/22.04/stable/current/am
        subnet.id,
        '{"name":"iasql"}',
        '#!/bin/bash
-     curl -fsSL https://get.docker.com -o get-docker.sh
      sudo apt-get upgrade -y
+     curl -fsSL https://get.docker.com -o get-docker.sh
      sudo sh get-docker.sh
-     docker run -p 9876:9876 -p 5432:5432 --name iasql iasql/iasql
-     ',
+     docker run -p 9876:9876 -p 5432:5432 --name iasql iasql/iasql',
        'iasql',
        'us-east-1'
 FROM subnet
@@ -178,7 +189,71 @@ WHERE id = (SELECT id
 
 Now we can go to `http://<instance-ip>:9876/` URL, and we'll see the beautiful IaSQL dashboard deployed on our EC2 server.
 
-### TODO: add cloud-init script.
+##### Cloud-init Directives
+Now let's use cloud-init directives to do the same thing. This part is not exactly related to IaSQL, or what we intended to do in this post. It's just an exploration for other choices we have with EC2 user data field.
+
+For the previous part, we used the following bash script as the `user_data` column in the `instance` table:
+```bash
+#!/bin/bash
+sudo apt-get upgrade -y
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
+docker run -p 9876:9876 -p 5432:5432 --name iasql iasql/iasql
+```
+The `user_data` field [can directly take](https://cloudinit.readthedocs.io/en/latest/explanation/format.html#user-data-script) bash scripts, as above, and also it can contain [cloud-init](https://cloud-init.io/) directives. Let's first break the above script down to see what exactly it does:
+- `sudo apt-get upgrade -y`: used to install the newest versions of all packages currently installed on the system
+- `curl -fsSL https://get.docker.com -o get-docker.sh`: download the Docker install script, then it's executed by `sudo sh get-docker.sh`
+- `docker run -p 9876:9876 -p 5432:5432 --name iasql iasql/iasql`: run the IaSQL container
+Knowing the intent of each command, it's not hard to do the same functionality using `cloud-init`.
+```yaml
+#cloud-config
+package_update: true # apt-get update - this was in the `get-docker.sh` script so we didn't manually run it in our script
+package_upgrade: true # apt-get upgrade
+apt:
+  sources:
+    docker.list: # add the docker source for the package manager
+      source: deb [arch=amd64] https://download.docker.com/linux/ubuntu $RELEASE stable
+      keyid: 9DC858229FC7DD38854AE2D88D81803C0EBFCD88
+packages: # make sure docker is installed
+  - docker-ce
+  - docker-ce-cli
+runcmd: # simply run docker run command
+  - docker run -p 9876:9876 -p 5432:5432 --name iasql iasql/iasql
+```
+So why bother ourselves writing the above YAML file instead of simply using bash scripts? One advantage is that `cloud-init` directives translate to distro-compatible commands. We were using Ubuntu 22.04 as our EC2's OS (by selecting the corresponding AMI), therefore the `apt-get update` command would've worked on the server. But that's not always the case, and we might want our `user_data` script to work cross-distro without having to write complex if-else conditional statements in bash.
+
+:::note
+That if-else way is basically what the `get-docker.sh` script is doing:
+```bash
+# a part of get-docker.sh script - changed to make the statements easier to follow
+case "$lsb_dist" in
+  ubuntu|debian|raspbian)
+    # uses apt-get
+  centos|fedora|rhel)
+    # uses dnf or yum to install packages
+    if [ "$lsb_dist" = "fedora" ]; then
+      pkg_manager="dnf"
+    else
+      pkg_manager="yum"
+    fi
+  sles)
+    # uses zypper to install packages
+    $sh_c "zypper -q install -y $pkgs"
+  *)
+    # the script won't work on macos
+    if is_darwin; then
+      echo "ERROR: Unsupported operating system 'macOS'"
+      echo "Please get Docker Desktop from https://www.docker.com/products/docker-desktop"
+    fi
+esac
+```
+:::
+
+Good thing about cloud-init is that it's widely supported: you can use it on GCP, AWS, DigitalOcean, and many other cloud providers to provision your servers.
+
+:::note
+If you want to see examples of cloud-init, [this video](https://www.youtube.com/watch?v=-zL3BdbKyGY) and [this article](https://www.digitalocean.com/community/tutorials/an-introduction-to-cloud-config-scripting) might be a good starting point.
+:::
 
 ### Next Steps
 In this post, we deployed IaSQL on EC2 server with just using IaSQL and PostgreSQL queries. We'll continue this post with example deployments of other famous apps from now on. Deploying them won't be any harder than this one!
