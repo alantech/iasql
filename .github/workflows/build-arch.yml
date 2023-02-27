@@ -48,8 +48,9 @@ jobs:
           echo $ARCH
           # Spin up IaSQL container and a postgres instance
           # docker run -p 9876:9876 -p 5432:5432 -e IASQL_ENV=ci --name iasql ghcr.io/iasql/iasql:$GITHUB_SHA &
+          docker pull --platform linux/arm64 ghcr.io/iasql/iasql:cf7089ae5d373379a258a220940ed64435a58033
           docker run --platform linux/arm64 -p 9876:9876 -p 5432:5432 -e IASQL_ENV=ci --name iasql ghcr.io/iasql/iasql:cf7089ae5d373379a258a220940ed64435a58033 &
-          sleep 10
           docker inspect iasql:cf7089ae5d373379a258a220940ed64435a58033
+          sleep 60
           docker logs iasql
           # while ! psql postgres://postgres:test@localhost:5432/iasql_metadata -b -q -c "SELECT iasql_engine_health()"; do sleep 1 && echo -n .; done;
