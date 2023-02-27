@@ -21,7 +21,7 @@ export function useAuth() {
       Sentry.identify(config, user.sub, user.email);
       Posthog.identify(config, user.sub);
     }
-    const { audience, scope } = config?.auth;
+    const { audience, scope } = config?.auth?.authorizationParams;
     if (isAuthenticated && !token)
       getAccessTokenSilently({
         audience,

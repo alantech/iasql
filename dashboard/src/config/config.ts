@@ -6,9 +6,11 @@ export interface ConfigInterface {
   auth?: {
     domain: string;
     clientId: string;
-    redirectUri: string;
-    scope: string;
-    audience: string;
+    authorizationParams: {
+      audience: string;
+      redirect_uri: string;
+      scope: string;
+    };
     useRefreshTokens: boolean;
   };
   posthog?: {

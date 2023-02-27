@@ -8,9 +8,11 @@ const staging: ConfigInterface = !!global.window
       auth: {
         domain: 'https://auth-staging.iasql.com',
         clientId: 'OLziMRcBX7XN0ZNSkOcQW4XPufTdWR7l',
-        redirectUri: window.location.origin,
-        scope: 'read:current_user',
-        audience: 'https://api-staging.iasql.com',
+        authorizationParams: {
+          redirect_uri: window.location.origin,
+          scope: 'read:current_user',
+          audience: 'https://api-staging.iasql.com',
+        },
         useRefreshTokens: true,
       },
       posthog: {
@@ -24,7 +26,7 @@ const staging: ConfigInterface = !!global.window
       engine: {
         pgHost: 'pg-staging.iasql.com',
         pgForceSsl: true,
-        backendUrl: 'https://run-staging.iasql.com',
+        backendUrl: 'https://app-staging.iasql.com/api/run',
       },
     }
   : ({} as ConfigInterface);

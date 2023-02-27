@@ -8,9 +8,11 @@ const production: ConfigInterface = !!global.window
       auth: {
         domain: 'https://auth.iasql.com',
         clientId: 'OLQAngfr1LnenTt6wmQOYKmzx1c1dSxg',
-        redirectUri: window.location.origin,
-        scope: 'read:current_user',
-        audience: 'https://api.iasql.com',
+        authorizationParams: {
+          redirect_uri: window.location.origin,
+          scope: 'read:current_user',
+          audience: 'https://api.iasql.com',
+        },
         useRefreshTokens: true,
       },
       posthog: {
@@ -24,7 +26,7 @@ const production: ConfigInterface = !!global.window
       engine: {
         pgHost: 'pg.iasql.com',
         pgForceSsl: true,
-        backendUrl: 'https://run.iasql.com',
+        backendUrl: 'https://app.iasql.com/api/run',
       },
     }
   : ({} as ConfigInterface);
