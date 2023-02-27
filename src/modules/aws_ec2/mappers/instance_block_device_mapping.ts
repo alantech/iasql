@@ -263,7 +263,7 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
         try {
           await this.detachVolume(client.ec2client, e.cloudVolumeId ?? '');
         } catch (_) {
-          throw new Error('Cannot detach volume in use');
+          continue; // if the volume is still attached we will wait for the next run
         }
       }
     },
