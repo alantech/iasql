@@ -199,10 +199,10 @@ describe('EC2 Integration Testing', () => {
     'check number of volumes',
     query(
       `
-    SELECT *
-    FROM general_purpose_volume
-    INNER JOIN instance on instance.id = general_purpose_volume.attached_instance_id
-    WHERE instance.tags ->> 'name' = '${prefix}-1';
+      SELECT general_purpose_volume.id FROM general_purpose_volume INNER JOIN instance_block_device_mapping
+      ON general_purpose_volume.id=instance_block_device_mapping.volume_id
+      WHERE instance_block_device_mapping.instance_id IN (SELECT instance.id FROM instance
+      WHERE instance.tags ->> 'name' = '${prefix}-1');
   `,
       (res: any[]) => expect(res.length).toBe(1),
     ),
@@ -354,6 +354,31 @@ describe('EC2 Integration Testing', () => {
   it('starts a transaction', begin());
 
   it(
+    'updates volume to do not delete on termination',
+    query(
+      `
+      BEGIN;
+      UPDATE instance_block_device_mapping SET delete_on_termination=FALSE WHERE instance_id=(
+        SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'
+      );
+
+      -- add tags to volume to recognize it later
+      UPDATE general_purpose_volume SET tags = '{"name":"${prefix}-1"}' WHERE id = (
+        SELECT volume_id FROM instance_block_device_mapping WHERE instance_id = (
+          SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'
+        ));
+      COMMIT;
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+  it('applies the volume update', commit());
+
+  it('starts a transaction', begin());
+
+  it(
     'moves the instance to another region',
     query(
       `
@@ -364,21 +389,12 @@ describe('EC2 Integration Testing', () => {
     -- Because of interlinking constraints, we need to first "detach" the volume from the instance
     -- then update the instance, then re-attach it. Hence the volume being updated twice to go to
     -- a new region
-    UPDATE general_purpose_volume
-    SET
-      volume_id = null,
-      attached_instance_id = null,
-      instance_device_name = null,
-      snapshot_id = null
-    WHERE attached_instance_id = (
-      SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'
-    );
+    DELETE FROM instance_block_device_mapping WHERE instance_id = 
+    (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1');
     -- We have to make sure the subnet is correct and we have to re-assign the AMI ID because they
     -- are different between regions
     UPDATE instance
-    SET
-      instance_id = null,
-      region = 'us-east-1',
+    SET region = 'us-east-1',
       ami = '${ubuntuAmiId}',
       subnet_id = (
         SELECT id FROM subnet WHERE region = 'us-east-1' AND availability_zone = 'us-east-1a'
@@ -391,11 +407,13 @@ describe('EC2 Integration Testing', () => {
     SET
       region = 'us-east-1',
       availability_zone = 'us-east-1a',
-      attached_instance_id = (
-        SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'
-      ),
-      instance_device_name = '/dev/xvdb'
-    WHERE attached_instance_id IS NULL;
+    WHERE tags ->> 'name' = '${prefix}-1';
+
+    INSERT INTO instance_block_device_mapping (device_name, instance_id, volume_id, region) VALUES
+    ('/dev/xvdb', (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'),
+    (SELECT id FROM general_purpose_volume WHERE tags ->> 'name' = '${prefix}-1'),
+    'us-east-1');
+
     -- Also need to drop the security groups it is currently attached to. This is done with a join
     -- table so we get no good constraint checking on the validity here at the moment
     DELETE FROM instance_security_groups WHERE instance_id = (
@@ -465,13 +483,10 @@ describe('EC2 Integration Testing', () => {
     'deletes the instance',
     query(
       `
-      DELETE FROM general_purpose_volume
-      USING instance
-      WHERE instance.id = general_purpose_volume.attached_instance_id AND 
-        instance.tags ->> 'name' = '${prefix}-1';
-
       DELETE FROM instance
       WHERE tags ->> 'name' = '${prefix}-1';
+
+      DELETE FROM general_purpose_volume WHERE tags ->> 'name' = '${prefix}-1';
   `,
       undefined,
       true,
@@ -499,11 +514,10 @@ describe('EC2 Integration Testing', () => {
     'check number of volumes',
     query(
       `
-    SELECT *
-    FROM general_purpose_volume
-    INNER JOIN instance on instance.id = general_purpose_volume.attached_instance_id
-    WHERE instance.tags ->> 'name' = '${prefix}-1' OR
-      instance.tags ->> 'name' = '${prefix}-2';
+      SELECT general_purpose_volume.id FROM general_purpose_volume INNER JOIN instance_block_device_mapping
+      ON general_purpose_volume.id=instance_block_device_mapping.volume_id
+      WHERE instance_block_device_mapping.instance_id IN (SELECT instance.id FROM instance
+      WHERE (instance.tags ->> 'name' = '${prefix}-1' OR instance.tags ->> 'name' = '${prefix}-2'));
   `,
       (res: any[]) => expect(res.length).toBe(0),
     ),
