@@ -62,7 +62,7 @@ jobs:
           platforms: linux/arm64
 
       - name: Docker run
-        timeout-minutes: 5
+        timeout-minutes: 30
         run: |
           # Spin up IaSQL container and a postgres instance
           docker pull --platform linux/arm64 ghcr.io/iasql/iasql:$GH_SHA
