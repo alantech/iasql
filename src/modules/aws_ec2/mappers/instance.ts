@@ -5,6 +5,7 @@ import {
   paginateDescribeInstances,
   Volume as AWSVolume,
   DescribeVolumesCommandInput,
+  waitUntilInstanceTerminated,
 } from '@aws-sdk/client-ec2';
 import {
   Instance as AWSInstance,
@@ -13,7 +14,7 @@ import {
   InstanceBlockDeviceMapping as AWSInstanceBlockDeviceMapping,
 } from '@aws-sdk/client-ec2';
 import { SSM } from '@aws-sdk/client-ssm';
-import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
+import { createWaiter, WaiterOptions, WaiterState } from '@aws-sdk/util-waiter';
 
 import { AwsEc2Module } from '..';
 import { awsIamModule, awsSecurityGroupModule, awsVpcModule } from '../..';
@@ -706,6 +707,18 @@ export class InstanceMapper extends MapperBase<Instance> {
         console.log(maps);
 
         await this.terminateInstance(client.ec2client, entity.instanceId);
+        const result = await waitUntilInstanceTerminated(
+          {
+            client: client.ec2client,
+            // all in seconds
+            maxWaitTime: 900,
+            minDelay: 1,
+            maxDelay: 4,
+          } as WaiterOptions<EC2>,
+          { InstanceIds: [entity.instanceId] },
+        );
+        if (result.state != WaiterState.SUCCESS) continue; // we keep trying until it is terminated
+
         const region = entity.region;
 
         // read the attached volumes and wait until terminated
