@@ -1,9 +1,10 @@
 # Base run image
-FROM debian:bullseye AS base
+FROM node:lts-bullseye-slim AS base
 
 ## Install OS Packages
 RUN apt update
-RUN apt install curl ca-certificates gnupg jq locales-all -y
+RUN apt install --no-install-recommends curl jq gnupg ca-certificates -y \
+  && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 ## Install Postgres
 ### Update postgresql APT repository [apt.postgresql.org](https://wiki.postgresql.org/wiki/Apt)
@@ -11,12 +12,8 @@ RUN ["bash", "-c", "curl https://www.postgresql.org/media/keys/ACCC4CF8.asc | gp
 RUN ["bash", "-c", "echo 'deb http://apt.postgresql.org/pub/repos/apt/ bullseye-pgdg main' > /etc/apt/sources.list.d/postgresql.list"]
 RUN apt update
 RUN apt upgrade -y
-RUN apt install postgresql-client-14 postgresql-14 postgresql-14-cron -y
-
-## Install NodeJS
-RUN ["bash", "-c", "curl -fsSL https://deb.nodesource.com/setup_lts.x | bash -"]
-RUN apt install nodejs -y
-RUN npm install -g yarn
+RUN apt install --no-install-recommends postgresql-client-14 postgresql-14 postgresql-14-cron -y \
+  && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Delete unnecessary cache files
 RUN apt clean
