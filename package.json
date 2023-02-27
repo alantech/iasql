@@ -85,7 +85,7 @@
     "@aws-sdk/client-ecr-public": "^3.267.0",
     "@aws-sdk/client-ecs": "^3.204.0",
     "@aws-sdk/client-elastic-load-balancing-v2": "^3.209.0",
-    "@aws-sdk/client-elasticache": "^3.254.0",
+    "@aws-sdk/client-elasticache": "^3.279.0",
     "@aws-sdk/client-iam": "^3.231.0",
     "@aws-sdk/client-lambda": "^3.267.0",
     "@aws-sdk/client-memorydb": "^3.241.0",

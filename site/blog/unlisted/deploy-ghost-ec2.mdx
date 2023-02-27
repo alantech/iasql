@@ -10,18 +10,20 @@ authors: [yrobla]
 Ghost is a powerful app for new-media creators to publish, share, and grow a business around their content. It comes with modern tools to build a website, publish content, send newsletters & offer paid
 subscriptions to members.
 
-Ghost is a software as a service product, but it is built totally on open source and offers a self-hosted, self-serve version. This version can be hosted on AWS using several approaches, and one of them.
+Ghost is a software-as-a-service product, but it is built totally on open source and offers a self-hosted, self-serve version. The self-serve version can be hosted on AWS using several approaches.
 
-Starting an EC2 instance and manually triggering the installation commands is a procedure that can be done manually, but there are also another dependencies involved, such as the creation of proper security groups.
-It is time-consuming task, specially if you need to install several instances. This article will offer a way to install Ghost with one-click on IaSQL using an EC2 instance on Ubuntu as highlighted <a href="https://ghost.org/docs/install/ubuntu/">here</a>.
+One of them is starting an EC2 instance and manually triggering the installation commands is a procedure that can be done manually, but there are also other dependencies involved, such as the creation of proper security groups, load balancer, etc.
+It is a time-consuming task, especially if you need to install several instances. This article will offer a way to install Ghost with one click on IaSQL using an EC2 instance on Ubuntu as highlighted <a href="https://ghost.org/docs/install/ubuntu/">here</a>. IaSQL is an [open-source](https://github.com/iasql/iasql) software tool that creates a two-way connection between an unmodified PostgreSQL database and an AWS account so you can manage your infrastructure from a database.
 
-\_This approach uses <a href="https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/user-data.html">EC2 user data</a> functionality - to run an startup script that will configure Ghost
+<!-- truncate -->
+
+\_This approach uses <a href="https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/user-data.html">EC2 user data</a> functionality - to run a startup script that will configure Ghost
 as soon as the instance is started - and <a href="https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instancedata-data-retrieval.html">EC2 instance metadata</a> - to retrieve
 the public IP of the instance, and assign it dynamically to Ghost installation script.
 
 ## Pre-requisites
 
-This post is going to rely on EC2 to install the Ghost content. In order to access to the instance, it is recommended to setup an SSH key, to be able to access it later for modifications and maintenance. So we will be generating some keys
+This post is going to rely on EC2 to install the Ghost content. To access the instance, it is recommended to set up an SSH key, to be able to access it later for modifications and maintenance. So we will be generating some keys
 and importing them to later associate with the EC2 instance. If you do not have an existing key, please generate one. The output of the public key will be the one imported into the system:
 
 ```bash

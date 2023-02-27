@@ -5,11 +5,11 @@ date: 2022-12-21
 authors: [mtp1376]
 ---
 
-Did you know you can deploy a static website using a SQL REPL? In this post, we'll show you how to use IaSQL to deploy a static website from your GitHub repository to AWS using SQL commands.
-
-## Overview
+Did you know you can deploy a static website using a SQL REPL? In this post, we'll show you how to use IaSQL to deploy a static website from your GitHub repository to AWS using SQL commands. IaSQL is an [open-source](https://github.com/iasql/iasql) software tool that creates a two-way connection between an unmodified PostgreSQL database and an AWS account so you can manage your infrastructure from a database.
 
 We will create and configure an S3 bucket to serve our static website. To enable support for HTTPS, we'll also add a CloudFront distribution. We will also leverage CodeBuild to automatically build the files for our project and copy them to the S3 bucket created already.
+
+<!-- truncate -->
 
 ## Create a S3 Bucket
 
@@ -20,7 +20,7 @@ SELECT
   iasql_install ('aws_s3');
 ```
 
-Installing a module gives us ability to use tables and RPCs provided by it. `aws_s3` module gives us the ability to manage an S3 bucket, S3 static website hosting, and other related stuff. So let's create an S3 bucket first.
+Installing a module gives us the ability to use tables and RPCs provided by it. `aws_s3` module gives us the ability to manage an S3 bucket, S3 static website hosting, and other related stuff. So let's create an S3 bucket first.
 
 ```sql title="Create a S3 Bucket"
 SELECT
@@ -54,7 +54,7 @@ SELECT
   iasql_commit ();
 ```
 
-The above query will have IaSQL to create a new bucket in the `us-east-1` region with the defined name `<bucket-name>` and the given policy. The `iasql_begin` and `iasql_commit` functions are RPCs that will start and finish an IaSQL transaction. Learn more about IaSQL transactions in this part of our [documentation](/docs/transaction/).
+The above query will create a new bucket in the `us-east-1` region with the defined name `<bucket-name>` and the given policy using IaSQL. The `iasql_begin` and `iasql_commit` functions are RPCs that will start and finish an IaSQL transaction. Learn more about IaSQL transactions in this part of our [documentation](/docs/transaction/).
 
 Now that we have a bucket, we can upload a file to it and see if we're able to view it using our web browser. Let's use IaSQL to upload a file to our newly created bucket:
 
@@ -77,7 +77,7 @@ Let's see if we can access our file using the S3 bucket URL. It should be as fol
 https://<bucket-name>.s3.amazonaws.com/hello.txt
 ```
 
-But we're unable to access the file directly because S3 blocks the public access by default.
+But we're unable to access the file directly because S3 blocks public access by default.
 
 <img src="/img/s3-access-denied.png" />
 

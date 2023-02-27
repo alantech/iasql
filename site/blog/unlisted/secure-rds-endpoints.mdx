@@ -6,9 +6,11 @@ authors: [yrobla]
 
 # Securely connect Amazon RDS using PrivateLink
 
-Do you have some database instances on RDS and wonder what's the most secure way to reach them?
+Do you have some database instances on RDS and wonder what's the most secure way to reach them? In this post, we will walk you through how to securely connect to an AWS RDS instance using Private Link and IaSQL. IaSQL is an [open-source](https://github.com/iasql/iasql) software tool that creates a two-way connection between an unmodified PostgreSQL database and an AWS account so you can manage your infrastructure from a database.
 
-When creating a database, AWS is giving some specific information about the hostnames and ports to be used. You can access those to reach to your databases, by using specific clients for MySQL, Postgres, etc...:
+<!-- truncate -->
+
+When creating a database, AWS provides some specific information about the hostnames and ports used. You can access those to reach your databases by using specific clients for MySQL, Postgres, etc...:
 
 <img src="/img/how_to_connect_rds.png" />
 
