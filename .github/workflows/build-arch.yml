@@ -34,7 +34,7 @@ jobs:
           context: .
           push: true
           platforms: linux/amd64,linux/arm64
-          tags: ghcr.io/iasql/iasql:${{$GITHUB_SHA}}
+          tags: ghcr.io/iasql/iasql:${{env.GITHUB_SHA}}
 
       - name: Docker run
         run: |
