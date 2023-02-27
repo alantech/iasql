@@ -396,9 +396,7 @@ export class InstanceMapper extends MapperBase<Instance> {
                 OutpostArn: map.Ebs?.OutpostArn,
                 Encrypted: encrypted,
               };
-            } else {
-              throw new Error('Could not find related volume data');
-            }
+            } else throw new Error('Could not find related volume data');
           } else {
             console.log('no device');
             // if it set to null, we need to clear the device
@@ -463,7 +461,7 @@ export class InstanceMapper extends MapperBase<Instance> {
             throw new Error('Subnet assigned but not created yet in AWS');
           }
 
-          // if there are previous volumes, we delete it as the instance will recreate it
+          // query for old instance maps and store them to remove later
           const opts = {
             where: {
               instanceId: instance.id,
@@ -500,49 +498,52 @@ export class InstanceMapper extends MapperBase<Instance> {
           }
 
           // get block device mapping parameter
-          console.log('i want to check mappings for');
-          console.log(maps);
-          const mappings = await this.generateBlockDeviceMapping(
-            ctx,
-            amiId!,
-            maps ?? [],
-            instance,
-            instance.hibernationEnabled,
-          );
-          if (mappings) instanceParams.BlockDeviceMappings = mappings;
-          console.log('mappings are');
-          console.log(mappings);
+          if (!instance.instanceId) {
+            // this procedure is only done for newly created instances and not updates
+            console.log('i want to check mappings for');
+            console.log(maps);
+            const mappings = await this.generateBlockDeviceMapping(
+              ctx,
+              amiId!,
+              maps ?? [],
+              instance,
+              instance.hibernationEnabled,
+            );
+            if (mappings) instanceParams.BlockDeviceMappings = mappings;
+            console.log('mappings are');
+            console.log(mappings);
 
-          let volumesReady = true;
-          for (const map of maps ?? []) {
-            const region = instance.region;
+            let volumesReady = true;
+            for (const map of maps ?? []) {
+              const region = instance.region;
 
-            // try to find volume and delete from db and cloud
-            if (map.deviceName && map.volumeId) {
-              let volumeObj: GeneralPurposeVolume = await ctx.orm.findOne(GeneralPurposeVolume, {
-                id: map.volumeId,
-              });
-              if (!volumeObj.volumeId) {
-                // we need to skip instance creation as the previous volumes are not ready
-                console.log('volumes not yet ready');
-                volumesReady = false;
-                break;
-              }
+              // try to find volume and delete from db and cloud
+              if (map.deviceName && map.volumeId) {
+                let volumeObj: GeneralPurposeVolume = await ctx.orm.findOne(GeneralPurposeVolume, {
+                  id: map.volumeId,
+                });
+                if (!volumeObj.volumeId) {
+                  // we need to skip instance creation as the previous volumes are not ready
+                  console.log('volumes not yet ready');
+                  volumesReady = false;
+                  break;
+                }
 
-              console.log('i delete records from db');
-              console.log(map);
-              console.log(volumeObj);
-              try {
-                await ctx.orm.remove(InstanceBlockDeviceMapping, map);
-                await ctx.orm.remove(GeneralPurposeVolume, volumeObj);
-                await this.module.generalPurposeVolume.cloud.delete([volumeObj], ctx);
-              } catch (e) {
-                console.log('error removing from db');
-                console.log(e);
+                console.log('i delete records from db');
+                console.log(map);
+                console.log(volumeObj);
+                try {
+                  await ctx.orm.remove(InstanceBlockDeviceMapping, map);
+                  await ctx.orm.remove(GeneralPurposeVolume, volumeObj);
+                  await this.module.generalPurposeVolume.cloud.delete([volumeObj], ctx);
+                } catch (e) {
+                  console.log('error removing from db');
+                  console.log(e);
+                }
               }
             }
+            if (!volumesReady) continue;
           }
-          if (!volumesReady) continue;
 
           const instanceId = await this.newInstance(client.ec2client, instanceParams);
           if (!instanceId) {
@@ -568,7 +569,7 @@ export class InstanceMapper extends MapperBase<Instance> {
               const region = instance.region;
               const volId = this.module.generalPurposeVolume.generateId({
                 volumeId: map.Ebs.VolumeId,
-                region,
+                region: instance.region,
               });
               const volDb = await this.module.generalPurposeVolume.db.read(ctx, volId);
               if (!volDb) {
@@ -592,7 +593,7 @@ export class InstanceMapper extends MapperBase<Instance> {
                     volumeId: volFromDb.id,
                     volume: volFromDb,
                     cloudVolumeId: map.Ebs.VolumeId,
-                    region: region,
+                    region: instance.region,
                     deleteOnTermination: map.Ebs.DeleteOnTermination ?? true,
                   };
                   console.log(newMap);
@@ -682,8 +683,17 @@ export class InstanceMapper extends MapperBase<Instance> {
           }
           out.push(e);
         } else {
-          // need to delete previous instance before so block device mapping gets cleared
           await this.module.instance.cloud.delete(cloudRecord, ctx);
+
+          // check if we have mappings and delete them - as it comes from an update, no cascade is deleting the mapping
+          const opts = {
+            where: {
+              instanceId: e.id,
+            },
+          };
+          const oldMaps: InstanceBlockDeviceMapping[] = await ctx.orm.find(InstanceBlockDeviceMapping, opts);
+          for (const oldMap of oldMaps ?? []) await ctx.orm.remove(InstanceBlockDeviceMapping, oldMap);
+
           const created = await this.module.instance.cloud.create(e, ctx);
           if (!!created && created instanceof Array) {
             out.push(...created);
@@ -718,10 +728,19 @@ export class InstanceMapper extends MapperBase<Instance> {
           { InstanceIds: [entity.instanceId] },
         );
         if (result.state != WaiterState.SUCCESS) continue; // we keep trying until it is terminated
+        console.log('instance has been terminated');
 
-        const region = entity.region;
+        // remove mappings if they are still there
+        const opts = {
+          where: {
+            instanceId: entity.id,
+          },
+        };
+        const oldMaps: InstanceBlockDeviceMapping[] = await ctx.orm.find(InstanceBlockDeviceMapping, opts);
+        for (const oldMap of oldMaps ?? []) await ctx.orm.remove(InstanceBlockDeviceMapping, oldMap);
 
         // read the attached volumes and wait until terminated
+        const region = entity.region;
         for (const map of maps ?? []) {
           // find related volume
           console.log(map);
@@ -742,11 +761,16 @@ export class InstanceMapper extends MapperBase<Instance> {
 
             // check if volume will be removed on termination
             if (map.Ebs.DeleteOnTermination) {
-              console.log('i wait until terminated');
-              await this.waitUntilDeleted(client.ec2client, map.Ebs.VolumeId);
-              console.log('i have been deleted');
-              await this.module.generalPurposeVolume.db.delete(volObj, ctx);
-              console.log('after volume delete');
+              try {
+                console.log('i wait until terminated');
+                await this.waitUntilDeleted(client.ec2client, map.Ebs.VolumeId);
+                console.log('i have been deleted');
+                await this.module.generalPurposeVolume.db.delete(volObj, ctx);
+                console.log('after volume delete');
+              } catch (e) {
+                console.log('error in deleting volumes after terminated');
+                console.log(e);
+              }
             }
           }
         }
