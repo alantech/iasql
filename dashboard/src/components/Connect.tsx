@@ -18,6 +18,7 @@ export default function Connect({ closable }: { closable: boolean }) {
   const isMakingDb = useRef(false);
 
   let nextEnabled = true;
+  let backEnabled = false;
   const current = stack[stack.length - 1];
   // Check relevant state per step to determine automatic actions to perform, such as deciding if
   // the Next button should be enabled or not
@@ -60,6 +61,7 @@ export default function Connect({ closable }: { closable: boolean }) {
             return 'createdb'; // Should never happen
         }
       }}
+      backEnabled={backEnabled}
       closeable={closable}
       onClose={() => {
         dispatch({ action: ActionType.ShowConnect, data: { showConnect: false } });
