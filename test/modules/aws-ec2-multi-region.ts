@@ -382,6 +382,8 @@ describe('EC2 Integration Testing', () => {
     'moves the instance to another region',
     query(
       `
+      BEGIN;
+
     -- You can't move a registered instance at all, so unregister it
     DELETE FROM registered_instance WHERE instance = (
       SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'
@@ -406,7 +408,7 @@ describe('EC2 Integration Testing', () => {
     UPDATE general_purpose_volume
     SET
       region = 'us-east-1',
-      availability_zone = 'us-east-1a',
+      availability_zone = 'us-east-1a'
     WHERE tags ->> 'name' = '${prefix}-1';
 
     INSERT INTO instance_block_device_mapping (device_name, instance_id, volume_id, region) VALUES
@@ -419,6 +421,8 @@ describe('EC2 Integration Testing', () => {
     DELETE FROM instance_security_groups WHERE instance_id = (
       SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'
     );
+
+    COMMIT;
   `,
       undefined,
       true,
