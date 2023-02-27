@@ -9,7 +9,7 @@ on:
         required: false
         type: string
   push:
-    branches: [main, build-arch]
+    branches: [main]
     paths: ['Dockerfile', '.github/workflows/build-arch.yml', 'yarn.lock', 'dashboard/yarn.lock']
   pull_request:
     branches: [main]
