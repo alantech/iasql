@@ -1,4 +1,4 @@
-name: Build Docker image in different arch
+name: Build Docker linux/arm64 image
 
 on:
   # Allows you to run this workflow manually from the Actions tab
@@ -9,7 +9,7 @@ on:
         required: false
         type: string
   push:
-    branches: [main]
+    branches: [main, build-arch]
     paths: ['Dockerfile', '.github/workflows/build-arch.yml', 'yarn.lock', 'dashboard/yarn.lock']
   pull_request:
     branches: [main]
@@ -17,7 +17,7 @@ on:
 
 jobs:
   build:
-    name: Build Docker image
+    name: Build Docker linux/arm64 image
     runs-on: ubuntu-latest
     steps:
       - name: Set SHA
@@ -53,7 +53,7 @@ jobs:
         with:
           context: .
           push: true
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/arm64
           tags: ghcr.io/iasql/iasql:${{ env.GH_SHA }}
 
       - name: Set up QEMU
