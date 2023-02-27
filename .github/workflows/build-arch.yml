@@ -19,7 +19,6 @@ jobs:
   build:
     name: Build Docker image
     runs-on: ubuntu-latest
-    timeout-minutes: 5
     steps:
       - name: Set SHA
         shell: bash
@@ -63,10 +62,8 @@ jobs:
           platforms: linux/arm64
 
       - name: Docker run
-        env:
-          ARCH: ${{runner.arch}}
+        timeout-minutes: 5
         run: |
-          echo $ARCH
           # Spin up IaSQL container and a postgres instance
           # docker run -p 9876:9876 -p 5432:5432 -e IASQL_ENV=ci --name iasql ghcr.io/iasql/iasql:$GITHUB_SHA &
           # docker pull --platform linux/arm64 ghcr.io/iasql/iasql:cf7089ae5d373379a258a220940ed64435a58033
