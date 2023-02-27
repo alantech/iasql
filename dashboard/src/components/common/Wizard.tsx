@@ -12,7 +12,7 @@ export function Wizard({
   setStack,
   nextEnabled,
   onNext,
-  backEnabled=true,
+  backEnabled = true,
   onBack,
   onClose,
   children,
