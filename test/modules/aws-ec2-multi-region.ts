@@ -388,11 +388,6 @@ describe('EC2 Integration Testing', () => {
     DELETE FROM registered_instance WHERE instance = (
       SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'
     );
-    -- Because of interlinking constraints, we need to first "detach" the volume from the instance
-    -- then update the instance, then re-attach it. Hence the volume being updated twice to go to
-    -- a new region
-    DELETE FROM instance_block_device_mapping WHERE instance_id = 
-    (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1');
     -- We have to make sure the subnet is correct and we have to re-assign the AMI ID because they
     -- are different between regions
     UPDATE instance
@@ -402,14 +397,18 @@ describe('EC2 Integration Testing', () => {
         SELECT id FROM subnet WHERE region = 'us-east-1' AND availability_zone = 'us-east-1a'
       )
     WHERE tags ->> 'name' = '${prefix}-1';
-    -- Re-attaching of the volume. But it is given a different name since /dev/xvda is reserved for
-    -- the initial boot volume and can't be re-used here. Technically an equivalent version of this
-    -- volume is automatically re-attached by the new instance being brought up.
+    
+    -- Volume should already have been detached as the instance has been deleted
     UPDATE general_purpose_volume
     SET
       region = 'us-east-1',
       availability_zone = 'us-east-1a'
     WHERE tags ->> 'name' = '${prefix}-1';
+
+    -- Re-attaching of the volume. But it is given a different name since /dev/xvda is reserved for
+    -- the initial boot volume and can't be re-used here. Technically an equivalent version of this
+    -- volume is automatically re-attached by the new instance being brought up.
+    UPDATE instance_block_device_mapping SET device_name = '/dev/xvdb' WHERE instance_id = ( SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1');
 
     -- Also need to drop the security groups it is currently attached to. This is done with a join
     -- table so we get no good constraint checking on the validity here at the moment
