@@ -411,11 +411,6 @@ describe('EC2 Integration Testing', () => {
       availability_zone = 'us-east-1a'
     WHERE tags ->> 'name' = '${prefix}-1';
 
-    INSERT INTO instance_block_device_mapping (device_name, instance_id, volume_id, region) VALUES
-    ('/dev/xvdb', (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'),
-    (SELECT id FROM general_purpose_volume WHERE tags ->> 'name' = '${prefix}-1'),
-    'us-east-1');
-
     -- Also need to drop the security groups it is currently attached to. This is done with a join
     -- table so we get no good constraint checking on the validity here at the moment
     DELETE FROM instance_security_groups WHERE instance_id = (
@@ -431,6 +426,24 @@ describe('EC2 Integration Testing', () => {
   );
 
   it('applies the move', commit());
+
+  it('starts a transaction', begin());
+
+  it(
+    'attaches initial volume to the new instance',
+    query(
+      `
+      INSERT INTO instance_block_device_mapping (device_name, instance_id, volume_id, region) VALUES
+      ('/dev/xvdb', (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'),
+      (SELECT id FROM general_purpose_volume WHERE tags ->> 'name' = '${prefix}-1'),
+      'us-east-1');    
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+  it('applies the volume attachment', commit());
 
   it(
     'check number of instances',
