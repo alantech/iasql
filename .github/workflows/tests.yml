@@ -456,7 +456,7 @@ jobs:
         run: |
           curl -X POST -H "Content-Type: application/json" -H "${SECRET_HEADER}" -H "x-iasql-drop: true" -d "[${ACCOUNT_INDEX}]" ${LAMBDA_FUNCTION}
 
-  get-install-times:
+  get-pr-debug-info:
     needs:
       - build-and-push
     runs-on: ubuntu-latest
@@ -587,18 +587,18 @@ jobs:
         run: |
           curl -X POST -H "Content-Type: application/json" -H "${SECRET_HEADER}" -H "x-iasql-drop: true" -d "[${ACCOUNT_INDEX}]" ${LAMBDA_FUNCTION}
 
-  log-image-size:
+  log-pr-debug-info:
     runs-on: ubuntu-latest
     needs:
-      - get-install-times
+      - get-pr-debug-info
     steps:
       - uses: actions/checkout@v3
       - uses: actions/github-script@v6
         env:
-          COMPRESSED_IMAGE_SIZE: ${{ needs.get-install-times.outputs['compressed-image-size'] }}
-          UNCOMPRESSED_IMAGE_SIZE: ${{ needs.get-install-times.outputs['uncompressed-image-size'] }}
-          INSTALL_TIME: ${{ needs.get-install-times.outputs.install-time }}
-          UNINSTALL_TIME: ${{ needs.get-install-times.outputs.uninstall-time }}
+          COMPRESSED_IMAGE_SIZE: ${{ needs.get-pr-debug-info.outputs['compressed-image-size'] }}
+          UNCOMPRESSED_IMAGE_SIZE: ${{ needs.get-pr-debug-info.outputs['uncompressed-image-size'] }}
+          INSTALL_TIME: ${{ needs.get-pr-debug-info.outputs.install-time }}
+          UNINSTALL_TIME: ${{ needs.get-pr-debug-info.outputs.uninstall-time }}
         with:
           script: |
             const script = require('./src/scripts/log-image-size.js')
