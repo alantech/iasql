@@ -1,6 +1,7 @@
 name: Build Docker image in different arch
 
 on:
+  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
     inputs:
       commit_sha:
@@ -8,12 +9,11 @@ on:
         required: false
         type: string
   push:
-    branches: [main, build-arch]
-    paths: ['Dockerfile', '.github/workflows/build-arch.yml']
+    branches: [main]
+    paths: ['Dockerfile', '.github/workflows/build-arch.yml', 'yarn.lock', 'dashboard/yarn.lock']
   pull_request:
     branches: [main]
-    paths: ['Dockerfile', '.github/workflows/build-arch.yml']
-    # Allows you to run this workflow manually from the Actions tab
+    paths: ['Dockerfile', '.github/workflows/build-arch.yml', 'yarn.lock', 'dashboard/yarn.lock']
 
 jobs:
   build:
@@ -29,7 +29,7 @@ jobs:
             echo "GH_SHA=$COMMIT_SHA" >> $GITHUB_ENV
           fi
         env:
-          COMMIT_SHA: 69a04a77a9909311b9d0a39f471d590c672c5aeb
+          COMMIT_SHA: ${{ inputs.commit_sha }}
 
       - uses: actions/checkout@v3
         with:
@@ -65,10 +65,7 @@ jobs:
         timeout-minutes: 5
         run: |
           # Spin up IaSQL container and a postgres instance
-          # docker run -p 9876:9876 -p 5432:5432 -e IASQL_ENV=ci --name iasql ghcr.io/iasql/iasql:$GITHUB_SHA &
-          # docker pull --platform linux/arm64 ghcr.io/iasql/iasql:cf7089ae5d373379a258a220940ed64435a58033
           docker pull --platform linux/arm64 ghcr.io/iasql/iasql:$GH_SHA
-          # docker run --platform linux/arm64 -p 9876:9876 -p 5432:5432 -e IASQL_ENV=ci --name iasql ghcr.io/iasql/iasql:cf7089ae5d373379a258a220940ed64435a58033 &
           docker run --platform linux/arm64 -p 9876:9876 -p 5432:5432 -e IASQL_ENV=ci --name iasql ghcr.io/iasql/iasql:$GH_SHA &
           docker inspect ghcr.io/iasql/iasql:$GH_SHA --format "{{.Id}} {{.Architecture}}"
           while ! psql postgres://postgres:test@localhost:5432/iasql_metadata -b -q -c "SELECT iasql_engine_health()"; do sleep 1 && echo -n .; done;
