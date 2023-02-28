@@ -1,7 +1,7 @@
 import _ from 'lodash';
 
 import { EC2 } from '@aws-sdk/client-ec2';
-import { Route as AwsRoute } from '@aws-sdk/client-ec2/dist-types/models/models_1';
+import { Route as AwsRoute } from '@aws-sdk/client-ec2/dist-types/models';
 
 import { AWS, crudBuilder2 } from '../../../services/aws_macros';
 import { Context, Crud2, IdFields, MapperBase } from '../../interfaces';
