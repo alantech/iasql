@@ -447,7 +447,7 @@ export class InstanceMapper extends MapperBase<Instance> {
         return out;
       }
     },
-    updateOrReplace: (_a: Instance, _b: Instance) => 'replace',
+    updateOrReplace: (a: Instance, b: Instance) => this.instanceEqReplaceableFields(a, b) ? 'update' : 'replace',
     update: async (es: Instance[], ctx: Context) => {
       const out = [];
       for (const e of es) {
@@ -508,6 +508,11 @@ export class InstanceMapper extends MapperBase<Instance> {
             region: entity.region,
           })
         ];
+        for (const k of Object.keys(ctx?.memo?.db?.RegisteredInstance ?? {})) {
+          if (k.split('|')[0] === entity.instanceId) {
+            delete ctx?.memo?.db?.RegisteredInstance?.[k];
+          }
+        }
         const attachedVolume = await this.module.generalPurposeVolume.db.read(
           ctx,
           this.module.generalPurposeVolume.generateId({
