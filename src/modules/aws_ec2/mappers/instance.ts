@@ -386,7 +386,7 @@ export class InstanceMapper extends MapperBase<Instance> {
                 DeleteOnTermination: vol.deleteOnTermination,
                 Iops: volObj.volumeType != GeneralPurposeVolumeType.GP2 ? volObj.iops : undefined,
                 SnapshotId:
-                  (volObj.snapshotId ?? '').length > 0 && instance.region == volObj.region
+                  (volObj.snapshotId ?? '').length > 0 && instance.region == vol.region
                     ? volObj.snapshotId
                     : map.Ebs?.SnapshotId,
                 VolumeSize: volObj.size,
@@ -535,6 +535,15 @@ export class InstanceMapper extends MapperBase<Instance> {
                 await ctx.orm.remove(InstanceBlockDeviceMapping, map);
                 await ctx.orm.remove(GeneralPurposeVolume, volumeObj);
                 await this.module.generalPurposeVolume.cloud.delete([volumeObj], ctx);
+
+                // force db cache cleanup
+                delete ctx.memo.db.InstanceBlockDeviceMapping[
+                  this.module.instanceBlockDeviceMapping.entityId(map)
+                ];
+                delete ctx.memo.db.GeneralPurposeVolume[this.module.generalPurposeVolume.entityId(volumeObj)];
+                delete ctx.memo.cloud.GeneralPurposeVolume[
+                  this.module.generalPurposeVolume.entityId(volumeObj)
+                ];
               } catch (e) {
                 console.log('error removing from db');
                 console.log(e);
@@ -566,11 +575,13 @@ export class InstanceMapper extends MapperBase<Instance> {
               );
 
               // if it does not exist, create on the db
+              console.log('i need to create the new volume');
               const region = instance.region;
               const volId = this.module.generalPurposeVolume.generateId({
                 volumeId: map.Ebs.VolumeId,
                 region: instance.region,
               });
+              console.log(volId);
               const volDb = await this.module.generalPurposeVolume.db.read(ctx, volId);
               if (!volDb) {
                 console.log('i create');
@@ -693,7 +704,14 @@ export class InstanceMapper extends MapperBase<Instance> {
             },
           };
           const oldMaps: InstanceBlockDeviceMapping[] = await ctx.orm.find(InstanceBlockDeviceMapping, opts);
-          for (const oldMap of oldMaps ?? []) await ctx.orm.remove(InstanceBlockDeviceMapping, oldMap);
+          for (const oldMap of oldMaps ?? []) {
+            await ctx.orm.remove(InstanceBlockDeviceMapping, oldMap);
+
+            // force db cache cleanup
+            delete ctx.memo.db.InstanceBlockDeviceMapping[
+              this.module.instanceBlockDeviceMapping.entityId(oldMap)
+            ];
+          }
 
           const created = await this.module.instance.cloud.create(e, ctx);
           if (!!created && created instanceof Array) {
@@ -764,6 +782,8 @@ export class InstanceMapper extends MapperBase<Instance> {
               if (map.Ebs.DeleteOnTermination) {
                 await this.waitUntilDeleted(client.ec2client, map.Ebs.VolumeId);
                 await this.module.generalPurposeVolume.db.delete(volObj, ctx);
+                // force db cache cleanup
+                delete ctx.memo.db.GeneralPurposeVolume[this.module.generalPurposeVolume.entityId(volObj)];
               }
             } catch (e) {
               console.log('error in deleting volumes');
