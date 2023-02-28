@@ -1,6 +1,6 @@
 import ci from './ci';
 import { ConfigEnvironments, ConfigInterface } from './config';
-import dev from './dev';
+import debug from './debug';
 import local from './local';
 import production from './production';
 import staging from './staging';
@@ -10,7 +10,7 @@ const config: { [key in ConfigEnvironments]: ConfigInterface } = {
   production,
   staging,
   test,
-  dev,
+  debug,
   ci,
   local,
 };

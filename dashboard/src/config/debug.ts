@@ -1,7 +1,7 @@
 import { ConfigInterface } from './config';
 
-const dev: ConfigInterface = {
-  name: 'dev',
+const debug: ConfigInterface = {
+  name: 'debug',
   engine: {
     pgHost: 'localhost',
     pgForceSsl: false,
@@ -9,4 +9,4 @@ const dev: ConfigInterface = {
   },
 };
 
-export default dev;
+export default debug;

@@ -83,7 +83,7 @@ COPY --from=pgsql-stage /usr/share/postgresql /usr/share/postgresql
 ## Copy files
 COPY ./src/scripts/postgresql.conf /etc/postgresql/14/main/postgresql.conf
 COPY ./src/scripts/pg_hba.conf /etc/postgresql/14/main/pg_hba.conf
-COPY docker-entrypoint-dev.sh /engine/docker-entrypoint-dev.sh
+COPY docker-entrypoint.debug.sh /engine/docker-entrypoint.debug.sh
 COPY src/scripts /engine/src/scripts
 
 ## Copy from engine-stage
@@ -99,7 +99,7 @@ COPY --from=dashboard-stage /dashboard/.next/standalone ./
 COPY --from=dashboard-stage /dashboard/.next/static ./.next/static
 
 ## Default ENVs that can be overwritten
-ARG IASQL_ENV=dev
+ARG IASQL_ENV=debug
 ENV IASQL_ENV=$IASQL_ENV
 ARG IASQL_TELEMETRY=off
 ENV IASQL_TELEMETRY=$IASQL_TELEMETRY
@@ -113,4 +113,4 @@ EXPOSE 5432
 EXPOSE 9876
 EXPOSE 9229
 
-ENTRYPOINT ["/engine/docker-entrypoint-dev.sh"]
+ENTRYPOINT ["/engine/docker-entrypoint.debug.sh"]
