@@ -73,7 +73,9 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
         const instance: Instance = await ctx.orm.findOne(Instance, {
           id: e.instanceId,
         });
-        if (instance.region != e.region) throw new Error('Cannot create a mapping between different regions');
+
+        // if we have different regions we may be in a multi-region update situation, just skip
+        if (e.region != instance.region) continue;
 
         // if instance is not created we are in the first step, no need to create anything
         if (!instance?.instanceId) continue;
@@ -87,7 +89,8 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
         if (!volume.volumeId) throw new Error('Tried to attach an unexisting volume');
         if (volume.state == VolumeState.IN_USE)
           throw new Error('Cannot attach volumes that are already in use');
-        if (volume.region != e.region) throw new Error('Cannot create a mapping between different regions');
+        if (volume.region != instance.region)
+          throw new Error('Cannot create a mapping between different regions');
 
         // if it is a volume for an existing instance we need to attach it
         const result = await this.attachVolume(
@@ -104,7 +107,7 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
             instance: instance,
             volumeId: e.volumeId,
             volume: volume,
-            region: e.region,
+            region: instance.region,
             cloudInstanceId: instance.instanceId,
             cloudVolumeId: volume.volumeId,
             deleteOnTermination: e.deleteOnTermination,
