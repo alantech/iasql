@@ -3,6 +3,8 @@ slug: iasql-on-ec2
 title: Deploy IaSQL on EC2 using IaSQL
 authors: [mtp1376]
 ---
+import useBaseUrl from '@docusaurus/useBaseUrl';
+import ThemedImage from '@theme/ThemedImage';
 
 We're intending to publish a series of blog posts on deploying different services using IaSQL. IaSQL covers a wide range of AWS services, so there are lots of possibilities to explore. You can deploy containers to ECS, launch servers using EC2, and have CodePipelines that take the burden of building and deploying your applications.
 
@@ -17,7 +19,14 @@ This will download the latest IaSQL image from DockerHub and run it. After it's 
 ```
 http://localhost:9876/
 ```
-<img src={"/img/dashboard.png"} alt={"IaSQL dashboard"} />
+<ThemedImage
+  alt="IaSQL dashboard"
+  style={{width: '440'}}
+  sources={{
+    light: useBaseUrl('/img/dashboard.png'),
+    dark: useBaseUrl('/img/dashboard_dark.png'),
+  }}
+/>
 
 Now you can connect your AWS account in the dashboard. This will create a new database for you which you can connect to it using any Postgres client, or run your queries on it through the dashboard.
 
@@ -35,7 +44,14 @@ To deploy IaSQL on EC2, we need to:
 - Import an SSH key pair into AWS to be able to access the EC2 instance afterwards
 - Set a security group for the instance to allow SSH, while disallowing unauthorized access to the dashboard
 
-<img src={"/img/iasql-on-ec2.png"} alt={"IaSQL dashboard"} />
+<ThemedImage
+  alt="Overview of the resources to be deployed"
+  style={{width: '440'}}
+  sources={{
+    light: useBaseUrl('/img/iasql-on-ec2.png'),
+    dark: useBaseUrl('/img/iasql-on-ec2_dark.png'),
+  }}
+/>
 
 #### Install IaSQL Modules
 
@@ -61,7 +77,15 @@ An IaSQL RPC is a function available in Postgres that upon calling, sends a requ
 
 Now it's time to launch our EC2 instance. Before we go for the instance itself, let's first define the security group that's going to be attached to it. For this purpose, we'll need [`aws_security_group`](https://iasql.com/docs/modules/aws/aws_security_group/) module. But since `aws_ec2` module depends on it, it's already installed because IaSQL automatically installs the dependencies for modules upon an `iasql_install` call.
 
-<img src={"/img/module-dependency.png"} alt={"aws_ec2 module dependencies"} />
+<ThemedImage
+  alt="aws_ec2 module dependencies"
+  style={{width: '440'}}
+  sources={{
+    light: useBaseUrl('/img/module-dependency.png'),
+    dark: useBaseUrl('/img/module-dependency_dark.png'),
+  }}
+/>
+
 
 ```sql
 INSERT INTO security_group (description, group_name)
