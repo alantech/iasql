@@ -1,12 +1,14 @@
 import { useState, Children } from 'react';
 
-export default function Copyable({ children }: { children: any[] | any }) {
+export default function Copyable({ children, sensitive }: { children: any[] | any; sensitive?: boolean }) {
   const child = Children.toArray(children)[0];
   if (typeof child !== 'string') throw new Error('Copyable only works with text');
   const [showTooltip, setShowTooltip] = useState(false);
   return (
     <p
-      className='mt-1 max-w-2xl text-sm cursor-pointer text-primary break-words'
+      className={
+        (sensitive ? 'ph-no-capture ' : '') + 'mt-1 max-w-2xl text-sm cursor-pointer text-primary break-words'
+      }
       onClick={() => {
         setShowTooltip(true);
         navigator.clipboard.writeText(child);
