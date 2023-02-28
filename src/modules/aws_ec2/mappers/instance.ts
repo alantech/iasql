@@ -513,8 +513,9 @@ export class InstanceMapper extends MapperBase<Instance> {
             delete ctx?.memo?.db?.RegisteredInstance?.[k];
           }
         }*/
-        // Let's just invalidate the RegisteredInstance cache entirely
+        // Let's just invalidate the RegisteredInstance cache entirely and force-revive it
         delete ctx?.memo?.db.RegisteredInstance;
+        await this.module.registeredInstance.db.read(ctx);
         const attachedVolume = await this.module.generalPurposeVolume.db.read(
           ctx,
           this.module.generalPurposeVolume.generateId({
