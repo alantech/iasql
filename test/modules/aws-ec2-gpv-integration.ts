@@ -150,8 +150,8 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
           FROM subnet
           WHERE availability_zone = '${availabilityZone2}'
           LIMIT 1;
-        INSERT INTO instance_block_device_mapping (device_name, volume_id, instance_id) values ('/dev/sda', (SELECT id FROM general_purpose_volume WHERE tags ->>'Name' = '${gp2VolumeName}' LIMIT 1),
-        (SELECT id FROM instance WHERE tags ->>'Name' = '${prefix}-1' LIMIT 1));
+        INSERT INTO instance_block_device_mapping (device_name, volume_id, instance_id) values ('/dev/sda1', (SELECT id FROM general_purpose_volume WHERE tags ->>'Name' = '${gp2VolumeName}' LIMIT 1),
+        (SELECT id FROM instance WHERE tags ->>'name' = '${prefix}-1' LIMIT 1));
         
       COMMIT;
     `,
@@ -178,12 +178,113 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
     query(
       `
     SELECT *
-    FROM general_purpose_volume
-    WHERE tags ->> 'name' = '${gp2VolumeName}';
+    FROM general_purpose_volume INNER JOIN instance_block_device_mapping ON general_purpose_volume.id = instance_block_device_mapping.volume_id
+    WHERE instance_block_device_mapping.instance_id = (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1');
   `,
       (res: any[]) => {
         expect(res.length).toBe(1);
         expect(res[0].size).toBe(10);
+      },
+    ),
+  );
+
+  it('starts a transaction', begin());
+  itDocs('creates and attaches an extra volume to instance', (done: (arg0: any) => any) => {
+    query(
+      `
+      BEGIN;
+        INSERT INTO general_purpose_volume (volume_type, size, availability_zone, tags)
+        VALUES ('gp2', 20, '${availabilityZone2}', '{"Name": "${gp2VolumeName}-2"}');
+        INSERT INTO instance_block_device_mapping (device_name, volume_id, instance_id, delete_on_termination) values ('/dev/sda2', (SELECT id FROM general_purpose_volume WHERE tags ->>'Name' = '${gp2VolumeName}-2' LIMIT 1),
+        (SELECT id FROM instance WHERE tags ->>'name' = '${prefix}-1' LIMIT 1), FALSE);
+        
+      COMMIT;
+    `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    )((e?: any) => (!!e ? done(e) : done(undefined)));
+  });
+  it('attaches extra volume', commit());
+
+  itDocs(
+    'check extra volume has been created',
+    query(
+      `
+    SELECT *
+    FROM general_purpose_volume INNER JOIN instance_block_device_mapping ON general_purpose_volume.id = instance_block_device_mapping.volume_id
+    WHERE instance_block_device_mapping.instance_id = (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1');
+  `,
+      (res: any[]) => {
+        expect(res.length).toBe(2);
+      },
+    ),
+  );
+
+  it('starts a transaction', begin());
+
+  it(
+    'deletes all ec2 instances',
+    query(
+      `
+      DELETE FROM instance
+      WHERE tags ->> 'name' = '${prefix}-1';
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it('applies the instances deletion', commit());
+
+  it(
+    'check number of instances',
+    query(
+      `
+    SELECT *
+    FROM instance
+    WHERE tags ->> 'name' = '${prefix}-1';
+  `,
+      (res: any[]) => expect(res.length).toBe(0),
+    ),
+  );
+
+  it(
+    'check extra volume remains',
+    query(
+      `
+    SELECT *
+    FROM general_purpose_volume
+    WHERE tags ->> 'Name' = '${gp2VolumeName}-2';
+  `,
+      (res: any[]) => expect(res.length).toBe(0),
+    ),
+  );
+
+  it(
+    'deletes extra volume',
+    query(
+      `
+      DELETE FROM general_purpose_volume
+      WHERE tags ->> 'Name' = '${gp2VolumeName}-2';  
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  itDocs(
+    'check number of volumes',
+    query(
+      `
+    SELECT *
+    FROM general_purpose_volume INNER JOIN instance_block_device_mapping ON general_purpose_volume.id = instance_block_device_mapping.volume_id
+    WHERE instance_block_device_mapping.instance_id = (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1');
+  `,
+      (res: any[]) => {
+        expect(res.length).toBe(0);
       },
     ),
   );
