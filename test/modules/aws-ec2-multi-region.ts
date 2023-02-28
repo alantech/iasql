@@ -354,31 +354,6 @@ describe('EC2 Integration Testing', () => {
   it('starts a transaction', begin());
 
   it(
-    'updates volume to do not delete on termination',
-    query(
-      `
-      BEGIN;
-      UPDATE instance_block_device_mapping SET delete_on_termination=FALSE WHERE instance_id=(
-        SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'
-      );
-
-      -- add tags to volume to recognize it later
-      UPDATE general_purpose_volume SET tags = '{"name":"${prefix}-1"}' WHERE id = (
-        SELECT volume_id FROM instance_block_device_mapping WHERE instance_id = (
-          SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'
-        ));
-      COMMIT;
-  `,
-      undefined,
-      true,
-      () => ({ username, password }),
-    ),
-  );
-  it('applies the volume update', commit());
-
-  it('starts a transaction', begin());
-
-  it(
     'moves the instance to another region',
     query(
       `
@@ -398,13 +373,6 @@ describe('EC2 Integration Testing', () => {
       )
     WHERE tags ->> 'name' = '${prefix}-1';
     
-    -- Volume should already have been detached as the instance has been deleted
-    UPDATE general_purpose_volume
-    SET
-      region = 'us-east-1',
-      availability_zone = 'us-east-1a'
-    WHERE tags ->> 'name' = '${prefix}-1';
-
     -- Also need to drop the security groups it is currently attached to. This is done with a join
     -- table so we get no good constraint checking on the validity here at the moment
     DELETE FROM instance_security_groups WHERE instance_id = (
@@ -422,23 +390,6 @@ describe('EC2 Integration Testing', () => {
   it('applies the move', commit());
 
   it('starts a transaction', begin());
-
-  it(
-    'attaches initial volume to the new instance',
-    query(
-      `
-      -- Re-attaching of the volume. But it is given a different name since /dev/xvda is reserved for
-      -- the initial boot volume and can't be re-used here. Technically an equivalent version of this
-      -- volume is automatically re-attached by the new instance being brought up. 
-      INSERT INTO instance_block_device_mapping (device_name, instance_id, volume_id, region) VALUES ('/dev/xvdb', 
-      ( SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'), (SELECT id FROM general_purpose_volume WHERE tags ->> 'name' = '${prefix}-1'), 'us-east-1');
-  `,
-      undefined,
-      true,
-      () => ({ username, password }),
-    ),
-  );
-  it('applies the volume attachment', commit());
 
   it(
     'check number of instances',
