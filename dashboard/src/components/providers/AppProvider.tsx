@@ -420,7 +420,7 @@ const middlewareReducer = async (
       }
       const { dbAlias, dataOnly } = payload.data;
       try {
-        const dump = await DbActions.dump(token, dbAlias, dataOnly);
+        const dump = await DbActions.dump(token, backendUrl, dbAlias, dataOnly);
         if (dump) {
           dispatch({ ...payload, data: { dump } });
         }

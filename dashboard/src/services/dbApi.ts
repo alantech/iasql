@@ -178,8 +178,8 @@ export async function disconnect(token: string, backendUrl: string, dbAlias: str
 
 export async function dump(token: string, backendUrl: string, dbAlias: string, dataOnly = true) {
   return (
-    await run(token, backendUrl, 'iasql_metadata', `SELECT iasql_dump('${dbAlias}', ${dataOnly});`)
-  )?.[0]?.result?.[0]?.iasql_dump;
+    await run(token, backendUrl, 'iasql_metadata', `SELECT iasql_export('${dbAlias}', ${dataOnly});`)
+  )?.[0]?.result?.[0]?.iasql_export;
 }
 
 export async function getLatestVersion(token: string, backendUrl: string) {
