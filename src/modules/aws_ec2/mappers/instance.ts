@@ -772,7 +772,6 @@ export class InstanceMapper extends MapperBase<Instance> {
               (await this.module.generalPurposeVolume.db.read(ctx, volId));
             console.log('obj is');
             console.log(volObj);
-            const clientVol = (await ctx.getAwsClient(volObj.region)) as AWS;
 
             // check if volume will be removed on termination
             if (volObj && map.Ebs.DeleteOnTermination) {
