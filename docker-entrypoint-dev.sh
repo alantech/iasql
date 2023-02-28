@@ -68,6 +68,6 @@ wait-for-url() {
 }
 
 # Dashboard service
-(cd /dashboard; wait-for-url localhost:8088/v1/version && yarn start:docker) &
+(cd /dashboard; wait-for-url localhost:8088/v1/version && IASQL_UID=$(cat /proc/sys/kernel/random/uuid) yarn start:docker) &
 
 yarn start:debug
