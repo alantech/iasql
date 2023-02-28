@@ -385,7 +385,10 @@ export class InstanceMapper extends MapperBase<Instance> {
               map.Ebs = {
                 DeleteOnTermination: vol.deleteOnTermination,
                 Iops: volObj.volumeType != GeneralPurposeVolumeType.GP2 ? volObj.iops : undefined,
-                SnapshotId: (volObj.snapshotId ?? '').length > 0 ? volObj.snapshotId : map.Ebs?.SnapshotId,
+                SnapshotId:
+                  (volObj.snapshotId ?? '').length > 0 && instance.region == volObj.region
+                    ? volObj.snapshotId
+                    : map.Ebs?.SnapshotId,
                 VolumeSize: volObj.size,
                 VolumeType: volObj.volumeType,
                 KmsKeyId: map.Ebs?.KmsKeyId,
@@ -506,11 +509,15 @@ export class InstanceMapper extends MapperBase<Instance> {
           console.log(mappings);
 
           let volumesReady = true;
+          console.log('before maps');
           for (const map of maps ?? []) {
+            console.log('my map is');
+            console.log(map);
             const region = instance.region;
 
             // only delete volumes that are on the same region
             if (map.deviceName && map.volumeId && map.region == instance.region) {
+              console.log('i have matching');
               let volumeObj: GeneralPurposeVolume = await ctx.orm.findOne(GeneralPurposeVolume, {
                 id: map.volumeId,
               });
@@ -534,6 +541,8 @@ export class InstanceMapper extends MapperBase<Instance> {
               }
             }
           }
+          console.log('volumes ready');
+          console.log(volumesReady);
           if (!volumesReady) continue;
 
           const instanceId = await this.newInstance(client.ec2client, instanceParams);
@@ -721,15 +730,6 @@ export class InstanceMapper extends MapperBase<Instance> {
         if (result.state != WaiterState.SUCCESS) continue; // we keep trying until it is terminated
         console.log('instance has been terminated');
 
-        // remove mappings if they are still there
-        const opts = {
-          where: {
-            instanceId: entity.id,
-          },
-        };
-        const oldMaps: InstanceBlockDeviceMapping[] = await ctx.orm.find(InstanceBlockDeviceMapping, opts);
-        for (const oldMap of oldMaps ?? []) await ctx.orm.remove(InstanceBlockDeviceMapping, oldMap);
-
         // read the attached volumes and wait until terminated
         const region = entity.region;
         for (const map of maps ?? []) {
@@ -744,24 +744,21 @@ export class InstanceMapper extends MapperBase<Instance> {
             console.log('vol id is');
             console.log(volId);
 
-            const volObj =
-              (await this.module.generalPurposeVolume.cloud.read(ctx, volId)) ??
-              (await this.module.generalPurposeVolume.db.read(ctx, volId));
-            console.log('obj is');
-            console.log(volObj);
+            try {
+              const volObj =
+                (await this.module.generalPurposeVolume.cloud.read(ctx, volId)) ??
+                (await this.module.generalPurposeVolume.db.read(ctx, volId));
+              console.log('obj is');
+              console.log(volObj);
 
-            // check if volume will be removed on termination
-            if (map.Ebs.DeleteOnTermination) {
-              try {
-                console.log('i wait until terminated');
+              // check if volume will be removed on termination
+              if (map.Ebs.DeleteOnTermination) {
                 await this.waitUntilDeleted(client.ec2client, map.Ebs.VolumeId);
-                console.log('i have been deleted');
                 await this.module.generalPurposeVolume.db.delete(volObj, ctx);
-                console.log('after volume delete');
-              } catch (e) {
-                console.log('error in deleting volumes after terminated');
-                console.log(e);
               }
+            } catch (e) {
+              console.log('error in deleting volumes');
+              console.log(e);
             }
           }
         }
