@@ -382,13 +382,17 @@ export class InstanceMapper extends MapperBase<Instance> {
             console.log(volObj);
             if (volObj) {
               // map it to the ebs mapping
+              let snapshotId;
+              if (volObj.snapshotId && instance.region == vol.region) snapshotId = volObj.snapshotId;
+              else snapshotId = map.Ebs?.SnapshotId;
+              console.log('snapshot from image is');
+              console.log(map.Ebs?.SnapshotId);
+              console.log('snapshot from map is');
+              console.log(snapshotId);
               map.Ebs = {
                 DeleteOnTermination: vol.deleteOnTermination,
                 Iops: volObj.volumeType != GeneralPurposeVolumeType.GP2 ? volObj.iops : undefined,
-                SnapshotId:
-                  (volObj.snapshotId ?? '').length > 0 && instance.region == vol.region
-                    ? volObj.snapshotId
-                    : map.Ebs?.SnapshotId,
+                SnapshotId: snapshotId,
                 VolumeSize: volObj.size,
                 VolumeType: volObj.volumeType,
                 KmsKeyId: map.Ebs?.KmsKeyId,
