@@ -2,7 +2,7 @@ import {
   CreateGroupResponse,
   GetGroupResponse,
   ListGroupsResponse,
-} from '@aws-sdk/client-iam/dist-types/models/models_0';
+} from '@aws-sdk/client-iam/dist-types/models';
 
 import * as iasql from '../../src/services/iasql';
 import {

@@ -1,7 +1,7 @@
 import { S3 } from '@aws-sdk/client-s3';
 import { GetBucketWebsiteCommandInput } from '@aws-sdk/client-s3/dist-types/commands/GetBucketWebsiteCommand';
 import { PutBucketWebsiteCommandInput } from '@aws-sdk/client-s3/dist-types/commands/PutBucketWebsiteCommand';
-import { GetBucketWebsiteOutput } from '@aws-sdk/client-s3/dist-types/models/models_0';
+import { GetBucketWebsiteOutput } from '@aws-sdk/client-s3/dist-types/models';
 
 import { AwsS3Module } from '..';
 import { AWS, crudBuilder2 } from '../../../services/aws_macros';

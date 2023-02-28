@@ -1,6 +1,6 @@
 import { EC2, paginateDescribeRouteTables } from '@aws-sdk/client-ec2';
 import { CreateRouteTableCommandInput } from '@aws-sdk/client-ec2/dist-types/commands/CreateRouteTableCommand';
-import { RouteTable as AwsRouteTable } from '@aws-sdk/client-ec2/dist-types/models/models_1';
+import { RouteTable as AwsRouteTable } from '@aws-sdk/client-ec2/dist-types/models';
 
 import { AWS, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
 import { Context, Crud2, MapperBase } from '../../interfaces';
