@@ -381,9 +381,6 @@ export class InstanceMapper extends MapperBase<Instance> {
             console.log('obj is');
             console.log(volObj);
             if (volObj) {
-              // check that are on the same AZ
-              if (volObj.availabilityZone.name != instance.subnet?.availabilityZone.name)
-                throw new Error('Volume and instance must be on the same availability zone');
               // map it to the ebs mapping
               map.Ebs = {
                 DeleteOnTermination: vol.deleteOnTermination,
@@ -497,9 +494,6 @@ export class InstanceMapper extends MapperBase<Instance> {
             };
           }
 
-          // this procedure is only done for newly created instances and not updates
-          console.log('i want to check mappings for');
-          console.log(maps);
           const mappings = await this.generateBlockDeviceMapping(
             ctx,
             amiId!,
@@ -511,39 +505,36 @@ export class InstanceMapper extends MapperBase<Instance> {
           console.log('mappings are');
           console.log(mappings);
 
-          // do not check mappings for updated instances
-          if (!instance.instanceId) {
-            let volumesReady = true;
-            for (const map of maps ?? []) {
-              const region = instance.region;
+          let volumesReady = true;
+          for (const map of maps ?? []) {
+            const region = instance.region;
 
-              // try to find volume and delete from db and cloud
-              if (map.deviceName && map.volumeId) {
-                let volumeObj: GeneralPurposeVolume = await ctx.orm.findOne(GeneralPurposeVolume, {
-                  id: map.volumeId,
-                });
-                if (!volumeObj.volumeId) {
-                  // we need to skip instance creation as the previous volumes are not ready
-                  console.log('volumes not yet ready');
-                  volumesReady = false;
-                  break;
-                }
+            // only delete volumes that are on the same region
+            if (map.deviceName && map.volumeId && map.region == instance.region) {
+              let volumeObj: GeneralPurposeVolume = await ctx.orm.findOne(GeneralPurposeVolume, {
+                id: map.volumeId,
+              });
+              if (!volumeObj.volumeId) {
+                // we need to skip instance creation as the previous volumes are not ready
+                console.log('volumes not yet ready');
+                volumesReady = false;
+                break;
+              }
 
-                console.log('i delete records from db');
-                console.log(map);
-                console.log(volumeObj);
-                try {
-                  await ctx.orm.remove(InstanceBlockDeviceMapping, map);
-                  await ctx.orm.remove(GeneralPurposeVolume, volumeObj);
-                  await this.module.generalPurposeVolume.cloud.delete([volumeObj], ctx);
-                } catch (e) {
-                  console.log('error removing from db');
-                  console.log(e);
-                }
+              console.log('i delete records from db');
+              console.log(map);
+              console.log(volumeObj);
+              try {
+                await ctx.orm.remove(InstanceBlockDeviceMapping, map);
+                await ctx.orm.remove(GeneralPurposeVolume, volumeObj);
+                await this.module.generalPurposeVolume.cloud.delete([volumeObj], ctx);
+              } catch (e) {
+                console.log('error removing from db');
+                console.log(e);
               }
             }
-            if (!volumesReady) continue;
           }
+          if (!volumesReady) continue;
 
           const instanceId = await this.newInstance(client.ec2client, instanceParams);
           if (!instanceId) {
