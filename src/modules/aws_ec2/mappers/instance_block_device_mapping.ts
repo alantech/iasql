@@ -69,6 +69,8 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
     create: async (es: InstanceBlockDeviceMapping[], ctx: Context) => {
       const out: InstanceBlockDeviceMapping[] = [];
       for (const e of es) {
+        console.log('i need to attach volume');
+        console.log(e);
         // if we have no ids we cannot create
         if (!e.cloudInstanceId || !e.cloudVolumeId) continue;
 
@@ -83,6 +85,7 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
         // if instance is not created we are in the first step, no need to create anything
         if (!instance?.instanceId) continue;
         const client = (await ctx.getAwsClient(e.region)) as AWS;
+        console.log('i need to attach');
 
         // read volume details
         if (!e.volumeId) throw new Error('Cannot attach empty volumes to an instance already created');
@@ -96,14 +99,17 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
           throw new Error('Cannot create a mapping between different regions');
 
         // if it is a volume for an existing instance we need to attach it
+        console.log('before attach');
         const result = await this.attachVolume(
           client.ec2client,
           volume.volumeId,
           instance.instanceId,
           e.deviceName,
         );
+        console.log('after attach');
 
         if (result) {
+          console.log('i have attach');
           const map: InstanceBlockDeviceMapping = {
             deviceName: e.deviceName,
             instanceId: e.instanceId,
@@ -115,9 +121,12 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
             cloudVolumeId: volume.volumeId,
             deleteOnTermination: e.deleteOnTermination,
           };
+          console.log(map);
           out.push(map);
         }
       }
+      console.log('all attachments');
+      console.log(out);
       return out;
     },
     read: async (ctx: Context, id?: string) => {

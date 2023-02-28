@@ -753,6 +753,48 @@ export class InstanceMapper extends MapperBase<Instance> {
         );
         if (result.state != WaiterState.SUCCESS) continue; // we keep trying until it is terminated
         console.log('instance has been terminated');
+
+        // read the attached volumes and wait until terminated
+        const region = entity.region;
+        for (const map of maps ?? []) {
+          // find related volume
+          if (map.DeviceName && map.Ebs?.VolumeId) {
+            // delete volume if needed
+            const volId = this.module.generalPurposeVolume.generateId({
+              volumeId: map.Ebs.VolumeId,
+              region,
+            });
+            console.log('vol id is');
+            console.log(volId);
+
+            const volObj =
+              (await this.module.generalPurposeVolume.cloud.read(ctx, volId)) ??
+              (await this.module.generalPurposeVolume.db.read(ctx, volId));
+            console.log('obj is');
+            console.log(volObj);
+            const clientVol = (await ctx.getAwsClient(volObj.region)) as AWS;
+
+            // check if volume will be removed on termination
+            if (volObj && map.Ebs.DeleteOnTermination) {
+              console.log('i need to delete the volume');
+              try {
+                await this.module.generalPurposeVolume.db.delete(volObj, ctx);
+              } catch (e) {
+                console.log('error deleting volume');
+                console.log(e);
+              }
+
+              // force db cache cleanup
+              try {
+                delete ctx.memo.db.GeneralPurposeVolume[this.module.generalPurposeVolume.entityId(volObj)];
+              } catch (e) {
+                console.log('error deleting volume from cache');
+                console.log(e);
+              }
+              console.log('after cleanup');
+            }
+          }
+        }
       }
       console.log('after finish deletion');
     },
