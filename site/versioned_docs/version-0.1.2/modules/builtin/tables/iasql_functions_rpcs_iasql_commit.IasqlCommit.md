@@ -17,3 +17,12 @@ then calling `iasql_commit` to mark the end of the transaction and propagate the
 **`See`**
 
 https://iasql.com/docs/transaction
+
+• **documentation**: `Object`
+
+#### Type declaration
+
+| Name | Type |
+| :------ | :------ |
+| `description` | `string` |
+| `sample_usage` | `string` |

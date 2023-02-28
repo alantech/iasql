@@ -18,3 +18,12 @@ https://iasql.com/docs/transaction
 Returns following columns:
 - ts: Error message timestamp
 - message: Error message
+
+• **documentation**: `Object`
+
+#### Type declaration
+
+| Name | Type |
+| :------ | :------ |
+| `description` | `string` |
+| `sample_usage` | `string` |

@@ -19,3 +19,12 @@ Returns following columns:
 **`See`**
 
 https://iasql.com/docs/module/
+
+• **documentation**: `Object`
+
+#### Type declaration
+
+| Name | Type |
+| :------ | :------ |
+| `description` | `string` |
+| `sample_usage` | `string` |

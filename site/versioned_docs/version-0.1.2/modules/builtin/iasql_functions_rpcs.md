@@ -1,6 +1,6 @@
 ---
-id: "iasql_functions"
-title: "iasql_functions"
+id: "iasql_functions_rpcs"
+title: "iasql_functions_rpcs"
 hide_table_of_contents: true
 custom_edit_url: null
 displayed_sidebar: "docs"
@@ -21,6 +21,8 @@ import TabItem from '@theme/TabItem';
 
     [iasql_get_sql_since](../../builtin/tables/iasql_functions_rpcs_iasql_get_sql_since.IasqlGetSqlSince)
 
+    [iasql_help](../../builtin/tables/iasql_functions_rpcs_iasql_help.IasqlHelp)
+
     [iasql_install](../../builtin/tables/iasql_functions_rpcs_iasql_install.IasqlInstall)
 
     [iasql_modules_list](../../builtin/tables/iasql_functions_rpcs_iasql_modules_list.IasqlModulesList)
@@ -33,12 +35,6 @@ import TabItem from '@theme/TabItem';
 
 </TabItem>
   <TabItem value="Code examples" label="Code examples">
-
-```testdoc
-basic_integration/commit.ts#basic begin, commit and preview functionality#Begin, commit and preview
-basic_integration/rollback.ts#basic rollback functionality#Basic rollback functionality
-common/get_sql_since.ts#iasql_get_sql_since functionality#iasql_get_sql_since functionality
-```
 
 </TabItem>
 </Tabs>

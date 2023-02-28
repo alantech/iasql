@@ -10,3 +10,12 @@ import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 
 Method that generates SQL from the audit log from a given point in time.
+
+• **documentation**: `Object`
+
+#### Type declaration
+
+| Name | Type |
+| :------ | :------ |
+| `description` | `string` |
+| `sample_usage` | `string` |
