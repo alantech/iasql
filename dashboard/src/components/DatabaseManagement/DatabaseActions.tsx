@@ -59,7 +59,7 @@ export function DatabaseActions() {
     <HBox alignment={align.end}>
       <HBox customStyles='md:justify-end'>
         <Dropdown buttonTitle={buttonTitle} color='tertiary' width='w-max' startPosition='right'>
-          <VBox customStyles='p-2'>
+          <VBox customClasses='p-2'>
             <Menu.Item>
               <HBox alignment={align.start} customStyles='p-1'>
                 <Button look='link' onClick={() => handleExport(selectedDb.alias, true)}>
@@ -77,7 +77,7 @@ export function DatabaseActions() {
               </HBox>
             </Menu.Item>
           </VBox>
-          <VBox customStyles='p-2'>
+          <VBox customClasses='p-2'>
             <Menu.Item>
               <HBox alignment={align.start} customStyles='p-1'>
                 <Button look='link' color='tertiary' onClick={handleDisconnect}>

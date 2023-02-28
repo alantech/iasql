@@ -36,7 +36,7 @@ export function DatabaseSelection() {
         <Spinner />
       ) : (
         <Dropdown buttonTitle={buttonTitle} buttonTitleLook='outline' color='primary'>
-          <VBox id='db-selection-list' alignment={align.start} customStyles='h-50vh overflow-y-scroll p-2'>
+          <VBox id='db-selection-list' alignment={align.start} customClasses='h-50vh overflow-y-scroll p-2'>
             {databases.map((db: any) => (
               <Menu.Item key={db.alias}>
                 <HBox
@@ -50,7 +50,7 @@ export function DatabaseSelection() {
               </Menu.Item>
             ))}
           </VBox>
-          <VBox customStyles='p-2'>
+          <VBox customClasses='p-2'>
             <Menu.Item>
               <HBox customStyles='items-center'>
                 <Button

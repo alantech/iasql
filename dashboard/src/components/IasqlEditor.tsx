@@ -182,10 +182,10 @@ export default function IasqlEditor() {
   }, [editorTabs]);
 
   return (
-    <VBox customStyles='mb-3'>
+    <VBox customClasses='mb-3'>
       <HBox alignment={align.between}>
         {!functions?.length ? <Spinner /> : <QuerySidebar />}
-        <VBox id='tabs-and-editor' customStyles='w-full' height='h-50vh'>
+        <VBox id='tabs-and-editor' customClasses='w-full' height='h-50vh'>
           <Tab
             tabs={editorTabs}
             defaultIndex={editorSelectedTab}
