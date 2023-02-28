@@ -17,21 +17,21 @@ export default function QueryResult() {
       </p>
     </EmptyState>
   ) : (
-    <VBox id='query-builder-result' customClasses='overflow-x-auto ph-no-capture'>
+    <VBox id='query-builder-result' customClasses='overflow-x-auto'>
       {!!queryRes && typeof queryRes === 'string' && <Label>{queryRes}</Label>}
       {!!queryRes && queryRes instanceof Array && !queryRes[0]?.result && (
-        <VBox>{<Table data={queryRes} />}</VBox>
+        <VBox customClasses='ph-no-capture'>{<Table data={queryRes} />}</VBox>
       )}
       {!!queryRes &&
         queryRes instanceof Array &&
         queryRes[0]?.result instanceof Array &&
         queryRes.filter((r: any) => (r.result ?? []).length > 0).length > 0 && (
-          <Table
+          <VBox customClasses='ph-no-capture'><Table
             data={queryRes
               .filter((r: any) => (r.result ?? []).length > 0)
               .map((r: any) => r.result ?? [])
               .at(-1)}
-          />
+          /></VBox>
         )}
       {!!queryRes &&
         queryRes instanceof Array &&
