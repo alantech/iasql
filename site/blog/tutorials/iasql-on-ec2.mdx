@@ -6,7 +6,7 @@ authors: [mtp1376]
 import useBaseUrl from '@docusaurus/useBaseUrl';
 import ThemedImage from '@theme/ThemedImage';
 
-We're intending to publish a series of blog posts on deploying different services using IaSQL. IaSQL covers a wide range of AWS services, so there are lots of possibilities to explore. You can deploy containers to ECS, launch servers using EC2, and have CodePipelines that take the burden of building and deploying your applications.
+We're intending to publish a series of blog posts on deploying different services using IaSQL. IaSQL covers a wide range of AWS services, so there are lots of possibilities to explore. You can deploy containers to ECS, launch servers using EC2, and use AWS Codepipeline to take the burden of building and deploying your applications.
 
 In this post we'll explore how to deploy IaSQL on EC2, using IaSQL!
 
@@ -40,7 +40,7 @@ Let's begin by taking an overview of what we're going to do to give you a genera
 To deploy IaSQL on EC2, we need to:
 
 - Launch an EC2 instance that will host IaSQL
-- Set the EC2 user data so that Docker will be installed upon instance launch, and the IaSQL container will be started
+- Set the instance user data so that Docker will be installed upon instance launch, and the IaSQL container will be started
 - Import an SSH key pair into AWS to be able to access the EC2 instance afterwards
 - Set a security group for the instance to allow SSH, while disallowing unauthorized access to the dashboard
 
@@ -70,7 +70,7 @@ SELECT * FROM key_pair_import('iasql', '<your-public-key-content>', 'us-east-1')
 This will direct IaSQL to create an [AWS key pair](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/create-key-pairs.html#how-to-generate-your-own-key-and-import-it-to-aws) with the name `iasql` in the `us-east-1` region, and with your public key contents.
 
 :::note
-An IaSQL RPC is a function available in Postgres that upon calling, sends a request to the IaSQL engine to run a pre-define logic and returns results to the Postgres console. In the above example [`key_pair_import`](https://iasql.com/docs/modules/aws/tables/aws_ec2_rpcs_import.KeyPairImportRpc/) is an IaSQL RPC that triggers the IaSQL engine to send a request to AWS for importing the public key.
+An IaSQL RPC is a function available in Postgres that upon calling, sends a request to the IaSQL engine to run a pre-defined logic and returns results to the Postgres console. In the above example [`key_pair_import`](https://iasql.com/docs/modules/aws/tables/aws_ec2_rpcs_import.KeyPairImportRpc/) is an IaSQL RPC that triggers the IaSQL engine to send a request to AWS for importing the public key.
 :::
 
 #### Create And Configure Security Group
