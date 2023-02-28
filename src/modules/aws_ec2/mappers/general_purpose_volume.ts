@@ -1,3 +1,5 @@
+import { map } from 'lodash';
+
 import {
   CreateVolumeCommandInput,
   DescribeVolumesModificationsCommandInput,
@@ -14,7 +16,12 @@ import { AwsEc2Module } from '..';
 import { awsVpcModule } from '../..';
 import { AWS, crudBuilder, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
 import { Context, Crud, MapperBase } from '../../interfaces';
-import { GeneralPurposeVolume, GeneralPurposeVolumeType, VolumeState } from '../entity';
+import {
+  GeneralPurposeVolume,
+  GeneralPurposeVolumeType,
+  InstanceBlockDeviceMapping,
+  VolumeState,
+} from '../entity';
 import { updateTags, eqTags } from './tags';
 
 export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume> {
@@ -299,7 +306,19 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
         console.log(newEntity);
         await this.module.generalPurposeVolume.db.update(newEntity, ctx);
         out.push(newEntity);
+
+        // check if we have related attachments and update cloud volume id
+        console.log('before create mapping');
+        const mapping = await ctx.orm.findOne(InstanceBlockDeviceMapping, { volumeId: e.id });
+        console.log('after create mapping');
+        if (mapping) {
+          mapping.volume_id = newEntity.id;
+          console.log(mapping);
+          await this.module.generalPurposeVolume.db.update(mapping, ctx);
+        }
       }
+      console.log('volumes are');
+      console.log(out);
       return out;
     },
     read: async (ctx: Context, id?: string) => {
