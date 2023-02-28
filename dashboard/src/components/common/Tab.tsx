@@ -54,10 +54,7 @@ export default function Tab({
                       onTabClose(i);
                     }}
                   >
-                    <XIcon
-                      className='h-2 w-2 cursor-pointer'
-                      aria-hidden='true'
-                    />
+                    <XIcon className='h-2 w-2 cursor-pointer' aria-hidden='true' />
                   </div>
                 </HBox>
               ) : t.closable && selectedIndex !== i ? (
