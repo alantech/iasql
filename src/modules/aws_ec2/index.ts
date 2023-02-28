@@ -47,6 +47,7 @@ export class AwsEc2Module extends ModuleBase {
 /**
  * ```testdoc
  * modules/aws-ec2-integration.ts#EC2 Integration Testing#Manage EC2 instances
+ * modules/aws-ec2-integration.ts#EC2 Integration Testing#Move instance from region
  * modules/aws-ec2-gpv-integration.ts#EC2 General Purpose Volume Integration Testing#Manage volumes
  * ```
  */

@@ -356,11 +356,13 @@ export class InstanceMapper extends MapperBase<Instance> {
 
     if (amiImage) {
       const mapping = amiImage.BlockDeviceMappings;
+      console.log('mapping is');
+      console.log(mapping);
+      console.log('original is');
+      console.log(maps);
 
       // check if there is any mapped volume that doesn't exist on instance mapping, and error
       for (const dev of maps ?? []) {
-        console.log('i found');
-        console.log(dev);
         // try to find the device name on instance mapping
         const vol = mapping?.find(item => item.DeviceName == dev.deviceName);
         if (!vol) throw new Error('Error mapping volume to a device that does not exist for the AMI');
@@ -760,42 +762,8 @@ export class InstanceMapper extends MapperBase<Instance> {
         );
         if (result.state != WaiterState.SUCCESS) continue; // we keep trying until it is terminated
         console.log('instance has been terminated');
-
-        // read the attached volumes and wait until terminated
-        const region = entity.region;
-        for (const map of maps ?? []) {
-          // find related volume
-          console.log(map);
-          if (map.DeviceName && map.Ebs?.VolumeId) {
-            // delete volume if needed
-            const volId = this.module.generalPurposeVolume.generateId({
-              volumeId: map.Ebs.VolumeId,
-              region,
-            });
-            console.log('vol id is');
-            console.log(volId);
-
-            try {
-              const volObj =
-                (await this.module.generalPurposeVolume.cloud.read(ctx, volId)) ??
-                (await this.module.generalPurposeVolume.db.read(ctx, volId));
-              console.log('obj is');
-              console.log(volObj);
-
-              // check if volume will be removed on termination
-              if (map.Ebs.DeleteOnTermination) {
-                await this.waitUntilDeleted(client.ec2client, map.Ebs.VolumeId);
-                await this.module.generalPurposeVolume.db.delete(volObj, ctx);
-                // force db cache cleanup
-                delete ctx.memo.db.GeneralPurposeVolume[this.module.generalPurposeVolume.entityId(volObj)];
-              }
-            } catch (e) {
-              console.log('error in deleting volumes');
-              console.log(e);
-            }
-          }
-        }
       }
+      console.log('after finish deletion');
     },
   });
 

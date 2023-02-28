@@ -8,6 +8,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  itDocs,
   runBegin,
   runCommit,
   runInstall,
@@ -148,7 +149,7 @@ describe('EC2 Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it('adds an ec2 instance', done => {
+  itDocs('adds an ec2 instance', (done: (arg0: any) => any) => {
     query(
       `
       INSERT INTO instance (ami, instance_type, tags, subnet_id)
@@ -165,7 +166,7 @@ describe('EC2 Integration Testing', () => {
       () => ({ username, password }),
     )((e?: any) => {
       if (!!e) return done(e);
-      done();
+      done(undefined);
     });
   });
 
@@ -353,7 +354,7 @@ describe('EC2 Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'moves the instance to another region',
     query(
       `
@@ -391,7 +392,7 @@ describe('EC2 Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'check number of instances',
     query(
       `
