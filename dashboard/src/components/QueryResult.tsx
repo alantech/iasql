@@ -26,12 +26,14 @@ export default function QueryResult() {
         queryRes instanceof Array &&
         queryRes[0]?.result instanceof Array &&
         queryRes.filter((r: any) => (r.result ?? []).length > 0).length > 0 && (
-          <VBox customClasses='ph-no-capture'><Table
-            data={queryRes
-              .filter((r: any) => (r.result ?? []).length > 0)
-              .map((r: any) => r.result ?? [])
-              .at(-1)}
-          /></VBox>
+          <VBox customClasses='ph-no-capture'>
+            <Table
+              data={queryRes
+                .filter((r: any) => (r.result ?? []).length > 0)
+                .map((r: any) => r.result ?? [])
+                .at(-1)}
+            />
+          </VBox>
         )}
       {!!queryRes &&
         queryRes instanceof Array &&
