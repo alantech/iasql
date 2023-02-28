@@ -45,20 +45,20 @@ function VBox_(
     children,
     id,
     alignment = align.around,
-    customStyles = '',
+    customClasses = '',
     height = 'h-full',
   }: {
     children: any[] | any;
     id?: string;
     alignment?: align;
-    customStyles?: string;
+    customClasses?: string;
     height?: string;
   },
   ref: any,
 ) {
   return (
     <div
-      className={`${classes} flex-col ${height} content-around ${alignment} ${customStyles}`}
+      className={`${classes} flex-col ${height} content-around ${alignment} ${customClasses}`}
       id={id}
       ref={ref}
     >

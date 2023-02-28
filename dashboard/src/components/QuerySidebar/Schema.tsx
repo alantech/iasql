@@ -24,7 +24,7 @@ export default function Schema({
   };
 
   return (
-    <VBox customStyles='w-full bg-transparent dark:bg-gray-800' id='schema-tab'>
+    <VBox customClasses='w-full bg-transparent dark:bg-gray-800' id='schema-tab'>
       {/* TODO: make this a component */}
       <Accordion id='modules' title={<b>Modules</b>} defaultOpen={true}>
         {Object.keys(moduleData ?? {}).map((moduleName: string) => (

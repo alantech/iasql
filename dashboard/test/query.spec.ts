@@ -69,5 +69,8 @@ export default function createTests() {
 
     // Check response
     await click(page.locator(`#query-builder-result table`));
+
+    // make sure the query builder result has ph-no-capture class
+    await click(page.locator('#query-builder-result ph-no-capture'))
   });
 }

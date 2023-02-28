@@ -17,7 +17,7 @@ export default function QueryResult() {
       </p>
     </EmptyState>
   ) : (
-    <VBox id='query-builder-result' customStyles='overflow-x-auto'>
+    <VBox id='query-builder-result' customClasses='overflow-x-auto ph-no-capture'>
       {!!queryRes && typeof queryRes === 'string' && <Label>{queryRes}</Label>}
       {!!queryRes && queryRes instanceof Array && !queryRes[0]?.result && (
         <VBox>{<Table data={queryRes} />}</VBox>
