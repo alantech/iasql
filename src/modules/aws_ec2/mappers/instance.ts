@@ -497,22 +497,22 @@ export class InstanceMapper extends MapperBase<Instance> {
             };
           }
 
-          // get block device mapping parameter
-          if (!instance.instanceId) {
-            // this procedure is only done for newly created instances and not updates
-            console.log('i want to check mappings for');
-            console.log(maps);
-            const mappings = await this.generateBlockDeviceMapping(
-              ctx,
-              amiId!,
-              maps ?? [],
-              instance,
-              instance.hibernationEnabled,
-            );
-            if (mappings) instanceParams.BlockDeviceMappings = mappings;
-            console.log('mappings are');
-            console.log(mappings);
+          // this procedure is only done for newly created instances and not updates
+          console.log('i want to check mappings for');
+          console.log(maps);
+          const mappings = await this.generateBlockDeviceMapping(
+            ctx,
+            amiId!,
+            maps ?? [],
+            instance,
+            instance.hibernationEnabled,
+          );
+          if (mappings) instanceParams.BlockDeviceMappings = mappings;
+          console.log('mappings are');
+          console.log(mappings);
 
+          // do not check mappings for updated instances
+          if (!instance.instanceId) {
             let volumesReady = true;
             for (const map of maps ?? []) {
               const region = instance.region;
