@@ -2848,10 +2848,10 @@ levn@^0.4.1:
     prelude-ls "^1.2.1"
     type-check "~0.4.0"
 
-libpg-query@13.3.1:
-  version "13.3.1"
-  resolved "https://registry.yarnpkg.com/libpg-query/-/libpg-query-13.3.1.tgz#1403a58c67ea5fc3ca7087b3e12dec9dc4ea8b89"
-  integrity sha512-RLvnKPLWngNR7bNep/Q9euPcfFJVFfDg/iP13lYGxcSI01emS/1vbTw6EBd8UordweWFdvUuK+31sHp104dukA==
+libpg-query@13.3.1, libpg-query@14.0.0:
+  version "14.0.0"
+  resolved "https://registry.yarnpkg.com/libpg-query/-/libpg-query-14.0.0.tgz#8c115ccb331572f9caddb763be3a5c3595042ba9"
+  integrity sha512-B8ek2PuJmAM3QcMCoykSpxc7b8kYXibcxMllNPGLFZTYSxK957Y7ufK0Sw1DF3vID6DKQrTCqyy1KWjsaabfFg==
   dependencies:
     "@mapbox/node-pre-gyp" "^1.0.8"
     node-addon-api "^1.6.3"
