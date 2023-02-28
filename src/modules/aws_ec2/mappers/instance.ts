@@ -508,11 +508,13 @@ export class InstanceMapper extends MapperBase<Instance> {
             region: entity.region,
           })
         ];
-        for (const k of Object.keys(ctx?.memo?.db?.RegisteredInstance ?? {})) {
+        /*for (const k of Object.keys(ctx?.memo?.db?.RegisteredInstance ?? {})) {
           if (k.split('|')[0] === entity.instanceId) {
             delete ctx?.memo?.db?.RegisteredInstance?.[k];
           }
-        }
+        }*/
+        // Let's just invalidate the RegisteredInstance cache entirely
+        delete ctx?.memo?.db.RegisteredInstance;
         const attachedVolume = await this.module.generalPurposeVolume.db.read(
           ctx,
           this.module.generalPurposeVolume.generateId({
