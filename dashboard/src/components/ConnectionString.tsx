@@ -11,7 +11,7 @@ export default function ConnectionString({
   return (
     <>
       <Label mode='info'>IaSQL Database is connected to your AWS Account</Label>
-      <Copyable sensitive={true}>
+      <Copyable customClasses='ph-no-capture'>
         {generateConnectionString(dbInfo, config?.engine.pgHost, config?.engine.pgForceSsl)}
       </Copyable>
       <Label mode='warn'>
