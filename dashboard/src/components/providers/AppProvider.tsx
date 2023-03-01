@@ -165,9 +165,9 @@ const reducer = (state: AppState, payload: Payload): AppState => {
       return { ...state, isRunningSql: isRunning };
     }
     case ActionType.RunSql: {
-      const { queryRes, databases: runSqlUpdatedDbs } = payload.data;
+      const { queryRes, databases: runSqlUpdatedDbs, tabIdx } = payload.data;
       const tabsCopy = [...state.editorTabs];
-      tabsCopy[state.editorSelectedTab].queryRes = queryRes;
+      tabsCopy[tabIdx].queryRes = queryRes;
       if (runSqlUpdatedDbs !== null && runSqlUpdatedDbs !== undefined) {
         const current = runSqlUpdatedDbs.find((d: any) => d.alias === state.selectedDb.alias);
         return { ...state, databases: runSqlUpdatedDbs, selectedDb: current, editorTabs: tabsCopy };
@@ -436,7 +436,7 @@ const middlewareReducer = async (
         dispatch({ ...payload, data: { error: 'No auth token defined.' } });
         break;
       }
-      const { content, isRunning, db: runningDb } = payload.data;
+      const { content, isRunning, db: runningDb, tabIdx } = payload.data;
       if (runningDb.isUnsupported) {
         break;
       }
@@ -488,7 +488,7 @@ const middlewareReducer = async (
         });
       }
       if (runErr) break;
-      dispatch({ ...payload, data: { queryRes, databases } });
+      dispatch({ ...payload, data: { queryRes, databases, tabIdx } });
       if (updatedAutoCompleteRes) {
         dispatch({
           ...payload,
@@ -570,6 +570,7 @@ const middlewareReducer = async (
             db: selectedDb,
             content: contentToBeRun,
             isRunning: isRunningSql,
+            tabIdx: index,
           },
         });
       }

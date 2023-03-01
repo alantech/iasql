@@ -59,7 +59,7 @@ export default function IasqlEditor() {
   );
 
   const handleQueryToRunUpdate = useCallback(
-    (db: any, isRunning: boolean) => {
+    (db: any, isRunning: boolean, tabIdx: number) => {
       const contentToBeRun = editorRef?.current?.editor?.getSelectedText()
         ? editorRef?.current?.editor?.getSelectedText()
         : editorRef?.current?.editor?.getValue();
@@ -71,6 +71,7 @@ export default function IasqlEditor() {
             db,
             content: contentToBeRun,
             isRunning,
+            tabIdx,
           },
         });
       }
@@ -102,11 +103,11 @@ export default function IasqlEditor() {
     const command = {
       name: 'Run SQL',
       bindKey: { win: 'Ctrl-Enter', mac: 'Cmd-Enter' },
-      exec: () => handleQueryToRunUpdate(selectedDb, isRunningSql),
+      exec: () => handleQueryToRunUpdate(selectedDb, isRunningSql, editorSelectedTab),
     };
     editorRef?.current?.editor?.commands?.removeCommand(command);
     editorRef?.current?.editor?.commands?.addCommand(command);
-  }, [handleQueryToRunUpdate, isRunningSql, selectedDb]);
+  }, [handleQueryToRunUpdate, isRunningSql, selectedDb, editorSelectedTab]);
 
   // Set up editor theme
   useEffect(() => {

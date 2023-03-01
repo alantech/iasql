@@ -25,7 +25,7 @@ export function DatabaseActions() {
       dispatch({
         token,
         action: ActionType.RunSql,
-        data: { db, isRunning, content },
+        data: { db, isRunning, content, tabIdx: editorSelectedTab },
       });
     }
   };
