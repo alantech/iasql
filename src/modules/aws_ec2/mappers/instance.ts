@@ -784,7 +784,7 @@ export class InstanceMapper extends MapperBase<Instance> {
             if (volObj && map.Ebs.DeleteOnTermination) {
               console.log('i need to delete the map and volume');
               try {
-                const mapObj = ctx.orm.findOne(InstanceBlockDeviceMapping, { volumeId: volObj.id });
+                const mapObj = await ctx.orm.findOne(InstanceBlockDeviceMapping, { volumeId: volObj.id });
                 if (mapObj) {
                   console.log("i found the map and i'm deleting it");
                   console.log(mapObj);
