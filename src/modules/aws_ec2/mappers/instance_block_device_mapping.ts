@@ -93,37 +93,30 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
           id: e.volumeId,
         });
         if (!volume.volumeId) throw new Error('Tried to attach an unexisting volume');
-        if (volume.state == VolumeState.IN_USE)
-          throw new Error('Cannot attach volumes that are already in use');
         if (volume.region != instance.region)
           throw new Error('Cannot create a mapping between different regions');
 
-        // if it is a volume for an existing instance we need to attach it
-        console.log('before attach');
-        const result = await this.attachVolume(
-          client.ec2client,
-          volume.volumeId,
-          instance.instanceId,
-          e.deviceName,
-        );
-        console.log('after attach');
-
-        if (result) {
-          console.log('i have attach');
-          const map: InstanceBlockDeviceMapping = {
-            deviceName: e.deviceName,
-            instanceId: e.instanceId,
-            instance: instance,
-            volumeId: e.volumeId,
-            volume: volume,
-            region: instance.region,
-            cloudInstanceId: instance.instanceId,
-            cloudVolumeId: volume.volumeId,
-            deleteOnTermination: e.deleteOnTermination,
-          };
-          console.log(map);
-          out.push(map);
+        // only attach if volume is not in use. We can have the case that the volume is auto-attached on creation
+        if (volume.state == VolumeState.AVAILABLE) {
+          console.log('before attach');
+          await this.attachVolume(client.ec2client, volume.volumeId, instance.instanceId, e.deviceName);
+          console.log('after attach');
         }
+
+        // return mapping
+        const map: InstanceBlockDeviceMapping = {
+          deviceName: e.deviceName,
+          instanceId: e.instanceId,
+          instance: instance,
+          volumeId: e.volumeId,
+          volume: volume,
+          region: instance.region,
+          cloudInstanceId: instance.instanceId,
+          cloudVolumeId: volume.volumeId,
+          deleteOnTermination: e.deleteOnTermination,
+        };
+        console.log(map);
+        out.push(map);
       }
       console.log('all attachments');
       console.log(out);
@@ -213,6 +206,12 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
                     ctx,
                     this.module.generalPurposeVolume.generateId({ volumeId: map.Ebs.VolumeId ?? '', region }),
                   );
+                  console.log('instance is');
+                  console.log(instance);
+                  console.log(i.instanceId);
+                  console.log('volume is');
+                  console.log(volume);
+                  console.log(map.Ebs.VolumeId);
 
                   const res: InstanceBlockDeviceMapping = {
                     instanceId: instance?.id ?? undefined,
@@ -231,6 +230,8 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
             }
           }),
         );
+        console.log('instance block device mappings are');
+        console.log(out);
         return out;
       }
     },
