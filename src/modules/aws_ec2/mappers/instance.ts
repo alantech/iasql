@@ -538,7 +538,9 @@ export class InstanceMapper extends MapperBase<Instance> {
               console.log(map);
               console.log(volumeObj);
               try {
+                console.log('before deleting instance map');
                 await ctx.orm.remove(InstanceBlockDeviceMapping, map);
+                console.log('before deleting gpv');
                 await ctx.orm.remove(GeneralPurposeVolume, volumeObj);
                 await this.module.generalPurposeVolume.cloud.delete([volumeObj], ctx);
 
@@ -546,10 +548,14 @@ export class InstanceMapper extends MapperBase<Instance> {
                 delete ctx.memo.db.InstanceBlockDeviceMapping[
                   this.module.instanceBlockDeviceMapping.entityId(map)
                 ];
+                delete ctx.memo.cloud.InstanceBlockDeviceMapping[
+                  this.module.instanceBlockDeviceMapping.entityId(map)
+                ];
                 delete ctx.memo.db.GeneralPurposeVolume[this.module.generalPurposeVolume.entityId(volumeObj)];
                 delete ctx.memo.cloud.GeneralPurposeVolume[
                   this.module.generalPurposeVolume.entityId(volumeObj)
                 ];
+                console.log('after all caches');
               } catch (e) {
                 console.log('error removing from db');
                 console.log(e);
@@ -782,16 +788,19 @@ export class InstanceMapper extends MapperBase<Instance> {
 
             // check if volume will be removed on termination
             if (volObj && map.Ebs.DeleteOnTermination) {
-              console.log('i need to delete the volume');
+              console.log('i need to delete the map and volume');
               try {
+                const mapObj = ctx.orm.findOne(InstanceBlockDeviceMapping, { volumeId: volObj.id });
+                if (mapObj) {
+                  console.log("i found the map and i'm deleting it");
+                  console.log(mapObj);
+                  await ctx.orm.remove(InstanceBlockDeviceMapping, mapObj);
+                }
                 await this.module.generalPurposeVolume.db.delete(volObj, ctx);
-              } catch (e) {
-                console.log('error deleting volume');
-                console.log(e);
-              }
 
-              // force db cache cleanup
-              try {
+                delete ctx.memo.db.InstanceBlockDeviceMapping[
+                  this.module.instanceBlockDeviceMapping.entityId(mapObj)
+                ];
                 delete ctx.memo.db.GeneralPurposeVolume[this.module.generalPurposeVolume.entityId(volObj)];
               } catch (e) {
                 console.log('error deleting volume from cache');
