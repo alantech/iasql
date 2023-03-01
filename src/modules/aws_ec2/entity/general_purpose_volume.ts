@@ -112,6 +112,17 @@ export class GeneralPurposeVolume {
 
   /**
    * @public
+   * If set to true it will not be created and used only for defining initial EBS on instance creation
+   * @see https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/block-device-mapping-concepts.html
+   */
+  @Column({
+    nullable: true,
+    default: false,
+  })
+  isRootDevice?: boolean;
+
+  /**
+   * @public
    * The number of I/O operations per second (IOPS)
    * @see https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-ec2/interfaces/createvolumerequest.html#iops
    */
