@@ -767,9 +767,7 @@ export class InstanceMapper extends MapperBase<Instance> {
             console.log('vol id is');
             console.log(volId);
 
-            const volObj =
-              (await this.module.generalPurposeVolume.cloud.read(ctx, volId)) ??
-              (await this.module.generalPurposeVolume.db.read(ctx, volId));
+            const volObj = await this.module.generalPurposeVolume.db.read(ctx, volId);
             console.log('obj is');
             console.log(volObj);
 
