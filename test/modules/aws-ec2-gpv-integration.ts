@@ -258,7 +258,7 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
     FROM general_purpose_volume
     WHERE tags ->> 'Name' = '${gp2VolumeName}-2';
   `,
-      (res: any[]) => expect(res.length).toBe(0),
+      (res: any[]) => expect(res.length).toBe(1),
     ),
   );
 

@@ -1,3 +1,5 @@
+import { map } from 'lodash';
+
 import { EC2, InstanceLifecycle } from '@aws-sdk/client-ec2';
 import { Volume as AWSVolume } from '@aws-sdk/client-ec2';
 import { WaiterState } from '@aws-sdk/util-waiter';
@@ -112,11 +114,17 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
           cloudVolumeId: volume.volumeId,
           deleteOnTermination: e.deleteOnTermination,
         };
+
+        // Save the record back into the database to get the new fields updated
+        map.id = e.id;
+        console.log('new entity map is');
         console.log(map);
+        await this.module.instanceBlockDeviceMapping.db.update(map, ctx);
         out.push(map);
       }
       console.log('all attachments');
       console.log(out);
+
       return out;
     },
     read: async (ctx: Context, id?: string) => {
@@ -204,7 +212,7 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
                     this.module.generalPurposeVolume.generateId({ volumeId: map.Ebs.VolumeId ?? '', region }),
                   );
                   console.log('instance is');
-                  console.log(instance);
+                  console.log(i);
                   console.log(i.instanceId);
                   console.log('volume is');
                   console.log(volume);
