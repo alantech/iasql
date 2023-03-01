@@ -50,14 +50,11 @@ export default function Tab({
                   <div
                     id='close-bttn'
                     className='flex-none inline-flex justify-center p-1 mr-2 border border-transparent text-sm font-medium bg-gray-300 dark:bg-gray-600 rounded-md hover:bg-gray-400 dark:hover:bg-gray-700'
+                    onClick={() => {
+                      onTabClose(i);
+                    }}
                   >
-                    <XIcon
-                      className='h-2 w-2 cursor-pointer'
-                      aria-hidden='true'
-                      onClick={() => {
-                        onTabClose(i);
-                      }}
-                    />
+                    <XIcon className='h-2 w-2 cursor-pointer' aria-hidden='true' />
                   </div>
                 </HBox>
               ) : t.closable && selectedIndex !== i ? (
