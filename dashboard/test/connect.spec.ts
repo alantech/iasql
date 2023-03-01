@@ -1,6 +1,6 @@
 import { test, } from '@playwright/test';
 
-import { auth0, click, fill, isVisible, } from './helper';
+import { auth0, click, fill, isDisabled, isVisible, } from './helper';
 
 export default function createTests() {
   test('Connect account', async ({ page, browserName }) => {
@@ -52,6 +52,10 @@ export default function createTests() {
     await click(
       page.locator('text=Next')
     );
+
+    await isDisabled(page.locator('text=Finish'));
+    
+    await isDisabled(page.locator('text=Back'));
 
     await click(
       page.locator('text=Finish')

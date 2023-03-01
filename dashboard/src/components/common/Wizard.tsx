@@ -12,6 +12,7 @@ export function Wizard({
   setStack,
   nextEnabled,
   onNext,
+  backEnabled = true,
   onBack,
   onClose,
   children,
@@ -24,6 +25,7 @@ export function Wizard({
   setStack: (arg0: string[]) => void;
   nextEnabled?: boolean;
   onNext: () => string;
+  backEnabled?: boolean;
   onBack?:
     | ((curr: string, stack: string[]) => string[] | void)
     | ((curr: string) => string[] | void)
@@ -33,7 +35,7 @@ export function Wizard({
 }) {
   const { dispatch } = useAppContext();
   if (stack.length === 0) stack.push(start);
-  const backDisabled = stack.length === 1;
+  const backDisabled = backEnabled ? stack.length === 1 : true;
   const currentStepId = stack[stack.length - 1];
   const steps = Children.toArray(children);
   const currentStep = steps.find((s: any) => s.type === Step && s.props.id === currentStepId);
