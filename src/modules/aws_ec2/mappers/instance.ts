@@ -533,17 +533,20 @@ export class InstanceMapper extends MapperBase<Instance> {
               const vol = maps?.find(item => item.deviceName == map.DeviceName);
               console.log(vol);
               if (vol && vol.volumeId) {
-                console.log('it exists');
-                const volObj = await ctx.orm.findOne(GeneralPurposeVolume, {
-                  id: vol.volumeId,
-                  isRootDevice: true,
+                const volId = this.module.generalPurposeVolume.generateId({
+                  volumeId: map.Ebs.VolumeId,
+                  region: instance.region,
                 });
-                if (volObj) {
-                  volObj.volumeId = map.Ebs.VolumeId;
-                  volObj.isRootDevice = false;
-                  console.log('final obj is');
-                  console.log(volObj);
-                  await this.module.generalPurposeVolume.db.update(volObj, ctx);
+                console.log('i need to update');
+                console.log(volId);
+                const volFromCloud = await this.module.generalPurposeVolume.cloud.read(ctx, volId);
+                if (volFromCloud) {
+                  console.log('i read volume from cloud');
+                  console.log(volFromCloud);
+                  volFromCloud.id = vol.volumeId;
+                  volFromCloud.isRootDevice = false;
+                  await this.module.generalPurposeVolume.db.update(volFromCloud, ctx);
+                  console.log('after update');
                 }
               } else {
                 console.log('i need to create new volume');

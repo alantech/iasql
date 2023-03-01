@@ -200,6 +200,7 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
         console.log('i want to create volume');
         console.log(e);
         if (e.isRootDevice) continue; // cannot create root volumes, skip
+        if (e.volumeId) continue; // cannot create a volume that is already created, skip
         const client = (await ctx.getAwsClient(e.region)) as AWS;
         const input: CreateVolumeCommandInput = {
           AvailabilityZone: e.availabilityZone.name,
@@ -223,6 +224,8 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
             },
           ];
         }
+        console.log('input is');
+        console.log(input);
         const newVolumeId = await this.createVolume(client.ec2client, input);
         // Re-get the inserted record to get all of the relevant records we care about
         const newObject = await this.getVolume(client.ec2client, newVolumeId);
