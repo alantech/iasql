@@ -1,6 +1,6 @@
 import { ConfigInterface } from './config';
 
-const dev: ConfigInterface = {
+const debug: ConfigInterface = {
   db: {
     host: 'localhost',
     user: 'postgres',
@@ -10,4 +10,4 @@ const dev: ConfigInterface = {
   },
 };
 
-export default dev;
+export default debug;

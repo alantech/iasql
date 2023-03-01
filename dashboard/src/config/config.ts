@@ -1,4 +1,4 @@
-export type ConfigEnvironments = 'production' | 'staging' | 'local' | 'test' | 'ci' | 'dev';
+export type ConfigEnvironments = 'production' | 'staging' | 'local' | 'test' | 'ci' | 'debug';
 
 export interface ConfigInterface {
   name: string;
