@@ -147,7 +147,7 @@ export default function IasqlEditor() {
             .flat(),
           // Function Names
           ...Object.values(functions)
-            .map(mod => Object.keys(mod))
+            .map(fn => Object.keys(fn))
             .flat()
             .map(fn => ({ value: fn, meta: 'function' })),
         ];
