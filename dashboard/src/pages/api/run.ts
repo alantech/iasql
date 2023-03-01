@@ -68,7 +68,7 @@ async function metaQuery(sql: string, params?: any[]): Promise<any> {
   if (!dbConns[db]?.isConnected) {
     // Trash this object and rebuild it
     delete dbConns[db];
-    dbConns[db] = await createConnection({ ...baseConnConfig, name: db, database: db });
+    dbConns[db] = await createConnection({ ...baseConnConfig, name: `${db}${Date.now()}`, database: db });
   }
   const dbConn = dbConns[db];
   const out = await dbConn.query(sql, params);
