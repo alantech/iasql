@@ -146,9 +146,10 @@ export default function IasqlEditor() {
             .map(tbl => Object.entries(tbl).map(([value, meta]) => ({ value, meta })))
             .flat(),
           // Function Names
-          ...(Array.from(functions) ?? [])
-            .filter((h: any) => !!h?.signature)
-            .map((h: any) => ({ value: h.signature, meta: 'function' })),
+          ...Object.values(functions)
+            .map(mod => Object.keys(mod))
+            .flat()
+            .map(fn => ({ value: fn, meta: 'function' })),
         ];
         autoCompleteIasqlKeywords?.push({ value: 'iasql_help()', meta: 'function' });
         autoCompleteIasqlKeywords?.forEach(completion => {
@@ -184,7 +185,7 @@ export default function IasqlEditor() {
   return (
     <VBox customClasses='mb-3'>
       <HBox alignment={align.between}>
-        {!functions?.length ? <Spinner /> : <QuerySidebar />}
+        {!Object.keys(functions ?? {}).length ? <Spinner /> : <QuerySidebar />}
         <VBox id='tabs-and-editor' customClasses='w-full' height='h-50vh'>
           <Tab
             tabs={editorTabs}

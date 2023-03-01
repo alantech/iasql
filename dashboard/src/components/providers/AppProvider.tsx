@@ -70,7 +70,11 @@ interface AppState {
   newDb?: any;
   dump: Blob | null;
   allModules: { [moduleName: string]: string[] };
-  functions: any[];
+  functions: {
+    [moduleName: string]: {
+      [functionName: string]: string;
+    };
+  };
   installedModules: {
     [moduleName: string]: { [tableName: string]: { [columnName: string]: string } & { recordCount: number } };
   };
@@ -182,8 +186,18 @@ const reducer = (state: AppState, payload: Payload): AppState => {
         };
       };
       const allModules = {} as { [moduleName: string]: string[] };
-      const functionData = new Set() as Set<any>;
-      (autoCompleteRes?.[0]?.result ?? []).forEach((e: any) => functionData.add(e));
+      const functionData = {} as {
+        [moduleName: string]: {
+          [functionName: string]: string;
+        };
+      };
+      (autoCompleteRes?.[0]?.result ?? []).forEach((row: any) => {
+        const moduleName = row.module;
+        const functionName = row.name;
+        const functionSignature = row.signature;
+        functionData[moduleName] = functionData[moduleName] || {};
+        functionData[moduleName][functionName] = functionSignature;
+      });
       (autoCompleteRes?.[1]?.result ?? []).forEach((row: any) => {
         const moduleName = row.module;
         const tableName = row.table_name;
@@ -203,7 +217,7 @@ const reducer = (state: AppState, payload: Payload): AppState => {
       });
       return {
         ...state,
-        functions: [...(Array.from(functionData) ?? [])],
+        functions: functionData,
         allModules,
         installedModules: moduleData,
       };
@@ -591,7 +605,7 @@ const AppProvider = ({ children }: { children: any }) => {
     error: null,
     dump: null,
     allModules: {},
-    functions: [],
+    functions: {},
     installedModules: {},
     isDarkMode: false,
     shouldShowDisconnect: false,
