@@ -213,7 +213,7 @@ WHERE id = (SELECT id
 
 Now we can go to `http://<instance-ip>:9876/` URL, and we'll see the beautiful IaSQL dashboard deployed on our EC2 server.
 
-##### Cloud-init Directives
+##### Optional: Cloud-init Directives
 Now let's use cloud-init directives to do the same thing. This part is not exactly related to IaSQL, or what we intended to do in this post. It's just an exploration for other choices we have with EC2 user data field.
 
 For the previous part, we used the following bash script as the `user_data` column in the `instance` table:
