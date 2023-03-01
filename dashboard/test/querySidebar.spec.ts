@@ -26,6 +26,11 @@ export default function createTests() {
       page.locator(`#accordion-modules`), true
     );
   
+    // Check iasql_version function is defined
+    await click(
+      page.locator(`span:has-text("iasql_version")`)
+    );
+
     // Close functions accordion
     await click(
       page.locator(`#accordion-functions`)
