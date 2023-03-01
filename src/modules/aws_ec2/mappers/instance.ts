@@ -542,19 +542,32 @@ export class InstanceMapper extends MapperBase<Instance> {
                 await ctx.orm.remove(InstanceBlockDeviceMapping, map);
                 console.log('before deleting gpv');
                 await ctx.orm.remove(GeneralPurposeVolume, volumeObj);
+                console.log("before deleting volume cloud");
                 await this.module.generalPurposeVolume.cloud.delete([volumeObj], ctx);
 
                 // force db cache cleanup
-                delete ctx.memo.db.InstanceBlockDeviceMapping[
-                  this.module.instanceBlockDeviceMapping.entityId(map)
-                ];
-                delete ctx.memo.cloud.InstanceBlockDeviceMapping[
-                  this.module.instanceBlockDeviceMapping.entityId(map)
-                ];
-                delete ctx.memo.db.GeneralPurposeVolume[this.module.generalPurposeVolume.entityId(volumeObj)];
-                delete ctx.memo.cloud.GeneralPurposeVolume[
-                  this.module.generalPurposeVolume.entityId(volumeObj)
-                ];
+                console.log("before delete db cache");
+                const mapEntityId = this.module.instanceBlockDeviceMapping.entityId(map);
+                console.log(mapEntityId);
+                if (mapEntityId) {
+                  console.log("i delete caches from map");
+                  delete ctx.memo.db.InstanceBlockDeviceMapping[
+                    this.module.instanceBlockDeviceMapping.entityId(map)
+                  ];
+                  delete ctx.memo.cloud.InstanceBlockDeviceMapping[
+                    this.module.instanceBlockDeviceMapping.entityId(map)
+                  ];
+                }
+                const volEntityId = this.module.generalPurposeVolume.entityId(volumeObj);
+                console.log("vol entity id is");
+                console.log(volEntityId);
+                if (volEntityId) {
+                  console.log("i delete caches from volume");
+                  delete ctx.memo.db.GeneralPurposeVolume[this.module.generalPurposeVolume.entityId(volumeObj)];
+                  delete ctx.memo.cloud.GeneralPurposeVolume[
+                    this.module.generalPurposeVolume.entityId(volumeObj)
+                  ];
+                }
                 console.log('after all caches');
               } catch (e) {
                 console.log('error removing from db');
