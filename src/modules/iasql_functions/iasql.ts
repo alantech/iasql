@@ -767,8 +767,6 @@ async function revert(
 async function getChangeLogsSinceLastBegin(orm: TypeormWrapper): Promise<IasqlAuditLog[]> {
   const transaction: IasqlAuditLog = await orm.findOne(IasqlAuditLog, {
     order: { ts: 'DESC' },
-    /* skip: 0,
-    take: 1, */ // @aguillenv, what is this? It's a `findOne` why are these needed?
     where: {
       changeType: AuditLogChangeType.OPEN_TRANSACTION,
     },

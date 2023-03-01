@@ -447,7 +447,8 @@ export class InstanceMapper extends MapperBase<Instance> {
         return out;
       }
     },
-    updateOrReplace: (a: Instance, b: Instance) => this.instanceEqReplaceableFields(a, b) ? 'update' : 'replace',
+    updateOrReplace: (a: Instance, b: Instance) =>
+      this.instanceEqReplaceableFields(a, b) ? 'update' : 'replace',
     update: async (es: Instance[], ctx: Context) => {
       const out = [];
       for (const e of es) {
@@ -476,7 +477,7 @@ export class InstanceMapper extends MapperBase<Instance> {
           }
           out.push(e);
         } else {
-          const created = await this.module.instance.cloud.create(e, ctx) as Instance;
+          const created = (await this.module.instance.cloud.create(e, ctx)) as Instance;
           // TODO: Remove this weirdness once the `iasql_commit` logic can handle nested entity changes
           delete ctx?.memo?.db?.RegisteredInstance;
           const registeredInstances = await this.module.registeredInstance.db.read(ctx);

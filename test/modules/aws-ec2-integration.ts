@@ -756,10 +756,7 @@ describe('EC2 Integration Testing', () => {
     FROM registered_instance
     WHERE target_group_id = (SELECT id FROM target_group WHERE target_group_name = '${tgName}');
   `,
-      (res: any[]) => {
-        console.log(res);
-        expect(res.length).toBe(2);
-      },
+      (res: any[]) => expect(res.length).toBe(2),
     ),
   );
 
@@ -937,21 +934,6 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
-  it(
-    'check registered instance count pre-uninstall',
-    query(
-      `
-    SELECT *
-    FROM registered_instance
-    WHERE target_group_id = (SELECT id FROM target_group WHERE target_group_name = '${tgName}');
-  `,
-      (res: any[]) => {
-        console.log(res);
-        expect(res.length).toBe(2);
-      },
-    ),
-  );
-
   it('uninstalls the ec2 module', uninstall(modules));
 
   it('installs the ec2 module', install(modules));
@@ -977,10 +959,7 @@ describe('EC2 Integration Testing', () => {
     FROM registered_instance
     WHERE target_group_id = (SELECT id FROM target_group WHERE target_group_name = '${tgName}');
   `,
-      (res: any[]) => {
-        console.log(res);
-        expect(res.length).toBe(2);
-      },
+      (res: any[]) => expect(res.length).toBe(2),
     ),
   );
 
