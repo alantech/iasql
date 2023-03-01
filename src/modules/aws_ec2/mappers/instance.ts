@@ -355,35 +355,30 @@ export class InstanceMapper extends MapperBase<Instance> {
     const amiImage = (await this.describeImages(client.ec2client, [ami]))?.Images?.pop();
 
     if (amiImage) {
-      const mapping = amiImage.BlockDeviceMappings;
-      console.log('mapping is');
-      console.log(mapping);
-      console.log('original is');
-      console.log(maps);
+      const imageMapping = amiImage.BlockDeviceMappings;
 
       // check if there is any mapped volume that doesn't exist on instance mapping, and error
+      // or if there is any volume mapped that is not set as root
       for (const dev of maps ?? []) {
         // try to find the device name on instance mapping
-        const vol = mapping?.find(item => item.DeviceName == dev.deviceName);
+        const vol = imageMapping?.find(item => item.DeviceName == dev.deviceName);
         if (!vol) throw new Error('Error mapping volume to a device that does not exist for the AMI');
+
+        const volObj = await ctx.orm.findOne(GeneralPurposeVolume, dev.volumeId);
+        if (volObj && !volObj.isRootDevice) throw new Error('Error mapping volume that is not root');
       }
       const region = instance.region;
-      for (const map of mapping ?? []) {
-        console.log('i check map');
-        console.log(map.DeviceName);
+      for (const map of imageMapping ?? []) {
         // check if there is an associated volume for that instance, volume and device name
         const vol = maps?.find(item => item.deviceName == map.DeviceName);
         if (vol) {
-          console.log('i found matching device');
-          console.log(vol);
-
           if (vol.volumeId) {
             // need to find the volume object
             const volObj = await ctx.orm.findOne(GeneralPurposeVolume, vol.volumeId);
-            console.log('obj is');
-            console.log(volObj);
             if (volObj) {
               // map it to the ebs mapping
+              if (!volObj.isRootDevice) throw new Error('Error mapping volume that is not root');
+
               let snapshotId;
               if (volObj.snapshotId && instance.region == vol.region) snapshotId = volObj.snapshotId;
               else snapshotId = map.Ebs?.SnapshotId;
@@ -415,8 +410,8 @@ export class InstanceMapper extends MapperBase<Instance> {
           if (map.Ebs) map.Ebs.Encrypted = encrypted; // just modify the encrypted flag
         }
       }
-      console.log(mapping);
-      return mapping;
+      console.log(imageMapping);
+      return imageMapping;
     } else throw new Error('Could not find instance image');
   }
 
@@ -474,7 +469,6 @@ export class InstanceMapper extends MapperBase<Instance> {
             },
           };
           const maps: InstanceBlockDeviceMapping[] = await ctx.orm.find(InstanceBlockDeviceMapping, opts);
-          console.log(maps);
 
           const instanceParams: RunInstancesCommandInput = {
             ImageId: instance.ami,
@@ -511,63 +505,8 @@ export class InstanceMapper extends MapperBase<Instance> {
             instance.hibernationEnabled,
           );
           if (mappings) instanceParams.BlockDeviceMappings = mappings;
-          console.log('mappings are');
-          console.log(mappings);
-
-          let volumesReady = true;
-          console.log('before maps');
-          for (const map of maps ?? []) {
-            console.log('my map is');
-            console.log(map);
-            const region = instance.region;
-
-            // only delete volumes that are on the same region
-            if (map.deviceName && map.volumeId && map.region == instance.region) {
-              console.log('i have matching');
-              let volumeObj: GeneralPurposeVolume = await ctx.orm.findOne(GeneralPurposeVolume, {
-                id: map.volumeId,
-              });
-              if (!volumeObj.volumeId) {
-                // we need to skip instance creation as the previous volumes are not ready
-                console.log('volumes not yet ready');
-                volumesReady = false;
-                break;
-              }
-
-              console.log('i delete records from db');
-              console.log(map);
-              console.log(volumeObj);
-              try {
-                console.log('before deleting instance map');
-                await ctx.orm.remove(InstanceBlockDeviceMapping, map);
-                console.log('before deleting gpv');
-                await ctx.orm.remove(GeneralPurposeVolume, volumeObj);
-                console.log('before deleting volume cloud');
-                await this.module.generalPurposeVolume.cloud.delete([volumeObj], ctx);
-
-                console.log('before cleaning volume cache');
-                const volEntityId = this.module.generalPurposeVolume.entityId(volumeObj);
-                console.log('vol entity id is');
-                console.log(volEntityId);
-                if (volEntityId) {
-                  console.log('i delete caches from volume');
-                  delete ctx.memo.db.GeneralPurposeVolume[
-                    this.module.generalPurposeVolume.entityId(volumeObj)
-                  ];
-                  delete ctx.memo.cloud.GeneralPurposeVolume[
-                    this.module.generalPurposeVolume.entityId(volumeObj)
-                  ];
-                }
-                console.log('after all caches');
-              } catch (e) {
-                console.log('error removing from db');
-                console.log(e);
-              }
-            }
-          }
-          console.log('volumes ready');
-          console.log(volumesReady);
-          if (!volumesReady) continue;
+          console.log('params are');
+          console.log(instanceParams);
 
           const instanceId = await this.newInstance(client.ec2client, instanceParams);
           if (!instanceId) {
@@ -589,17 +528,30 @@ export class InstanceMapper extends MapperBase<Instance> {
                 map.Ebs.VolumeId!,
               );
 
-              // if it does not exist, create on the db
-              console.log('i need to create the new volume');
-              const region = instance.region;
-              const volId = this.module.generalPurposeVolume.generateId({
-                volumeId: map.Ebs.VolumeId,
-                region: instance.region,
-              });
-              console.log(volId);
-              const volDb = await this.module.generalPurposeVolume.db.read(ctx, volId);
-              if (!volDb) {
-                console.log('i create');
+              // if we had a root volume associated with the instance, we need to update the volume id
+              console.log('i search for associated');
+              const vol = maps?.find(item => item.deviceName == map.DeviceName);
+              console.log(vol);
+              if (vol && vol.volumeId) {
+                console.log('it exists');
+                const volObj = await ctx.orm.findOne(GeneralPurposeVolume, {
+                  id: vol.volumeId,
+                  isRootDevice: true,
+                });
+                if (volObj) {
+                  volObj.volumeId = map.Ebs.VolumeId;
+                  volObj.isRootDevice = false;
+                  console.log('final obj is');
+                  console.log(volObj);
+                  await this.module.generalPurposeVolume.db.update(volObj, ctx);
+                }
+              } else {
+                console.log('i need to create new volume');
+                // we need to create it
+                const volId = this.module.generalPurposeVolume.generateId({
+                  volumeId: map.Ebs.VolumeId,
+                  region: instance.region,
+                });
                 const volFromCloud = await this.module.generalPurposeVolume.cloud.read(ctx, volId);
                 await this.module.generalPurposeVolume.db.create(volFromCloud, ctx);
 
@@ -636,16 +588,8 @@ export class InstanceMapper extends MapperBase<Instance> {
           console.log('after new entity');
           console.log(newEntity);
 
-          try {
-            newEntity.id = instance.id;
-            await this.module.instance.db.update(newEntity, ctx);
-            console.log('i created');
-            console.log(newEntity);
-          } catch (e) {
-            console.log('error updating entity');
-            console.log(e);
-          }
-
+          newEntity.id = instance.id;
+          await this.module.instance.db.update(newEntity, ctx);
           out.push(newEntity);
         }
       }

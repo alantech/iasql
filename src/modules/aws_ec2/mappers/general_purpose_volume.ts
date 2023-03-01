@@ -264,6 +264,9 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
     create: async (es: GeneralPurposeVolume[], ctx: Context) => {
       const out = [];
       for (const e of es) {
+        console.log('i want to create volume');
+        console.log(e);
+        if (e.isRootDevice) continue; // cannot create root volumes, skip
         const client = (await ctx.getAwsClient(e.region)) as AWS;
         const input: CreateVolumeCommandInput = {
           AvailabilityZone: e.availabilityZone.name,
@@ -287,38 +290,25 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
             },
           ];
         }
-        console.log('In creating the volume');
-        console.log(input);
         const newVolumeId = await this.createVolume(client.ec2client, input);
-        console.log('after creating the volume');
-        console.log(newVolumeId);
         // Re-get the inserted record to get all of the relevant records we care about
         const newObject = await this.getVolume(client.ec2client, newVolumeId);
-        console.log('i created the volume');
-        console.log(newObject);
         if (!newObject) continue;
         // We map this into the same kind of entity as `obj`
         const newEntity = await this.generalPurposeVolumeMapper(newObject, e.region, ctx);
         if (!newEntity) continue;
         // Save the record back into the database to get the new fields updated
         newEntity.id = e.id;
-        console.log('new entity is');
-        console.log(newEntity);
         await this.module.generalPurposeVolume.db.update(newEntity, ctx);
         out.push(newEntity);
 
         // check if we have related attachments and update cloud volume id
-        console.log('before create mapping');
         const mapping = await ctx.orm.findOne(InstanceBlockDeviceMapping, { volumeId: e.id });
-        console.log('after create mapping');
         if (mapping) {
           mapping.volume_id = newEntity.id;
-          console.log(mapping);
-          await this.module.generalPurposeVolume.db.update(mapping, ctx);
+          await this.module.instanceBlockDeviceMapping.db.update(mapping, ctx);
         }
       }
-      console.log('volumes are');
-      console.log(out);
       return out;
     },
     read: async (ctx: Context, id?: string) => {
@@ -415,8 +405,6 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
       for (const e of vol) {
         if (!e.volumeId) continue;
 
-        console.log('i delete volume');
-        console.log(e);
         const client = (await ctx.getAwsClient(e.region)) as AWS;
 
         if (e.state == VolumeState.IN_USE) continue;
