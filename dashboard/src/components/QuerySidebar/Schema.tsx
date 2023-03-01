@@ -10,7 +10,11 @@ export default function Schema({
   moduleData: {
     [moduleName: string]: { [tableName: string]: { [columnName: string]: string } & { recordCount: number } };
   };
-  functionData: any[];
+  functionData: {
+    [moduleName: string]: {
+      [functionName: string]: string;
+    };
+  };
 }) {
   const { dispatch } = useAppContext();
   const selectTableIcon = <TableIcon className='w-4 h-4 m-2' aria-hidden='true' />;
@@ -55,13 +59,17 @@ export default function Schema({
         ))}
       </Accordion>
       <Accordion id='functions' title={<b>Functions</b>} defaultOpen={true}>
-        {functionData
-          ?.filter((h: any) => !!h?.signature)
-          ?.map((h: any) => (
-            <div className='ml-8' key={h.signature}>
-              {h.signature}
-            </div>
-          ))}
+        {Object.keys(functionData ?? {}).map((moduleName: string) => (
+          <Accordion key={moduleName} id={`fn-${moduleName}`} title={<b>{moduleName}</b>} defaultOpen={true}>
+            {Object.entries(functionData[moduleName]).map(([functionName, functionSignature], i) => (
+              <Accordion key={functionName} id={functionName} title={functionName} defaultOpen={false}>
+                <HBox key={i} alignment={align.start} customStyles='pl-8'>
+                  {functionSignature}
+                </HBox>
+              </Accordion>
+            ))}
+          </Accordion>
+        ))}
       </Accordion>
     </VBox>
   );
