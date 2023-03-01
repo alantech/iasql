@@ -28,6 +28,7 @@ import { STS } from '@aws-sdk/client-sts';
 import { defaultRetryDecider, StandardRetryStrategy } from '@aws-sdk/middleware-retry';
 
 import config from '../config';
+import { OpenSearch } from '@aws-sdk/client-opensearch';
 
 export type AWSCreds = {
   accessKeyId: string;
@@ -86,6 +87,7 @@ export class AWS {
   secretsClient: SecretsManager;
   cloudfrontClient: CloudFront;
   memoryDBClient: MemoryDB;
+  opensearchClient: OpenSearch;
   slowRetryStrategy: StandardRetryStrategy;
   codeBuildRetryStrategy: StandardRetryStrategy;
 
@@ -169,6 +171,7 @@ export class AWS {
     this.stsClient = new STS(awsConfig);
     this.ssmClient = new SSM(awsConfig);
     this.memoryDBClient = new MemoryDB(awsConfig);
+    this.opensearchClient = new OpenSearch(awsConfig);
     this.s3Client = new S3(awsConfig);
     // Service endpoint only available in 'us-east-1' https://docs.aws.amazon.com/general/latest/gr/ecr-public.html
     this.ecrPubClient = new ECRPUBLIC({ credentials: awsConfig.credentials, region: 'us-east-1' });

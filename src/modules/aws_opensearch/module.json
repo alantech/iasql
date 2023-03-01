@@ -1,0 +1,4 @@
+{
+  "name": "aws_opensearch",
+  "dependencies": ["iasql_platform", "aws_account"]
+}

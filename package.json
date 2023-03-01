@@ -91,6 +91,7 @@
     "@aws-sdk/client-iam": "^3.299.0",
     "@aws-sdk/client-lambda": "^3.299.0",
     "@aws-sdk/client-memorydb": "^3.299.0",
+    "@aws-sdk/client-opensearch": "^3.282.0",
     "@aws-sdk/client-rds": "^3.299.0",
     "@aws-sdk/client-route-53": "^3.299.0",
     "@aws-sdk/client-s3": "^3.299.0",
