@@ -32,7 +32,6 @@ export default function IasqlEditor() {
     dispatch,
     isDarkMode,
     selectedDb,
-    isRunningSql,
     installedModules,
     functions,
     token,
@@ -59,7 +58,7 @@ export default function IasqlEditor() {
   );
 
   const handleQueryToRunUpdate = useCallback(
-    (db: any, isRunning: boolean, tabIdx: number) => {
+    (db: any, tabIdx: number) => {
       const contentToBeRun = editorRef?.current?.editor?.getSelectedText()
         ? editorRef?.current?.editor?.getSelectedText()
         : editorRef?.current?.editor?.getValue();
@@ -70,7 +69,6 @@ export default function IasqlEditor() {
           data: {
             db,
             content: contentToBeRun,
-            isRunning,
             tabIdx,
           },
         });
@@ -103,11 +101,15 @@ export default function IasqlEditor() {
     const command = {
       name: 'Run SQL',
       bindKey: { win: 'Ctrl-Enter', mac: 'Cmd-Enter' },
-      exec: () => handleQueryToRunUpdate(selectedDb, isRunningSql, editorSelectedTab),
+      exec: () => handleQueryToRunUpdate(selectedDb, editorSelectedTab),
     };
-    editorRef?.current?.editor?.commands?.removeCommand(command);
-    editorRef?.current?.editor?.commands?.addCommand(command);
-  }, [handleQueryToRunUpdate, isRunningSql, selectedDb, editorSelectedTab]);
+    if (editorTabs?.[editorSelectedTab]?.isRunning) {
+      editorRef?.current?.editor?.commands?.removeCommand(command);
+    } else {
+      editorRef?.current?.editor?.commands?.removeCommand(command);
+      editorRef?.current?.editor?.commands?.addCommand(command);
+    }
+  }, [handleQueryToRunUpdate, selectedDb, editorTabs, editorSelectedTab]);
 
   // Set up editor theme
   useEffect(() => {
@@ -170,11 +172,10 @@ export default function IasqlEditor() {
           forceRun,
           editorTabs,
           selectedDb,
-          isRunningSql,
         },
       });
     }
-  }, [editorTabs, dispatch, forceRun, selectedDb, isRunningSql, token]);
+  }, [editorTabs, dispatch, forceRun, selectedDb, token]);
 
   useEffect(() => {
     if (!prevTabsLenRef.current || prevTabsLenRef.current !== editorTabs.length) {

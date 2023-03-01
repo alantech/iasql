@@ -3,11 +3,11 @@ import { Label, Spinner, Table, VBox } from './common';
 import { useAppContext } from './providers/AppProvider';
 
 export default function QueryResult() {
-  const { editorSelectedTab, editorTabs, isRunningSql } = useAppContext();
+  const { editorSelectedTab, editorTabs } = useAppContext();
   const queryRes = editorTabs[editorSelectedTab]?.queryRes;
 
   // TODO: show all statements with its respective query and not just the last one
-  return isRunningSql ? (
+  return editorTabs?.[editorSelectedTab]?.isRunning ? (
     <Spinner />
   ) : queryRes === undefined ? (
     <EmptyState>

@@ -87,6 +87,7 @@ interface AppState {
     content: string;
     queryRes?: any | null;
     closable?: boolean;
+    isRunning?: boolean;
   }[];
   forceRun: boolean;
 }
@@ -161,8 +162,10 @@ const reducer = (state: AppState, payload: Payload): AppState => {
       return { ...state };
     }
     case ActionType.RunningSql: {
-      const { isRunning } = payload.data;
-      return { ...state, isRunningSql: isRunning };
+      const { isRunning, tabIdx } = payload.data;
+      const tabsCopy = [...state.editorTabs];
+      tabsCopy[tabIdx].isRunning = isRunning;
+      return { ...state, editorTabs: tabsCopy };
     }
     case ActionType.RunSql: {
       const { queryRes, databases: runSqlUpdatedDbs, tabIdx } = payload.data;
@@ -436,7 +439,7 @@ const middlewareReducer = async (
         dispatch({ ...payload, data: { error: 'No auth token defined.' } });
         break;
       }
-      const { content, isRunning, db: runningDb, tabIdx } = payload.data;
+      const { content, db: runningDb, tabIdx } = payload.data;
       if (runningDb.isUnsupported) {
         break;
       }
@@ -446,36 +449,31 @@ const middlewareReducer = async (
       let updatedAutoCompleteRes: any;
       let runErr: any;
       try {
-        if (!isRunning) {
-          dispatch({ action: ActionType.RunningSql, data: { isRunning: true } });
-          try {
-            if (token && content)
-              queryRes = await DbActions.run(token, backendUrl, runningDb?.alias, content);
-            const compFn = (r: any, stmt: string) =>
-              r.statement &&
-              typeof r.statement === 'string' &&
-              r.statement.toLowerCase().indexOf(stmt) !== -1;
-            for (const r of queryRes) {
-              if (compFn(r, 'iasql_install(') || compFn(r, 'iasql_uninstall(')) shouldUpdate = true;
-            }
-            if (shouldUpdate) {
-              databases = await DbActions.list(token, backendUrl, config);
-              updatedAutoCompleteRes = await DbActions.run(
-                token,
-                backendUrl,
-                runningDb?.alias,
-                initializingQueries,
-              );
-            }
-          } catch (e: any) {
-            queryRes = e.message ? e.message : 'Unhandled error in SQL execution';
+        dispatch({ action: ActionType.RunningSql, data: { isRunning: true, tabIdx } });
+        try {
+          if (token && content) queryRes = await DbActions.run(token, backendUrl, runningDb?.alias, content);
+          const compFn = (r: any, stmt: string) =>
+            r.statement && typeof r.statement === 'string' && r.statement.toLowerCase().indexOf(stmt) !== -1;
+          for (const r of queryRes) {
+            if (compFn(r, 'iasql_install(') || compFn(r, 'iasql_uninstall(')) shouldUpdate = true;
           }
+          if (shouldUpdate) {
+            databases = await DbActions.list(token, backendUrl, config);
+            updatedAutoCompleteRes = await DbActions.run(
+              token,
+              backendUrl,
+              runningDb?.alias,
+              initializingQueries,
+            );
+          }
+        } catch (e: any) {
+          queryRes = e.message ? e.message : 'Unhandled error in SQL execution';
         }
       } catch (e: any) {
         runErr = e.message ? e.message : `Unexpected error`;
         dispatch({ ...payload, data: { error: runErr } });
       } finally {
-        dispatch({ action: ActionType.RunningSql, data: { isRunning: false } });
+        dispatch({ action: ActionType.RunningSql, data: { isRunning: false, tabIdx } });
         dispatch({
           action: ActionType.TrackEvent,
           data: {
@@ -505,7 +503,6 @@ const middlewareReducer = async (
       }
       const { dbAlias: autoCompleteDbAlias } = payload.data;
       try {
-        dispatch({ action: ActionType.RunningSql, data: { isRunning: true } });
         const autoCompleteRes = await DbActions.run(
           token,
           backendUrl,
@@ -516,8 +513,6 @@ const middlewareReducer = async (
       } catch (e: any) {
         const error = e.message ? e.message : `Unexpected error`;
         dispatch({ ...payload, data: { error } });
-      } finally {
-        dispatch({ action: ActionType.RunningSql, data: { isRunning: false } });
       }
       break;
     }
@@ -560,7 +555,7 @@ const middlewareReducer = async (
       break;
     }
     case ActionType.EditorSelectTab: {
-      const { selectedDb, forceRun, isRunningSql, index, editorTabs } = payload.data;
+      const { selectedDb, forceRun, index, editorTabs } = payload.data;
       const contentToBeRun = editorTabs?.[index]?.content ?? '';
       if (token && forceRun && contentToBeRun) {
         middlewareReducer(config, dispatch, {
@@ -569,7 +564,6 @@ const middlewareReducer = async (
           data: {
             db: selectedDb,
             content: contentToBeRun,
-            isRunning: isRunningSql,
             tabIdx: index,
           },
         });
