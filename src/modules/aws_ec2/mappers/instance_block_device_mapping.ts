@@ -71,8 +71,8 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
       for (const e of es) {
         console.log('i need to attach volume');
         console.log(e);
-        // if we have no ids we cannot create
-        if (!e.cloudInstanceId || !e.cloudVolumeId) continue;
+        console.log(e.instance);
+        console.log(e.volume);
 
         // read instance details
         const instance: Instance = await ctx.orm.findOne(Instance, {
