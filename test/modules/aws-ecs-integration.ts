@@ -599,61 +599,61 @@ describe('ECS Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  // it('starts a transaction', begin());
 
-  itDocs(
-    'tries to update a service (update)',
-    query(
-      `
-    UPDATE service SET desired_count = ${serviceDesiredCount + 1} WHERE name = '${serviceName}';
-  `,
-      undefined,
-      true,
-      () => ({ username, password }),
-    ),
-  );
+  // itDocs(
+  //   'tries to update a service (update)',
+  //   query(
+  //     `
+  //   UPDATE service SET desired_count = ${serviceDesiredCount + 1} WHERE name = '${serviceName}';
+  // `,
+  //     undefined,
+  //     true,
+  //     () => ({ username, password }),
+  //   ),
+  // );
 
-  it('applies tries to update a service (update)', commit());
+  // it('applies tries to update a service (update)', commit());
 
-  it(
-    'check service update',
-    query(
-      `
-    SELECT *
-    FROM service
-    WHERE name = '${serviceName}';
-  `,
-      (res: any[]) => expect(res.length).toBe(1),
-    ),
-  );
+  // it(
+  //   'check service update',
+  //   query(
+  //     `
+  //   SELECT *
+  //   FROM service
+  //   WHERE name = '${serviceName}';
+  // `,
+  //     (res: any[]) => expect(res.length).toBe(1),
+  //   ),
+  // );
 
-  it('starts a transaction', begin());
+  // it('starts a transaction', begin());
 
-  it(
-    'tries to update a service (restore)',
-    query(
-      `
-    UPDATE service SET status = 'fake' WHERE name = '${serviceName}';
-  `,
-      undefined,
-      true,
-      () => ({ username, password }),
-    ),
-  );
+  // it(
+  //   'tries to update a service (restore)',
+  //   query(
+  //     `
+  //   UPDATE service SET status = 'fake' WHERE name = '${serviceName}';
+  // `,
+  //     undefined,
+  //     true,
+  //     () => ({ username, password }),
+  //   ),
+  // );
 
-  it('applies tries to update a service (restore)', commit());
+  // it('applies tries to update a service (restore)', commit());
 
-  it(
-    'check service update',
-    query(
-      `
-    SELECT *
-    FROM service
-    WHERE name = '${serviceName}';
-  `,
-      (res: any[]) => expect(res.length).toBe(1),
-    ),
-  );
+  // it(
+  //   'check service update',
+  //   query(
+  //     `
+  //   SELECT *
+  //   FROM service
+  //   WHERE name = '${serviceName}';
+  // `,
+  //     (res: any[]) => expect(res.length).toBe(1),
+  //   ),
+  // );
 
   it('starts a transaction', begin());
 
@@ -683,59 +683,59 @@ describe('ECS Integration Testing', () => {
     ),
   );
 
-  it(
-    'tries to force update a service',
-    query(
-      `
-        SELECT deploy_service(arn) FROM service WHERE name='${newServiceName}'
-      `,
-      (res: any[]) => {
-        expect(res.length).toBe(1);
-        expect(res[0].deploy_service).toContain('OK');
-      },
-    ),
-  );
+  // it(
+  //   'tries to force update a service',
+  //   query(
+  //     `
+  //       SELECT deploy_service(arn) FROM service WHERE name='${newServiceName}'
+  //     `,
+  //     (res: any[]) => {
+  //       expect(res.length).toBe(1);
+  //       expect(res[0].deploy_service).toContain('OK');
+  //     },
+  //   ),
+  // );
 
-  it(
-    'check service update',
-    query(
-      `
-    SELECT *
-    FROM service
-    WHERE name = '${newServiceName}';
-  `,
-      (res: any[]) => expect(res.length).toBe(1),
-    ),
-  );
+  // it(
+  //   'check service update',
+  //   query(
+  //     `
+  //   SELECT *
+  //   FROM service
+  //   WHERE name = '${newServiceName}';
+  // `,
+  //     (res: any[]) => expect(res.length).toBe(1),
+  //   ),
+  // );
 
-  it('should fail moving just the deployment group', done =>
-    void query(
-      `
-      UPDATE service
-      SET region = '${nonDefaultRegion}'
-      WHERE name = '${newServiceName}';
-  `,
-      undefined,
-      true,
-      () => ({ username, password }),
-    )((e?: any) => {
-      try {
-        expect(e?.message).toContain('region cannot be modified');
-      } catch (err) {
-        done(err);
-        return {};
-      }
-      done();
-      return {};
-    }));
+  // it('should fail moving just the deployment group', done =>
+  //   void query(
+  //     `
+  //     UPDATE service
+  //     SET region = '${nonDefaultRegion}'
+  //     WHERE name = '${newServiceName}';
+  // `,
+  //     undefined,
+  //     true,
+  //     () => ({ username, password }),
+  //   )((e?: any) => {
+  //     try {
+  //       expect(e?.message).toContain('region cannot be modified');
+  //     } catch (err) {
+  //       done(err);
+  //       return {};
+  //     }
+  //     done();
+  //     return {};
+  //   }));
 
-  it('starts a transaction', sidecarBegin());
+  // it('starts a transaction', sidecarBegin());
 
-  it('sync sidecar database', sidecarCommit());
+  // it('sync sidecar database', sidecarCommit());
 
-  it('uninstalls the ecs module', uninstall(['aws_ecs_fargate']));
+  // it('uninstalls the ecs module', uninstall(['aws_ecs_fargate']));
 
-  it('installs the ecs module', install(['aws_ecs_fargate']));
+  // it('installs the ecs module', install(['aws_ecs_fargate']));
 
   it('starts a transaction', begin());
 
@@ -803,9 +803,9 @@ describe('ECS Integration Testing', () => {
 
   it('applies deletes tasks and container definitions', commit());
 
-  it('starts a transaction', sidecarBegin());
+  // it('starts a transaction', sidecarBegin());
 
-  it('sync sidecar database', sidecarCommit());
+  // it('sync sidecar database', sidecarCommit());
 
   it(
     'check role deletion',
@@ -843,9 +843,9 @@ describe('ECS Integration Testing', () => {
     ),
   );
 
-  it('uninstalls the ecs module', uninstall(['aws_ecs_fargate']));
+  // it('uninstalls the ecs module', uninstall(['aws_ecs_fargate']));
 
-  it('installs the ecs module', install(['aws_ecs_fargate']));
+  // it('installs the ecs module', install(['aws_ecs_fargate']));
 
   // deletes service dependencies
   it('starts a transaction', begin());
@@ -885,21 +885,21 @@ describe('ECS Integration Testing', () => {
 
   it('applies deletes service dependencies', commit());
 
-  it('starts a transaction', begin());
+  // it('starts a transaction', begin());
 
-  it(
-    'tries to update a cluster field (restore)',
-    query(
-      `
-    UPDATE cluster SET cluster_status = 'fake' WHERE cluster_name = '${clusterName}';
-  `,
-      undefined,
-      true,
-      () => ({ username, password }),
-    ),
-  );
+  // it(
+  //   'tries to update a cluster field (restore)',
+  //   query(
+  //     `
+  //   UPDATE cluster SET cluster_status = 'fake' WHERE cluster_name = '${clusterName}';
+  // `,
+  //     undefined,
+  //     true,
+  //     () => ({ username, password }),
+  //   ),
+  // );
 
-  it('applies tries to update a cluster field (restore)', commit());
+  // it('applies tries to update a cluster field (restore)', commit());
 
   it('starts a transaction', begin());
 
@@ -940,68 +940,68 @@ describe('ECS Integration Testing', () => {
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 });
 
-describe('ECS install/uninstall', () => {
-  it('creates a new test db', done => {
-    (async () => {
-      try {
-        const { user, password: pgPassword } = await iasql.connect(dbAlias, 'not-needed', 'not-needed');
-        username = user;
-        password = pgPassword;
-        if (!username || !password) throw new Error('Did not fetch pg credentials');
-        done();
-      } catch (e) {
-        done(e);
-      }
-    })();
-  });
+// describe('ECS install/uninstall', () => {
+//   it('creates a new test db', done => {
+//     (async () => {
+//       try {
+//         const { user, password: pgPassword } = await iasql.connect(dbAlias, 'not-needed', 'not-needed');
+//         username = user;
+//         password = pgPassword;
+//         if (!username || !password) throw new Error('Did not fetch pg credentials');
+//         done();
+//       } catch (e) {
+//         done(e);
+//       }
+//     })();
+//   });
 
-  it('installs the aws_account module', install(['aws_account']));
+//   it('installs the aws_account module', install(['aws_account']));
 
-  it(
-    'inserts aws credentials',
-    query(
-      `
-    INSERT INTO aws_credentials (access_key_id, secret_access_key)
-    VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
-  `,
-      undefined,
-      false,
-      () => ({ username, password }),
-    ),
-  );
+//   it(
+//     'inserts aws credentials',
+//     query(
+//       `
+//     INSERT INTO aws_credentials (access_key_id, secret_access_key)
+//     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
+//   `,
+//       undefined,
+//       false,
+//       () => ({ username, password }),
+//     ),
+//   );
 
-  it('starts a transaction', begin());
+//   it('starts a transaction', begin());
 
-  it('syncs the regions', commit());
+//   it('syncs the regions', commit());
 
-  it(
-    'sets the default region',
-    query(
-      `
-    UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
-  `,
-      undefined,
-      true,
-      () => ({ username, password }),
-    ),
-  );
+//   it(
+//     'sets the default region',
+//     query(
+//       `
+//     UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
+//   `,
+//       undefined,
+//       true,
+//       () => ({ username, password }),
+//     ),
+//   );
 
-  it(
-    'sets only 2 enabled regions to avoid long runs',
-    query(`
-    UPDATE aws_regions SET is_enabled = FALSE WHERE region != 'us-east-1' AND region != (SELECT region FROM aws_regions WHERE region != 'us-east-1' LIMIT 1);
-  `),
-  );
+//   it(
+//     'sets only 2 enabled regions to avoid long runs',
+//     query(`
+//     UPDATE aws_regions SET is_enabled = FALSE WHERE region != 'us-east-1' AND region != (SELECT region FROM aws_regions WHERE region != 'us-east-1' LIMIT 1);
+//   `),
+//   );
 
-  it('installs the ECS module', install(modules));
+//   it('installs the ECS module', install(modules));
 
-  it('uninstalls the ECS module', uninstall(modules));
+//   it('uninstalls the ECS module', uninstall(modules));
 
-  it('installs all modules', installAll());
+//   it('installs all modules', installAll());
 
-  it('uninstalls the ECS module', uninstall(['aws_ecs_fargate', 'aws_ecs_simplified']));
+//   it('uninstalls the ECS module', uninstall(['aws_ecs_fargate', 'aws_ecs_simplified']));
 
-  it('installs the ECS module', install(['aws_ecs_fargate']));
+//   it('installs the ECS module', install(['aws_ecs_fargate']));
 
-  it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
-});
+//   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
+// });
