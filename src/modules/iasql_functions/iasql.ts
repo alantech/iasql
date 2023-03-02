@@ -1229,6 +1229,7 @@ async function apply(
         };
       }
 
+
       let changesByEntity: { [key: string]: any[] };
       if (changesToCommit?.length) {
         const modsIndexedByTable = indexModsByTable(relevantModules);
@@ -1236,6 +1237,9 @@ async function apply(
       }
 
       records.forEach(r => {
+        if (r.table === 'RegisteredInstance') {
+          logger.scope({ dbId }).debug(`+-+ before diff, changes to commit are: ${JSON.stringify(changesToCommit)}`);
+        }
         r.diff = findDiff(r.dbEntity, r.cloudEntity, r.idGen, r.comparator);
         if (r.table === 'RegisteredInstance') {
           logger.scope({ dbId }).debug(`+-+ changes by entity are: ${JSON.stringify(changesByEntity)}`);
@@ -1289,6 +1293,9 @@ async function apply(
           });
           if (updates.length > 0) updateCommitPlan(toUpdate, r.table, r.mapper, updates);
           if (replaces.length > 0) updateCommitPlan(toReplace, r.table, r.mapper, replaces);
+        }
+        if (r.table === 'RegisteredInstance') {
+          logger.scope({ dbId }).debug(`+-+ actual diff : ${JSON.stringify(r.diff)}`);
         }
       });
       if (dryRun) {
