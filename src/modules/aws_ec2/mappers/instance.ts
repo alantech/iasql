@@ -731,18 +731,26 @@ export class InstanceMapper extends MapperBase<Instance> {
             if (volObj && map.Ebs.DeleteOnTermination) {
               console.log('i need to delete the map and volume');
               try {
-                const mapObj = await ctx.orm.findOne(InstanceBlockDeviceMapping, { volumeId: volObj.id });
+                const mapObj: InstanceBlockDeviceMapping = await ctx.orm.findOne(InstanceBlockDeviceMapping, {
+                  volumeId: volObj.id,
+                });
                 if (mapObj) {
                   console.log("i found the map and i'm deleting it");
                   console.log(mapObj);
                   await ctx.orm.remove(InstanceBlockDeviceMapping, mapObj);
+                  if (mapObj.cloudInstanceId && mapObj.cloudVolumeId) {
+                    const mapId = this.module.instanceBlockDeviceMapping.entityId(mapObj);
+                    if (mapId) delete ctx.memo.db.InstanceBlockDeviceMapping[mapId];
+                  }
                 }
                 await this.module.generalPurposeVolume.db.delete(volObj, ctx);
-                const mapId = this.module.instanceBlockDeviceMapping.entityId(mapObj);
-                if (mapId) delete ctx.memo.db.InstanceBlockDeviceMapping[mapId];
-
-                const volId = this.module.generalPurposeVolume.entityId(volObj);
-                if (volId) delete ctx.memo.db.GeneralPurposeVolume[volId];
+                if (volObj.cloudVolumeId) {
+                  const volId = this.module.generalPurposeVolume.entityId(volObj);
+                  if (volId)
+                    delete ctx.memo.db.GeneralPurposeVolume[
+                      this.module.generalPurposeVolume.entityId(volObj)
+                    ];
+                }
               } catch (e) {
                 console.log('error deleting volume from cache');
                 console.log(e);
