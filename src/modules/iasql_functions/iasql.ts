@@ -1237,10 +1237,15 @@ async function apply(
 
       records.forEach(r => {
         r.diff = findDiff(r.dbEntity, r.cloudEntity, r.idGen, r.comparator);
+        if (r.table === 'RegisteredInstance') {
+          logger.scope({ dbId }).debug(`+-+ changes by entity are: ${JSON.stringify(changesByEntity)}`);
+        }
         // If we have changes done by the user to be applied, then filter them.
         // Else, only filter changes done after this commit started to avoid overrides.
         if (changesByEntity) {
-          if (changesByEntity['RegisteredInstance']) logger.scope({ dbId }).debug(`${JSON.stringify(changesByEntity)}`);
+          if (r.table === 'RegisteredInstance') {
+            logger.scope({ dbId }).debug(`+-+ enters changes by entity if`);
+          }
           r.diff.entitiesInDbOnly = r.diff.entitiesInDbOnly.filter((e: any) =>
             changesByEntity[r.table]?.find(re => r.idGen(e) === r.idGen(re)),
           );
@@ -1251,6 +1256,10 @@ async function apply(
             changesByEntity[r.table]?.find(re => r.idGen(o.db) === r.idGen(re)),
           );
         } else {
+          if (r.table === 'RegisteredInstance') {
+            logger.scope({ dbId }).debug(`+-+ enters changes by entity else`);
+            logger.scope({ dbId }).debug(`+-+ changes after commit ${JSON.stringify(changesAfterCommitByEntity)}`);
+          }
           r.diff.entitiesInAwsOnly = r.diff.entitiesInAwsOnly.filter(
             (e: any) => !changesAfterCommitByEntity[r.table]?.find(re => r.idGen(e) === r.idGen(re)),
           );
