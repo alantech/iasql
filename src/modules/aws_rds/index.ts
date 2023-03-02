@@ -17,8 +17,6 @@ import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 import { awsSecurityGroupModule, awsVpcModule } from '..';
 import { objectsAreSame } from '../../services/aws-diff';
 import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder, mapLin } from '../../services/aws_macros';
-import { SecurityGroup } from '../aws_security_group/entity';
-import { AvailabilityZone } from '../aws_vpc/entity';
 import { Context, Crud2, MapperBase, ModuleBase } from '../interfaces';
 import { ParameterGroup, ParameterGroupFamily, RDS } from './entity';
 
@@ -61,6 +59,7 @@ class RdsMapper extends MapperBase<RDS> {
     out.endpointAddr = rds?.Endpoint?.Address;
     out.endpointHostedZoneId = rds?.Endpoint?.HostedZoneId;
     out.endpointPort = rds?.Endpoint?.Port;
+    if (/aurora/.test(rds?.Engine ?? 'aurora')) return undefined;
     out.engine = `${rds?.Engine}:${rds?.EngineVersion}`;
     out.masterUsername = rds?.MasterUsername;
     const vpcSecurityGroupIds = rds?.VpcSecurityGroups?.filter(
@@ -91,6 +90,10 @@ class RdsMapper extends MapperBase<RDS> {
           ctx,
           this.module.parameterGroup.generateId({ name: parameterGroup.DBParameterGroupName, region }),
         ));
+      if (!out.parameterGroup) {
+        // This is likely an unsupported Aurora instance
+        return undefined;
+      }
     }
     out.region = region;
     return out;
@@ -265,6 +268,7 @@ class RdsMapper extends MapperBase<RDS> {
         }
         // We map this into the same kind of entity as `obj`
         const newEntity = await this.rdsMapper(newObject, ctx, e.region);
+        if (!newEntity) continue;
         // We attach the original object's ID to this new one, indicating the exact record it is
         // replacing in the database.
         newEntity.id = e.id;
@@ -293,7 +297,9 @@ class RdsMapper extends MapperBase<RDS> {
             const client = (await ctx.getAwsClient(region)) as AWS;
             const rdses = await this.getDBInstances(client.rdsClient);
             for (const rds of rdses) {
-              out.push(await this.rdsMapper(rds, ctx, region));
+              const r = await this.rdsMapper(rds, ctx, region);
+              if (!r) continue;
+              out.push(r);
             }
           }),
         );
@@ -385,6 +391,7 @@ class ParameterGroupMapper extends MapperBase<ParameterGroup> {
     Object.is(a.region, b.region);
 
   parameterGroupMapper(pg: DBParameterGroupWParameters, region: string) {
+    if (/aurora/.test(pg?.DBParameterGroupFamily ?? 'aurora')) return undefined;
     const out = new ParameterGroup();
     out.arn = pg?.DBParameterGroupArn;
     out.description = pg?.Description ?? '';
@@ -471,6 +478,7 @@ class ParameterGroupMapper extends MapperBase<ParameterGroup> {
         );
         // We map this into the same kind of entity as `obj`
         const newEntity = this.parameterGroupMapper(newObject, e.region);
+        if (!newEntity) continue;
         newEntity.id = e.id;
         // Save the record back into the database to get the new fields updated
         await this.module.parameterGroup.db.update(newEntity, ctx);
@@ -493,7 +501,9 @@ class ParameterGroupMapper extends MapperBase<ParameterGroup> {
             const client = (await ctx.getAwsClient(region)) as AWS;
             const parameterGroups = await this.getDBParameterGroups(client.rdsClient);
             for (const pg of parameterGroups) {
-              out.push(this.parameterGroupMapper(pg, region));
+              const e = this.parameterGroupMapper(pg, region);
+              if (!e) continue;
+              out.push(e);
             }
           }),
         );
