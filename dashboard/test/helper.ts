@@ -7,8 +7,7 @@ export async function isVisible(loc: Locator) {
 }
 
 export async function isNotVisible(loc: Locator) {
-  await loc.waitFor();
-  expect(loc).toBeFalsy();
+  await expect(loc).toBeHidden();
 }
 
 export async function isDisabled(loc: Locator) {

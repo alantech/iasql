@@ -28,9 +28,9 @@ export default function createTests() {
     await click(page.locator(`#tabs-and-editor button:has-text("+")`));
 
     // Add long running query
-    await fill(page.locator(`#iasql-editor textarea.ace_text-input`), "SELECT * FROM iasql_install('aws_cloudwatch');", false);
+    await fill(page.locator(`#iasql-editor textarea.ace_text-input`), "SELECT * FROM iasql_install('aws_ec2');", false);
 
-    await isVisible(page.locator(`#iasql-editor div.ace_content:has-text("SELECT * FROM iasql_install('aws_cloudwatch');")`));
+    await isVisible(page.locator(`#iasql-editor div.ace_content:has-text("SELECT * FROM iasql_install('aws_ec2');")`));
 
     // Click run iasql
     await click(page.locator(`button:has-text("Run query")`));
