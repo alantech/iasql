@@ -738,11 +738,11 @@ export class InstanceMapper extends MapperBase<Instance> {
                   await ctx.orm.remove(InstanceBlockDeviceMapping, mapObj);
                 }
                 await this.module.generalPurposeVolume.db.delete(volObj, ctx);
+                const mapId = this.module.instanceBlockDeviceMapping.entityId(mapObj);
+                if (mapId) delete ctx.memo.db.InstanceBlockDeviceMapping[mapId];
 
-                delete ctx.memo.db.InstanceBlockDeviceMapping[
-                  this.module.instanceBlockDeviceMapping.entityId(mapObj)
-                ];
-                delete ctx.memo.db.GeneralPurposeVolume[this.module.generalPurposeVolume.entityId(volObj)];
+                const volId = this.module.generalPurposeVolume.entityId(volObj);
+                if (volId) delete ctx.memo.db.GeneralPurposeVolume[volId];
               } catch (e) {
                 console.log('error deleting volume from cache');
                 console.log(e);
