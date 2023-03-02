@@ -264,8 +264,6 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
     create: async (es: GeneralPurposeVolume[], ctx: Context) => {
       const out = [];
       for (const e of es) {
-        console.log('i want to create volume');
-        console.log(e);
         if (e.isRootDevice) continue; // cannot create root volumes, skip
         if (e.volumeId) continue; // cannot create a volume that is already created, skip
         const client = (await ctx.getAwsClient(e.region)) as AWS;
@@ -291,8 +289,6 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
             },
           ];
         }
-        console.log('input is');
-        console.log(input);
         const newVolumeId = await this.createVolume(client.ec2client, input);
         // Re-get the inserted record to get all of the relevant records we care about
         const newObject = await this.getVolume(client.ec2client, newVolumeId);
@@ -411,12 +407,12 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
 
         const client = (await ctx.getAwsClient(e.region)) as AWS;
 
-        if (e.state == VolumeState.IN_USE) continue;
+        if (e.state === VolumeState.IN_USE) continue;
 
         try {
           await this.deleteVolume(client.ec2client, e.volumeId);
         } catch (ex: any) {
-          if (ex.Code == 'InvalidVolume.NotFound') continue;
+          if (ex.Code === 'InvalidVolume.NotFound') continue;
         }
       }
     },
