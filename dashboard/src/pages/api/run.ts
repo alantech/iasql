@@ -4,7 +4,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import pg from 'pg';
 import format from 'pg-format';
 import { parse, deparse } from 'pgsql-parser';
-import { createConnection, Connection } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
 
 import { throwError } from '@/config/config';
@@ -61,16 +61,23 @@ async function validateToken(token: string): Promise<JwtPayload> {
   return decoded as JwtPayload;
 }
 
-const dbConns: { [key: string]: Connection } = {};
+const dbConns: { [key: string]: Promise<DataSource> } = {};
 
 async function metaQuery(sql: string, params?: any[]): Promise<any> {
   const db = 'iasql_metadata';
-  if (!dbConns[db]?.isConnected) {
+  if (!(await dbConns[db])?.isInitialized) {
     // Trash this object and rebuild it
     delete dbConns[db];
-    dbConns[db] = await createConnection({ ...baseConnConfig, name: `${db}${Date.now()}`, database: db });
+    dbConns[db] = new Promise((resolve, reject) => {
+      const dataSource = new DataSource({ ...baseConnConfig, name: `${db}`, database: db });
+      if (dataSource.isInitialized) {
+        resolve(dataSource);
+      }
+      const initDS = dataSource.initialize();
+      initDS.then(conn => resolve(conn)).catch(e => reject(e));
+    });
   }
-  const dbConn = dbConns[db];
+  const dbConn = await dbConns[db];
   const out = await dbConn.query(sql, params);
   return out;
 }
