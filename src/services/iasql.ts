@@ -435,7 +435,7 @@ export async function upgrade() {
         ALTER DATABASE %I RENAME TO %I;
       `,
           `NEW${db.pgName}`,
-          'db.pgName',
+          db.pgName,
         ),
       );
       await lastConn.query(
