@@ -1,4 +1,5 @@
 import { randomBytes } from 'crypto';
+import format from 'pg-format';
 import { Connection } from 'typeorm';
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
 
@@ -41,7 +42,7 @@ export function genDbId(dbAlias: string) {
 }
 
 function getGroupRole(dbId: string) {
-  return `"group_role_${dbId}"`;
+  return `group_role_${dbId}`;
 }
 
 export const baseConnConfig: PostgresConnectionOptions = {
@@ -58,50 +59,70 @@ export const baseConnConfig: PostgresConnectionOptions = {
 
 // TODO: try to roll back the `GRANT CREATE` to something a bit narrower in the future
 export function newPostgresRoleQuery(user: string, pass: string, dbId: string) {
-  return `
-    CREATE ROLE ${user} LOGIN PASSWORD '${pass}';
-    GRANT CONNECT ON DATABASE "${dbId}" TO "${user}";
-    GRANT CREATE ON SCHEMA public TO "${user}";
-  `;
+  return format(
+    `
+    CREATE ROLE %I LOGIN PASSWORD %L;
+    GRANT CONNECT ON DATABASE %I TO %I;
+    GRANT CREATE ON SCHEMA public TO %I;
+  `,
+    user,
+    pass,
+    dbId,
+    user,
+    user,
+  );
 }
 
 export function createDbPostgreGroupRole(dbId: string) {
   // Taken from https://stackoverflow.com/a/55954480
-  return `
+  return format(
+    `
     DO $$
     BEGIN
-    CREATE ROLE ${getGroupRole(dbId)};
+    CREATE ROLE %I;
     EXCEPTION WHEN duplicate_object THEN RAISE NOTICE '%, skipping', SQLERRM USING ERRCODE = SQLSTATE;
     END
     $$;
-  `;
+  `,
+    getGroupRole(dbId),
+  );
 }
 
 export function grantPostgresGroupRoleToUser(user: string, dbId: string) {
   const groupRole = getGroupRole(dbId);
-  return `
-    GRANT ${groupRole} to "${user}";
-  `;
+  return format(
+    `
+    GRANT %I to %I;
+  `,
+    groupRole,
+    user,
+  );
 }
 
 // runs query using the group role so user generated tables have the same owner
 export function setPostgresRoleQuery(dbId: string) {
-  return `
-    SET ROLE ${getGroupRole(dbId)};
-  `;
+  return format(
+    `
+    SET ROLE %I;
+  `,
+    getGroupRole(dbId),
+  );
 }
 
 export function revokePostgresRoleQuery(user: string, dbId: string) {
-  return `
-    REVOKE ${getGroupRole(dbId)} FROM ${user};
-  `;
+  return format(
+    `
+    REVOKE %I FROM %I;
+  `,
+    getGroupRole(dbId),
+    user,
+  );
 }
 
 export function dropPostgresRoleQuery(user: string, dbId: string, dropGroupRole: boolean) {
-  return `
-    DROP ROLE IF EXISTS ${user};
-    ${dropGroupRole ? `DROP ROLE IF EXISTS ${getGroupRole(dbId)};` : ''}
-  `;
+  if (dropGroupRole)
+    return format(`DROP ROLE IF EXISTS %I; DROP ROLE IF EXISTS %I;`, user, getGroupRole(dbId));
+  return format(`DROP ROLE IF EXISTS %I;`, user);
 }
 
 // Create a randomly generated username and password, an 8 char username [a-z][a-z0-9]{7} and a
@@ -149,9 +170,18 @@ export function ourPgUrl(dbId: string): string {
 }
 
 export function setUpDblink(dbId: string) {
-  return `
+  return format(
+    `
     CREATE EXTENSION IF NOT EXISTS dblink;
-    CREATE SERVER IF NOT EXISTS "cron_dblink_${dbId}" FOREIGN DATA WRAPPER dblink_fdw OPTIONS (host '${config.db.host}', dbname 'iasql_metadata', port '${config.db.port}');
-    CREATE USER MAPPING IF NOT EXISTS FOR ${config.db.user} SERVER "cron_dblink_${dbId}" OPTIONS (user '${config.db.user}', password '${config.db.password}');
-  `;
+    CREATE SERVER IF NOT EXISTS %I FOREIGN DATA WRAPPER dblink_fdw OPTIONS (host %L, dbname 'iasql_metadata', port %L);
+    CREATE USER MAPPING IF NOT EXISTS FOR %I SERVER %I OPTIONS (user %L, password %L);
+  `,
+    `cron_dblink_${dbId}`,
+    config.db.host,
+    config.db.port,
+    config.db.user,
+    `cron_dblink_${dbId}`,
+    config.db.user,
+    config.db.password,
+  );
 }

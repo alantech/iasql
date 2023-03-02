@@ -2,6 +2,7 @@
 // sense there. Need to think a bit more on that, but module manipulation that way could allow for
 // meta operations within the module code itself, if desirable.
 import { exec as execNode } from 'child_process';
+import format from 'pg-format';
 import { Connection } from 'typeorm';
 import { promisify } from 'util';
 
@@ -51,9 +52,7 @@ export async function connect(
     dbSaved = true;
     logger.debug('Establishing DB connections...');
     conn1 = await new Connection(dbMan.baseConnConfig).connect();
-    await conn1.query(`
-      CREATE DATABASE "${dbId}";
-    `);
+    await conn1.query(format(`CREATE DATABASE %I;`, dbId));
     conn2 = await new Connection({
       ...dbMan.baseConnConfig,
       name: dbId,
@@ -80,7 +79,7 @@ export async function connect(
     };
   } catch (e: any) {
     // delete db in psql and metadata
-    if (dbSaved) await conn1?.query(`DROP DATABASE IF EXISTS "${dbId}" WITH (FORCE);`);
+    if (dbSaved) await conn1?.query(format(`DROP DATABASE IF EXISTS %I WITH (FORCE);`, dbId));
     if (dbUser && roleGranted) await conn1?.query(dbMan.dropPostgresRoleQuery(dbUser, dbId, true));
     if (dbSaved && !dbPregen) await MetadataRepo.delDb(uid, dbAlias);
     // rethrow the error
@@ -105,13 +104,16 @@ export async function disconnect(dbAlias: string, uid: string) {
     // Unschedule cron jobs
     await unscheduleJobs(conn2);
     // Cancel all connections
-    await conn.query(`REVOKE CONNECT ON DATABASE ${db.pgName} FROM PUBLIC, ${config.db.user}, ${db.pgUser};`);
+    await conn.query(
+      format('REVOKE CONNECT ON DATABASE %I FROM PUBLIC, %I, %I;', db.pgName, config.db.user, db.pgUser),
+    );
     // Kill all open connections.
     // `pg_terminate_backend` forces any currently running transactions in the terminated session to release all locks and roll back the transaction.
     // `pg_cancel_backend` cancels a query currently being run.
     // https://stackoverflow.com/questions/5108876/kill-a-postgresql-session-connection
-    await conn.query(`
-      SELECT
+    await conn.query(
+      format(
+        `SELECT
         pg_terminate_backend(pid), pg_cancel_backend(pid)
       FROM
         pg_stat_activity
@@ -119,11 +121,12 @@ export async function disconnect(dbAlias: string, uid: string) {
         -- don't kill my own connection!
         pid <> pg_backend_pid()
         -- don't kill the connections to other databases
-        AND datname = '${db.pgName}';
-    `);
-    await conn.query(`
-      DROP DATABASE IF EXISTS ${db.pgName} WITH (FORCE);
-    `);
+        AND datname = %L;
+    `,
+        db.pgName,
+      ),
+    );
+    await conn.query(format(`DROP DATABASE IF EXISTS %I WITH (FORCE);`, db.pgName));
     await conn.query(dbMan.dropPostgresRoleQuery(db.pgUser, db.pgName, true));
     await MetadataRepo.delDb(uid, dbAlias);
     return db.pgName;
@@ -292,10 +295,10 @@ export async function upgrade() {
     // If there was a failure after `NEW_<db>` was created, we should delete the existing one
     // and do this again. We'll use the OLD db connection to test
     const hasNewDb =
-      (await conn.query(`SELECT datname FROM pg_database WHERE datname = 'NEW${db.pgName}'`))?.[0]?.datname ??
-      '' === `NEW${db.pgName}`;
+      (await conn.query(format(`SELECT datname FROM pg_database WHERE datname = %L`, `NEW${db.pgName}`)))?.[0]
+        ?.datname ?? '' === `NEW${db.pgName}`;
     if (hasNewDb) {
-      await conn.query(`DROP DATABASE "NEW${db.pgName}"`);
+      await conn.query(format(`DROP DATABASE %I`, `NEW${db.pgName}`));
     }
     // Close out the connection to the old version of the DB
     await conn.close();
@@ -414,18 +417,35 @@ export async function upgrade() {
         database: 'iasql_metadata',
       }).connect();
       // Make sure nothing is connected to the new database when we rename it or the old when we drop it
-      await lastConn.query(`
+      await lastConn.query(
+        format(
+          `
         SELECT pg_terminate_backend( pid )
         FROM pg_stat_activity
         WHERE pid <> pg_backend_pid( )
-            AND (datname = 'NEW${db.pgName}' OR datname = 'OLD${db.pgName}');
-      `);
-      await lastConn.query(`
-        ALTER DATABASE "NEW${db.pgName}" RENAME TO "${db.pgName}";
-      `);
-      await lastConn.query(`
-        DROP DATABASE "OLD${db.pgName}";
-      `);
+            AND (datname = %L OR datname = %L);
+      `,
+          `NEW${db.pgName}`,
+          `OLD${db.pgName}`,
+        ),
+      );
+      await lastConn.query(
+        format(
+          `
+        ALTER DATABASE %I RENAME TO %I;
+      `,
+          `NEW${db.pgName}`,
+          db.pgName,
+        ),
+      );
+      await lastConn.query(
+        format(
+          `
+        DROP DATABASE %I;
+      `,
+          `OLD${db.pgName}`,
+        ),
+      );
       // Restore the DB into the metadata repo (deleted during initialization of the child processes)
       await MetadataRepo.saveDb(user.id, user.email, db);
       clearInterval(upgradeHandle);
