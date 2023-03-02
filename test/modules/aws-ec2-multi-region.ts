@@ -390,8 +390,6 @@ describe('EC2 Integration Testing', () => {
 
   it('applies the move', commit());
 
-  it('starts a transaction', begin());
-
   itDocs(
     'check number of instances',
     query(
