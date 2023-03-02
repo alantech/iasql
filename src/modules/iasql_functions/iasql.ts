@@ -1240,6 +1240,7 @@ async function apply(
         // If we have changes done by the user to be applied, then filter them.
         // Else, only filter changes done after this commit started to avoid overrides.
         if (changesByEntity) {
+          if (changesByEntity['RegisteredInstance']) logger.scope({ dbId }).debug(`${JSON.stringify(changesByEntity)}`);
           r.diff.entitiesInDbOnly = r.diff.entitiesInDbOnly.filter((e: any) =>
             changesByEntity[r.table]?.find(re => r.idGen(e) === r.idGen(re)),
           );
