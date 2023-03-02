@@ -9,7 +9,7 @@ import { align, Button, Dropdown, HBox, Spinner, VBox } from '../common';
 import { DatabaseStatus } from './DatabaseStatus';
 
 export function DatabaseSelection() {
-  const { dispatch, databases, selectedDb, token } = useAppContext();
+  const { dispatch, databases, selectedDb, token, editorTabs } = useAppContext();
   // Query params
   const queryParams = useQueryParams();
   const dbAliasFromUrl = queryParams.get('alias') ?? null;
@@ -35,7 +35,12 @@ export function DatabaseSelection() {
       {!selectedDb ? (
         <Spinner />
       ) : (
-        <Dropdown buttonTitle={buttonTitle} buttonTitleLook='outline' color='primary'>
+        <Dropdown
+          buttonTitle={buttonTitle}
+          buttonTitleLook='outline'
+          color='primary'
+          isDisabled={editorTabs.some(t => t.isRunning)}
+        >
           <VBox id='db-selection-list' alignment={align.start} customClasses='h-50vh overflow-y-scroll p-2'>
             {databases.map((db: any) => (
               <Menu.Item key={db.alias}>

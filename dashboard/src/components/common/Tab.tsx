@@ -48,7 +48,7 @@ export default function Tab({
         </HBox>
       );
     }
-    if (tab.closable && selectedIndex !== idx) {
+    if ((tab.closable && selectedIndex !== idx) || isLoading) {
       return (
         <HBox alignment={align.start}>
           <span className='ml-2'>{tab.title}</span>

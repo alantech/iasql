@@ -194,7 +194,7 @@ export default function IasqlEditor() {
             onChange={onTabChange}
             selectedIndex={editorSelectedTab}
             onTabClose={onTabClose}
-            isLoading={editorTabs?.[editorSelectedTab]?.isRunning}
+            isLoading={editorTabs.some(t => t.isRunning)}
           ></Tab>
           <ForwardRefEditor
             ref={editorRef}
