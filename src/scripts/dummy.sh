@@ -5,6 +5,6 @@ function query() {
 
 query "SELECT iasql_install('aws_vpc');"
 
-query "SELECT vpc.id
+query "SELECT vpc_id
        FROM vpc"
 echo $ret_val
