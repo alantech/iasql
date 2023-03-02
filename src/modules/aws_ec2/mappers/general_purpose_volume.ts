@@ -329,7 +329,8 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
             out.push(cloudRecord);
           }
         } else {
-          // Replace
+          // Replace, but first remove volume id
+          e.volumeId = undefined;
           const newVolume = await this.module.generalPurposeVolume.cloud.create(e, ctx);
           await this.module.generalPurposeVolume.cloud.delete(cloudRecord, ctx);
           out.push(newVolume);
