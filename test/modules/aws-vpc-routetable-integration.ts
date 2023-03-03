@@ -1,7 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 
 import * as Modules from '../../src/modules';
-import { awsAccount, awsVpcModule } from '../../src/modules';
+import { awsAccount, awsVpcModule, Context } from '../../src/modules';
 import { RouteTableAssociation } from '../../src/modules/aws_vpc/entity';
 import { getContext } from '../../src/router/db';
 import * as iasql from '../../src/services/iasql';
@@ -35,7 +35,7 @@ const prefix = getPrefix();
 let username: string, password: string;
 
 describe('RouteTable Integration Testing', () => {
-  let context: { [x: string]: any };
+  let context: Context;
 
   it('creates a new test db', done => {
     (async () => {

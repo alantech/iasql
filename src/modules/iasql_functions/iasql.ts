@@ -240,7 +240,7 @@ ${Object.keys(tableCollisions)
       e.name = `${md.name}@${md.version}`;
       // Promise.all is okay here because it's guaranteed to not hit the cloud services
       e.dependencies = await Promise.all(
-        md.dependencies.map(async dep => await orm.findOne(iasqlModule, { name: dep })),
+        md.dependencies.map(async dep => await orm.findOne(iasqlModule, { where: { name: dep } })),
       );
       await orm.save(iasqlModule, e);
 
@@ -433,11 +433,11 @@ export async function uninstall(moduleList: string[], dbId: string, force = fals
       if (md.migrations?.afterRemove) {
         await md.migrations.afterRemove(queryRunner);
       }
-      const e = await orm.findOne(iasqlModule, { name: `${md.name}@${md.version}` });
+      const e = await orm.findOne(iasqlModule, { where: { name: `${md.name}@${md.version}` } });
       const mt =
         (await orm.find(iasqlTables, {
           where: {
-            module: e,
+            module: e.name,
           },
           relations: ['module'],
         })) ?? [];
@@ -701,7 +701,7 @@ export async function commit(
         logger.scope({ dbId }).info(`Starting apply phase for all modules`);
         await apply(dbId, installedModulesSorted, context, force, crupdes, dryRun);
         applyErr = null;
-      } catch (e) {
+      } catch (e: any) {
         logger.scope({ dbId }).warn(`Something failed applying for all modules.\n${e}`);
         applyErr = e;
       }
@@ -767,8 +767,6 @@ async function revert(
 async function getChangeLogsSinceLastBegin(orm: TypeormWrapper): Promise<IasqlAuditLog[]> {
   const transaction: IasqlAuditLog = await orm.findOne(IasqlAuditLog, {
     order: { ts: 'DESC' },
-    skip: 0,
-    take: 1,
     where: {
       changeType: AuditLogChangeType.OPEN_TRANSACTION,
     },
@@ -1747,7 +1745,12 @@ async function recreateEntity(
 ): Promise<any | undefined> {
   const originalE: any = {};
   // Recreate object with original properties
-  Object.entries(originalChange).forEach(([k, v]: [string, any]) => (originalE[camelCase(k)] = v));
+  Object.entries(originalChange).forEach(
+    ([k, v]: [string, any]) =>
+      (originalE[
+        entityMetadata.ownColumns.find(col => col.databaseName === k)?.propertyName ?? camelCase(k)
+      ] = v),
+  );
   await recreateRelation('OneToMany', originalE, entityMetadata, orm);
   await recreateRelation('ManyToOne', originalE, entityMetadata, orm);
   await recreateRelation('OneToOne', originalE, entityMetadata, orm);
@@ -1766,7 +1769,7 @@ async function recreateRelation(
     .map(or => ({
       targetEntity: or.inverseEntityMetadata.target,
       propertyName: or.propertyName,
-      colsWithReferences: or.joinColumns.map(jc => [jc.databaseName, jc.referencedColumn?.databaseName]),
+      colsWithReferences: or.joinColumns.map(jc => [jc.propertyName, jc.referencedColumn?.propertyName]),
     }));
   for (const r of relations) {
     if (isSingleResult) {

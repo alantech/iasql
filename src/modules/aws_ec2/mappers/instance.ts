@@ -447,7 +447,8 @@ export class InstanceMapper extends MapperBase<Instance> {
         return out;
       }
     },
-    updateOrReplace: (_a: Instance, _b: Instance) => 'replace',
+    updateOrReplace: (a: Instance, b: Instance) =>
+      this.instanceEqReplaceableFields(a, b) ? 'update' : 'replace',
     update: async (es: Instance[], ctx: Context) => {
       const out = [];
       for (const e of es) {
@@ -476,13 +477,23 @@ export class InstanceMapper extends MapperBase<Instance> {
           }
           out.push(e);
         } else {
-          const created = await this.module.instance.cloud.create(e, ctx);
-          await this.module.instance.cloud.delete(cloudRecord, ctx);
-          if (!!created && created instanceof Array) {
-            out.push(...created);
-          } else if (!!created) {
-            out.push(created);
+          const created = (await this.module.instance.cloud.create(e, ctx)) as Instance;
+          // TODO: Remove this weirdness once the `iasql_commit` logic can handle nested entity changes
+          delete ctx?.memo?.db?.RegisteredInstance;
+          const registeredInstances = await this.module.registeredInstance.db.read(ctx);
+          for (const re of registeredInstances) {
+            if (re.instance.instanceId === created.instanceId) {
+              await this.module.registeredInstance.cloud.create(re, ctx);
+            }
           }
+          for (const k of Object.keys(ctx?.memo?.cloud?.RegisteredInstance ?? {})) {
+            if (k.split('|')[0] === cloudRecord.instanceId) {
+              const re = ctx.memo.cloud.RegisteredInstance[k];
+              await this.module.registeredInstance.cloud.delete(re, ctx);
+            }
+          }
+          await this.module.instance.cloud.delete(cloudRecord, ctx);
+          out.push(created);
         }
       }
       return out;

@@ -1,7 +1,9 @@
+import { Not, IsNull } from 'typeorm';
+
 import { EC2 } from '@aws-sdk/client-ec2';
 
 import { AWS, crudBuilderFormat } from '../../services/aws_macros';
-import { Context, Crud2, MapperBase, ModuleBase } from '../interfaces';
+import { Context, Crud2, MapperBase, ModuleBase, PartialContext } from '../interfaces';
 import { AwsCredentials, AwsRegions } from './entity';
 
 class CredentialsMapper extends MapperBase<AwsCredentials> {
@@ -100,7 +102,7 @@ class RegionsMapper extends MapperBase<AwsRegions> {
 }
 
 class AwsAccount extends ModuleBase {
-  context: Context = {
+  context: PartialContext = {
     // This function is `async function () {` instead of `async () => {` because that enables the
     // `this` keyword within the function based on the object it is being called from, so the
     // `getAwsClient` function can access the correct `orm` object with the appropriate creds and
@@ -120,7 +122,8 @@ class AwsAccount extends ModuleBase {
         )?.region ??
         'us-east-1'; // TODO: Eliminate this last fallback
       if (this.awsClient[region]) return this.awsClient[region];
-      const awsCreds = await orm.findOne(AwsCredentials);
+      // :( https://github.com/typeorm/typeorm/issues/9208
+      const awsCreds = await orm.findOne(AwsCredentials, { where: { accessKeyId: Not(IsNull()) } });
       if (!awsCreds) throw new Error('No credentials found');
       this.awsClient[region] = new AWS({
         region,

@@ -51,7 +51,8 @@ export class IasqlTables {
    * @public
    * Module name
    */
-  @ManyToOne(() => IasqlModule, m => m.name, { primary: true })
+  @Column({ primary: true })
+  @ManyToOne(() => IasqlModule, m => m.name)
   @JoinColumn({ name: 'module' })
   module: IasqlModule;
 

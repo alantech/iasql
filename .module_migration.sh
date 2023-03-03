@@ -40,11 +40,12 @@ do
   MIGRATIONS="${MIGRATIONS}\"modules/${MOD}/migration/*.ts\",${NL}"
 done
 
-# Generate the TypeORM config
-cat <<EOF > ormconfig.js
-const { SnakeNamingStrategy } = require('typeorm-naming-strategies');
+# Generate a DataSource file
+cat <<EOF > datasource.ts
+import { SnakeNamingStrategy } from 'typeorm-naming-strategies';
+import { DataSource } from "typeorm";
 
-module.exports = {
+export const dataSource = new DataSource({
  "type": "postgres",
  "host": "localhost",
  "port": 5432,
@@ -60,12 +61,8 @@ module.exports = {
  "migrations": [
   ${MIGRATIONS}
  ],
- "cli": {
-  "entitiesDir": "modules/${MODULE}/entity",
-  "migrationsDir": "modules/${MODULE}/migration",
- },
  namingStrategy: new SnakeNamingStrategy(),
-};
+});
 EOF
 
 # First, run all migrations that already exist (required because we blew it all away before, but
@@ -75,12 +72,13 @@ ts-node scripts/migrate-dep-order ${MODULE}
 
 # Blow away the existing migration for the specified module, if one exists
 rm -rf modules/${MODULE}/migration
+mkdir modules/${MODULE}/migration
 
 # Now run the migration generation for the module
-ts-node ../node_modules/.bin/typeorm migration:generate -n $(echo ${MODULE} | sed 's/@.*$//g')
+ts-node ../node_modules/.bin/typeorm migration:generate -d datasource.ts modules/${MODULE}/migration/${MODULE}
 
-# Clean up the temporary ormconfig.js file and docker containers
-rm ormconfig.js
+# Clean up the temporary files and docker containers
+rm datasource.ts
 docker container stop migrate-postgres
 
 # And we're done!
