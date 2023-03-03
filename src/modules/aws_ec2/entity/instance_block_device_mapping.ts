@@ -32,41 +32,30 @@ export class InstanceBlockDeviceMapping {
   @Column({ nullable: false })
   instanceId?: number;
 
-  /**
-   * @public
-   * Internal AWS ID for the instance
-   */
-  @Column({
-    nullable: true,
-    comment: 'Unique identifier provided by AWS once the instance is provisioned',
-  })
-  @cloudId
-  cloudInstanceId?: string;
-
   @Column({ nullable: true })
   @Index({ unique: true, where: 'volume_id IS NOT NULL' })
   volumeId?: number;
 
   /**
    * @public
-   * Internal AWS ID for the volume
-   */
-  @Column({
-    nullable: true,
-    comment: 'Unique identifier provided by AWS once the volume is provisioned',
-  })
-  @cloudId
-  cloudVolumeId?: string;
-
-  /**
-   * @public
    * The instance for this volume association
    */
   @ManyToOne(() => Instance, instance => instance.instanceBlockDeviceMappings, {
-    nullable: true,
+    nullable: false,
     onDelete: 'CASCADE',
+    eager: true,
   })
-  instance?: Instance;
+  @JoinColumn([
+    {
+      name: 'instance_id',
+      referencedColumnName: 'id',
+    },
+    {
+      name: 'region',
+      referencedColumnName: 'region',
+    },
+  ])
+  instance: Instance;
 
   /**
    * @public
@@ -74,7 +63,18 @@ export class InstanceBlockDeviceMapping {
    */
   @ManyToOne(() => GeneralPurposeVolume, volume => volume.instanceBlockDeviceMappings, {
     nullable: true,
+    eager: true,
   })
+  @JoinColumn([
+    {
+      name: 'volume_id',
+      referencedColumnName: 'id',
+    },
+    {
+      name: 'region',
+      referencedColumnName: 'region',
+    },
+  ])
   volume?: GeneralPurposeVolume;
 
   /**

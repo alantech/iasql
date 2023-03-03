@@ -127,8 +127,6 @@ export class InstanceMapper extends MapperBase<Instance> {
               instanceId: instanceObj?.id ?? undefined,
               volumeId: volume?.id ?? undefined,
               deviceName: map.DeviceName,
-              cloudInstanceId: instance.InstanceId,
-              cloudVolumeId: map.Ebs.VolumeId,
               region,
               deleteOnTermination: map.Ebs.DeleteOnTermination ?? true,
             };
@@ -540,10 +538,8 @@ export class InstanceMapper extends MapperBase<Instance> {
                     deviceName: map.DeviceName,
                     instanceId: instance.id,
                     instance,
-                    cloudInstanceId: instanceId,
                     volumeId: volFromDb.id,
                     volume: volFromDb,
-                    cloudVolumeId: map.Ebs.VolumeId,
                     region: instance.region,
                     deleteOnTermination: map.Ebs.DeleteOnTermination ?? true,
                   };
@@ -697,7 +693,7 @@ export class InstanceMapper extends MapperBase<Instance> {
               });
               if (mapObj) {
                 await ctx.orm.remove(InstanceBlockDeviceMapping, mapObj);
-                if (mapObj.cloudInstanceId && mapObj.cloudVolumeId) {
+                if (mapObj.instance.instanceId && mapObj.volume?.volumeId) {
                   const mapId = this.module.instanceBlockDeviceMapping.entityId(mapObj);
                   if (mapId) delete ctx.memo.db.InstanceBlockDeviceMapping[mapId];
                 }

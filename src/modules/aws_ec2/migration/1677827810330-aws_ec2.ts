@@ -1,11 +1,20 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class awsEc21677694775930 implements MigrationInterface {
-  name = 'awsEc21677694775930';
+export class awsEc21677827810330 implements MigrationInterface {
+  name = 'awsEc21677827810330';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
-      `CREATE TABLE "instance_block_device_mapping" ("id" SERIAL NOT NULL, "device_name" character varying NOT NULL, "instance_id" integer NOT NULL, "cloud_instance_id" character varying, "volume_id" integer, "cloud_volume_id" character varying, "delete_on_termination" boolean NOT NULL DEFAULT true, "region" character varying NOT NULL DEFAULT default_aws_region(), CONSTRAINT "PK_b798e916409eefb1193854452e4" PRIMARY KEY ("id")); COMMENT ON COLUMN "instance_block_device_mapping"."cloud_instance_id" IS 'Unique identifier provided by AWS once the instance is provisioned'; COMMENT ON COLUMN "instance_block_device_mapping"."cloud_volume_id" IS 'Unique identifier provided by AWS once the volume is provisioned'`,
+      `CREATE TYPE "public"."general_purpose_volume_volume_type_enum" AS ENUM('gp2', 'gp3')`,
+    );
+    await queryRunner.query(
+      `CREATE TYPE "public"."general_purpose_volume_state_enum" AS ENUM('available', 'creating', 'deleted', 'deleting', 'error', 'in-use')`,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "general_purpose_volume" ("id" SERIAL NOT NULL, "volume_id" character varying, "volume_type" "public"."general_purpose_volume_volume_type_enum" NOT NULL, "size" integer NOT NULL DEFAULT '8', "state" "public"."general_purpose_volume_state_enum", "is_root_device" boolean DEFAULT false, "iops" integer, "throughput" integer, "snapshot_id" character varying, "tags" json, "region" character varying NOT NULL DEFAULT default_aws_region(), "availability_zone" character varying NOT NULL, CONSTRAINT "volume_id_region" UNIQUE ("id", "region"), CONSTRAINT "Check_gp_volume_size_min_max" CHECK ("size" > 0 AND "size" < 16385), CONSTRAINT "Check_gp_volume_iops" CHECK ("iops" is NULL OR ("iops" is NOT NULL AND (("volume_type" = 'gp3' AND "iops" <= 16000 AND "iops" >= 3000) OR ("volume_type" = 'gp2' AND "iops" > 0)))), CONSTRAINT "Check_gp_volume_throughput" CHECK ("throughput" IS NULL OR ("throughput" IS NOT NULL AND "volume_type" = 'gp3' AND "throughput" >= 125 AND "throughput" <= 1000)), CONSTRAINT "PK_ded6aa0f99ab2bc666ee032778e" PRIMARY KEY ("id"))`,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "instance_block_device_mapping" ("id" SERIAL NOT NULL, "device_name" character varying NOT NULL, "instance_id" integer NOT NULL, "volume_id" integer, "delete_on_termination" boolean NOT NULL DEFAULT true, "region" character varying NOT NULL DEFAULT default_aws_region(), CONSTRAINT "PK_b798e916409eefb1193854452e4" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
       `CREATE UNIQUE INDEX "IDX_33f2e790466c1e3603f32ff37b" ON "instance_block_device_mapping" ("volume_id") WHERE volume_id IS NOT NULL`,
@@ -24,15 +33,6 @@ export class awsEc21677694775930 implements MigrationInterface {
       `CREATE TABLE "key_pair" ("id" SERIAL NOT NULL, "name" character varying NOT NULL, "key_pair_id" character varying, "type" "public"."key_pair_type_enum", "fingerprint" character varying, "public_key" character varying, "region" character varying NOT NULL DEFAULT default_aws_region(), CONSTRAINT "uq_keypair_name_region" UNIQUE ("name", "region"), CONSTRAINT "uq_keypair_id_region" UNIQUE ("id", "region"), CONSTRAINT "PK_7ff350a8546214b80dfdd52bcb2" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
-      `CREATE TYPE "public"."general_purpose_volume_volume_type_enum" AS ENUM('gp2', 'gp3')`,
-    );
-    await queryRunner.query(
-      `CREATE TYPE "public"."general_purpose_volume_state_enum" AS ENUM('available', 'creating', 'deleted', 'deleting', 'error', 'in-use')`,
-    );
-    await queryRunner.query(
-      `CREATE TABLE "general_purpose_volume" ("id" SERIAL NOT NULL, "volume_id" character varying, "volume_type" "public"."general_purpose_volume_volume_type_enum" NOT NULL, "size" integer NOT NULL DEFAULT '8', "state" "public"."general_purpose_volume_state_enum", "is_root_device" boolean DEFAULT false, "iops" integer, "throughput" integer, "snapshot_id" character varying, "tags" json, "region" character varying NOT NULL DEFAULT default_aws_region(), "availability_zone" character varying NOT NULL, CONSTRAINT "volume_id_region" UNIQUE ("id", "region"), CONSTRAINT "Check_gp_volume_size_min_max" CHECK ("size" > 0 AND "size" < 16385), CONSTRAINT "Check_gp_volume_iops" CHECK ("iops" is NULL OR ("iops" is NOT NULL AND (("volume_type" = 'gp3' AND "iops" <= 16000 AND "iops" >= 3000) OR ("volume_type" = 'gp2' AND "iops" > 0)))), CONSTRAINT "Check_gp_volume_throughput" CHECK ("throughput" IS NULL OR ("throughput" IS NOT NULL AND "volume_type" = 'gp3' AND "throughput" >= 125 AND "throughput" <= 1000)), CONSTRAINT "PK_ded6aa0f99ab2bc666ee032778e" PRIMARY KEY ("id"))`,
-    );
-    await queryRunner.query(
       `CREATE TABLE "instance_security_groups" ("instance_id" integer NOT NULL, "security_group_id" integer NOT NULL, CONSTRAINT "PK_8045eb55d2a16cf6e4cf80e7ee5" PRIMARY KEY ("instance_id", "security_group_id"))`,
     );
     await queryRunner.query(
@@ -42,10 +42,16 @@ export class awsEc21677694775930 implements MigrationInterface {
       `CREATE INDEX "IDX_b3b92934eff56d2eb0477a1d27" ON "instance_security_groups" ("security_group_id") `,
     );
     await queryRunner.query(
-      `ALTER TABLE "instance_block_device_mapping" ADD CONSTRAINT "FK_619071d52b6f07a99115cc666f0" FOREIGN KEY ("instance_id") REFERENCES "instance"("id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+      `ALTER TABLE "general_purpose_volume" ADD CONSTRAINT "FK_6d207f0b3f4bf5f7c162c28cd9e" FOREIGN KEY ("availability_zone") REFERENCES "availability_zone"("name") ON DELETE NO ACTION ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
-      `ALTER TABLE "instance_block_device_mapping" ADD CONSTRAINT "FK_c3d26dac16915bfd9ecd57524de" FOREIGN KEY ("volume_id") REFERENCES "general_purpose_volume"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
+      `ALTER TABLE "general_purpose_volume" ADD CONSTRAINT "FK_6cf180e59980f6cda9aff59af15" FOREIGN KEY ("region") REFERENCES "aws_regions"("region") ON DELETE NO ACTION ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "instance_block_device_mapping" ADD CONSTRAINT "FK_11e56b6904d492f3025fd2f4ba3" FOREIGN KEY ("instance_id", "region") REFERENCES "instance"("id","region") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "instance_block_device_mapping" ADD CONSTRAINT "FK_2cb202ff0a970817beec595281a" FOREIGN KEY ("volume_id", "region") REFERENCES "general_purpose_volume"("id","region") ON DELETE NO ACTION ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
       `ALTER TABLE "instance_block_device_mapping" ADD CONSTRAINT "FK_fbbd02bffab3b73e12b879bf71e" FOREIGN KEY ("region") REFERENCES "aws_regions"("region") ON DELETE NO ACTION ON UPDATE NO ACTION`,
@@ -72,12 +78,6 @@ export class awsEc21677694775930 implements MigrationInterface {
       `ALTER TABLE "key_pair" ADD CONSTRAINT "FK_e2d86caddef571b4984217b4f55" FOREIGN KEY ("region") REFERENCES "aws_regions"("region") ON DELETE NO ACTION ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
-      `ALTER TABLE "general_purpose_volume" ADD CONSTRAINT "FK_6d207f0b3f4bf5f7c162c28cd9e" FOREIGN KEY ("availability_zone") REFERENCES "availability_zone"("name") ON DELETE NO ACTION ON UPDATE NO ACTION`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "general_purpose_volume" ADD CONSTRAINT "FK_6cf180e59980f6cda9aff59af15" FOREIGN KEY ("region") REFERENCES "aws_regions"("region") ON DELETE NO ACTION ON UPDATE NO ACTION`,
-    );
-    await queryRunner.query(
       `ALTER TABLE "instance_security_groups" ADD CONSTRAINT "FK_fa3c179d5090cb1309c63b5e20a" FOREIGN KEY ("instance_id") REFERENCES "instance"("id") ON DELETE CASCADE ON UPDATE CASCADE`,
     );
     await queryRunner.query(
@@ -91,12 +91,6 @@ export class awsEc21677694775930 implements MigrationInterface {
     );
     await queryRunner.query(
       `ALTER TABLE "instance_security_groups" DROP CONSTRAINT "FK_fa3c179d5090cb1309c63b5e20a"`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "general_purpose_volume" DROP CONSTRAINT "FK_6cf180e59980f6cda9aff59af15"`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "general_purpose_volume" DROP CONSTRAINT "FK_6d207f0b3f4bf5f7c162c28cd9e"`,
     );
     await queryRunner.query(`ALTER TABLE "key_pair" DROP CONSTRAINT "FK_e2d86caddef571b4984217b4f55"`);
     await queryRunner.query(
@@ -115,17 +109,20 @@ export class awsEc21677694775930 implements MigrationInterface {
       `ALTER TABLE "instance_block_device_mapping" DROP CONSTRAINT "FK_fbbd02bffab3b73e12b879bf71e"`,
     );
     await queryRunner.query(
-      `ALTER TABLE "instance_block_device_mapping" DROP CONSTRAINT "FK_c3d26dac16915bfd9ecd57524de"`,
+      `ALTER TABLE "instance_block_device_mapping" DROP CONSTRAINT "FK_2cb202ff0a970817beec595281a"`,
     );
     await queryRunner.query(
-      `ALTER TABLE "instance_block_device_mapping" DROP CONSTRAINT "FK_619071d52b6f07a99115cc666f0"`,
+      `ALTER TABLE "instance_block_device_mapping" DROP CONSTRAINT "FK_11e56b6904d492f3025fd2f4ba3"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "general_purpose_volume" DROP CONSTRAINT "FK_6cf180e59980f6cda9aff59af15"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "general_purpose_volume" DROP CONSTRAINT "FK_6d207f0b3f4bf5f7c162c28cd9e"`,
     );
     await queryRunner.query(`DROP INDEX "public"."IDX_b3b92934eff56d2eb0477a1d27"`);
     await queryRunner.query(`DROP INDEX "public"."IDX_fa3c179d5090cb1309c63b5e20"`);
     await queryRunner.query(`DROP TABLE "instance_security_groups"`);
-    await queryRunner.query(`DROP TABLE "general_purpose_volume"`);
-    await queryRunner.query(`DROP TYPE "public"."general_purpose_volume_state_enum"`);
-    await queryRunner.query(`DROP TYPE "public"."general_purpose_volume_volume_type_enum"`);
     await queryRunner.query(`DROP TABLE "key_pair"`);
     await queryRunner.query(`DROP TYPE "public"."key_pair_type_enum"`);
     await queryRunner.query(`DROP TABLE "registered_instance"`);
@@ -133,5 +130,8 @@ export class awsEc21677694775930 implements MigrationInterface {
     await queryRunner.query(`DROP TYPE "public"."instance_state_enum"`);
     await queryRunner.query(`DROP INDEX "public"."IDX_33f2e790466c1e3603f32ff37b"`);
     await queryRunner.query(`DROP TABLE "instance_block_device_mapping"`);
+    await queryRunner.query(`DROP TABLE "general_purpose_volume"`);
+    await queryRunner.query(`DROP TYPE "public"."general_purpose_volume_state_enum"`);
+    await queryRunner.query(`DROP TYPE "public"."general_purpose_volume_volume_type_enum"`);
   }
 }

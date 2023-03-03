@@ -174,7 +174,6 @@ export class GeneralPurposeVolume {
    */
   @OneToMany(() => InstanceBlockDeviceMapping, mappings => mappings.volume, {
     nullable: true,
-    eager: true,
   })
   @JoinColumn({ referencedColumnName: 'volume_id' })
   instanceBlockDeviceMappings?: InstanceBlockDeviceMapping[];
