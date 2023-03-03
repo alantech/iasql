@@ -592,10 +592,7 @@ describe('ECS Integration Testing', () => {
     FROM task_definition
     WHERE family = '${tdFamily}' AND status = '${tdActive}';
   `,
-      (res: any[]) => {
-        console.log(`+-+ res = ${JSON.stringify(res)}`);
-        expect(res.length).toBe(2);
-      },
+      (res: any[]) => expect(res.length).toBe(2),
     ),
   );
 
