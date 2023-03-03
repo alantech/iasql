@@ -119,40 +119,32 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
     create: async (es: InstanceBlockDeviceMapping[], ctx: Context) => {
       const out: InstanceBlockDeviceMapping[] = [];
       for (const e of es) {
-        // read instance details
-        const instance: Instance = await ctx.orm.findOne(Instance, {
-          id: e.instanceId,
-        });
-
         // if we have different regions we may be in a multi-region update situation, just skip
-        if (e.region !== instance.region) continue;
+        if (e.region !== e.instance.region) continue;
 
         // if instance is not created we are in the first step, no need to create anything
-        if (!instance?.instanceId) continue;
+        if (!e.instance?.instanceId) continue;
         const client = (await ctx.getAwsClient(e.region)) as AWS;
 
         // read volume details
         if (!e.volumeId) throw new Error('Cannot attach empty volumes to an instance already created');
-        const volume: GeneralPurposeVolume = await ctx.orm.findOne(GeneralPurposeVolume, {
-          id: e.volumeId,
-        });
-        if (!volume.volumeId) throw new Error('Tried to attach an unexisting volume');
-        if (volume.region !== instance.region)
+        if (!e.volume?.volumeId) throw new Error('Tried to attach an unexisting volume');
+        if (e.volume.region !== e.instance.region)
           throw new Error('Cannot create a mapping between different regions');
 
         // only attach if volume is not in use. We can have the case that the volume is auto-attached on creation
-        if (volume.state === VolumeState.AVAILABLE) {
-          await this.attachVolume(client.ec2client, volume.volumeId, instance.instanceId, e.deviceName);
+        if (e.volume.state === VolumeState.AVAILABLE) {
+          await this.attachVolume(client.ec2client, e.volume.volumeId, e.instance.instanceId, e.deviceName);
         }
 
         // return mapping
         const newMap: InstanceBlockDeviceMapping = {
           deviceName: e.deviceName,
           instanceId: e.instanceId,
-          instance,
+          instance: e.instance,
           volumeId: e.volumeId,
-          volume,
-          region: instance.region,
+          volume: e.volume,
+          region: e.instance.region,
           deleteOnTermination: e.deleteOnTermination,
         };
 

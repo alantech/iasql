@@ -302,7 +302,7 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
         out.push(newEntity);
 
         // check if we have related attachments and update cloud volume id
-        const mapping = await ctx.orm.findOne(InstanceBlockDeviceMapping, { volumeId: e.id });
+        const mapping = await ctx.orm.findOne(InstanceBlockDeviceMapping, { where: { volumeId: e.id } });
         if (mapping) {
           mapping.volume_id = newEntity.id;
           await this.module.instanceBlockDeviceMapping.db.update(mapping, ctx);

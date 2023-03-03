@@ -353,9 +353,7 @@ export class InstanceMapper extends MapperBase<Instance> {
         // try to find the device name on instance mapping
         const vol = imageMapping?.find(item => item.DeviceName === dev.deviceName);
         if (!vol) throw new Error('Error mapping volume to a device that does not exist for the AMI');
-
-        const volObj = await ctx.orm.findOne(GeneralPurposeVolume, dev.volumeId);
-        if (volObj && !volObj.isRootDevice) throw new Error('Error mapping volume that is not root');
+        if (!dev.volume?.isRootDevice) throw new Error('Error mapping volume that is not root');
       }
       const region = instance.region;
       for (const map of imageMapping ?? []) {
@@ -363,23 +361,21 @@ export class InstanceMapper extends MapperBase<Instance> {
         const vol = maps?.find(item => item.deviceName === map.DeviceName);
         if (vol) {
           if (vol.volumeId) {
-            // need to find the volume object
-            const volObj = await ctx.orm.findOne(GeneralPurposeVolume, vol.volumeId);
-            if (volObj) {
+            if (vol.volume) {
               // map it to the ebs mapping
-              if (!volObj.isRootDevice) throw new Error('Error mapping volume that is not root');
+              if (!vol.volume.isRootDevice) throw new Error('Error mapping volume that is not root');
 
               let snapshotId;
-              if (volObj.snapshotId && instance.region === vol.region) snapshotId = volObj.snapshotId;
+              if (vol.volume.snapshotId && instance.region === vol.region) snapshotId = vol.volume.snapshotId;
               else snapshotId = map.Ebs?.SnapshotId;
               map.Ebs = {
                 DeleteOnTermination: vol.deleteOnTermination,
-                Iops: volObj.volumeType !== GeneralPurposeVolumeType.GP2 ? volObj.iops : undefined,
+                Iops: vol.volume.volumeType !== GeneralPurposeVolumeType.GP2 ? vol.volume.iops : undefined,
                 SnapshotId: snapshotId,
-                VolumeSize: volObj.size,
-                VolumeType: volObj.volumeType,
+                VolumeSize: vol.volume.size,
+                VolumeType: vol.volume.volumeType,
                 KmsKeyId: map.Ebs?.KmsKeyId,
-                Throughput: volObj.throughput,
+                Throughput: vol.volume.throughput,
                 OutpostArn: map.Ebs?.OutpostArn,
                 Encrypted: encrypted,
               };
@@ -629,11 +625,14 @@ export class InstanceMapper extends MapperBase<Instance> {
             ];
           }
 
-          const created = await this.module.instance.cloud.create(e, ctx);
-          if (!!created && created instanceof Array) {
-            out.push(...created);
-          } else if (!!created) {
-            out.push(created);
+          const created = (await this.module.instance.cloud.create(e, ctx)) as Instance;
+          // TODO: Remove this weirdness once the `iasql_commit` logic can handle nested entity changes
+          delete ctx?.memo?.db?.RegisteredInstance;
+          const registeredInstances = await this.module.registeredInstance.db.read(ctx);
+          for (const re of registeredInstances) {
+            if (re.instance.instanceId === created.instanceId) {
+              await this.module.registeredInstance.cloud.create(re, ctx);
+            }
           }
           for (const k of Object.keys(ctx?.memo?.cloud?.RegisteredInstance ?? {})) {
             if (k.split('|')[0] === cloudRecord.instanceId) {
@@ -683,7 +682,9 @@ export class InstanceMapper extends MapperBase<Instance> {
             // check if volume will be removed on termination
             if (volObj && map.Ebs.DeleteOnTermination) {
               const mapObj: InstanceBlockDeviceMapping = await ctx.orm.findOne(InstanceBlockDeviceMapping, {
-                volumeId: volObj.id,
+                where: {
+                  volumeId: volObj.id,
+                },
               });
               if (mapObj) {
                 await ctx.orm.remove(InstanceBlockDeviceMapping, mapObj);
