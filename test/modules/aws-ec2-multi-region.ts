@@ -366,9 +366,14 @@ describe('EC2 Integration Testing', () => {
     );
     -- We have to make sure the subnet is correct and we have to re-assign the AMI ID because they
     -- are different between regions
-    UPDATE instance
-    SET region = 'us-east-1',
-      ami = '${ubuntuAmiId}',
+    UPDATE general_purpose_volume SET region = 'us-east-1' WHERE id = (
+      SELECT volume_id FROM instance_block_device_mapping WHERE instance_id = (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'));
+    UPDATE instance_block_device_mapping SET region = 'us-east-1' WHERE instance_id = (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1');
+
+    WITH updated_instance_block_device_mapping as ( 
+      UPDATE instance_block_device_mapping set region='us-east-1' where instance_id=(SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'))
+      
+      UPDATE instance set region='us-east-1', ami = '${ubuntuAmiId}',
       subnet_id = (
         SELECT id FROM subnet WHERE region = 'us-east-1' AND availability_zone = 'us-east-1a'
       )
