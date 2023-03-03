@@ -37,7 +37,8 @@ While Stable Diffusion is a complex model with lots of dependencies, there are p
 rely on <a href="https://sygil-dev.github.io/sygil-webui/docs/Installation/docker-guide">Sygil WebUI</a> images to deploy our model. These images are ready to be used out of the box,
 but there is possibility to build and customize the images in case it's needed.
 
-So with all pre-requisites solved, deploying Stable Diffusion can be done with one click using IaSQL engine:
+So with all pre-requisites solved, deploying Stable Diffusion can be done with one click using IaSQL engine. Please note that we will be using a beef p3.2xlarge instance with
+extra disk space storage, so running this experiment will incur in some extra costs:
 
 ```sql title="Deploy Stable Diffusion"
  -- install modules
@@ -51,6 +52,19 @@ SELECT
   *
 FROM
   iasql_begin ();
+
+-- set us-east-2 region as default to use it for all the resources in the deployment
+UPDATE
+  aws_regions
+SET
+  is_default = FALSE;
+
+UPDATE
+  aws_regions
+SET
+  is_default = TRUE
+WHERE
+  region = 'us-east-2';
 
 -- insert security groups
 INSERT INTO
@@ -73,16 +87,21 @@ FROM
   (
     VALUES
       (FALSE, 'tcp', 22, 22, '0.0.0.0/0', 'stable_diffusion_sg_rule_ssh'),
-      (FALSE, 'tcp', 80, 80, '0.0.0.0/0', 'stable_diffusion_sg_rule_http'),
+      (FALSE, 'tcp', 80, 80, '0.0.0.0/0', 'stable_diffusion_sg_rule_http')
   ) AS t (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description)
 WHERE
   security_group.group_name = 'stable_diffusion_sg';
 
 -- insert instance with the right userdata
 INSERT INTO
+  general_purpose_volume (size, volume_type, availability_zone, tags, is_root_device)
+VALUES
+  (100, 'gp2', 'us-east-2a', '{"name": "stable-diffusion-blog"}', TRUE);
+
+INSERT INTO
   instance (ami, instance_type, subnet_id, tags, user_data, region)
 SELECT
-  'resolve:ssm:/aws/service/marketplace/prod-64e4rx3h733ru/latest',
+  'ami-0890479ea4c515bf8',
   'p3.2xlarge',
   subnet.id,
   '{"name":"stable-diffusion-blog"}',
@@ -152,18 +171,57 @@ LIMIT
   1;
 
 INSERT INTO
-  general_purpose_volume (volume_type, size, instance_device_name, region, availability_zone, attached_instance_id)
+  instance_block_device_mapping (device_name, volume_id, instance_id)
+VALUES
+  (
+    '/dev/xvda',
+    (
+      SELECT
+        id
+      FROM
+        general_purpose_volume
+      WHERE
+        tags ->> 'name' = 'stable-diffusion-blog'
+      LIMIT
+        1
+    ),
+    (
+      SELECT
+        id
+      FROM
+        instance
+      WHERE
+        tags ->> 'name' = 'stable-diffusion-blog'
+      LIMIT
+        1
+    )
+  );
+
+-- insert instance security groups
+INSERT INTO
+  instance_security_groups (instance_id, security_group_id)
 SELECT
-  'gp2',
-  100,
-  '/dev/xvda',
-  'us-east-2',
-  'us-east-2a',
-  id
-FROM
-  instance
-WHERE
-  tags ->> 'name' = 'stable-diffusion-blog';
+  (
+    SELECT
+      id
+    FROM
+      instance
+    WHERE
+      tags ->> 'name' = 'stable-diffusion-blog'
+    LIMIT
+      1
+  ),
+  (
+    SELECT
+      id
+    FROM
+      security_group
+    WHERE
+      group_name = 'stable_diffusion_sg'
+      AND region = 'us-east-2'
+    LIMIT
+      1
+  );
 
 SELECT
   *
