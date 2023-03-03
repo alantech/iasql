@@ -162,13 +162,6 @@ export function genUserAndPass(): [string, string] {
   return [user, pass];
 }
 
-export function ourPgUrl(dbId: string): string {
-  // Using the main user and password, not the users' own account here
-  return `postgres://${encodeURIComponent(config.db.user)}:${encodeURIComponent(config.db.password)}@${
-    config.db.host
-  }/${dbId}`;
-}
-
 export function setUpDblink(dbId: string) {
   return format(
     `

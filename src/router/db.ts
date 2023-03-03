@@ -72,30 +72,6 @@ db.post('/connect', connectHandler);
   }
 });*/
 
-db.post('/export', async (req: Request, res: Response) => {
-  logger.debug('Calling /export');
-  const { dbAlias, dataOnly, user: uid } = req.body;
-  if (!dbAlias) return res.status(400).json("Required key 'dbAlias' not provided");
-  const email = await MetadataRepo.getEmailByUid(uid);
-  try {
-    const database: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
-    const dbId = database.pgName;
-    res.send(await iasql.dump(dbId, !!dataOnly));
-    telemetry.logExport(
-      uid,
-      {
-        dbAlias,
-        email,
-        dbId,
-        recordCount: database.recordCount,
-      },
-      { dataOnly: !!dataOnly },
-    );
-  } catch (e) {
-    res.status(500).end(logErrSentry(e, uid, email, dbAlias));
-  }
-});
-
 db.post('/disconnect', async (req: Request, res: Response) => {
   logger.debug('Calling /disconnect');
   const { dbAlias, user: uid } = req.body;

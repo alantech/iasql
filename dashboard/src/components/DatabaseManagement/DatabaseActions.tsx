@@ -8,16 +8,10 @@ import { PauseIcon, PlayIcon } from '@heroicons/react/solid';
 import { align, Button, Dropdown, HBox, VBox } from '../common';
 
 export function DatabaseActions() {
-  const { editorSelectedTab, editorTabs, selectedDb, dump, dispatch, token } = useAppContext();
+  const { editorSelectedTab, editorTabs, selectedDb, dispatch, token } = useAppContext();
 
   const handleDisconnect = () => {
     dispatch({ action: ActionType.ShowDisconnect, data: { show: true } });
-  };
-
-  const handleExport = (dbAlias: string, dataOnly: boolean) => {
-    if (token) {
-      dispatch({ token, action: ActionType.ExportDb, data: { dataOnly, dbAlias } });
-    }
   };
 
   const handleRunSql = (db: any, content: string, tabIdx: number) => {
@@ -30,24 +24,6 @@ export function DatabaseActions() {
     }
   };
 
-  useEffect(() => {
-    function downloadDump(obj: any) {
-      // https://akashmittal.com/react-download-files-button-click/
-      const link = document.createElement('a');
-      link.href = window.URL.createObjectURL(new Blob([obj as Blob], { type: 'application/octet-stream' }));
-      link.download = `${selectedDb?.alias}.sql`;
-      document.body.appendChild(link);
-      link.click();
-      setTimeout(function () {
-        window.URL.revokeObjectURL(link as unknown as string);
-      }, 200);
-    }
-    if (dump) {
-      downloadDump(dump);
-      dispatch({ action: ActionType.ExportedDb });
-    }
-  }, [dump, selectedDb?.alias, dispatch]);
-
   const buttonTitle = (
     <HBox alignment={align.start} id='database-settings'>
       <CogIcon className='mr-1 h-4 w-4' aria-hidden='true' />
@@ -59,24 +35,6 @@ export function DatabaseActions() {
     <HBox alignment={align.end}>
       <HBox customStyles='md:justify-end'>
         <Dropdown buttonTitle={buttonTitle} color='tertiary' width='w-max' startPosition='right'>
-          <VBox customClasses='p-2'>
-            <Menu.Item>
-              <HBox alignment={align.start} customStyles='p-1'>
-                <Button look='link' onClick={() => handleExport(selectedDb.alias, true)}>
-                  <DownloadIcon className='mr-1 h-4 w-4' aria-hidden='true' />
-                  Export Data Only
-                </Button>
-              </HBox>
-            </Menu.Item>
-            <Menu.Item>
-              <HBox alignment={align.start} customStyles='p-1'>
-                <Button look='link' onClick={() => handleExport(selectedDb.alias, false)}>
-                  <DownloadIcon className='mr-1 h-4 w-4' aria-hidden='true' />
-                  Export Data With Schema
-                </Button>
-              </HBox>
-            </Menu.Item>
-          </VBox>
           <VBox customClasses='p-2'>
             <Menu.Item>
               <HBox alignment={align.start} customStyles='p-1'>

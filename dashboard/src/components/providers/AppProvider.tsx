@@ -24,8 +24,6 @@ export enum ActionType {
   NewDb = 'NewDb',
   List = 'List',
   Disconnect = 'Disconnect',
-  Dump = 'Dump',
-  ExportDb = 'ExportDb',
   UpgradeDb = 'UpgradeDb',
   DisconnectDb = 'DisconnectDb',
   UninstallModule = 'UninstallModule',
@@ -37,7 +35,6 @@ export enum ActionType {
   TrackEvent = 'TrackEvent',
   FetchData = 'FetchData',
   Stop = 'Stop',
-  ExportedDb = 'ExportedDb',
   RunningSql = 'RunningSql',
   ShowDisconnect = 'ShowDisconnect',
   ShowConnect = 'ShowConnect',
@@ -68,7 +65,6 @@ interface AppState {
   databases: any[];
   error: string | null;
   newDb?: any;
-  dump: Blob | null;
   allModules: { [moduleName: string]: string[] };
   functions: {
     [moduleName: string]: {
@@ -151,13 +147,6 @@ const reducer = (state: AppState, payload: Payload): AppState => {
     }
     case ActionType.ResetNewDb: {
       return { ...state, newDb: undefined };
-    }
-    case ActionType.ExportDb: {
-      const { dump } = payload.data;
-      return { ...state, dump };
-    }
-    case ActionType.ExportedDb: {
-      return { ...state, dump: null };
     }
     case ActionType.EditContent: {
       const { content: editorContent } = payload.data;
@@ -430,24 +419,6 @@ const middlewareReducer = async (
       }
       break;
     }
-    case ActionType.ExportDb: {
-      if (!token) {
-        dispatch({ ...payload, data: { error: 'No auth token defined.' } });
-        break;
-      }
-      const { dbAlias, dataOnly } = payload.data;
-      try {
-        const dump = await DbActions.dump(token, dbAlias, dataOnly);
-        if (dump) {
-          dispatch({ ...payload, data: { dump } });
-        }
-      } catch (e: any) {
-        const error = e.message ? e.message : `Unexpected error exporting database ${dbAlias}`;
-        dispatch({ ...payload, data: { error } });
-        break;
-      }
-      break;
-    }
     case ActionType.RunSql: {
       if (!token) {
         dispatch({ ...payload, data: { error: 'No auth token defined.' } });
@@ -594,7 +565,6 @@ const AppProvider = ({ children }: { children: any }) => {
     isRunningSql: false,
     databases: [],
     error: null,
-    dump: null,
     allModules: {},
     functions: {},
     installedModules: {},
@@ -638,7 +608,6 @@ const AppProvider = ({ children }: { children: any }) => {
         latestVersion: state.latestVersion,
         oldestVersion: state.oldestVersion,
         newDb: state.newDb,
-        dump: state.dump,
         allModules: state.allModules,
         functions: state.functions,
         installedModules: state.installedModules,
