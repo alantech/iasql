@@ -1,11 +1,12 @@
 ---
 slug: deploy-static-website
-title: Deploy a Static Website Using SQL on AWS
-date: 2022-12-21
+title: Deploy a Static Website on AWS using SQL 
+date: 2023-03-03
 authors: [mtp1376]
+tags: [tutorial]
 ---
 
-Did you know you can deploy a static website using a SQL REPL? In this post, we'll show you how to use IaSQL to deploy a static website from your GitHub repository to AWS using SQL commands. IaSQL is an [open-source](https://github.com/iasql/iasql) software tool that creates a two-way connection between an unmodified PostgreSQL database and an AWS account so you can manage your infrastructure from a database.
+Did you know you can deploy a static website using a SQL REPL? In this post, we'll show you how to use IaSQL to deploy a static website from your GitHub repository to AWS S3 + Cloudfront services using only SQL queries. IaSQL is an [open-source](https://github.com/iasql/iasql) software tool that creates a two-way connection between an unmodified PostgreSQL database and an AWS account so you can manage your infrastructure from a database.
 
 We will create and configure an S3 bucket to serve our static website. To enable support for HTTPS, we'll also add a CloudFront distribution. We will also leverage CodeBuild to automatically build the files for our project and copy them to the S3 bucket created already.
 
