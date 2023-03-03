@@ -6,12 +6,30 @@ import { WaiterState } from '@aws-sdk/util-waiter';
 
 import { AwsEc2Module } from '..';
 import { AWS, crudBuilder2 } from '../../../services/aws_macros';
-import { Context, Crud2, MapperBase } from '../../interfaces';
+import { Context, Crud2, IdFields, MapperBase } from '../../interfaces';
 import { GeneralPurposeVolume, Instance, InstanceBlockDeviceMapping, VolumeState } from '../entity';
 
 export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDeviceMapping> {
   module: AwsEc2Module;
   entity = InstanceBlockDeviceMapping;
+  generateId = (fields: IdFields) => {
+    const requiredFields = ['instanceId', 'volumeId', 'region'];
+    if (
+      Object.keys(fields).length !== requiredFields.length &&
+      !Object.keys(fields).every(fk => requiredFields.includes(fk))
+    ) {
+      throw new Error(`Id generation error. Valid fields to generate id are: ${requiredFields.join(', ')}`);
+    }
+    return `${fields.instanceId}|${fields.volumeId}|${fields.region}`;
+  };
+  entityId = (e: InstanceBlockDeviceMapping) => {
+    return this.module.instanceBlockDeviceMapping.generateId({
+      instanceId: e.instance?.instanceId ?? '',
+      volumeId: e.volume?.volumeId ?? '',
+      region: e.region,
+    });
+  };
+
   equals = (a: InstanceBlockDeviceMapping, b: InstanceBlockDeviceMapping) => {
     return Object.is(a.deviceName, b.deviceName) && Object.is(a.deleteOnTermination, b.deleteOnTermination);
   };
@@ -104,8 +122,6 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
           volumeId: e.volumeId,
           volume,
           region: instance.region,
-          cloudInstanceId: instance.instanceId,
-          cloudVolumeId: volume.volumeId,
           deleteOnTermination: e.deleteOnTermination,
         };
 
@@ -147,8 +163,6 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
                 instance,
                 volume,
                 deviceName: newMap.DeviceName,
-                cloudInstanceId: instanceId,
-                cloudVolumeId: volumeId,
                 region,
                 deleteOnTermination: newMap.Ebs.DeleteOnTermination ?? true,
               };
@@ -197,8 +211,6 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
                     volumeId: volume?.id ?? undefined,
                     volume,
                     deviceName: newMap.DeviceName,
-                    cloudInstanceId: i.InstanceId,
-                    cloudVolumeId: newMap.Ebs.VolumeId,
                     region,
                     deleteOnTermination: newMap.Ebs.DeleteOnTermination ?? true,
                   };
@@ -221,12 +233,16 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
           // we need to update the delete on termination for that specific device
           const mappings = await this.module.instance.getInstanceBlockDeviceMapping(
             client.ec2client,
-            e.cloudInstanceId,
+            e.instance.instanceId,
           );
           for (const newMap of mappings ?? []) {
-            if (newMap.DeviceName === e.deviceName && newMap.Ebs?.VolumeId === e.cloudVolumeId)
+            if (newMap.DeviceName === e.deviceName && newMap.Ebs?.VolumeId === e.volume?.volumeId)
               newMap.Ebs!.DeleteOnTermination = e.deleteOnTermination;
-            const result = await this.modifyBlockDeviceMapping(client.ec2client, e.cloudInstanceId, mappings);
+            const result = await this.modifyBlockDeviceMapping(
+              client.ec2client,
+              e.instance.instanceId,
+              mappings,
+            );
             if (result) out.push(e);
           }
         } else {
@@ -244,11 +260,11 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
         const client = (await ctx.getAwsClient(e.region)) as AWS;
 
         // if no volume is attached, no need to do anything
-        if (!e.cloudVolumeId) continue;
+        if (!e.volume?.volumeId) continue;
 
         // we need to detach the volume
         try {
-          await this.detachVolume(client.ec2client, e.cloudVolumeId ?? '');
+          await this.detachVolume(client.ec2client, e.volume.volumeId ?? '');
         } catch (_) {
           continue; // if the volume is still attached we will wait for the next run
         }

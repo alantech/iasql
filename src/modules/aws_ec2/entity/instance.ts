@@ -174,7 +174,6 @@ export class Instance {
    */
   @OneToMany(() => InstanceBlockDeviceMapping, mappings => mappings.instance, {
     nullable: true,
-    eager: true,
   })
   @JoinColumn({ referencedColumnName: 'instance_id' })
   instanceBlockDeviceMappings?: InstanceBlockDeviceMapping[];
