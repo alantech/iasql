@@ -447,45 +447,41 @@ const middlewareReducer = async (
       let databases: any[] | null = null;
       let shouldUpdate = false;
       let updatedAutoCompleteRes: any;
-      let runErr: any;
+      let queryError: string = 'Unhandled error in SQL execution';
+      dispatch({ action: ActionType.RunningSql, data: { isRunning: true, tabIdx } });
       try {
-        dispatch({ action: ActionType.RunningSql, data: { isRunning: true, tabIdx } });
-        try {
-          if (token && content) queryRes = await DbActions.run(token, backendUrl, runningDb?.alias, content);
-          const compFn = (r: any, stmt: string) =>
-            r.statement && typeof r.statement === 'string' && r.statement.toLowerCase().indexOf(stmt) !== -1;
-          for (const r of queryRes) {
-            if (compFn(r, 'iasql_install(') || compFn(r, 'iasql_uninstall(')) shouldUpdate = true;
-          }
-          if (shouldUpdate) {
-            databases = await DbActions.list(token, backendUrl, config);
-            updatedAutoCompleteRes = await DbActions.run(
-              token,
-              backendUrl,
-              runningDb?.alias,
-              initializingQueries,
-            );
-          }
-        } catch (e: any) {
-          queryRes = e.message ? e.message : 'Unhandled error in SQL execution';
+        if (token && content) queryRes = await DbActions.run(token, backendUrl, runningDb?.alias, content);
+        const compFn = (r: any, stmt: string) =>
+          r.statement && typeof r.statement === 'string' && r.statement.toLowerCase().indexOf(stmt) !== -1;
+        for (const r of queryRes) {
+          if (compFn(r, 'iasql_install(') || compFn(r, 'iasql_uninstall(')) shouldUpdate = true;
+        }
+        if (shouldUpdate) {
+          databases = await DbActions.list(token, backendUrl, config);
+          updatedAutoCompleteRes = await DbActions.run(
+            token,
+            backendUrl,
+            runningDb?.alias,
+            initializingQueries,
+          );
         }
       } catch (e: any) {
-        runErr = e.message ? e.message : `Unexpected error`;
-        dispatch({ ...payload, data: { error: runErr } });
-      } finally {
-        dispatch({ action: ActionType.RunningSql, data: { isRunning: false, tabIdx } });
-        dispatch({
-          action: ActionType.TrackEvent,
-          data: {
-            trackEventName: 'RUN_SQL',
-            trackDbAlias: runningDb?.alias,
-            queryToRun: content,
-            queryOutput: queryRes,
-            queryError: runErr,
-          },
-        });
+        if (e.message) {
+          queryError = e.message;
+        }
+        queryRes = queryError;
       }
-      if (runErr) break;
+      dispatch({ action: ActionType.RunningSql, data: { isRunning: false, tabIdx } });
+      dispatch({
+        action: ActionType.TrackEvent,
+        data: {
+          trackEventName: 'RUN_SQL',
+          trackDbAlias: runningDb?.alias,
+          queryToRun: content,
+          queryOutput: queryRes,
+          queryError,
+        },
+      });
       dispatch({ ...payload, data: { queryRes, databases, tabIdx } });
       if (updatedAutoCompleteRes) {
         dispatch({
