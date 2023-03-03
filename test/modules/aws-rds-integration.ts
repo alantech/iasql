@@ -395,7 +395,7 @@ describe('RDS Integration Testing', () => {
       query(`
       SELECT invoke_rds(
         'createDBInstance',
-        '{"Engine": "aurora", "DBInstanceClass": "db.r5.large", "AvailabilityZone": "us-west-2a", "DBInstanceIdentifier": "${prefix}hidden"}',
+        '{"Engine": "aurora", "DBInstanceClass": "db.r5.large", "AvailabilityZone": "us-west-2a", "DBInstanceIdentifier": "${prefix}hidden", "MasterUserPassword": "dontcare"}',
         '${region}'
       );
     `),
