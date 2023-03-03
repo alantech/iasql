@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class awsEc21677844021270 implements MigrationInterface {
-  name = 'awsEc21677844021270';
+export class awsEc21677852123884 implements MigrationInterface {
+  name = 'awsEc21677852123884';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
@@ -45,7 +45,7 @@ export class awsEc21677844021270 implements MigrationInterface {
       `ALTER TABLE "instance_block_device_mapping" ADD CONSTRAINT "FK_11e56b6904d492f3025fd2f4ba3" FOREIGN KEY ("instance_id", "region") REFERENCES "instance"("id","region") ON DELETE CASCADE ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
-      `ALTER TABLE "instance_block_device_mapping" ADD CONSTRAINT "FK_c3d26dac16915bfd9ecd57524de" FOREIGN KEY ("volume_id") REFERENCES "general_purpose_volume"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
+      `ALTER TABLE "instance_block_device_mapping" ADD CONSTRAINT "FK_2cb202ff0a970817beec595281a" FOREIGN KEY ("volume_id", "region") REFERENCES "general_purpose_volume"("id","region") ON DELETE NO ACTION ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
       `ALTER TABLE "instance_block_device_mapping" ADD CONSTRAINT "FK_fbbd02bffab3b73e12b879bf71e" FOREIGN KEY ("region") REFERENCES "aws_regions"("region") ON DELETE NO ACTION ON UPDATE NO ACTION`,
@@ -115,7 +115,7 @@ export class awsEc21677844021270 implements MigrationInterface {
       `ALTER TABLE "instance_block_device_mapping" DROP CONSTRAINT "FK_fbbd02bffab3b73e12b879bf71e"`,
     );
     await queryRunner.query(
-      `ALTER TABLE "instance_block_device_mapping" DROP CONSTRAINT "FK_c3d26dac16915bfd9ecd57524de"`,
+      `ALTER TABLE "instance_block_device_mapping" DROP CONSTRAINT "FK_2cb202ff0a970817beec595281a"`,
     );
     await queryRunner.query(
       `ALTER TABLE "instance_block_device_mapping" DROP CONSTRAINT "FK_11e56b6904d492f3025fd2f4ba3"`,
