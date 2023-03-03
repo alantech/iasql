@@ -390,36 +390,55 @@ describe('RDS Integration Testing', () => {
   describe('Aurora instances not supported or messed with', () => {
     it('installs `aws_sdk` to create an aurora instance', query(`SELECT iasql_install('aws_sdk')`));
 
-    it('creates an aurora instance', query(`
+    it(
+      'creates an aurora instance',
+      query(`
       SELECT invoke_rds(
         'createDBInstance',
-        '{"Engine": "aurora", "AvailabilityZone": "us-west-2a", "DBInstanceIdentifier": "hiddenaurora"}',
-        'us-west-2'
+        '{"Engine": "aurora", "AvailabilityZone": "us-west-2a", "DBInstanceIdentifier": "${prefix}hidden"}',
+        '${region}'
       );
-    `));
+    `),
+    );
 
-    it('forces a "refresh" with an immediate transaction', query(`
+    it(
+      'forces a "refresh" with an immediate transaction',
+      query(`
       SELECT iasql_begin();
       SELECT iasql_commit();
-    `));
+    `),
+    );
 
-    it('checks that the aurora instance is not present', query(`
-      SELECT * FROM rds WHERE db_instance_identifier = 'hiddenaurora';
-    `, (res: any[]) => expect(res.length).toBe(0),
-    ));
+    it(
+      'checks that the aurora instance is not present',
+      query(
+        `
+      SELECT * FROM rds WHERE db_instance_identifier = '${prefix}hidden';
+    `,
+        (res: any[]) => expect(res.length).toBe(0),
+      ),
+    );
 
-    it('confirms that the aurora instance actually exists', query(`
+    it(
+      'confirms that the aurora instance actually exists',
+      query(
+        `
       SELECT invoke_rds(
         'describeDBInstances',
-        '{"DBInstanceIdentifier": "hiddenaurora"}',
-        'us-west-2'
+        '{"DBInstanceIdentifier": "${prefix}hidden"}',
+        '${region}'
       ) as result;
-    `, (res: any[]) => expect(res.length).toBe(1),
-    ));
+    `,
+        (res: any[]) => expect(res.length).toBe(1),
+      ),
+    );
 
-    it('deletes the aurora instance', query(`
-      SELECT invoke_rds('deleteDBInstance', '{"DBInstanceIdentifier": "hiddenaurora"}', 'us-west-2');
-    `));
+    it(
+      'deletes the aurora instance',
+      query(`
+      SELECT invoke_rds('deleteDBInstance', '{"DBInstanceIdentifier": "${prefix}hidden"}', '${region}');
+    `),
+    );
 
     it('uninstalls the `aws_sdk`', query(`SELECT iasql_uninstall('aws_sdk')`));
   });
