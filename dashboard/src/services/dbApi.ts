@@ -176,7 +176,6 @@ export async function disconnect(token: string, backendUrl: string, dbAlias: str
   )?.[0]?.result?.[0];
 }
 
-
 export async function getLatestVersion(token: string, backendUrl: string) {
   return (await run(token, backendUrl, 'iasql_metadata', `SELECT iasql_version();`))?.[0]?.result?.[0]
     ?.iasql_version;
