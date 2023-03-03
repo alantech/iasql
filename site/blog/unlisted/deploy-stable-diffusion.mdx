@@ -37,7 +37,24 @@ While Stable Diffusion is a complex model with lots of dependencies, there are p
 rely on <a href="https://sygil-dev.github.io/sygil-webui/docs/Installation/docker-guide">Sygil WebUI</a> images to deploy our model. These images are ready to be used out of the box,
 but there is possibility to build and customize the images in case it's needed.
 
-So with all pre-requisites solved, deploying Stable Diffusion can be done with one click using IaSQL engine. Please note that we will be using a beef p3.2xlarge instance with
+We would need to start by getting the AMI ID for the image on the marketplace, in order to boot images based on that. We can get it with a simple query using IaSQL SDK module:
+
+```sql title="Get AMI ID"
+ -- install modules
+SELECT
+  *
+FROM
+  iasql_install ('aws_sdk');
+
+-- query for the image based on the image description
+SELECT
+  invoke_ec2 (
+    'describeImages',
+    '{"Filters": [{"Name": "description", "Values": ["Amazon Linux 2 Graphics AMI 2.0.20230119.1 x86_64 HVM gp2"]}, {"Name": "architecture", "Values": ["x86_64"]}]}'
+  ) -> 'Images' -> -1 -> 'ImageId';
+```
+
+Now with all pre-requisites solved, deploying Stable Diffusion can be done with one click using IaSQL engine. Please note that we will be using a beef p3.2xlarge instance with
 extra disk space storage, so running this experiment will incur in some extra costs:
 
 ```sql title="Deploy Stable Diffusion"
@@ -87,7 +104,8 @@ FROM
   (
     VALUES
       (FALSE, 'tcp', 22, 22, '0.0.0.0/0', 'stable_diffusion_sg_rule_ssh'),
-      (FALSE, 'tcp', 80, 80, '0.0.0.0/0', 'stable_diffusion_sg_rule_http')
+      (FALSE, 'tcp', 80, 80, '0.0.0.0/0', 'stable_diffusion_sg_rule_http'),
+      (TRUE, 'tcp', 1, 65535, '0.0.0.0/0', 'stable_diffusion_sg_rule_egress')
   ) AS t (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description)
 WHERE
   security_group.group_name = 'stable_diffusion_sg';
@@ -96,12 +114,12 @@ WHERE
 INSERT INTO
   general_purpose_volume (size, volume_type, availability_zone, tags, is_root_device)
 VALUES
-  (100, 'gp2', 'us-east-2a', '{"name": "stable-diffusion-blog"}', TRUE);
+  (60, 'gp2', 'us-east-2a', '{"name": "stable-diffusion-blog"}', TRUE);
 
 INSERT INTO
   instance (ami, instance_type, subnet_id, tags, user_data, region)
 SELECT
-  'ami-0890479ea4c515bf8',
+  'ami-0890479ea4c515bf8', -- this AMI ID is the one we got from the query above
   'p3.2xlarge',
   subnet.id,
   '{"name":"stable-diffusion-blog"}',
@@ -158,6 +176,7 @@ popd
 # run docker image for stable diffusion
 docker pull hlky/sd-webui:runpod
 docker container run --rm -d -p 8501:8501 -e STREAMLIT_SERVER_HEADLESS=true -e "WEBUI_SCRIPT=webui_streamlit.py" --runtime=nvidia  -e "VALIDATE_MODELS=false" -v "${PWD}/outputs:/sd/outputs" --gpus all hlky/sd-webui:runpod
+systemctl reload nginx
 ',
   'us-east-2'
 FROM
