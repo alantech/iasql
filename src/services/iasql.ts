@@ -161,25 +161,6 @@ async function unscheduleJobs(conn: TypeormWrapper) {
   }
 }
 
-export async function dump(dbId: string, dataOnly: boolean) {
-  const dbMeta = await MetadataRepo.getDbById(dbId);
-  if (dbMeta?.upgrading) throw new Error('Currently upgrading, cannot dump this database');
-  const pgUrl = dbMan.ourPgUrl(dbId);
-  // TODO: Drop the old 'aws_account' when v0.0.20 is the oldest version.
-  // Also TODO: Automatically figure out which tables to exclude here.
-  const excludedDataTables =
-    "--exclude-table-data 'aws_account' --exclude-table-data 'aws_credentials' --exclude-table-data 'iasql_*'";
-  const { stdout } = await exec(
-    `pg_dump ${
-      dataOnly
-        ? `--data-only --no-privileges --column-inserts --rows-per-insert=50 --on-conflict-do-nothing ${excludedDataTables}`
-        : ''
-    } --inserts -x ${pgUrl}`,
-    { shell: '/bin/bash' },
-  );
-  return stdout;
-}
-
 // TODO revive and test
 /*export async function load(
   dumpStr: string,

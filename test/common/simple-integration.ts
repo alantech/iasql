@@ -37,16 +37,6 @@ describe('Basic integration testing', () => {
     `);
   });
 
-  it('should run export correctly', () => {
-    execSync(`
-      psql \
-      "postgres://postgres:test@localhost:5432/iasql_metadata" \
-      -t \
-      -c \
-      "SELECT iasql_export('__${sha}__', false);"
-    `);
-  });
-
   it('should run list correctly', () => {
     execSync(`
       psql \

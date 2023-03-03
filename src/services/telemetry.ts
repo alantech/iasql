@@ -85,10 +85,6 @@ export async function logDisconnect(uid: string, dbProps: DbProps, eventProps?: 
   await logEvent(uid, DISCONNECT, dbProps, eventProps);
 }
 
-export async function logExport(uid: string, dbProps: DbProps, eventProps: EventProps) {
-  await logEvent(uid, 'EXPORT', dbProps, eventProps);
-}
-
 export async function logInstall(uid: string, dbProps: DbProps, eventProps: EventProps) {
   await logEvent(uid, 'INSTALL', dbProps, eventProps);
 }

@@ -109,26 +109,6 @@ export class rpcs1669932953007 implements MigrationInterface {
         end;
         $$;
 
-        create or replace function iasql_export(db_alias varchar(255), data_only boolean) returns text
-        language plpgsql security definer
-        as $$
-        declare
-          _content text;
-        begin
-          perform http.http_set_curlopt('CURLOPT_TIMEOUT_MS', '3600000');
-          select content into _content from http.http_post(
-            'http://${config.http.host}:8088/v1/db/export',
-            json_build_object(
-              'dbAlias', db_alias,
-              'dataOnly', data_only,
-              'user', session_user
-            )::text,
-            'application/json'
-          );
-          return _content;
-        end;
-        $$;
-
         create or replace function iasql_db_list() returns table(
           pg_name varchar, alias varchar, record_count int, operation_count int, rpc_count int, upgrading boolean, created_at timestamp, updated_at timestamp
         )
@@ -146,7 +126,6 @@ export class rpcs1669932953007 implements MigrationInterface {
   public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
         drop function iasql_db_list;
-        drop function iasql_export;
         drop function iasql_disconnect;
         drop function iasql_connect;
         drop function iasql_event;
