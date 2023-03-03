@@ -391,11 +391,11 @@ describe('RDS Integration Testing', () => {
     it('installs `aws_sdk` to create an aurora instance', query(`SELECT iasql_install('aws_sdk')`));
 
     it(
-      'creates an aurora instance',
+      'creates an aurora cluster',
       query(`
       SELECT invoke_rds(
-        'createDBInstance',
-        '{"Engine": "aurora", "DBInstanceClass": "db.r5.large", "AvailabilityZone": "us-west-2a", "DBInstanceIdentifier": "${prefix}hidden", "MasterUserPassword": "dontcare", "MasterUsername": "dontcare"}',
+        'createDBCluster',
+        '{"Engine": "aurora", "AvailabilityZone": "us-west-2a", "DBClusterIdentifier": "${prefix}hidden", "MasterUserPassword": "dontcare", "MasterUsername": "dontcare"}',
         '${region}'
       );
     `),
@@ -413,7 +413,7 @@ describe('RDS Integration Testing', () => {
       'checks that the aurora instance is not present',
       query(
         `
-      SELECT * FROM rds WHERE db_instance_identifier = '${prefix}hidden';
+      SELECT * FROM rds WHERE db_instance_identifier LIKE '${prefix}hidden%';
     `,
         (res: any[]) => expect(res.length).toBe(0),
       ),
@@ -425,7 +425,7 @@ describe('RDS Integration Testing', () => {
         `
       SELECT invoke_rds(
         'describeDBInstances',
-        '{"DBInstanceIdentifier": "${prefix}hidden"}',
+        '{"DBInstanceIdentifier": "${prefix}hidden-instance-1"}',
         '${region}'
       ) as result;
     `,
@@ -436,7 +436,7 @@ describe('RDS Integration Testing', () => {
     it(
       'deletes the aurora instance',
       query(`
-      SELECT invoke_rds('deleteDBInstance', '{"DBInstanceIdentifier": "${prefix}hidden"}', '${region}');
+      SELECT invoke_rds('deleteDBCluster', '{"DBClusterIdentifier": "${prefix}hidden"}', '${region}');
     `),
     );
 
