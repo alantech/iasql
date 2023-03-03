@@ -7,6 +7,44 @@ function classNames(...classes: string[]) {
   return classes.filter(Boolean).join(' ');
 }
 
+function getTabContent(
+  tab: { title: string; action?: () => void; className?: string; width?: string; closable?: boolean },
+  idx: number,
+  tabs: { title: string; action?: () => void; className?: string; width?: string; closable?: boolean }[],
+  selectedIndex?: number,
+  isLoading?: boolean,
+  onTabClose?: (i: number) => void,
+) {
+  if (tab.closable && selectedIndex === idx && tabs.length > 2) {
+    return (
+      <HBox alignment={align.between}>
+        <span className='ml-2'>{tab.title}</span>
+        {isLoading ? (
+          <></>
+        ) : (
+          <div
+            id='close-bttn'
+            className='flex-none inline-flex justify-center p-1 mr-2 border border-transparent text-sm font-medium bg-gray-300 dark:bg-gray-600 rounded-md hover:bg-gray-400 dark:hover:bg-gray-700'
+            onClick={() => {
+              onTabClose ? onTabClose(idx) : () => {};
+            }}
+          >
+            <XIcon className='h-2 w-2 cursor-pointer' aria-hidden='true' />
+          </div>
+        )}
+      </HBox>
+    );
+  }
+  if ((tab.closable && selectedIndex !== idx) || isLoading) {
+    return (
+      <HBox alignment={align.start}>
+        <span className='ml-2'>{tab.title}</span>
+      </HBox>
+    );
+  }
+  return <span>{tab.title}</span>;
+}
+
 export default function Tab({
   tabs,
   children,
@@ -24,40 +62,6 @@ export default function Tab({
   onTabClose?: (i: number) => void;
   isLoading?: boolean;
 }) {
-  const getTabContent = (
-    tab: { title: string; action?: () => void; className?: string; width?: string; closable?: boolean },
-    idx: number,
-  ) => {
-    if (tab.closable && selectedIndex === idx && tabs.length > 2) {
-      return (
-        <HBox alignment={align.between}>
-          <span className='ml-2'>{tab.title}</span>
-          {isLoading ? (
-            <></>
-          ) : (
-            <div
-              id='close-bttn'
-              className='flex-none inline-flex justify-center p-1 mr-2 border border-transparent text-sm font-medium bg-gray-300 dark:bg-gray-600 rounded-md hover:bg-gray-400 dark:hover:bg-gray-700'
-              onClick={() => {
-                onTabClose(idx);
-              }}
-            >
-              <XIcon className='h-2 w-2 cursor-pointer' aria-hidden='true' />
-            </div>
-          )}
-        </HBox>
-      );
-    }
-    if ((tab.closable && selectedIndex !== idx) || isLoading) {
-      return (
-        <HBox alignment={align.start}>
-          <span className='ml-2'>{tab.title}</span>
-        </HBox>
-      );
-    }
-    return <span>{tab.title}</span>;
-  };
-
   return (
     <div className='w-full'>
       <ReactTab.Group defaultIndex={defaultIndex} onChange={onChange} selectedIndex={selectedIndex}>
@@ -80,7 +84,7 @@ export default function Tab({
                 )
               }
             >
-              {getTabContent(tab, idx)}
+              {getTabContent(tab, idx, tabs, selectedIndex, isLoading, onTabClose)}
             </ReactTab>
           ))}
         </ReactTab.List>
