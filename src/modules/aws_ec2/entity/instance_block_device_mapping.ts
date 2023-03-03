@@ -65,16 +65,6 @@ export class InstanceBlockDeviceMapping {
     nullable: true,
     eager: true,
   })
-  @JoinColumn([
-    {
-      name: 'volume_id',
-      referencedColumnName: 'id',
-    },
-    {
-      name: 'region',
-      referencedColumnName: 'region',
-    },
-  ])
   volume?: GeneralPurposeVolume;
 
   /**
