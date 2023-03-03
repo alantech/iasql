@@ -420,12 +420,12 @@ describe('RDS Integration Testing', () => {
     );
 
     it(
-      'confirms that the aurora instance actually exists',
+      'confirms that the aurora cluster actually exists',
       query(
         `
       SELECT invoke_rds(
-        'describeDBInstances',
-        '{"DBInstanceIdentifier": "${prefix}hidden-instance-1"}',
+        'describeDBClusters',
+        '{"DBClusterIdentifier": "${prefix}hidden"}',
         '${region}'
       ) as result;
     `,
@@ -436,7 +436,7 @@ describe('RDS Integration Testing', () => {
     it(
       'deletes the aurora instance',
       query(`
-      SELECT invoke_rds('deleteDBCluster', '{"DBClusterIdentifier": "${prefix}hidden"}', '${region}');
+      SELECT invoke_rds('deleteDBCluster', '{"DBClusterIdentifier": "${prefix}hidden", "SkipFinalSnapshot": true}', '${region}');
     `),
     );
 
