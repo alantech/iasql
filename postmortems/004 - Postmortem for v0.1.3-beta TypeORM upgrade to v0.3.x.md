@@ -1,32 +1,15 @@
-# 007 - Engine tweaks
+# 004 - Postmortem for v0.1.3-beta TypeORM upgrade to v0.3.x
 
-### Proposed
-
-2023-03-03
-
-### Accepted
-
-YYYY-MM-DD
-
-#### Approvers
-
-- David Ellis <david@iasql.com>
-- Yolanda Robla <yolanda@iasql.com>
-- Mohammad Pabandi <mohammad@iasql.com>
-- Luis Fernando De Pombo <luisfer@iasql.com>
-
-### Implementation
-
-- [ ] Implemented: [One or more PRs](https://github.com/iasql/iasql-engine/some-pr-link-here) YYYY-MM-DD
-- [ ] Revoked/Superceded by: [RFC ###](./000 - RFC Template.md) YYYY-MM-DD
+## Level: Internal
 
 ## Author(s)
 
 - Alejandro Guillen <alejandro@iasql.com>
+- David Ellis <david@iasql.com>
 
 ## Summary
 
-During the typeorm upgrade, David found a bug in the function recreating the entities. It was passing to the `findOne` the wrong attributes. Why tests in `main` were working? Because the `apply` algorithm does an `apply` with filters, but if that goes wrong (as it was happening) it catches the error, shows a warning and continues with a full `apply` (no filters, so no bug recreating entities).
+During the typeorm upgrade, @dfellis found a bug in the function recreating the entities. It was passing to the `findOne` the wrong attributes. Why tests in `main` were working? Because the `apply` algorithm does an `apply` with filters, but if that goes wrong (as it was happening) it catches the error, shows a warning and continues with a full `apply` (no filters, so no bug recreating entities).
 
 Fixing this bug recreating the entities has surfaced at least 2 new cases that we were not handling correctly as we could see in the tests failing (ec2 and ecs).
 
@@ -40,9 +23,35 @@ Here the issue was with the `RegisteredInstance` entity, its function is to link
 
 The problem in ecs. We were calling from the `TaskDefinition`'s `cloud.update` function the `db.create` function to force the creation of a new task definition. Again, the filter in the `apply` loop is not seeing this change because it was not done by the user and it was done after the commit started.
 
-#### Temporal solution
 
-Both test suites are passing now because we were able to add the right logic in each mapper to handle this, but somehow it's breaking module encapsulation which we want to keep at a minimum or inexistent.
+## Timeline
+
+- **2023-02-21**: @dfellis started working on the typeorm update
+- **2023-02-21**: Tests on ec2 and ec2 were the only ones failing
+- **2023-02-27**: @dfellis found a bug recreating the entities and fix it using the right Typeorm property names adn structures
+- **2023-03-01**: @dfellis and @aguillenv detected the problem on ec2 tests and commented possible solutions
+- **2023-03-01**: @dfellis fixed ec2 tests with a solution that breaks encapsulation
+- **2023-03-03**: @aguillenv fixed ecs tests
+- **2023-03-03**: typeorm version update got merged
+
+## Detection
+
+The problem has been around since we landed the 2-way mode. It was working because we were doing a full apply when something goes wrong (as it was) and we were only reporting a warning but not throwing.
+
+Both issues got detected during the typeorm upgrade, the tests failed and going through the engine logs to identify the unexpected behaviours.
+
+## Response
+
+Both test suites are passing now because we were able to add the right logic in each mapper to handle this, but it's breaking module encapsulation which we want to keep at a minimum or inexistent.
+
+## Cause
+
+For the 2-way mode we needed to check the audit logs and recreate the entities to then use them in a filter and only apply relevant changes per commit operation. To do that entity recreation, we needed to go trough the Typeorm internals and by mistake we were passing the wrong properties when recreating relationships.
+
+## Prevention
+
+The issue was covered by typeorm not hard failing before and our try/catch on the apply to run a full one if something failed, which made this pass for a long time silently.
+We might need to so some tweaks to the current `commit` algorithm to handle these 2 cases we found during this upgrade.
 
 ### High-level steps of the current `commit` algorithm
 
@@ -81,33 +90,18 @@ Outer loop:
     5. Exclude changes done after `commit` started
     6. Mappers execution
 
-## Proposal
 
-TBD
-
-## Alternatives Considered
+### Possible alternatives
 
 It's tricky to find a common solution for both cases found. For the ECS case might be simpler, we need to find a way to also see the changes done by the engine during the `commit`. In the EC2 case, we need either to ignore the relevant changes and `apply` for all modules or find a way to "mark" entities that might be affected by another entity change and somehow include them in the filter.
 
-### Executing "full" `apply`
+#### Executing "full" `apply`
 This is one possible solution that could solve both issues. Would be similar to the current algorithm but we do not get "relevant changes". We always `apply` for all modules and only exclude changes done **by the user** after `commit`.
 
-#### Pros 
+##### Pros 
 - Solves the 2 issues
 - Easier to implement?
 
-#### Cons
+##### Cons
 - We lose the "faster" `apply` since we need to iterate through all modules installed and not only the ones with changes.
-
-## Expected Semver Impact
-
-This would be considered a minor version bump as it would only involve the addition of an IaSQL function.
-
-## Affected Components
-
-The IaSQL `commit` function.
-
-## Expected Timeline
-
-1 week
-
+- If there is a change in the cloud that hasn't yet been synced, the full apply will blow it away and then the follow-up sync step will do nothing (in fact, there is no point in doing the sync at all, anymore, because the DB becomes the sole source-of-truth and we only sync during install).
