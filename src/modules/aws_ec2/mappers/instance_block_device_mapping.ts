@@ -1,6 +1,8 @@
-import { map } from 'lodash';
-
-import { EC2, InstanceLifecycle } from '@aws-sdk/client-ec2';
+import {
+  EC2,
+  InstanceLifecycle,
+  InstanceBlockDeviceMapping as AWSInstanceBlockDeviceMapping,
+} from '@aws-sdk/client-ec2';
 import { Volume as AWSVolume } from '@aws-sdk/client-ec2';
 import { WaiterState } from '@aws-sdk/util-waiter';
 
@@ -33,6 +35,34 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
   equals = (a: InstanceBlockDeviceMapping, b: InstanceBlockDeviceMapping) => {
     return Object.is(a.deviceName, b.deviceName) && Object.is(a.deleteOnTermination, b.deleteOnTermination);
   };
+
+  async instanceBlockDeviceMappingMapper(
+    newMap: AWSInstanceBlockDeviceMapping,
+    instance: Instance,
+    ctx: Context,
+  ) {
+    let volume;
+    const region = instance.region;
+    if (newMap.Ebs?.VolumeId) {
+      volume = await this.module.generalPurposeVolume.db.read(
+        ctx,
+        this.module.generalPurposeVolume.generateId({ volumeId: newMap.Ebs.VolumeId ?? '', region }),
+      );
+    } else volume = undefined;
+
+    if (newMap.DeviceName) {
+      const res: InstanceBlockDeviceMapping = {
+        instanceId: instance?.id ?? undefined,
+        volumeId: volume?.id ?? undefined,
+        instance,
+        volume,
+        deviceName: newMap.DeviceName,
+        region,
+        deleteOnTermination: newMap.Ebs?.DeleteOnTermination ?? true,
+      };
+      return res;
+    } else return undefined;
+  }
 
   attachVolumeInternal = crudBuilder2<EC2, 'attachVolume'>(
     'attachVolume',
@@ -111,8 +141,9 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
           throw new Error('Cannot create a mapping between different regions');
 
         // only attach if volume is not in use. We can have the case that the volume is auto-attached on creation
-        if (volume.state === VolumeState.AVAILABLE)
+        if (volume.state === VolumeState.AVAILABLE) {
           await this.attachVolume(client.ec2client, volume.volumeId, instance.instanceId, e.deviceName);
+        }
 
         // return mapping
         const newMap: InstanceBlockDeviceMapping = {
@@ -152,20 +183,7 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
           );
           for (const newMap of mapping ?? []) {
             if (newMap.DeviceName && newMap.Ebs?.VolumeId === volumeId) {
-              const volume = await this.module.generalPurposeVolume.db.read(
-                ctx,
-                this.module.generalPurposeVolume.generateId({ volumeId: newMap.Ebs.VolumeId ?? '', region }),
-              );
-
-              const res: InstanceBlockDeviceMapping = {
-                instanceId: instance?.id ?? undefined,
-                volumeId: volume?.id ?? undefined,
-                instance,
-                volume,
-                deviceName: newMap.DeviceName,
-                region,
-                deleteOnTermination: newMap.Ebs.DeleteOnTermination ?? true,
-              };
+              const res = await this.instanceBlockDeviceMappingMapper(newMap, instance, ctx);
               return res;
             }
           }
@@ -194,27 +212,19 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
                 ctx,
                 this.module.instance.generateId({ instanceId: i.InstanceId ?? '', region }),
               );
-
-              for (const newMap of mapping ?? []) {
-                if (newMap.DeviceName && newMap.Ebs?.VolumeId) {
-                  const volume = await this.module.generalPurposeVolume.db.read(
-                    ctx,
-                    this.module.generalPurposeVolume.generateId({
-                      volumeId: newMap.Ebs.VolumeId ?? '',
-                      region,
-                    }),
-                  );
-
-                  const res: InstanceBlockDeviceMapping = {
-                    instanceId: instance?.id ?? undefined,
-                    instance,
-                    volumeId: volume?.id ?? undefined,
-                    volume,
-                    deviceName: newMap.DeviceName,
-                    region,
-                    deleteOnTermination: newMap.Ebs.DeleteOnTermination ?? true,
-                  };
-                  out.push(res);
+              if (instance) {
+                for (const newMap of mapping ?? []) {
+                  if (newMap.DeviceName && newMap.Ebs?.VolumeId) {
+                    const volume = await this.module.generalPurposeVolume.db.read(
+                      ctx,
+                      this.module.generalPurposeVolume.generateId({
+                        volumeId: newMap.Ebs.VolumeId ?? '',
+                        region,
+                      }),
+                    );
+                    const res = await this.instanceBlockDeviceMappingMapper(newMap, instance, ctx);
+                    if (res) out.push(res);
+                  }
                 }
               }
             }
