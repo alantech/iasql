@@ -1,6 +1,6 @@
 import { test } from '@playwright/test';
 
-import { auth0, click, fill, isDisabled, isVisible, press } from './helper';
+import { auth0, click, fill, isDisabled, isNotVisible, isVisible, press } from './helper';
 
 export default function createTests() {
   test('Query Tabs', async ({ page, browserName }) => {
@@ -26,6 +26,23 @@ export default function createTests() {
 
     // Create new tab
     await click(page.locator(`#tabs-and-editor button:has-text("+")`));
+
+    // Add long running query
+    await fill(page.locator(`#iasql-editor textarea.ace_text-input`), "SELECT * FROM iasql_install('aws_ec2');", false);
+
+    await isVisible(page.locator(`#iasql-editor div.ace_content:has-text("SELECT * FROM iasql_install('aws_ec2');")`));
+
+    // Click run iasql
+    await click(page.locator(`button:has-text("Run query")`));
+
+    // Confirm cannot select a new db
+    await isDisabled(page.locator(`#database-selection`));
+
+    // Confirm cannot close tab
+    await isNotVisible(page.locator(`#tabs-and-editor button#Query-1 #close-bttn`));
+
+    // Check result
+    await click(page.locator(`#query-builder-result table`));
 
     // Add fake query
     await fill(page.locator(`#iasql-editor textarea.ace_text-input`), 'SELECT * FROM fake_table;', false);

@@ -8,7 +8,7 @@ import { PauseIcon, PlayIcon } from '@heroicons/react/solid';
 import { align, Button, Dropdown, HBox, VBox } from '../common';
 
 export function DatabaseActions() {
-  const { editorSelectedTab, editorTabs, selectedDb, isRunningSql, dump, dispatch, token } = useAppContext();
+  const { editorSelectedTab, editorTabs, selectedDb, dump, dispatch, token } = useAppContext();
 
   const handleDisconnect = () => {
     dispatch({ action: ActionType.ShowDisconnect, data: { show: true } });
@@ -20,12 +20,12 @@ export function DatabaseActions() {
     }
   };
 
-  const handleRunSql = (db: any, isRunning: boolean, content: string) => {
+  const handleRunSql = (db: any, content: string, tabIdx: number) => {
     if (token) {
       dispatch({
         token,
         action: ActionType.RunSql,
-        data: { db, isRunning, content },
+        data: { db, content, tabIdx },
       });
     }
   };
@@ -92,8 +92,10 @@ export function DatabaseActions() {
       <HBox alignment={align.end}>
         <Button
           look='iasql'
-          onClick={() => handleRunSql(selectedDb, isRunningSql, editorTabs?.[editorSelectedTab]?.content)}
-          disabled={!selectedDb?.alias || !!isRunningSql}
+          onClick={() =>
+            handleRunSql(selectedDb, editorTabs?.[editorSelectedTab]?.content, editorSelectedTab)
+          }
+          disabled={!selectedDb?.alias || editorTabs?.[editorSelectedTab]?.isRunning}
         >
           <PlayIcon className='h-4 w-4 mr-1' aria-hidden='true' />
           Run query

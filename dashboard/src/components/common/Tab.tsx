@@ -7,6 +7,44 @@ function classNames(...classes: string[]) {
   return classes.filter(Boolean).join(' ');
 }
 
+function getTabContent(
+  tab: { title: string; action?: () => void; className?: string; width?: string; closable?: boolean },
+  idx: number,
+  tabs: { title: string; action?: () => void; className?: string; width?: string; closable?: boolean }[],
+  selectedIndex?: number,
+  isLoading?: boolean,
+  onTabClose?: (i: number) => void,
+) {
+  if (tab.closable && selectedIndex === idx && tabs.length > 2) {
+    return (
+      <HBox alignment={align.between}>
+        <span className='ml-2'>{tab.title}</span>
+        {isLoading ? (
+          <></>
+        ) : (
+          <div
+            id='close-bttn'
+            className='flex-none inline-flex justify-center p-1 mr-2 border border-transparent text-sm font-medium bg-gray-300 dark:bg-gray-600 rounded-md hover:bg-gray-400 dark:hover:bg-gray-700'
+            onClick={() => {
+              onTabClose ? onTabClose(idx) : () => {};
+            }}
+          >
+            <XIcon className='h-2 w-2 cursor-pointer' aria-hidden='true' />
+          </div>
+        )}
+      </HBox>
+    );
+  }
+  if ((tab.closable && selectedIndex !== idx) || isLoading) {
+    return (
+      <HBox alignment={align.start}>
+        <span className='ml-2'>{tab.title}</span>
+      </HBox>
+    );
+  }
+  return <span>{tab.title}</span>;
+}
+
 export default function Tab({
   tabs,
   children,
@@ -14,6 +52,7 @@ export default function Tab({
   selectedIndex,
   onChange = () => {},
   onTabClose = () => {},
+  isLoading,
 }: {
   tabs: { title: string; action?: () => void; className?: string; width?: string; closable?: boolean }[];
   children?: JSX.Element | JSX.Element[];
@@ -21,17 +60,18 @@ export default function Tab({
   selectedIndex?: number;
   onChange?: (index: number) => void;
   onTabClose?: (i: number) => void;
+  isLoading?: boolean;
 }) {
   return (
     <div className='w-full'>
       <ReactTab.Group defaultIndex={defaultIndex} onChange={onChange} selectedIndex={selectedIndex}>
         <ReactTab.List className='flex justify-start h-8 border border-transparent'>
-          {tabs.map((t, i) => (
+          {tabs.map((tab, idx) => (
             <ReactTab
-              id={t.title}
-              key={t.title}
+              id={tab.title}
+              key={tab.title}
               onClick={() => {
-                t.action ? t.action() : (() => ({}))();
+                tab.action ? tab.action() : (() => ({}))();
               }}
               className={({ selected }) =>
                 classNames(
@@ -39,31 +79,12 @@ export default function Tab({
                   selected
                     ? 'border-b-2 border-primary shadow text-primary dark:text-primary'
                     : 'dark:text-white hover:bg-primary hover:text-white',
-                  t.className ?? '',
-                  t.width ? t.width : 'w-full',
+                  tab.className ?? '',
+                  tab.width ? tab.width : 'w-full',
                 )
               }
             >
-              {t.closable && selectedIndex === i && tabs.length > 2 ? (
-                <HBox alignment={align.between}>
-                  <span className='ml-2'>{t.title}</span>
-                  <div
-                    id='close-bttn'
-                    className='flex-none inline-flex justify-center p-1 mr-2 border border-transparent text-sm font-medium bg-gray-300 dark:bg-gray-600 rounded-md hover:bg-gray-400 dark:hover:bg-gray-700'
-                    onClick={() => {
-                      onTabClose(i);
-                    }}
-                  >
-                    <XIcon className='h-2 w-2 cursor-pointer' aria-hidden='true' />
-                  </div>
-                </HBox>
-              ) : t.closable && selectedIndex !== i ? (
-                <HBox alignment={align.start}>
-                  <span className='ml-2'>{t.title}</span>
-                </HBox>
-              ) : (
-                t.title
-              )}
+              {getTabContent(tab, idx, tabs, selectedIndex, isLoading, onTabClose)}
             </ReactTab>
           ))}
         </ReactTab.List>

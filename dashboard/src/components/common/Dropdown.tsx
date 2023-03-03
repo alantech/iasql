@@ -12,11 +12,13 @@ const DropdownTitleButton = forwardRef(
       customColor,
       look,
       onClick,
+      isDisabled = false,
     }: {
       look?: 'iasql' | 'cancel' | 'link' | 'outline';
       customColor?: 'primary' | 'secondary' | 'tertiary';
       children: JSX.Element[];
       onClick: (...args: any) => any;
+      isDisabled: boolean;
     },
     ref,
   ) => (
@@ -26,6 +28,7 @@ const DropdownTitleButton = forwardRef(
       customClassName='w-full'
       look={look}
       onClick={onClick}
+      disabled={isDisabled}
     >
       {children}
     </Button>
@@ -40,6 +43,7 @@ export default function Dropdown({
   width = 'w-full',
   startPosition = 'left',
   buttonTitleLook,
+  isDisabled = false,
 }: {
   buttonTitle: JSX.Element;
   buttonTitleLook?: 'iasql' | 'cancel' | 'link' | 'outline';
@@ -47,11 +51,17 @@ export default function Dropdown({
   color?: 'primary' | 'secondary' | 'tertiary';
   width?: string;
   startPosition?: 'right' | 'left';
+  isDisabled?: boolean;
 }) {
   return (
     <Menu as='div' className={`relative inline-block text-left ${width}`}>
       <div>
-        <Menu.Button as={DropdownTitleButton} customColor={color} look={buttonTitleLook}>
+        <Menu.Button
+          as={DropdownTitleButton}
+          customColor={color}
+          look={buttonTitleLook}
+          isDisabled={isDisabled}
+        >
           <HBox alignment={align.between}>
             <span className='truncate'>{buttonTitle}</span>
             <ChevronDownIcon className='ml-1 h-4 w-4' aria-hidden='true' />
