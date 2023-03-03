@@ -108,29 +108,24 @@ export class InstanceMapper extends MapperBase<Instance> {
     if (instance.InstanceId) {
       const instanceObj = await this.module.instance.db.read(
         ctx,
-        this.module.instance.generateId({ instanceId: instance.InstanceId ?? '', region }),
+        this.module.instance.generateId({ instanceId: instance.InstanceId, region }),
       );
 
       if (instanceObj) {
         // volume mapping
         const vol: InstanceBlockDeviceMapping[] = [];
-        for (const map of instance.BlockDeviceMappings ?? []) {
-          if (map.DeviceName && map.Ebs?.VolumeId) {
+        for (const newMap of instance.BlockDeviceMappings ?? []) {
+          if (newMap.DeviceName && newMap.Ebs?.VolumeId) {
             const volume = await this.module.generalPurposeVolume.db.read(
               ctx,
-              this.module.generalPurposeVolume.generateId({ volumeId: map.Ebs.VolumeId ?? '', region }),
+              this.module.generalPurposeVolume.generateId({ volumeId: newMap.Ebs.VolumeId ?? '', region }),
             );
-
-            const entry: InstanceBlockDeviceMapping = {
-              instance: instanceObj,
-              volume,
-              instanceId: instanceObj?.id ?? undefined,
-              volumeId: volume?.id ?? undefined,
-              deviceName: map.DeviceName,
-              region,
-              deleteOnTermination: map.Ebs.DeleteOnTermination ?? true,
-            };
-            vol.push(entry);
+            const entry = await this.module.instanceBlockDeviceMapping.instanceBlockDeviceMappingMapper(
+              newMap,
+              instanceObj,
+              ctx,
+            );
+            if (entry) vol.push(entry);
           }
         }
         out.instanceBlockDeviceMappings = vol;
@@ -498,7 +493,6 @@ export class InstanceMapper extends MapperBase<Instance> {
             throw new Error('should not be possible');
           }
 
-          // read block device mapping from instance and wait for volumes in use
           const mapping = await this.getInstanceBlockDeviceMapping(client.ec2client, instanceId);
           for (const map of mapping ?? []) {
             if (map.DeviceName && map.Ebs?.VolumeId) {
