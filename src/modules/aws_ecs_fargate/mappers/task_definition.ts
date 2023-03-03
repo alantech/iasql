@@ -398,7 +398,7 @@ export class TaskDefinitionMapper extends MapperBase<TaskDefinition> {
           c.id = undefined;
           return c;
         });
-        await this.module.taskDefinition.db.create(newRecord, ctx);
+        await this.module.taskDefinition.cloud.create(newRecord, ctx);
         await this.module.taskDefinition.db.update(cloudRecord, ctx);
         res.push(cloudRecord);
       }
