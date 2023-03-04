@@ -7,7 +7,7 @@ const prodConfig = {
 };
 const localConfig = {
   url: 'http://localhost:3000',
-  phKey: 'phc_xvAQWfpHug7G0SuU5P9wwAbvP9ZawgAfIEZ9FUsiarS',
+  phKey: 'phc_WjwJsXXSuEl2R2zElUWL55mWpNIfWR8HrFvjxwlTGWH',
 };
 const config = process.env.IASQL_ENV === 'local' ? localConfig : prodConfig;
 const testDoc = require('./src/rehype/testdoc');
