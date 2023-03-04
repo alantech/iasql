@@ -20,7 +20,7 @@ const logger = !!config?.logDna
   : console;
 (logger as any)?.on?.('error', (event: any) => {
   if (event.retrying) return;
-  console.log('Fatal error in LogDNA');
+  console.error('Fatal error in LogDNA');
 });
 
 // Special user for lambda with access to iasql_metadata
@@ -245,8 +245,7 @@ function until<T>(p: Promise<T>, timeout: number): Promise<T> {
 }
 
 async function run(req: NextApiRequest, res: NextApiResponse) {
-  logger.log('Handling request', {
-    level: 'info',
+  logger.debug?.('Handling request', {
     app: 'run',
     env: process.env.IASQL_ENV,
     meta: req.body,
@@ -266,8 +265,7 @@ async function run(req: NextApiRequest, res: NextApiResponse) {
       execTime - 100,
     );
     const t2 = Date.now();
-    logger.log(`Total runtime took ${t2 - t1}`, {
-      level: 'info',
+    logger.debug?.(`Total runtime took ${t2 - t1}`, {
       app: 'run',
       meta: {
         t2,
