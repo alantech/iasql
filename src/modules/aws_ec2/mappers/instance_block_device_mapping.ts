@@ -123,35 +123,21 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
         if (e.region !== e.instance.region) continue;
 
         // if instance is not created we are in the first step, no need to create anything
-        if (!e.instance?.instanceId) continue;
+        if (!e.instance.instanceId) continue;
         const client = (await ctx.getAwsClient(e.region)) as AWS;
 
         // read volume details
         if (!e.volumeId) throw new Error('Cannot attach empty volumes to an instance already created');
-        if (!e.volume?.volumeId) throw new Error('Tried to attach an unexisting volume');
-        if (e.volume.region !== e.instance.region)
-          throw new Error('Cannot create a mapping between different regions');
+        if (e.volume) {
+          if (e.volume.region !== e.instance.region)
+            throw new Error('Cannot create a mapping between different regions');
 
-        // only attach if volume is not in use. We can have the case that the volume is auto-attached on creation
-        if (e.volume.state === VolumeState.AVAILABLE) {
-          await this.attachVolume(client.ec2client, e.volume.volumeId, e.instance.instanceId, e.deviceName);
+          // only attach if volume is not in use. We can have the case that the volume is auto-attached on creation
+          if (e.volume.volumeId && e.volume.state === VolumeState.AVAILABLE) {
+            await this.attachVolume(client.ec2client, e.volume.volumeId, e.instance.instanceId, e.deviceName);
+          } else continue;
+          out.push(e);
         }
-
-        // return mapping
-        const newMap: InstanceBlockDeviceMapping = {
-          deviceName: e.deviceName,
-          instanceId: e.instanceId,
-          instance: e.instance,
-          volumeId: e.volumeId,
-          volume: e.volume,
-          region: e.instance.region,
-          deleteOnTermination: e.deleteOnTermination,
-        };
-
-        // Save the record back into the database to get the new fields updated
-        newMap.id = e.id;
-        await this.module.instanceBlockDeviceMapping.db.update(newMap, ctx);
-        out.push(newMap);
       }
       return out;
     },
@@ -186,25 +172,17 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
         await Promise.all(
           enabledRegions.map(async region => {
             const client = (await ctx.getAwsClient(region)) as AWS;
-            const rawInstances = (await this.module.instance.getInstances(client.ec2client)) ?? [];
-            for (const i of rawInstances) {
-              // exclude spot instances and terminating ones
-              if (i.InstanceLifecycle === InstanceLifecycle.SPOT) continue;
-              if (i.State?.Name === 'terminated' || i.State?.Name === 'shutting-down') continue;
-              if (!i.InstanceId) continue; // if we do not have an id we skip
+            const instances = await this.module.instance.db.read(ctx);
+            for (const instance of instances) {
+              if (!instance.instanceId) continue; // if we do not have an id we skip
 
               // check instance block device mappings
-              const mapping = await this.module.instance.getInstanceBlockDeviceMapping(
-                client.ec2client,
-                i.InstanceId,
-              );
+              try {
+                const mapping = await this.module.instance.getInstanceBlockDeviceMapping(
+                  client.ec2client,
+                  instance.instanceId,
+                );
 
-              // check if we can find the instance in database
-              const instance = await this.module.instance.db.read(
-                ctx,
-                this.module.instance.generateId({ instanceId: i.InstanceId ?? '', region }),
-              );
-              if (instance) {
                 for (const newMap of mapping ?? []) {
                   if (newMap.DeviceName && newMap.Ebs?.VolumeId) {
                     const volume = await this.module.generalPurposeVolume.db.read(
@@ -218,6 +196,10 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
                     if (res) out.push(res);
                   }
                 }
+              } catch (e: any) {
+                // it can be the case that it exists on the db but is not found on the cloud
+                if (e.Code === 'InvalidInstanceID.NotFound') continue;
+                else throw new Error(e);
               }
             }
           }),
