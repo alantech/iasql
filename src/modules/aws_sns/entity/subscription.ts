@@ -7,8 +7,8 @@ import { Topic } from './topic';
 /**
  * Read-only table to retrieve the list AWS SNS subscriptions. Amazon Simple Notification Service (Amazon SNS) is a managed
  * service that provides message delivery from publishers to subscribers (also known as producers and consumers).
- * Publishers communicate asynchronously with subscribers by sending messages to a topic,
- * which is a logical access point and communication channel.
+ * Publishers communicate asynchronously with subscribers by sending messages to a topic, which
+ * is a logical access point and communication channel.
  *
  * ```
  *
