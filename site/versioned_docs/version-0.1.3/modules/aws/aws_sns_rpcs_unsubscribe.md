@@ -1,6 +1,6 @@
 ---
-id: "aws_sns_entity"
-title: "aws_sns_entity"
+id: "aws_sns_rpcs_unsubscribe"
+title: "aws_sns_rpcs_unsubscribe"
 hide_table_of_contents: true
 custom_edit_url: null
 displayed_sidebar: "docs"
@@ -12,9 +12,8 @@ import TabItem from '@theme/TabItem';
 <Tabs>
   <TabItem value="Components" label="Components" default>
 
-### Tables
-
-    [topic](../../aws/tables/aws_sns_entity_topic.Topic)
+### Functions
+    [unsubscribe](../../aws/tables/aws_sns_rpcs_unsubscribe.UnsubscribeRpc)
 
 </TabItem>
   <TabItem value="Code examples" label="Code examples">

@@ -12,22 +12,10 @@ import TabItem from '@theme/TabItem';
 Specifies the type of database engine
 Enum generated executing the command
 aws rds describe-db-engine-versions --query "DBEngineVersions[].DBParameterGroupFamily"
+The Aurora-related parameter group families have been disabled due to a lack of support for
+Aurora in this module (for now)
 
 ## Values
-
-• **AURORA5\_6** = `aurora5.6`
-
-• **AURORA\_MYSQL5\_7** = `aurora-mysql5.7`
-
-• **AURORA\_MYSQL8\_0** = `aurora-mysql8.0`
-
-• **AURORA\_POSTGRESQL10** = `aurora-postgresql10`
-
-• **AURORA\_POSTGRESQL11** = `aurora-postgresql11`
-
-• **AURORA\_POSTGRESQL12** = `aurora-postgresql12`
-
-• **AURORA\_POSTGRESQL13** = `aurora-postgresql13`
 
 • **CUSTOM\_SQLSERVER\_EE\_15\_0** = `custom-sqlserver-ee-15.0`
 
