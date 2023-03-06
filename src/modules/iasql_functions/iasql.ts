@@ -624,7 +624,7 @@ export async function commit(
   ormOpt?: TypeormWrapper,
 ) {
   const t1 = Date.now();
-  logger.scope({ dbId }).info(`Committing to ${dbId}`);
+  logger.scope({ dbId }).debug(`Committing to ${dbId}`);
   await throwIfUpgrading(dbId, force);
   const versionString = await TypeormWrapper.getVersionString(dbId);
   const importedModules = await getImportedModules(dbId, versionString, force);
@@ -669,7 +669,7 @@ export async function commit(
     const installedModulesSorted: ModuleInterface[] = sortModules(installedModules, installedModulesNames);
 
     const t2 = Date.now();
-    logger.scope({ dbId }).info(`Setup took ${t2 - t1}ms`);
+    logger.scope({ dbId }).debug(`Setup took ${t2 - t1}ms`);
 
     const crupdes: CrupdeOperations = {
       toCreate: {},
@@ -680,7 +680,7 @@ export async function commit(
     let applyErr;
     try {
       if (modulesWithChanges.length) {
-        logger.scope({ dbId }).info('Starting apply phase for modules with changes');
+        logger.scope({ dbId }).debug('Starting apply phase for modules with changes');
         const applyRes = await apply(
           dbId,
           modulesWithChangesSorted,
@@ -698,7 +698,7 @@ export async function commit(
     }
     if (applyErr) {
       try {
-        logger.scope({ dbId }).info(`Starting apply phase for all modules`);
+        logger.scope({ dbId }).debug(`Starting apply phase for all modules`);
         await apply(dbId, installedModulesSorted, context, force, crupdes, dryRun);
         applyErr = null;
       } catch (e: any) {
@@ -708,7 +708,7 @@ export async function commit(
     }
     let syncRes, syncErr;
     try {
-      logger.scope({ dbId }).info('Starting sync phase for all modules');
+      logger.scope({ dbId }).debug('Starting sync phase for all modules');
       syncRes = await sync(dbId, installedModulesSorted, context, force, crupdes, dryRun);
     } catch (e) {
       logger.scope({ dbId }).warn(`Something failed during sync phase for all modules\n${e}`);
@@ -992,7 +992,7 @@ async function applyInverseQueries(
 
 export async function rollback(dbId: string, context: Context, force = false, ormOpt?: TypeormWrapper) {
   const t1 = Date.now();
-  logger.scope({ dbId }).info(`Sync to ${dbId}`);
+  logger.scope({ dbId }).debug(`Sync to ${dbId}`);
   await throwIfUpgrading(dbId, force);
   const versionString = await TypeormWrapper.getVersionString(dbId);
   const importedModules = await getImportedModules(dbId, versionString, force);
@@ -1016,7 +1016,7 @@ export async function rollback(dbId: string, context: Context, force = false, or
     const installedModulesSorted: ModuleInterface[] = sortModules(installedModules, installedModulesNames);
 
     const t2 = Date.now();
-    logger.scope({ dbId }).info(`Setup took ${t2 - t1}ms`);
+    logger.scope({ dbId }).debug(`Setup took ${t2 - t1}ms`);
 
     const crupdes: CrupdeOperations = {
       toCreate: {},
@@ -1175,7 +1175,7 @@ async function apply(
   const { toCreate, toUpdate, toReplace, toDelete } = crupdes;
   do {
     const t2 = Date.now();
-    logger.scope({ dbId }).info('Starting outer loop');
+    logger.scope({ dbId }).debug('Starting outer loop');
     ranFullUpdate = false;
     const tables = mappers.map(mapper => mapper.entity.name);
     context.memo.db = {}; // Flush the DB entities on the outer loop to restore the actual intended state
@@ -1196,7 +1196,7 @@ async function apply(
     const idGens = mappers.map(mapper => mapper.entityId);
     let ranUpdate = false;
     do {
-      logger.scope({ dbId }).info('Starting inner loop');
+      logger.scope({ dbId }).debug('Starting inner loop');
       ranUpdate = false;
       context.memo.cloud = {}; // Flush the Cloud entities on the inner loop to track changes to the state
       await lazyLoader(
@@ -1206,7 +1206,7 @@ async function apply(
         dbId,
       );
       const t3 = Date.now();
-      logger.scope({ dbId }).info(`Record acquisition time: ${t3 - t2}ms`);
+      logger.scope({ dbId }).debug(`Record acquisition time: ${t3 - t2}ms`);
       const records = colToRow({
         table: tables,
         mapper: mappers,
@@ -1216,7 +1216,7 @@ async function apply(
         idGen: idGens,
       });
       const t4 = Date.now();
-      logger.scope({ dbId }).info(`AWS Mapping time: ${t4 - t3}ms`);
+      logger.scope({ dbId }).debug(`AWS Mapping time: ${t4 - t3}ms`);
       if (!records.length) {
         await context.orm.dropConn();
         context.orm = oldOrm;
@@ -1302,17 +1302,17 @@ async function apply(
         });
       }
       const t5 = Date.now();
-      logger.scope({ dbId }).info(`Diff time: ${t5 - t4}ms`);
+      logger.scope({ dbId }).debug(`Diff time: ${t5 - t4}ms`);
       const promiseGenerators = records
         .map(r => {
           const name = r.table;
-          logger.scope({ dbId }).info(`Checking ${name}`);
+          logger.scope({ dbId }).debug(`Checking ${name}`);
           const outArr = [];
           recordsApplied += r.diff.entitiesInDbOnly.length;
           if (r.diff.entitiesInDbOnly.length > 0) {
             logger
               .scope({ dbId })
-              .info(`${name} has records to create - apply`, { records: r.diff.entitiesInDbOnly });
+              .debug(`${name} has records to create - apply`, { records: r.diff.entitiesInDbOnly });
             outArr.push(
               r.diff.entitiesInDbOnly.map((e: any) => async () => {
                 const out = await r.mapper.cloud.create(e, context);
@@ -1331,7 +1331,7 @@ async function apply(
           if (r.diff.entitiesChanged.length > 0) {
             logger
               .scope({ dbId })
-              .info(`${name} has records to update - apply`, { records: r.diff.entitiesChanged });
+              .debug(`${name} has records to update - apply`, { records: r.diff.entitiesChanged });
             outArr.push(
               r.diff.entitiesChanged.map((ec: any) => async () => {
                 const out = await r.mapper.cloud.update(ec.db, context); // Assuming SoT is the DB
@@ -1353,13 +1353,13 @@ async function apply(
         .reverse()
         .map(r => {
           const name = r.table;
-          logger.scope({ dbId }).info(`Checking ${name}`);
+          logger.scope({ dbId }).debug(`Checking ${name}`);
           const outArr = [];
           recordsApplied += r.diff.entitiesInAwsOnly.length;
           if (r.diff.entitiesInAwsOnly.length > 0) {
             logger
               .scope({ dbId })
-              .info(`${name} has records to delete - apply`, { records: r.diff.entitiesInAwsOnly });
+              .debug(`${name} has records to delete - apply`, { records: r.diff.entitiesInAwsOnly });
             outArr.push(
               r.diff.entitiesInAwsOnly.map((e: any) => async () => {
                 await r.mapper.cloud.delete(e, context);
@@ -1381,12 +1381,12 @@ async function apply(
           ranUpdate = false;
         }
         const t6 = Date.now();
-        logger.scope({ dbId }).info(`AWS update time: ${t6 - t5}ms`);
+        logger.scope({ dbId }).debug(`AWS update time: ${t6 - t5}ms`);
       }
     } while (ranUpdate);
   } while (ranFullUpdate);
   const t7 = Date.now();
-  logger.scope({ dbId }).info(`${dbId} applied and synced, total time: ${t7 - t1}ms`);
+  logger.scope({ dbId }).debug(`${dbId} applied and synced, total time: ${t7 - t1}ms`);
   const output = iasqlPlanV3(toCreate, toUpdate, toReplace, toDelete);
   if (recordsApplied > 0) {
     (async () => {
@@ -1468,7 +1468,7 @@ async function sync(
         force,
       );
       const t3 = Date.now();
-      logger.scope({ dbId }).info(`Record acquisition time: ${t3 - t2}ms`);
+      logger.scope({ dbId }).debug(`Record acquisition time: ${t3 - t2}ms`);
       const records = colToRow({
         table: tables,
         mapper: mappers,
@@ -1478,7 +1478,7 @@ async function sync(
         idGen: idGens,
       });
       const t4 = Date.now();
-      logger.scope({ dbId }).info(`AWS Mapping time: ${t4 - t3}ms`);
+      logger.scope({ dbId }).debug(`AWS Mapping time: ${t4 - t3}ms`);
       if (!records.length) {
         await context.orm.dropConn();
         context.orm = oldOrm;
@@ -1537,17 +1537,17 @@ async function sync(
         });
       }
       const t5 = Date.now();
-      logger.scope({ dbId }).info(`Diff time: ${t5 - t4}ms`);
+      logger.scope({ dbId }).debug(`Diff time: ${t5 - t4}ms`);
       const promiseGenerators = records
         .map(r => {
           const name = r.table;
-          logger.scope({ dbId }).info(`Checking ${name}`);
+          logger.scope({ dbId }).debug(`Checking ${name}`);
           const outArr = [];
           recordsSynced += r.diff.entitiesInAwsOnly.length;
           if (r.diff.entitiesInAwsOnly.length > 0) {
             logger
               .scope({ dbId })
-              .info(`${name} has records to create - sync`, { records: r.diff.entitiesInAwsOnly });
+              .debug(`${name} has records to create - sync`, { records: r.diff.entitiesInAwsOnly });
             outArr.push(
               r.diff.entitiesInAwsOnly.map((e: any) => async () => {
                 const out = await r.mapper.db.create(e, context);
@@ -1566,7 +1566,7 @@ async function sync(
           if (r.diff.entitiesChanged.length > 0) {
             logger
               .scope({ dbId })
-              .info(`${name} has records to update - sync`, { records: r.diff.entitiesChanged });
+              .debug(`${name} has records to update - sync`, { records: r.diff.entitiesChanged });
             outArr.push(
               r.diff.entitiesChanged.map((ec: any) => async () => {
                 if (ec.db.id) ec.cloud.id = ec.db.id;
@@ -1589,13 +1589,13 @@ async function sync(
         .reverse()
         .map(r => {
           const name = r.table;
-          logger.scope({ dbId }).info(`Checking ${name}`);
+          logger.scope({ dbId }).debug(`Checking ${name}`);
           const outArr = [];
           recordsSynced += r.diff.entitiesInDbOnly.length;
           if (r.diff.entitiesInDbOnly.length > 0) {
             logger
               .scope({ dbId })
-              .info(`${name} has records to delete - sync`, { records: r.diff.entitiesInDbOnly });
+              .debug(`${name} has records to delete - sync`, { records: r.diff.entitiesInDbOnly });
             outArr.push(
               r.diff.entitiesInDbOnly.map((e: any) => async () => {
                 await r.mapper.db.delete(e, context);
@@ -1617,12 +1617,12 @@ async function sync(
           ranUpdate = false;
         }
         const t6 = Date.now();
-        logger.scope({ dbId }).info(`AWS update time: ${t6 - t5}ms`);
+        logger.scope({ dbId }).debug(`AWS update time: ${t6 - t5}ms`);
       }
     } while (ranUpdate);
   } while (ranFullUpdate);
   const t7 = Date.now();
-  logger.scope({ dbId }).info(`${dbId} synced, total time: ${t7 - t1}ms`);
+  logger.scope({ dbId }).debug(`${dbId} synced, total time: ${t7 - t1}ms`);
   const output = iasqlPlanV3(toCreate, toUpdate, toReplace, toDelete);
   if (recordsSynced > 0) {
     (async () => {
