@@ -1,19 +1,22 @@
 ---
 slug: deploy-ghost-ec2-adv
-title: Advanced configuration for deploying Ghost on EC2
+title: Advanced config for deploying Ghost on EC2
 date: 2022-12-28
 authors: [yrobla]
+tags: [tutorial]
 ---
 
 # Advanced configuration for deploying <a href="https://ghost.org/">Ghost</a> on EC2
 
-In our previous <a href="https://iasql.com/blog/deploy-ghost-ec2/">blogpost</a> we showed how to install <a href="https://ghost.org/">Ghost</a> in an EC2 instance, using a simple configuration. While it is ok
-for testing and development purposes, it was not ready for production. In order to be ready, it needs some essential features, that we will be illustrating on this new post.
+In our previous [blog post](/blog/deploy-ghost-ec2) we went through how to install <a href="https://ghost.org/">Ghost</a> in an EC2 instance, using a simple configuration. While it is ok
+for testing and development purposes, it was not ready for production. To be ready, it needs some essential features, which we will be illustrating in this new post.
+
+<!-- truncate -->
 
 ## Associate a domain
 
 The initial deployment was just serving Ghost on the public IP of the instance, which is something not suitable for end use. As an initial step, we will be associating that instance with a domain.
-In order to achieve that, we will be relying on AWS Route 53 to create hosted zones and recordsets, and associate them to the instance:
+To achieve that, we will be relying on AWS Route 53 to create hosted zones and recordsets, and associate them to the instance:
 
 ```sql title="Generate A record for domain"
  -- Install modules

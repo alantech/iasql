@@ -1,23 +1,25 @@
 ---
-slug: optimize-s3-endpoints
-title: Optimize your S3 endpoints for cost and efficiency
+slug: save-s3-access
+title: Access S3 buckets cost-effectively
 authors: [yrobla]
+date: 2023-03-06
+tags: [tutorial]
 ---
-
-# Optimize your S3 endpoints for cost and efficiency
 
 Are you using S3 buckets as part of your cloud deployments? How are you accessing them?
 
-When not configured properly, access to the S3 buckets may need to be accessed over the public internet. One simple but costly way
+S3 buckets may need to be accessed over the public internet. One simple but costly way to do so
 is to rely on <a href="https://docs.aws.amazon.com/en_en/vpc/latest/userguide/vpc-nat-gateway.html" target="_blank">NAT gateways</a>.
 
-But there is a more optimal solution, that is creating <a
+However, creating <a
 href="https://docs.aws.amazon.com/vpc/latest/privatelink/vpc-endpoints-s3.html"
-target="_blank">gateway or interface VPC endpoints</a> for each region where you have buckets exposed.
+target="_blank">gateway or interface VPC endpoints</a> for each region where your buckets are exposed is a more optimal solution.
 
 When the VPC endpoints are enabled you can access your S3 buckets using this endpoint. This will allow you
 to control your buckets from an internal network with the desired security, and without the extra costs of a
 NAT gateway.
+
+<!-- truncate -->
 
 ### Why use VPC Interface Endpoints
 
@@ -32,18 +34,18 @@ When deploying services in production, the concept of defense-in-depth is essent
 assurance strategy that provides multiple, redundant defensive measures in case a security control fails or
 a vulnerability is exploited.
 By using interface endpoints the services will be accessed via Amazon's internal networks. It is an essential
-security measure, that will prevent attackers to directly reach the services by keeping them in a private
+security measure, that will prevent attackers from directly reaching the services by keeping them in a private
 network, reducing the surface area of attack.
 
 **Security: policies**
 
 AWS services can benefit from <a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/access_controlling.html">IAM policies</a>
-for fine grained access control. When using interface endpoints, those policies can be applied to determine the traffic
+for fine-grained access control. When using interface endpoints, those policies can be applied to determine the traffic
 that can pass through the interface.
 
 **Performance: latency**
 
-Because the traffic stays within Amazon’s networks, the physical distance travelled, the number of hops
+Because the traffic stays within Amazon’s networks, the physical distance traveled, the number of hops
 and the risk of traversing congested networks are all significantly lower.
 
 **Performance: bandwidth**
@@ -52,8 +54,7 @@ PrivateLink supports a sustained bandwidth of 10 Gbps per availability zone with
 
 **Performance: stability**
 
-PrivateLink consistently lowers the amount of errors and timeouts on high loads. As the traffic over Private Link stays within
-Amazon’s networks, it means a reduction on distance travelled, number of hops, and the risk of traversing congested networks.
+PrivateLink consistently lowers the number of errors and timeouts on high loads. The distance traveled, the number of hops, and the risks associated with traversing congested networks are reduced when the traffic over Private Link stays within Amazon’s networks.
 
 In terms of speed, Private Link supports a sustained bandwidth of 10 Gbps per availability zone with bursts up to 40 Gbps.
 
@@ -96,12 +97,6 @@ FROM
   LEFT OUTER JOIN vpc ON vpc.region = bucket.region;
 ```
 
-<p>
-  <a href="https://app.iasql.com/#/button/Check S3 endpoints/https://app.iasql.com/#/button/CheckS3endpoints/--%20Installing%20the%20needed%20modules%0ASELECT%20iasql_install%28%27aws_s3%27%29%3B%0ASELECT%20iasql_install%28%27aws_vpc%27%29%3B%0A--%20Perform%20the%20query%20for%20endpoints%0Aselect%20bucket.region%2C%20vpc.is_default%2C%20vpc.cidr_block%2C%0A%28select%20count%28%2A%29%3E0%20from%20endpoint_gateway%20where%20endpoint_gateway.region%3Dbucket.region%20and%20service%3D%27s3%27%20and%20endpoint_gateway.vpc_id%3Dvpc.id%29%20as%20has_endpoint_gateway%2C%0A%28select%20count%28%2A%29%3E0%20from%20endpoint_interface%20where%20endpoint_interface.region%3Dbucket.region%20and%20service%3D%27s3%27%20and%20endpoint_interface.vpc_id%3Dvpc.id%29%20as%20has_endpoint_interface%0Afrom%20bucket%20left%20outer%20join%20vpc%20on%20vpc.region%3Dbucket.region%3B">
-    <button class="button button--lg button--primary">Check your endpoints</button>
-  </a>
-</p>
-
 Have you found missing endpoints? No problem, IaSQL can generate them for you. You can create two different
 types of endpoints: gateway and interface. We're going to describe their main features and you can create
 the desired type in an automated way.
@@ -109,7 +104,7 @@ the desired type in an automated way.
 ## Interface endpoints
 
 An interface endpoint is an elastic network interface with a private IP address that serves as an entry
-point for traffic destined to a supported AWS service. As they use ENIs, they can benefit from security groups
+point for traffic destined for a supported AWS service. As they use ENIs, they can benefit from security groups
 to control traffic.
 
 <a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/access_controlling.html">IAM policies</a>can also be
@@ -165,12 +160,6 @@ FROM
 -- SELECT * FROM iasql_rollback();
 ```
 
-<p>
-  <a href="https://app.iasql.com/#/button/AddS3InterfaceEndpoints/--%20Inserts%20the%20missing%20endpoints%0Ainsert%20into%20endpoint_interface%28region%2C%20vpc_id%2C%20service%29%20select%20bucket.region%2C%20vpc.id%2C%20%27s3%27%20from%20bucket%20inner%20join%20vpc%0Aon%20bucket.region%3Dvpc.region%20where%20not%20exists%20%28select%20id%20from%20endpoint_interface%20where%20endpoint_interface.region%3Dbucket.region%20and%20endpoint_interface.vpc_id%3Dvpc.id%29%3B%0A--%20Preview%20the%20changes%0Aselect%20%2A%20from%20iasql_preview_apply%28%29%3B%0A--%20Apply%20the%20changes%0A--select%20%2A%20from%20iasql_apply%28%29%3B">
-    <button class="button button--lg button--primary">Add missing interface endpoints</button>
-  </a>
-</p>
-
 ## Endpoint gateways
 
 An endpoint gateway is a gateway that can be configured as a target for a route in your route table, used
@@ -180,9 +169,9 @@ Multiple gateway endpoints can be created in a single VPC, and those can be used
 to enforce different access policies from different subnets to the same service.
 
 Gateway endpoints are supported within the same region only, resources from multiple regions cannot be
-accssed, even using VPC peering. They also support IPv4 traffic only.
+accessed, even using VPC peering. They also support IPv4 traffic only.
 
-In order to use them, DNS resolution must be enabled in the VPC.
+To use them, DNS resolution must be enabled in the VPC.
 
 When a route is added, all instances in the subnets associated with the route table will automatically
 use the endpoint to access the service.
@@ -228,10 +217,6 @@ FROM
 -- Rollback changes
 -- SELECT * FROM iasql_rollback();
 ```
-
-<a href="https://app.iasql.com/#/button/Add S3 interface endpoints/--%20Inserts%20the%20missing%20endpoints%0Ainsert%20into%20endpoint_gateway%28region%2C%20vpc_id%2C%20service%29%20select%20bucket.region%2C%20vpc.id%2C%20%27s3%27%20from%20bucket%20inner%20join%20vpc%20on%20bucket.region%3Dvpc.region%20where%20not%20exists%20%28select%20id%20from%20endpoint_gateway%20where%20endpoint_gateway.region%3Dbucket.region%20and%20endpoint_gateway.vpc_id%3Dvpc.id%29%0A--%20Preview%20the%20changes%0Aselect%20%2A%20from%20iasql_preview_apply%28%29%3B%0A--%20Apply%20the%20changes%0A--select%20%2A%20from%20iasql_apply%28%29%3B">
-  <button class="button button--lg button--primary">Add missing gateway endpoints</button>
-</a>
 
 ## Testing the result
 
