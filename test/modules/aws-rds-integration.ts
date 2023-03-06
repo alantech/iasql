@@ -387,6 +387,62 @@ describe('RDS Integration Testing', () => {
     ),
   );
 
+  describe('Aurora instances not supported or messed with', () => {
+    it('installs `aws_sdk` to create an aurora instance', query(`SELECT iasql_install('aws_sdk')`));
+
+    it(
+      'creates an aurora cluster',
+      query(`
+      SELECT invoke_rds(
+        'createDBCluster',
+        '{"Engine": "aurora", "AvailabilityZone": "us-west-2a", "DBClusterIdentifier": "${prefix}hidden", "MasterUserPassword": "dontcare", "MasterUsername": "dontcare"}',
+        '${region}'
+      );
+    `),
+    );
+
+    it(
+      'forces a "refresh" with an immediate transaction',
+      query(`
+      SELECT iasql_begin();
+      SELECT iasql_commit();
+    `),
+    );
+
+    it(
+      'checks that the aurora instance is not present',
+      query(
+        `
+      SELECT * FROM rds WHERE db_instance_identifier LIKE '${prefix}hidden%';
+    `,
+        (res: any[]) => expect(res.length).toBe(0),
+      ),
+    );
+
+    it(
+      'confirms that the aurora cluster actually exists',
+      query(
+        `
+      SELECT invoke_rds(
+        'describeDBClusters',
+        '{"DBClusterIdentifier": "${prefix}hidden"}',
+        '${region}'
+      ) as result;
+    `,
+        (res: any[]) => expect(res.length).toBe(1),
+      ),
+    );
+
+    it(
+      'deletes the aurora instance',
+      query(`
+      SELECT invoke_rds('deleteDBCluster', '{"DBClusterIdentifier": "${prefix}hidden", "SkipFinalSnapshot": true}', '${region}');
+    `),
+    );
+
+    it('uninstalls the `aws_sdk`', query(`SELECT iasql_uninstall('aws_sdk')`));
+  });
+
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 });
 

@@ -10,20 +10,22 @@ import { AwsRegions } from '../../aws_account/entity';
  * Specifies the type of database engine
  * Enum generated executing the command
  * aws rds describe-db-engine-versions --query "DBEngineVersions[].DBParameterGroupFamily"
+ * The Aurora-related parameter group families have been disabled due to a lack of support for
+ * Aurora in this module (for now)
  */
 export enum ParameterGroupFamily {
-  AURORA_MYSQL5_7 = 'aurora-mysql5.7',
-  AURORA_MYSQL8_0 = 'aurora-mysql8.0',
+  /*AURORA_MYSQL5_7 = 'aurora-mysql5.7',
+  AURORA_MYSQL8_0 = 'aurora-mysql8.0',*/
   DOCDB3_6 = 'docdb3.6',
   DOCDB4_0 = 'docdb4.0',
   CUSTOM_SQLSERVER_EE_15_0 = 'custom-sqlserver-ee-15.0',
   CUSTOM_SQLSERVER_SE_15_0 = 'custom-sqlserver-se-15.0',
   CUSTOM_SQLSERVER_WEB_15_0 = 'custom-sqlserver-web-15.0',
   NEPTUNE1 = 'neptune1',
-  AURORA_POSTGRESQL10 = 'aurora-postgresql10',
+  /*AURORA_POSTGRESQL10 = 'aurora-postgresql10',
   AURORA_POSTGRESQL11 = 'aurora-postgresql11',
   AURORA_POSTGRESQL12 = 'aurora-postgresql12',
-  AURORA_POSTGRESQL13 = 'aurora-postgresql13',
+  AURORA_POSTGRESQL13 = 'aurora-postgresql13',*/
   MARIADB10_2 = 'mariadb10.2',
   MARIADB10_3 = 'mariadb10.3',
   MARIADB10_4 = 'mariadb10.4',
@@ -37,7 +39,7 @@ export enum ParameterGroupFamily {
   ORACLE_SE2_19 = 'oracle-se2-19',
   ORACLE_SE2_CDB_19 = 'oracle-se2-cdb-19',
   ORACLE_SE2_CDB_21 = 'oracle-se2-cdb-21',
-  AURORA5_6 = 'aurora5.6',
+  /*AURORA5_6 = 'aurora5.6',*/
   POSTGRES10 = 'postgres10',
   POSTGRES11 = 'postgres11',
   POSTGRES12 = 'postgres12',
