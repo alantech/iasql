@@ -66,7 +66,7 @@ const testDoc = require('./src/rehype/testdoc');
         {
           apiKey: config.phKey,
           appUrl: 'https://app.posthog.com', // optional
-          enableInDevelopment: true, // optional
+          enableInDevelopment: false, // optional
           // other options are passed to posthog-js init as is
         },
       ],
