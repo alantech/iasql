@@ -265,7 +265,6 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
       const out = [];
       for (const e of es) {
         if (e.isRootDevice) continue; // cannot create root volumes, skip
-        if (e.volumeId) continue; // cannot create a volume that is already created, skip
         const client = (await ctx.getAwsClient(e.region)) as AWS;
         const input: CreateVolumeCommandInput = {
           AvailabilityZone: e.availabilityZone.name,
