@@ -27,8 +27,8 @@ The problem in ecs. We were calling from the `TaskDefinition`'s `cloud.update` f
 ## Timeline
 
 - **2023-02-21**: @dfellis started working on the typeorm update
-- **2023-02-21**: Tests on ec2 and ec2 were the only ones failing
-- **2023-02-27**: @dfellis found a bug recreating the entities and fix it using the right Typeorm property names adn structures
+- **2023-02-21**: Tests on ec2 and ecs were the only ones failing
+- **2023-02-27**: @dfellis found a bug recreating the entities and fix it using the right Typeorm property names and structures
 - **2023-03-01**: @dfellis and @aguillenv detected the problem on ec2 tests and commented possible solutions
 - **2023-03-01**: @dfellis fixed ec2 tests with a solution that breaks encapsulation
 - **2023-03-03**: @aguillenv fixed ecs tests
