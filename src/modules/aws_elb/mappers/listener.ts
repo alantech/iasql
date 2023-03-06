@@ -35,15 +35,19 @@ export class ListenerMapper extends MapperBase<Listener> {
       (await this.module.loadBalancer.db.read(ctx, l?.LoadBalancerArn));
     out.port = l?.Port;
     out.protocol = l?.Protocol as ProtocolEnum;
+    let hasTargetGroup = false;
     for (const a of l?.DefaultActions ?? []) {
+      if (!a.TargetGroupArn) break; // we will skip the ones without target group
       if (a.Type === ActionTypeEnum.FORWARD) {
         out.actionType = a.Type as ActionTypeEnum;
         out.targetGroup =
           (await this.module.targetGroup.db.read(ctx, a?.TargetGroupArn)) ??
           (await this.module.targetGroup.cloud.read(ctx, a?.TargetGroupArn));
-        if (!out.targetGroup) return undefined;
+        if (!out.targetGroup) break;
+        else hasTargetGroup = true; // it is a valid action
       }
     }
+    if (!hasTargetGroup) return undefined;
     if (l.SslPolicy && l.Certificates?.length) {
       out.sslPolicy = l.SslPolicy;
       const cloudCertificate = l.Certificates.pop();
