@@ -11,18 +11,14 @@ import * as Posthog from '../services/posthog';
 import * as Sentry from '../services/sentry';
 
 export default function App() {
-  const { config, configError, telemetry, uid } = useAppConfigContext();
+  const { config, configError, telemetry } = useAppConfigContext();
 
   useEffect(() => {
     if (telemetry !== undefined && telemetry === 'on') {
       Sentry.init(config);
       Posthog.init(config);
     }
-    if (!config?.auth && uid) {
-      Sentry.identify(config, uid);
-      Posthog.identify(config, uid);
-    }
-  }, [telemetry, uid, config]);
+  }, [telemetry, config]);
 
   const body = (
     <AppProvider>

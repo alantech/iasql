@@ -9,9 +9,14 @@ import * as Sentry from '../services/sentry';
 export function useAuth() {
   const [token, setToken] = useState(null) as unknown as [string | null, (arg0: string) => void];
   const { getAccessTokenSilently, loginWithRedirect, isAuthenticated, isLoading, user } = useAuth0();
-  const { config } = useAppConfigContext();
+  const { config, uid } = useAppConfigContext();
+
   useEffect(() => {
     if (!config?.auth) {
+      if (uid) {
+        Sentry.identify(config, uid);
+        Posthog.identify(config, uid);
+      }
       return setToken('noauth');
     }
     if (!isAuthenticated && !isLoading) {
