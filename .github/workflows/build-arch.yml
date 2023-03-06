@@ -54,7 +54,7 @@ jobs:
           context: .
           push: true
           platforms: linux/arm64
-          tags: ghcr.io/iasql/iasql:${{ env.GH_SHA }}
+          tags: ghcr.io/iasql/iasql:${{ env.GH_SHA }}-arm
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -63,9 +63,11 @@ jobs:
 
       - name: Docker run
         timeout-minutes: 30
+        env:
+          TAG: ${{ env.GH_SHA }}-arm
         run: |
           # Spin up IaSQL container and a postgres instance
-          docker pull --platform linux/arm64 ghcr.io/iasql/iasql:$GH_SHA
-          docker run --platform linux/arm64 -p 9876:9876 -p 5432:5432 -e IASQL_ENV=ci --name iasql ghcr.io/iasql/iasql:$GH_SHA &
-          docker inspect ghcr.io/iasql/iasql:$GH_SHA --format "{{.Id}} {{.Architecture}}"
+          docker pull --platform linux/arm64 ghcr.io/iasql/iasql:$TAG
+          docker run --platform linux/arm64 -p 9876:9876 -p 5432:5432 -e IASQL_ENV=ci --name iasql ghcr.io/iasql/iasql:$TAG &
+          docker inspect ghcr.io/iasql/iasql:$TAG --format "{{.Id}} {{.Architecture}}"
           while ! psql postgres://postgres:test@localhost:5432/iasql_metadata -b -q -c "SELECT iasql_engine_health()"; do sleep 1 && echo -n .; done;
