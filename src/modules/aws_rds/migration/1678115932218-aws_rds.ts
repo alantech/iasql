@@ -1,11 +1,11 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class awsRds1665371428980 implements MigrationInterface {
-  name = 'awsRds1665371428980';
+export class awsRds1678115932218 implements MigrationInterface {
+  name = 'awsRds1678115932218';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
-      `CREATE TYPE "public"."parameter_group_family_enum" AS ENUM('aurora-mysql5.7', 'aurora-mysql8.0', 'docdb3.6', 'docdb4.0', 'custom-sqlserver-ee-15.0', 'custom-sqlserver-se-15.0', 'custom-sqlserver-web-15.0', 'neptune1', 'aurora-postgresql10', 'aurora-postgresql11', 'aurora-postgresql12', 'aurora-postgresql13', 'mariadb10.2', 'mariadb10.3', 'mariadb10.4', 'mariadb10.5', 'mariadb10.6', 'mysql5.7', 'mysql8.0', 'oracle-ee-19', 'oracle-ee-cdb-19', 'oracle-ee-cdb-21', 'oracle-se2-19', 'oracle-se2-cdb-19', 'oracle-se2-cdb-21', 'aurora5.6', 'postgres10', 'postgres11', 'postgres12', 'postgres13', 'postgres14', 'sqlserver-ee-12.0', 'sqlserver-ee-13.0', 'sqlserver-ee-14.0', 'sqlserver-ee-15.0', 'sqlserver-ex-12.0', 'sqlserver-ex-13.0', 'sqlserver-ex-14.0', 'sqlserver-ex-15.0', 'sqlserver-se-12.0', 'sqlserver-se-13.0', 'sqlserver-se-14.0', 'sqlserver-se-15.0', 'sqlserver-web-12.0', 'sqlserver-web-13.0', 'sqlserver-web-14.0', 'sqlserver-web-15.0')`,
+      `CREATE TYPE "public"."parameter_group_family_enum" AS ENUM('docdb3.6', 'docdb4.0', 'custom-sqlserver-ee-15.0', 'custom-sqlserver-se-15.0', 'custom-sqlserver-web-15.0', 'neptune1', 'mariadb10.2', 'mariadb10.3', 'mariadb10.4', 'mariadb10.5', 'mariadb10.6', 'mysql5.7', 'mysql8.0', 'oracle-ee-19', 'oracle-ee-cdb-19', 'oracle-ee-cdb-21', 'oracle-se2-19', 'oracle-se2-cdb-19', 'oracle-se2-cdb-21', 'postgres10', 'postgres11', 'postgres12', 'postgres13', 'postgres14', 'sqlserver-ee-12.0', 'sqlserver-ee-13.0', 'sqlserver-ee-14.0', 'sqlserver-ee-15.0', 'sqlserver-ex-12.0', 'sqlserver-ex-13.0', 'sqlserver-ex-14.0', 'sqlserver-ex-15.0', 'sqlserver-se-12.0', 'sqlserver-se-13.0', 'sqlserver-se-14.0', 'sqlserver-se-15.0', 'sqlserver-web-12.0', 'sqlserver-web-13.0', 'sqlserver-web-14.0', 'sqlserver-web-15.0')`,
     );
     await queryRunner.query(
       `CREATE TABLE "parameter_group" ("id" SERIAL NOT NULL, "name" character varying NOT NULL, "arn" character varying, "family" "public"."parameter_group_family_enum" NOT NULL, "description" character varying NOT NULL, "parameters" jsonb, "region" character varying NOT NULL DEFAULT default_aws_region(), CONSTRAINT "UQ_cd5d35716aae42c8f6acb7dc989" UNIQUE ("arn"), CONSTRAINT "paragrp_id_region" UNIQUE ("id", "region"), CONSTRAINT "paragrp_name_region" UNIQUE ("name", "region"), CONSTRAINT "PK_33d024772ff6924f4bc337d865a" PRIMARY KEY ("id"))`,
