@@ -19,7 +19,7 @@ function BrowserWindow(props) {
 
 export default function Home() {
   return (
-    <Layout title="Home" description="Cloud infrastructure as data in PostgreSQL" disableSwitch={true}>
+    <Layout title="Infra as SQL" description="Cloud infrastructure as data in PostgreSQL" disableSwitch={true}>
       <div className="hero hero--iasql">
         <div className="container">
           <div className="row">
