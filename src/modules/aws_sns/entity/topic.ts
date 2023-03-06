@@ -1,7 +1,8 @@
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, Unique } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn, Unique } from 'typeorm';
 
 import { cloudId } from '../../../services/cloud-id';
 import { AwsRegions } from '../../aws_account/entity';
+import { Subscription } from './subscription';
 
 /**
  * Table to manage AWS SNS topics. Amazon Simple Notification Service (Amazon SNS) is a managed
@@ -17,6 +18,7 @@ import { AwsRegions } from '../../aws_account/entity';
  */
 @Entity()
 @Unique('uq_topic_name_region', ['name', 'region'])
+@Unique('uq_topic_arn', ['arn'])
 export class Topic {
   /**
    * @private

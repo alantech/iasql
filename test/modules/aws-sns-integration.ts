@@ -1,3 +1,7 @@
+import { mockClient } from 'aws-sdk-client-mock';
+
+import { ConfirmSubscriptionCommand, SNSClient } from '@aws-sdk/client-sns';
+
 import * as iasql from '../../src/services/iasql';
 import {
   defaultRegion,
@@ -27,7 +31,33 @@ const installAll = runInstallAll.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const region = defaultRegion();
 
-const modules = ['aws_sns'];
+const lambdaFunctionName = `${prefix}${dbAlias}`;
+const lambdaFunctionCode =
+  'UEsDBBQAAAAIADqB9VRxjjIufQAAAJAAAAAIABwAaW5kZXguanNVVAkAAzBe2WIwXtlidXgLAAEE9QEAAAQUAAAANcyxDoIwEIDhnae4MNFIOjiaOLI41AHj5NLUA5scV3K9Gojx3ZWB8R++H5c5iWb78vwkFDgD+LxygKFw0Ji4wTeythASKy5q4FPBFjkRWkpjU3f3zt1O8OAaDnDpr85mlchjHNYdcyFq4WjM3wpqEd5/26JXQT85P2H1/QFQSwECHgMUAAAACAA6gfVUcY4yLn0AAACQAAAACAAYAAAAAAABAAAApIEAAAAAaW5kZXguanNVVAUAAzBe2WJ1eAsAAQT1AQAABBQAAABQSwUGAAAAAAEAAQBOAAAAvwAAAAAA';
+// Base64 for zip file with the following code:
+// exports.handler =  async function(event, context) {
+//   console.log("EVENT: \n" + JSON.stringify(event, null, 3))
+//   return context.logStreamName
+// }
+const lambdaFunctionHandler = 'index.handler';
+const lambdaFunctionRuntime14 = 'nodejs14.x';
+const lambdaFunctionRoleName = `${prefix}${dbAlias}-role`;
+
+const attachAssumeLambdaPolicy = JSON.stringify({
+  Version: '2012-10-17',
+  Statement: [
+    {
+      Effect: 'Allow',
+      Principal: {
+        Service: 'lambda.amazonaws.com',
+      },
+      Action: 'sts:AssumeRole',
+    },
+  ],
+});
+const lambdaFunctionRoleTaskPolicyArn = 'arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole';
+const modules = ['aws_sns', 'aws_lambda'];
+
 jest.setTimeout(360000);
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown());
@@ -237,6 +267,124 @@ describe('AwsSNS Integration Testing', () => {
     ),
   );
 
+  // testing for subscription
+  it('starts a transaction', begin());
+
+  it(
+    'adds a new lambda function',
+    query(
+      `
+        BEGIN;
+          INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
+          VALUES ('${lambdaFunctionRoleName}', '${attachAssumeLambdaPolicy}', array['${lambdaFunctionRoleTaskPolicyArn}']);
+  
+          INSERT INTO lambda_function (name, zip_b64, handler, runtime, role_name)
+          VALUES ('${lambdaFunctionName}', '${lambdaFunctionCode}', '${lambdaFunctionHandler}', '${lambdaFunctionRuntime14}', '${lambdaFunctionRoleName}');
+        COMMIT;
+      `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it('applies the lambda creation', commit());
+
+  it(
+    'subscribes to a topic',
+    query(
+      `
+      SELECT * FROM subscribe((SELECT arn FROM topic WHERE name='${topicName}'), (SELECT arn FROM lambda_function WHERE name='${lambdaFunctionName}'), 'lambda');
+  `,
+      (res: any[]) => {
+        expect(res.length).toBe(1);
+        expect(res[0].status).toBe('OK');
+      },
+    ),
+  );
+
+  it(
+    'check subscription has been created',
+    query(
+      `
+    SELECT *
+    FROM subscription
+    WHERE endpoint=(SELECT arn FROM lambda_function WHERE name='${lambdaFunctionName}');
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
+  // unsubscribe
+  it(
+    'unsubscribes',
+    query(
+      `
+      SELECT * FROM unsubscribe((SELECT arn FROM subscription WHERE endpoint=(SELECT arn FROM lambda_function WHERE name='${lambdaFunctionName}')));
+  `,
+      (res: any[]) => {
+        expect(res.length).toBe(1);
+        expect(res[0].status).toBe('OK');
+      },
+    ),
+  );
+
+  it(
+    'check subscription has been removed',
+    query(
+      `
+    SELECT *
+    FROM subscription
+    WHERE endpoint=(SELECT arn FROM lambda_function WHERE name='${lambdaFunctionName}');
+  `,
+      (res: any[]) => expect(res.length).toBe(0),
+    ),
+  );
+
+  it(
+    'subscribes to a topic that needs manual confirmation',
+    query(
+      `
+      SELECT * FROM subscribe((SELECT arn FROM topic WHERE name='${topicName}'), '${prefix}test@iasql.com', 'email');
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it(
+    'check subscription has been created and is pending to confirm',
+    query(
+      `
+    SELECT *
+    FROM subscription
+    WHERE endpoint='${prefix}test@iasql.com' AND arn='PendingConfirmation';
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
+  // mock SNS confirm subscription call
+  it('confirms the subscription', async () => {
+    const snsMock = mockClient(SNSClient);
+    snsMock.on(ConfirmSubscriptionCommand).resolves({
+      SubscriptionArn: 'test',
+    });
+    query(
+      `
+        SELECT * FROM confirm_subscription('test', 'token');
+    `,
+      (res: any[]) => {
+        console.log('in result');
+        expect(res.length).toBe(1);
+        expect(res[0].status).toBe('OK');
+      },
+    );
+    snsMock.restore();
+  });
+
+  // deleting components
   it('starts a transaction', begin());
 
   itDocs(
@@ -263,6 +411,23 @@ describe('AwsSNS Integration Testing', () => {
     WHERE name = '${topicName}';
   `,
       (res: any[]) => expect(res.length).toBe(0),
+    ),
+  );
+
+  it(
+    'deletes the lambda function',
+    query(
+      `
+      BEGIN;  
+    DELETE FROM lambda_function WHERE name = '${lambdaFunctionName}';
+    DELETE FROM iam_role WHERE role_name = '${lambdaFunctionRoleName}';
+
+    COMMIT;
+
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
     ),
   );
 
