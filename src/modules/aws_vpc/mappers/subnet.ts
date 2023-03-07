@@ -1,8 +1,8 @@
 import { EC2, Subnet as AwsSubnet, paginateDescribeSubnets } from '@aws-sdk/client-ec2';
 
 import { AwsVpcModule } from '..';
-import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
-import { Context, Crud2, MapperBase } from '../../interfaces';
+import { AWS, crudBuilder, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
+import { Context, Crud, MapperBase } from '../../interfaces';
 import { Subnet, SubnetState } from '../entity';
 
 export class SubnetMapper extends MapperBase<Subnet> {
@@ -40,16 +40,16 @@ export class SubnetMapper extends MapperBase<Subnet> {
     return out;
   }
 
-  createSubnet = crudBuilder2<EC2, 'createSubnet'>('createSubnet', input => input);
+  createSubnet = crudBuilder<EC2, 'createSubnet'>('createSubnet', input => input);
   getSubnet = crudBuilderFormat<EC2, 'describeSubnets', AwsSubnet | undefined>(
     'describeSubnets',
     id => ({ SubnetIds: [id] }),
     res => res?.Subnets?.[0],
   );
   getSubnets = paginateBuilder<EC2>(paginateDescribeSubnets, 'Subnets');
-  deleteSubnet = crudBuilder2<EC2, 'deleteSubnet'>('deleteSubnet', input => input);
+  deleteSubnet = crudBuilder<EC2, 'deleteSubnet'>('deleteSubnet', input => input);
 
-  cloud: Crud2<Subnet> = new Crud2({
+  cloud: Crud<Subnet> = new Crud({
     create: async (es: Subnet[], ctx: Context) => {
       // TODO: Add support for creating default subnets (only one is allowed, also add
       // constraint that a single subnet is set as default)

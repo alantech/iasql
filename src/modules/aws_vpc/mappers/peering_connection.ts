@@ -11,9 +11,9 @@ import { DescribeVpcPeeringConnectionsCommandOutput } from '@aws-sdk/client-ec2/
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 
 import { AwsVpcModule } from '..';
-import { AWS, crudBuilder2, paginateBuilder } from '../../../services/aws_macros';
+import { AWS, crudBuilder, paginateBuilder } from '../../../services/aws_macros';
 import { updateTags } from '../../aws_ec2/mappers/tags';
-import { Context, Crud2, MapperBase } from '../../interfaces';
+import { Context, Crud, MapperBase } from '../../interfaces';
 import { PeeringConnection, PeeringConnectionState, Route, RouteTable, Vpc } from '../entity';
 import { eqTags } from './tags';
 
@@ -31,7 +31,7 @@ export class PeeringConnectionMapper extends MapperBase<PeeringConnection> {
     'VpcPeeringConnections',
   );
 
-  deletePeeringConnection = crudBuilder2<EC2, 'deleteVpcPeeringConnection'>(
+  deletePeeringConnection = crudBuilder<EC2, 'deleteVpcPeeringConnection'>(
     'deleteVpcPeeringConnection',
     input => input,
   );
@@ -144,7 +144,7 @@ export class PeeringConnectionMapper extends MapperBase<PeeringConnection> {
     );
   }
 
-  cloud: Crud2<PeeringConnection> = new Crud2({
+  cloud: Crud<PeeringConnection> = new Crud({
     create: async (es: PeeringConnection[], ctx: Context) => {
       const out = [];
       for (const e of es) {

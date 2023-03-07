@@ -1,8 +1,8 @@
 import { Address, AllocateAddressCommandInput, EC2, Tag } from '@aws-sdk/client-ec2';
 
 import { AwsVpcModule } from '..';
-import { AWS, crudBuilder2, crudBuilderFormat } from '../../../services/aws_macros';
-import { Context, Crud2, MapperBase } from '../../interfaces';
+import { AWS, crudBuilder, crudBuilderFormat } from '../../../services/aws_macros';
+import { Context, Crud, MapperBase } from '../../interfaces';
 import { ElasticIp } from '../entity';
 import { eqTags, updateTags } from './tags';
 
@@ -32,10 +32,10 @@ export class ElasticIpMapper extends MapperBase<ElasticIp> {
     allocationId => ({ AllocationIds: [allocationId] }),
     res => res?.Addresses?.pop(),
   );
-  getAllIps = crudBuilder2<EC2, 'describeAddresses'>('describeAddresses', () => ({}));
+  getAllIps = crudBuilder<EC2, 'describeAddresses'>('describeAddresses', () => ({}));
   getElasticIps = async (client: EC2) =>
     (await this.getAllIps(client))?.Addresses?.filter(a => !!a.AllocationId) ?? [];
-  deleteElasticIp = crudBuilder2<EC2, 'releaseAddress'>('releaseAddress', AllocationId => ({ AllocationId }));
+  deleteElasticIp = crudBuilder<EC2, 'releaseAddress'>('releaseAddress', AllocationId => ({ AllocationId }));
 
   // TODO: Why does this have tags baked in automatically?
   async createElasticIp(client: EC2, tags?: { [key: string]: string }) {
@@ -55,7 +55,7 @@ export class ElasticIpMapper extends MapperBase<ElasticIp> {
     return await client.allocateAddress(allocateAddressCommandInput);
   }
 
-  cloud = new Crud2({
+  cloud = new Crud({
     create: async (es: ElasticIp[], ctx: Context) => {
       const out = [];
       for (const e of es) {

@@ -11,9 +11,9 @@ import {
 } from '@aws-sdk/client-codedeploy';
 
 import { AwsCodedeployModule } from '..';
-import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
+import { AWS, crudBuilder, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
 import { awsIamModule } from '../../aws_iam';
-import { Context, Crud2, IdFields, MapperBase } from '../../interfaces';
+import { Context, Crud, IdFields, MapperBase } from '../../interfaces';
 import {
   CodedeployApplication,
   CodedeployDeploymentGroup,
@@ -139,12 +139,12 @@ export class CodedeployDeploymentGroupMapper extends MapperBase<CodedeployDeploy
     appName => ({ applicationName: appName }),
   );
 
-  deleteDeploymentGroup = crudBuilder2<CodeDeploy, 'deleteDeploymentGroup'>(
+  deleteDeploymentGroup = crudBuilder<CodeDeploy, 'deleteDeploymentGroup'>(
     'deleteDeploymentGroup',
     input => input,
   );
 
-  cloud: Crud2<CodedeployDeploymentGroup> = new Crud2({
+  cloud: Crud<CodedeployDeploymentGroup> = new Crud({
     create: async (es: CodedeployDeploymentGroup[], ctx: Context) => {
       const out = [];
       for (const e of es) {
@@ -287,7 +287,7 @@ export class CodedeployDeploymentGroupMapper extends MapperBase<CodedeployDeploy
     },
   });
 
-  db = new Crud2<CodedeployDeploymentGroup>({
+  db = new Crud<CodedeployDeploymentGroup>({
     create: (es: CodedeployDeploymentGroup[], ctx: Context) => ctx.orm.save(CodedeployDeploymentGroup, es),
     update: (es: CodedeployDeploymentGroup[], ctx: Context) => ctx.orm.save(CodedeployDeploymentGroup, es),
     delete: (es: CodedeployDeploymentGroup[], ctx: Context) => ctx.orm.remove(CodedeployDeploymentGroup, es),

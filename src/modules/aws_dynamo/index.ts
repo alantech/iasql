@@ -13,8 +13,8 @@ import {
 import { WaiterOptions } from '@aws-sdk/util-waiter';
 
 import { throwError } from '../../config/config';
-import { AWS, crudBuilder2, paginateBuilder } from '../../services/aws_macros';
-import { Context, Crud2, MapperBase, ModuleBase } from '../interfaces';
+import { AWS, crudBuilder, paginateBuilder } from '../../services/aws_macros';
+import { Context, Crud, MapperBase, ModuleBase } from '../interfaces';
 import { DynamoTable, TableClass } from './entity';
 
 class DynamoTableMapper extends MapperBase<DynamoTable> {
@@ -26,11 +26,11 @@ class DynamoTableMapper extends MapperBase<DynamoTable> {
       pick(b, ['tableName', 'tableClass', 'throughput', 'tableId', 'primaryKey', 'createdAt']),
     );
 
-  getTable = crudBuilder2<DynamoDB, 'describeTable'>('describeTable', TableName => ({ TableName }));
+  getTable = crudBuilder<DynamoDB, 'describeTable'>('describeTable', TableName => ({ TableName }));
   listTables = paginateBuilder<DynamoDB>(paginateListTables, 'TableNames');
-  createTable = crudBuilder2<DynamoDB, 'createTable'>('createTable', input => input);
-  updateTable = crudBuilder2<DynamoDB, 'updateTable'>('updateTable', input => input);
-  deleteTable = crudBuilder2<DynamoDB, 'deleteTable'>('deleteTable', TableName => ({ TableName }));
+  createTable = crudBuilder<DynamoDB, 'createTable'>('createTable', input => input);
+  updateTable = crudBuilder<DynamoDB, 'updateTable'>('updateTable', input => input);
+  deleteTable = crudBuilder<DynamoDB, 'deleteTable'>('deleteTable', TableName => ({ TableName }));
 
   dynamoMapper(dynamo: TableDescription, region: string) {
     const out = new DynamoTable();
@@ -57,7 +57,7 @@ class DynamoTableMapper extends MapperBase<DynamoTable> {
     return out;
   }
 
-  cloud = new Crud2<DynamoTable>({
+  cloud = new Crud<DynamoTable>({
     create: async (es: DynamoTable[], ctx: Context) => {
       const out = [];
       for (const e of es) {

@@ -1,7 +1,7 @@
 import { RouteTableAssociation as AwsRouteTableAssociation } from '@aws-sdk/client-ec2/dist-types/models';
 
 import { AWS } from '../../../services/aws_macros';
-import { Context, Crud2, MapperBase } from '../../interfaces';
+import { Context, Crud, MapperBase } from '../../interfaces';
 import { RouteTableAssociation } from '../entity';
 import { AwsVpcModule } from '../index';
 
@@ -67,7 +67,7 @@ export class RouteTableAssociationMapper extends MapperBase<RouteTableAssociatio
     return out;
   }
 
-  cloud: Crud2<RouteTableAssociation> = new Crud2({
+  cloud: Crud<RouteTableAssociation> = new Crud({
     create: async (es: RouteTableAssociation[], ctx: Context) => {
       const out: RouteTableAssociation[] = [];
       for (const a of es) {

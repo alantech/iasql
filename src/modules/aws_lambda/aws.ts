@@ -7,9 +7,9 @@ import {
   waitUntilFunctionUpdatedV2,
 } from '@aws-sdk/client-lambda';
 
-import { AWS, crudBuilder2, paginateBuilder } from '../../services/aws_macros';
+import { AWS, crudBuilder, paginateBuilder } from '../../services/aws_macros';
 
-const innerCreateFunction = crudBuilder2<Lambda, 'createFunction'>('createFunction', input => input);
+const innerCreateFunction = crudBuilder<Lambda, 'createFunction'>('createFunction', input => input);
 
 /**
  * @internal
@@ -29,7 +29,7 @@ export const createFunction = async (client: Lambda, input: CreateFunctionComman
 /**
  * @internal
  */
-export const getFunction = crudBuilder2<Lambda, 'getFunction'>('getFunction', FunctionName => ({
+export const getFunction = crudBuilder<Lambda, 'getFunction'>('getFunction', FunctionName => ({
   FunctionName,
 }));
 
@@ -54,14 +54,14 @@ export const getFunctions = async (client: Lambda) => {
 /**
  * @internal
  */
-export const deleteFunction = crudBuilder2<Lambda, 'deleteFunction'>('deleteFunction', FunctionName => ({
+export const deleteFunction = crudBuilder<Lambda, 'deleteFunction'>('deleteFunction', FunctionName => ({
   FunctionName,
 }));
 
 /**
  * @internal
  */
-export const addFunctionTags = crudBuilder2<Lambda, 'tagResource'>('tagResource', (Resource, Tags) => ({
+export const addFunctionTags = crudBuilder<Lambda, 'tagResource'>('tagResource', (Resource, Tags) => ({
   Resource,
   Tags,
 }));
@@ -69,7 +69,7 @@ export const addFunctionTags = crudBuilder2<Lambda, 'tagResource'>('tagResource'
 /**
  * @internal
  */
-export const updateFunctionConfiguration = crudBuilder2<Lambda, 'updateFunctionConfiguration'>(
+export const updateFunctionConfiguration = crudBuilder<Lambda, 'updateFunctionConfiguration'>(
   'updateFunctionConfiguration',
   input => input,
 );
@@ -77,7 +77,7 @@ export const updateFunctionConfiguration = crudBuilder2<Lambda, 'updateFunctionC
 /**
  * @internal
  */
-export const updateFunctionCode = crudBuilder2<Lambda, 'updateFunctionCode'>(
+export const updateFunctionCode = crudBuilder<Lambda, 'updateFunctionCode'>(
   'updateFunctionCode',
   input => input,
 );
@@ -85,12 +85,12 @@ export const updateFunctionCode = crudBuilder2<Lambda, 'updateFunctionCode'>(
 /**
  * @internal
  */
-export const listFunctionTags = crudBuilder2<Lambda, 'listTags'>('listTags', Resource => ({ Resource }));
+export const listFunctionTags = crudBuilder<Lambda, 'listTags'>('listTags', Resource => ({ Resource }));
 
 /**
  * @internal
  */
-export const removeFunctionTags = crudBuilder2<Lambda, 'untagResource'>(
+export const removeFunctionTags = crudBuilder<Lambda, 'untagResource'>(
   'untagResource',
   (Resource, TagKeys) => ({
     Resource,
@@ -133,6 +133,6 @@ export const waitUntilFunctionUpdated = (client: Lambda, FunctionName: string) =
 /**
  * @internal
  */
-export const invokeFunction = crudBuilder2<Lambda, 'invoke'>('invoke', input => input);
+export const invokeFunction = crudBuilder<Lambda, 'invoke'>('invoke', input => input);
 
 export { AWS };

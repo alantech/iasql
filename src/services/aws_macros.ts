@@ -230,25 +230,12 @@ export function crudBuilderFormat<T, U extends keyof T, V>(
     );
 }
 
-export function crudBuilder2<T, U extends keyof T>(
+export function crudBuilder<T, U extends keyof T>(
   methodName: U,
   argMapper: (...args: any[]) => ArgumentTypes<T[U]>[0],
 ) {
   return async (client: T, ...args: any[]): Promise<PromiseReturnType<T[U]>> =>
     await (client[methodName] as any)(argMapper(...args));
-}
-
-export function crudBuilder<T>(
-  methodName: keyof T,
-  argMapper: (...args: any[]) => any,
-  retFormatter?: (arg0: any, ...args: any[]) => any,
-): (client: T, ...args: any[]) => Promise<any> {
-  if (retFormatter) {
-    return async (client: any, ...args: any[]) =>
-      retFormatter(await client[methodName](argMapper(...args)), ...args);
-  } else {
-    return async (client: any, ...args: any[]) => await client[methodName](argMapper(...args));
-  }
 }
 
 export async function mapLin(

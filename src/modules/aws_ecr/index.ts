@@ -11,10 +11,10 @@ import {
 } from '@aws-sdk/client-ecr-public';
 
 import { policiesAreSame } from '../../services/aws-diff';
-import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../services/aws_macros';
+import { AWS, crudBuilder, crudBuilderFormat, paginateBuilder } from '../../services/aws_macros';
 import { safeParse } from '../../services/common';
 import logger from '../../services/logger';
-import { Context, Crud2, IdFields, MapperBase, ModuleBase } from '../interfaces';
+import { Context, Crud, IdFields, MapperBase, ModuleBase } from '../interfaces';
 import {
   PublicRepository,
   Repository,
@@ -81,7 +81,7 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
     if (region) out.privateRepositoryRegion = region;
     return out;
   }
-  listRepositoryImages = crudBuilder2<ECR, 'describeImages'>(
+  listRepositoryImages = crudBuilder<ECR, 'describeImages'>(
     'describeImages',
     (imageIds, repositoryName, registryId) => ({
       imageIds,
@@ -89,7 +89,7 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
       registryId,
     }),
   );
-  listPublicRepositoryImages = crudBuilder2<ECRPUBLIC, 'describeImages'>(
+  listPublicRepositoryImages = crudBuilder<ECRPUBLIC, 'describeImages'>(
     'describeImages',
     (imageIds, repositoryName, registryId) => ({
       imageIds,
@@ -98,7 +98,7 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
     }),
   );
 
-  deleteRepositoryImage = crudBuilder2<ECR | ECRPUBLIC, 'batchDeleteImage'>(
+  deleteRepositoryImage = crudBuilder<ECR | ECRPUBLIC, 'batchDeleteImage'>(
     'batchDeleteImage',
     (imageIds, repositoryName, registryId) => ({
       imageIds,
@@ -135,7 +135,7 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
     }
   }
 
-  cloud: Crud2<RepositoryImage> = new Crud2({
+  cloud: Crud<RepositoryImage> = new Crud({
     create: async (_es: RepositoryImage[], _ctx: Context) => {
       return [];
     },
@@ -309,7 +309,7 @@ class PublicRepositoryMapper extends MapperBase<PublicRepository> {
     _res => undefined,
   );
 
-  cloud = new Crud2({
+  cloud = new Crud({
     create: async (es: PublicRepository[], ctx: Context) => {
       const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
@@ -438,7 +438,7 @@ class RepositoryMapper extends MapperBase<Repository> {
     _res => undefined,
   );
 
-  cloud = new Crud2({
+  cloud = new Crud({
     create: async (es: Repository[], ctx: Context) => {
       const out = [];
       for (const e of es) {
@@ -585,21 +585,21 @@ class RepositoryPolicyMapper extends MapperBase<RepositoryPolicy> {
     out.region = region;
     return out;
   }
-  setECRRepositoryPolicy = crudBuilder2<ECR, 'setRepositoryPolicy'>('setRepositoryPolicy', input => input);
-  getECRRepositoryPolicy = crudBuilder2<ECR, 'getRepositoryPolicy'>(
+  setECRRepositoryPolicy = crudBuilder<ECR, 'setRepositoryPolicy'>('setRepositoryPolicy', input => input);
+  getECRRepositoryPolicy = crudBuilder<ECR, 'getRepositoryPolicy'>(
     'getRepositoryPolicy',
     repositoryName => ({
       repositoryName,
     }),
   );
-  deleteECRRepositoryPolicy = crudBuilder2<ECR, 'deleteRepositoryPolicy'>(
+  deleteECRRepositoryPolicy = crudBuilder<ECR, 'deleteRepositoryPolicy'>(
     'deleteRepositoryPolicy',
     repositoryName => ({
       repositoryName,
     }),
   );
 
-  db = new Crud2<RepositoryPolicy>({
+  db = new Crud<RepositoryPolicy>({
     create: (es: RepositoryPolicy[], ctx: Context) => ctx.orm.save(RepositoryPolicy, es),
     update: (es: RepositoryPolicy[], ctx: Context) => ctx.orm.save(RepositoryPolicy, es),
     delete: (es: RepositoryPolicy[], ctx: Context) => ctx.orm.remove(RepositoryPolicy, es),
@@ -617,7 +617,7 @@ class RepositoryPolicyMapper extends MapperBase<RepositoryPolicy> {
     },
   });
 
-  cloud: Crud2<RepositoryPolicy> = new Crud2({
+  cloud: Crud<RepositoryPolicy> = new Crud({
     create: async (es: RepositoryPolicy[], ctx: Context) => {
       const out = [];
       for (const e of es) {

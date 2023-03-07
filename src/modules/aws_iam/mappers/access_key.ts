@@ -8,8 +8,8 @@ import {
 } from '@aws-sdk/client-iam';
 
 import { awsIamModule, AwsIamModule } from '..';
-import { AWS, crudBuilder2, paginateBuilder } from '../../../services/aws_macros';
-import { Context, Crud2, MapperBase } from '../../interfaces';
+import { AWS, crudBuilder, paginateBuilder } from '../../../services/aws_macros';
+import { Context, Crud, MapperBase } from '../../interfaces';
 import { AccessKey, accessKeyStatusEnum, IamUser } from '../entity';
 
 export class AccessKeyMapper extends MapperBase<AccessKey> {
@@ -54,9 +54,9 @@ export class AccessKeyMapper extends MapperBase<AccessKey> {
     await client.deleteAccessKey({ UserName: userName, AccessKeyId: keyId });
   }
 
-  updateAccessKey = crudBuilder2<IAM, 'updateAccessKey'>('updateAccessKey', input => input);
+  updateAccessKey = crudBuilder<IAM, 'updateAccessKey'>('updateAccessKey', input => input);
 
-  cloud = new Crud2<AccessKey>({
+  cloud = new Crud<AccessKey>({
     create: async (es: AccessKey[], ctx: Context) => {
       // Do not cloud create, just restore database
       await this.module.accessKey.db.delete(es, ctx);

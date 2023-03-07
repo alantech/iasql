@@ -9,8 +9,8 @@ import {
 
 import { AwsCodebuildModule } from '..';
 import { awsIamModule } from '../..';
-import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
-import { Context, Crud2, MapperBase } from '../../interfaces';
+import { AWS, crudBuilder, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
+import { Context, Crud, MapperBase } from '../../interfaces';
 import { CodebuildProject, ComputeType, EnvironmentType, SourceType } from '../entity';
 
 export class CodebuildProjectMapper extends MapperBase<CodebuildProject> {
@@ -71,9 +71,9 @@ export class CodebuildProjectMapper extends MapperBase<CodebuildProject> {
 
   listProjects = paginateBuilder<CodeBuild>(paginateListProjects, 'projects');
 
-  deleteProject = crudBuilder2<CodeBuild, 'deleteProject'>('deleteProject', input => input);
+  deleteProject = crudBuilder<CodeBuild, 'deleteProject'>('deleteProject', input => input);
 
-  cloud: Crud2<CodebuildProject> = new Crud2({
+  cloud: Crud<CodebuildProject> = new Crud({
     create: async (es: CodebuildProject[], ctx: Context) => {
       const out = [];
       for (const e of es) {

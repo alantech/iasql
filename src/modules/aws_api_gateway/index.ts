@@ -5,8 +5,8 @@ import {
   UpdateApiCommandInput,
 } from '@aws-sdk/client-apigatewayv2';
 
-import { AWS, crudBuilder2, crudBuilderFormat } from '../../services/aws_macros';
-import { Context, Crud2, MapperBase, ModuleBase } from '../interfaces';
+import { AWS, crudBuilder, crudBuilderFormat } from '../../services/aws_macros';
+import { Context, Crud, MapperBase, ModuleBase } from '../interfaces';
 import { Api, Protocol } from './entity';
 
 class ApiMapper extends MapperBase<Api> {
@@ -22,7 +22,7 @@ class ApiMapper extends MapperBase<Api> {
     return res;
   };
 
-  getApi = crudBuilder2<ApiGatewayV2, 'getApi'>('getApi', ApiId => ({ ApiId }));
+  getApi = crudBuilder<ApiGatewayV2, 'getApi'>('getApi', ApiId => ({ ApiId }));
 
   getApis = crudBuilderFormat<ApiGatewayV2, 'getApis', ApiAWS[] | undefined>(
     'getApis',
@@ -30,13 +30,13 @@ class ApiMapper extends MapperBase<Api> {
     res => res?.Items,
   );
 
-  createApi = crudBuilder2<ApiGatewayV2, 'createApi'>('createApi', input => input);
+  createApi = crudBuilder<ApiGatewayV2, 'createApi'>('createApi', input => input);
 
-  deleteApi = crudBuilder2<ApiGatewayV2, 'deleteApi'>('deleteApi', ApiId => ({ ApiId }));
+  deleteApi = crudBuilder<ApiGatewayV2, 'deleteApi'>('deleteApi', ApiId => ({ ApiId }));
 
-  updateApi = crudBuilder2<ApiGatewayV2, 'updateApi'>('updateApi', input => input);
+  updateApi = crudBuilder<ApiGatewayV2, 'updateApi'>('updateApi', input => input);
 
-  cloud = new Crud2<Api>({
+  cloud = new Crud<Api>({
     create: async (rs: Api[], ctx: Context) => {
       const out = [];
       for (const r of rs) {

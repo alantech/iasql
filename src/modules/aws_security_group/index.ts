@@ -13,11 +13,11 @@ import {
   PrefixListId,
 } from '@aws-sdk/client-ec2';
 
-import { AWS, crudBuilder2, crudBuilderFormat, mapLin, paginateBuilder } from '../../services/aws_macros';
+import { AWS, crudBuilder, crudBuilderFormat, mapLin, paginateBuilder } from '../../services/aws_macros';
 import logger from '../../services/logger';
 import { awsVpcModule } from '../aws_vpc';
 import { Vpc } from '../aws_vpc/entity';
-import { Context, Crud2, MapperBase, ModuleBase } from '../interfaces';
+import { Context, Crud, MapperBase, ModuleBase } from '../interfaces';
 import { SecurityGroup, SecurityGroupRule } from './entity';
 
 class SecurityGroupMapper extends MapperBase<SecurityGroup> {
@@ -125,7 +125,7 @@ class SecurityGroupMapper extends MapperBase<SecurityGroup> {
     return out;
   }
 
-  createSecurityGroup = crudBuilder2<EC2, 'createSecurityGroup'>('createSecurityGroup', input => input);
+  createSecurityGroup = crudBuilder<EC2, 'createSecurityGroup'>('createSecurityGroup', input => input);
   getSecurityGroup = crudBuilderFormat<EC2, 'describeSecurityGroups', AwsSecurityGroup | undefined>(
     'describeSecurityGroups',
     id => ({ GroupIds: [id] }),
@@ -206,7 +206,7 @@ class SecurityGroupMapper extends MapperBase<SecurityGroup> {
     res => res?.SecurityGroupRules,
   );
 
-  db = new Crud2({
+  db = new Crud({
     create: async (e: SecurityGroup[], ctx: Context) => {
       // If a VPC record is associated with this security group that doesn't exist in the DB, we
       // need to create it first or TypeORM will fail
@@ -263,7 +263,7 @@ class SecurityGroupMapper extends MapperBase<SecurityGroup> {
     delete: (e: SecurityGroup[], ctx: Context) => ctx.orm.remove(SecurityGroup, e),
   });
 
-  cloud: Crud2<SecurityGroup> = new Crud2({
+  cloud: Crud<SecurityGroup> = new Crud({
     create: (es: SecurityGroup[], ctx: Context) => this.sgCloudCreate(es, ctx, false),
     read: async (ctx: Context, id?: string) => {
       const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
@@ -507,7 +507,7 @@ class SecurityGroupRuleMapper extends MapperBase<SecurityGroupRule> {
   deleteSecurityGroupIngressRules = async (client: EC2, rules: RevokeSecurityGroupIngressCommandInput[]) =>
     mapLin(rules, client.revokeSecurityGroupIngress.bind(client));
 
-  db = new Crud2({
+  db = new Crud({
     create: (e: SecurityGroupRule[], ctx: Context) => ctx.orm.save(SecurityGroupRule, e),
     read: async (ctx: Context, id?: string) => {
       const { securityGroupRuleId, region } = id
@@ -531,7 +531,7 @@ class SecurityGroupRuleMapper extends MapperBase<SecurityGroupRule> {
     delete: (e: SecurityGroupRule[], ctx: Context) => ctx.orm.remove(SecurityGroupRule, e),
   });
 
-  cloud = new Crud2({
+  cloud = new Crud({
     create: async (es: SecurityGroupRule[], ctx: Context) => {
       // TODO: While the API supports creating multiple security group rules simultaneously,
       // I can't figure out a 100% correct way to identify which created rules are associated

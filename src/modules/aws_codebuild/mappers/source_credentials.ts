@@ -6,8 +6,8 @@ import {
 } from '@aws-sdk/client-codebuild';
 
 import { AwsCodebuildModule } from '..';
-import { AWS, crudBuilder2, crudBuilderFormat } from '../../../services/aws_macros';
-import { Context, Crud2, MapperBase } from '../../interfaces';
+import { AWS, crudBuilder, crudBuilderFormat } from '../../../services/aws_macros';
+import { Context, Crud, MapperBase } from '../../interfaces';
 import { SourceCredentialsList, SourceType, AuthType } from '../entity';
 
 export class SourceCredentialsListMapper extends MapperBase<SourceCredentialsList> {
@@ -36,12 +36,12 @@ export class SourceCredentialsListMapper extends MapperBase<SourceCredentialsLis
     res => res?.sourceCredentialsInfos,
   );
 
-  deleteSourceCredentials = crudBuilder2<CodeBuild, 'deleteSourceCredentials'>(
+  deleteSourceCredentials = crudBuilder<CodeBuild, 'deleteSourceCredentials'>(
     'deleteSourceCredentials',
     input => input,
   );
 
-  cloud: Crud2<SourceCredentialsList> = new Crud2({
+  cloud: Crud<SourceCredentialsList> = new Crud({
     create: async (es: SourceCredentialsList[], ctx: Context) => {
       // Do not cloud create, just restore database
       await this.module.sourceCredentialsList.db.delete(es, ctx);

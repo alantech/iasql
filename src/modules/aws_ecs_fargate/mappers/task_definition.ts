@@ -3,9 +3,9 @@ import { parse as parseArn } from '@aws-sdk/util-arn-parser';
 
 import { AwsEcsFargateModule } from '..';
 import { awsCloudwatchModule, awsEcrModule, awsIamModule } from '../..';
-import { AWS, crudBuilder2, crudBuilderFormat } from '../../../services/aws_macros';
+import { AWS, crudBuilder, crudBuilderFormat } from '../../../services/aws_macros';
 import logger from '../../../services/logger';
-import { Context, Crud2, MapperBase } from '../../interfaces';
+import { Context, Crud, MapperBase } from '../../interfaces';
 import { ContainerDefinition, CpuMemCombination, TaskDefinition } from '../entity';
 
 export class TaskDefinitionMapper extends MapperBase<TaskDefinition> {
@@ -58,7 +58,7 @@ export class TaskDefinitionMapper extends MapperBase<TaskDefinition> {
     taskDefinition => ({ taskDefinition }),
     res => res?.taskDefinition,
   );
-  deleteTaskDefinition = crudBuilder2<ECS, 'deregisterTaskDefinition'>(
+  deleteTaskDefinition = crudBuilder<ECS, 'deregisterTaskDefinition'>(
     'deregisterTaskDefinition',
     taskDefinition => ({
       taskDefinition,
@@ -242,7 +242,7 @@ export class TaskDefinitionMapper extends MapperBase<TaskDefinition> {
     return out;
   }
 
-  cloud = new Crud2({
+  cloud = new Crud({
     create: async (es: TaskDefinition[], ctx: Context) => {
       const res = [];
       for (const e of es) {

@@ -2,7 +2,7 @@ import { EC2, KeyPairInfo, KeyType } from '@aws-sdk/client-ec2';
 
 import { AwsEc2Module } from '..';
 import { AWS } from '../../../services/aws_macros';
-import { Context, Crud2, MapperBase } from '../../interfaces';
+import { Context, Crud, MapperBase } from '../../interfaces';
 import { KeyPair } from '../entity/key_pair';
 
 export class KeyPairMapper extends MapperBase<KeyPair> {
@@ -39,7 +39,7 @@ export class KeyPairMapper extends MapperBase<KeyPair> {
     await client.deleteKeyPair({ KeyName: name });
   }
 
-  cloud = new Crud2<KeyPair>({
+  cloud = new Crud<KeyPair>({
     create: async (es: KeyPair[], ctx: Context) => {
       // Do not cloud create, just restore database
       await this.module.keypair.db.delete(es, ctx);

@@ -5,9 +5,9 @@ import {
   paginateDescribeInstances,
 } from '@aws-sdk/client-ec2';
 
-import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../services/aws_macros';
+import { AWS, crudBuilder, crudBuilderFormat, paginateBuilder } from '../../services/aws_macros';
 import { awsEc2Module } from '../aws_ec2';
-import { Context, Crud2, MapperBase, ModuleBase } from '../interfaces';
+import { Context, Crud, MapperBase, ModuleBase } from '../interfaces';
 import { Architecture, InstanceMetadata, RootDeviceType } from './entity';
 
 class InstanceMetadataMapper extends MapperBase<InstanceMetadata> {
@@ -59,7 +59,7 @@ class InstanceMetadataMapper extends MapperBase<InstanceMetadata> {
     instanceType => ({ InstanceTypes: [instanceType] }),
     res => res?.InstanceTypes?.[0],
   );
-  describeInstances = crudBuilder2<EC2, 'describeInstances'>('describeInstances', InstanceIds => ({
+  describeInstances = crudBuilder<EC2, 'describeInstances'>('describeInstances', InstanceIds => ({
     InstanceIds,
   }));
   getInstance = async (client: EC2, id: string) => {
@@ -68,7 +68,7 @@ class InstanceMetadataMapper extends MapperBase<InstanceMetadata> {
   };
   getInstances = paginateBuilder<EC2>(paginateDescribeInstances, 'Instances', 'Reservations');
 
-  cloud = new Crud2({
+  cloud = new Crud({
     // tslint:disable-next-line: no-empty
     create: async (_es: InstanceMetadata[], _ctx: Context) => {},
     read: async (ctx: Context, id?: string) => {

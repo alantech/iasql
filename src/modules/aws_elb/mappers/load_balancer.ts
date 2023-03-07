@@ -11,10 +11,10 @@ import { parse as parseArn } from '@aws-sdk/util-arn-parser';
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 
 import { AwsElbModule } from '..';
-import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
+import { AWS, crudBuilder, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
 import { awsSecurityGroupModule } from '../../aws_security_group';
 import { awsVpcModule } from '../../aws_vpc';
-import { Context, Crud2, MapperBase } from '../../interfaces';
+import { Context, Crud, MapperBase } from '../../interfaces';
 import {
   IpAddressType,
   LoadBalancer,
@@ -132,19 +132,19 @@ export class LoadBalancerMapper extends MapperBase<LoadBalancer> {
   );
 
   getLoadBalancers = paginateBuilder<ElasticLoadBalancingV2>(paginateDescribeLoadBalancers, 'LoadBalancers');
-  updateLoadBalancerIpAddressType = crudBuilder2<ElasticLoadBalancingV2, 'setIpAddressType'>(
+  updateLoadBalancerIpAddressType = crudBuilder<ElasticLoadBalancingV2, 'setIpAddressType'>(
     'setIpAddressType',
     input => input,
   );
-  updateLoadBalancerSubnets = crudBuilder2<ElasticLoadBalancingV2, 'setSubnets'>(
+  updateLoadBalancerSubnets = crudBuilder<ElasticLoadBalancingV2, 'setSubnets'>(
     'setSubnets',
     input => input,
   );
-  updateLoadBalancerSecurityGroups = crudBuilder2<ElasticLoadBalancingV2, 'setSecurityGroups'>(
+  updateLoadBalancerSecurityGroups = crudBuilder<ElasticLoadBalancingV2, 'setSecurityGroups'>(
     'setSecurityGroups',
     input => input,
   );
-  modifyLoadBalancerAttributes = crudBuilder2<ElasticLoadBalancingV2, 'modifyLoadBalancerAttributes'>(
+  modifyLoadBalancerAttributes = crudBuilder<ElasticLoadBalancingV2, 'modifyLoadBalancerAttributes'>(
     'modifyLoadBalancerAttributes',
     input => input,
   );
@@ -242,7 +242,7 @@ export class LoadBalancerMapper extends MapperBase<LoadBalancer> {
     );
   }
 
-  cloud: Crud2<LoadBalancer> = new Crud2({
+  cloud: Crud<LoadBalancer> = new Crud({
     create: async (es: LoadBalancer[], ctx: Context) => {
       const out = [];
       for (const e of es) {

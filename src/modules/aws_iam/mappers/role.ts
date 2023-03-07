@@ -9,9 +9,9 @@ import { createWaiter, WaiterOptions, WaiterState } from '@aws-sdk/util-waiter';
 
 import { AwsIamModule } from '..';
 import { objectsAreSame, policiesAreSame } from '../../../services/aws-diff';
-import { AWS, crudBuilder2, crudBuilderFormat, mapLin, paginateBuilder } from '../../../services/aws_macros';
+import { AWS, crudBuilder, crudBuilderFormat, mapLin, paginateBuilder } from '../../../services/aws_macros';
 import { CanonicalStatement, normalizePolicy } from '../../../services/canonical-iam-policy';
-import { Context, Crud2, MapperBase } from '../../interfaces';
+import { Context, Crud, MapperBase } from '../../interfaces';
 import { IamRole } from '../entity';
 
 export class RoleMapper extends MapperBase<IamRole> {
@@ -36,7 +36,7 @@ export class RoleMapper extends MapperBase<IamRole> {
     res => res?.Role?.Arn ?? '',
   );
 
-  attachRolePolicy = crudBuilder2<IAM, 'attachRolePolicy'>('attachRolePolicy', (RoleName, PolicyArn) => ({
+  attachRolePolicy = crudBuilder<IAM, 'attachRolePolicy'>('attachRolePolicy', (RoleName, PolicyArn) => ({
     RoleName,
     PolicyArn,
   }));
@@ -44,14 +44,14 @@ export class RoleMapper extends MapperBase<IamRole> {
   attachRolePolicies = (client: IAM, roleName: string, policyArns: string[]) =>
     mapLin(policyArns, policyArn => this.attachRolePolicy(client, roleName, policyArn));
 
-  createInstanceProfile = crudBuilder2<IAM, 'createInstanceProfile'>(
+  createInstanceProfile = crudBuilder<IAM, 'createInstanceProfile'>(
     'createInstanceProfile',
     InstanceProfileName => ({
       InstanceProfileName,
     }),
   );
 
-  attachRoleToInstanceProfile = crudBuilder2<IAM, 'addRoleToInstanceProfile'>(
+  attachRoleToInstanceProfile = crudBuilder<IAM, 'addRoleToInstanceProfile'>(
     'addRoleToInstanceProfile',
     RoleName => ({
       InstanceProfileName: RoleName,
@@ -59,14 +59,14 @@ export class RoleMapper extends MapperBase<IamRole> {
     }),
   );
 
-  deleteInstanceProfile = crudBuilder2<IAM, 'deleteInstanceProfile'>(
+  deleteInstanceProfile = crudBuilder<IAM, 'deleteInstanceProfile'>(
     'deleteInstanceProfile',
     InstanceProfileName => ({
       InstanceProfileName,
     }),
   );
 
-  detachRoleToInstanceProfile = crudBuilder2<IAM, 'removeRoleFromInstanceProfile'>(
+  detachRoleToInstanceProfile = crudBuilder<IAM, 'removeRoleFromInstanceProfile'>(
     'removeRoleFromInstanceProfile',
     RoleName => ({
       InstanceProfileName: RoleName,
@@ -82,7 +82,7 @@ export class RoleMapper extends MapperBase<IamRole> {
 
   getAllRoles = paginateBuilder<IAM>(paginateListRoles, 'Roles');
 
-  updateRoleAssumePolicy = crudBuilder2<IAM, 'updateAssumeRolePolicy'>(
+  updateRoleAssumePolicy = crudBuilder<IAM, 'updateAssumeRolePolicy'>(
     'updateAssumeRolePolicy',
     (RoleName, PolicyDocument) => ({
       RoleName,
@@ -90,12 +90,12 @@ export class RoleMapper extends MapperBase<IamRole> {
     }),
   );
 
-  updateRoleDescription = crudBuilder2<IAM, 'updateRole'>('updateRole', (RoleName, Description?) => ({
+  updateRoleDescription = crudBuilder<IAM, 'updateRole'>('updateRole', (RoleName, Description?) => ({
     RoleName,
     Description,
   }));
 
-  detachRolePolicy = crudBuilder2<IAM, 'detachRolePolicy'>('detachRolePolicy', (RoleName, PolicyArn) => ({
+  detachRolePolicy = crudBuilder<IAM, 'detachRolePolicy'>('detachRolePolicy', (RoleName, PolicyArn) => ({
     RoleName,
     PolicyArn,
   }));
@@ -103,7 +103,7 @@ export class RoleMapper extends MapperBase<IamRole> {
   detachRolePolicies = (client: IAM, roleName: string, policyArns: string[]) =>
     mapLin(policyArns, (policyArn: string) => this.detachRolePolicy(client, roleName, policyArn));
 
-  deleteRole = crudBuilder2<IAM, 'deleteRole'>('deleteRole', RoleName => ({ RoleName }));
+  deleteRole = crudBuilder<IAM, 'deleteRole'>('deleteRole', RoleName => ({ RoleName }));
 
   async waitForAttachedRolePolicies(client: IAM, roleName: string, policyArns: string[]) {
     // wait for policies to be attached
@@ -174,7 +174,7 @@ export class RoleMapper extends MapperBase<IamRole> {
     return false;
   }
 
-  cloud = new Crud2({
+  cloud = new Crud({
     create: async (es: IamRole[], ctx: Context) => {
       const client = (await ctx.getAwsClient()) as AWS;
       const out = [];

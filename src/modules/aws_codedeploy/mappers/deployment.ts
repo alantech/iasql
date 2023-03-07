@@ -4,7 +4,7 @@ import { CodeDeploy, DeploymentInfo, paginateListDeployments } from '@aws-sdk/cl
 
 import { AwsCodedeployModule } from '..';
 import { AWS, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
-import { Context, Crud2, MapperBase } from '../../interfaces';
+import { Context, Crud, MapperBase } from '../../interfaces';
 import { CodedeployDeployment, DeploymentStatusEnum, RevisionType } from '../entity';
 
 export class CodedeployDeploymentMapper extends MapperBase<CodedeployDeployment> {
@@ -86,7 +86,7 @@ export class CodedeployDeploymentMapper extends MapperBase<CodedeployDeployment>
 
   listDeployments = paginateBuilder<CodeDeploy>(paginateListDeployments, 'deployments');
 
-  cloud: Crud2<CodedeployDeployment> = new Crud2({
+  cloud: Crud<CodedeployDeployment> = new Crud({
     create: async (es: CodedeployDeployment[], ctx: Context) => {
       // Do not cloud create, just restore database
       await this.module.deployment.db.delete(es, ctx);

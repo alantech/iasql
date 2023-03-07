@@ -11,10 +11,10 @@ import { build as buildArn, parse as parseArn } from '@aws-sdk/util-arn-parser';
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 
 import { policiesAreSame } from '../../../services/aws-diff';
-import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
+import { AWS, crudBuilder, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
 import { CanonicalPolicy } from '../../../services/canonical-iam-policy';
 import { safeParse } from '../../../services/common';
-import { Context, Crud2, MapperBase } from '../../interfaces';
+import { Context, Crud, MapperBase } from '../../interfaces';
 import { Queue } from '../entity';
 import { AwsSqsModule } from '../index';
 
@@ -36,8 +36,8 @@ export class QueueMapper extends MapperBase<Queue> {
     input => input,
     res => res?.QueueUrl,
   );
-  setQueueAttributes = crudBuilder2<SQS, 'setQueueAttributes'>('setQueueAttributes', input => input);
-  deleteQueue = crudBuilder2<SQS, 'deleteQueue'>('deleteQueue', QueueUrl => ({ QueueUrl }));
+  setQueueAttributes = crudBuilder<SQS, 'setQueueAttributes'>('setQueueAttributes', input => input);
+  deleteQueue = crudBuilder<SQS, 'deleteQueue'>('deleteQueue', QueueUrl => ({ QueueUrl }));
 
   equals = (a: Queue, b: Queue) => {
     return (
@@ -161,7 +161,7 @@ export class QueueMapper extends MapperBase<Queue> {
     );
   }
 
-  cloud: Crud2<Queue> = new Crud2<Queue>({
+  cloud: Crud<Queue> = new Crud<Queue>({
     create: async (es: Queue[], ctx: Context) => {
       const out = [];
       for (const e of es) {

@@ -7,7 +7,7 @@ import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 
 import { AwsCloudwatchModule } from '..';
 import { AWS, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
-import { Context, Crud2, MapperBase } from '../../interfaces';
+import { Context, Crud, MapperBase } from '../../interfaces';
 import { LogGroup } from '../entity';
 
 export class LogGroupMapper extends MapperBase<LogGroup> {
@@ -71,7 +71,7 @@ export class LogGroupMapper extends MapperBase<LogGroup> {
     return out;
   }
 
-  cloud = new Crud2<LogGroup>({
+  cloud = new Crud<LogGroup>({
     create: async (lg: LogGroup[], ctx: Context) => {
       const out = [];
       for (const e of lg) {

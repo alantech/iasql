@@ -11,7 +11,7 @@ import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 
 import { AwsVpcModule } from '..';
 import { AWS, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
-import { Context, Crud2, MapperBase } from '../../interfaces';
+import { Context, Crud, MapperBase } from '../../interfaces';
 import { ElasticIp, NatGateway, NatGatewayState, ConnectivityType } from '../entity';
 import { eqTags, updateTags } from './tags';
 
@@ -169,7 +169,7 @@ export class NatGatewayMapper extends MapperBase<NatGateway> {
     );
   }
 
-  cloud: Crud2<NatGateway> = new Crud2({
+  cloud: Crud<NatGateway> = new Crud({
     create: async (es: NatGateway[], ctx: Context) => {
       const out = [];
       for (const e of es) {

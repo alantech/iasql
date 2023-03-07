@@ -13,9 +13,9 @@ import {
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 
 import { AwsCodepipelineModule } from '..';
-import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
+import { AWS, crudBuilder, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
 import { awsIamModule } from '../../aws_iam';
-import { Context, Crud2, MapperBase } from '../../interfaces';
+import { Context, Crud, MapperBase } from '../../interfaces';
 import { PipelineDeclaration } from '../entity';
 import supportedRegions from './supported_regions';
 
@@ -91,7 +91,7 @@ export class PipelineDeclarationMapper extends MapperBase<PipelineDeclaration> {
   );
 
   listPipelineDeclarations = paginateBuilder<CodePipeline>(paginateListPipelines, 'pipelines');
-  deletePipelineDeclaration = crudBuilder2<CodePipeline, 'deletePipeline'>('deletePipeline', input => input);
+  deletePipelineDeclaration = crudBuilder<CodePipeline, 'deletePipeline'>('deletePipeline', input => input);
 
   async waitForPipelineExecution(client: CodePipeline, name: string) {
     const result = await createWaiter<CodePipeline, GetPipelineStateCommandInput>(
@@ -144,7 +144,7 @@ export class PipelineDeclarationMapper extends MapperBase<PipelineDeclaration> {
     return result;
   }
 
-  cloud: Crud2<PipelineDeclaration> = new Crud2({
+  cloud: Crud<PipelineDeclaration> = new Crud({
     create: async (pds: PipelineDeclaration[], ctx: Context) => {
       const out = [];
       for (const pd of pds) {

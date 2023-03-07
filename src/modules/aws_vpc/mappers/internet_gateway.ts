@@ -5,8 +5,8 @@ import {
   paginateDescribeInternetGateways,
 } from '@aws-sdk/client-ec2';
 
-import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
-import { Context, Crud2, MapperBase } from '../../interfaces';
+import { AWS, crudBuilder, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
+import { Context, Crud, MapperBase } from '../../interfaces';
 import { InternetGateway } from '../entity';
 import { awsVpcModule, AwsVpcModule } from '../index';
 import { convertTagsForAws, convertTagsFromAws, eqTags } from './tags';
@@ -23,21 +23,21 @@ export class InternetGatewayMapper extends MapperBase<InternetGateway> {
     internetGatewayId => ({ InternetGatewayIds: [internetGatewayId] }),
     res => res?.InternetGateways?.pop(),
   );
-  attachToVpc = crudBuilder2<EC2, 'attachInternetGateway'>(
+  attachToVpc = crudBuilder<EC2, 'attachInternetGateway'>(
     'attachInternetGateway',
     (internetGatewayId: string, vpcId: string) => ({
       InternetGatewayId: internetGatewayId,
       VpcId: vpcId,
     }),
   );
-  detachVpc = crudBuilder2<EC2, 'detachInternetGateway'>(
+  detachVpc = crudBuilder<EC2, 'detachInternetGateway'>(
     'detachInternetGateway',
     (internetGatewayId: string, vpcId: string) => ({
       InternetGatewayId: internetGatewayId,
       VpcId: vpcId,
     }),
   );
-  deleteInternetGateway = crudBuilder2<EC2, 'deleteInternetGateway'>(
+  deleteInternetGateway = crudBuilder<EC2, 'deleteInternetGateway'>(
     'deleteInternetGateway',
     internetGatewayId => ({ InternetGatewayId: internetGatewayId }),
   );
@@ -78,7 +78,7 @@ export class InternetGatewayMapper extends MapperBase<InternetGateway> {
     return out;
   }
 
-  cloud: Crud2<InternetGateway> = new Crud2({
+  cloud: Crud<InternetGateway> = new Crud({
     create: async (es: InternetGateway[], ctx: Context) => {
       const out: InternetGateway[] = [];
       for (const e of es) {

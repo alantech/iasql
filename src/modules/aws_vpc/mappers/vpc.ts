@@ -11,8 +11,8 @@ import {
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 
 import { AwsVpcModule } from '..';
-import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
-import { Context, Crud2, MapperBase } from '../../interfaces';
+import { AWS, crudBuilder, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
+import { Context, Crud, MapperBase } from '../../interfaces';
 import { RouteTable, RouteTableAssociation, Subnet, Vpc, VpcState } from '../entity';
 import { eqTags, updateTags } from './tags';
 
@@ -124,7 +124,7 @@ export class VpcMapper extends MapperBase<Vpc> {
   );
 
   getVpcs = paginateBuilder<EC2>(paginateDescribeVpcs, 'Vpcs');
-  deleteVpc = crudBuilder2<EC2, 'deleteVpc'>('deleteVpc', input => input);
+  deleteVpc = crudBuilder<EC2, 'deleteVpc'>('deleteVpc', input => input);
 
   async updateVpcAttribute(
     client: EC2,
@@ -147,7 +147,7 @@ export class VpcMapper extends MapperBase<Vpc> {
     }
   }
 
-  cloud: Crud2<Vpc> = new Crud2({
+  cloud: Crud<Vpc> = new Crud({
     updateOrReplace: (a: Vpc, b: Vpc) => {
       if (!Object.is(a.cidrBlock, b.cidrBlock) || !Object.is(a.isDefault, b.isDefault)) return 'replace';
       else return 'update';

@@ -8,9 +8,9 @@ import {
 import { parse as parseArn } from '@aws-sdk/util-arn-parser';
 
 import { AwsElbModule } from '..';
-import { AWS, crudBuilder2, crudBuilderFormat, mapLin, paginateBuilder } from '../../../services/aws_macros';
+import { AWS, crudBuilder, crudBuilderFormat, mapLin, paginateBuilder } from '../../../services/aws_macros';
 import { awsAcmModule } from '../../aws_acm';
-import { Context, Crud2, MapperBase } from '../../interfaces';
+import { Context, Crud, MapperBase } from '../../interfaces';
 import { ActionTypeEnum, Listener, LoadBalancer, ProtocolEnum } from '../entity';
 
 export class ListenerMapper extends MapperBase<Listener> {
@@ -82,11 +82,11 @@ export class ListenerMapper extends MapperBase<Listener> {
     input => input,
     res => res?.Listeners?.pop(),
   );
-  deleteListener = crudBuilder2<ElasticLoadBalancingV2, 'deleteListener'>('deleteListener', ListenerArn => ({
+  deleteListener = crudBuilder<ElasticLoadBalancingV2, 'deleteListener'>('deleteListener', ListenerArn => ({
     ListenerArn,
   }));
 
-  cloud: Crud2<Listener> = new Crud2({
+  cloud: Crud<Listener> = new Crud({
     create: async (es: Listener[], ctx: Context) => {
       const out = [];
       for (const e of es) {

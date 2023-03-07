@@ -9,7 +9,7 @@ import { snakeCase } from 'typeorm/util/StringUtils';
 
 import config from '../config';
 import { throwError } from '../config/config';
-import { AWS, crudBuilder2 } from '../services/aws_macros';
+import { AWS, crudBuilder } from '../services/aws_macros';
 import { getCloudId } from '../services/cloud-id';
 import { safeParse } from '../services/common';
 import logger from '../services/logger';
@@ -47,7 +47,7 @@ export enum PostTransactionCheck {
   UNLOCK_ALWAYS = 'unlock-always',
 }
 
-export interface CrudInterface2<E> {
+export interface CrudInterface<E> {
   create: (e: E[], ctx: Context) => Promise<void | E[]>;
   read: (ctx: Context, id?: string) => Promise<E[] | E | void>;
   updateOrReplace?: (prev: E, next: E) => 'update' | 'replace';
@@ -56,7 +56,7 @@ export interface CrudInterface2<E> {
 }
 
 /** @internal */
-export class Crud2<E extends {}> {
+export class Crud<E extends {}> {
   module: ModuleInterface;
   createFn: (e: E[], ctx: Context) => Promise<void | E[]>;
   readFn: (ctx: Context, id?: string) => Promise<E[] | E | void>;
@@ -68,7 +68,7 @@ export class Crud2<E extends {}> {
   entityId?: (e: E) => string;
   idFields?: (id: string) => IdFields;
 
-  constructor(def: CrudInterface2<E>) {
+  constructor(def: CrudInterface<E>) {
     this.createFn = def.create;
     this.readFn = def.read;
     this.updateOrReplaceFn = def.updateOrReplace ?? (() => 'update');
@@ -247,8 +247,8 @@ export interface MapperInterface<E extends {}> {
   generateId: (idFields: IdFields) => string;
   equals: (a: E, b: E) => boolean;
   source: 'db' | 'cloud';
-  db: Crud2<E>;
-  cloud: Crud2<E>;
+  db: Crud<E>;
+  cloud: Crud<E>;
 }
 
 export interface RpcInterface {
@@ -276,8 +276,8 @@ export class MapperBase<E extends {}> {
   generateId: (idFields: IdFields) => string;
   equals: (a: E, b: E) => boolean;
   source: 'db' | 'cloud';
-  db: Crud2<E>;
-  cloud: Crud2<E>;
+  db: Crud<E>;
+  cloud: Crud<E>;
 
   init() {
     if (!this.module) throw new Error('No module link established for this mapper');
@@ -360,7 +360,7 @@ export class MapperBase<E extends {}> {
       this.db.dest = 'db';
       this.db.module = this.module;
     } else if (!!cloudColumns && !(cloudColumns instanceof Error)) {
-      this.db = new Crud2<E>({
+      this.db = new Crud<E>({
         create: (es: E[], ctx: Context) => ctx.orm.save(this.entity, es),
         update: (es: E[], ctx: Context) => ctx.orm.save(this.entity, es),
         delete: (es: E[], ctx: Context) => ctx.orm.remove(this.entity, es),
@@ -620,7 +620,7 @@ export class AwsSdkInvoker extends RpcBase {
     const methodAsType: keyof typeof client = methodName as keyof typeof client;
     const args = JSON.parse(argsString);
     // @ts-ignore
-    const fn = crudBuilder2<typeof client, typeof methodAsType>(methodAsType, input => input);
+    const fn = crudBuilder<typeof client, typeof methodAsType>(methodAsType, input => input);
 
     const res = await fn(client, args);
     return [

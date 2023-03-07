@@ -15,7 +15,7 @@ import { throwError } from '../../../config/config';
 import { crudBuilderFormat } from '../../../services/aws_macros';
 import { awsIamModule } from '../../aws_iam';
 import { awsSecurityGroupModule } from '../../aws_security_group';
-import { Context, Crud2, MapperBase } from '../../interfaces';
+import { Context, Crud, MapperBase } from '../../interfaces';
 import {
   addFunctionTags,
   AWS,
@@ -220,7 +220,7 @@ export class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
     res => res?.Versions,
   );
 
-  cloud = new Crud2({
+  cloud = new Crud({
     create: async (es: LambdaFunction[], ctx: Context) => {
       const out = [];
       for (const e of es) {

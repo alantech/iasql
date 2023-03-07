@@ -7,9 +7,9 @@ import {
 import { parse as parseArn } from '@aws-sdk/util-arn-parser';
 
 import { AwsElbModule } from '..';
-import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
+import { AWS, crudBuilder, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
 import { awsVpcModule } from '../../aws_vpc';
-import { Context, Crud2, MapperBase } from '../../interfaces';
+import { Context, Crud, MapperBase } from '../../interfaces';
 import {
   ProtocolEnum,
   ProtocolVersionEnum,
@@ -100,12 +100,12 @@ export class TargetGroupMapper extends MapperBase<TargetGroup> {
     input => input,
     res => res?.TargetGroups?.pop(),
   );
-  deleteTargetGroup = crudBuilder2<ElasticLoadBalancingV2, 'deleteTargetGroup'>(
+  deleteTargetGroup = crudBuilder<ElasticLoadBalancingV2, 'deleteTargetGroup'>(
     'deleteTargetGroup',
     TargetGroupArn => ({ TargetGroupArn }),
   );
 
-  cloud: Crud2<TargetGroup> = new Crud2({
+  cloud: Crud<TargetGroup> = new Crud({
     create: async (es: TargetGroup[], ctx: Context) => {
       const out = [];
       for (const e of es) {

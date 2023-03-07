@@ -8,8 +8,8 @@ import {
   CreateSecretCommandOutput,
 } from '@aws-sdk/client-secrets-manager';
 
-import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../services/aws_macros';
-import { Context, Crud2, MapperBase, ModuleBase } from '../interfaces';
+import { AWS, crudBuilder, crudBuilderFormat, paginateBuilder } from '../../services/aws_macros';
+import { Context, Crud, MapperBase, ModuleBase } from '../interfaces';
 import { Secret } from './entity/secret';
 
 class SecretMapper extends MapperBase<Secret> {
@@ -70,9 +70,9 @@ class SecretMapper extends MapperBase<Secret> {
 
   getAllSecrets = paginateBuilder<SecretsManager>(paginateListSecrets, 'SecretList');
 
-  deleteSecret = crudBuilder2<SecretsManager, 'deleteSecret'>('deleteSecret', input => input);
+  deleteSecret = crudBuilder<SecretsManager, 'deleteSecret'>('deleteSecret', input => input);
 
-  cloud = new Crud2({
+  cloud = new Crud({
     create: async (secrets: Secret[], ctx: Context) => {
       const out = [];
       for (const secret of secrets) {

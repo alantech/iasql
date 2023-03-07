@@ -12,9 +12,9 @@ import {
 } from '@aws-sdk/client-cloudfront';
 import { WaiterOptions } from '@aws-sdk/util-waiter';
 
-import { AWS, crudBuilder2 } from '../../services/aws_macros';
+import { AWS, crudBuilder } from '../../services/aws_macros';
 import { awsAcmModule } from '../aws_acm';
-import { Context, Crud2, MapperBase, ModuleBase } from '../interfaces';
+import { Context, Crud, MapperBase, ModuleBase } from '../interfaces';
 import { Distribution, viewerProtocolPolicyEnum } from './entity';
 
 class DistributionMapper extends MapperBase<Distribution> {
@@ -39,9 +39,9 @@ class DistributionMapper extends MapperBase<Distribution> {
     );
   };
 
-  getDistribution = crudBuilder2<CloudFront, 'getDistribution'>('getDistribution', Id => ({ Id }));
+  getDistribution = crudBuilder<CloudFront, 'getDistribution'>('getDistribution', Id => ({ Id }));
 
-  getDistributionConfig = crudBuilder2<CloudFront, 'getDistributionConfig'>('getDistributionConfig', Id => ({
+  getDistributionConfig = crudBuilder<CloudFront, 'getDistributionConfig'>('getDistributionConfig', Id => ({
     Id,
   }));
 
@@ -66,11 +66,11 @@ class DistributionMapper extends MapperBase<Distribution> {
     return out;
   }
 
-  createDistribution = crudBuilder2<CloudFront, 'createDistribution'>('createDistribution', input => input);
+  createDistribution = crudBuilder<CloudFront, 'createDistribution'>('createDistribution', input => input);
 
-  updateDistribution = crudBuilder2<CloudFront, 'updateDistribution'>('updateDistribution', input => input);
+  updateDistribution = crudBuilder<CloudFront, 'updateDistribution'>('updateDistribution', input => input);
 
-  deleteDistribution = crudBuilder2<CloudFront, 'deleteDistribution'>(
+  deleteDistribution = crudBuilder<CloudFront, 'deleteDistribution'>(
     'deleteDistribution',
     (Id, IfMatch) => ({ Id, IfMatch }),
   );
@@ -210,7 +210,7 @@ class DistributionMapper extends MapperBase<Distribution> {
     return out;
   }
 
-  cloud = new Crud2<Distribution>({
+  cloud = new Crud<Distribution>({
     create: async (es: Distribution[], ctx: Context) => {
       const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
