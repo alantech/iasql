@@ -1,4 +1,4 @@
-import { Fragment, } from 'react';
+import { Fragment } from 'react';
 
 import * as Posthog from '@/services/posthog';
 import { useAuth0 } from '@auth0/auth0-react';
