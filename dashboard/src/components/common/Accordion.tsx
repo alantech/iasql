@@ -1,17 +1,18 @@
 import { Disclosure, Transition } from '@headlessui/react';
-import { ChevronDownIcon, ChevronRightIcon, SearchIcon } from '@heroicons/react/outline';
-import { EyeIcon } from '@heroicons/react/solid';
+import { ChevronDownIcon, ChevronRightIcon } from '@heroicons/react/outline';
 
 import { HBox, align } from './';
 
 export default function Accordion({
   title,
+  titleCustomClasses = '',
   defaultOpen,
   children,
   id,
   action,
 }: {
-  title: any | any[];
+  title: string;
+  titleCustomClasses?: string;
   defaultOpen?: boolean;
   children: any | any[];
   id: string;
@@ -25,7 +26,9 @@ export default function Accordion({
             <Disclosure.Button className='w-full'>
               <div className='border-b-4 pl-1 border-transparent dark:border-gray-800'>
                 <HBox alignment={align.end} customStyles='flex-row-reverse'>
-                  <span id={`accordion-${id}`}>{title}</span>
+                  <span id={`accordion-${id}`} className={titleCustomClasses}>
+                    {title}
+                  </span>
                   {open ? (
                     <ChevronDownIcon className='w-3 h-3 m-2' aria-hidden='true' />
                   ) : (
