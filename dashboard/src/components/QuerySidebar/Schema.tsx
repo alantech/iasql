@@ -50,9 +50,13 @@ export default function Schema({
                   .map(([col, typ]) => (
                     <HBox key={col} customStyles='pl-8 grid grid-cols-2 gap-2'>
                       <HBox alignment={align.start}>
-                        <p className='text-ellipsis overflow-hidden' title={col}>{col}</p>
-                        </HBox>
-                      <HBox alignment={align.start}><p className='text-ellipsis overflow-hidden'>{typ}</p></HBox>
+                        <p className='text-ellipsis overflow-hidden' title={col}>
+                          {col}
+                        </p>
+                      </HBox>
+                      <HBox alignment={align.start}>
+                        <p className='text-ellipsis overflow-hidden'>{typ}</p>
+                      </HBox>
                     </HBox>
                   ))}
               </Accordion>
