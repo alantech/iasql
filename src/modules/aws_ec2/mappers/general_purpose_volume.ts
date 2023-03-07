@@ -131,14 +131,11 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
     await this.waitUntilModificationsComplete(client, input.VolumeId ?? '');
   };
 
-  attachVolumeInternal = crudBuilder<EC2, 'attachVolume'>(
-    'attachVolume',
-    (VolumeId, InstanceId, Device) => ({
-      VolumeId,
-      InstanceId,
-      Device,
-    }),
-  );
+  attachVolumeInternal = crudBuilder<EC2, 'attachVolume'>('attachVolume', (VolumeId, InstanceId, Device) => ({
+    VolumeId,
+    InstanceId,
+    Device,
+  }));
 
   attachVolume = async (client: EC2, VolumeId: string, InstanceId: string, Device: string) => {
     await this.attachVolumeInternal(client, VolumeId, InstanceId, Device);

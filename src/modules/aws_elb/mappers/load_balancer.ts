@@ -136,10 +136,7 @@ export class LoadBalancerMapper extends MapperBase<LoadBalancer> {
     'setIpAddressType',
     input => input,
   );
-  updateLoadBalancerSubnets = crudBuilder<ElasticLoadBalancingV2, 'setSubnets'>(
-    'setSubnets',
-    input => input,
-  );
+  updateLoadBalancerSubnets = crudBuilder<ElasticLoadBalancingV2, 'setSubnets'>('setSubnets', input => input);
   updateLoadBalancerSecurityGroups = crudBuilder<ElasticLoadBalancingV2, 'setSecurityGroups'>(
     'setSecurityGroups',
     input => input,

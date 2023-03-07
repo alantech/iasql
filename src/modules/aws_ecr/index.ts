@@ -586,12 +586,9 @@ class RepositoryPolicyMapper extends MapperBase<RepositoryPolicy> {
     return out;
   }
   setECRRepositoryPolicy = crudBuilder<ECR, 'setRepositoryPolicy'>('setRepositoryPolicy', input => input);
-  getECRRepositoryPolicy = crudBuilder<ECR, 'getRepositoryPolicy'>(
-    'getRepositoryPolicy',
-    repositoryName => ({
-      repositoryName,
-    }),
-  );
+  getECRRepositoryPolicy = crudBuilder<ECR, 'getRepositoryPolicy'>('getRepositoryPolicy', repositoryName => ({
+    repositoryName,
+  }));
   deleteECRRepositoryPolicy = crudBuilder<ECR, 'deleteRepositoryPolicy'>(
     'deleteRepositoryPolicy',
     repositoryName => ({

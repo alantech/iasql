@@ -70,10 +70,10 @@ class DistributionMapper extends MapperBase<Distribution> {
 
   updateDistribution = crudBuilder<CloudFront, 'updateDistribution'>('updateDistribution', input => input);
 
-  deleteDistribution = crudBuilder<CloudFront, 'deleteDistribution'>(
-    'deleteDistribution',
-    (Id, IfMatch) => ({ Id, IfMatch }),
-  );
+  deleteDistribution = crudBuilder<CloudFront, 'deleteDistribution'>('deleteDistribution', (Id, IfMatch) => ({
+    Id,
+    IfMatch,
+  }));
 
   async updateDistributionAndWait(
     client: CloudFront,
