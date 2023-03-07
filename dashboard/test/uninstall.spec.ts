@@ -24,9 +24,7 @@ export default function createTests() {
       page.locator(`#iasql-editor div.ace_content:has-text("iasql_uninstall")`)
     );
   
-    await click(
-      page.locator(`button:has-text("Run query")`)
-    );
+    await click(page.locator(`#query-builder-result table`));
   
   });
 }
