@@ -1,15 +1,11 @@
-import {
-  EC2,
-  InstanceLifecycle,
-  InstanceBlockDeviceMapping as AWSInstanceBlockDeviceMapping,
-} from '@aws-sdk/client-ec2';
+import { EC2, InstanceBlockDeviceMapping as AWSInstanceBlockDeviceMapping } from '@aws-sdk/client-ec2';
 import { Volume as AWSVolume } from '@aws-sdk/client-ec2';
 import { WaiterState } from '@aws-sdk/util-waiter';
 
 import { AwsEc2Module } from '..';
 import { AWS, crudBuilder } from '../../../services/aws_macros';
 import { Context, Crud, IdFields, MapperBase } from '../../interfaces';
-import { GeneralPurposeVolume, Instance, InstanceBlockDeviceMapping, VolumeState } from '../entity';
+import { Instance, InstanceBlockDeviceMapping, VolumeState } from '../entity';
 
 export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDeviceMapping> {
   module: AwsEc2Module;
@@ -64,16 +60,13 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
     } else return undefined;
   }
 
-  attachVolumeInternal = crudBuilder2<EC2, 'attachVolume'>(
-    'attachVolume',
-    (VolumeId, InstanceId, Device) => ({
-      VolumeId,
-      InstanceId,
-      Device,
-    }),
-  );
+  attachVolumeInternal = crudBuilder<EC2, 'attachVolume'>('attachVolume', (VolumeId, InstanceId, Device) => ({
+    VolumeId,
+    InstanceId,
+    Device,
+  }));
 
-  modifyBlockDeviceMapping = crudBuilder2<EC2, 'modifyInstanceAttribute'>(
+  modifyBlockDeviceMapping = crudBuilder<EC2, 'modifyInstanceAttribute'>(
     'modifyInstanceAttribute',
     (InstanceId, BlockDeviceMappings) => ({
       InstanceId,

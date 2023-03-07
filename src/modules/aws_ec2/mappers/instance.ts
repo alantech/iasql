@@ -21,7 +21,6 @@ import { awsIamModule, awsSecurityGroupModule, awsVpcModule } from '../..';
 import { AWS, crudBuilder, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
 import { Context, Crud, MapperBase } from '../../interfaces';
 import {
-  GeneralPurposeVolume,
   GeneralPurposeVolumeType,
   Instance,
   InstanceBlockDeviceMapping,

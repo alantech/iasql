@@ -1,5 +1,3 @@
-import { map } from 'lodash';
-
 import {
   CreateVolumeCommandInput,
   DescribeVolumesModificationsCommandInput,
@@ -151,73 +149,6 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
     await this.updateVolumeInternal(client, input);
     await this.waitUntilModificationsComplete(client, input.VolumeId ?? '');
   };
-
-  attachVolumeInternal = crudBuilder<EC2, 'attachVolume'>('attachVolume', (VolumeId, InstanceId, Device) => ({
-    VolumeId,
-    InstanceId,
-    Device,
-  }));
-
-  attachVolume = async (client: EC2, VolumeId: string, InstanceId: string, Device: string) => {
-    await this.attachVolumeInternal(client, VolumeId, InstanceId, Device);
-    await this.waitUntilInUse(client, VolumeId);
-  };
-
-  detachVolumeInternal = crudBuilder<EC2, 'detachVolume'>('detachVolume', VolumeId => ({ VolumeId }));
-
-  detachVolume = async (client: EC2, VolumeId: string) => {
-    await this.detachVolumeInternal(client, VolumeId);
-    await this.waitUntilAvailable(client, VolumeId);
-  };
-
-  // TODO: Figure out if/how to macro-ify this thing
-  async volumeWaiter(
-    client: EC2,
-    volumeId: string,
-    handleState: (vol: AWSVolume | undefined) => { state: WaiterState },
-  ) {
-    return createWaiter<EC2, DescribeVolumesCommandInput>(
-      {
-        client,
-        // all in seconds
-        maxWaitTime: 300,
-        minDelay: 1,
-        maxDelay: 4,
-      },
-      {
-        VolumeIds: [volumeId],
-      },
-      async (cl, input) => {
-        const data = await cl.describeVolumes(input);
-        try {
-          const vol = data.Volumes?.pop();
-          return handleState(vol);
-        } catch (e: any) {
-          throw e;
-        }
-      },
-    );
-  }
-
-  waitUntilAvailable(client: EC2, volumeId: string) {
-    return this.volumeWaiter(client, volumeId, (vol: AWSVolume | undefined) => {
-      // If state is not 'in-use' retry
-      if (!Object.is(vol?.State, VolumeState.AVAILABLE)) {
-        return { state: WaiterState.RETRY };
-      }
-      return { state: WaiterState.SUCCESS };
-    });
-  }
-
-  waitUntilInUse(client: EC2, volumeId: string) {
-    return this.volumeWaiter(client, volumeId, (vol: AWSVolume | undefined) => {
-      // If state is not 'in-use' retry
-      if (!Object.is(vol?.State, VolumeState.IN_USE)) {
-        return { state: WaiterState.RETRY };
-      }
-      return { state: WaiterState.SUCCESS };
-    });
-  }
 
   waitUntilDeleted(client: EC2, volumeId: string) {
     return this.volumeWaiter(client, volumeId, (vol: AWSVolume | undefined) => {
