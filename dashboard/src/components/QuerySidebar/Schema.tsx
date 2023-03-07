@@ -1,4 +1,5 @@
 import { TableIcon } from '@heroicons/react/outline';
+import { QuestionMarkCircleIcon } from '@heroicons/react/solid';
 
 import { Accordion, align, HBox, VBox } from '../common';
 import { ActionType, useAppContext } from '../providers/AppProvider';
@@ -26,13 +27,32 @@ export default function Schema({
       },
     });
   };
+  const helpIcon = <QuestionMarkCircleIcon className='w-4 h-4 m-2' aria-hidden='true' />;
+  const goToDocs = (module: string) => {
+    let modulePath;
+    const moduleName = module.split('@')[0];
+    if (typeof moduleName === 'string' && moduleName.startsWith('aws')) modulePath = 'aws';
+    else if (moduleName.startsWith('iasql')) modulePath = 'builtin';
+    window.open(
+      `https://iasql.com/docs/modules/${modulePath ? `${modulePath}/${moduleName}/` : ''}`,
+      '_blank',
+      'noreferrer',
+    );
+  };
 
   return (
     <VBox customClasses='w-full bg-transparent dark:bg-gray-800' id='schema-tab'>
       {/* TODO: make this a component */}
-      <Accordion id='modules' title={<b>Modules</b>} defaultOpen={true}>
+      <Accordion id='modules' title='Modules' titleCustomClasses='font-bold' defaultOpen={true}>
         {Object.keys(moduleData ?? {}).map((moduleName: string) => (
-          <Accordion key={moduleName} id={moduleName} title={<b>{moduleName}</b>} defaultOpen={true}>
+          <Accordion
+            key={moduleName}
+            id={moduleName}
+            title={moduleName}
+            titleCustomClasses='font-bold'
+            defaultOpen={true}
+            action={{ icon: helpIcon, handler: goToDocs }}
+          >
             {Object.keys(moduleData[moduleName]).map((tableName: string) => (
               <Accordion
                 key={tableName}
@@ -58,9 +78,15 @@ export default function Schema({
           </Accordion>
         ))}
       </Accordion>
-      <Accordion id='functions' title={<b>Functions</b>} defaultOpen={true}>
+      <Accordion id='functions' title='Functions' titleCustomClasses='font-bold' defaultOpen={true}>
         {Object.keys(functionData ?? {}).map((moduleName: string) => (
-          <Accordion key={moduleName} id={`fn-${moduleName}`} title={<b>{moduleName}</b>} defaultOpen={true}>
+          <Accordion
+            key={moduleName}
+            id={`fn-${moduleName}`}
+            title={moduleName}
+            titleCustomClasses='font-bold'
+            defaultOpen={true}
+          >
             {Object.entries(functionData[moduleName]).map(([functionName, functionSignature], i) => (
               <Accordion key={functionName} id={functionName} title={functionName} defaultOpen={false}>
                 <HBox key={i} alignment={align.start} customStyles='pl-8'>
