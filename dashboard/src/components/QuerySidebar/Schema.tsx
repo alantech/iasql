@@ -49,8 +49,14 @@ export default function Schema({
                   .filter(([col, _]) => col !== 'recordCount')
                   .map(([col, typ]) => (
                     <HBox key={col} customStyles='pl-8 grid grid-cols-2 gap-2'>
-                      <HBox alignment={align.start}>{col}</HBox>
-                      <HBox alignment={align.start}>{typ}</HBox>
+                      <HBox alignment={align.start}>
+                        <p className='text-ellipsis overflow-hidden' title={col}>
+                          {col}
+                        </p>
+                      </HBox>
+                      <HBox alignment={align.start}>
+                        <p className='text-ellipsis overflow-hidden'>{typ}</p>
+                      </HBox>
                     </HBox>
                   ))}
               </Accordion>
