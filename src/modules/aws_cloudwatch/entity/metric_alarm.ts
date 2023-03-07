@@ -317,7 +317,7 @@ export class MetricAlarm {
    * @public
    * The value against which the specified statistic is compared.
    */
-  @Column('numeric', {
+  @Column('double precision', {
     nullable: true,
     transformer: new ColumnNumericTransformer(),
   })

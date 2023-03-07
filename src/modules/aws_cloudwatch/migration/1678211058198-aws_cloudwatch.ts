@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class awsCloudwatch1678178800110 implements MigrationInterface {
-  name = 'awsCloudwatch1678178800110';
+export class awsCloudwatch1678211058198 implements MigrationInterface {
+  name = 'awsCloudwatch1678211058198';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
@@ -26,7 +26,7 @@ export class awsCloudwatch1678178800110 implements MigrationInterface {
       `CREATE TYPE "public"."metric_alarm_unit_enum" AS ENUM('Bits', 'Bits/Second', 'Bytes', 'Bytes/Second', 'Count', 'Count/Second', 'Gigabits', 'Gigabits/Second', 'Gigabytes', 'Gigabytes/Second', 'Kilobits', 'Kilobits/Second', 'Kilobytes', 'Kilobytes/Second', 'Megabits', 'Megabits/Second', 'Megabytes', 'Megabytes/Second', 'Microseconds', 'Milliseconds', 'None', 'Percent', 'Seconds', 'Terabits', 'Terabits/Second', 'Terabytes', 'Terabytes/Second')`,
     );
     await queryRunner.query(
-      `CREATE TABLE "metric_alarm" ("id" SERIAL NOT NULL, "alarm_name" character varying NOT NULL, "alarm_arn" character varying, "alarm_description" character varying, "actions_enabled" boolean NOT NULL DEFAULT true, "alarm_actions" json, "comparison_operator" "public"."metric_alarm_comparison_operator_enum", "datapoints_to_alarm" integer, "dimensions" json, "evaluate_low_sample_count_percentile" "public"."metric_alarm_evaluate_low_sample_count_percentile_enum", "evaluation_periods" integer, "extended_statistic" character varying, "insufficient_data_actions" json, "metric_name" character varying, "metrics" json, "namespace" character varying, "ok_actions" json, "period" integer, "statistic" "public"."metric_alarm_statistic_enum", "threshold" numeric, "threshold_metric_id" character varying, "treat_missing_data" "public"."metric_alarm_treat_missing_data_enum", "unit" "public"."metric_alarm_unit_enum", "region" character varying NOT NULL DEFAULT default_aws_region(), CONSTRAINT "PK_6154de886b9c1ebb8fa39320b47" PRIMARY KEY ("id"))`,
+      `CREATE TABLE "metric_alarm" ("id" SERIAL NOT NULL, "alarm_name" character varying NOT NULL, "alarm_arn" character varying, "alarm_description" character varying, "actions_enabled" boolean NOT NULL DEFAULT true, "alarm_actions" json, "comparison_operator" "public"."metric_alarm_comparison_operator_enum", "datapoints_to_alarm" integer, "dimensions" json, "evaluate_low_sample_count_percentile" "public"."metric_alarm_evaluate_low_sample_count_percentile_enum", "evaluation_periods" integer, "extended_statistic" character varying, "insufficient_data_actions" json, "metric_name" character varying, "metrics" json, "namespace" character varying, "ok_actions" json, "period" integer, "statistic" "public"."metric_alarm_statistic_enum", "threshold" double precision, "threshold_metric_id" character varying, "treat_missing_data" "public"."metric_alarm_treat_missing_data_enum", "unit" "public"."metric_alarm_unit_enum", "region" character varying NOT NULL DEFAULT default_aws_region(), CONSTRAINT "PK_6154de886b9c1ebb8fa39320b47" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
       `CREATE UNIQUE INDEX "IDX_f678696b46ad8104d3ccfabbe9" ON "metric_alarm" ("alarm_name", "region") `,
