@@ -28,9 +28,8 @@ export default function Schema({
     });
   };
   const helpIcon = <QuestionMarkCircleIcon className='w-4 h-4 m-2' aria-hidden='true' />;
-  const goToDocs = (module: string) => {
+  const goToDocs = (moduleName: string) => {
     let modulePath;
-    const moduleName = module.split('@')[0];
     if (typeof moduleName === 'string' && moduleName.startsWith('aws')) modulePath = 'aws';
     else if (moduleName.startsWith('iasql')) modulePath = 'builtin';
     window.open(
@@ -48,7 +47,7 @@ export default function Schema({
           <Accordion
             key={moduleName}
             id={moduleName}
-            title={moduleName}
+            title={moduleName.split('@')[0]}
             titleCustomClasses='font-bold'
             defaultOpen={true}
             action={{ icon: helpIcon, handler: goToDocs }}
@@ -83,7 +82,7 @@ export default function Schema({
           <Accordion
             key={moduleName}
             id={`fn-${moduleName}`}
-            title={moduleName}
+            title={moduleName.split('@')[0]}
             titleCustomClasses='font-bold'
             defaultOpen={true}
           >
