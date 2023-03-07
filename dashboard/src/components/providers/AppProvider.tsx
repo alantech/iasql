@@ -166,7 +166,13 @@ const reducer = (state: AppState, payload: Payload): AppState => {
       tabsCopy[tabIdx].queryRes = queryRes;
       if (runSqlUpdatedDbs !== null && runSqlUpdatedDbs !== undefined) {
         const current = runSqlUpdatedDbs.find((d: any) => d.alias === state.selectedDb.alias);
-        return { ...state, databases: runSqlUpdatedDbs, selectedDb: current, editorTabs: tabsCopy };
+        return {
+          ...state,
+          databases: runSqlUpdatedDbs,
+          selectedDb: current,
+          editorTabs: tabsCopy,
+          forceRun: false,
+        };
       }
       return { ...state, editorTabs: tabsCopy, forceRun: false };
     }
