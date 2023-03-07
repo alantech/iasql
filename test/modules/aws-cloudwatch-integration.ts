@@ -451,7 +451,7 @@ describe('AwsCloudwatch Integration Testing', () => {
     query(
       `
       INSERT INTO metric_alarm (alarm_name, alarm_description, actions_enabled, comparison_operator, datapoints_to_alarm, dimensions, metric_name, namespace, period, statistic, threshold, evaluation_periods)
-      VALUES ('${alarmName}', 'Metric alarm description', true, 'GreaterThanThreshold', 1, '[{"Name": "InstanceId", "Value": "test"}]', 'CPUUtilization', 'AWS/EC2', 60, 'Average', 10, 1);
+      VALUES ('${alarmName}', 'Metric alarm description', true, 'GreaterThanThreshold', 1, '[{"Name": "InstanceId", "Value": "test"}]', 'CPUUtilization', 'AWS/EC2', 60, 'Average', 10.5, 1);
   `,
       undefined,
       true,
