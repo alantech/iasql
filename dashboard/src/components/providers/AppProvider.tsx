@@ -224,7 +224,12 @@ SELECT * FROM iasql_install('${installModule}');
       const newTab = tabsCopy.pop();
       tabsCopy.push({ title: `Query-${state.editorTabsCreated}`, content: installContent, closable: true });
       if (newTab) tabsCopy.push(newTab);
-      return { ...state, editorTabs: tabsCopy, editorTabsCreated: state.editorTabsCreated + 1 };
+      return {
+        ...state,
+        editorTabs: tabsCopy,
+        editorTabsCreated: state.editorTabsCreated + 1,
+        forceRun: true,
+      };
     }
     case ActionType.UninstallModule: {
       const { moduleName: uninstallModule } = payload.data;
@@ -236,7 +241,12 @@ SELECT * FROM iasql_uninstall('${uninstallModule}');
       const newTab = tabsCopy.pop();
       tabsCopy.push({ title: `Query-${state.editorTabsCreated}`, content: uninstallContent, closable: true });
       if (newTab) tabsCopy.push(newTab);
-      return { ...state, editorTabs: tabsCopy, editorTabsCreated: state.editorTabsCreated + 1 };
+      return {
+        ...state,
+        editorTabs: tabsCopy,
+        editorTabsCreated: state.editorTabsCreated + 1,
+        forceRun: true,
+      };
     }
     case ActionType.DisconnectDb: {
       const { databases: updatedDbsAfterDisconnect } = payload.data;
