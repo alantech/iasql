@@ -12,7 +12,7 @@ We will create and configure an S3 bucket to serve our static website. To enable
 
 <!-- truncate -->
 
-## Create a S3 Bucket
+## Create an S3 Bucket
 
 To be able to work with S3, we should first install the corresponding IaSQL module.
 
@@ -23,7 +23,7 @@ SELECT
 
 Installing a module gives us the ability to use tables and RPCs provided by it. `aws_s3` module gives us the ability to manage an S3 bucket, S3 static website hosting, and other related stuff. So let's create an S3 bucket first.
 
-```sql title="Create a S3 Bucket"
+```sql title="Create an S3 Bucket"
 SELECT
   iasql_begin ();
 
@@ -158,7 +158,7 @@ https://github.com/iasql/sample-react-app
 
 But you can use whatever codebase you'd like by changing the URLs so that they point to the Github repository hosting your React app.
 
-Now it's the time to create a CodeBuild project. CodeBuild is an AWS CI/CD system that is free of cost. The CodeBuild project will do the following:
+Now it's time to create a CodeBuild project. CodeBuild is an AWS CI/CD system that is free of cost. The CodeBuild project will do the following:
 
 - Pull the codebase from the GitHub repository
 - Build the app
@@ -236,7 +236,7 @@ FROM
   start_build ('deploy-static-website', 'us-east-1');
 ```
 
-This will trigger the CodeBuild project to start. After a while we should be able to see the files appearing in our S3 bucket. We can access our React app using the endpoint for the S3 static website hosting. As we already mentioned, to get the endpoint we can use `get_bucket_website_endpoint` helper function.
+This will trigger the CodeBuild project to start. After a while, we should be able to see the files appearing in our S3 bucket. We can access our React app using the endpoint for the S3 static website hosting. As we already mentioned, to get the endpoint we can use `get_bucket_website_endpoint` helper function.
 
 ```sql title="Get The Bucket Website Endpoint"
 SELECT
@@ -247,7 +247,7 @@ By visiting the link returned by the above function, you can see our sample app 
 
 ## Create a CloudFront Distribution
 
-Serving files in a bucket to the public using pure S3 isn't a good idea. In our case because the S3 static website hosting does not provide an HTTPS endpoint, but in most cases because the [data transfer rates for S3](https://aws.amazon.com/s3/pricing/) aren't cheap and can grow out of control. Also, the speed in which the users can access to the bucket objects will increase if you use a CDN because they'll be delivered to the users from the nearest edge server.
+Serving files in a bucket to the public using pure S3 isn't a good idea. In our case because the S3 static website hosting does not provide an HTTPS endpoint, but in most cases because the [data transfer rates for S3](https://aws.amazon.com/s3/pricing/) aren't cheap and can grow out of control. Also, the speed at which the users can access the bucket objects will increase if you use a CDN because they'll be delivered to the users from the nearest edge server.
 
 With the above in mind, let's create a CloudFront distribution for our S3 bucket. But first, we need to install the `aws_cloudfront` module to be able to leverage its abilities.
 
