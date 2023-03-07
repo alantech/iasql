@@ -3,14 +3,14 @@ import { Not, IsNull } from 'typeorm';
 import { EC2 } from '@aws-sdk/client-ec2';
 
 import { AWS, crudBuilderFormat } from '../../services/aws_macros';
-import { Context, Crud2, MapperBase, ModuleBase, PartialContext } from '../interfaces';
+import { Context, Crud, MapperBase, ModuleBase, PartialContext } from '../interfaces';
 import { AwsCredentials, AwsRegions } from './entity';
 
 class CredentialsMapper extends MapperBase<AwsCredentials> {
   module: AwsAccount;
   entity = AwsCredentials;
   equals = (_a: AwsCredentials, _b: AwsCredentials) => true;
-  cloud = new Crud2<AwsCredentials>({
+  cloud = new Crud<AwsCredentials>({
     create: async (_e: AwsCredentials[], _ctx: Context) => {
       /* Do nothing */
     },
@@ -51,7 +51,7 @@ class RegionsMapper extends MapperBase<AwsRegions> {
     res => res?.Regions?.map(r => r.RegionName ?? '').filter(r => r !== '') ?? [],
   );
 
-  cloud = new Crud2<AwsRegions>({
+  cloud = new Crud<AwsRegions>({
     create: async (e: AwsRegions[], ctx: Context) => {
       // Just immediately revert, we can't create regions in the cloud
       const out = await this.module.awsRegions.db.delete(e, ctx);

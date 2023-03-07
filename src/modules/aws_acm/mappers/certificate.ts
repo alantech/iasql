@@ -4,7 +4,7 @@ import { parse as parseArn } from '@aws-sdk/util-arn-parser';
 
 import { AwsAcmModule } from '..';
 import { AWS, crudBuilderFormat, mapLin, paginateBuilder } from '../../../services/aws_macros';
-import { Context, Crud2, MapperBase } from '../../interfaces';
+import { Context, Crud, MapperBase } from '../../interfaces';
 import {
   Certificate,
   certificateRenewalEligibilityEnum,
@@ -96,7 +96,7 @@ export class CertificateMapper extends MapperBase<Certificate> {
     return out;
   }
 
-  db = new Crud2<Certificate>({
+  db = new Crud<Certificate>({
     create: (es: Certificate[], ctx: Context) => ctx.orm.save(Certificate, es),
     update: (es: Certificate[], ctx: Context) => ctx.orm.save(Certificate, es),
     delete: (es: Certificate[], ctx: Context) => ctx.orm.remove(Certificate, es),
@@ -111,7 +111,7 @@ export class CertificateMapper extends MapperBase<Certificate> {
       return await ctx.orm.find(Certificate, opts);
     },
   });
-  cloud = new Crud2<Certificate>({
+  cloud = new Crud<Certificate>({
     create: async (es: Certificate[], ctx: Context) => {
       // Do not cloud create, just restore database
       await this.module.certificate.db.delete(es, ctx);

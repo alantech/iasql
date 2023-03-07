@@ -7,7 +7,7 @@ import {
 import { AwsEc2Module } from '..';
 import { AWS, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
 import { awsElbModule } from '../../aws_elb';
-import { Context, Crud2, IdFields, MapperBase } from '../../interfaces';
+import { Context, Crud, IdFields, MapperBase } from '../../interfaces';
 import { RegisteredInstance } from '../entity';
 
 export class RegisteredInstanceMapper extends MapperBase<RegisteredInstance> {
@@ -135,7 +135,7 @@ export class RegisteredInstanceMapper extends MapperBase<RegisteredInstance> {
     _res => undefined,
   );
 
-  db = new Crud2<RegisteredInstance>({
+  db = new Crud<RegisteredInstance>({
     create: (es: RegisteredInstance[], ctx: Context) => ctx.orm.save(RegisteredInstance, es),
     update: (es: RegisteredInstance[], ctx: Context) => ctx.orm.save(RegisteredInstance, es),
     delete: (es: RegisteredInstance[], ctx: Context) => ctx.orm.remove(RegisteredInstance, es),
@@ -158,7 +158,7 @@ export class RegisteredInstanceMapper extends MapperBase<RegisteredInstance> {
     },
   });
 
-  cloud: Crud2<RegisteredInstance> = new Crud2({
+  cloud: Crud<RegisteredInstance> = new Crud({
     create: async (es: RegisteredInstance[], ctx: Context) => {
       const out = [];
       for (const e of es) {

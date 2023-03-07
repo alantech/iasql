@@ -7,8 +7,8 @@ import {
 } from '@aws-sdk/client-cloudwatch';
 
 import { AwsCloudwatchModule } from '..';
-import { AWS, crudBuilder2, crudBuilderFormat } from '../../../services/aws_macros';
-import { Context, Crud2, MapperBase } from '../../interfaces';
+import { AWS, crudBuilder, crudBuilderFormat } from '../../../services/aws_macros';
+import { Context, Crud, MapperBase } from '../../interfaces';
 import {
   comparisonOperatorEnum,
   evaluateLowSampleCountPercentileEnum,
@@ -43,7 +43,7 @@ export class MetricAlarmMapper extends MapperBase<MetricAlarm> {
     isEqual(a.treatMissingData, b.treatMissingData) &&
     Object.is(a.alarmArn, b.alarmArn);
 
-  putMetricAlarm = crudBuilder2<CloudWatch, 'putMetricAlarm'>('putMetricAlarm', input => input);
+  putMetricAlarm = crudBuilder<CloudWatch, 'putMetricAlarm'>('putMetricAlarm', input => input);
 
   getMetricAlarm = crudBuilderFormat<CloudWatch, 'describeAlarms', AWSMetricAlarm[] | undefined>(
     'describeAlarms',
@@ -57,7 +57,7 @@ export class MetricAlarmMapper extends MapperBase<MetricAlarm> {
     res => res?.MetricAlarms,
   );
 
-  deleteMetricAlarm = crudBuilder2<CloudWatch, 'deleteAlarms'>('deleteAlarms', name => ({
+  deleteMetricAlarm = crudBuilder<CloudWatch, 'deleteAlarms'>('deleteAlarms', name => ({
     AlarmNames: [name],
   }));
 
@@ -93,7 +93,7 @@ export class MetricAlarmMapper extends MapperBase<MetricAlarm> {
     return out;
   }
 
-  cloud = new Crud2<MetricAlarm>({
+  cloud = new Crud<MetricAlarm>({
     create: async (ms: MetricAlarm[], ctx: Context) => {
       const out = [];
       for (const m of ms) {

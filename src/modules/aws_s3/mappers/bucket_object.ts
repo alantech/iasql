@@ -2,8 +2,8 @@ import { _Object, paginateListObjectsV2, S3, waitUntilObjectNotExists } from '@a
 import { WaiterOptions } from '@aws-sdk/util-waiter';
 
 import { AwsS3Module } from '..';
-import { AWS, crudBuilder2, paginateBuilder } from '../../../services/aws_macros';
-import { Context, Crud2, MapperBase } from '../../interfaces';
+import { AWS, crudBuilder, paginateBuilder } from '../../../services/aws_macros';
+import { Context, Crud, MapperBase } from '../../interfaces';
 import { BucketObject } from '../entity';
 
 export class BucketObjectMapper extends MapperBase<BucketObject> {
@@ -40,9 +40,9 @@ export class BucketObjectMapper extends MapperBase<BucketObject> {
     return out;
   });
 
-  deleteBucketObject = crudBuilder2<S3, 'deleteObject'>('deleteObject', (b, k) => ({ Bucket: b, Key: k }));
+  deleteBucketObject = crudBuilder<S3, 'deleteObject'>('deleteObject', (b, k) => ({ Bucket: b, Key: k }));
 
-  cloud = new Crud2<BucketObject>({
+  cloud = new Crud<BucketObject>({
     create: async (es: BucketObject[], ctx: Context) => {
       // we cannot create bucket objects, remove the existing ones
       await this.module.bucketObject.db.delete(es, ctx);

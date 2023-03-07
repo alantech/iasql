@@ -3,8 +3,8 @@ import _ from 'lodash';
 import { EC2 } from '@aws-sdk/client-ec2';
 import { Route as AwsRoute } from '@aws-sdk/client-ec2/dist-types/models';
 
-import { AWS, crudBuilder2 } from '../../../services/aws_macros';
-import { Context, Crud2, IdFields, MapperBase } from '../../interfaces';
+import { AWS, crudBuilder } from '../../../services/aws_macros';
+import { Context, Crud, IdFields, MapperBase } from '../../interfaces';
 import { Route, RouteTable } from '../entity';
 import { AwsVpcModule } from '../index';
 
@@ -44,7 +44,7 @@ export class RouteMapper extends MapperBase<Route> {
     );
   }
 
-  createRoute = crudBuilder2<EC2, 'createRoute'>('createRoute', (r: Route) => ({
+  createRoute = crudBuilder<EC2, 'createRoute'>('createRoute', (r: Route) => ({
     RouteTableId: r.routeTable.routeTableId,
     DestinationCidrBlock: this.cidrIPv4Pattern.test(r.destination) ? r.destination : undefined,
     DestinationIpv6CidrBlock: this.cidrIPv6Pattern.test(r.destination) ? r.destination : undefined,
@@ -61,7 +61,7 @@ export class RouteMapper extends MapperBase<Route> {
     CoreNetworkArn: r.coreNetworkArn,
   }));
 
-  deleteRoute = crudBuilder2<EC2, 'deleteRoute'>('deleteRoute', (r: Route) => ({
+  deleteRoute = crudBuilder<EC2, 'deleteRoute'>('deleteRoute', (r: Route) => ({
     DestinationCidrBlock: this.cidrIPv4Pattern.test(r.destination) ? r.destination : undefined,
     DestinationIpv6CidrBlock: this.cidrIPv6Pattern.test(r.destination) ? r.destination : undefined,
     DestinationPrefixListId: this.prefixedListPattern.test(r.destination) ? r.destination : undefined,
@@ -94,7 +94,7 @@ export class RouteMapper extends MapperBase<Route> {
     return out;
   }
 
-  cloud: Crud2<Route> = new Crud2({
+  cloud: Crud<Route> = new Crud({
     create: async (es: Route[], ctx: Context) => {
       const out: Route[] = [];
       for (const e of es) {
@@ -166,7 +166,7 @@ export class RouteMapper extends MapperBase<Route> {
     },
   });
 
-  db = new Crud2<Route>({
+  db = new Crud<Route>({
     create: async (es: Route[], ctx: Context) => {
       for (const e of es) {
         if (!e.routeTable?.id) {

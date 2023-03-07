@@ -12,8 +12,8 @@ import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 
 import { AwsEc2Module } from '..';
 import { awsIamModule, awsSecurityGroupModule, awsVpcModule } from '../..';
-import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
-import { Context, Crud2, MapperBase } from '../../interfaces';
+import { AWS, crudBuilder, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
+import { Context, Crud, MapperBase } from '../../interfaces';
 import { GeneralPurposeVolume, Instance, State, VolumeState } from '../entity';
 import { updateTags, eqTags } from './tags';
 
@@ -113,13 +113,13 @@ export class InstanceMapper extends MapperBase<Instance> {
     res => res?.Volumes,
   );
 
-  getParameter = crudBuilder2<SSM, 'getParameter'>('getParameter', Name => ({ Name }));
+  getParameter = crudBuilder<SSM, 'getParameter'>('getParameter', Name => ({ Name }));
 
-  describeImages = crudBuilder2<EC2, 'describeImages'>('describeImages', ImageIds => ({
+  describeImages = crudBuilder<EC2, 'describeImages'>('describeImages', ImageIds => ({
     ImageIds,
   }));
 
-  describeInstances = crudBuilder2<EC2, 'describeInstances'>('describeInstances', InstanceIds => ({
+  describeInstances = crudBuilder<EC2, 'describeInstances'>('describeInstances', InstanceIds => ({
     InstanceIds,
   }));
 
@@ -290,7 +290,7 @@ export class InstanceMapper extends MapperBase<Instance> {
     _res => undefined,
   );
 
-  cloud: Crud2<Instance> = new Crud2({
+  cloud: Crud<Instance> = new Crud({
     create: async (es: Instance[], ctx: Context) => {
       const out = [];
       for (const instance of es) {

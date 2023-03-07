@@ -13,7 +13,7 @@ import { awsElbModule, awsSecurityGroupModule, awsVpcModule } from '../..';
 import { AWS, crudBuilderFormat } from '../../../services/aws_macros';
 import logger from '../../../services/logger';
 import { Subnet } from '../../aws_vpc/entity';
-import { Context, Crud2, MapperBase } from '../../interfaces';
+import { Context, Crud, MapperBase } from '../../interfaces';
 import { Cluster, Service } from '../entity';
 
 export class ServiceMapper extends MapperBase<Service> {
@@ -270,7 +270,7 @@ export class ServiceMapper extends MapperBase<Service> {
     return out;
   }
 
-  cloud: Crud2<Service> = new Crud2({
+  cloud: Crud<Service> = new Crud({
     create: async (es: Service[], ctx: Context) => {
       const res = [];
       for (const e of es) {

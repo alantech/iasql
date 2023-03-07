@@ -14,8 +14,8 @@ import { createWaiter, WaiterOptions, WaiterState } from '@aws-sdk/util-waiter';
 
 import { AwsIamModule } from '..';
 import { objectsAreSame } from '../../../services/aws-diff';
-import { AWS, crudBuilder2, crudBuilderFormat, mapLin, paginateBuilder } from '../../../services/aws_macros';
-import { Context, Crud2, MapperBase } from '../../interfaces';
+import { AWS, crudBuilder, crudBuilderFormat, mapLin, paginateBuilder } from '../../../services/aws_macros';
+import { Context, Crud, MapperBase } from '../../interfaces';
 import { IamUser } from '../entity';
 
 export class UserMapper extends MapperBase<IamUser> {
@@ -51,14 +51,14 @@ export class UserMapper extends MapperBase<IamUser> {
 
   getAllUsers = paginateBuilder<IAM>(paginateListUsers, 'Users');
 
-  updateUserPath = crudBuilder2<IAM, 'updateUser'>('updateUser', (UserName, NewPath) => ({
+  updateUserPath = crudBuilder<IAM, 'updateUser'>('updateUser', (UserName, NewPath) => ({
     UserName,
     NewPath,
   }));
 
-  deleteUser = crudBuilder2<IAM, 'deleteUser'>('deleteUser', UserName => ({ UserName }));
+  deleteUser = crudBuilder<IAM, 'deleteUser'>('deleteUser', UserName => ({ UserName }));
 
-  deleteLoginProfile = crudBuilder2<IAM, 'deleteLoginProfile'>('deleteLoginProfile', UserName => ({
+  deleteLoginProfile = crudBuilder<IAM, 'deleteLoginProfile'>('deleteLoginProfile', UserName => ({
     UserName,
   }));
 
@@ -102,7 +102,7 @@ export class UserMapper extends MapperBase<IamUser> {
     );
   }
 
-  attachUserPolicy = crudBuilder2<IAM, 'attachUserPolicy'>('attachUserPolicy', (UserName, PolicyArn) => ({
+  attachUserPolicy = crudBuilder<IAM, 'attachUserPolicy'>('attachUserPolicy', (UserName, PolicyArn) => ({
     UserName,
     PolicyArn,
   }));
@@ -110,7 +110,7 @@ export class UserMapper extends MapperBase<IamUser> {
   attachUserPolicies = (client: IAM, userName: string, policyArns: string[]) =>
     mapLin(policyArns, policyArn => this.attachUserPolicy(client, userName, policyArn));
 
-  detachUserPolicy = crudBuilder2<IAM, 'detachUserPolicy'>('detachUserPolicy', (UserName, PolicyArn) => ({
+  detachUserPolicy = crudBuilder<IAM, 'detachUserPolicy'>('detachUserPolicy', (UserName, PolicyArn) => ({
     UserName,
     PolicyArn,
   }));
@@ -144,7 +144,7 @@ export class UserMapper extends MapperBase<IamUser> {
     return out;
   }
 
-  cloud = new Crud2({
+  cloud = new Crud({
     create: async (es: IamUser[], ctx: Context) => {
       const client = (await ctx.getAwsClient()) as AWS;
       const out = [];

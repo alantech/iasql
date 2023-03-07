@@ -7,8 +7,8 @@ import {
 } from '@aws-sdk/client-elasticache';
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 
-import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../services/aws_macros';
-import { Context, Crud2, MapperBase, ModuleBase } from '../interfaces';
+import { AWS, crudBuilder, crudBuilderFormat, paginateBuilder } from '../../services/aws_macros';
+import { Context, Crud, MapperBase, ModuleBase } from '../interfaces';
 import { CacheCluster, Engine } from './entity';
 
 class CacheClusterMapper extends MapperBase<CacheCluster> {
@@ -75,9 +75,9 @@ class CacheClusterMapper extends MapperBase<CacheCluster> {
     res => res?.CacheClusters?.[0],
   );
   getCacheClusters = paginateBuilder<ElastiCache>(paginateDescribeCacheClusters, 'CacheClusters');
-  deleteCacheCluster = crudBuilder2<ElastiCache, 'deleteCacheCluster'>('deleteCacheCluster', input => input);
+  deleteCacheCluster = crudBuilder<ElastiCache, 'deleteCacheCluster'>('deleteCacheCluster', input => input);
 
-  cloud = new Crud2({
+  cloud = new Crud({
     updateOrReplace: (_a: CacheCluster, _b: CacheCluster) => {
       // TEMPORARY: we do not update because it is taking long time, it is
       // not sustainable

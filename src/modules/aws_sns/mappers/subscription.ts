@@ -7,7 +7,7 @@ import {
 
 import { AwsSnsModule } from '..';
 import { AWS, paginateBuilder } from '../../../services/aws_macros';
-import { Context, Crud2, MapperBase } from '../../interfaces';
+import { Context, Crud, MapperBase } from '../../interfaces';
 import { Subscription } from '../entity/subscription';
 
 export class SubscriptionMapper extends MapperBase<Subscription> {
@@ -55,7 +55,7 @@ export class SubscriptionMapper extends MapperBase<Subscription> {
 
   listSubscriptions = paginateBuilder<SNS>(paginateListSubscriptions, 'Subscriptions');
 
-  cloud: Crud2<Subscription> = new Crud2({
+  cloud: Crud<Subscription> = new Crud({
     create: async (es: Subscription[], ctx: Context) => {
       // Just immediately revert, we can't create subscriptions without the RPC
       const out = await this.module.subscription.db.delete(es, ctx);

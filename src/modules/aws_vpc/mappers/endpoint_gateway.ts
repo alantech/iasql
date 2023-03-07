@@ -11,7 +11,7 @@ import { AwsVpcModule } from '..';
 import { policiesAreSame } from '../../../services/aws-diff';
 import { AWS, crudBuilderFormat } from '../../../services/aws_macros';
 import { safeParse } from '../../../services/common';
-import { Context, Crud2, MapperBase } from '../../interfaces';
+import { Context, Crud, MapperBase } from '../../interfaces';
 import { EndpointGateway } from '../entity';
 import {
   createVpcEndpoint,
@@ -77,7 +77,7 @@ export class EndpointGatewayMapper extends MapperBase<EndpointGateway> {
     res => res?.RouteTables,
   );
 
-  cloud: Crud2<EndpointGateway> = new Crud2({
+  cloud: Crud<EndpointGateway> = new Crud({
     create: async (es: EndpointGateway[], ctx: Context) => {
       const out = [];
       for (const e of es) {

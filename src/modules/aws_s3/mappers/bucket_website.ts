@@ -4,8 +4,8 @@ import { PutBucketWebsiteCommandInput } from '@aws-sdk/client-s3/dist-types/comm
 import { GetBucketWebsiteOutput } from '@aws-sdk/client-s3/dist-types/models';
 
 import { AwsS3Module } from '..';
-import { AWS, crudBuilder2 } from '../../../services/aws_macros';
-import { Context, Crud2, MapperBase } from '../../interfaces';
+import { AWS, crudBuilder } from '../../../services/aws_macros';
+import { Context, Crud, MapperBase } from '../../interfaces';
 import { Bucket, BucketWebsite } from '../entity';
 
 export class BucketWebsiteMapper extends MapperBase<BucketWebsite> {
@@ -33,9 +33,9 @@ export class BucketWebsiteMapper extends MapperBase<BucketWebsite> {
     return out;
   }
 
-  getBucketWebsite = crudBuilder2<S3, 'getBucketWebsite'>('getBucketWebsite', input => input);
+  getBucketWebsite = crudBuilder<S3, 'getBucketWebsite'>('getBucketWebsite', input => input);
 
-  putBucketWebsite = crudBuilder2<S3, 'putBucketWebsite'>('putBucketWebsite', (bucketName, index, error) => {
+  putBucketWebsite = crudBuilder<S3, 'putBucketWebsite'>('putBucketWebsite', (bucketName, index, error) => {
     const input: PutBucketWebsiteCommandInput = {
       Bucket: bucketName,
       WebsiteConfiguration: {
@@ -52,7 +52,7 @@ export class BucketWebsiteMapper extends MapperBase<BucketWebsite> {
     return input;
   });
 
-  cloud = new Crud2<BucketWebsite>({
+  cloud = new Crud<BucketWebsite>({
     create: async (es: BucketWebsite[], ctx: Context) => {
       const out = [];
       for (const e of es) {

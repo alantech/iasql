@@ -3,7 +3,7 @@ import { CreateRouteTableCommandInput } from '@aws-sdk/client-ec2/dist-types/com
 import { RouteTable as AwsRouteTable } from '@aws-sdk/client-ec2/dist-types/models';
 
 import { AWS, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
-import { Context, Crud2, MapperBase } from '../../interfaces';
+import { Context, Crud, MapperBase } from '../../interfaces';
 import { Route, RouteTable } from '../entity';
 import { AwsVpcModule } from '../index';
 import { convertTagsForAws, convertTagsFromAws, eqTags } from './tags';
@@ -61,7 +61,7 @@ export class RouteTableMapper extends MapperBase<RouteTable> {
     return (await client.createRouteTable(input)).RouteTable;
   }
 
-  cloud: Crud2<RouteTable> = new Crud2({
+  cloud: Crud<RouteTable> = new Crud({
     create: async (es: RouteTable[], ctx: Context) => {
       const out: RouteTable[] = [];
       for (const e of es) {
@@ -140,7 +140,7 @@ export class RouteTableMapper extends MapperBase<RouteTable> {
     },
   });
 
-  db = new Crud2<RouteTable>({
+  db = new Crud<RouteTable>({
     create: async (es: RouteTable[], ctx: Context) => {
       await ctx.orm.save(RouteTable, es);
       for (const e of es) {

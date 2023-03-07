@@ -1,8 +1,8 @@
 import { EC2 } from '@aws-sdk/client-ec2';
 
 import { AwsVpcModule } from '..';
-import { AWS, crudBuilder2 } from '../../../services/aws_macros';
-import { Context, Crud2, MapperBase } from '../../interfaces';
+import { AWS, crudBuilder } from '../../../services/aws_macros';
+import { Context, Crud, MapperBase } from '../../interfaces';
 import { AvailabilityZone } from '../entity';
 
 export class AvailabilityZoneMapper extends MapperBase<AvailabilityZone> {
@@ -10,7 +10,7 @@ export class AvailabilityZoneMapper extends MapperBase<AvailabilityZone> {
   entity = AvailabilityZone;
   equals = (a: AvailabilityZone, b: AvailabilityZone) => a.name === b.name;
 
-  getAvailabilityZones = crudBuilder2<EC2, 'describeAvailabilityZones'>(
+  getAvailabilityZones = crudBuilder<EC2, 'describeAvailabilityZones'>(
     'describeAvailabilityZones',
     region => ({
       Filters: [
@@ -22,7 +22,7 @@ export class AvailabilityZoneMapper extends MapperBase<AvailabilityZone> {
     }),
   );
 
-  cloud = new Crud2({
+  cloud = new Crud({
     create: async (e: AvailabilityZone[], ctx: Context) => {
       const out = await this.module.availabilityZone.db.delete(e, ctx);
       if (out instanceof Array) {

@@ -7,8 +7,8 @@ import {
 
 import { AwsS3Module } from '..';
 import { policiesAreSame } from '../../../services/aws-diff';
-import { AWS, crudBuilder2, crudBuilderFormat } from '../../../services/aws_macros';
-import { Context, Crud2, MapperBase } from '../../interfaces';
+import { AWS, crudBuilder, crudBuilderFormat } from '../../../services/aws_macros';
+import { Context, Crud, MapperBase } from '../../interfaces';
 import { Bucket } from '../entity';
 
 export class BucketMapper extends MapperBase<Bucket> {
@@ -49,9 +49,9 @@ export class BucketMapper extends MapperBase<Bucket> {
     res => res,
   );
 
-  deleteBucket = crudBuilder2<S3, 'deleteBucket'>('deleteBucket', b => ({ Bucket: b }));
+  deleteBucket = crudBuilder<S3, 'deleteBucket'>('deleteBucket', b => ({ Bucket: b }));
 
-  createBucket = crudBuilder2<S3, 'createBucket'>('createBucket', b => ({ Bucket: b }));
+  createBucket = crudBuilder<S3, 'createBucket'>('createBucket', b => ({ Bucket: b }));
 
   async getBucketPolicy(client: S3, input: GetBucketPolicyCommandInput) {
     try {
@@ -63,7 +63,7 @@ export class BucketMapper extends MapperBase<Bucket> {
     }
   }
 
-  updateBucketPolicy = crudBuilder2<S3, 'putBucketPolicy'>('putBucketPolicy', input => input);
+  updateBucketPolicy = crudBuilder<S3, 'putBucketPolicy'>('putBucketPolicy', input => input);
 
   async createBucketPolicy(client: S3, bucket: Bucket, ctx: Context) {
     const input: PutBucketPolicyCommandInput = {
@@ -87,7 +87,7 @@ export class BucketMapper extends MapperBase<Bucket> {
     return bucket.policy;
   }
 
-  cloud = new Crud2<Bucket>({
+  cloud = new Crud<Bucket>({
     // TODO: There are lots of useful permission controls on create to be added to this model
     create: async (es: Bucket[], ctx: Context) => {
       const out = [];

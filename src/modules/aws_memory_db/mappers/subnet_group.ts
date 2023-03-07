@@ -1,10 +1,10 @@
 import { SubnetGroup as AWSSubnetGroup, MemoryDB } from '@aws-sdk/client-memorydb';
 
 import { AwsMemoryDBModule } from '..';
-import { AWS, crudBuilder2, crudBuilderFormat } from '../../../services/aws_macros';
+import { AWS, crudBuilder, crudBuilderFormat } from '../../../services/aws_macros';
 import { awsVpcModule } from '../../aws_vpc';
 import { Subnet, Vpc } from '../../aws_vpc/entity';
-import { Context, Crud2, MapperBase } from '../../interfaces';
+import { Context, Crud, MapperBase } from '../../interfaces';
 import { SubnetGroup } from '../entity';
 import supportedRegions from './supported_regions';
 
@@ -49,7 +49,7 @@ export class SubnetGroupMapper extends MapperBase<SubnetGroup> {
     res => res?.SubnetGroups,
   );
 
-  createSubnetGroup = crudBuilder2<MemoryDB, 'createSubnetGroup'>('createSubnetGroup', input => input);
+  createSubnetGroup = crudBuilder<MemoryDB, 'createSubnetGroup'>('createSubnetGroup', input => input);
 
   getDefaultSubnets = async (ctx: Context, region: string): Promise<Subnet[]> => {
     const defaultVpc: Vpc = (await awsVpcModule.vpc.db.read(ctx))
@@ -60,9 +60,9 @@ export class SubnetGroupMapper extends MapperBase<SubnetGroup> {
     return subnets.filter(sn => sn.vpc.id === defaultVpc.id);
   };
 
-  updateSubnetGroup = crudBuilder2<MemoryDB, 'updateSubnetGroup'>('updateSubnetGroup', input => input);
+  updateSubnetGroup = crudBuilder<MemoryDB, 'updateSubnetGroup'>('updateSubnetGroup', input => input);
 
-  deleteSubnetGroup = crudBuilder2<MemoryDB, 'deleteSubnetGroup'>(
+  deleteSubnetGroup = crudBuilder<MemoryDB, 'deleteSubnetGroup'>(
     'deleteSubnetGroup',
     (SubnetGroupName: string) => ({ SubnetGroupName }),
   );
@@ -114,7 +114,7 @@ export class SubnetGroupMapper extends MapperBase<SubnetGroup> {
     }
   };
 
-  cloud: Crud2<SubnetGroup> = new Crud2({
+  cloud: Crud<SubnetGroup> = new Crud({
     create: async (es: SubnetGroup[], ctx: Context) => {
       const out = [];
       for (const e of es) {

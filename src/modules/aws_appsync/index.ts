@@ -7,8 +7,8 @@ import {
   AppSync,
 } from '@aws-sdk/client-appsync';
 
-import { AWS, crudBuilder2, crudBuilderFormat } from '../../services/aws_macros';
-import { Context, Crud2, MapperBase, ModuleBase } from '../interfaces';
+import { AWS, crudBuilder, crudBuilderFormat } from '../../services/aws_macros';
+import { Context, Crud, MapperBase, ModuleBase } from '../interfaces';
 import { AuthenticationType, GraphqlApi } from './entity';
 
 class GraphqlApiMapper extends MapperBase<GraphqlApi> {
@@ -47,7 +47,7 @@ class GraphqlApiMapper extends MapperBase<GraphqlApi> {
     return out;
   }
 
-  createGraphqlApi = crudBuilder2<AppSync, 'createGraphqlApi'>('createGraphqlApi', input => input);
+  createGraphqlApi = crudBuilder<AppSync, 'createGraphqlApi'>('createGraphqlApi', input => input);
 
   getGraphqlApi = crudBuilderFormat<AppSync, 'getGraphqlApi', GraphqlApiAWS | undefined>(
     'getGraphqlApi',
@@ -61,11 +61,11 @@ class GraphqlApiMapper extends MapperBase<GraphqlApi> {
     res => res?.graphqlApis ?? [],
   );
 
-  updateGraphqlApi = crudBuilder2<AppSync, 'updateGraphqlApi'>('updateGraphqlApi', input => input);
+  updateGraphqlApi = crudBuilder<AppSync, 'updateGraphqlApi'>('updateGraphqlApi', input => input);
 
-  deleteGraphqlApi = crudBuilder2<AppSync, 'deleteGraphqlApi'>('deleteGraphqlApi', input => input);
+  deleteGraphqlApi = crudBuilder<AppSync, 'deleteGraphqlApi'>('deleteGraphqlApi', input => input);
 
-  cloud = new Crud2({
+  cloud = new Crud({
     create: async (apis: GraphqlApi[], ctx: Context) => {
       const out = [];
       for (const api of apis) {

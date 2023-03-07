@@ -12,8 +12,8 @@ import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 
 import { AwsEc2Module } from '..';
 import { awsVpcModule } from '../..';
-import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
-import { Context, Crud2, MapperBase } from '../../interfaces';
+import { AWS, crudBuilder, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
+import { Context, Crud, MapperBase } from '../../interfaces';
 import { GeneralPurposeVolume, GeneralPurposeVolumeType, VolumeState } from '../entity';
 import { updateTags, eqTags } from './tags';
 
@@ -118,34 +118,31 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
     res => res?.Volumes?.pop(),
   );
 
-  deleteVolumeInternal = crudBuilder2<EC2, 'deleteVolume'>('deleteVolume', VolumeId => ({ VolumeId }));
+  deleteVolumeInternal = crudBuilder<EC2, 'deleteVolume'>('deleteVolume', VolumeId => ({ VolumeId }));
   deleteVolume = async (client: EC2, VolumeId: string) => {
     await this.deleteVolumeInternal(client, VolumeId);
     await this.waitUntilDeleted(client, VolumeId);
   };
 
-  updateVolumeInternal = crudBuilder2<EC2, 'modifyVolume'>('modifyVolume', input => input);
+  updateVolumeInternal = crudBuilder<EC2, 'modifyVolume'>('modifyVolume', input => input);
 
   updateVolume = async (client: EC2, input: ModifyVolumeCommandInput) => {
     await this.updateVolumeInternal(client, input);
     await this.waitUntilModificationsComplete(client, input.VolumeId ?? '');
   };
 
-  attachVolumeInternal = crudBuilder2<EC2, 'attachVolume'>(
-    'attachVolume',
-    (VolumeId, InstanceId, Device) => ({
-      VolumeId,
-      InstanceId,
-      Device,
-    }),
-  );
+  attachVolumeInternal = crudBuilder<EC2, 'attachVolume'>('attachVolume', (VolumeId, InstanceId, Device) => ({
+    VolumeId,
+    InstanceId,
+    Device,
+  }));
 
   attachVolume = async (client: EC2, VolumeId: string, InstanceId: string, Device: string) => {
     await this.attachVolumeInternal(client, VolumeId, InstanceId, Device);
     await this.waitUntilInUse(client, VolumeId);
   };
 
-  detachVolumeInternal = crudBuilder2<EC2, 'detachVolume'>('detachVolume', VolumeId => ({ VolumeId }));
+  detachVolumeInternal = crudBuilder<EC2, 'detachVolume'>('detachVolume', VolumeId => ({ VolumeId }));
 
   detachVolume = async (client: EC2, VolumeId: string) => {
     await this.detachVolumeInternal(client, VolumeId);
@@ -242,7 +239,7 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
     );
   }
 
-  cloud: Crud2<GeneralPurposeVolume> = new Crud2({
+  cloud: Crud<GeneralPurposeVolume> = new Crud({
     create: async (es: GeneralPurposeVolume[], ctx: Context) => {
       const out = [];
       for (const e of es) {

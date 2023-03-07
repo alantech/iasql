@@ -6,8 +6,8 @@ import {
 } from '@aws-sdk/client-codedeploy';
 
 import { AwsCodedeployModule } from '..';
-import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
-import { Context, Crud2, MapperBase } from '../../interfaces';
+import { AWS, crudBuilder, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
+import { Context, Crud, MapperBase } from '../../interfaces';
 import { CodedeployApplication, ComputePlatform } from '../entity';
 
 export class CodedeployApplicationMapper extends MapperBase<CodedeployApplication> {
@@ -48,9 +48,9 @@ export class CodedeployApplicationMapper extends MapperBase<CodedeployApplicatio
 
   listApplications = paginateBuilder<CodeDeploy>(paginateListApplications, 'applications');
 
-  deleteApplication = crudBuilder2<CodeDeploy, 'deleteApplication'>('deleteApplication', input => input);
+  deleteApplication = crudBuilder<CodeDeploy, 'deleteApplication'>('deleteApplication', input => input);
 
-  cloud: Crud2<CodedeployApplication> = new Crud2({
+  cloud: Crud<CodedeployApplication> = new Crud({
     create: async (es: CodedeployApplication[], ctx: Context) => {
       const out = [];
       for (const e of es) {

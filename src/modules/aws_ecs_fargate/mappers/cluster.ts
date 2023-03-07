@@ -9,8 +9,8 @@ import {
 import { parse as parseArn } from '@aws-sdk/util-arn-parser';
 
 import { AwsEcsFargateModule } from '..';
-import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
-import { Context, Crud2, MapperBase } from '../../interfaces';
+import { AWS, crudBuilder, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
+import { Context, Crud, MapperBase } from '../../interfaces';
 import { Cluster } from '../entity';
 
 export class ClusterMapper extends MapperBase<Cluster> {
@@ -49,7 +49,7 @@ export class ClusterMapper extends MapperBase<Cluster> {
   );
   getClusters = async (client: ECS) =>
     this.getClustersCore(client, { clusters: await this.getClusterArns(client) });
-  deleteClusterCore = crudBuilder2<ECS, 'deleteCluster'>('deleteCluster', input => input);
+  deleteClusterCore = crudBuilder<ECS, 'deleteCluster'>('deleteCluster', input => input);
 
   async getTasksArns(client: ECS, cluster: string, serviceName?: string) {
     const tasksArns: string[] = [];
@@ -108,7 +108,7 @@ export class ClusterMapper extends MapperBase<Cluster> {
     });
   }
 
-  cloud: Crud2<Cluster> = new Crud2({
+  cloud: Crud<Cluster> = new Crud({
     create: async (es: Cluster[], ctx: Context) => {
       const out = [];
       for (const e of es) {

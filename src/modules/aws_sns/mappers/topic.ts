@@ -9,8 +9,8 @@ import {
 import { parse as parseArn } from '@aws-sdk/util-arn-parser';
 
 import { AwsSnsModule } from '..';
-import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
-import { Context, Crud2, MapperBase } from '../../interfaces';
+import { AWS, crudBuilder, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
+import { Context, Crud, MapperBase } from '../../interfaces';
 import { Topic } from '../entity';
 
 export class TopicMapper extends MapperBase<Topic> {
@@ -50,14 +50,14 @@ export class TopicMapper extends MapperBase<Topic> {
 
   getTopics = paginateBuilder<SNS>(paginateListTopics, 'Topics', undefined, undefined);
 
-  setTopicAttributes = crudBuilder2<SNS, 'setTopicAttributes'>('setTopicAttributes', input => input);
+  setTopicAttributes = crudBuilder<SNS, 'setTopicAttributes'>('setTopicAttributes', input => input);
 
-  putDataProtectionPolicy = crudBuilder2<SNS, 'putDataProtectionPolicy'>(
+  putDataProtectionPolicy = crudBuilder<SNS, 'putDataProtectionPolicy'>(
     'putDataProtectionPolicy',
     input => input,
   );
 
-  deleteTopic = crudBuilder2<SNS, 'deleteTopic'>('deleteTopic', TopicArn => ({
+  deleteTopic = crudBuilder<SNS, 'deleteTopic'>('deleteTopic', TopicArn => ({
     TopicArn,
   }));
 
@@ -113,7 +113,7 @@ export class TopicMapper extends MapperBase<Topic> {
     return out;
   }
 
-  cloud: Crud2<Topic> = new Crud2({
+  cloud: Crud<Topic> = new Crud({
     create: async (es: Topic[], ctx: Context) => {
       const out = [];
       for (const e of es) {

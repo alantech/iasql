@@ -2,8 +2,8 @@ import { PublicAccessBlockConfiguration as AwsPublicAccessBlock, S3 } from '@aws
 import { GetPublicAccessBlockCommandInput } from '@aws-sdk/client-s3/dist-types/commands/GetPublicAccessBlockCommand';
 
 import { AwsS3Module } from '..';
-import { AWS, crudBuilder2 } from '../../../services/aws_macros';
-import { Context, Crud2, MapperBase } from '../../interfaces';
+import { AWS, crudBuilder } from '../../../services/aws_macros';
+import { Context, Crud, MapperBase } from '../../interfaces';
 import { Bucket, PublicAccessBlock } from '../entity';
 
 export class PublicAccessBlockMapper extends MapperBase<PublicAccessBlock> {
@@ -33,11 +33,11 @@ export class PublicAccessBlockMapper extends MapperBase<PublicAccessBlock> {
     a.blockPublicPolicy === b.blockPublicPolicy &&
     a.restrictPublicBuckets === b.restrictPublicBuckets;
 
-  getPublicAccessBlock = crudBuilder2<S3, 'getPublicAccessBlock'>('getPublicAccessBlock', bucketName => ({
+  getPublicAccessBlock = crudBuilder<S3, 'getPublicAccessBlock'>('getPublicAccessBlock', bucketName => ({
     Bucket: bucketName,
   }));
 
-  cloud = new Crud2<PublicAccessBlock>({
+  cloud = new Crud<PublicAccessBlock>({
     create: async (es: PublicAccessBlock[], ctx: Context) => {
       const out = [];
       for (const e of es) {

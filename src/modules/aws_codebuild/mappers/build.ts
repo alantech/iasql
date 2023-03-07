@@ -9,8 +9,8 @@ import {
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 
 import { AwsCodebuildModule } from '..';
-import { AWS, paginateBuilder, crudBuilderFormat, crudBuilder2 } from '../../../services/aws_macros';
-import { Context, Crud2, MapperBase } from '../../interfaces';
+import { AWS, paginateBuilder, crudBuilderFormat, crudBuilder } from '../../../services/aws_macros';
+import { Context, Crud, MapperBase } from '../../interfaces';
 import { CodebuildBuildList, BuildStatus } from '../entity';
 
 export class CodebuildBuildListMapper extends MapperBase<CodebuildBuildList> {
@@ -81,11 +81,11 @@ export class CodebuildBuildListMapper extends MapperBase<CodebuildBuildList> {
     res => res?.builds,
   );
 
-  stopBuild = crudBuilder2<CodeBuild, 'stopBuild'>('stopBuild', input => input);
+  stopBuild = crudBuilder<CodeBuild, 'stopBuild'>('stopBuild', input => input);
 
-  deleteBuilds = crudBuilder2<CodeBuild, 'batchDeleteBuilds'>('batchDeleteBuilds', input => input);
+  deleteBuilds = crudBuilder<CodeBuild, 'batchDeleteBuilds'>('batchDeleteBuilds', input => input);
 
-  cloud: Crud2<CodebuildBuildList> = new Crud2({
+  cloud: Crud<CodebuildBuildList> = new Crud({
     create: async (es: CodebuildBuildList[], ctx: Context) => {
       // Do not cloud create, just restore database
       await this.module.buildList.db.delete(es, ctx);

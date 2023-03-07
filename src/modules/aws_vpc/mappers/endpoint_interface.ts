@@ -14,7 +14,7 @@ import { AwsVpcModule } from '..';
 import { policiesAreSame } from '../../../services/aws-diff';
 import { AWS, crudBuilderFormat } from '../../../services/aws_macros';
 import { safeParse } from '../../../services/common';
-import { Context, Crud2, MapperBase } from '../../interfaces';
+import { Context, Crud, MapperBase } from '../../interfaces';
 import { Subnet } from '../entity';
 import { EndpointInterface, EndpointInterfaceService } from '../entity/endpoint_interface';
 import {
@@ -151,7 +151,7 @@ export class EndpointInterfaceMapper extends MapperBase<EndpointInterface> {
     return out;
   }
 
-  cloud: Crud2<EndpointInterface> = new Crud2({
+  cloud: Crud<EndpointInterface> = new Crud({
     create: async (es: EndpointInterface[], ctx: Context) => {
       const out = [];
       for (const e of es) {

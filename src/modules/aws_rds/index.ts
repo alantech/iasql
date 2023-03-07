@@ -16,8 +16,8 @@ import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 
 import { awsSecurityGroupModule, awsVpcModule } from '..';
 import { objectsAreSame } from '../../services/aws-diff';
-import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder, mapLin } from '../../services/aws_macros';
-import { Context, Crud2, MapperBase, ModuleBase } from '../interfaces';
+import { AWS, crudBuilder, crudBuilderFormat, paginateBuilder, mapLin } from '../../services/aws_macros';
+import { Context, Crud, MapperBase, ModuleBase } from '../interfaces';
 import { ParameterGroup, ParameterGroupFamily, RDS } from './entity';
 
 interface DBParameterGroupWParameters extends DBParameterGroup {
@@ -218,7 +218,7 @@ class RdsMapper extends MapperBase<RDS> {
     );
   }
 
-  cloud = new Crud2({
+  cloud = new Crud({
     create: async (es: RDS[], ctx: Context) => {
       const out = [];
       for (const e of es) {
@@ -451,16 +451,16 @@ class ParameterGroupMapper extends MapperBase<ParameterGroup> {
       );
       return { ...simpleParameterGroup, Parameters };
     });
-  modifyParameter = crudBuilder2<AWSRDS, 'modifyDBParameterGroup'>(
+  modifyParameter = crudBuilder<AWSRDS, 'modifyDBParameterGroup'>(
     'modifyDBParameterGroup',
     (DBParameterGroupName, parameter) => ({ DBParameterGroupName, Parameters: [parameter] }),
   );
-  deleteDBParameterGroup = crudBuilder2<AWSRDS, 'deleteDBParameterGroup'>(
+  deleteDBParameterGroup = crudBuilder<AWSRDS, 'deleteDBParameterGroup'>(
     'deleteDBParameterGroup',
     DBParameterGroupName => ({ DBParameterGroupName }),
   );
 
-  cloud = new Crud2({
+  cloud = new Crud({
     create: async (es: ParameterGroup[], ctx: Context) => {
       const out = [];
       for (const e of es) {

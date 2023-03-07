@@ -6,7 +6,7 @@ import {
 } from '@aws-sdk/client-iam';
 
 import { AwsIamModule } from '..';
-import { AWS, crudBuilder2, crudBuilderFormat } from '../../../services/aws_macros';
+import { AWS, crudBuilder, crudBuilderFormat } from '../../../services/aws_macros';
 import { Context, RpcBase, RpcInput, RpcResponseObject } from '../../interfaces';
 
 /**
@@ -63,17 +63,17 @@ export class SetUserPasswordRequestRpc extends RpcBase {
   /**
    * @internal
    */
-  createLoginProfile = crudBuilder2<IAM, 'createLoginProfile'>('createLoginProfile', input => input);
+  createLoginProfile = crudBuilder<IAM, 'createLoginProfile'>('createLoginProfile', input => input);
 
   /**
    * @internal
    */
-  updateLoginProfile = crudBuilder2<IAM, 'updateLoginProfile'>('updateLoginProfile', input => input);
+  updateLoginProfile = crudBuilder<IAM, 'updateLoginProfile'>('updateLoginProfile', input => input);
 
   /**
    * @internal
    */
-  deleteLoginProfile = crudBuilder2<IAM, 'deleteLoginProfile'>('deleteLoginProfile', input => input);
+  deleteLoginProfile = crudBuilder<IAM, 'deleteLoginProfile'>('deleteLoginProfile', input => input);
 
   /**
    * @internal

@@ -8,11 +8,11 @@ import {
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 
 import { AwsMemoryDBModule } from '..';
-import { AWS, crudBuilder2, crudBuilderFormat } from '../../../services/aws_macros';
+import { AWS, crudBuilder, crudBuilderFormat } from '../../../services/aws_macros';
 import logger from '../../../services/logger';
 import { awsSecurityGroupModule } from '../../aws_security_group';
 import { SecurityGroup } from '../../aws_security_group/entity';
-import { Context, Crud2, MapperBase } from '../../interfaces';
+import { Context, Crud, MapperBase } from '../../interfaces';
 import { MemoryDBCluster, NodeTypeEnum } from '../entity';
 import supportedRegions from './supported_regions';
 
@@ -96,13 +96,13 @@ export class MemoryDBClusterMapper extends MapperBase<MemoryDBCluster> {
     res => res?.Clusters,
   );
 
-  deleteCluster = crudBuilder2<MemoryDB, 'deleteCluster'>('deleteCluster', (ClusterName: string) => ({
+  deleteCluster = crudBuilder<MemoryDB, 'deleteCluster'>('deleteCluster', (ClusterName: string) => ({
     ClusterName,
   }));
 
-  updateCluster = crudBuilder2<MemoryDB, 'updateCluster'>('updateCluster', input => input);
+  updateCluster = crudBuilder<MemoryDB, 'updateCluster'>('updateCluster', input => input);
 
-  listAllowedNodeTypeUpdates = crudBuilder2<MemoryDB, 'listAllowedNodeTypeUpdates'>(
+  listAllowedNodeTypeUpdates = crudBuilder<MemoryDB, 'listAllowedNodeTypeUpdates'>(
     'listAllowedNodeTypeUpdates',
     (ClusterName: string) => ({ ClusterName }),
   );
@@ -136,7 +136,7 @@ export class MemoryDBClusterMapper extends MapperBase<MemoryDBCluster> {
     );
   };
 
-  cloud: Crud2<MemoryDBCluster> = new Crud2({
+  cloud: Crud<MemoryDBCluster> = new Crud({
     create: async (es: MemoryDBCluster[], ctx: Context) => {
       const out = [];
       for (const e of es) {

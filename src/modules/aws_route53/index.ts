@@ -8,10 +8,10 @@ import {
   Route53,
 } from '@aws-sdk/client-route-53';
 
-import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../services/aws_macros';
+import { AWS, crudBuilder, crudBuilderFormat, paginateBuilder } from '../../services/aws_macros';
 import { awsElbModule } from '../aws_elb';
 import { LoadBalancerTypeEnum } from '../aws_elb/entity';
-import { Context, Crud2, IdFields, MapperBase, ModuleBase } from '../interfaces';
+import { Context, Crud, IdFields, MapperBase, ModuleBase } from '../interfaces';
 import { AliasTarget, HostedZone, RecordType, ResourceRecordSet } from './entity';
 
 const createHostedZone = crudBuilderFormat<Route53, 'createHostedZone', AwsHostedZone | undefined>(
@@ -30,7 +30,7 @@ const deleteHostedZone = crudBuilderFormat<Route53, 'deleteHostedZone', ChangeIn
   Id => ({ Id }),
   res => res?.ChangeInfo,
 );
-const createResourceRecordSet = crudBuilder2<Route53, 'changeResourceRecordSets'>(
+const createResourceRecordSet = crudBuilder<Route53, 'changeResourceRecordSets'>(
   'changeResourceRecordSets',
   (HostedZoneId, record) => ({
     HostedZoneId,
@@ -44,7 +44,7 @@ const createResourceRecordSet = crudBuilder2<Route53, 'changeResourceRecordSets'
     },
   }),
 );
-const deleteResourceRecordSet = crudBuilder2<Route53, 'changeResourceRecordSets'>(
+const deleteResourceRecordSet = crudBuilder<Route53, 'changeResourceRecordSets'>(
   'changeResourceRecordSets',
   (HostedZoneId, record) => ({
     HostedZoneId,
@@ -100,7 +100,7 @@ class HostedZoneMapper extends MapperBase<HostedZone> {
     return recordName.substring(0, nameIndex);
   }
 
-  cloud: Crud2<HostedZone> = new Crud2({
+  cloud: Crud<HostedZone> = new Crud({
     create: async (hz: HostedZone[], ctx: Context) => {
       const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
@@ -291,7 +291,7 @@ class ResourceRecordSetMapper extends MapperBase<ResourceRecordSet> {
     return out;
   }
 
-  db = new Crud2<ResourceRecordSet>({
+  db = new Crud<ResourceRecordSet>({
     create: (es: ResourceRecordSet[], ctx: Context) => ctx.orm.save(ResourceRecordSet, es),
     update: (es: ResourceRecordSet[], ctx: Context) => ctx.orm.save(ResourceRecordSet, es),
     delete: (es: ResourceRecordSet[], ctx: Context) => ctx.orm.remove(ResourceRecordSet, es),
@@ -316,7 +316,7 @@ class ResourceRecordSetMapper extends MapperBase<ResourceRecordSet> {
     },
   });
 
-  cloud: Crud2<ResourceRecordSet> = new Crud2({
+  cloud: Crud<ResourceRecordSet> = new Crud({
     create: async (rrs: ResourceRecordSet[], ctx: Context) => {
       const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
