@@ -152,48 +152,44 @@ export class MetricAlarmMapper extends MapperBase<MetricAlarm> {
         return out;
       }
     },
-    updateOrReplace: () => 'update',
     update: async (mas: MetricAlarm[], ctx: Context) => {
       const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const m of mas) {
         const cloudRecord = ctx?.memo?.cloud?.MetricAlarm?.[this.entityId(m)];
-        const isUpdate = Object.is(this.module.metricAlarm.cloud.updateOrReplace(cloudRecord, m), 'update');
-        if (isUpdate) {
-          // in the case of objects being modified, restore them
-          if (!Object.is(m.alarmArn, cloudRecord.alarmArn)) {
-            cloudRecord.id = m.id;
-            await this.module.metricAlarm.db.update(cloudRecord, ctx);
-            out.push(cloudRecord);
-          } else {
-            if (!m.alarmName) throw new Error('Cannot update a metric alarm without a name');
+        // in the case of objects being modified, restore them
+        if (m.alarmArn !== cloudRecord.alarmArn) {
+          cloudRecord.id = m.id;
+          await this.module.metricAlarm.db.update(cloudRecord, ctx);
+          out.push(cloudRecord);
+        } else {
+          if (!m.alarmName) throw new Error('Cannot update a metric alarm without a name');
 
-            const input: PutMetricAlarmCommandInput = {
-              ActionsEnabled: m.actionsEnabled,
-              AlarmActions: m.alarmActions,
-              AlarmDescription: m.alarmDescription,
-              AlarmName: m.alarmName,
-              ComparisonOperator: m.comparisonOperator?.toString(),
-              DatapointsToAlarm: m.datapointsToAlarm,
-              Dimensions: m.dimensions,
-              EvaluateLowSampleCountPercentile: m.evaluateLowSampleCountPercentile?.toString(),
-              EvaluationPeriods: m.evaluationPeriods,
-              ExtendedStatistic: m.extendedStatistic,
-              InsufficientDataActions: m.insufficientDataActions,
-              MetricName: m.metricName,
-              Metrics: m.metrics,
-              Namespace: m.namespace,
-              OKActions: m.okActions,
-              Period: m.period,
-              Statistic: m.statistic?.toString(),
-              Threshold: m.threshold,
-              ThresholdMetricId: m.thresholdMetricId,
-              TreatMissingData: m.treatMissingData?.toString(),
-              Unit: m.unit?.toString(),
-            };
-            await this.putMetricAlarm(client.cloudwatchClient, input);
-            out.push(m);
-          }
+          const input: PutMetricAlarmCommandInput = {
+            ActionsEnabled: m.actionsEnabled,
+            AlarmActions: m.alarmActions,
+            AlarmDescription: m.alarmDescription,
+            AlarmName: m.alarmName,
+            ComparisonOperator: m.comparisonOperator?.toString(),
+            DatapointsToAlarm: m.datapointsToAlarm,
+            Dimensions: m.dimensions,
+            EvaluateLowSampleCountPercentile: m.evaluateLowSampleCountPercentile?.toString(),
+            EvaluationPeriods: m.evaluationPeriods,
+            ExtendedStatistic: m.extendedStatistic,
+            InsufficientDataActions: m.insufficientDataActions,
+            MetricName: m.metricName,
+            Metrics: m.metrics,
+            Namespace: m.namespace,
+            OKActions: m.okActions,
+            Period: m.period,
+            Statistic: m.statistic?.toString(),
+            Threshold: m.threshold,
+            ThresholdMetricId: m.thresholdMetricId,
+            TreatMissingData: m.treatMissingData?.toString(),
+            Unit: m.unit?.toString(),
+          };
+          await this.putMetricAlarm(client.cloudwatchClient, input);
+          out.push(m);
         }
       }
       return out;
