@@ -1,4 +1,4 @@
- -- This check function implements the other half of a foreign key's behavior by raising an error on delete
+-- This check function implements the other half of a foreign key's behavior by raising an error on delete
 -- or update of a subnet that is being referenced by a load balancer.
 CREATE
 OR REPLACE FUNCTION check_subnets_by_load_balancer () RETURNS TRIGGER AS $check_subnets_by_load_balancer$

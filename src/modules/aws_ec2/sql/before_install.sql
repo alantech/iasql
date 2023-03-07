@@ -1,4 +1,4 @@
- -- Create target group instance constraint
+-- Create target group instance constraint
 CREATE
 OR REPLACE FUNCTION check_target_group_instance (_target_group_id INTEGER) RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER AS $$
 declare

@@ -1,4 +1,4 @@
- -- ######################
+-- ######################
 -- ENTITIES
 -- ######################
 CREATE TABLE
@@ -157,8 +157,7 @@ $$;
 CREATE TRIGGER
   insert_ecs_simplified_trigger
 AFTER
-  INSERT ON ecs_simplified FOR EACH ROW
-  WHEN (PG_TRIGGER_DEPTH() = 0)
+  INSERT ON ecs_simplified FOR EACH ROW WHEN (PG_TRIGGER_DEPTH() = 0)
 EXECUTE
   FUNCTION insert_ecs_simplified_trigger ();
 
@@ -227,8 +226,7 @@ END
 $$;
 
 CREATE TRIGGER
-  delete_ecs_simplified_trigger BEFORE DELETE ON ecs_simplified FOR EACH ROW
-  WHEN (PG_TRIGGER_DEPTH() = 0)
+  delete_ecs_simplified_trigger BEFORE DELETE ON ecs_simplified FOR EACH ROW WHEN (PG_TRIGGER_DEPTH() = 0)
 EXECUTE
   FUNCTION delete_ecs_simplified_trigger ();
 
@@ -253,8 +251,7 @@ CREATE TRIGGER
   update_ecs_simplified_trigger
 AFTER
 UPDATE
-  ON ecs_simplified FOR EACH ROW
-  WHEN (PG_TRIGGER_DEPTH() = 0)
+  ON ecs_simplified FOR EACH ROW WHEN (PG_TRIGGER_DEPTH() = 0)
 EXECUTE
   FUNCTION update_ecs_simplified_trigger ();
 
@@ -359,8 +356,7 @@ AFTER
   OR DELETE
   OR
 UPDATE
-  ON service FOR EACH STATEMENT
-  WHEN (PG_TRIGGER_DEPTH() = 0)
+  ON service FOR EACH STATEMENT WHEN (PG_TRIGGER_DEPTH() = 0)
 EXECUTE
   FUNCTION sync_ecs_simplified ();
 
@@ -371,8 +367,7 @@ AFTER
   OR DELETE
   OR
 UPDATE
-  ON repository FOR EACH STATEMENT
-  WHEN (PG_TRIGGER_DEPTH() = 0)
+  ON repository FOR EACH STATEMENT WHEN (PG_TRIGGER_DEPTH() = 0)
 EXECUTE
   FUNCTION sync_ecs_simplified ();
 
@@ -383,8 +378,7 @@ AFTER
   OR DELETE
   OR
 UPDATE
-  ON task_definition FOR EACH STATEMENT
-  WHEN (PG_TRIGGER_DEPTH() = 0)
+  ON task_definition FOR EACH STATEMENT WHEN (PG_TRIGGER_DEPTH() = 0)
 EXECUTE
   FUNCTION sync_ecs_simplified ();
 
@@ -395,8 +389,7 @@ AFTER
   OR DELETE
   OR
 UPDATE
-  ON container_definition FOR EACH STATEMENT
-  WHEN (PG_TRIGGER_DEPTH() = 0)
+  ON container_definition FOR EACH STATEMENT WHEN (PG_TRIGGER_DEPTH() = 0)
 EXECUTE
   FUNCTION sync_ecs_simplified ();
 
@@ -407,8 +400,7 @@ AFTER
   OR DELETE
   OR
 UPDATE
-  ON target_group FOR EACH STATEMENT
-  WHEN (PG_TRIGGER_DEPTH() = 0)
+  ON target_group FOR EACH STATEMENT WHEN (PG_TRIGGER_DEPTH() = 0)
 EXECUTE
   FUNCTION sync_ecs_simplified ();
 
@@ -419,8 +411,7 @@ AFTER
   OR DELETE
   OR
 UPDATE
-  ON load_balancer FOR EACH STATEMENT
-  WHEN (PG_TRIGGER_DEPTH() = 0)
+  ON load_balancer FOR EACH STATEMENT WHEN (PG_TRIGGER_DEPTH() = 0)
 EXECUTE
   FUNCTION sync_ecs_simplified ();
 
@@ -431,8 +422,7 @@ AFTER
   OR DELETE
   OR
 UPDATE
-  ON listener FOR EACH STATEMENT
-  WHEN (PG_TRIGGER_DEPTH() = 0)
+  ON listener FOR EACH STATEMENT WHEN (PG_TRIGGER_DEPTH() = 0)
 EXECUTE
   FUNCTION sync_ecs_simplified ();
 
@@ -443,8 +433,7 @@ AFTER
   OR DELETE
   OR
 UPDATE
-  ON security_group FOR EACH STATEMENT
-  WHEN (PG_TRIGGER_DEPTH() = 0)
+  ON security_group FOR EACH STATEMENT WHEN (PG_TRIGGER_DEPTH() = 0)
 EXECUTE
   FUNCTION sync_ecs_simplified ();
 
@@ -455,8 +444,7 @@ AFTER
   OR DELETE
   OR
 UPDATE
-  ON security_group_rule FOR EACH STATEMENT
-  WHEN (PG_TRIGGER_DEPTH() = 0)
+  ON security_group_rule FOR EACH STATEMENT WHEN (PG_TRIGGER_DEPTH() = 0)
 EXECUTE
   FUNCTION sync_ecs_simplified ();
 
@@ -467,8 +455,7 @@ AFTER
   OR DELETE
   OR
 UPDATE
-  ON service_security_groups FOR EACH STATEMENT
-  WHEN (PG_TRIGGER_DEPTH() = 0)
+  ON service_security_groups FOR EACH STATEMENT WHEN (PG_TRIGGER_DEPTH() = 0)
 EXECUTE
   FUNCTION sync_ecs_simplified ();
 
@@ -479,8 +466,7 @@ AFTER
   OR DELETE
   OR
 UPDATE
-  ON load_balancer_security_groups FOR EACH STATEMENT
-  WHEN (PG_TRIGGER_DEPTH() = 0)
+  ON load_balancer_security_groups FOR EACH STATEMENT WHEN (PG_TRIGGER_DEPTH() = 0)
 EXECUTE
   FUNCTION sync_ecs_simplified ();
 
@@ -507,8 +493,7 @@ $block_ecs_simplified_region_update$ LANGUAGE plpgsql;
 CREATE TRIGGER
   block_ecs_simplified_region_update BEFORE
 UPDATE
-  ON ecs_simplified FOR EACH ROW
-  WHEN (
+  ON ecs_simplified FOR EACH ROW WHEN (
     OLD.region IS DISTINCT
     FROM
       NEW.region

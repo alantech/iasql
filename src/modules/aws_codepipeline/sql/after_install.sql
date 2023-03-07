@@ -11,8 +11,7 @@ $block_codepipeline_primary_key_update$ LANGUAGE plpgsql;
 CREATE TRIGGER
   block_codepipeline_primary_key_update BEFORE
 UPDATE
-  ON pipeline_declaration FOR EACH ROW
-  WHEN (
+  ON pipeline_declaration FOR EACH ROW WHEN (
     OLD.name IS DISTINCT
     FROM
       NEW.name
