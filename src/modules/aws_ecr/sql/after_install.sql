@@ -11,8 +11,7 @@ $block_private_repository_region_update$ LANGUAGE plpgsql;
 CREATE TRIGGER
   block_private_repository_region_update BEFORE
 UPDATE
-  ON repository_image FOR EACH ROW
-  WHEN (
+  ON repository_image FOR EACH ROW WHEN (
     OLD.private_repository_region IS DISTINCT
     FROM
       NEW.private_repository_region

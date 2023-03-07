@@ -1,4 +1,4 @@
- -- agent install
+-- agent install
 -- TODO: update code for next distros in the future
 CREATE
 OR REPLACE FUNCTION generate_codedeploy_agent_install_script (region TEXT, distro TEXT) RETURNS TEXT LANGUAGE plpgsql AS $$

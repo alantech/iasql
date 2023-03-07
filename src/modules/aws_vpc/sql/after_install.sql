@@ -1,4 +1,4 @@
- -- This check function implements the other half of a foreign key's behavior by raising an error on delete
+-- This check function implements the other half of a foreign key's behavior by raising an error on delete
 -- or update of a subnet that is being referenced by a memodry db subnet group.
 CREATE
 OR REPLACE FUNCTION check_route_table_ids_region_update () RETURNS TRIGGER AS $$

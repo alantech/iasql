@@ -42,8 +42,7 @@ $block_ecs_cluster_region_update$ LANGUAGE plpgsql;
 CREATE TRIGGER
   block_ecs_cluster_region_update BEFORE
 UPDATE
-  ON "cluster" FOR EACH ROW
-  WHEN (
+  ON "cluster" FOR EACH ROW WHEN (
     OLD.region IS DISTINCT
     FROM
       NEW.region
@@ -64,8 +63,7 @@ $block_ecs_service_region_update$ LANGUAGE plpgsql;
 CREATE TRIGGER
   block_ecs_service_region_update BEFORE
 UPDATE
-  ON service FOR EACH ROW
-  WHEN (
+  ON service FOR EACH ROW WHEN (
     OLD.region IS DISTINCT
     FROM
       NEW.region
@@ -86,8 +84,7 @@ $block_ecs_task_definition_region_update$ LANGUAGE plpgsql;
 CREATE TRIGGER
   block_ecs_task_definition_region_update BEFORE
 UPDATE
-  ON task_definition FOR EACH ROW
-  WHEN (
+  ON task_definition FOR EACH ROW WHEN (
     OLD.region IS DISTINCT
     FROM
       NEW.region
@@ -108,8 +105,7 @@ $block_ecs_container_definition_region_update$ LANGUAGE plpgsql;
 CREATE TRIGGER
   block_ecs_container_definition_region_update BEFORE
 UPDATE
-  ON container_definition FOR EACH ROW
-  WHEN (
+  ON container_definition FOR EACH ROW WHEN (
     OLD.region IS DISTINCT
     FROM
       NEW.region

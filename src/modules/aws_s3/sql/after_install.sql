@@ -11,8 +11,7 @@ $block_s3_primary_key_update$ LANGUAGE plpgsql;
 CREATE TRIGGER
   block_s3_primary_key_update BEFORE
 UPDATE
-  ON bucket FOR EACH ROW
-  WHEN (
+  ON bucket FOR EACH ROW WHEN (
     OLD.name IS DISTINCT
     FROM
       NEW.name
@@ -36,8 +35,7 @@ $block_s3_object_primary_key_update$ LANGUAGE plpgsql;
 CREATE TRIGGER
   block_s3_object_primary_key_update BEFORE
 UPDATE
-  ON bucket_object FOR EACH ROW
-  WHEN (
+  ON bucket_object FOR EACH ROW WHEN (
     OLD.bucket_name IS DISTINCT
     FROM
       NEW.bucket_name

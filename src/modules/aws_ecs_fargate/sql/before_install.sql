@@ -1,4 +1,4 @@
- -- Create service subnets constraint
+-- Create service subnets constraint
 CREATE
 OR REPLACE FUNCTION check_service_subnets (_subnets TEXT[]) RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER AS $$
 declare
