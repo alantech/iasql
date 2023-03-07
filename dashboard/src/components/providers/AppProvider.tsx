@@ -32,7 +32,6 @@ export enum ActionType {
   RunSql = 'RunSql',
   RunAutocompleteSql = 'RunAutocompleteSql',
   EditContent = 'EditContent',
-  TrackEvent = 'TrackEvent',
   FetchData = 'FetchData',
   Stop = 'Stop',
   RunningSql = 'RunningSql',
@@ -473,15 +472,11 @@ const middlewareReducer = async (
         queryRes = queryError;
       }
       dispatch({ action: ActionType.RunningSql, data: { isRunning: false, tabIdx } });
-      dispatch({
-        action: ActionType.TrackEvent,
-        data: {
-          trackEventName: 'RUN_SQL',
-          trackDbAlias: runningDb?.alias,
-          queryToRun: content,
-          queryOutput: queryRes,
-          queryError,
-        },
+      Posthog.capture(config, 'RUN_SQL', {
+        dbAlias: runningDb?.alias,
+        sql: content,
+        error: queryError,
+        output: queryRes,
       });
       dispatch({ ...payload, data: { queryRes, databases, tabIdx } });
       if (updatedAutoCompleteRes) {
@@ -525,28 +520,6 @@ const middlewareReducer = async (
         dispatch({ ...payload, data: { databases: afterDisconnectDbs } });
       } catch (e: any) {
         const error = e.message ? e.message : `Unexpected error disconnecting database ${disconnectDbAlias}`;
-        dispatch({ ...payload, data: { error } });
-      }
-      break;
-    }
-    case ActionType.TrackEvent: {
-      if (!token) {
-        dispatch({ ...payload, data: { error: 'No auth token defined.' } });
-        break;
-      }
-      const { trackEventName, trackDbAlias, buttonAlias, queryToRun, queryOutput, queryError } = payload.data;
-      try {
-        if (trackEventName) {
-          await Posthog.capture(config, trackEventName, {
-            dbAlias: trackDbAlias,
-            buttonAlias,
-            sql: queryToRun,
-            error: queryError,
-            output: queryOutput,
-          });
-        }
-      } catch (e: any) {
-        const error = e.message ? e.message : `Unexpected error`;
         dispatch({ ...payload, data: { error } });
       }
       break;

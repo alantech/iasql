@@ -28,7 +28,7 @@ export function reset(config: ConfigInterface) {
   }
 }
 
-export async function capture(config: ConfigInterface, eventName: string, event: EventProps) {
+export function capture(config: ConfigInterface, eventName: string, event?: EventProps) {
   if (config?.posthog) {
     posthog.capture(eventName, event);
   }

@@ -74,7 +74,7 @@ export default function Main() {
                   <p>No connected accounts</p>
                   <p>
                     Get started by connecting an account using our{' '}
-                    <a href='https://iasql.com/docs/aws' target='_blank' rel='noreferrer'>
+                    <a className='text-primary' href='https://iasql.com/docs/aws' target='_blank' rel='noreferrer'>
                       guide
                     </a>
                   </p>
