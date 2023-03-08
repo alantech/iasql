@@ -43,7 +43,7 @@ export class AwsCredentials {
    * AWS Session Token
    * For temporary security credentials only
    */
-  @Column({ nullable: true, })
+  @Column({ nullable: true })
   sessionToken: string;
 }
 
