@@ -2,7 +2,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn } 
 
 import { cloudId } from '../../../services/cloud-id';
 import { AwsRegions } from '../../aws_account/entity';
-import { ColumnNumericTransformer } from '../../transformers';
 
 /**
  * @enum
@@ -319,7 +318,6 @@ export class MetricAlarm {
    */
   @Column('double precision', {
     nullable: true,
-    transformer: new ColumnNumericTransformer(),
   })
   threshold?: number;
 
