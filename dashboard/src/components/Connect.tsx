@@ -109,7 +109,6 @@ export default function Connect({ closable }: { closable: boolean }) {
             />
             <Label htmlFor='credentials-session-token'>AWS Session Token (Optional)</Label>
             <Input
-              required
               type='text'
               name='credentials-session-token'
               value={awsSessionToken}
