@@ -58,7 +58,7 @@
     "@types/pg-format": "^1.0.2",
     "@types/semver": "^7.3.10",
     "@types/sshpk": "^1.17.1",
-    "@types/uuid": "^8.3.4",
+    "@types/uuid": "^9.0.1",
     "aws-sdk-client-mock": "^2.0.1",
     "copyfiles": "^2.4.1",
     "jest": "^27.5.1",
@@ -119,7 +119,7 @@
     "sshpk": "^1.17.0",
     "typeorm": "^0.3.12",
     "typeorm-naming-strategies": "^4.1.0",
-    "uuid": "^8.3.2"
+    "uuid": "^9.0.0"
   },
   "resolutions": {
     "libpg-query": "14.0.0"
