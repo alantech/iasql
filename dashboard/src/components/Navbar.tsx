@@ -1,4 +1,4 @@
-import { Fragment, useState, useEffect } from 'react';
+import { Fragment } from 'react';
 
 import * as Posthog from '@/services/posthog';
 import { useAuth0 } from '@auth0/auth0-react';
@@ -115,13 +115,7 @@ export default function Navbar({ userPic }: { userPic: string }) {
                           {({ active }) => (
                             <div
                               onClick={() => {
-                                dispatch({
-                                  action: ActionType.TrackEvent,
-                                  token,
-                                  data: {
-                                    trackEventName: 'LOGOUT',
-                                  },
-                                });
+                                Posthog.capture(config, 'LOGOUT');
                                 Posthog.reset(config);
                                 logout({ returnTo: homeUrl } as any);
                               }}
