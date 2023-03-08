@@ -137,7 +137,7 @@ export default function Home() {
           </div>
           <div className="row">
             <CodeBlock className="language-bash col col--6 col--offset-3">
-              {"docker run -p 9876:9876 -p 5432:5432 --name iasql iasql/iasql"}
+              {"docker run --pull=always -p 9876:9876 -p 5432:5432 --name iasql iasql/iasql"}
             </CodeBlock>
           </div>
         </div>
