@@ -37,6 +37,14 @@ export class AwsCredentials {
    */
   @Column()
   secretAccessKey: string;
+
+  /**
+   * @public
+   * AWS Session Token
+   * For temporary security credentials only
+   */
+  @Column({ nullable: true, })
+  sessionToken: string;
 }
 
 /**

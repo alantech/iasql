@@ -2,7 +2,7 @@ import { Not, IsNull } from 'typeorm';
 
 import { EC2 } from '@aws-sdk/client-ec2';
 
-import { AWS, crudBuilderFormat } from '../../services/aws_macros';
+import { AWS, AWSCreds, crudBuilderFormat } from '../../services/aws_macros';
 import { Context, Crud, MapperBase, ModuleBase, PartialContext } from '../interfaces';
 import { AwsCredentials, AwsRegions } from './entity';
 
@@ -125,12 +125,14 @@ class AwsAccount extends ModuleBase {
       // :( https://github.com/typeorm/typeorm/issues/9208
       const awsCreds = await orm.findOne(AwsCredentials, { where: { accessKeyId: Not(IsNull()) } });
       if (!awsCreds) throw new Error('No credentials found');
+      const credentials: AWSCreds = {
+        accessKeyId: awsCreds.accessKeyId,
+        secretAccessKey: awsCreds.secretAccessKey,
+      };
+      if (awsCreds.sessionToken) credentials.sessionToken = awsCreds.sessionToken;
       this.awsClient[region] = new AWS({
         region,
-        credentials: {
-          accessKeyId: awsCreds.accessKeyId,
-          secretAccessKey: awsCreds.secretAccessKey,
-        },
+        credentials,
       });
       return this.awsClient[region];
     },
