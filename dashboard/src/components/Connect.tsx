@@ -8,12 +8,13 @@ import { Combobox, Input, Label, Step, VBox, Wizard } from './common';
 import { ActionType, useAppContext } from './providers/AppProvider';
 
 export default function Connect({ closable }: { closable: boolean }) {
-  const { error, latestVersion, newDb, dispatch, token } = useAppContext();
+  const { error, newDb, dispatch, token } = useAppContext();
 
   const [dbAlias, setDbAlias] = useState('');
   const [awsRegion, setAwsRegion] = useState(regions[14]); // default: us-east-2
   const [awsAccessKeyId, setAwsAccessKeyId] = useState('');
   const [awsSecretAccessKey, setAwsSecretAccessKey] = useState('');
+  const [awsSessionToken, setAwsSessionToken] = useState('');
   const [stack, setStack] = useState(['createdb']);
   const isMakingDb = useRef(false);
 
@@ -36,7 +37,7 @@ export default function Connect({ closable }: { closable: boolean }) {
         dispatch({
           action: ActionType.NewDb,
           token,
-          data: { dbAlias, awsRegion, awsAccessKeyId, awsSecretAccessKey, latestVersion },
+          data: { dbAlias, awsRegion, awsAccessKeyId, awsSecretAccessKey, awsSessionToken },
         });
       }
       break;
@@ -105,6 +106,13 @@ export default function Connect({ closable }: { closable: boolean }) {
               name='credentials-secret-access-key'
               value={awsSecretAccessKey}
               setValue={setAwsSecretAccessKey}
+            />
+            <Label htmlFor='credentials-session-token'>AWS Session Token (Optional)</Label>
+            <Input
+              type='text'
+              name='credentials-session-token'
+              value={awsSessionToken}
+              setValue={setAwsSessionToken}
             />
           </VBox>
         </form>
