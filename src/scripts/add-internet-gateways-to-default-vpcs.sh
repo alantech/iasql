@@ -33,5 +33,6 @@ for row in $ret_val; do
   IFS='|' read -r ig_id region rt_id <<<"$row"
   query "INSERT INTO route (destination, gateway_id, region, route_table_id)
          VALUES ('0.0.0.0/0', '$ig_id', '$region', '$rt_id');"
+  echo "route added for $rt_id in $region"
 done
 query "SELECT iasql_commit();"
