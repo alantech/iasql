@@ -335,7 +335,7 @@ export class InstanceMapper extends MapperBase<Instance> {
   async generateBlockDeviceMapping(
     ctx: Context,
     ami: string,
-    maps: InstanceBlockDeviceMapping[],
+    instanceMaps: InstanceBlockDeviceMapping[],
     instance: Instance,
     encrypted: boolean,
   ) {
@@ -348,45 +348,45 @@ export class InstanceMapper extends MapperBase<Instance> {
 
       // check if there is any mapped volume that doesn't exist on instance mapping, and error
       // or if there is any volume mapped that is not set as root
-      for (const dev of maps ?? []) {
+      for (const instanceMap of instanceMaps ?? []) {
         // try to find the device name on instance mapping
-        const vol = imageMapping?.find(item => item.DeviceName === dev.deviceName);
+        const vol = imageMapping?.find(item => item.DeviceName === instanceMap.deviceName);
         if (!vol) throw new Error('Error mapping volume to a device that does not exist for the AMI');
-        if (!dev.volume?.isRootDevice) throw new Error('Error mapping volume that is not root');
+        if (!instanceMap.volume?.isRootDevice) throw new Error('Error mapping volume that is not root');
       }
       const region = instance.region;
-      for (const map of imageMapping ?? []) {
+      for (const imageMap of imageMapping ?? []) {
         // check if there is an associated volume for that instance, volume and device name
-        const vol = maps?.find(item => item.deviceName === map.DeviceName);
-        if (vol) {
-          if (vol.volumeId) {
-            if (vol.volume) {
-              // map it to the ebs mapping
-              if (!vol.volume.isRootDevice) throw new Error('Error mapping volume that is not root');
-
-              let snapshotId;
-              if (vol.volume.snapshotId && instance.region === vol.region) snapshotId = vol.volume.snapshotId;
-              else snapshotId = map.Ebs?.SnapshotId;
-              map.Ebs = {
-                DeleteOnTermination: vol.deleteOnTermination,
-                Iops: vol.volume.volumeType !== GeneralPurposeVolumeType.GP2 ? vol.volume.iops : undefined,
-                SnapshotId: snapshotId,
-                VolumeSize: vol.volume.size,
-                VolumeType: vol.volume.volumeType,
-                KmsKeyId: map.Ebs?.KmsKeyId,
-                Throughput: vol.volume.throughput,
-                OutpostArn: map.Ebs?.OutpostArn,
-                Encrypted: encrypted,
-              };
-            } else throw new Error('Could not find related volume data');
-          } else {
-            // if it set to null, we need to clear the device
-            map.Ebs = undefined;
-            map.NoDevice = '';
-          }
-        } else {
-          if (map.Ebs) map.Ebs.Encrypted = encrypted; // just modify the encrypted flag
+        const vol = instanceMaps?.find(item => item.deviceName === imageMap.DeviceName);
+        if (!vol) {
+          if (imageMap.Ebs) imageMap.Ebs.Encrypted = encrypted; // just modify the encrypted flag
+          continue;
         }
+        if (!vol.volumeId) {
+          // if it set to null, we need to clear the device
+          imageMap.Ebs = undefined;
+          imageMap.NoDevice = '';
+          continue;
+        }
+        if (vol.volume) {
+          // map it to the ebs mapping
+          if (!vol.volume.isRootDevice) throw new Error('Error mapping volume that is not root');
+
+          let snapshotId;
+          if (vol.volume.snapshotId && instance.region === vol.region) snapshotId = vol.volume.snapshotId;
+          else snapshotId = imageMap.Ebs?.SnapshotId;
+          imageMap.Ebs = {
+            DeleteOnTermination: vol.deleteOnTermination,
+            Iops: vol.volume.volumeType !== GeneralPurposeVolumeType.GP2 ? vol.volume.iops : undefined,
+            SnapshotId: snapshotId,
+            VolumeSize: vol.volume.size,
+            VolumeType: vol.volume.volumeType,
+            KmsKeyId: imageMap.Ebs?.KmsKeyId,
+            Throughput: vol.volume.throughput,
+            OutpostArn: imageMap.Ebs?.OutpostArn,
+            Encrypted: encrypted,
+          };
+        } else throw new Error('Could not find related volume data');
       }
       return imageMapping;
     } else throw new Error('Could not find instance image');
@@ -488,6 +488,9 @@ export class InstanceMapper extends MapperBase<Instance> {
             throw new Error('should not be possible');
           }
 
+          // reads the current mapping for the instance to get all the related volumes, and waits for them to be in use
+          // as those volumes are created automatically by ec2 we need to wait for them and create those
+          // in the database from our side
           const mapping = await this.getInstanceBlockDeviceMapping(client.ec2client, instanceId);
           for (const map of mapping ?? []) {
             if (map.DeviceName && map.Ebs?.VolumeId) {
