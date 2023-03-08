@@ -447,7 +447,8 @@ const middlewareReducer = async (
       let databases: any[] | null = null;
       let shouldUpdate = false;
       let updatedAutoCompleteRes: any;
-      let queryError = '';
+      let errored = false;
+      let queryError: string = 'Unhandled error in SQL execution';
       dispatch({ action: ActionType.RunningSql, data: { isRunning: true, tabIdx } });
       try {
         if (token && content) queryRes = await DbActions.run(token, backendUrl, runningDb?.alias, content);
@@ -469,13 +470,14 @@ const middlewareReducer = async (
         if (e.message) {
           queryError = e.message;
         }
-        queryRes = 'Unhandled error in SQL execution';
+        queryRes = queryError;
+        errored = true;
       }
       dispatch({ action: ActionType.RunningSql, data: { isRunning: false, tabIdx } });
       Posthog.capture(config, 'RUN_SQL', {
         dbAlias: runningDb?.alias,
         sql: content,
-        error: queryError,
+        error: errored ? queryError : '',
         output: queryRes,
       });
       dispatch({ ...payload, data: { queryRes, databases, tabIdx } });
