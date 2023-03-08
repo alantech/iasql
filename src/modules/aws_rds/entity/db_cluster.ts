@@ -13,8 +13,8 @@ import { cloudId } from '../../../services/cloud-id';
 import { AwsRegions } from '../../aws_account/entity';
 import { SecurityGroup } from '../../aws_security_group/entity';
 import { AvailabilityZone } from '../../aws_vpc/entity';
+import { DBSubnetGroup } from './db_subnet_group';
 import { ParameterGroup } from './parameter_group';
-import { SubnetGroup } from './subnet_group';
 
 /**
  * @enum
@@ -138,7 +138,7 @@ export class DBCluster {
    * @public
    * Subnet group associated with the DB cluster
    */
-  @ManyToOne(() => SubnetGroup, {
+  @ManyToOne(() => DBSubnetGroup, {
     eager: true,
     nullable: true,
   })
@@ -152,7 +152,7 @@ export class DBCluster {
       referencedColumnName: 'region',
     },
   ])
-  subnetGroup?: SubnetGroup;
+  subnetGroup?: DBSubnetGroup;
 
   /**
    * @public

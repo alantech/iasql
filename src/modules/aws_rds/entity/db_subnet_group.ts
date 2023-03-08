@@ -15,7 +15,7 @@ import { Vpc } from '../../aws_vpc/entity';
 @Entity()
 @Unique('subnet_group_name_region', ['name', 'region'])
 @Unique('subnet_group_id_region', ['id', 'region']) // So the RDS entity can join on both
-export class SubnetGroup {
+export class DBSubnetGroup {
   /**
    * @private
    * Auto-incremented ID field
@@ -27,6 +27,7 @@ export class SubnetGroup {
    * @public
    * Name for the subnet group
    */
+  @cloudId
   @Column()
   name: string;
 
@@ -34,7 +35,6 @@ export class SubnetGroup {
    * @public
    * AWS ARN for the subnet group
    */
-  @cloudId
   @Column({
     unique: true,
     nullable: true,
@@ -57,19 +57,6 @@ export class SubnetGroup {
     nullable: true,
   })
   subnets?: Subnet[];
-
-  /**
-   * @public
-   * Reference to the VPC associated with the subnet group
-   */
-  @ManyToOne(() => Vpc, {
-    nullable: true,
-    eager: true,
-  })
-  @JoinColumn({
-    name: 'vpc',
-  })
-  vpc?: Vpc;
 
   /**
    * @public
