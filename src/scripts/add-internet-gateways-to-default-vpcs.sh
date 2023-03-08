@@ -21,18 +21,18 @@ done
 query "SELECT iasql_commit();"
 
 query "SELECT iasql_begin();"
-query "SELECT ig.internet_gateway_id as ig_id, route.region, route.route_table_id
+query "SELECT ig.internet_gateway_id as ig_id, route.region, route.route_table_id, rt.route_table_id
          from route
                   join route_table rt on rt.id = route.route_table_id
                   join vpc v on rt.vpc_id = v.id
                   join internet_gateway ig on v.id = ig.vpc_id
          where v.is_default
-         group by route.route_table_id, route.region, ig.internet_gateway_id
+         group by route.route_table_id, route.region, ig.internet_gateway_id, rt.route_table_id
          having ('0.0.0.0/0' <> ALL (array_agg(destination)));"
 for row in $ret_val; do
-  IFS='|' read -r ig_id region rt_id <<<"$row"
+  IFS='|' read -r ig_id region rt_id rtable_id <<<"$row"
   query "INSERT INTO route (destination, gateway_id, region, route_table_id)
          VALUES ('0.0.0.0/0', '$ig_id', '$region', '$rt_id');"
-  echo "route added for $rt_id in $region"
+  echo "route added for $rt_id in $region, $rtable_id"
 done
 query "SELECT iasql_commit();"
