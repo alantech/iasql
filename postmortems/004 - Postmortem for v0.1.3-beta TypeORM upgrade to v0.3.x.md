@@ -36,7 +36,7 @@ The problem in ecs. We were calling from the `TaskDefinition`'s `cloud.update` f
 
 ## Detection
 
-The problem has been around since we landed the 2-way mode. It was working because we were doing a full apply when something goes wrong (as it was) and we were only reporting a warning but not throwing.
+The problem has been around since we landed the 2-way mode. It was working because we were doing a full `apply` when something goes wrong (as it was) and we were only reporting a warning but not `throw`ing an error.
 
 Both issues got detected during the typeorm upgrade, the tests failed and going through the engine logs to identify the unexpected behaviours.
 
@@ -50,58 +50,43 @@ For the 2-way mode we needed to check the audit logs and recreate the entities t
 
 ## Prevention
 
-The issue was covered by typeorm not hard failing before and our try/catch on the apply to run a full one if something failed, which made this pass for a long time silently.
-We might need to so some tweaks to the current `commit` algorithm to handle these 2 cases we found during this upgrade.
+To summarize the issues above, the ECS error was the `cloud.update` path making a DB change that was misinterpreted because of the user involved and then the `sync` step reverted it, while the EC2 error was no explicit change in the database itself, but the conceptual change of the entity because the instance it is pointing at changed.
 
-### High-level steps of the current `commit` algorithm
+The first one is an explicitly pushed change by the function, and the fix was to actually create the new TaskDefinition in the cloud and then let the sync step pull that in. The fix done for the first issue is correct and there is nothing special that needs to be done there. If we tried to change the user of db creation we would actually be creating a false history in the audit log. This way is actually clear in what is going on:
 
-1. Get relevant audit logs
-2. Get relevant modules based on step 1
-3. If any change:
-    1. Execute partial `apply` (passing only the relevant changes and modules)
-    2. If error on partial `apply`, execute full `apply`
-4. Execute full `sync`
-5. If full `apply` or `sync` error, execute `revert`
-6. Return the `sync` response
+- The user wants to edit a `TaskDefinition` and does so.
+- The mapper knows that the set of `TaskDefinition`s is an append-only structure within AWS so it restores the original DB record and creates a new `TaskDefinition` based on the user's change.
+- The `sync` stage sees this new `TaskDefinition` that wasn't explicitly created by the user, and pulls it into the database.
 
-### High-level steps of the current `apply` algorithm
+The issue with `RegisteredInstance` is much tougher. It should not be the responsibility of `Instance` to know that there's a "parasitic" entity like this attached to it and manually calling it's update logic, so the current solution is a hack, but there was also no DB change to indicate it should be looked at. Going through the list of changes since the last commit in the audit log will not show this `RegisteredInstance` record so there's nothing to "keep" in the filter.
 
-Outer loop:
-1. Execute `db.read`s
-2. Recreate changes after the commit started
+What we need is some sort of reverse lookup mechanism. Currently there is a one entity -> one mapper relationship, and the entity in question is passed directly to the mapper logic. We need something that will:
 
-    Inner loop:
-    1. Execute `cloud.read`s
-    2. If necessary, recreate relevant changes
-    3. Execute `diff`ing logic
-    4. If relevant changes, filter them
-    5. If no relevant changes, exclude changes done after `commit` started
-    6. Mappers execution
+- Look up `N` mappers for an entity, where mappers can register an "interest" in more than one entity.
+- Take the input entity and determine the mapper's relevant entity. Such as looking for the `RegisteredInstance` record(s) given an `Instance` record.
 
-### High-level steps of the current `sync` algorithm
+99% of the time, these will both be identity functions; there's only one mapper relevant for a given entity, and the relevant entity for that mapper is the entity itself, so it should also have an automatic default that we override only when needed.
 
-Outer loop:
-1. Execute `cloud.read`s
+This could look something like:
 
-    Inner loop:
-    1. Execute `db.read`s
-    2. Recreate changes after the commit started
-    3. Execute `diff`ing logic
-    5. Exclude changes done after `commit` started
-    6. Mappers execution
+```ts
+watchEntities: {
+  RegisteredInstance: (e: RegisteredInstance): RegisteredInstance => e,
+  Instance: async (e: Instance, ctx: Context): Promise<RegisteredInstance[]> => {
+    return await ctx.orm.find(RegisteredInstance, {
+      where: {
+        instanceId: e.id,
+      },
+    });
+  },
+  ...
+}
+```
 
+Then we have some internal data structure to group these by entity on the first level, the mapper on the second level, with `SomeObj[entityName].map(mapper => mapper.relevantEntities[entityName](entity))` returning an array of promises (or not but should be fine with a Promise.all) providing the actual set of entities to consider changed (To make this a set it would also need them all to be checked with entityId for uniqueness to eliminate any duplicates that might arise.).
 
-### Possible alternatives
+  :::note
 
-It's tricky to find a common solution for both cases found. For the ECS case might be simpler, we need to find a way to also see the changes done by the engine during the `commit`. In the EC2 case, we need either to ignore the relevant changes and `apply` for all modules or find a way to "mark" entities that might be affected by another entity change and somehow include them in the filter.
+      The proposed solution will be created as a task and its implementation will be delayed until we encounter with an use case similar to `RegisteredInstance`.
 
-#### Executing "full" `apply`
-This is one possible solution that could solve both issues. Would be similar to the current algorithm but we do not get "relevant changes". We always `apply` for all modules and only exclude changes done **by the user** after `commit`.
-
-##### Pros 
-- Solves the 2 issues
-- Easier to implement?
-
-##### Cons
-- We lose the "faster" `apply` since we need to iterate through all modules installed and not only the ones with changes.
-- If there is a change in the cloud that hasn't yet been synced, the full apply will blow it away and then the follow-up sync step will do nothing (in fact, there is no point in doing the sync at all, anymore, because the DB becomes the sole source-of-truth and we only sync during install).
+  :::
