@@ -451,7 +451,7 @@ describe('AwsCloudwatch Integration Testing', () => {
     query(
       `
       INSERT INTO metric_alarm (alarm_name, alarm_description, actions_enabled, comparison_operator, datapoints_to_alarm, dimensions, metric_name, namespace, period, statistic, threshold, evaluation_periods)
-      VALUES ('${alarmName}', 'Metric alarm description', true, 'GreaterThanThreshold', 1, '[{"Name": "InstanceId", "Value": "test"}]', 'CPUUtilization', 'AWS/EC2', 60, 'Average', 10, 1);
+      VALUES ('${alarmName}', 'Metric alarm description', true, 'GreaterThanThreshold', 1, '[{"Name": "InstanceId", "Value": "test"}]', 'CPUUtilization', 'AWS/EC2', 60, 'Average', 19327352832, 1);
   `,
       undefined,
       true,
@@ -498,6 +498,33 @@ describe('AwsCloudwatch Integration Testing', () => {
     WHERE alarm_name = '${alarmName}' AND alarm_arn = '${alarmName}2';
   `,
       (res: any[]) => expect(res.length).toBe(0),
+    ),
+  );
+  it('starts a transaction', begin());
+
+  it(
+    'updates an alarm with a decimal threshold',
+    query(
+      `
+      UPDATE metric_alarm SET threshold=10.5 WHERE alarm_name = '${alarmName}';
+      `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it('applies the metric alarm change', commit());
+
+  it(
+    'check threshold has been updated',
+    query(
+      `
+    SELECT *
+    FROM metric_alarm
+    WHERE alarm_name = '${alarmName}' AND threshold=10.5;
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
     ),
   );
 
