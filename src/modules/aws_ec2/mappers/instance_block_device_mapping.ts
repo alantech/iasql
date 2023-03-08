@@ -23,7 +23,7 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
   entityId = (e: InstanceBlockDeviceMapping) => {
     return this.module.instanceBlockDeviceMapping.generateId({
       instanceId: e.instance?.instanceId ?? '',
-      volumeId: e.volume?.volumeId ?? '',
+      volumeId: e.volume!.volumeId!,
       region: e.region,
     });
   };
@@ -204,6 +204,7 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
       const out = [];
       for (const e of es) {
         const client = (await ctx.getAwsClient(e.region)) as AWS;
+        if (!e.volume) continue; // cannot update a mapping without a volume
         const cloudRecord = ctx?.memo?.cloud?.InstanceBlockDeviceMapping?.[this.entityId(e)];
 
         if (e.deleteOnTermination !== cloudRecord.deleteOnTermination) {

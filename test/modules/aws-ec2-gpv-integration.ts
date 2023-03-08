@@ -139,12 +139,12 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  itDocs('creates an instance wiht specific size', (done: (arg0: any) => any) => {
+  itDocs('creates an instance with specific size', (done: (arg0: any) => any) => {
     query(
       `
       BEGIN;
         INSERT INTO general_purpose_volume (volume_type, size, availability_zone, tags, is_root_device)
-        VALUES ('gp2', 10, '${availabilityZone2}', '{"Name": "${gp2VolumeName}"}', TRUE);
+        VALUES ('gp2', 15, '${availabilityZone2}', '{"Name": "${gp2VolumeName}"}', TRUE);
         INSERT INTO instance (ami, instance_type, tags, subnet_id)
           SELECT '${ubuntuAmiId}', '${instanceType2}', '{"name":"${prefix}-1"}', id
           FROM subnet
@@ -183,7 +183,7 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
   `,
       (res: any[]) => {
         expect(res.length).toBe(1);
-        expect(res[0].size).toBe(10);
+        expect(res[0].size).toBe(15);
       },
     ),
   );
@@ -223,12 +223,69 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
 
   it('starts a transaction', begin());
 
+  itDocs('creates an instance with specific size and an extra volume', (done: (arg0: any) => any) => {
+    query(
+      `
+      BEGIN;
+        INSERT INTO general_purpose_volume (volume_type, size, availability_zone, tags, is_root_device)
+        VALUES ('gp2', 15, '${availabilityZone2}', '{"Name": "${gp2VolumeName}-test-1"}', TRUE);
+        INSERT INTO general_purpose_volume (volume_type, size, availability_zone, tags, is_root_device)
+        VALUES ('gp2', 20, '${availabilityZone2}', '{"Name": "${gp2VolumeName}-test-2"}', TRUE);
+
+        INSERT INTO instance (ami, instance_type, tags, subnet_id)
+          SELECT '${ubuntuAmiId}', '${instanceType2}', '{"name":"${prefix}-2"}', id
+          FROM subnet
+          WHERE availability_zone = '${availabilityZone2}'
+          LIMIT 1;
+        INSERT INTO instance_block_device_mapping (device_name, volume_id, instance_id) values ('/dev/sda1', (SELECT id FROM general_purpose_volume WHERE tags ->>'Name' = '${gp2VolumeName}-test-1' LIMIT 1),
+        (SELECT id FROM instance WHERE tags ->>'name' = '${prefix}-2' LIMIT 1));
+        INSERT INTO instance_block_device_mapping (device_name, volume_id, instance_id) values ('/dev/sdb', (SELECT id FROM general_purpose_volume WHERE tags ->>'Name' = '${gp2VolumeName}-test-2' LIMIT 1),
+        (SELECT id FROM instance WHERE tags ->>'name' = '${prefix}-2' LIMIT 1));
+        
+      COMMIT;
+    `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    )((e?: any) => (!!e ? done(e) : done(undefined)));
+  });
+  it('creates the instance with specific volumes', commit());
+
+  itDocs(
+    'check number of instances',
+    query(
+      `
+    SELECT *
+    FROM instance
+    WHERE tags ->> 'name' = '${prefix}-2';
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+  itDocs(
+    'check number of volumes',
+    query(
+      `
+    SELECT *
+    FROM general_purpose_volume INNER JOIN instance_block_device_mapping ON general_purpose_volume.id = instance_block_device_mapping.volume_id
+    WHERE instance_block_device_mapping.instance_id = (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-2');
+  `,
+      (res: any[]) => {
+        expect(res.length).toBe(2);
+        expect(res[0].size).toBe(15);
+        expect(res[1].size).toBe(20);
+      },
+    ),
+  );
+
+  it('starts a transaction', begin());
+
   it(
     'deletes all ec2 instances',
     query(
       `
       DELETE FROM instance
-      WHERE tags ->> 'name' = '${prefix}-1';
+      WHERE tags ->> 'name' = '${prefix}-1' OR tags ->> 'name' = '${prefix}-2';
   `,
       undefined,
       true,
@@ -244,7 +301,7 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
       `
     SELECT *
     FROM instance
-    WHERE tags ->> 'name' = '${prefix}-1';
+    WHERE tags ->> 'name' = '${prefix}-1' OR tags ->> 'name' = '${prefix}-2';
   `,
       (res: any[]) => expect(res.length).toBe(0),
     ),
@@ -281,7 +338,7 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
       `
     SELECT *
     FROM general_purpose_volume INNER JOIN instance_block_device_mapping ON general_purpose_volume.id = instance_block_device_mapping.volume_id
-    WHERE instance_block_device_mapping.instance_id = (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1');
+    WHERE instance_block_device_mapping.instance_id = (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1' OR tags ->> 'name' = '${prefix}-2');
   `,
       (res: any[]) => {
         expect(res.length).toBe(0);
