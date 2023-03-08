@@ -110,7 +110,7 @@
     "lodash.clonedeep": "^4.5.0",
     "lodash.isequal": "^4.5.0",
     "lodash.pick": "^4.4.0",
-    "pg": "^8.8.0",
+    "pg": "^8.10.0",
     "pg-format": "^1.0.4",
     "pgsql-parser": "^13.3.14",
     "posthog-node": "^2.2.3",
