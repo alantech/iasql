@@ -63,7 +63,7 @@ describe('Install cases', () => {
 
   it('fails having an install with a typo', done =>
     void query(`
-    SELECT * FROM iasql_install(['aws_ec3'])
+    SELECT * FROM iasql_install('aws_ec3')
   `)((e?: any) => {
       try {
         expect(e?.message).toContain('The following modules do not exist');
