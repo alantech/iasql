@@ -127,9 +127,6 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
         // read volume details
         if (!e.volumeId) throw new Error('Cannot attach empty volumes to an instance already created');
         if (e.volume) {
-          if (e.volume.region !== e.instance.region)
-            throw new Error('Cannot create a mapping between different regions');
-
           // only attach if volume is not in use. We can have the case that the volume is auto-attached on creation
           if (e.volume.volumeId && e.volume.state === VolumeState.AVAILABLE) {
             await this.attachVolume(client.ec2client, e.volume.volumeId, e.instance.instanceId, e.deviceName);
