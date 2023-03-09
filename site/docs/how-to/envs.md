@@ -1,0 +1,37 @@
+---
+sidebar_position: 4
+slug: '/envs'
+---
+
+# Replicate changes between dev, staging, and prod environments
+
+Due to capacity, region, and other differences across cloud infrastructure environments, we recommend that IaSQL users have one AWS account per environment (dev, staging, prod, etc). Each AWS account is [connected](./aws.mdx) to an [IaSQL database](../concepts/db.md) that is modified independently.
+
+Complex, or delicate, infrastructure changes should be treated as transactions. [IaSQL transactions](../concepts/transaction.md) are a bit different from normal DB transactions in that they are multiuser and can be previewed, with the function [`iasql_preview`](../modules/builtin/iasql_functions.md), for the changes that the ongoing transaction will create in the cloud similar to Pulumi’s preview or Terraform’s plan.
+
+```sql
+--- starts a transaction
+SELECT * FROM iasql_begin();
+
+--- infrastructure changes
+
+--- calls iasql_preview to see the result in the cloud
+select * from iasql_preview();
+
+--- more infrastructure changes
+
+--- calls iasql_preview to see the result in the cloud
+select * from iasql_preview();
+
+--- calls iasql_commit should create
+select * from iasql_commit();
+```
+
+Once the transaction is committed successfully, IaSQL automatically rolls back failed transactions, and the desired changes are committed into the DB for one environment, we have a PG function that looks at the audit log and generates the SQL representing changes done from a given point in time.
+
+```sql
+-- gets SQL from the audit log from a given point in time
+SELECT * FROM iasql_get_sql_since((now() - interval '2 hours')::text);
+```
+
+Copy the SQL queries generated from invoking the function in the first database as a starting point for the SQL you will run in the second DB / environment, make any changes to the SQL if needed and include it within a new transaction in the second database. We do not recommend using database migrations systems to try to version control changes as outlined by this [RFC](https://github.com/iasql/iasql/blob/main/rfcs/006%20-%20Replicate%20changes%20between%20staging%20and%20prod%20RFC.md). One of the value propositions of IaSQL is that you get type safety and validation via FKs. However, these are different in each DB / environment. If you wish to version control or peer review infrastructure transactions, there is a Github Module in our roadmap that automatically puts up the SQL generated from the ongoing transaction and the preview output in a markdown file within a PR that others can approve. Let us know on [Discord](https://discord.iasql.com) and we can prioritize it.

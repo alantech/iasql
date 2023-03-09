@@ -80,6 +80,6 @@ The next features are going to be about making IaSQL easier to use:
 - SQL templates for common security vulnerabilities and cost optimizations in AWS
 - continuously improving our documentation
 
-Longer term, we’ll add support for 3rd party high-level modules, extensive support for AWS, and support for more cloud providers. If there is something in particular you would like to see please drop us a line on Discord or email via hello at our domain.
+Longer term, we’ll add support for 3rd party high-level modules, extensive support for AWS, and support for more cloud providers. If there is something in particular you would like to see please drop us a line on [Discord](https://discord.iasql.com) or email via hello at our domain.
 
 *Want to stay in the loop? → [Join our newsletter!](/updates)*
