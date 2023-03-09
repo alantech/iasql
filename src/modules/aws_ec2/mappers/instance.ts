@@ -105,7 +105,7 @@ export class InstanceMapper extends MapperBase<Instance> {
 
     // check if we can find the instance in database
     if (instance.InstanceId) {
-      const instanceObj = await this.module.instance.db.read(
+      const instanceObj = await this.db.read(
         ctx,
         this.module.instance.generateId({ instanceId: instance.InstanceId, region }),
       );
