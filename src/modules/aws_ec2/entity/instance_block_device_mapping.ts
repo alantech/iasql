@@ -27,16 +27,13 @@ export class InstanceBlockDeviceMapping {
    * Device name to associate this volume to the instance
    */
   @Column()
-  @cloudId
   deviceName: string;
 
   @Column({ nullable: false })
-  @cloudId
   instanceId?: number;
 
   @Column({ nullable: true })
   @Index({ unique: true, where: 'volume_id IS NOT NULL' })
-  @cloudId
   volumeId?: number;
 
   /**
@@ -100,6 +97,5 @@ export class InstanceBlockDeviceMapping {
   })
   @ManyToOne(() => AwsRegions, { nullable: false })
   @JoinColumn({ name: 'region' })
-  @cloudId
   region: string;
 }

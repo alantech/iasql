@@ -28,6 +28,10 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
       region: e.region,
     });
   };
+  idFields = (id: string) => {
+    const [instanceId, deviceName, volumeId, region] = id.split('|');
+    return { instanceId, deviceName, volumeId, region };
+  };
 
   equals = (a: InstanceBlockDeviceMapping, b: InstanceBlockDeviceMapping) => {
     return Object.is(a.deviceName, b.deviceName) && Object.is(a.deleteOnTermination, b.deleteOnTermination);
@@ -201,14 +205,20 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
         return out;
       }
     },
+    updateOrReplace: (prev: InstanceBlockDeviceMapping, next: InstanceBlockDeviceMapping) => {
+      if (!Object.is(prev.deleteOnTermination, next.deleteOnTermination)) return 'update';
+      return 'replace';
+    },
+
     update: async (es: InstanceBlockDeviceMapping[], ctx: Context) => {
       const out = [];
       for (const e of es) {
         const client = (await ctx.getAwsClient(e.region)) as AWS;
         if (!e.volume || !e.volume.volumeId) continue; // cannot update a mapping without a volume
         const cloudRecord = ctx?.memo?.cloud?.InstanceBlockDeviceMapping?.[this.entityId(e)];
+        const isUpdate = this.cloud.updateOrReplace(cloudRecord, e) === 'update';
 
-        if (e.deleteOnTermination !== cloudRecord.deleteOnTermination) {
+        if (isUpdate) {
           // we need to update the delete on termination for that specific device
           const mappings = await this.module.instance.getInstanceBlockDeviceMapping(
             client.ec2client,
