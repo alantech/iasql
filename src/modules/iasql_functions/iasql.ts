@@ -114,6 +114,8 @@ export async function install(
       )
       .map((m: ModuleInterface) => `${m.name}@${m.version}`);
   }
+  // ignore duplicated modules in moduleList
+  moduleList = [...new Set(moduleList)];
   const version = AllModules?.iasqlPlatform?.version ?? throwError('IasqlPlatform not found');
   const versionString = await TypeormWrapper.getVersionString(dbId);
   if (version !== versionString) throw new Error(`Unsupported version ${versionString}`);
