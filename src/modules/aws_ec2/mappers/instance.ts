@@ -352,7 +352,8 @@ export class InstanceMapper extends MapperBase<Instance> {
         // try to find the device name on instance mapping
         const vol = imageMapping?.find(item => item.DeviceName === instanceMap.deviceName);
         if (!vol) throw new Error('Error mapping volume to a device that does not exist for the AMI');
-        if (!instanceMap.volume?.isRootDevice) throw new Error('Error mapping volume that is not root');
+        if (instanceMap.volumeId && !instanceMap.volume?.isRootDevice)
+          throw new Error('Error mapping volume that is not root');
       }
       const region = instance.region;
       for (const imageMap of imageMapping ?? []) {
@@ -486,6 +487,19 @@ export class InstanceMapper extends MapperBase<Instance> {
           if (!instanceId) {
             // then who?
             throw new Error('should not be possible');
+          }
+
+          // deletes the volumes set as nodevice
+          const oldMaps: InstanceBlockDeviceMapping[] = await ctx.orm.find(InstanceBlockDeviceMapping, opts);
+          for (const oldMap of oldMaps ?? []) {
+            if (!oldMap.volumeId) {
+              await ctx.orm.remove(InstanceBlockDeviceMapping, oldMap);
+
+              // force db cache cleanup
+              delete ctx.memo.db.InstanceBlockDeviceMapping[
+                this.module.instanceBlockDeviceMapping.entityId(oldMap)
+              ];
+            }
           }
 
           // reads the current mapping for the instance to get all the related volumes, and waits for them to be in use

@@ -11,19 +11,20 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
   module: AwsEc2Module;
   entity = InstanceBlockDeviceMapping;
   generateId = (fields: IdFields) => {
-    const requiredFields = ['instanceId', 'volumeId', 'region'];
+    const requiredFields = ['instanceId', 'deviceName', 'volumeId', 'region'];
     if (
       Object.keys(fields).length !== requiredFields.length &&
       !Object.keys(fields).every(fk => requiredFields.includes(fk))
     ) {
       throw new Error(`Id generation error. Valid fields to generate id are: ${requiredFields.join(', ')}`);
     }
-    return `${fields.instanceId}|${fields.volumeId}|${fields.region}`;
+    return `${fields.instanceId}|${fields.deviceName}|${fields.volumeId}|${fields.region}`;
   };
   entityId = (e: InstanceBlockDeviceMapping) => {
     return this.module.instanceBlockDeviceMapping.generateId({
       instanceId: e.instance?.instanceId ?? '',
-      volumeId: e.volume!.volumeId!,
+      deviceName: e.deviceName,
+      volumeId: e.volume?.volumeId ?? '',
       region: e.region,
     });
   };
