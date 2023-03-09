@@ -424,6 +424,13 @@ const middlewareReducer = async (
         `,
         );
       } catch (e: any) {
+        middlewareReducer(config, dispatch, {
+          action: ActionType.DisconnectDb,
+          token,
+          data: {
+            dbAlias: alias,
+          },
+        });
         const error = e.message ? e.message : `Error adding credentials ${dbAlias}`;
         dispatch({ ...payload, data: { error } });
         break;

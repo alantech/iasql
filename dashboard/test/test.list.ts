@@ -1,6 +1,7 @@
 import { test } from '@playwright/test';
 
 import connect from './connect.spec';
+import connectInvalidCreds from './connectInvalidCreds.spec';
 import disconnect from './disconnect.spec';
 import disconnectAll from './disconnectAll.spec';
 import install from './install.spec';
@@ -14,6 +15,7 @@ import uninstall from './uninstall.spec';
 
 test.describe('disconnect all databases', disconnectAll);
 test.describe('connect', connect);
+test.describe('connect with invalid creds', connectInvalidCreds);
 test.describe('install', install);
 test.describe('uninstall', uninstall);
 test.describe('query', query);
