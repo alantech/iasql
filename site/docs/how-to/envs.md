@@ -3,7 +3,7 @@ sidebar_position: 4
 slug: '/envs'
 ---
 
-# Replicate changes between dev, staging, and prod environments
+# Replicate across environments
 
 Due to capacity, region, and other differences across cloud infrastructure environments, we recommend that IaSQL users have one AWS account per environment (dev, staging, prod, etc). Each AWS account is [connected](./aws.mdx) to an [IaSQL database](../concepts/db.md) that is modified independently.
 
