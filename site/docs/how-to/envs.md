@@ -15,19 +15,19 @@ SELECT * FROM iasql_begin();
 
 --- infrastructure changes
 
---- calls iasql_preview to see the result in the cloud
+--- calls iasql_preview to see what would be the result in the cloud account
 select * from iasql_preview();
 
 --- more infrastructure changes
 
---- calls iasql_preview to see the result in the cloud
+--- calls iasql_preview to see what would be the result in the cloud account
 select * from iasql_preview();
 
---- calls iasql_commit should create
+--- calls iasql_commit and make the resulting changes in the cloud account
 select * from iasql_commit();
 ```
 
-Once the transaction is committed successfully, IaSQL automatically rolls back failed transactions, and the desired changes are committed into the DB for one environment, we have a PG function that looks at the audit log and generates the SQL representing changes done from a given point in time.
+Once the transaction is committed successfully, IaSQL automatically rolls back failed transactions, and the desired changes are committed into the DB for that environment, you can use another IaSQL function that looks at the audit log and generates the SQL needed to represent changes done from a given point in time.
 
 ```sql
 -- gets SQL from the audit log from a given point in time
