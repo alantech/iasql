@@ -36,7 +36,7 @@ export enum dbClusterEngineEnum {
  * @see https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/Aurora.Overview.html
  */
 @Entity()
-@Unique('UQ_identifier_region', ['dbClusterIdentifier', 'region'])
+@Unique('UQ_db_cluster_identifier_region', ['dbClusterIdentifier', 'region'])
 export class DBCluster {
   /**
    * @private

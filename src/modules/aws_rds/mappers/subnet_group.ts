@@ -166,11 +166,13 @@ export class DBSubnetGroupMapper extends MapperBase<DBSubnetGroup> {
           await this.module.dbSubnetGroup.db.update(cloudRecord, ctx);
           out.push(cloudRecord);
         } else {
+          const subnetIds = await this.getSubnets(ctx, cloudRecord.region, cloudRecord.subnets);
+
           // we need to update the record
           const result = await this.modifyDBSubnetGroup(client.rdsClient, {
             DBSubnetGroupDescription: e.description,
             DBSubnetGroupName: e.name,
-            SubnetIds: e.subnets?.map(s => s.SubnetIdentifier),
+            SubnetIds: subnetIds,
           });
           cloudRecord.id = e.id;
           out.push(cloudRecord);

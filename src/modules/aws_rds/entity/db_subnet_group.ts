@@ -13,8 +13,8 @@ import { Vpc } from '../../aws_vpc/entity';
  * @see https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_VPC.WorkingWithRDSInstanceinaVPC.html
  */
 @Entity()
-@Unique('subnet_group_name_region', ['name', 'region'])
-@Unique('subnet_group_id_region', ['id', 'region']) // So the RDS entity can join on both
+@Unique('db_subnet_group_name_region', ['name', 'region'])
+@Unique('db_subnet_group_id_region', ['id', 'region']) // So the RDS entity can join on both
 export class DBSubnetGroup {
   /**
    * @private
