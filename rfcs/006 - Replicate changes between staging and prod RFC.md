@@ -6,7 +6,7 @@
 
 ### Accepted
 
-YYYY-MM-DD
+2022-12-23
 
 #### Approvers
 
