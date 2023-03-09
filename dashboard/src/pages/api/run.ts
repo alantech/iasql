@@ -82,7 +82,13 @@ async function metaQuery(sql: string, params?: any[]): Promise<any> {
   return out;
 }
 
-async function runSql(sql: string, dbAlias: string, username: string, password: string) {
+async function runSql(
+  sql: string,
+  dbAlias: string,
+  username: string,
+  password: string,
+  res: NextApiResponse,
+) {
   const dbId = await (async () => {
     if (dbAlias === 'iasql_metadata') return dbAlias;
     const res = await metaQuery(
@@ -114,10 +120,12 @@ async function runSql(sql: string, dbAlias: string, username: string, password: 
         app: 'run',
         env: process.env.IASQL_ENV,
         meta: {
+          sql,
           error: e.message,
           stack: e.stack,
         },
       });
+      res.status(500).json({ error: `Connection interruption while executing query ${sql}` });
     });
     await connTemp.connect();
     const deparsedStmt = deparse(stmt);
@@ -269,7 +277,7 @@ async function run(req: NextApiRequest, res: NextApiResponse) {
         const tokenInfo = await validateToken(token);
         const { dbAlias, sql } = req.body;
         const { username, password } = await getUserAndPassword(tokenInfo, dbAlias);
-        const out = await runSql(sql, dbAlias, username, password);
+        const out = await runSql(sql, dbAlias, username, password, res);
         return out;
       })(),
       execTime - 100,
