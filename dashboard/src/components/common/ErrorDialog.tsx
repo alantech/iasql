@@ -16,7 +16,7 @@ export default function ErrorDialog() {
     <Transition.Root show={true} as={Fragment}>
       <Dialog
         as='div'
-        className='fixed z-10 inset-0 overflow-y-auto'
+        className='fixed z-10 inset-0 overflow-y-auto error-dialog'
         initialFocus={cancelButtonRef}
         open={!!error || !!configError}
         onClose={() => {
