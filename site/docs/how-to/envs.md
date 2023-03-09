@@ -27,7 +27,7 @@ select * from iasql_preview();
 select * from iasql_commit();
 ```
 
-Once the transaction is committed successfully, IaSQL automatically rolls back failed transactions, and the desired changes are committed into the DB for that environment, you can use another IaSQL function that looks at the audit log and generates the SQL needed to represent changes done from a given point in time.
+Once the transaction is committed successfully and the desired changes are committed into the DB for that environment, you can use another IaSQL function that looks at the audit log and generates the SQL needed to represent changes done from a given point in time.
 
 ```sql
 -- gets SQL from the audit log from a given point in time
