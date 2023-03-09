@@ -1,6 +1,6 @@
 import { test, } from '@playwright/test';
 
-import { auth0, click, fill, isDisabled, isVisible, } from './helper';
+import { auth0, click, fill, isDisabled, isNotVisible, isVisible, } from './helper';
 
 export default function createTests() {
   test('Connect using invalid credentials', async ({ page, browserName }) => {
@@ -62,6 +62,16 @@ export default function createTests() {
     );
 
     // Let's wait a couple of seconds to make sure the db got disconnected behind scenes
-    await new Promise(r => setTimeout(r, 2000));
+    await new Promise(r => setTimeout(r, 3000));
+
+    // Lets refresh to make sure the db got disconnected
+    await auth0(page);
+
+    await click(
+      page.locator('#database-selection')
+    );
+
+    await isNotVisible(page.locator(`span[role="none"]:has-text("${dbAlias}_invalid")`));
+
   });
 }
