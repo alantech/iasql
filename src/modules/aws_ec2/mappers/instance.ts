@@ -330,7 +330,7 @@ export class InstanceMapper extends MapperBase<Instance> {
     _res => undefined,
   );
 
-  // given an instance reads the mapping from the associate AMI , match
+  // given an instance reads the mapping from the associate AMI, match
   // it with the current mapped volumes and generate the final mapping
   async generateBlockDeviceMapping(
     ctx: Context,
