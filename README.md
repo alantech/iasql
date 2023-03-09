@@ -31,7 +31,7 @@
 To [connect your AWS account](https://iasql.com/docs/aws) to a PostgreSQL database running locally generate AWS credentials, make sure docker is installed, and run:
 
 ```bash
-docker run -p 9876:9876 -p 5432:5432 --name iasql iasql/iasql
+docker run --pull=always -p 9876:9876 -p 5432:5432 --name iasql iasql/iasql
 ```
 
 Alternatively, use a hosted version of IaSQL at [app.iasql.com](https://app.iasql.com)
