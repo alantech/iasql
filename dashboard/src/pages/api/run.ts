@@ -108,8 +108,18 @@ async function runSql(sql: string, dbAlias: string, username: string, password: 
       host: baseConnConfig.host,
       ssl: baseConnConfig.extra.ssl,
     });
+    // Based on https://node-postgres.com/apis/client#error
+    connTemp.on('error', e => {
+      logger.error?.('Connection error', {
+        app: 'run',
+        env: process.env.IASQL_ENV,
+        meta: {
+          error: e.message,
+          stack: e.stack,
+        },
+      });
+    });
     await connTemp.connect();
-    // await connTemp.query(dbMan.setPostgresRoleQuery(database));
     const deparsedStmt = deparse(stmt);
     try {
       const queryRes = await connTemp.query(deparsedStmt);
