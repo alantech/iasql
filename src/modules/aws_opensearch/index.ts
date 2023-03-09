@@ -1,13 +1,14 @@
 import { ModuleBase } from '../interfaces';
+import { DomainMapper } from './mappers/domain';
 
 export class AwsOpenSearchModule extends ModuleBase {
   /** @internal */
-  bucketWebsite: BucketWebsiteMapper;
+  domain: DomainMapper;
 
   constructor() {
     super();
     // Mappers
-    this.bucketWebsite = new BucketWebsiteMapper(this);
+    this.domain = new DomainMapper(this);
     // RPCs
     super.init();
   }

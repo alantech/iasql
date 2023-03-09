@@ -31,3 +31,4 @@ export * from './iasql_functions';
 export * from './iasql_platform';
 export * from './interfaces';
 export * from './ssh_accounts';
+export * from './aws_opensearch';

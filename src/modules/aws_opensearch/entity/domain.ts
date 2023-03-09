@@ -10,10 +10,10 @@ import {
 } from 'typeorm';
 
 import {
+  EBSOptions,
   OpenSearchPartitionInstanceType,
   OpenSearchWarmPartitionInstanceType,
-  StorageType,
-} from '@aws-sdk/client-opensearch/dist-types/models/models_0';
+} from '@aws-sdk/client-opensearch';
 
 import { Policy } from '../../../services/canonical-iam-policy';
 import { cloudId } from '../../../services/cloud-id';
@@ -53,7 +53,7 @@ export class Domain {
     eager: true,
   })
   @JoinColumn({ name: 'endpoint_certificate_id', referencedColumnName: 'id' })
-  customEndpointCertificate: Certificate;
+  customEndpointCertificate?: Certificate;
 
   @Column({
     type: 'enum',
@@ -68,7 +68,7 @@ export class Domain {
   @Min(1)
   @Max(3)
   @Column({ type: 'int' })
-  AvailabilityZoneCount: number;
+  availabilityZoneCount: number;
 
   @Column({ type: 'varchar', enum: OpenSearchPartitionInstanceType })
   instanceType: OpenSearchPartitionInstanceType;
@@ -78,22 +78,22 @@ export class Domain {
   @Column({ type: 'int' })
   instanceCount: number;
 
-  @Column({ type: 'jsonb' })
-  storageType: StorageType;
+  @Column({ type: 'jsonb', nullable: true })
+  ebsOptions?: EBSOptions;
 
-  @Column({ enum: OpenSearchWarmPartitionInstanceType, type: 'varchar' })
+  @Column({ enum: OpenSearchWarmPartitionInstanceType, type: 'varchar', nullable: true })
   warmInstanceType?: OpenSearchWarmPartitionInstanceType;
 
-  @Column()
+  @Column({ nullable: true })
   warmInstanceCount?: number;
 
-  @Column()
-  warmColdStorage?: boolean;
+  @Column({ default: false, nullable: true })
+  coldStorage?: boolean;
 
-  @Column({ enum: OpenSearchPartitionInstanceType, type: 'varchar' })
+  @Column({ enum: OpenSearchPartitionInstanceType, type: 'varchar', nullable: true })
   dedicatedMasterType?: OpenSearchPartitionInstanceType;
 
-  @Column()
+  @Column({ nullable: true })
   dedicatedMasterCount?: number;
 
   @Column({ default: true, type: 'boolean' })
@@ -122,8 +122,8 @@ export class Domain {
   @Column({ type: 'jsonb' })
   accessPolicy: Policy;
 
-  // encryption: https all traffic, node2node enc, data at rest encryption
-  // tags
+  @Column({ nullable: true })
+  endpoint?: string; // comes from the cloud
   /**
    * @public
    * Region for the domain
