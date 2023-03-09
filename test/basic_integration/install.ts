@@ -54,6 +54,8 @@ describe('Install cases', () => {
   it('installs having a duplication in the list', install(['aws_ecr', 'aws_ecr']));
 
   it('installs having a module and its dependency in the same list', install(['aws_ec2', 'aws_vpc']));
+  
+  it('reinstalls existing modules', install(['aws_ec2', 'aws_vpc']));
 
   it('uninstalls all', uninstallAll());
 
