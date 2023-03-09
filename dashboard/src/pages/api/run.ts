@@ -6,6 +6,7 @@ import format from 'pg-format';
 import { parse, deparse } from 'pgsql-parser';
 import { DataSource } from 'typeorm';
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
+import { v4 as uuidv4 } from 'uuid';
 
 import { throwError } from '@/config/config';
 import config from '@/server-config';
@@ -116,16 +117,21 @@ async function runSql(
     });
     // Based on https://node-postgres.com/apis/client#error
     connTemp.on('error', e => {
+      const errorId = uuidv4();
       logger.error?.('Connection error', {
         app: 'run',
         env: process.env.IASQL_ENV,
         meta: {
+          errorId,
           sql,
           error: e.message,
           stack: e.stack,
         },
       });
-      res.status(500).json({ error: `Connection interruption while executing query ${sql}` });
+      res.status(500).json({
+        error: `Connection interruption while executing query ${sql}
+Please provide this error ID when reporting this bug: ${errorId}`,
+      });
     });
     await connTemp.connect();
     const deparsedStmt = deparse(stmt);
