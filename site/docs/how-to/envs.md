@@ -7,7 +7,7 @@ slug: '/envs'
 
 Due to capacity, region, and other differences across cloud infrastructure environments, we recommend that IaSQL users have one AWS account per environment (dev, staging, prod, etc) so you aren't surprised that, for example, an EC2 instance type you used in staging is not available in production. Then each AWS account should be [connected](./aws.mdx) to an [IaSQL database](../concepts/db.md) that is modified independently.
 
-Complex, or delicate, infrastructure changes should be treated as transactions. [IaSQL transactions](../concepts/transaction.md) are a bit different from normal DB transactions in that they are multiuser and can be previewed, with the function [`iasql_preview`](../modules/builtin/iasql_functions.md), for the changes that the ongoing transaction will create in the cloud similar to Pulumi’s preview or Terraform’s plan.
+Complex, or delicate, infrastructure changes should be treated as transactions. [IaSQL transactions](../concepts/transaction.md) are a bit different from normal DB transactions in that they are multiuser and can be previewed with the [`iasql_preview`](../modules/builtin/iasql_functions.md) function for the changes that the ongoing transaction will create in the cloud, similar to Pulumi’s `preview` or Terraform’s `plan`.
 
 ```sql
 --- starts a transaction
