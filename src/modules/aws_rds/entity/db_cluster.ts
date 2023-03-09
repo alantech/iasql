@@ -12,7 +12,6 @@ import {
 import { cloudId } from '../../../services/cloud-id';
 import { AwsRegions } from '../../aws_account/entity';
 import { SecurityGroup } from '../../aws_security_group/entity';
-import { AvailabilityZone } from '../../aws_vpc/entity';
 import { DBSubnetGroup } from './db_subnet_group';
 import { ParameterGroup } from './parameter_group';
 
@@ -21,19 +20,18 @@ import { ParameterGroup } from './parameter_group';
  * The name of the database engine to be used for this DB cluster.
  */
 export enum dbClusterEngineEnum {
-  AURORA = 'aurora',
-  AURORA_MYSQL = 'aurora-mysql',
-  AURORA_POSTGRESQL = 'aurora-postgresql',
   MYSQL = 'MYSQL',
   POSTGRES = 'POSTGRES',
 }
 
 /**
- * Table to manage Aurora DB cluster instances. An Amazon Aurora DB cluster consists of one or more DB instances and a cluster volume
- * that manages the data for those DB instances. An Aurora cluster volume is a virtual database storage volume that
- * spans multiple Availability Zones, with each Availability Zone having a copy of the DB cluster data.
+ * Table to manage Multi-AZ DB cluster instances. A Multi-AZ DB cluster deployment is a high availability
+ * deployment mode of Amazon RDS with two readable standby DB instances. A Multi-AZ DB cluster has a writer
+ * DB instance and two reader DB instances in three separate Availability Zones in the same AWS Region.
+ * Multi-AZ DB clusters provide high availability, increased capacity for read workloads,
+ * and lower write latency when compared to Multi-AZ DB instance deployments.
  *
- * @see https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/Aurora.Overview.html
+ * @see https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/multi-az-db-clusters-concepts.html
  */
 @Entity()
 @Unique('UQ_db_cluster_identifier_region', ['dbClusterIdentifier', 'region'])
@@ -69,24 +67,6 @@ export class DBCluster {
 
   /**
    * @public
-   * Reference to the availability zones for the database
-   * @see https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/Concepts.RegionsAndAvailabilityZones.html
-   */
-  @ManyToOne(() => AvailabilityZone, { eager: true, nullable: false })
-  @JoinColumn([
-    {
-      name: 'availability_zone',
-      referencedColumnName: 'name',
-    },
-    {
-      name: 'region',
-      referencedColumnName: 'region',
-    },
-  ])
-  availabilityZone: AvailabilityZone;
-
-  /**
-   * @public
    * The number of days for which automated backups are retained.
    * Valid for: Aurora DB clusters and Multi-AZ DB clusters
    */
@@ -112,7 +92,7 @@ export class DBCluster {
   @Column({
     nullable: true,
   })
-  dbInstanceClass?: string;
+  dbClusterInstanceClass?: string;
 
   /**
    * @public
@@ -158,16 +138,37 @@ export class DBCluster {
    * @public
    * The name for your database of up to 64 alphanumeric characters. If you do not provide a name, Amazon RDS doesn't create a database in the DB cluster you are creating.
    */
-  @Column()
-  @cloudId
-  dbName: string;
+  @Column({
+    nullable: true,
+  })
+  databaseName?: string;
+
+  /**
+   * @public
+   * A value that indicates whether the DB cluster has deletion protection enabled.
+   */
+  @Column({
+    type: 'boolean',
+    nullable: true,
+    default: false,
+  })
+  deletionProtection: boolean;
 
   /**
    * @public
    * The name of the database engine to be used for this DB cluster.
    */
-  @Column({ nullable: true, type: 'enum', enum: dbClusterEngineEnum })
+  @Column({ type: 'enum', enum: dbClusterEngineEnum })
   engine?: dbClusterEngineEnum;
+
+  /**
+   * @public
+   * The version number of the database engine to use.
+   */
+  @Column({
+    nullable: true,
+  })
+  engineVersion: string;
 
   /**
    * @public
@@ -237,7 +238,7 @@ export class DBCluster {
    */
   @ManyToMany(() => SecurityGroup, { eager: true })
   @JoinTable({
-    name: 'rds_security_groups',
+    name: 'db_cluster_security_groups',
   })
   vpcSecurityGroups: SecurityGroup[];
 

@@ -50,13 +50,10 @@ export class DBSubnetGroup {
 
   /**
    * @public
-   * Ids of all the VPC subnets used by the service
+   * List of subnets associated with the group
    */
-  @Column({
-    type: 'jsonb',
-    nullable: true,
-  })
-  subnets?: Subnet[];
+  @Column('varchar', { array: true, nullable: true })
+  subnets?: string[];
 
   /**
    * @public

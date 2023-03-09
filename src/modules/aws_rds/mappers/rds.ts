@@ -25,7 +25,6 @@ export class RdsMapper extends MapperBase<RDS> {
     Object.is(a.availabilityZone?.name, b.availabilityZone?.name) &&
     Object.is(a.dbInstanceIdentifier, b.dbInstanceIdentifier) &&
     Object.is(a.endpointAddr, b.endpointAddr) &&
-    Object.is(a.endpointHostedZoneId, b.endpointHostedZoneId) &&
     Object.is(a.endpointPort, b.endpointPort) &&
     !a.masterUserPassword && // Special case, if master password defined, will update the password
     Object.is(a.masterUsername, b.masterUsername) &&
@@ -37,7 +36,14 @@ export class RdsMapper extends MapperBase<RDS> {
     Object.is(a.allocatedStorage, b.allocatedStorage) &&
     Object.is(a.backupRetentionPeriod, b.backupRetentionPeriod) &&
     Object.is(a.parameterGroup?.arn, b.parameterGroup?.arn) &&
-    Object.is(a.region, b.region);
+    Object.is(a.deletionProtection, b.deletionProtection) &&
+    Object.is(a.engineVersion, b.engineVersion) &&
+    Object.is(a.multiAZ, b.multiAZ) &&
+    Object.is(a.publiclyAccessible, b.publiclyAccessible) &&
+    Object.is(a.storageEncrypted, b.storageEncrypted) &&
+    Object.is(a.subnetGroup?.name, b.subnetGroup?.name) &&
+    Object.is(a.databaseName, b.databaseName) &&
+    Object.is(a.dbCluster?.dbClusterIdentifier, b.dbCluster?.dbClusterIdentifier);
 
   async rdsMapper(rds: any, ctx: Context, region: string) {
     const out = new RDS();
@@ -49,10 +55,10 @@ export class RdsMapper extends MapperBase<RDS> {
     out.dbInstanceClass = rds?.DBInstanceClass;
     out.dbInstanceIdentifier = rds?.DBInstanceIdentifier;
     out.endpointAddr = rds?.Endpoint?.Address;
-    out.endpointHostedZoneId = rds?.Endpoint?.HostedZoneId;
     out.endpointPort = rds?.Endpoint?.Port;
     if (/aurora/.test(rds?.Engine ?? 'aurora')) return undefined;
-    out.engine = `${rds?.Engine}:${rds?.EngineVersion}`;
+    out.engine = rds.Engine;
+    out.engineVersion = rds.EngineVersion;
     out.masterUsername = rds?.MasterUsername;
     const vpcSecurityGroupIds = rds?.VpcSecurityGroups?.filter(
       (vpcsg: any) => !!vpcsg?.VpcSecurityGroupId,
@@ -76,18 +82,31 @@ export class RdsMapper extends MapperBase<RDS> {
       out.parameterGroup =
         (await this.module.parameterGroup.db.read(
           ctx,
-          this.module.parameterGroup.generateId({ name: parameterGroup.DBParameterGroupName, region }),
+          this.module.parameterGroup.generateId({ name: rds.DBSubnetGroup, region }),
         )) ??
         (await this.module.parameterGroup.cloud.read(
           ctx,
-          this.module.parameterGroup.generateId({ name: parameterGroup.DBParameterGroupName, region }),
+          this.module.parameterGroup.generateId({ name: rds.DBSubnetGroup, region }),
         ));
       if (!out.parameterGroup) {
         // This is likely an unsupported Aurora instance
         return undefined;
       }
+      out.deletionProtection = rds.DeletionProtection ?? false;
+      out.multiAZ = rds.MultiAZ ?? false;
+      out.storageEncrypted = rds.StorageEncrypted ?? false;
+      out.subnetGroup =
+        (await this.module.dbSubnetGroup.db.read(
+          ctx,
+          this.module.dbSubnetGroup.generateId({ name: parameterGroup.DBParameterGroupName, region }),
+        )) ??
+        (await this.module.parameterGroup.cloud.read(
+          ctx,
+          this.module.parameterGroup.generateId({ name: parameterGroup.DBParameterGroupName, region }),
+        ));
     }
     out.region = region;
+    out.databaseName = rds.DBName;
     return out;
   }
   getDBInstance = crudBuilderFormat<AWSRDS, 'describeDBInstances', DBInstance | undefined>(
@@ -220,12 +239,11 @@ export class RdsMapper extends MapperBase<RDS> {
             if (!sg.groupId) throw new Error('Security group needs to exist');
             return sg.groupId;
           }) ?? [];
-        const [Engine, EngineVersion] = e.engine.split(':');
         const instanceParams: CreateDBInstanceCommandInput = {
           DBInstanceIdentifier: e.dbInstanceIdentifier,
           DBInstanceClass: e.dbInstanceClass,
-          Engine,
-          EngineVersion,
+          Engine: e.engine,
+          EngineVersion: e.engineVersion,
           MasterUsername: e.masterUsername,
           MasterUserPassword: e.masterUserPassword,
           AllocatedStorage: e.allocatedStorage,

@@ -1,5 +1,4 @@
 import {
-  Subnet,
   DBSubnetGroup as AWSDBSubnetGroup,
   CreateDBSubnetGroupCommandInput,
   RDS as AWSRDS,
@@ -7,7 +6,6 @@ import {
 } from '@aws-sdk/client-rds';
 
 import { AwsRdsModule } from '..';
-import { objectsAreSame } from '../../../services/aws-diff';
 import { AWS, crudBuilder, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
 import { awsVpcModule } from '../../aws_vpc';
 import { Subnet as VPCSubnet, Vpc } from '../../aws_vpc/entity';
@@ -18,24 +16,11 @@ export class DBSubnetGroupMapper extends MapperBase<DBSubnetGroup> {
   module: AwsRdsModule;
   entity = DBSubnetGroup;
 
-  getSubnetsNotEqual(a: Subnet[] | undefined, b: Subnet[] | undefined): Subnet[] {
-    if (!a && !b) return [];
-    if (!a || !b) return [{} as Subnet];
-    const subnets: Subnet[] = [];
-    a?.forEach(as => {
-      const bSubnet = b?.find(bs => Object.is(as.SubnetIdentifier, bs.SubnetIdentifier));
-      if (!bSubnet || !objectsAreSame(as, bSubnet)) {
-        subnets.push(as);
-      }
-    });
-    return subnets;
-  }
-
   equals = (a: DBSubnetGroup, b: DBSubnetGroup) =>
     Object.is(a.arn, b.arn) &&
     Object.is(a.description, b.description) &&
     Object.is(a.name, b.name) &&
-    !this.getSubnetsNotEqual(a.subnets, b.subnets).length;
+    (a.subnets?.every(asn => !!b.subnets?.find(bsn => Object.is(asn, bsn))) ?? false);
 
   async subnetGroupMapper(ctx: Context, sg: AWSDBSubnetGroup, region: string) {
     if (!sg.DBSubnetGroupArn) return undefined; // we cannot have a cloud subnet group without arn
@@ -43,7 +28,11 @@ export class DBSubnetGroupMapper extends MapperBase<DBSubnetGroup> {
     out.arn = sg.DBSubnetGroupArn;
     if (sg.DBSubnetGroupDescription) out.description = sg.DBSubnetGroupDescription;
     if (sg.DBSubnetGroupName) out.name = sg.DBSubnetGroupName;
-    out.subnets = sg.Subnets;
+    const subnets = [];
+    if (sg.Subnets?.length) {
+      subnets.push(...sg.Subnets.map(sn => sn.SubnetIdentifier ?? ''));
+    }
+    out.subnets = subnets;
     out.region = region;
     return out;
   }
@@ -88,31 +77,29 @@ export class DBSubnetGroupMapper extends MapperBase<DBSubnetGroup> {
     return finalSubnets;
   };
 
-  async getSubnets(ctx: Context, region: string, subnets: Subnet[] | undefined): Promise<string[]> {
+  async getSubnets(ctx: Context, region: string, subnets: string[] | undefined): Promise<string[]> {
     let subnetIds = [];
 
     // Create subnet group first
     if (!subnets?.length) {
       const defaultSubnets = await this.getDefaultSubnets(ctx, region);
-      subnetIds = defaultSubnets.map(sn => sn ?? '');
-    } else {
-      for (const subnet of subnets ?? []) {
-        if (subnet.SubnetIdentifier) subnetIds.push(subnet.SubnetIdentifier);
-      }
-    }
-    return subnetIds;
+      return defaultSubnets;
+    } else return subnets;
   }
 
   cloud = new Crud({
     create: async (es: DBSubnetGroup[], ctx: Context) => {
       const out = [];
       for (const e of es) {
-        const subnetIds = await this.getSubnets(ctx, e.region, e.subnets);
+        let subnets = [];
+        if (!e.subnets?.length) subnets = await this.getDefaultSubnets(ctx, e.region);
+        else subnets = e.subnets;
+
         const client = (await ctx.getAwsClient(e.region)) as AWS;
         const subnetGroupInput: CreateDBSubnetGroupCommandInput = {
           DBSubnetGroupName: e.name,
           DBSubnetGroupDescription: e.description,
-          SubnetIds: subnetIds,
+          SubnetIds: subnets,
         };
         const result = await this.createDBSubnetGroup(client.rdsClient, subnetGroupInput);
         // Re-get the inserted record to get all of the relevant records we care about
@@ -166,13 +153,15 @@ export class DBSubnetGroupMapper extends MapperBase<DBSubnetGroup> {
           await this.module.dbSubnetGroup.db.update(cloudRecord, ctx);
           out.push(cloudRecord);
         } else {
-          const subnetIds = await this.getSubnets(ctx, cloudRecord.region, cloudRecord.subnets);
+          let subnets = [];
+          if (!cloudRecord.subnets?.length) subnets = await this.getDefaultSubnets(ctx, cloudRecord.region);
+          else subnets = cloudRecord.subnets;
 
           // we need to update the record
           const result = await this.modifyDBSubnetGroup(client.rdsClient, {
             DBSubnetGroupDescription: e.description,
             DBSubnetGroupName: e.name,
-            SubnetIds: subnetIds,
+            SubnetIds: subnets,
           });
           cloudRecord.id = e.id;
           out.push(cloudRecord);
