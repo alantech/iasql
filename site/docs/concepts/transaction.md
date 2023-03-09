@@ -5,7 +5,7 @@ slug: '/transaction'
 
 # IaSQL transactions at a high level
 
-IaSQL does not any special syntax, akin to `apply` in IaC, to work normally. You can just `SELECT/INSERT/UPDATE/DELETE` records and eventually the changes are reflected in your cloud account. The most basic architectural diagram is simply your IaSQL database and your cloud account with IaSQL in between.
+IaSQL does not need any special syntax, akin to `apply` in IaC, to work normally. You can just `SELECT/INSERT/UPDATE/DELETE` records and eventually the changes are reflected in your cloud account. The most basic architectural diagram is simply your IaSQL database and your cloud account with IaSQL in between.
 
 ```
    ______
@@ -24,7 +24,7 @@ IaSQL, on the other hand, is completely stateless. It acquires the state of both
 
 ## IaSQL Transactions with `iasql_begin` and `iasql_commit`
 
-It is possible to perform changes to your cloud account synchronously by temporarily turning off the normal two-way propagation between the cloud and database through the usage of an IaSQL transaction using the provided PostgreSQL function `iasql_begin`. This lets you batch, or stage, changes together and then calling `iasql_commit` to mark the end of the transaction and propagate the changes from the database to the cloud account akin to a traditional [database transaction](https://en.wikipedia.org/wiki/Database_transaction). And similarly to database transactions, IaSQL transactions automatically roll back if the `commit` fails. As you might have learned the hard way, you can never count on a given cloud provider to behave consistently or predictably.
+It is possible to perform changes to your cloud account synchronously by temporarily turning off the normal two-way propagation between the cloud and database through the usage of an IaSQL transaction using the provided PostgreSQL function `iasql_begin`. This lets you batch, or stage, changes together and then calling `iasql_commit` to mark the end of the transaction and propagate the changes from the database to the cloud account akin to a traditional [database transaction](https://en.wikipedia.org/wiki/Database_transaction). And similarly to database transactions, IaSQL transactions automatically roll back if the `commit` fails which can happen if there was a typo in your SQL or if the cloud provider behaves unpredictably.
 
 ```
    ______
