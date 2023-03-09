@@ -261,6 +261,30 @@ export class InstanceBlockDeviceMappingMapper extends MapperBase<InstanceBlockDe
     },
   });
 
+  db = new Crud<InstanceBlockDeviceMapping>({
+    create: (es: InstanceBlockDeviceMapping[], ctx: Context) => ctx.orm.save(InstanceBlockDeviceMapping, es),
+    update: (es: InstanceBlockDeviceMapping[], ctx: Context) => ctx.orm.save(InstanceBlockDeviceMapping, es),
+    delete: (es: InstanceBlockDeviceMapping[], ctx: Context) =>
+      ctx.orm.remove(InstanceBlockDeviceMapping, es),
+    read: async (ctx: Context, id?: string) => {
+      const { instanceId, deviceName, volumeId, region } = id
+        ? this.idFields(id)
+        : { instanceId: undefined, deviceName: undefined, volumeId: undefined, region: undefined };
+      const opts =
+        instanceId && deviceName && region
+          ? {
+              where: {
+                instanceId,
+                volumeId,
+                deviceName,
+                region,
+              },
+            }
+          : {};
+      return await ctx.orm.find(InstanceBlockDeviceMapping, opts);
+    },
+  });
+
   constructor(module: AwsEc2Module) {
     super();
     this.module = module;
