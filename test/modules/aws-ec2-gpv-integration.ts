@@ -229,7 +229,7 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
         BEGIN;
         INSERT INTO general_purpose_volume (volume_type, size, availability_zone, tags, is_root_device)
         VALUES ('gp2', 15, '${availabilityZone2}', '{"Name": "${gp2VolumeName}-test-1"}', TRUE),
-        VALUES ('gp2', 20, '${availabilityZone2}', '{"Name": "${gp2VolumeName}-test-2"}', TRUE); 
+        ('gp2', 20, '${availabilityZone2}', '{"Name": "${gp2VolumeName}-test-2"}', TRUE); 
 
         INSERT INTO instance (ami, instance_type, tags, subnet_id)
           SELECT '${ubuntuAmiId}', '${instanceType2}', '{"name":"${prefix}-2"}', id
