@@ -72,7 +72,7 @@ export class DBCluster {
    */
   @Column({
     type: 'int',
-    nullable: true,
+    default: 1,
   })
   backupRetentionPeriod?: number;
 

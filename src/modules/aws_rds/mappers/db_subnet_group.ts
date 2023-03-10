@@ -78,8 +78,6 @@ export class DBSubnetGroupMapper extends MapperBase<DBSubnetGroup> {
   };
 
   async getSubnets(ctx: Context, region: string, subnets: string[] | undefined): Promise<string[]> {
-    let subnetIds = [];
-
     // Create subnet group first
     if (!subnets?.length) {
       const defaultSubnets = await this.getDefaultSubnets(ctx, region);

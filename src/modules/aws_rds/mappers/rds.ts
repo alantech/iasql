@@ -77,34 +77,53 @@ export class RdsMapper extends MapperBase<RDS> {
       if (sg) out.vpcSecurityGroups.push(sg);
     }
     out.backupRetentionPeriod = rds?.BackupRetentionPeriod ?? 1;
+
     if (rds.DBParameterGroups?.length) {
       const parameterGroup = rds.DBParameterGroups[0];
       out.parameterGroup =
         (await this.module.parameterGroup.db.read(
           ctx,
-          this.module.parameterGroup.generateId({ name: rds.DBSubnetGroup, region }),
-        )) ??
-        (await this.module.parameterGroup.cloud.read(
-          ctx,
-          this.module.parameterGroup.generateId({ name: rds.DBSubnetGroup, region }),
-        ));
-      if (!out.parameterGroup) {
-        // This is likely an unsupported Aurora instance
-        return undefined;
-      }
-      out.deletionProtection = rds.DeletionProtection ?? false;
-      out.multiAZ = rds.MultiAZ ?? false;
-      out.storageEncrypted = rds.StorageEncrypted ?? false;
-      out.subnetGroup =
-        (await this.module.dbSubnetGroup.db.read(
-          ctx,
-          this.module.dbSubnetGroup.generateId({ name: parameterGroup.DBParameterGroupName, region }),
+          this.module.parameterGroup.generateId({ name: parameterGroup.DBParameterGroupName, region }),
         )) ??
         (await this.module.parameterGroup.cloud.read(
           ctx,
           this.module.parameterGroup.generateId({ name: parameterGroup.DBParameterGroupName, region }),
         ));
+      if (!out.parameterGroup) {
+        // This is likely an unsupported Aurora instance
+        return undefined;
+      }
     }
+
+    out.deletionProtection = rds.DeletionProtection ?? false;
+    out.publiclyAccessible = rds.PubliclyAccessible ?? false;
+    out.multiAZ = rds.MultiAZ ?? false;
+    out.storageEncrypted = rds.StorageEncrypted ?? false;
+
+    if (rds.DBSubnetGroup) {
+      out.subnetGroup =
+        (await this.module.dbSubnetGroup.db.read(
+          ctx,
+          this.module.dbSubnetGroup.generateId({ name: rds.DBSubnetGroup, region }),
+        )) ??
+        (await this.module.dbSubnetGroup.cloud.read(
+          ctx,
+          this.module.dbSubnetGroup.generateId({ name: rds.DBSubnetGroup, region }),
+        ));
+    }
+
+    if (rds.DBCluster) {
+      out.dbCluster =
+        (await this.module.dbSubnetGroup.db.read(
+          ctx,
+          this.module.dbSubnetGroup.generateId({ name: rds.DBCluster, region }),
+        )) ??
+        (await this.module.dbSubnetGroup.cloud.read(
+          ctx,
+          this.module.dbSubnetGroup.generateId({ name: rds.DBCluster, region }),
+        ));
+    }
+
     out.region = region;
     out.databaseName = rds.DBName;
     return out;
@@ -240,20 +259,26 @@ export class RdsMapper extends MapperBase<RDS> {
             return sg.groupId;
           }) ?? [];
         const instanceParams: CreateDBInstanceCommandInput = {
+          AllocatedStorage: e.allocatedStorage,
+          AvailabilityZone: e.availabilityZone.name,
+          BackupRetentionPeriod: e.backupRetentionPeriod,
           DBInstanceIdentifier: e.dbInstanceIdentifier,
+          DBClusterIdentifier: e.dbCluster?.dbClusterIdentifier,
           DBInstanceClass: e.dbInstanceClass,
+          DBName: e.databaseName,
+          DeletionProtection: e.deletionProtection,
           Engine: e.engine,
           EngineVersion: e.engineVersion,
           MasterUsername: e.masterUsername,
           MasterUserPassword: e.masterUserPassword,
-          AllocatedStorage: e.allocatedStorage,
+          MultiAZ: e.multiAZ,
+          Port: e.endpointPort,
+          PubliclyAccessible: e.publiclyAccessible,
+          StorageEncrypted: e.storageEncrypted,
           VpcSecurityGroupIds: securityGroupIds,
-          AvailabilityZone: e.availabilityZone.name,
-          BackupRetentionPeriod: e.backupRetentionPeriod,
         };
-        if (e.parameterGroup) {
-          instanceParams.DBParameterGroupName = e.parameterGroup.name;
-        }
+        if (e.parameterGroup) instanceParams.DBParameterGroupName = e.parameterGroup.name;
+
         const result = await this.createDBInstance(client.rdsClient, instanceParams);
         // TODO: Handle if it fails (somehow)
         if (!result?.hasOwnProperty('DBInstanceIdentifier')) {
@@ -325,7 +350,7 @@ export class RdsMapper extends MapperBase<RDS> {
         if (
           !(
             Object.is(e.dbInstanceClass, cloudRecord.dbInstanceClass) &&
-            Object.is(e.engine, cloudRecord.engine) &&
+            Object.is(e.engineVersion, cloudRecord.engineVersion) &&
             Object.is(e.allocatedStorage, cloudRecord.allocatedStorage) &&
             !e.masterUserPassword &&
             Object.is(e.vpcSecurityGroups.length, cloudRecord.vpcSecurityGroups.length) &&
@@ -339,10 +364,10 @@ export class RdsMapper extends MapperBase<RDS> {
             throw new Error('Waiting for security groups');
           }
           const instanceParams: ModifyDBInstanceCommandInput = {
-            DBInstanceClass: e.dbInstanceClass,
-            EngineVersion: e.engine.split(':')[1],
-            DBInstanceIdentifier: e.dbInstanceIdentifier,
             AllocatedStorage: e.allocatedStorage,
+            DBInstanceClass: e.dbInstanceClass,
+            DBInstanceIdentifier: e.dbInstanceIdentifier,
+            EngineVersion: e.engineVersion,
             VpcSecurityGroupIds: e.vpcSecurityGroups?.filter(sg => !!sg.groupId).map(sg => sg.groupId!) ?? [],
             BackupRetentionPeriod: e.backupRetentionPeriod,
             ApplyImmediately: true,

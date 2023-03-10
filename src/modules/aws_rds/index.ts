@@ -1,8 +1,8 @@
 import { ModuleBase } from '../interfaces';
-import { ParameterGroupMapper, RdsMapper, DBSubnetGroupMapper } from './mappers';
+import { ParameterGroupMapper, RdsMapper, DBSubnetGroupMapper, DBClusterMapper } from './mappers';
 
 export class AwsRdsModule extends ModuleBase {
-  dbCluster: dbClusterMapper;
+  dbCluster: DBClusterMapper;
   rds: RdsMapper;
   parameterGroup: ParameterGroupMapper;
   dbSubnetGroup: DBSubnetGroupMapper;

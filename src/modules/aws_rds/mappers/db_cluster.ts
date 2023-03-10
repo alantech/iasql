@@ -3,11 +3,15 @@ import {
   DBCluster as AWSDBCluster,
   CreateDBClusterCommandInput,
   waitUntilDBClusterAvailable,
+  paginateDescribeDBClusters,
+  ModifyDBClusterCommandInput,
+  DeleteDBClusterMessage,
+  waitUntilDBClusterDeleted,
 } from '@aws-sdk/client-rds';
 import { WaiterOptions, WaiterState } from '@aws-sdk/util-waiter';
 
 import { AwsRdsModule } from '..';
-import { AWS, crudBuilderFormat } from '../../../services/aws_macros';
+import { AWS, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
 import { awsSecurityGroupModule } from '../../aws_security_group';
 import { Context, Crud, MapperBase } from '../../interfaces';
 import { DBCluster, dbClusterEngineEnum } from '../entity';
@@ -112,7 +116,39 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
       } as WaiterOptions<RDS>,
       { DBClusterIdentifier: clusterParams.DBClusterIdentifier },
     );
-    return result.state == WaiterState.SUCCESS;
+    return result.state === WaiterState.SUCCESS;
+  }
+
+  async updateDBCluster(client: RDS, clusterParams: ModifyDBClusterCommandInput) {
+    await client.modifyDBCluster(clusterParams);
+    // wait until cluster is available
+    const result = await waitUntilDBClusterAvailable(
+      {
+        client,
+        // all in seconds
+        maxWaitTime: 900,
+        minDelay: 1,
+        maxDelay: 4,
+      } as WaiterOptions<RDS>,
+      { DBClusterIdentifier: clusterParams.DBClusterIdentifier },
+    );
+    return result.state === WaiterState.SUCCESS;
+  }
+
+  async deleteDBCluster(client: RDS, deleteInput: DeleteDBClusterMessage) {
+    await client.deleteDBCluster(deleteInput);
+    // wait until cluster is deleted
+    const result = await waitUntilDBClusterDeleted(
+      {
+        client,
+        // all in seconds
+        maxWaitTime: 900,
+        minDelay: 1,
+        maxDelay: 4,
+      } as WaiterOptions<RDS>,
+      { DBClusterIdentifier: deleteInput.DBClusterIdentifier },
+    );
+    return result.state === WaiterState.SUCCESS;
   }
 
   getDBCluster = crudBuilderFormat<RDS, 'describeDBClusters', AWSDBCluster | undefined>(
@@ -120,6 +156,10 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
     DBClusterIdentifier => ({ DBClusterIdentifier }),
     res => res?.DBClusters?.[0],
   );
+
+  getAllDBClusters = paginateBuilder<RDS>(paginateDescribeDBClusters, 'DBClusters');
+  getDBClusters = async (client: RDS) =>
+    (await this.getAllDBClusters(client)).flat().filter(dbCluster => dbCluster.Status === 'available');
 
   cloud = new Crud({
     create: async (es: DBCluster[], ctx: Context) => {
@@ -174,90 +214,96 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
     read: async (ctx: Context, id?: string) => {
       const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
       if (id) {
-        const { dbInstanceIdentifier, region } = this.idFields(id);
+        const { dbClusterIdentifier, region } = this.idFields(id);
         const client = (await ctx.getAwsClient(region)) as AWS;
-        const rawRds = await this.getDBInstance(client.rdsClient, dbInstanceIdentifier);
-        if (!rawRds) return;
-        return await this.rdsMapper(rawRds, ctx, region);
+        const rawCluster = await this.getDBCluster(client.rdsClient, dbClusterIdentifier);
+        if (!rawCluster) return;
+        return await this.dbClusterMapper(rawCluster, ctx, region);
       } else {
-        const out: RDS[] = [];
+        const out: DBCluster[] = [];
         await Promise.all(
           enabledRegions.map(async region => {
             const client = (await ctx.getAwsClient(region)) as AWS;
-            const rdses = await this.getDBInstances(client.rdsClient);
-            for (const rds of rdses) {
-              const r = await this.rdsMapper(rds, ctx, region);
-              if (!r) continue;
-              out.push(r);
+            const clusters = await this.getDBClusters(client.rdsClient);
+            for (const cluster of clusters) {
+              const c = await this.dbClusterMapper(cluster, ctx, region);
+              if (!c) continue;
+              out.push(c);
             }
           }),
         );
         return out;
       }
     },
-    update: async (es: RDS[], ctx: Context) => {
+    update: async (es: DBCluster[], ctx: Context) => {
       const out = [];
       for (const e of es) {
         const client = (await ctx.getAwsClient(e.region)) as AWS;
-        const cloudRecord = ctx?.memo?.cloud?.RDS?.[this.entityId(e)];
-        let updatedRecord = { ...cloudRecord };
+        const cloudRecord = ctx?.memo?.cloud?.DBCluster?.[this.entityId(e)];
+
+        if (!e.vpcSecurityGroups?.filter(sg => !!sg.groupId).length)
+          throw new Error('Waiting for security groups');
+
+        // restore path
         if (
-          !(
-            Object.is(e.dbInstanceClass, cloudRecord.dbInstanceClass) &&
-            Object.is(e.engine, cloudRecord.engine) &&
-            Object.is(e.allocatedStorage, cloudRecord.allocatedStorage) &&
-            !e.masterUserPassword &&
-            Object.is(e.vpcSecurityGroups.length, cloudRecord.vpcSecurityGroups.length) &&
-            (e.vpcSecurityGroups?.every(
-              esg => !!cloudRecord.vpcSecurityGroups.find((csg: any) => Object.is(esg.groupId, csg.groupId)),
-            ) ??
-              false)
-          )
+          !Object.is(e.engine, cloudRecord.engine) ||
+          !Object.is(e.databaseName, cloudRecord.databaseName) ||
+          !Object.is(e.masterUsername, cloudRecord.masterUsername) ||
+          !Object.is(e.publiclyAccessible, cloudRecord.publiclyAccessible) ||
+          !Object.is(e.storageEncrypted, cloudRecord.storageEncrypted) ||
+          !Object.is(e.subnetGroup?.name, cloudRecord.subnetGroup?.name)
         ) {
-          if (!e.vpcSecurityGroups?.filter(sg => !!sg.groupId).length) {
-            throw new Error('Waiting for security groups');
-          }
-          const instanceParams: ModifyDBInstanceCommandInput = {
-            DBInstanceClass: e.dbInstanceClass,
-            EngineVersion: e.engine.split(':')[1],
-            DBInstanceIdentifier: e.dbInstanceIdentifier,
-            AllocatedStorage: e.allocatedStorage,
-            VpcSecurityGroupIds: e.vpcSecurityGroups?.filter(sg => !!sg.groupId).map(sg => sg.groupId!) ?? [],
-            BackupRetentionPeriod: e.backupRetentionPeriod,
-            ApplyImmediately: true,
-          };
-          // If a password value has been inserted, we update it.
-          if (e.masterUserPassword) {
-            instanceParams.MasterUserPassword = e.masterUserPassword;
-          }
-          const result = await this.updateDBInstance(client.rdsClient, instanceParams);
-          const dbInstance = await this.getDBInstance(client.rdsClient, result?.DBInstanceIdentifier ?? '');
-          updatedRecord = await this.rdsMapper(dbInstance, ctx, e.region);
+          cloudRecord.id = e.id;
+          await this.module.dbCluster.db.update(cloudRecord, ctx);
+          out.push(cloudRecord);
+          continue;
         }
-        // Restore autogenerated values
-        updatedRecord.id = e.id;
-        // Set password as null to avoid infinite loop trying to update the password.
-        // Reminder: Password need to be null since when we read RDS instances from AWS this
-        // property is not retrieved
-        updatedRecord.masterUserPassword = null;
-        await this.module.rds.db.update(updatedRecord, ctx);
-        out.push(updatedRecord);
+
+        // update path
+        const clusterParams: ModifyDBClusterCommandInput = {
+          DBClusterIdentifier: e.dbClusterIdentifier,
+          AllocatedStorage: e.allocatedStorage,
+          BackupRetentionPeriod: e.backupRetentionPeriod,
+          DBClusterInstanceClass: e.dbClusterInstanceClass,
+          DBClusterParameterGroupName: e.parameterGroup?.name,
+          DeletionProtection: e.deletionProtection,
+          EngineVersion: e.engineVersion,
+          Port: e.port,
+          VpcSecurityGroupIds: e.vpcSecurityGroups?.filter(sg => !!sg.groupId).map(sg => sg.groupId!) ?? [],
+          ApplyImmediately: true,
+        };
+        // If a password value has been inserted, we update it.
+        if (e.masterUserPassword) clusterParams.MasterUserPassword = e.masterUserPassword;
+
+        const result = await this.updateDBCluster(client.rdsClient, clusterParams);
+        if (result) {
+          // requery to get modified fields
+          const newObject = await this.getDBCluster(client.rdsClient, e.dbClusterIdentifier);
+          if (newObject) {
+            const newEntity = await this.dbClusterMapper(newObject, ctx, e.region);
+            if (!newEntity) continue;
+            // We attach the original object's ID to this new one, indicating the exact record it is
+            // replacing in the database.
+            newEntity.id = e.id;
+            // Set password as null to avoid infinite loop trying to update the password.
+            // Reminder: Password need to be null since when we read RDS instances from AWS this
+            // property is not retrieved
+            newEntity.masterUserPassword = undefined;
+            // Save the record back into the database to get the new fields updated
+            await this.module.dbCluster.db.update(newEntity, ctx);
+            out.push(newEntity);
+          }
+        }
       }
       return out;
     },
-    delete: async (es: RDS[], ctx: Context) => {
+    delete: async (es: DBCluster[], ctx: Context) => {
       for (const e of es) {
         const client = (await ctx.getAwsClient(e.region)) as AWS;
-        const input = {
-          DBInstanceIdentifier: e.dbInstanceIdentifier,
-          // TODO: do users will have access to this type of config?
-          //        probably initially we should play it safe and do not create a snapshot
-          //        and do not delete backups if any?
+        await this.deleteDBCluster(client.rdsClient, {
+          DBClusterIdentifier: e.dbClusterIdentifier,
           SkipFinalSnapshot: true,
-          // FinalDBSnapshotIdentifier: undefined,
-          // DeleteAutomatedBackups: false,
-        };
-        await this.deleteDBInstance(client.rdsClient, input);
+        });
       }
     },
   });
