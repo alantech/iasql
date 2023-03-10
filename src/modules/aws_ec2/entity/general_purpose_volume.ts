@@ -1,9 +1,18 @@
-import { Check, Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Check,
+  Column,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  OneToMany,
+  PrimaryGeneratedColumn,
+  Unique,
+} from 'typeorm';
 
 import { cloudId } from '../../../services/cloud-id';
 import { AwsRegions } from '../../aws_account/entity';
 import { AvailabilityZone } from '../../aws_vpc/entity';
-import { Instance } from '../entity';
+import { InstanceBlockDeviceMapping } from '../entity';
 
 /**
  * @enum
@@ -39,10 +48,7 @@ export enum VolumeState {
  * detached volumes.
  * @Unique('Unique_gp_instance_device_name', ['instanceDeviceName', 'attachedInstance'])
  */
-@Check(
-  'check_instance_ebs_availability_zone',
-  'check_instance_ebs_availability_zone(attached_instance_id, availability_zone)',
-)
+@Unique('volume_id_region', ['id', 'region']) // So the General Purpose Volume entity can join on both
 @Entity()
 export class GeneralPurposeVolume {
   /**
@@ -106,37 +112,14 @@ export class GeneralPurposeVolume {
 
   /**
    * @public
-   * Reference to the ec2 instances where this volume is attached
+   * If set to true it will not be created and used only for defining initial EBS on instance creation
+   * @see https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/block-device-mapping-concepts.html
    */
-  @ManyToOne(() => Instance, instance => instance.id, {
-    eager: true,
-    nullable: true,
-  })
-  @JoinColumn([
-    {
-      name: 'attached_instance_id',
-      referencedColumnName: 'id',
-    },
-    {
-      name: 'region',
-      referencedColumnName: 'region',
-    },
-  ])
-  attachedInstance?: Instance;
-
-  /**
-   * @public
-   * Name for the device when it is attached to an instance
-   * @see https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/device_naming.html
-   */
-  @Check(
-    'Check_gp_volume_instance_device',
-    `("instance_device_name" IS NULL AND "attached_instance_id" IS NULL) OR ("instance_device_name" IS NOT NULL AND "attached_instance_id" IS NOT NULL)`,
-  )
   @Column({
     nullable: true,
+    default: false,
   })
-  instanceDeviceName?: string;
+  isRootDevice?: boolean;
 
   /**
    * @public
@@ -184,6 +167,16 @@ export class GeneralPurposeVolume {
     nullable: true,
   })
   tags?: { [key: string]: string };
+
+  /**
+   * @public
+   * Block device mappings for the instance
+   */
+  @OneToMany(() => InstanceBlockDeviceMapping, mappings => mappings.volume, {
+    nullable: true,
+  })
+  @JoinColumn({ referencedColumnName: 'volume_id' })
+  instanceBlockDeviceMappings?: InstanceBlockDeviceMapping[];
 
   /**
    * @public

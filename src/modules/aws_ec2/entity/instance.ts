@@ -6,6 +6,7 @@ import {
   JoinTable,
   ManyToMany,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
   Unique,
 } from 'typeorm';
@@ -16,6 +17,7 @@ import { IamRole } from '../../aws_iam/entity';
 // TODO: Is there a better way to deal with cross-module entities?
 import { SecurityGroup } from '../../aws_security_group/entity';
 import { Subnet } from '../../aws_vpc/entity';
+import { InstanceBlockDeviceMapping } from './instance_block_device_mapping';
 
 /**
  * @enum
@@ -165,6 +167,16 @@ export class Instance {
     default: false,
   })
   hibernationEnabled: boolean;
+
+  /**
+   * @public
+   * Block device mappings for the instance
+   */
+  @OneToMany(() => InstanceBlockDeviceMapping, mappings => mappings.instance, {
+    nullable: true,
+  })
+  @JoinColumn({ referencedColumnName: 'instance_id' })
+  instanceBlockDeviceMappings?: InstanceBlockDeviceMapping[];
 
   /**
    * @public

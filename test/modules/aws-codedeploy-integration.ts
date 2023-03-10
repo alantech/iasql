@@ -733,16 +733,9 @@ SELECT * FROM codedeploy_deployment_group WHERE application_id = (SELECT id FROM
     it(
       'deletes all ec2 instances',
       query(
-        `
-      BEGIN;
-        DELETE FROM general_purpose_volume
-        USING instance
-        WHERE instance.id = general_purpose_volume.attached_instance_id AND 
-          (instance.tags ->> 'name' = '${instanceTag}');
-  
+        `  
         DELETE FROM instance
         WHERE tags ->> 'name' = '${instanceTag}';
-      COMMIT;
     `,
         undefined,
         true,
