@@ -124,7 +124,7 @@ const gettingStarted = `-- Welcome to IaSQL!
 
 -- This editor can autocomplete your query's table and column names based on the installed modules.
 
--- If you want to see all the available IaSQL functions you can execute the following query:
+-- If you want to see all the currently available IaSQL functions you can execute the following query:
 -- SELECT * FROM iasql_help()
 
 -- To disconnect your database, click "Settings" and then "Disconnect" on the top right.
