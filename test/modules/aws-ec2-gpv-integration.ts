@@ -226,23 +226,21 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
   itDocs('creates an instance with specific size and an extra volume', (done: (arg0: any) => any) => {
     query(
       `
-      BEGIN;
+        BEGIN;
         INSERT INTO general_purpose_volume (volume_type, size, availability_zone, tags, is_root_device)
-        VALUES ('gp2', 15, '${availabilityZone2}', '{"Name": "${gp2VolumeName}-test-1"}', TRUE);
-        INSERT INTO general_purpose_volume (volume_type, size, availability_zone, tags, is_root_device)
-        VALUES ('gp2', 20, '${availabilityZone2}', '{"Name": "${gp2VolumeName}-test-2"}', TRUE);
+        VALUES ('gp2', 15, '${availabilityZone2}', '{"Name": "${gp2VolumeName}-test-1"}', TRUE),
+        VALUES ('gp2', 20, '${availabilityZone2}', '{"Name": "${gp2VolumeName}-test-2"}', TRUE); 
 
         INSERT INTO instance (ami, instance_type, tags, subnet_id)
           SELECT '${ubuntuAmiId}', '${instanceType2}', '{"name":"${prefix}-2"}', id
           FROM subnet
           WHERE availability_zone = '${availabilityZone2}'
           LIMIT 1;
-        INSERT INTO instance_block_device_mapping (device_name, volume_id, instance_id) values ('/dev/sda1', (SELECT id FROM general_purpose_volume WHERE tags ->>'Name' = '${gp2VolumeName}-test-1' LIMIT 1),
-        (SELECT id FROM instance WHERE tags ->>'name' = '${prefix}-2' LIMIT 1));
-        INSERT INTO instance_block_device_mapping (device_name, volume_id, instance_id) values ('/dev/sdb', (SELECT id FROM general_purpose_volume WHERE tags ->>'Name' = '${gp2VolumeName}-test-2' LIMIT 1),
-        (SELECT id FROM instance WHERE tags ->>'name' = '${prefix}-2' LIMIT 1));
-        INSERT INTO instance_blocK_device_mapping (device_name, instance_id) VALUES ('/dev/sdc', (SELECT id FROM instance WHERE tags ->>'name' = '${prefix}-2' LIMIT 1));
-        
+          INSERT INTO instance_block_device_mapping (device_name, volume_id, instance_id) values ('/dev/sda1', (SELECT id FROM general_purpose_volume WHERE tags ->>'Name' = '${gp2VolumeName}-test-1' LIMIT 1),
+          (SELECT id FROM instance WHERE tags ->>'name' = '${prefix}-2' LIMIT 1)),
+          ('/dev/sdb', (SELECT id FROM general_purpose_volume WHERE tags ->>'Name' = '${gp2VolumeName}-test-2' LIMIT 1),
+          (SELECT id FROM instance WHERE tags ->>'name' = '${prefix}-2' LIMIT 1)),
+          ('/dev/sdc', NULL, (SELECT id FROM instance WHERE tags ->>'name' = '${prefix}-2' LIMIT 1));        
       COMMIT;
     `,
       undefined,
@@ -357,7 +355,7 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
         VALUES ('gp2', '${availabilityZone2}', '{"Name": "${gp2VolumeName}"}');
 
         INSERT INTO general_purpose_volume (volume_type, availability_zone, size, tags)
-        VALUES ('gp3', '${availabilityZone1}', 50, '{"Name": "${gp3VolumeName}"}');        
+        VALUES ('gp3', '${availabilityZone1}', 50, '{"Name": "${gp3VolumeName}"}');
       COMMIT;
     `,
       undefined,

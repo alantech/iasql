@@ -346,10 +346,10 @@ export class InstanceMapper extends MapperBase<Instance> {
     if (amiImage) {
       const imageMapping = amiImage.BlockDeviceMappings;
 
-      // check if there is any mapped volume that doesn't exist on instance mapping, and error
-      // or if there is any volume mapped that is not set as root
       for (const instanceMap of instanceMaps ?? []) {
         // try to find the device name on instance mapping
+        // check if there is any mapped volume that doesn't exist on instance mapping, and error
+        // or if there is any volume mapped that is not set as root
         const vol = imageMapping?.find(item => item.DeviceName === instanceMap.deviceName);
         if (!vol) throw new Error('Error mapping volume to a device that does not exist for the AMI');
         if (instanceMap.volumeId && !instanceMap.volume?.isRootDevice)
