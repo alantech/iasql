@@ -112,8 +112,8 @@ const initializingQueries = `
 
 const gettingStarted = `-- Welcome to IaSQL!
 
--- You can run any SQL query here and see the results. For that you can use the "Run query" button on the top
--- right or use the shortcut Ctrl+Enter.
+-- You can write any SQL query here and run it using the "Run query" button on the top
+-- right or by using the Ctrl+Enter (CMD+Return on Mac) keyboard shortcut.
 
 -- Open as many tabs as you want and run queries on each of them.
 
@@ -124,12 +124,12 @@ const gettingStarted = `-- Welcome to IaSQL!
 
 -- This editor can autocomplete your query's table and column names based on the installed modules.
 
--- If you want to see all the available IaSQL functions you can execute the following query:
+-- If you want to see all the currently available IaSQL functions you can execute the following query:
 -- SELECT * FROM iasql_help()
 
 -- To disconnect your database, click "Settings" and then "Disconnect" on the top right.
 
--- If you have any doubt, you can always check the documentation at https://docs.iasql.com or contact us via
+-- If you have any questions, you can always check the documentation at https://docs.iasql.com or contact us via
 -- Discord!
 
 -- Happy coding :)
