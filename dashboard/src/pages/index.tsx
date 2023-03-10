@@ -47,7 +47,7 @@ export default function App() {
     <div
       className='min-h-full dark:text-white'
       onClick={() => {
-        if (iasqlEnv === 'test') return;
+        if (iasqlEnv === 'ci') return;
         handleRageClicking(setIsRageClicking);
       }}
     >
