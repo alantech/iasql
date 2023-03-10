@@ -8,11 +8,10 @@ tags: [tutorial]
 
 Are you using S3 buckets as part of your cloud deployments? How are you accessing them?
 
-S3 buckets may need to be accessed over the public internet. One simple but costly way to do so
-is to rely on <a href="https://docs.aws.amazon.com/en_en/vpc/latest/userguide/vpc-nat-gateway.html" target="_blank">NAT gateways</a>.
+When running applications behind VPCs without public access, there may be the need to access S3 buckets from the private subnet over the public internet.
+One simple but costly way to do so is to rely on <a href="https://docs.aws.amazon.com/en_en/vpc/latest/userguide/vpc-nat-gateway.html" target="_blank">NAT gateways</a>.
 
-However, creating <a
-href="https://docs.aws.amazon.com/vpc/latest/privatelink/vpc-endpoints-s3.html"
+However, creating <a href="https://docs.aws.amazon.com/vpc/latest/privatelink/vpc-endpoints-s3.html"
 target="_blank">gateway or interface VPC endpoints</a> for each region where your buckets are exposed is a more optimal solution.
 
 When the VPC endpoints are enabled you can access your S3 buckets using this endpoint. In this post, we will walk you through control your buckets from an internal network with the desired security, and without the extra costs of a

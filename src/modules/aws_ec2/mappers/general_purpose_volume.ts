@@ -1,12 +1,12 @@
 import {
   CreateVolumeCommandInput,
-  DescribeVolumesCommandInput,
   DescribeVolumesModificationsCommandInput,
   EC2,
   ModifyVolumeCommandInput,
   Tag as AWSTag,
   Volume as AWSVolume,
   paginateDescribeVolumes,
+  DescribeVolumesCommandInput,
 } from '@aws-sdk/client-ec2';
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 
@@ -14,15 +14,18 @@ import { AwsEc2Module } from '..';
 import { awsVpcModule } from '../..';
 import { AWS, crudBuilder, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
 import { Context, Crud, MapperBase } from '../../interfaces';
-import { GeneralPurposeVolume, GeneralPurposeVolumeType, VolumeState } from '../entity';
+import {
+  GeneralPurposeVolume,
+  GeneralPurposeVolumeType,
+  InstanceBlockDeviceMapping,
+  VolumeState,
+} from '../entity';
 import { updateTags, eqTags } from './tags';
 
 export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume> {
   module: AwsEc2Module;
   entity = GeneralPurposeVolume;
   equals = (a: GeneralPurposeVolume, b: GeneralPurposeVolume) =>
-    Object.is(a.attachedInstance?.instanceId, b.attachedInstance?.instanceId) &&
-    Object.is(a.instanceDeviceName, b.instanceDeviceName) &&
     Object.is(a?.availabilityZone?.name, b?.availabilityZone?.name) &&
     Object.is(a.iops, b.iops) &&
     Object.is(a.size, b.size) &&
@@ -51,19 +54,6 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
     out.throughput = vol.Throughput;
     out.state = vol.State as VolumeState;
     out.snapshotId = vol.SnapshotId;
-    if (vol.Attachments?.length) {
-      const attachment = vol.Attachments.pop();
-      out.attachedInstance =
-        (await this.module.instance.db.read(
-          ctx,
-          this.module.instance.generateId({ instanceId: attachment?.InstanceId ?? '', region }),
-        )) ??
-        (await this.module.instance.cloud.read(
-          ctx,
-          this.module.instance.generateId({ instanceId: attachment?.InstanceId ?? '', region }),
-        ));
-      out.instanceDeviceName = attachment?.Device;
-    }
     if (vol.Tags?.length) {
       const tags: { [key: string]: string } = {};
       vol.Tags.filter((t: any) => !!t.Key && !!t.Value).forEach((t: any) => {
@@ -73,6 +63,35 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
     }
     out.region = region;
     return out;
+  }
+
+  // TODO: Figure out if/how to macro-ify this thing
+  async volumeWaiter(
+    client: EC2,
+    volumeId: string,
+    handleState: (vol: AWSVolume | undefined) => { state: WaiterState },
+  ) {
+    return createWaiter<EC2, DescribeVolumesCommandInput>(
+      {
+        client,
+        // all in seconds
+        maxWaitTime: 300,
+        minDelay: 1,
+        maxDelay: 4,
+      },
+      {
+        VolumeIds: [volumeId],
+      },
+      async (cl, input) => {
+        const data = await cl.describeVolumes(input);
+        try {
+          const vol = data.Volumes?.pop();
+          return handleState(vol);
+        } catch (e: any) {
+          throw e;
+        }
+      },
+    );
   }
 
   createVolumeInternal = crudBuilderFormat<EC2, 'createVolume', string | undefined>(
@@ -131,73 +150,6 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
     await this.waitUntilModificationsComplete(client, input.VolumeId ?? '');
   };
 
-  attachVolumeInternal = crudBuilder<EC2, 'attachVolume'>('attachVolume', (VolumeId, InstanceId, Device) => ({
-    VolumeId,
-    InstanceId,
-    Device,
-  }));
-
-  attachVolume = async (client: EC2, VolumeId: string, InstanceId: string, Device: string) => {
-    await this.attachVolumeInternal(client, VolumeId, InstanceId, Device);
-    await this.waitUntilInUse(client, VolumeId);
-  };
-
-  detachVolumeInternal = crudBuilder<EC2, 'detachVolume'>('detachVolume', VolumeId => ({ VolumeId }));
-
-  detachVolume = async (client: EC2, VolumeId: string) => {
-    await this.detachVolumeInternal(client, VolumeId);
-    await this.waitUntilAvailable(client, VolumeId);
-  };
-
-  // TODO: Figure out if/how to macro-ify this thing
-  async volumeWaiter(
-    client: EC2,
-    volumeId: string,
-    handleState: (vol: AWSVolume | undefined) => { state: WaiterState },
-  ) {
-    return createWaiter<EC2, DescribeVolumesCommandInput>(
-      {
-        client,
-        // all in seconds
-        maxWaitTime: 300,
-        minDelay: 1,
-        maxDelay: 4,
-      },
-      {
-        VolumeIds: [volumeId],
-      },
-      async (cl, input) => {
-        const data = await cl.describeVolumes(input);
-        try {
-          const vol = data.Volumes?.pop();
-          return handleState(vol);
-        } catch (e: any) {
-          throw e;
-        }
-      },
-    );
-  }
-
-  waitUntilAvailable(client: EC2, volumeId: string) {
-    return this.volumeWaiter(client, volumeId, (vol: AWSVolume | undefined) => {
-      // If state is not 'in-use' retry
-      if (!Object.is(vol?.State, VolumeState.AVAILABLE)) {
-        return { state: WaiterState.RETRY };
-      }
-      return { state: WaiterState.SUCCESS };
-    });
-  }
-
-  waitUntilInUse(client: EC2, volumeId: string) {
-    return this.volumeWaiter(client, volumeId, (vol: AWSVolume | undefined) => {
-      // If state is not 'in-use' retry
-      if (!Object.is(vol?.State, VolumeState.IN_USE)) {
-        return { state: WaiterState.RETRY };
-      }
-      return { state: WaiterState.SUCCESS };
-    });
-  }
-
   waitUntilDeleted(client: EC2, volumeId: string) {
     return this.volumeWaiter(client, volumeId, (vol: AWSVolume | undefined) => {
       // If state is not 'in-use' retry
@@ -243,10 +195,8 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
     create: async (es: GeneralPurposeVolume[], ctx: Context) => {
       const out = [];
       for (const e of es) {
+        if (e.isRootDevice) continue; // cannot create root volumes, skip
         const client = (await ctx.getAwsClient(e.region)) as AWS;
-        if (e.attachedInstance && !e.attachedInstance.instanceId) {
-          throw new Error('Want to attach volume to an instance not created yet');
-        }
         const input: CreateVolumeCommandInput = {
           AvailabilityZone: e.availabilityZone.name,
           VolumeType: e.volumeType,
@@ -270,14 +220,6 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
           ];
         }
         const newVolumeId = await this.createVolume(client.ec2client, input);
-        if (newVolumeId && e.attachedInstance?.instanceId && e.instanceDeviceName) {
-          await this.attachVolume(
-            client.ec2client,
-            newVolumeId,
-            e.attachedInstance.instanceId,
-            e.instanceDeviceName,
-          );
-        }
         // Re-get the inserted record to get all of the relevant records we care about
         const newObject = await this.getVolume(client.ec2client, newVolumeId);
         if (!newObject) continue;
@@ -288,6 +230,13 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
         newEntity.id = e.id;
         await this.module.generalPurposeVolume.db.update(newEntity, ctx);
         out.push(newEntity);
+
+        // check if we have related attachments and update cloud volume id
+        const mapping = await ctx.orm.findOne(InstanceBlockDeviceMapping, { where: { volumeId: e.id } });
+        if (mapping) {
+          mapping.volume_id = newEntity.id;
+          await this.module.instanceBlockDeviceMapping.db.update(mapping, ctx);
+        }
       }
       return out;
     },
@@ -358,33 +307,6 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
             await updateTags(client.ec2client, e.volumeId ?? '', e.tags);
             update = true;
           }
-          // Attach/detach instance
-          if (
-            !(
-              Object.is(cloudRecord.attachedInstance?.instanceId, e.attachedInstance?.instanceId) &&
-              Object.is(cloudRecord.instanceDeviceName, e.instanceDeviceName)
-            )
-          ) {
-            if (!cloudRecord.attachedInstance?.instanceId && e.attachedInstance?.instanceId) {
-              await this.attachVolume(
-                client.ec2client,
-                e.volumeId ?? '',
-                e.attachedInstance.instanceId,
-                e.instanceDeviceName ?? '',
-              );
-            } else if (cloudRecord.attachedInstance?.instanceId && !e.attachedInstance?.instanceId) {
-              await this.detachVolume(client.ec2client, e.volumeId ?? '');
-            } else {
-              await this.detachVolume(client.ec2client, e.volumeId ?? '');
-              await this.attachVolume(
-                client.ec2client,
-                e.volumeId ?? '',
-                e.attachedInstance?.instanceId ?? '',
-                e.instanceDeviceName ?? '',
-              );
-            }
-            update = true;
-          }
           if (update) {
             const rawVolume = await this.getVolume(client.ec2client, e.volumeId);
             if (!rawVolume) continue;
@@ -400,7 +322,8 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
             out.push(cloudRecord);
           }
         } else {
-          // Replace
+          // Replace, but first remove volume id
+          e.volumeId = undefined;
           const newVolume = await this.module.generalPurposeVolume.cloud.create(e, ctx);
           await this.module.generalPurposeVolume.cloud.delete(cloudRecord, ctx);
           out.push(newVolume);
@@ -410,11 +333,17 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
     },
     delete: async (vol: GeneralPurposeVolume[], ctx: Context) => {
       for (const e of vol) {
+        if (!e.volumeId) continue;
+
         const client = (await ctx.getAwsClient(e.region)) as AWS;
-        if (e.attachedInstance) {
-          await this.detachVolume(client.ec2client, e.volumeId ?? '');
+
+        if (e.state === VolumeState.IN_USE) continue;
+
+        try {
+          await this.deleteVolume(client.ec2client, e.volumeId);
+        } catch (ex: any) {
+          if (ex.Code === 'InvalidVolume.NotFound') continue;
         }
-        await this.deleteVolume(client.ec2client, e.volumeId ?? '');
       }
     },
   });
