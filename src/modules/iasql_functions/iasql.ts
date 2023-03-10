@@ -352,6 +352,8 @@ export async function uninstall(moduleList: string[], dbId: string, force = fals
   await throwIfUpgrading(dbId, force);
   // Check to make sure that all specified modules actually exist
   const version = AllModules?.iasqlPlatform?.version ?? throwError('Core IasqlPlatform not found');
+  // ignore moduleList duplicates
+  moduleList = [...new Set(moduleList)];
   moduleList = moduleList.map((m: string) => (/@/.test(m) ? m : `${m}@${version}`));
   const mods = moduleList.map((n: string) =>
     (Object.values(AllModules) as ModuleInterface[]).find(m => `${m.name}@${m.version}` === n),
