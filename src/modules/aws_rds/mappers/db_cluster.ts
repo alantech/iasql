@@ -87,16 +87,20 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
     ).map((vpcsg: any) => vpcsg?.VpcSecurityGroupId);
 
     for (const sgId of vpcSecurityGroupIds ?? []) {
-      const sg =
-        (await awsSecurityGroupModule.securityGroup.db.read(
-          ctx,
-          awsSecurityGroupModule.securityGroup.generateId({ groupId: sgId, region }),
-        )) ??
-        (await awsSecurityGroupModule.securityGroup.cloud.read(
-          ctx,
-          awsSecurityGroupModule.securityGroup.generateId({ groupId: sgId, region }),
-        ));
-      if (sg) out.vpcSecurityGroups.push(sg);
+      try {
+        const sg =
+          (await awsSecurityGroupModule.securityGroup.db.read(
+            ctx,
+            awsSecurityGroupModule.securityGroup.generateId({ groupId: sgId, region }),
+          )) ??
+          (await awsSecurityGroupModule.securityGroup.cloud.read(
+            ctx,
+            awsSecurityGroupModule.securityGroup.generateId({ groupId: sgId, region }),
+          ));
+        if (sg) out.vpcSecurityGroups.push(sg);
+      } catch (e) {
+        // Ignore
+      }
     }
 
     return out;
@@ -217,7 +221,7 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
         const { dbClusterIdentifier, region } = this.idFields(id);
         const client = (await ctx.getAwsClient(region)) as AWS;
         const rawCluster = await this.getDBCluster(client.rdsClient, dbClusterIdentifier);
-        if (!rawCluster) return;
+        if (!rawCluster || rawCluster.Engine?.includes('aurora')) return;
         return await this.dbClusterMapper(rawCluster, ctx, region);
       } else {
         const out: DBCluster[] = [];
@@ -226,6 +230,7 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
             const client = (await ctx.getAwsClient(region)) as AWS;
             const clusters = await this.getDBClusters(client.rdsClient);
             for (const cluster of clusters) {
+              if (cluster.Engine.includes('aurora')) continue; // no support for aurora
               const c = await this.dbClusterMapper(cluster, ctx, region);
               if (!c) continue;
               out.push(c);

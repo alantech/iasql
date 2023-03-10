@@ -35,6 +35,7 @@ export enum dbClusterEngineEnum {
  */
 @Entity()
 @Unique('UQ_db_cluster_identifier_region', ['dbClusterIdentifier', 'region'])
+@Unique('db_cluster_group_id_region', ['id', 'region']) // So the RDS entity can join on both
 export class DBCluster {
   /**
    * @private
