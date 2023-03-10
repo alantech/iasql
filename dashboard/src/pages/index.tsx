@@ -23,7 +23,7 @@ function handleRageClicking(setIsRageClicking: (arg0: boolean) => void) {
 }
 
 export default function App() {
-  const { config, configError, telemetry, uid } = useAppConfigContext();
+  const { config, configError, telemetry, uid, iasqlEnv } = useAppConfigContext();
   const [isRageClicking, setIsRageClicking] = useState(false);
 
   useEffect(() => {
@@ -47,6 +47,7 @@ export default function App() {
     <div
       className='min-h-full dark:text-white'
       onClick={() => {
+        if (iasqlEnv === 'test') return;
         handleRageClicking(setIsRageClicking);
       }}
     >
