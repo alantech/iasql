@@ -31,7 +31,7 @@ export class IasqlRollback extends RpcBase {
   /** @internal */
   preTransactionCheck = PreTransactionCheck.FAIL_IF_NOT_LOCKED;
   /** @internal */
-  postTransactionCheck = PostTransactionCheck.UNLOCK_IF_SUCCEED;
+  postTransactionCheck = PostTransactionCheck.UNLOCK_ALWAYS;
   /** @internal */
   inputTable = {};
   /**
