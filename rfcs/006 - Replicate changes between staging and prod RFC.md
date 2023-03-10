@@ -17,7 +17,7 @@
 
 ### Implementation
 
-- [ ] Implemented: [One or more PRs](https://github.com/iasql/iasql-engine/some-pr-link-here) YYYY-MM-DD
+- [x] Implemented: [Get sql from audit logs](https://github.com/iasql/iasql/pull/1803) 2023-01-23
 - [ ] Revoked/Superceded by: [RFC ###](./000 - RFC Template.md) YYYY-MM-DD
 
 ## Author(s)
