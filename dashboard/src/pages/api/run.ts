@@ -6,6 +6,7 @@ import format from 'pg-format';
 import { parse, deparse } from 'pgsql-parser';
 import { DataSource } from 'typeorm';
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
+import { v4 as uuidv4 } from 'uuid';
 
 import { throwError } from '@/config/config';
 import config from '@/server-config';
@@ -82,7 +83,13 @@ async function metaQuery(sql: string, params?: any[]): Promise<any> {
   return out;
 }
 
-async function runSql(sql: string, dbAlias: string, username: string, password: string) {
+async function runSql(
+  sql: string,
+  dbAlias: string,
+  username: string,
+  password: string,
+  res: NextApiResponse,
+) {
   const dbId = await (async () => {
     if (dbAlias === 'iasql_metadata') return dbAlias;
     const res = await metaQuery(
@@ -108,8 +115,25 @@ async function runSql(sql: string, dbAlias: string, username: string, password: 
       host: baseConnConfig.host,
       ssl: baseConnConfig.extra.ssl,
     });
+    // Based on https://node-postgres.com/apis/client#error
+    connTemp.on('error', e => {
+      const errorId = uuidv4();
+      logger.error?.('Connection error', {
+        app: 'run',
+        env: process.env.IASQL_ENV,
+        meta: {
+          errorId,
+          sql,
+          error: e.message,
+          stack: e.stack,
+        },
+      });
+      res.status(500).json({
+        error: `Connection interruption while executing query ${sql}
+Please provide this error ID when reporting this bug: ${errorId}`,
+      });
+    });
     await connTemp.connect();
-    // await connTemp.query(dbMan.setPostgresRoleQuery(database));
     const deparsedStmt = deparse(stmt);
     try {
       const queryRes = await connTemp.query(deparsedStmt);
@@ -259,7 +283,7 @@ async function run(req: NextApiRequest, res: NextApiResponse) {
         const tokenInfo = await validateToken(token);
         const { dbAlias, sql } = req.body;
         const { username, password } = await getUserAndPassword(tokenInfo, dbAlias);
-        const out = await runSql(sql, dbAlias, username, password);
+        const out = await runSql(sql, dbAlias, username, password, res);
         return out;
       })(),
       execTime - 100,

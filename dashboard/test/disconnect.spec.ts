@@ -1,6 +1,6 @@
 import { test, } from '@playwright/test';
 
-import { auth0, click, } from './helper';
+import { auth0, click, fill, } from './helper';
 
 export default function createTests() {
   test('Disconnect account', async ({ page, browserName }) => {
@@ -16,6 +16,16 @@ export default function createTests() {
       page.locator(`span[role="none"]:has-text("${dbAlias}")`)
     );
   
+    // Add long running query and then disconnect to confirm that the query is cancelled
+    await fill(
+      page.locator(`#iasql-editor textarea.ace_text-input`),
+      "SELECT * FROM iasql_install('aws_ecs_fargate');",
+      false,
+    );
+
+    // Click run query
+    await click(page.locator(`button:has-text("Run query")`));
+
     await click(
       page.locator('#database-settings')
     );
