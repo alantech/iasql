@@ -25,10 +25,7 @@ export default function Home() {
           <div className="row">
             <div className="col col--6 padding--lg">
               <h1 className="hero__title">Infrastructure as data in PostgreSQL</h1>
-              <p className="hero__subtitle">Manage and provision cloud infrastructure via a PostgreSQL database. Simpler than IaC or the AWS UI</p>
-              <CodeBlock className="language-bash">
-                {"docker run -p 9876:9876 -p 5432:5432 --name iasql iasql/iasql"}
-              </CodeBlock>
+              <p className="hero__subtitle">Manage and provision cloud infrastructure via a PostgreSQL database</p>
             </div>
             <div className="col col--6 padding--lg">
               <BrowserWindow>
@@ -136,8 +133,8 @@ export default function Home() {
             <p className="hero__subtitle col">Drop us a line on Discord if you have any questions!</p>
           </div>
           <div className="row">
-            <CodeBlock className="language-bash col col--6 col--offset-3">
-              {"docker run -p 9876:9876 -p 5432:5432 --name iasql iasql/iasql"}
+            <CodeBlock className="language-bash col col--8 col--offset-2">
+              {"docker run --pull=always -p 9876:9876 -p 5432:5432 --name iasql iasql/iasql"}
             </CodeBlock>
           </div>
         </div>

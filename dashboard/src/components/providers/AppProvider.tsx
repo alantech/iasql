@@ -350,7 +350,7 @@ const middlewareReducer = async (
         dispatch({ ...payload, data: { error: 'No auth token defined.' } });
         break;
       }
-      const { dbAlias, awsSecretAccessKey, awsRegion, awsAccessKeyId, latestVersion } = payload.data;
+      const { dbAlias, awsSecretAccessKey, awsRegion, awsAccessKeyId, awsSessionToken } = payload.data;
       const alias = dbAlias ? dbAlias : uniqueNamesGenerator(nameGenConfig);
       let newDb: any = null;
       try {
@@ -378,22 +378,14 @@ const middlewareReducer = async (
       // table aws_account form now
       // ${awsRegion.name}
       try {
-        await DbActions.run(
-          token,
-          backendUrl,
-          alias,
-          `
-          INSERT INTO aws_credentials (access_key_id, secret_access_key)
-          VALUES ('${awsAccessKeyId}', '${awsSecretAccessKey}');
-        `,
-        );
-        if (semver.lt(latestVersion ?? '', '0.0.23')) {
+        if (awsSessionToken) {
           await DbActions.run(
             token,
             backendUrl,
             alias,
             `
-            SELECT * FROM iasql_sync();
+            INSERT INTO aws_credentials (access_key_id, secret_access_key, session_token)
+            VALUES ('${awsAccessKeyId}', '${awsSecretAccessKey}', '${awsSessionToken}');
           `,
           );
         } else {
@@ -402,18 +394,27 @@ const middlewareReducer = async (
             backendUrl,
             alias,
             `
-            SELECT * FROM iasql_begin();
-          `,
-          );
-          await DbActions.run(
-            token,
-            backendUrl,
-            alias,
-            `
-            SELECT * FROM iasql_commit();
+            INSERT INTO aws_credentials (access_key_id, secret_access_key)
+            VALUES ('${awsAccessKeyId}', '${awsSecretAccessKey}');
           `,
           );
         }
+        await DbActions.run(
+          token,
+          backendUrl,
+          alias,
+          `
+          SELECT * FROM iasql_begin();
+        `,
+        );
+        await DbActions.run(
+          token,
+          backendUrl,
+          alias,
+          `
+          SELECT * FROM iasql_commit();
+        `,
+        );
         await DbActions.run(
           token,
           backendUrl,
@@ -423,6 +424,13 @@ const middlewareReducer = async (
         `,
         );
       } catch (e: any) {
+        middlewareReducer(config, dispatch, {
+          action: ActionType.DisconnectDb,
+          token,
+          data: {
+            dbAlias: alias,
+          },
+        });
         const error = e.message ? e.message : `Error adding credentials ${dbAlias}`;
         dispatch({ ...payload, data: { error } });
         break;

@@ -29,12 +29,13 @@ import { defaultRetryDecider, StandardRetryStrategy } from '@aws-sdk/middleware-
 
 import config from '../config';
 
-type AWSCreds = {
+export type AWSCreds = {
   accessKeyId: string;
   secretAccessKey: string;
+  sessionToken?: string;
 };
 
-type AWSConfig = {
+export type AWSConfig = {
   credentials: AWSCreds;
   region: string;
 };

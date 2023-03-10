@@ -30,3 +30,8 @@ AWS Access Key
 • **secret\_access\_key**: `string`
 
 AWS Secret Access Key
+
+• **session\_token**: `string`
+
+AWS Session Token
+For temporary security credentials only

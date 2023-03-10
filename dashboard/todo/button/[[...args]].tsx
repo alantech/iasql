@@ -33,39 +33,39 @@ export default function TheButton() {
 
   useEffect(() => {
     if (token) {
-      dispatch({
-        action: ActionType.TrackEvent,
-        token,
-        data: { trackEventName: 'THE_BUTTON_LOGIN', buttonAlias: params.title, queryToRun: params.query },
-      });
+      // dispatch({
+      //   action: ActionType.TrackEvent,
+      //   token,
+      //   data: { trackEventName: 'THE_BUTTON_LOGIN', buttonAlias: params.title, queryToRun: params.query },
+      // });
     }
   }, [token, params.title, params.query, dispatch]);
 
   const onFinishFn = (db: string) => {
     const currentStep = stack[stack.length - 1];
     if (token && currentStep === 'execdbcreate') {
-      dispatch({
-        action: ActionType.TrackEvent,
-        token,
-        data: {
-          trackEventName: 'THE_BUTTON_NEW_DB',
-          dbAlias: db,
-          buttonAlias: params.title,
-          queryToRun: params.query,
-        },
-      });
+      // dispatch({
+      //   action: ActionType.TrackEvent,
+      //   token,
+      //   data: {
+      //     trackEventName: 'THE_BUTTON_NEW_DB',
+      //     dbAlias: db,
+      //     buttonAlias: params.title,
+      //     queryToRun: params.query,
+      //   },
+      // });
     }
     if (token && currentStep === 'selectdb') {
-      dispatch({
-        action: ActionType.TrackEvent,
-        token,
-        data: {
-          trackEventName: 'THE_BUTTON_EXISTING_DB',
-          dbAlias: db,
-          buttonAlias: params.title,
-          queryToRun: params.query,
-        },
-      });
+      // dispatch({
+      //   action: ActionType.TrackEvent,
+      //   token,
+      //   data: {
+      //     trackEventName: 'THE_BUTTON_EXISTING_DB',
+      //     dbAlias: db,
+      //     buttonAlias: params.title,
+      //     queryToRun: params.query,
+      //   },
+      // });
     }
     window.location.href = `/#/?alias=${db}&sql=${encodeURI((params.query ?? '') as string)}`;
   };

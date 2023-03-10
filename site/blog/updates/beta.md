@@ -40,7 +40,7 @@ Here are the new features that ship in the Beta versions of IaSQL:
 We made IaSQL easier to run locally by bundling up our dashboard into the IaSQL docker container and publishing it to [Dockerhub](https://hub.docker.com/r/iasql/iasql). This makes IaSQL easier to try out without having your cloud credentials ever leave your local environment. It is as simple as running the command below and going to `http://localhost:9876` on your preferred browser.
 
 ```bash
-docker run -p 9876:9876 -p 5432:5432 --name iasql iasql/iasql
+docker run --pull=always -p 9876:9876 -p 5432:5432 --name iasql iasql/iasql
 ```
 
 ### 🎛️ AWS Multiregion

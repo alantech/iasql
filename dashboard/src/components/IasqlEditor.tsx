@@ -97,19 +97,20 @@ export default function IasqlEditor() {
   }, [getInitialQuery, handleEditorContentUpdate, queryParams]);
 
   // Set up command to enable Ctrl-Enter runs
+  const command = {
+    name: 'Run SQL',
+    bindKey: { win: 'Ctrl-Enter', mac: 'Cmd-Enter' },
+    exec: () => handleQueryToRunUpdate(selectedDb, editorSelectedTab),
+  };
+
   useEffect(() => {
-    const command = {
-      name: 'Run SQL',
-      bindKey: { win: 'Ctrl-Enter', mac: 'Cmd-Enter' },
-      exec: () => handleQueryToRunUpdate(selectedDb, editorSelectedTab),
-    };
     if (editorTabs?.[editorSelectedTab]?.isRunning) {
       editorRef?.current?.editor?.commands?.removeCommand(command);
     } else {
       editorRef?.current?.editor?.commands?.removeCommand(command);
       editorRef?.current?.editor?.commands?.addCommand(command);
     }
-  }, [handleQueryToRunUpdate, selectedDb, editorTabs, editorSelectedTab]);
+  }, [editorTabs, editorSelectedTab, editorRef.current]);
 
   // Set up editor theme
   useEffect(() => {
