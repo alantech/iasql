@@ -1,10 +1,19 @@
 import * as iasql from '../../src/services/iasql';
-import { runQuery, finish, execComposeUp, execComposeDown, runInstall, runUninstallAll } from '../helpers';
+import {
+  runQuery,
+  finish,
+  execComposeUp,
+  execComposeDown,
+  runInstall,
+  runUninstallAll,
+  runUninstall,
+} from '../helpers';
 
 const dbAlias = 'installtest';
 
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
+const uninstall = runUninstall.bind(null, dbAlias);
 const uninstallAll = runUninstallAll.bind(null, dbAlias);
 const uid = '12345';
 const email = 'test@example.com';
@@ -52,6 +61,8 @@ describe('Install cases', () => {
   it('uninstalls all', uninstallAll());
 
   it('installs having a duplication in the list', install(['aws_ecr', 'aws_ecr']));
+
+  it('uninstalls having a duplication in the list', uninstall(['aws_ecr', 'aws_ecr']));
 
   it('installs having a module and its dependency in the same list', install(['aws_ec2', 'aws_vpc']));
 
