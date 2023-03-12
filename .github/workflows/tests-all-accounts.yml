@@ -17,10 +17,10 @@ jobs:
       - id: set-test-modules
         name: Set all numbers
         run: >
-          echo "::set-output name=test-accounts::$(node -e 'console.log(JSON.stringify([...Array(100).keys()]))')"
+          echo "test-accounts=$(node -e 'console.log(JSON.stringify([...Array(100).keys()]))')" >> $GITHUB_OUTPUT
       - id: set-registry-image-tag
         name: Set registry image tag
-        run: echo "::set-output name=registry-image-tag::ghcr.io/iasql/iasql:$GITHUB_SHA"
+        run: echo "registry-image-tag=ghcr.io/iasql/iasql:$GITHUB_SHA" >> $GITHUB_OUTPUT
 
   build-and-push:
     runs-on: ubuntu-latest
