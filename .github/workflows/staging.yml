@@ -22,7 +22,7 @@ jobs:
         name: Set registry image tag
         run: |
           COMMIT_SHA=${{inputs.commit_sha}}
-          echo "::set-output name=registry-image-tag::ghcr.io/iasql/iasql:$(echo ${COMMIT_SHA:-$GITHUB_SHA})"
+          echo "registry-image-tag=ghcr.io/iasql/iasql:$(echo ${COMMIT_SHA:-$GITHUB_SHA})" >> $GITHUB_OUTPUT
 
   build-and-push:
     runs-on: ubuntu-latest

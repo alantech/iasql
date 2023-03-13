@@ -89,10 +89,10 @@ jobs:
       - id: set-common-tests
         name: Set common tests
         run: >
-          echo "::set-output name=common-tests::$(npx jest **/common/* --listTests --json | jq -c 'map({(. | split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring): .}) | add')"
+          echo "common-tests=$(npx jest **/common/* --listTests --json | jq -c 'map({(. | split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring): .}) | add')" >> $GITHUB_OUTPUT
       - id: set-common-test-names
         name: Set common test names
-        run: echo "::set-output name=common-test-names::$(npx jest **/common/* --listTests --json | jq -c 'map(split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring)')"
+        run: echo "common-test-names=$(npx jest **/common/* --listTests --json | jq -c 'map(split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring)')" >> $GITHUB_OUTPUT
 
   common-test:
     runs-on: ubuntu-latest
@@ -140,10 +140,10 @@ jobs:
       - id: set-basic-integration-tests
         name: Set basic integration tests
         run: >
-          echo "::set-output name=basic-integration-tests::$(npx jest **/basic_integration/* --listTests --json | jq -c 'map({(. | split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring): .}) | add')"
+          echo "basic-integration-tests=$(npx jest **/basic_integration/* --listTests --json | jq -c 'map({(. | split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring): .}) | add')" >> $GITHUB_OUTPUT
       - id: set-basic-integration-test-names
         name: Set basic integration test names
-        run: echo "::set-output name=basic-integration-test-names::$(npx jest **/basic_integration/* --listTests --json | jq -c 'map(split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring)')"
+        run: echo "basic-integration-test-names=$(npx jest **/basic_integration/* --listTests --json | jq -c 'map(split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring)')" >> $GITHUB_OUTPUT
 
   basic-integration-test:
     runs-on: ubuntu-latest
@@ -175,7 +175,7 @@ jobs:
           RESPONSE=$(curl -X POST -H "Content-Type: text/plain" -H "${SECRET_HEADER}" -d '1' ${LAMBDA_FUNCTION} 2>/dev/null)
           echo $RESPONSE
           ACCOUNT_INDEX=$(echo $RESPONSE | jq '.[0]' || exit 1)
-          echo "::set-output name=account_index::$(echo ${ACCOUNT_INDEX})"
+          echo "account_index=$(echo ${ACCOUNT_INDEX})" >> $GITHUB_OUTPUT
 
       - name: Run basic-integration tests
         uses: nick-fields/retry@v2
@@ -272,13 +272,13 @@ jobs:
       - id: set-test-modules
         name: Set modules tests
         run: >
-          echo "::set-output name=test-modules::$(npx jest **/modules/* --listTests --json | jq -c 'map({(. | split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring): .}) | add')"
+          echo "test-modules=$(npx jest **/modules/* --listTests --json | jq -c 'map({(. | split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring): .}) | add')" >> $GITHUB_OUTPUT
       - id: set-test-module-names
         name: Set modules tests names
-        run: echo "::set-output name=test-module-names::$(npx jest **/modules/* --listTests --json | jq -c 'map(split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring)')"
+        run: echo "test-module-names=$(npx jest **/modules/* --listTests --json | jq -c 'map(split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring)')" >> $GITHUB_OUTPUT
       - id: set-registry-image-tag
         name: Set registry image tag
-        run: echo "::set-output name=registry-image-tag::ghcr.io/iasql/iasql:$GITHUB_SHA"
+        run: echo "registry-image-tag=ghcr.io/iasql/iasql:$GITHUB_SHA" >> $GITHUB_OUTPUT
 
   build-and-push:
     runs-on: ubuntu-latest
@@ -335,7 +335,7 @@ jobs:
           RESPONSE=$(curl -X POST -H "Content-Type: text/plain" -H "${SECRET_HEADER}" -d '1' ${LAMBDA_FUNCTION} 2>/dev/null)
           echo $RESPONSE
           ACCOUNT_INDEX=$(echo $RESPONSE | jq '.[0]' || exit 1)
-          echo "::set-output name=account_index::$(echo ${ACCOUNT_INDEX})"
+          echo "account_index=$(echo ${ACCOUNT_INDEX})" >> $GITHUB_OUTPUT
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
@@ -485,7 +485,7 @@ jobs:
           RESPONSE=$(curl -X POST -H "Content-Type: text/plain" -H "${SECRET_HEADER}" -d '1' ${LAMBDA_FUNCTION} 2>/dev/null)
           echo $RESPONSE
           ACCOUNT_INDEX=$(echo $RESPONSE | jq '.[0]' || exit 1)
-          echo "::set-output name=account_index::$(echo ${ACCOUNT_INDEX})"
+          echo "account_index=$(echo ${ACCOUNT_INDEX})" >> $GITHUB_OUTPUT
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
