@@ -99,8 +99,6 @@ export class RdsMapper extends MapperBase<RDS> {
     out.publiclyAccessible = rds.PubliclyAccessible ?? false;
     out.multiAZ = rds.MultiAZ ?? false;
     out.storageEncrypted = rds.StorageEncrypted ?? false;
-    console.log('rds subnet');
-    console.log(rds);
 
     if (rds.DBSubnetGroup) {
       out.subnetGroup =
@@ -128,8 +126,6 @@ export class RdsMapper extends MapperBase<RDS> {
 
     out.region = region;
     out.databaseName = rds.DBName;
-    console.log('i have read');
-    console.log(out);
     return out;
   }
   getDBInstance = crudBuilderFormat<AWSRDS, 'describeDBInstances', DBInstance | undefined>(
