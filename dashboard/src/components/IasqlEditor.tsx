@@ -34,6 +34,7 @@ export default function IasqlEditor() {
     selectedDb,
     installedModules,
     functions,
+    allModules,
     token,
     editorTabs,
     editorSelectedTab,
@@ -153,16 +154,20 @@ export default function IasqlEditor() {
           ...Object.values(functions)
             .map(fn => Object.keys(fn))
             .flat()
-            .map(fn => ({ value: fn, meta: 'function' })),
+            .map(fn => ({ value: fn, meta: 'Function' })),
+          // Module Names
+          ...Object.keys(allModules)
+            .map(mod => mod.split('@')[0])
+            .map(mod => ({ value: mod, meta: 'Module' })),
         ];
-        autoCompleteIasqlKeywords?.push({ value: 'iasql_help()', meta: 'function' });
+        autoCompleteIasqlKeywords?.push({ value: 'iasql_help()', meta: 'Function' });
         autoCompleteIasqlKeywords?.forEach(completion => {
           completions.push(completion);
         });
         callback(null, completions);
       },
     });
-  }, [installedModules, functions]);
+  }, [installedModules, functions, allModules]);
 
   useEffect(() => {
     if (editorTabs.length !== prevTabsLenRef.current) {
