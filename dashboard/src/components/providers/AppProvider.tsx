@@ -110,6 +110,32 @@ const initializingQueries = `
   from iasql_tables as t;
 `;
 
+const gettingStarted = `-- Welcome to IaSQL!
+
+-- You can write any SQL query here and run it using the "Run query" button on the top
+-- right or by using the Ctrl+Enter (CMD+Return on Mac) keyboard shortcut.
+
+-- Open as many tabs as you want and run queries on each of them.
+
+-- You can start by installing a module by clicking the "Install" button from the modules list on the sidebar.
+
+-- Going to the sidebar's "Schema" tab you can see the tables and columns of the installed modules. There you
+-- can check the documentation of each module. You can also do a quick select query on any table with data.
+
+-- This editor can autocomplete your query's table and column names based on the installed modules.
+
+-- If you want to see all the currently available IaSQL functions you can execute the following query:
+-- SELECT * FROM iasql_help()
+
+-- To disconnect your database, click "Disconnect" on the top right. None of the cloud resources in the 
+-- account will be deleted.
+
+-- If you have any questions, you can always check the documentation at https://docs.iasql.com or contact us via
+-- Discord!
+
+-- Happy coding :)
+`;
+
 const reducer = (state: AppState, payload: Payload): AppState => {
   const { error } = payload?.data ?? { error: null };
   if (error) {
@@ -573,7 +599,7 @@ const AppProvider = ({ children }: { children: any }) => {
     editorSelectedTab: 0,
     editorTabsCreated: 1,
     editorTabs: [
-      { title: 'Welcome', content: '', closable: true },
+      { title: 'Getting started', content: gettingStarted, closable: true },
       {
         title: '+',
         content: '',

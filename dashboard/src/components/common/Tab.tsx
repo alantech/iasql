@@ -68,7 +68,7 @@ export default function Tab({
         <ReactTab.List className='flex justify-start h-8 border border-transparent'>
           {tabs.map((tab, idx) => (
             <ReactTab
-              id={tab.title}
+              id={tab.title.toLowerCase().split(' ').join('-')}
               key={tab.title}
               onClick={() => {
                 tab.action ? tab.action() : (() => ({}))();
