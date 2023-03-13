@@ -175,7 +175,7 @@ export class DBCluster {
   @Column({
     nullable: true,
   })
-  engineVersion: string;
+  engineVersion?: string;
 
   /**
    * @public

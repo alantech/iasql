@@ -195,7 +195,7 @@ export class RDS {
   @Column({
     nullable: true,
   })
-  engineVersion: string;
+  engineVersion?: string;
 
   /**
    * @public
