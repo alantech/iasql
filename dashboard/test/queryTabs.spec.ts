@@ -19,7 +19,7 @@ export default function createTests() {
     await expect(page.locator(`#iasql-editor div.ace_content`)).toContainText(/\-\-\sWelcome\sto\sIaSQL/i);
     
     // Add iasql_help query
-    await fill(page.locator(`#iasql-editor textarea.ace_text-input`), "SELECT * FROM iasql_help();");
+    await fill(page.locator(`#iasql-editor textarea.ace_text-input`), "SELECT * FROM iasql_help();", false);
 
     // Click run iasql initial query
     await click(page.locator(`button:has-text("Run query")`));
