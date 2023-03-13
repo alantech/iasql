@@ -127,7 +127,8 @@ const gettingStarted = `-- Welcome to IaSQL!
 -- If you want to see all the currently available IaSQL functions you can execute the following query:
 -- SELECT * FROM iasql_help()
 
--- To disconnect your database, click "Settings" and then "Disconnect" on the top right.
+-- To disconnect your database, click "Disconnect" on the top right. None of the cloud resources in the 
+-- account will be deleted.
 
 -- If you have any questions, you can always check the documentation at https://docs.iasql.com or contact us via
 -- Discord!
