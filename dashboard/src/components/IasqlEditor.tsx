@@ -45,7 +45,7 @@ export default function IasqlEditor() {
 
   // Handlers
   const getInitialQuery = useCallback((sql: string | null) => {
-    let initialQuery = editorTabs?.[editorSelectedTab]?.content || 'SELECT * FROM iasql_help();';
+    let initialQuery = editorTabs?.[editorSelectedTab]?.content ?? 'SELECT * FROM iasql_help();';
     if (sql && sql.length > 0) initialQuery = sql;
     return initialQuery;
   }, []);
