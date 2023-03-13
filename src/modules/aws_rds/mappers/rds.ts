@@ -99,33 +99,37 @@ export class RdsMapper extends MapperBase<RDS> {
     out.publiclyAccessible = rds.PubliclyAccessible ?? false;
     out.multiAZ = rds.MultiAZ ?? false;
     out.storageEncrypted = rds.StorageEncrypted ?? false;
+    console.log('rds subnet');
+    console.log(rds);
 
     if (rds.DBSubnetGroup) {
       out.subnetGroup =
         (await this.module.dbSubnetGroup.db.read(
           ctx,
-          this.module.dbSubnetGroup.generateId({ name: rds.DBSubnetGroup, region }),
+          this.module.dbSubnetGroup.generateId({ name: rds.DBSubnetGroup.DBsubnetGroupName, region }),
         )) ??
         (await this.module.dbSubnetGroup.cloud.read(
           ctx,
-          this.module.dbSubnetGroup.generateId({ name: rds.DBSubnetGroup, region }),
+          this.module.dbSubnetGroup.generateId({ name: rds.DBSubnetGroup.DBSubnetGroupName, region }),
         ));
     }
 
     if (rds.DBCluster) {
       out.dbCluster =
-        (await this.module.dbSubnetGroup.db.read(
+        (await this.module.dbCluster.db.read(
           ctx,
-          this.module.dbSubnetGroup.generateId({ name: rds.DBCluster, region }),
+          this.module.dbCluster.generateId({ name: rds.DBCluster, region }),
         )) ??
-        (await this.module.dbSubnetGroup.cloud.read(
+        (await this.module.dbCluster.cloud.read(
           ctx,
-          this.module.dbSubnetGroup.generateId({ name: rds.DBCluster, region }),
+          this.module.dbCluster.generateId({ name: rds.DBCluster, region }),
         ));
     }
 
     out.region = region;
     out.databaseName = rds.DBName;
+    console.log('i have read');
+    console.log(out);
     return out;
   }
   getDBInstance = crudBuilderFormat<AWSRDS, 'describeDBInstances', DBInstance | undefined>(

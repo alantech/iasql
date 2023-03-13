@@ -23,6 +23,8 @@ export class DBSubnetGroupMapper extends MapperBase<DBSubnetGroup> {
     (a.subnets?.every(asn => !!b.subnets?.find(bsn => Object.is(asn, bsn))) ?? false);
 
   async subnetGroupMapper(ctx: Context, sg: AWSDBSubnetGroup, region: string) {
+    console.log('subnet group is');
+    console.log(sg);
     if (!sg.DBSubnetGroupArn) return undefined; // we cannot have a cloud subnet group without arn
     const out = new DBSubnetGroup();
     out.arn = sg.DBSubnetGroupArn;
@@ -34,6 +36,8 @@ export class DBSubnetGroupMapper extends MapperBase<DBSubnetGroup> {
     }
     out.subnets = subnets;
     out.region = region;
+    console.log('mapped subnet group is');
+    console.log(out);
     return out;
   }
 
@@ -92,6 +96,8 @@ export class DBSubnetGroupMapper extends MapperBase<DBSubnetGroup> {
         let subnets = [];
         if (!e.subnets?.length) subnets = await this.getDefaultSubnets(ctx, e.region);
         else subnets = e.subnets;
+        console.log('in subnets create -subnet groups are');
+        console.log(e);
 
         const client = (await ctx.getAwsClient(e.region)) as AWS;
         const subnetGroupInput: CreateDBSubnetGroupCommandInput = {
@@ -99,10 +105,12 @@ export class DBSubnetGroupMapper extends MapperBase<DBSubnetGroup> {
           DBSubnetGroupDescription: e.description,
           SubnetIds: subnets,
         };
+        console.log(subnetGroupInput);
         const result = await this.createDBSubnetGroup(client.rdsClient, subnetGroupInput);
         // Re-get the inserted record to get all of the relevant records we care about
         const newObject = await this.getDBSubnetGroup(client.rdsClient, result?.DBSubnetGroupName);
         if (newObject) {
+          console.log('in update');
           // We map this into the same kind of entity as `obj`
           const newEntity = await this.subnetGroupMapper(ctx, newObject, e.region);
           if (!newEntity) continue;
@@ -117,19 +125,32 @@ export class DBSubnetGroupMapper extends MapperBase<DBSubnetGroup> {
     read: async (ctx: Context, id?: string) => {
       const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
       if (id) {
+        console.log('id is');
+        console.log(id);
+        console.log('i read subnet group');
         const { name, region } = this.idFields(id);
         const client = (await ctx.getAwsClient(region)) as AWS;
+        console.log('i got');
+        console.log(name);
+        console.log(region);
         const subnetGroup = await this.getDBSubnetGroup(client.rdsClient, name);
+        console.log('final group is');
+        console.log(subnetGroup);
         if (!subnetGroup) return;
         return this.subnetGroupMapper(ctx, subnetGroup, region);
       } else {
+        console.log('all subnets');
         const out: DBSubnetGroup[] = [];
         await Promise.all(
           enabledRegions.map(async region => {
             const client = (await ctx.getAwsClient(region)) as AWS;
             const subnetGroups = await this.getDBSubnetGroups(client.rdsClient);
+            console.log('subnet groups are');
+            console.log(subnetGroups);
             for (const sg of subnetGroups) {
               const e = await this.subnetGroupMapper(ctx, sg, region);
+              console.log('after mapper');
+              console.log(e);
               if (!e) continue;
               out.push(e);
             }
@@ -147,6 +168,7 @@ export class DBSubnetGroupMapper extends MapperBase<DBSubnetGroup> {
         cloudRecord.id = e.id;
 
         if (e.arn !== cloudRecord.arn) {
+          console.log('i update subnet group');
           // we cannot modify ARN, restore it
           await this.module.dbSubnetGroup.db.update(cloudRecord, ctx);
           out.push(cloudRecord);
@@ -154,6 +176,7 @@ export class DBSubnetGroupMapper extends MapperBase<DBSubnetGroup> {
           let subnets = [];
           if (!cloudRecord.subnets?.length) subnets = await this.getDefaultSubnets(ctx, cloudRecord.region);
           else subnets = cloudRecord.subnets;
+          console.log('before modify');
 
           // we need to update the record
           const result = await this.modifyDBSubnetGroup(client.rdsClient, {
@@ -161,7 +184,10 @@ export class DBSubnetGroupMapper extends MapperBase<DBSubnetGroup> {
             DBSubnetGroupName: e.name,
             SubnetIds: subnets,
           });
+          console.log('after modify');
           cloudRecord.id = e.id;
+          console.log('i want to update');
+          console.log(cloudRecord);
           out.push(cloudRecord);
         }
       }

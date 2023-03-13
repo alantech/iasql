@@ -200,11 +200,8 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
         };
         if (e.parameterGroup) clusterParams.DBClusterParameterGroupName = e.parameterGroup.name;
         if (e.subnetGroup) clusterParams.DBSubnetGroupName = e.subnetGroup.name;
-        console.log('i create');
-        console.log(clusterParams);
         const result = await this.createDBCluster(client.rdsClient, clusterParams);
         if (result) {
-          console.log('here');
           // requery to get modified fields
           const newObject = await this.getDBCluster(client.rdsClient, e.dbClusterIdentifier);
           if (newObject) {
@@ -266,7 +263,8 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
           !Object.is(e.masterUsername, cloudRecord.masterUsername) ||
           !Object.is(e.publiclyAccessible, cloudRecord.publiclyAccessible) ||
           !Object.is(e.storageEncrypted, cloudRecord.storageEncrypted) ||
-          !Object.is(e.subnetGroup?.name, cloudRecord.subnetGroup?.name)
+          !Object.is(e.subnetGroup?.name, cloudRecord.subnetGroup?.name) ||
+          !Object.is(e.port, cloudRecord.port)
         ) {
           cloudRecord.id = e.id;
           await this.module.dbCluster.db.update(cloudRecord, ctx);
@@ -284,7 +282,6 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
           DeletionProtection: e.deletionProtection,
           EngineVersion: e.engineVersion,
           Iops: e.iops,
-          Port: e.port,
           VpcSecurityGroupIds: e.vpcSecurityGroups?.filter(sg => !!sg.groupId).map(sg => sg.groupId!) ?? [],
           ApplyImmediately: true,
         };
