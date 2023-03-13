@@ -19,8 +19,6 @@ export default function createTests() {
       if (hasDbs) {
         await click(page.locator(`#db-selection-list > div:first-child`));
 
-        await click(page.locator('#database-settings'));
-
         await click(page.locator(`button:has-text("Disconnect")`));
 
         await click(page.locator(`button#disconnect-modal:has-text("Disconnect")`));
