@@ -598,7 +598,7 @@ const AppProvider = ({ children }: { children: any }) => {
     editorSelectedTab: 0,
     editorTabsCreated: 1,
     editorTabs: [
-      { title: 'Getting started!', content: gettingStarted, closable: true },
+      { title: 'Getting started', content: gettingStarted, closable: true },
       {
         title: '+',
         content: '',
