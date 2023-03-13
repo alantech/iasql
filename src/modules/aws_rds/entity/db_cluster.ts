@@ -106,7 +106,6 @@ export class DBCluster {
    * Parameter group associated with the DB cluster
    */
   @ManyToOne(() => ParameterGroup, {
-    eager: true,
     nullable: true,
   })
   @JoinColumn([

@@ -229,7 +229,8 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
         const client = (await ctx.getAwsClient(region)) as AWS;
         const rawCluster = await this.getDBCluster(client.rdsClient, dbClusterIdentifier);
         if (!rawCluster || rawCluster.Engine?.includes('aurora')) return;
-        return await this.dbClusterMapper(rawCluster, ctx, region);
+        const result = await this.dbClusterMapper(rawCluster, ctx, region);
+        return result;
       } else {
         const out: DBCluster[] = [];
         await Promise.all(
