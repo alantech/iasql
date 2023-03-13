@@ -32,18 +32,10 @@ export function DatabaseActions() {
   return (
     <HBox alignment={align.end}>
       <HBox customStyles='md:justify-end'>
-        <Dropdown buttonTitle={buttonTitle} color='tertiary' width='w-max' startPosition='right'>
-          <VBox customClasses='p-2'>
-            <Menu.Item>
-              <HBox alignment={align.start} customStyles='p-1'>
-                <Button look='link' color='tertiary' onClick={handleDisconnect}>
-                  <PauseIcon className='mr-1 h-4 w-4' aria-hidden='true' />
-                  Disconnect
-                </Button>
-              </HBox>
-            </Menu.Item>
-          </VBox>
-        </Dropdown>
+        <Button look='outline' color='tertiary' onClick={handleDisconnect}>
+          <PauseIcon className='mr-1 h-4 w-4' aria-hidden='true' />
+          Disconnect
+        </Button>
       </HBox>
       <HBox alignment={align.end}>
         <Button

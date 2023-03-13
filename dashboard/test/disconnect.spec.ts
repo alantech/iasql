@@ -25,10 +25,6 @@ export default function createTests() {
 
     // Click run query
     await click(page.locator(`button:has-text("Run query")`));
-
-    await click(
-      page.locator('#database-settings')
-    );
   
     await click(
       page.locator(`button:has-text("Disconnect")`)
