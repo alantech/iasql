@@ -1,0 +1,25 @@
+---
+slug: modules-in-my-database
+title: Modules? In My Database? It's more likely than you think.
+authors: [dfellis]
+---
+
+# Modules? In My Database?
+
+## *It's more likely than you think*
+
+Here at IaSQL, as the primary user interface is PostgreSQL databases, we have some unique pressures on our tech stack compared to many other projects. One of these that [we didn't realize at first](https://github.com/iasql/iasql/commit/8467bde2709d32cbe625c2fc2d1a312b5eefaf2d), was that we can't use a traditional linear migration system for database schema management. Different users will want to work with a different subset of AWS services, and requiring the users to deal with *all* of the AWS schema would be too overwhelming; we felt overwhelmed looking at it ourselves!
+
+We needed another solution, and eventually created a module system for IaSQL within Postgres. But a "module system" means different things to different people; there are in fact multiple different kinds of "module systems" for different programming languages. So, what kind of module system does IaSQL, and why?
+
+## Migrations are Degenerate Directed Acyclic Graphs
+
+The first thing we recognized is, presuming every user was building an IaSQL just for their own needs, they would each have their own migration files that would have some concepts in common and some not in common. Everyone would need a table to represent their AWS credentials, then you would need tables for the services that you use, with some of these being more foundational, like VPC and Security Groups, others building on top of that, like EC2, S3, RDS, and some on top of that, like ECS.
+
+If we assumed that they somehow came up with the same schema representation for each of these AWS services, the places where they would diverge would be which services they included in their migrations and which were skipped. If one of these was open source and the others were forks, then the forked migration files could be represented as [Directed Acyclic Graphs (DAGs)](https://en.wikipedia.org/wiki/Directed_acyclic_graph) with the branch points having two alternate paths.
+
+Then, how would one of these forks that skipped some AWS service then pull in that service in the future if they have diverged in the meantime? They would likely have to [`git cherry-pick`](https://git-scm.com/docs/git-cherry-pick) the migration and entity management code from the other repo and apply it to their own. It's clearly shared code, but it can't be shared easily.
+
+There's no need for that, though, *if* the migrations could also declare which migrations they depend on, instead of implicitly depending on all migrations that came before it in time, then the DAG could be shared
+
+Most modern module systems ([RubyGems](https://rubygems.org/), [NPM](https://www.npmjs.com/), [Cargo](https://crates.io/), etc) automatically handle collisions between dependencies of dependencies with nested scoping of the colliding modules, but allowing duplicates would be super-confusing 
