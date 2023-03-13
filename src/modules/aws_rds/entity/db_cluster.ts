@@ -1,4 +1,5 @@
 import {
+  Check,
   Column,
   Entity,
   JoinColumn,
@@ -20,8 +21,8 @@ import { ParameterGroup } from './parameter_group';
  * The name of the database engine to be used for this DB cluster.
  */
 export enum dbClusterEngineEnum {
-  MYSQL = 'MYSQL',
-  POSTGRES = 'POSTGRES',
+  mysql = 'mysql',
+  postgres = 'postgres',
 }
 
 /**
@@ -55,21 +56,28 @@ export class DBCluster {
   /**
    * @public
    * The amount of storage in gibibytes (GiB) to allocate to each DB instance in the Multi-AZ DB cluster.
-   * Only valid for multi-az DB cluster
-   *
-   * @privateRemarks
-   * TODO: Add constraints? range vary based on storage type and engine
+   * @see https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Storage.html#USER_PIOPS
    */
+  @Check('Check_db_cluster_allocated_storage', `"allocated_storage">=100 AND "allocated_storage"<=65000`)
   @Column({
     type: 'int',
-    nullable: true,
   })
-  allocatedStorage?: number;
+  allocatedStorage: number;
+
+  /**
+   * @public
+   * The number of I/O operations per second (IOPS)
+   * @see https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Storage.html#USER_PIOPS
+   */
+  @Check('Check_db_cluster_iops', `"iops">=1000 AND "iops"<=256000`)
+  @Column({
+    type: 'int',
+  })
+  iops: number;
 
   /**
    * @public
    * The number of days for which automated backups are retained.
-   * Valid for: Aurora DB clusters and Multi-AZ DB clusters
    */
   @Column({
     type: 'int',
@@ -90,10 +98,8 @@ export class DBCluster {
    * . name: 'db_instance_class_id',
    * })
    */
-  @Column({
-    nullable: true,
-  })
-  dbClusterInstanceClass?: string;
+  @Column()
+  dbClusterInstanceClass: string;
 
   /**
    * @public
@@ -191,10 +197,8 @@ export class DBCluster {
    * @privateRemarks
    * TODO: Apply constraints?
    */
-  @Column({
-    nullable: true,
-  })
-  masterUsername?: string;
+  @Column()
+  masterUsername: string;
 
   /**
    * @public

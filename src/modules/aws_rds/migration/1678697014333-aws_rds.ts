@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class awsRds1678468390267 implements MigrationInterface {
-  name = 'awsRds1678468390267';
+export class awsRds1678697014333 implements MigrationInterface {
+  name = 'awsRds1678697014333';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
@@ -13,9 +13,9 @@ export class awsRds1678468390267 implements MigrationInterface {
     await queryRunner.query(
       `CREATE TABLE "parameter_group" ("id" SERIAL NOT NULL, "name" character varying NOT NULL, "arn" character varying, "family" "public"."parameter_group_family_enum" NOT NULL, "description" character varying NOT NULL, "parameters" jsonb, "region" character varying NOT NULL DEFAULT default_aws_region(), CONSTRAINT "UQ_cd5d35716aae42c8f6acb7dc989" UNIQUE ("arn"), CONSTRAINT "paragrp_id_region" UNIQUE ("id", "region"), CONSTRAINT "paragrp_name_region" UNIQUE ("name", "region"), CONSTRAINT "PK_33d024772ff6924f4bc337d865a" PRIMARY KEY ("id"))`,
     );
-    await queryRunner.query(`CREATE TYPE "public"."db_cluster_engine_enum" AS ENUM('MYSQL', 'POSTGRES')`);
+    await queryRunner.query(`CREATE TYPE "public"."db_cluster_engine_enum" AS ENUM('mysql', 'postgres')`);
     await queryRunner.query(
-      `CREATE TABLE "db_cluster" ("id" SERIAL NOT NULL, "db_cluster_identifier" character varying NOT NULL, "allocated_storage" integer, "backup_retention_period" integer NOT NULL DEFAULT '1', "db_cluster_instance_class" character varying, "database_name" character varying, "deletion_protection" boolean DEFAULT false, "engine" "public"."db_cluster_engine_enum" NOT NULL, "engine_version" character varying, "master_user_password" character varying, "master_username" character varying, "port" integer, "publicly_accessible" boolean DEFAULT false, "storage_encrypted" boolean DEFAULT false, "region" character varying NOT NULL DEFAULT default_aws_region(), "parameter_group_id" integer, "subnet_group_id" integer, CONSTRAINT "db_cluster_group_id_region" UNIQUE ("id", "region"), CONSTRAINT "UQ_db_cluster_identifier_region" UNIQUE ("db_cluster_identifier", "region"), CONSTRAINT "PK_4542fa5ac68deb8f3e54dbde217" PRIMARY KEY ("id"))`,
+      `CREATE TABLE "db_cluster" ("id" SERIAL NOT NULL, "db_cluster_identifier" character varying NOT NULL, "allocated_storage" integer NOT NULL, "iops" integer NOT NULL, "backup_retention_period" integer NOT NULL DEFAULT '1', "db_cluster_instance_class" character varying NOT NULL, "database_name" character varying, "deletion_protection" boolean DEFAULT false, "engine" "public"."db_cluster_engine_enum" NOT NULL, "engine_version" character varying, "master_user_password" character varying, "master_username" character varying NOT NULL, "port" integer, "publicly_accessible" boolean DEFAULT false, "storage_encrypted" boolean DEFAULT false, "region" character varying NOT NULL DEFAULT default_aws_region(), "parameter_group_id" integer, "subnet_group_id" integer, CONSTRAINT "db_cluster_group_id_region" UNIQUE ("id", "region"), CONSTRAINT "UQ_db_cluster_identifier_region" UNIQUE ("db_cluster_identifier", "region"), CONSTRAINT "Check_db_cluster_allocated_storage" CHECK ("allocated_storage">=100 AND "allocated_storage"<=65000), CONSTRAINT "Check_db_cluster_iops" CHECK ("iops">=1000 AND "iops"<=256000), CONSTRAINT "PK_4542fa5ac68deb8f3e54dbde217" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
       `CREATE TYPE "public"."rds_engine_enum" AS ENUM('custom-oracle-ee', 'custom-sqlserver-ee', 'custom-sqlserver-se', 'custom-sqlserver-web', 'mariadb', 'mysql', 'oracle-ee', 'oracle-ee-cdb', 'oracle-se2', 'oracle-se2-cdb', 'postgres', 'sqlserver-ee', 'sqlserver-se', 'sqlserver-ex', 'sqlserver-web')`,

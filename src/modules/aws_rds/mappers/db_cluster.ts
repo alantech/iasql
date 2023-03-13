@@ -21,6 +21,7 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
   entity = DBCluster;
   equals = (a: DBCluster, b: DBCluster) =>
     Object.is(a.allocatedStorage, b.allocatedStorage) &&
+    Object.is(a.iops, b.iops) &&
     Object.is(a.backupRetentionPeriod, b.backupRetentionPeriod) &&
     Object.is(a.databaseName, b.databaseName) &&
     Object.is(a.dbClusterInstanceClass, b.dbClusterInstanceClass) &&
@@ -42,7 +43,8 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
 
   async dbClusterMapper(cluster: AWSDBCluster, ctx: Context, region: string) {
     const out = new DBCluster();
-    if (!cluster.DBClusterIdentifier) return undefined;
+    if (!cluster.DBClusterIdentifier || !cluster.AllocatedStorage || !cluster.DBClusterInstanceClass)
+      return undefined;
     out.allocatedStorage = cluster.AllocatedStorage;
     out.backupRetentionPeriod = cluster.BackupRetentionPeriod;
     out.databaseName = cluster.DatabaseName;
@@ -51,7 +53,7 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
     out.deletionProtection = cluster.DeletionProtection ?? false;
     out.engine = cluster.Engine as dbClusterEngineEnum;
     if (cluster.EngineVersion) out.engineVersion = cluster.EngineVersion;
-    out.masterUsername = cluster.MasterUsername;
+    if (cluster.MasterUsername) out.masterUsername = cluster.MasterUsername;
 
     if (cluster.DBClusterParameterGroup) {
       out.parameterGroup =
@@ -79,6 +81,7 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
     out.port = cluster.Port;
     out.publiclyAccessible = cluster.PubliclyAccessible ?? false;
     out.storageEncrypted = cluster.StorageEncrypted ?? false;
+    if (cluster.Iops) out.iops = cluster.Iops;
     out.region = region;
 
     out.vpcSecurityGroups = [];
@@ -175,6 +178,8 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
             if (!sg.groupId) throw new Error('Security group needs to exist');
             return sg.groupId;
           }) ?? [];
+        if (!e.masterUserPassword) throw new Error('Master user password is required');
+
         const clusterParams: CreateDBClusterCommandInput = {
           AllocatedStorage: e.allocatedStorage,
           BackupRetentionPeriod: e.backupRetentionPeriod,
@@ -187,14 +192,19 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
           MasterUsername: e.masterUsername,
           MasterUserPassword: e.masterUserPassword,
           Port: e.port,
+          StorageType: 'io1',
+          Iops: e.iops,
           PubliclyAccessible: e.publiclyAccessible,
           StorageEncrypted: e.storageEncrypted,
           VpcSecurityGroupIds: securityGroupIds,
         };
         if (e.parameterGroup) clusterParams.DBClusterParameterGroupName = e.parameterGroup.name;
         if (e.subnetGroup) clusterParams.DBSubnetGroupName = e.subnetGroup.name;
+        console.log('i create');
+        console.log(clusterParams);
         const result = await this.createDBCluster(client.rdsClient, clusterParams);
         if (result) {
+          console.log('here');
           // requery to get modified fields
           const newObject = await this.getDBCluster(client.rdsClient, e.dbClusterIdentifier);
           if (newObject) {
@@ -273,6 +283,7 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
           DBClusterParameterGroupName: e.parameterGroup?.name,
           DeletionProtection: e.deletionProtection,
           EngineVersion: e.engineVersion,
+          Iops: e.iops,
           Port: e.port,
           VpcSecurityGroupIds: e.vpcSecurityGroups?.filter(sg => !!sg.groupId).map(sg => sg.groupId!) ?? [],
           ApplyImmediately: true,
