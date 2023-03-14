@@ -60,6 +60,7 @@ export class CertificateRequestRpc extends RpcBase {
     validationMethod: 'varchar',
     region: 'varchar',
     options: { argType: 'json', default: '{}' },
+    tags: { argType: 'json', default: '{}' },
   };
 
   /**
@@ -208,6 +209,7 @@ export class CertificateRequestRpc extends RpcBase {
     validationMethod: string,
     region: string,
     options: string,
+    tags: string,
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
     if (validationMethod === ValidationMethod.DNS) {
       const installedModules = await modules(false, true, dbId);
@@ -235,6 +237,14 @@ export class CertificateRequestRpc extends RpcBase {
           message: 'Error requesting certificate',
         },
       ];
+    }
+    const transformedTags = Object.entries(safeParse(tags))?.map(([k, v]) => ({ Key: k, Value: v })) ?? [];
+    if (transformedTags.length) {
+      await this.module.certificate.createCertificateTags(
+        client.acmClient,
+        requestedCertArn,
+        transformedTags,
+      );
     }
     const requestedCert = await this.module.certificate.cloud.read(ctx, requestedCertArn);
     await this.module.certificate.db.create(requestedCert, ctx);

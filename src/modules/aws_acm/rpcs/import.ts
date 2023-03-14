@@ -41,6 +41,7 @@ export class CertificateImportRpc extends RpcBase {
     privateKey: 'varchar',
     region: 'varchar',
     options: { argType: 'json', default: '{}' },
+    tags: { argType: 'json', default: '{}' },
   };
 
   /**
@@ -77,6 +78,7 @@ export class CertificateImportRpc extends RpcBase {
     privateKey: string,
     region: string,
     options: string,
+    tags: string,
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
     const opts = safeParse(options);
     const client = (await ctx.getAwsClient(region)) as AWS;
@@ -97,6 +99,10 @@ export class CertificateImportRpc extends RpcBase {
           message: 'Error importing certificate',
         },
       ];
+    }
+    const transformedTags = Object.entries(safeParse(tags))?.map(([k, v]) => ({ Key: k, Value: v })) ?? [];
+    if (transformedTags.length) {
+      await this.module.certificate.createCertificateTags(client.acmClient, importedCertArn, transformedTags);
     }
     let importedCert: Certificate | undefined;
     try {
