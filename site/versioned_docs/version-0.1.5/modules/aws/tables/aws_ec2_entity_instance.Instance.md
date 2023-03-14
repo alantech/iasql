@@ -35,6 +35,10 @@ Specifies if the hibernation mode is enabled for the instance
 
 https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Hibernate.html
 
+• `Optional` **instance\_block\_device\_mappings**: [`instance_block_device_mapping`](aws_ec2_entity_instance_block_device_mapping.InstanceBlockDeviceMapping.md)[]
+
+Block device mappings for the instance
+
 • `Optional` **instance\_id**: `string`
 
 Internal AWS ID for the instance

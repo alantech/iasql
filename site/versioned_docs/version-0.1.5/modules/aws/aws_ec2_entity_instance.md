@@ -16,6 +16,8 @@ import TabItem from '@theme/TabItem';
 
     [instance](../../aws/tables/aws_ec2_entity_instance.Instance)
 
+    [instance_block_device_mapping](../../aws/tables/aws_ec2_entity_instance_block_device_mapping.InstanceBlockDeviceMapping)
+
 ### Enums
     [state](../../aws/enums/aws_ec2_entity_instance.State)
 
