@@ -112,15 +112,15 @@ export class RdsMapper extends MapperBase<RDS> {
         ));
     }
 
-    if (rds.DBCluster) {
+    if (rds.DBClusterIdentifier) {
       out.dbCluster =
         (await this.module.dbCluster.db.read(
           ctx,
-          this.module.dbCluster.generateId({ name: rds.DBCluster, region }),
+          this.module.dbCluster.generateId({ dbClusterIdentifier: rds.DBClusterIdentifier, region }),
         )) ??
         (await this.module.dbCluster.cloud.read(
           ctx,
-          this.module.dbCluster.generateId({ name: rds.DBCluster, region }),
+          this.module.dbCluster.generateId({ dbClusterIdentifier: rds.DBClusterIdentifier, region }),
         ));
     }
 
