@@ -9,7 +9,7 @@ authors: [yrobla]
 
 Stable Diffusion is a deep learning, text-to-image model released in 2022. It is primarily used to generate detailed images conditioned on text descriptions, though it can also be applied to other tasks such as inpainting, outpainting, and generating image-to-image translations guided by a text prompt.
 
-There is a publicly available <a href="https://beta.dreamstudio.ai/dream">tool</a> , it is limited to a maximum of 200 images generation. But because the model is open source, you can download and host your own version of it. There are different approaches to host it, butone easy option is to host in an EC2 GPU instance, using IaSQL to install with one SQL query.
+There is a publicly available <a href="https://beta.dreamstudio.ai/dream">tool</a> limited to a maximum of 200 images generation. But because the model is open source, you can download and host your own version of it. There are different approaches to host it, but one easy option is to host it in an EC2 GPU instance, using IaSQL to setup everything with just a few SQL queries.
 IaSQL is an [open-source](https://github.com/iasql/iasql) software tool that creates a two-way connection between an unmodified PostgreSQL database and an AWS account so you can manage your infrastructure from a database.
 
 ## Pre-requisites
@@ -28,6 +28,8 @@ Please visit the <a href="https://aws.amazon.com/marketplace/pp/prodview-64e4rx3
 ## Stable Diffusion installation
 
 While Stable Diffusion is a complex model with lots of dependencies, there are pre-built Docker images from the community that ship with all the components on place. We will rely on <a href="https://sygil-dev.github.io/sygil-webui/docs/Installation/docker-guide">Sygil WebUI</a> images to deploy our model. These images are ready to be used out of the box, but there is possibility to build and customize the images in case it's needed.
+
+While this deployment may seem complex at first glance, it can be made easy with <a href="https://iasql.com/docs">IaSQL</a>. In the following paragraphs we will go through the steps needed to deploy Stable Diffusion just using SQL queries to inspect and modify the AWS infrastructure.
 
 We would need to start by getting the AMI ID for the image on the marketplace, in order to boot images based on that. We can get it with a simple query using IaSQL SDK module:
 
