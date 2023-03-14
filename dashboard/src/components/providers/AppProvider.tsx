@@ -71,7 +71,11 @@ interface AppState {
     };
   };
   installedModules: {
-    [moduleName: string]: { [tableName: string]: { [columnName: string]: { dataType: string, isMandatory: boolean } } & { recordCount: number } };
+    [moduleName: string]: {
+      [tableName: string]: { [columnName: string]: { dataType: string; isMandatory: boolean } } & {
+        recordCount: number;
+      };
+    };
   };
   isDarkMode: boolean;
   shouldShowDisconnect: boolean;
@@ -212,7 +216,9 @@ const reducer = (state: AppState, payload: Payload): AppState => {
       const { autoCompleteRes } = payload.data;
       const moduleData = {} as {
         [moduleName: string]: {
-          [tableName: string]: { [columnName: string]: { dataType: string, isMandatory: boolean } } & { recordCount: number };
+          [tableName: string]: { [columnName: string]: { dataType: string; isMandatory: boolean } } & {
+            recordCount: number;
+          };
         };
       };
       const allModules = {} as { [moduleName: string]: string[] };
@@ -221,14 +227,16 @@ const reducer = (state: AppState, payload: Payload): AppState => {
           [functionName: string]: string;
         };
       };
-      (autoCompleteRes?.[0]?.result ?? []).forEach((row: any) => { // select * from iasql_help();
+      (autoCompleteRes?.[0]?.result ?? []).forEach((row: any) => {
+        // select * from iasql_help();
         const moduleName = row.module;
         const functionName = row.name;
         const functionSignature = row.signature;
         functionData[moduleName] = functionData[moduleName] || {};
         functionData[moduleName][functionName] = functionSignature;
       });
-      (autoCompleteRes?.[1]?.result ?? []).forEach((row: any) => { // t.module, c.table_name, c.ordinal_position, c.column_name, c.data_type
+      (autoCompleteRes?.[1]?.result ?? []).forEach((row: any) => {
+        // t.module, c.table_name, c.ordinal_position, c.column_name, c.data_type
         const moduleName = row.module;
         const tableName = row.table_name;
         const columnName = row.column_name;
@@ -242,7 +250,8 @@ const reducer = (state: AppState, payload: Payload): AppState => {
         moduleData[moduleName][tableName][columnName] = { dataType, isMandatory };
         moduleData[moduleName][tableName]['recordCount'] = recordCount;
       });
-      (autoCompleteRes?.[2]?.result ?? []).forEach((row: any) => { // select * from iasql_modules_list();
+      (autoCompleteRes?.[2]?.result ?? []).forEach((row: any) => {
+        // select * from iasql_modules_list();
         const moduleName = row.module_name;
         const moduleDependencies = row.dependencies.join(', ');
         allModules[moduleName] = moduleDependencies;

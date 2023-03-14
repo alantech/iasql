@@ -7,7 +7,11 @@ export default function Modules({
   modulesInstalledData,
   allModules,
 }: {
-  modulesInstalledData: { [moduleName: string]: { [tableName: string]: { [columnName: string]: { dataType: string, isMandatory: boolean } } } };
+  modulesInstalledData: {
+    [moduleName: string]: {
+      [tableName: string]: { [columnName: string]: { dataType: string; isMandatory: boolean } };
+    };
+  };
   allModules: { [moduleName: string]: string[] };
 }) {
   const { dispatch } = useAppContext();
