@@ -71,7 +71,7 @@ interface AppState {
     };
   };
   installedModules: {
-    [moduleName: string]: { [tableName: string]: { [columnName: string]: string } & { recordCount: number } };
+    [moduleName: string]: { [tableName: string]: { [columnName: string]: { dataType: string, isMandatory: boolean } } & { recordCount: number } };
   };
   isDarkMode: boolean;
   shouldShowDisconnect: boolean;
@@ -97,13 +97,20 @@ interface AppStore extends AppState {
 
 const initializingQueries = `
   select * from iasql_help();
-  select
-    t.module, c.table_name, c.ordinal_position, c.column_name, c.data_type
+
+  select t.module,
+         c.table_name,
+         c.ordinal_position,
+         c.column_name,
+         c.data_type,
+         c.is_nullable,
+         c.column_default
   from information_schema.columns as c
-  inner join iasql_tables as t on c.table_name = t.table
-  order by
-    table_name, ordinal_position;
+           inner join iasql_tables as t on c.table_name = t.table
+  order by table_name, ordinal_position;
+
   select * from iasql_modules_list();
+
   select
     t.table as table_name,
     (xpath('/row/c/text()', query_to_xml(format('select count(*) as c from public.%I', t.table), FALSE, TRUE, '')))[1]::text::int AS record_count
@@ -205,7 +212,7 @@ const reducer = (state: AppState, payload: Payload): AppState => {
       const { autoCompleteRes } = payload.data;
       const moduleData = {} as {
         [moduleName: string]: {
-          [tableName: string]: { [columnName: string]: string } & { recordCount: number };
+          [tableName: string]: { [columnName: string]: { dataType: string, isMandatory: boolean } } & { recordCount: number };
         };
       };
       const allModules = {} as { [moduleName: string]: string[] };
@@ -214,26 +221,28 @@ const reducer = (state: AppState, payload: Payload): AppState => {
           [functionName: string]: string;
         };
       };
-      (autoCompleteRes?.[0]?.result ?? []).forEach((row: any) => {
+      (autoCompleteRes?.[0]?.result ?? []).forEach((row: any) => { // select * from iasql_help();
         const moduleName = row.module;
         const functionName = row.name;
         const functionSignature = row.signature;
         functionData[moduleName] = functionData[moduleName] || {};
         functionData[moduleName][functionName] = functionSignature;
       });
-      (autoCompleteRes?.[1]?.result ?? []).forEach((row: any) => {
+      (autoCompleteRes?.[1]?.result ?? []).forEach((row: any) => { // t.module, c.table_name, c.ordinal_position, c.column_name, c.data_type
         const moduleName = row.module;
         const tableName = row.table_name;
         const columnName = row.column_name;
         const dataType = row.data_type;
+        let isMandatory = true;
+        if (row.column_default !== null || row.is_nullable === 'YES') isMandatory = false;
         const recordCount =
-          autoCompleteRes?.[3]?.result?.find((r: any) => r.table_name === tableName)?.record_count ?? 0;
+          autoCompleteRes?.[3]?.result?.find((r: any) => r.table_name === tableName)?.record_count ?? 0; // t.table as table_name, xpath('/row/c/text()' ...
         moduleData[moduleName] = moduleData[moduleName] || {};
         moduleData[moduleName][tableName] = moduleData[moduleName][tableName] || {};
-        moduleData[moduleName][tableName][columnName] = dataType;
+        moduleData[moduleName][tableName][columnName] = { dataType, isMandatory };
         moduleData[moduleName][tableName]['recordCount'] = recordCount;
       });
-      (autoCompleteRes?.[2]?.result ?? []).forEach((row: any) => {
+      (autoCompleteRes?.[2]?.result ?? []).forEach((row: any) => { // select * from iasql_modules_list();
         const moduleName = row.module_name;
         const moduleDependencies = row.dependencies.join(', ');
         allModules[moduleName] = moduleDependencies;

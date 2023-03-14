@@ -9,7 +9,7 @@ export default function Schema({
   functionData,
 }: {
   moduleData: {
-    [moduleName: string]: { [tableName: string]: { [columnName: string]: string } & { recordCount: number } };
+    [moduleName: string]: { [tableName: string]: { [columnName: string]: { dataType: string, isMandatory: boolean } } & { recordCount: number } };
   };
   functionData: {
     [moduleName: string]: {
@@ -66,15 +66,16 @@ export default function Schema({
               >
                 {Object.entries(moduleData[moduleName][tableName])
                   .filter(([col, _]) => col !== 'recordCount')
-                  .map(([col, typ]) => (
-                    <HBox key={col} customStyles='pl-8 grid grid-cols-2 gap-2'>
+                  .map(([col, meta]) => (
+                    <HBox key={col}
+                          customStyles={(meta as any).isMandatory && !tableName.includes('iasql_') ? 'pl-8 grid grid-cols-2 gap-2 font-bold' : 'pl-8 grid grid-cols-2 gap-2'}>
                       <HBox alignment={align.start}>
                         <p className='text-ellipsis overflow-hidden' title={col}>
                           {col}
                         </p>
                       </HBox>
                       <HBox alignment={align.start}>
-                        <p className='text-ellipsis overflow-hidden'>{typ}</p>
+                        <p className='text-ellipsis overflow-hidden'>{(meta as {dataType:string, isMandatory: boolean}).dataType}</p>
                       </HBox>
                     </HBox>
                   ))}
