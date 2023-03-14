@@ -29,9 +29,9 @@ Relying on PrivateLink offers a set of advantages in terms of **cost**, **securi
 
 **Cost**
 
-When using NAT gateways, you are paying for the NAT gateway itself, and the bandwidth used to access the internet. A NAT gateway is a generic way for private instances to reach internet, and can be useful for generic usage, such
-as pulling dependencies, updating repositories, etc... But when used for reaching AWS resources directly, there are more optimal and cheaper solutions such as VPC endpoints.
-When using VPC endpoints, you are paying for the bandwidth used to access the internet, but not for the NAT gateway itself. Costs for NAT gateway depend on each region, but it should be over _0.045 USD/hour_ per GB processed + _0.045 USD/hour_ for the instance itself. Costs for VPC endpoints are charged at _0.01 USD/hour_ per GB processed, being cheaper after the first PB.
+When using NAT gateways, you are paying for the NAT gateway itself, and the bandwidth used to access the internet. A NAT gateway is a generic way for private instances to reach internet, and can be useful for generic usage, such as pulling dependencies, updating repositories, etc... But when used for reaching AWS resources directly, there are more optimal and cheaper solutions such as VPC endpoints - they will not have generic access to internet but only to specified public AWS endpoints. When using VPC endpoints, you are paying for the bandwidth used to access the public endpoints, but not for the VPC endpoint itself.
+
+Costs for NAT gateway depend on each region, but it should be over _0.045 USD/hour_ per GB processed + _0.045 USD/hour_ for the instance itself. Costs for VPC endpoints are charged at _0.01 USD/hour_ per GB processed, being cheaper after the first PB.
 
 | Component    | Hourly pricing | Per GB pricing       |
 | ------------ | -------------- | -------------------- |
