@@ -21,10 +21,12 @@ export class RdsMapper extends MapperBase<RDS> {
   entity = RDS;
   equals = (a: RDS, b: RDS) =>
     Object.is(a.engine, b.engine) &&
+    Object.is(a.engineVersion, b.engineVersion) &&
     Object.is(a.dbInstanceClass, b.dbInstanceClass) &&
     Object.is(a.availabilityZone?.name, b.availabilityZone?.name) &&
     Object.is(a.dbInstanceIdentifier, b.dbInstanceIdentifier) &&
     Object.is(a.endpointAddr, b.endpointAddr) &&
+    Object.is(a.endpointHostedZoneId, b.endpointHostedZoneId) &&
     Object.is(a.endpointPort, b.endpointPort) &&
     !a.masterUserPassword && // Special case, if master password defined, will update the password
     Object.is(a.masterUsername, b.masterUsername) &&
@@ -36,11 +38,7 @@ export class RdsMapper extends MapperBase<RDS> {
     Object.is(a.allocatedStorage, b.allocatedStorage) &&
     Object.is(a.backupRetentionPeriod, b.backupRetentionPeriod) &&
     Object.is(a.parameterGroup?.arn, b.parameterGroup?.arn) &&
-    Object.is(a.deletionProtection, b.deletionProtection) &&
-    Object.is(a.engineVersion, b.engineVersion) &&
-    Object.is(a.multiAZ, b.multiAZ) &&
-    Object.is(a.publiclyAccessible, b.publiclyAccessible) &&
-    Object.is(a.storageEncrypted, b.storageEncrypted) &&
+    Object.is(a.region, b.region) &&
     Object.is(a.dbCluster?.dbClusterIdentifier, b.dbCluster?.dbClusterIdentifier);
 
   async rdsMapper(rds: any, ctx: Context, region: string) {
@@ -53,10 +51,11 @@ export class RdsMapper extends MapperBase<RDS> {
     out.dbInstanceClass = rds?.DBInstanceClass;
     out.dbInstanceIdentifier = rds?.DBInstanceIdentifier;
     out.endpointAddr = rds?.Endpoint?.Address;
+    out.endpointHostedZoneId = rds?.Endpoint?.HostedZoneId;
     out.endpointPort = rds?.Endpoint?.Port;
     if (/aurora/.test(rds?.Engine ?? 'aurora')) return undefined;
     out.engine = rds.Engine;
-    out.engineVersion = rds.EngineVersion;
+    out.engineVersion = rds?.EngineVersion;
     out.masterUsername = rds?.MasterUsername;
     const vpcSecurityGroupIds = rds?.VpcSecurityGroups?.filter(
       (vpcsg: any) => !!vpcsg?.VpcSecurityGroupId,
@@ -75,7 +74,6 @@ export class RdsMapper extends MapperBase<RDS> {
       if (sg) out.vpcSecurityGroups.push(sg);
     }
     out.backupRetentionPeriod = rds?.BackupRetentionPeriod ?? 1;
-
     if (rds.DBParameterGroups?.length) {
       const parameterGroup = rds.DBParameterGroups[0];
       out.parameterGroup =
@@ -92,11 +90,6 @@ export class RdsMapper extends MapperBase<RDS> {
         return undefined;
       }
     }
-
-    out.deletionProtection = rds.DeletionProtection ?? false;
-    out.publiclyAccessible = rds.PubliclyAccessible ?? false;
-    out.multiAZ = rds.MultiAZ ?? false;
-    out.storageEncrypted = rds.StorageEncrypted ?? false;
 
     if (rds.DBClusterIdentifier) {
       out.dbCluster =
@@ -244,66 +237,66 @@ export class RdsMapper extends MapperBase<RDS> {
             return sg.groupId;
           }) ?? [];
         const instanceParams: CreateDBInstanceCommandInput = {
-          AllocatedStorage: e.allocatedStorage,
-          AvailabilityZone: e.availabilityZone.name,
-          BackupRetentionPeriod: e.backupRetentionPeriod,
-          DBInstanceIdentifier: e.dbInstanceIdentifier,
           DBClusterIdentifier: e.dbCluster?.dbClusterIdentifier,
+          DBInstanceIdentifier: e.dbInstanceIdentifier,
           DBInstanceClass: e.dbInstanceClass,
-          DeletionProtection: e.deletionProtection,
           Engine: e.engine,
           EngineVersion: e.engineVersion,
           MasterUsername: e.masterUsername,
           MasterUserPassword: e.masterUserPassword,
-          MultiAZ: e.multiAZ,
-          Port: e.endpointPort,
-          PubliclyAccessible: e.publiclyAccessible,
-          StorageEncrypted: e.storageEncrypted,
+          AllocatedStorage: e.allocatedStorage,
           VpcSecurityGroupIds: securityGroupIds,
+          AvailabilityZone: e.availabilityZone.name,
+          BackupRetentionPeriod: e.backupRetentionPeriod,
         };
-        if (e.parameterGroup) instanceParams.DBParameterGroupName = e.parameterGroup.name;
-        console.log('i want to craete');
-        console.log(instanceParams);
+        if (e.parameterGroup) {
+          instanceParams.DBParameterGroupName = e.parameterGroup.name;
+        }
 
-        const result = await this.createDBInstance(client.rdsClient, instanceParams);
-        console.log('after create');
-        // TODO: Handle if it fails (somehow)
-        if (!result?.hasOwnProperty('DBInstanceIdentifier')) {
-          // Failure
-          throw new Error('what should we do here?');
+        try {
+          const result = await this.createDBInstance(client.rdsClient, instanceParams);
+          // TODO: Handle if it fails (somehow)
+          if (!result?.hasOwnProperty('DBInstanceIdentifier')) {
+            // Failure
+            throw new Error('what should we do here?');
+          }
+          // Re-get the inserted record to get all of the relevant records we care about
+          const newObject = await this.getDBInstance(client.rdsClient, result.DBInstanceIdentifier ?? '');
+          // We need to update the parameter groups if its a default one and it does not exists
+          const parameterGroupName = newObject?.DBParameterGroups?.[0].DBParameterGroupName;
+          if (
+            !(await this.module.parameterGroup.db.read(
+              ctx,
+              this.module.parameterGroup.generateId({ name: parameterGroupName ?? '', region: e.region }),
+            ))
+          ) {
+            const cloudParameterGroup = await this.module.parameterGroup.cloud.read(
+              ctx,
+              this.module.parameterGroup.generateId({ name: parameterGroupName ?? '', region: e.region }),
+            );
+            await this.module.parameterGroup.db.create(cloudParameterGroup, ctx);
+          }
+          // We map this into the same kind of entity as `obj`
+          const newEntity = await this.rdsMapper(newObject, ctx, e.region);
+          if (!newEntity) continue;
+          // We attach the original object's ID to this new one, indicating the exact record it is
+          // replacing in the database.
+          newEntity.id = e.id;
+          // Set password as null to avoid infinite loop trying to update the password.
+          // Reminder: Password need to be null since when we read RDS instances from AWS this
+          // property is not retrieved
+          newEntity.masterUserPassword = undefined;
+          // Save the record back into the database to get the new fields updated
+          console.log('i want to update with value');
+          console.log(newEntity);
+          await this.module.rds.db.update(newEntity, ctx);
+          out.push(newEntity);
+        } catch (e: any) {
+          console.log('error in create');
+          console.log(e);
         }
-        // Re-get the inserted record to get all of the relevant records we care about
-        const newObject = await this.getDBInstance(client.rdsClient, result.DBInstanceIdentifier ?? '');
-        // We need to update the parameter groups if its a default one and it does not exists
-        const parameterGroupName = newObject?.DBParameterGroups?.[0].DBParameterGroupName;
-        if (
-          !(await this.module.parameterGroup.db.read(
-            ctx,
-            this.module.parameterGroup.generateId({ name: parameterGroupName ?? '', region: e.region }),
-          ))
-        ) {
-          const cloudParameterGroup = await this.module.parameterGroup.cloud.read(
-            ctx,
-            this.module.parameterGroup.generateId({ name: parameterGroupName ?? '', region: e.region }),
-          );
-          await this.module.parameterGroup.db.create(cloudParameterGroup, ctx);
-        }
-        // We map this into the same kind of entity as `obj`
-        const newEntity = await this.rdsMapper(newObject, ctx, e.region);
-        if (!newEntity) continue;
-        // We attach the original object's ID to this new one, indicating the exact record it is
-        // replacing in the database.
-        newEntity.id = e.id;
-        // Set password as null to avoid infinite loop trying to update the password.
-        // Reminder: Password need to be null since when we read RDS instances from AWS this
-        // property is not retrieved
-        newEntity.masterUserPassword = undefined;
-        // Save the record back into the database to get the new fields updated
-        console.log(newEntity);
-        await this.module.rds.db.update(newEntity, ctx);
-        console.log('after update db');
-        out.push(newEntity);
       }
+      console.log('after');
       return out;
     },
     read: async (ctx: Context, id?: string) => {
@@ -353,10 +346,10 @@ export class RdsMapper extends MapperBase<RDS> {
             throw new Error('Waiting for security groups');
           }
           const instanceParams: ModifyDBInstanceCommandInput = {
-            AllocatedStorage: e.allocatedStorage,
             DBInstanceClass: e.dbInstanceClass,
-            DBInstanceIdentifier: e.dbInstanceIdentifier,
             EngineVersion: e.engineVersion,
+            DBInstanceIdentifier: e.dbInstanceIdentifier,
+            AllocatedStorage: e.allocatedStorage,
             VpcSecurityGroupIds: e.vpcSecurityGroups?.filter(sg => !!sg.groupId).map(sg => sg.groupId!) ?? [],
             BackupRetentionPeriod: e.backupRetentionPeriod,
             ApplyImmediately: true,
@@ -382,6 +375,7 @@ export class RdsMapper extends MapperBase<RDS> {
     },
     delete: async (es: RDS[], ctx: Context) => {
       for (const e of es) {
+        console.log('in delete');
         const client = (await ctx.getAwsClient(e.region)) as AWS;
         const input = {
           DBInstanceIdentifier: e.dbInstanceIdentifier,
@@ -392,7 +386,9 @@ export class RdsMapper extends MapperBase<RDS> {
           // FinalDBSnapshotIdentifier: undefined,
           // DeleteAutomatedBackups: false,
         };
+        console.log(input);
         await this.deleteDBInstance(client.rdsClient, input);
+        console.log('after delete');
       }
     },
   });

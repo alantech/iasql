@@ -17,28 +17,6 @@ import { DBCluster } from './db_cluster';
 import { ParameterGroup } from './parameter_group';
 
 /**
- * @enum
- * The name of the database engine to be used for the RDS instance.
- */
-export enum dbInstanceEngineEnum {
-  CUSTOM_ORACLE_EE = 'custom-oracle-ee',
-  CUSTOM_SQLSERVER_EE = 'custom-sqlserver-ee',
-  CUSTOM_SQLSERVER_SE = 'custom-sqlserver-se',
-  CUSTOM_SQLSERVER_WEB = 'custom-sqlserver-web',
-  MARIADB = 'mariadb',
-  MYSQL = 'mysql',
-  ORACLE_EE = 'oracle-ee',
-  ORACLE_EE_CDB = 'oracle-ee-cdb',
-  ORACLE_SE2 = 'oracle-se2',
-  ORACLE_SE2_CDB = 'oracle-se2-cdb',
-  POSTGRES = 'postgres',
-  SQLSERVER_EE = 'sqlserver-ee',
-  SQLSERVER_SE = 'sqlserver-se',
-  SQLSERVER_EX = 'sqlserver-ex',
-  SQLSERVER_WEB = 'sqlserver-web',
-}
-
-/**
  * Table to manage AWS RDS instances. Amazon Relational Database Service (Amazon RDS) is a web service that makes it easier to
  * set up, operate, and scale a relational database in the AWS Cloud.
  *
@@ -97,17 +75,6 @@ export class RDS {
 
   /**
    * @public
-   * Limit of days for keeping a database backup
-   * @see https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_WorkingWithAutomatedBackups.html#USER_WorkingWithAutomatedBackups.Enabling
-   */
-  @Column({
-    type: 'int',
-    default: 1,
-  })
-  backupRetentionPeriod: number;
-
-  /**
-   * @public
    * Class that represents the computation and memory capacity of an Amazon RDS DB instance
    * @see https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.DBInstanceClass.html#Concepts.DBInstanceClass.Types
    *
@@ -123,43 +90,11 @@ export class RDS {
 
   /**
    * @public
-   * DB cluster associated to the DB instance
-   */
-  @ManyToOne(() => DBCluster, {
-    eager: true,
-    nullable: true,
-    cascade: true,
-  })
-  @JoinColumn([
-    {
-      name: 'db_cluster_id',
-      referencedColumnName: 'id',
-    },
-    {
-      name: 'region',
-      referencedColumnName: 'region',
-    },
-  ])
-  dbCluster?: DBCluster;
-
-  /**
-   * @public
-   * A value that indicates whether the DB cluster has deletion protection enabled.
-   */
-  @Column({
-    type: 'boolean',
-    nullable: true,
-    default: false,
-  })
-  deletionProtection: boolean;
-
-  /**
-   * @public
    * Engine to use for the current database
    * @see https://docs.aws.amazon.com/cli/latest/reference/rds/describe-db-engine-versions.html
    */
-  @Column({ type: 'enum', enum: dbInstanceEngineEnum })
-  engine: dbInstanceEngineEnum;
+  @Column()
+  engine: string;
 
   /**
    * @public
@@ -199,21 +134,13 @@ export class RDS {
 
   /**
    * @public
-   * A value that indicates whether the DB instance is a Multi-AZ deployment.
-   */
-  @Column({
-    type: 'boolean',
-    nullable: true,
-    default: false,
-  })
-  multiAZ: boolean;
-
-  /**
-   * @public
    * Reference to the VPC security groups for the database
    * @see https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.RDSSecurityGroups.html
+   *
+   * @privateRemarks
+   * TODO rename table
    */
-  @ManyToMany(() => SecurityGroup, { eager: true, cascade: true })
+  @ManyToMany(() => SecurityGroup, { eager: true })
   @JoinTable({
     name: 'rds_security_groups',
   })
@@ -248,12 +175,35 @@ export class RDS {
 
   /**
    * @public
+   * Hosted zone ID used to connect to the RDS database
+   * @see https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_Endpoint.html
+   *
+   * @privateRemarks
+   * TODO: make this an entity eventually?
+   */
+  @Column({
+    nullable: true,
+  })
+  endpointHostedZoneId?: string;
+
+  /**
+   * @public
+   * Limit of days for keeping a database backup
+   * @see https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_WorkingWithAutomatedBackups.html#USER_WorkingWithAutomatedBackups.Enabling
+   */
+  @Column({
+    type: 'int',
+    default: 1,
+  })
+  backupRetentionPeriod: number;
+
+  /**
+   * @public
    * List of the parameter groups associated with the database
    */
   @ManyToOne(() => ParameterGroup, {
     eager: true,
     nullable: true,
-    cascade: true,
   })
   @JoinColumn([
     {
@@ -269,25 +219,24 @@ export class RDS {
 
   /**
    * @public
-   * A value that indicates whether the DB instance is publicly accessible.
+   * DB cluster associated to the DB instance
    */
-  @Column({
-    type: 'boolean',
+  @ManyToOne(() => DBCluster, {
+    eager: true,
     nullable: true,
-    default: false,
+    cascade: true,
   })
-  publiclyAccessible: boolean;
-
-  /**
-   * @public
-   * A value that indicates whether the DB cluster is encrypted.
-   */
-  @Column({
-    type: 'boolean',
-    nullable: true,
-    default: false,
-  })
-  storageEncrypted: boolean;
+  @JoinColumn([
+    {
+      name: 'db_cluster_id',
+      referencedColumnName: 'id',
+    },
+    {
+      name: 'region',
+      referencedColumnName: 'region',
+    },
+  ])
+  dbCluster?: DBCluster;
 
   /**
    * @public

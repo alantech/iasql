@@ -92,7 +92,7 @@ describe('RDS Integration Testing', () => {
       `
     BEGIN;
       INSERT INTO rds (db_instance_identifier, allocated_storage, db_instance_class, master_username, master_user_password, availability_zone, engine, engine_version, backup_retention_period)
-        VALUES ('${prefix}test', 20, 'db.t3.micro', 'test', 'testpass', (SELECT name FROM availability_zone WHERE region = '${region}' LIMIT 1), 'postgres', '13.4', 0);
+        VALUES ('${prefix}test', 20, 'db.t3.micro', 'test', 'testpass2023', (SELECT name FROM availability_zone WHERE region = '${region}' LIMIT 1), 'postgres', '13.4', 0);
       INSERT INTO rds_security_groups (rds_id, security_group_id) SELECT
         (SELECT id FROM rds WHERE db_instance_identifier='${prefix}test'),
         (SELECT id FROM security_group WHERE group_name='default' AND region = '${region}');
@@ -139,7 +139,7 @@ describe('RDS Integration Testing', () => {
       `
     BEGIN;
       INSERT INTO rds (db_instance_identifier, allocated_storage, db_instance_class, master_username, master_user_password, availability_zone, engine, engine_version, backup_retention_period)
-        VALUES ('${prefix}test', 20, 'db.t3.micro', 'test', 'testpass', (SELECT name FROM availability_zone WHERE region = '${region}' LIMIT 1), 'postgres', '13.4', 0);
+        VALUES ('${prefix}test', 20, 'db.t3.micro', 'test', 'testpass2023', (SELECT name FROM availability_zone WHERE region = '${region}' LIMIT 1), 'postgres', '13.4', 0);
       INSERT INTO rds_security_groups (rds_id, security_group_id) SELECT
         (SELECT id FROM rds WHERE db_instance_identifier='${prefix}test'),
         (SELECT id FROM security_group WHERE group_name='default' AND region = '${region}');
