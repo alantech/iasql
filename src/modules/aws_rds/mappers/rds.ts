@@ -110,7 +110,7 @@ export class RdsMapper extends MapperBase<RDS> {
           ctx,
           this.module.dbSubnetGroup.generateId({ name: rds.DBSubnetGroup.DBSubnetGroupName, region }),
         ));
-    }
+    } else out.subnetGroup = undefined;
 
     if (rds.DBClusterIdentifier) {
       out.dbCluster =
@@ -122,7 +122,7 @@ export class RdsMapper extends MapperBase<RDS> {
           ctx,
           this.module.dbCluster.generateId({ dbClusterIdentifier: rds.DBClusterIdentifier, region }),
         ));
-    }
+    } else out.dbCluster = undefined;
 
     out.region = region;
     out.databaseName = rds.DBName;
