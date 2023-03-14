@@ -84,7 +84,7 @@ describe('AwsAcm Import Integration Testing', () => {
   itDocs(
     'adds a new certificate to import',
     query(`
-    SELECT * FROM certificate_import('${cert}', '${key}', '${region}', '{}');
+    SELECT * FROM certificate_import('${cert}', '${key}', '${region}', '{}', '{ "toUpdate": "value", "toDelete": "value2" }');
   `),
   );
 
@@ -96,6 +96,19 @@ describe('AwsAcm Import Integration Testing', () => {
     FROM certificate
     WHERE domain_name = '${domainName}';
   `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it(
+    'check new certificate tags',
+    query(
+      `
+        SELECT *
+        FROM certificate
+        WHERE domain_name = '${domainName}'
+          AND tags ->> 'toDelete' = 'value2' AND tags ->> 'toUpdate' = 'value';
+      `,
       (res: any[]) => expect(res.length).toBe(1),
     ),
   );
@@ -112,6 +125,63 @@ describe('AwsAcm Import Integration Testing', () => {
     FROM certificate
     WHERE domain_name = '${domainName}';
   `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it(
+    'check new certificate tags',
+    query(
+      `
+        SELECT *
+        FROM certificate
+        WHERE domain_name = '${domainName}'
+          AND tags ->> 'toDelete' = 'value2' AND tags ->> 'toUpdate' = 'value';
+      `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it('starts a transaction', begin());
+
+  itDocs(
+    'updates a certificate tags',
+    query(
+      `
+        UPDATE certificate
+        SET tags = '{ "toUpdate": "value2", "newTag": "value3" }'
+        WHERE domain_name = '${domainName}';
+      `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it('applies the update', commit());
+
+  it(
+    'check certificate tags after update',
+    query(
+      `
+        SELECT *
+        FROM certificate
+        WHERE domain_name = '${domainName}'
+          AND tags ->> 'toDelete' = 'value2';
+      `,
+      (res: any[]) => expect(res.length).toBe(0),
+    ),
+  );
+
+  it(
+    'check certificate tags after update',
+    query(
+      `
+        SELECT *
+        FROM certificate
+        WHERE domain_name = '${domainName}'
+          AND tags ->> 'toUpdate' = 'value2' AND tags ->> 'newTag' = 'value3';
+      `,
       (res: any[]) => expect(res.length).toBe(1),
     ),
   );
