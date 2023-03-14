@@ -39,7 +39,11 @@ We could configure `iasql_upgrade` to preserve a `migrations` table and make the
 
 ## Proposal
 
-Take inspiration from [RFC 006](./006%20-%20Replicate%20changes%20between%20staging%20and%20prod%20RFC.md) and create a how-to guide in the documentation much like the guide on [how to replicate changes across infra environments](https://iasql.com/docs/envs/) along with an example repository that walks users through how to code review their changes using **convention over configuration** such that the workflow works with any cloud identity and access management structure, any source control solution without the need for special access to it *and* preserves the ability to `iasql_preview` changes in development and get the type-safety feedback from the dashboard editor.
+Take inspiration from [RFC 006](./006%20-%20Replicate%20changes%20between%20staging%20and%20prod%20RFC.md) and create a how-to guide in the documentation much like the guide on [how to replicate changes across infra environments](https://iasql.com/docs/envs/) along with an example repository that walks users through how to code review their changes using **convention over configuration** such that the workflow:
+- works with any cloud identity and access management structure
+- works with `iasql_upgrade`
+- works with any source control solution without the need for special access to it
+- preserves the ability to `iasql_preview` changes in development and get the type-safety feedback from the dashboard editor
 
 The workflow simply suggests users run `iasql_begin`, perform all the necessary changes, and before doing `iasql_commit` they manually put the output of `iasql_preview` and the SQL generated thus far into a markdown file within a repository of their liking. Once the PR is approved by their peers and landed, they can manually run `iasql_commit`. We can require a parameter for `iasql_commit(message)` which is a string attached as metadata for the transaction that can be set to be the PR URL. Best practices are thus enforced using convention and not configuration with a complete reference of what was done via the IaSQL audit log if necessary.
 
