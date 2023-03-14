@@ -8,11 +8,11 @@ authors: [dfellis]
 
 ## *It's more likely than you think*
 
-Here at IaSQL, as the primary user interface is PostgreSQL databases, we have some unique pressures on our tech stack compared to many other projects. One of these that [we didn't realize at first](https://github.com/iasql/iasql/commit/8467bde2709d32cbe625c2fc2d1a312b5eefaf2d), was that we can't use a traditional linear migration system for database schema management. Different users will want to work with a different subset of AWS services, and requiring the users to deal with *all* of the AWS schema would be too overwhelming; we felt overwhelmed looking at it ourselves!
+For IaSQL, as the primary user interface is PostgreSQL databases, we have some unique pressures on our tech stack compared to many other projects. One of these that [we didn't realize at first](https://github.com/iasql/iasql/commit/8467bde2709d32cbe625c2fc2d1a312b5eefaf2d), was that we can't use a traditional linear migration system for database schema management. Different users will want to work with a different subset of AWS services, and requiring the users to deal with *all* of the AWS schema would be too overwhelming; we felt overwhelmed looking at it ourselves!
 
-We needed another solution, and eventually created a module system for IaSQL within Postgres. But a "module system" means different things to different people; there are in fact multiple different kinds of "module systems" for different programming languages. So, what kind of module system does IaSQL, and why?
+We needed another solution, one that can dynamically load *and unload* parts of the database schema on-the-fly, and eventually created a module system for IaSQL within Postgres. How did we come to the conclusion that a module system was necessary? And what kind of "module system," as that means different things to different people? There are in fact multiple different kinds of "module systems" for different programming languages. After some brainstorming, we hit on a few key insights that led us to the module system design that we now have.
 
-## Migrations are Degenerate Directed Acyclic Graphs
+## Insight 1: Migrations are Degenerate Directed Acyclic Graphs
 
 The first thing we recognized is, presuming every user was building an IaSQL just for their own needs, they would each have their own migration files that would have some concepts in common and some not in common. Everyone would need a table to represent their AWS credentials, then you would need tables for the services that you use, with some of these being more foundational, like VPC and Security Groups, others building on top of that, like EC2, S3, RDS, and some on top of that, like ECS.
 
@@ -22,4 +22,16 @@ Then, how would one of these forks that skipped some AWS service then pull in th
 
 There's no need for that, though, *if* the migrations could also declare which migrations they depend on, instead of implicitly depending on all migrations that came before it in time, then the DAG could be shared
 
-Most modern module systems ([RubyGems](https://rubygems.org/), [NPM](https://www.npmjs.com/), [Cargo](https://crates.io/), etc) automatically handle collisions between dependencies of dependencies with nested scoping of the colliding modules, but allowing duplicates would be super-confusing 
+Most modern module systems ([RubyGems](https://rubygems.org/), [NPM](https://www.npmjs.com/), [Cargo](https://crates.io/), etc) automatically handle collisions between dependencies of dependencies with nested scoping of the colliding modules. We realized that this could be accomplished with [Postgres Schemas](https://www.postgresql.org/docs/current/sql-createschema.html) (which is a different concept from the normal "database schema" concept), but allowing duplicates of modules would be super-confusing when you're trying to query, and impossible to understand "intent" if someone makes different changes to the same entity in two different versions of the same module. So, if we restrict ourselves to only the `public` Postgres schema, we cannot have two modules installed at the same time that use the same table names.
+
+## Insight 2: What's in a namespace? inodes, WinFS, and apt-get <!-- Maybe delete the WinFS piece? -->
+
+Being restricted to a singular namespace may seem very limiting, but it isn't really; your filesystem only has one namespace, for instance. What's that, you say? IaSQL is a Node project, so it's gotta have half a million `index.js` files in it and they all have the same name? Well, `tree | grep index.js | wc -l` tells me there's only 12,663 `index.js` files at the time of writing, but there are no collisions because they have distinct names using the full path to the file, or by their true names, [inodes](https://en.wikipedia.org/wiki/Inode). Every file in your filesystem could be thought of as a table where the `inode` number is the index to the table, the full path is a "name" column, and the file data is a binary blob column. Then directories simply become (and are on Unix-like OSes) special files where their data is the set of `inode`s contained within them, though in an actual SQL database it would be cleaner to represent them with a join table where both join indexes are `inode` values for the parent and child, respectively, and the `parent` being empty is just a convention (and one that the web has constantly fought against, what with `index.html` and `index.js` files representing the data of the directory name itself).
+
+<!-- Probably delete the following paragraph, it doesn't seem to be leading anywhere, but perhaps salvageable?
+
+The dichotomy of databases and file systems rears it's head, and reminds us of that time Microsoft attempted to fuse the two together with [WinFS](https://en.wikipedia.org/wiki/WinFS), which had some interesting parallels with what we're doing in IaSQL, particularly the [Microsoft Rave](https://en.wikipedia.org/wiki/WinFS#Microsoft_Rave) p2p syncing application that would detect changes between two different WinFS databases and synchronize the changes between them. WinFS was likely doomed due to [being a SQL Server-based layer on top of NTFS](https://en.wikipedia.org/wiki/WinFS#Architecture) that then [imposed ETL penalties both into and out of the layer](https://en.wikipedia.org/wiki/WinFS#Shell_namespace) for all applications that did not directly "speak" WinFS, which would stretch NTFS in strange ways by bundling most of the data in the file system into a singular file, and performance penalties on all existing applications. 
+
+-->
+
+
