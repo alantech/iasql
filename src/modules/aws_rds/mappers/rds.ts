@@ -125,6 +125,7 @@ export class RdsMapper extends MapperBase<RDS> {
     } else out.dbCluster = undefined;
 
     out.region = region;
+    if (rds.DBName) out.databaseName = rds.DBName;
     out.databaseName = rds.DBName;
     return out;
   }

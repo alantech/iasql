@@ -46,7 +46,7 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
       return undefined;
     out.allocatedStorage = cluster.AllocatedStorage;
     out.backupRetentionPeriod = cluster.BackupRetentionPeriod;
-    out.databaseName = cluster.DatabaseName;
+    if (cluster.DatabaseName) out.databaseName = cluster.DatabaseName;
     out.dbClusterIdentifier = cluster.DBClusterIdentifier;
     out.dbClusterInstanceClass = cluster.DBClusterInstanceClass;
     out.deletionProtection = cluster.DeletionProtection ?? false;
@@ -64,7 +64,7 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
           ctx,
           this.module.dbSubnetGroup.generateId({ name: cluster.DBSubnetGroup, region }),
         ));
-    }
+    } else out.subnetGroup = undefined;
 
     out.port = cluster.Port;
     out.publiclyAccessible = cluster.PubliclyAccessible ?? false;
