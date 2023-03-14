@@ -103,25 +103,6 @@ export class DBCluster {
 
   /**
    * @public
-   * Parameter group associated with the DB cluster
-   */
-  @ManyToOne(() => ParameterGroup, {
-    nullable: true,
-  })
-  @JoinColumn([
-    {
-      name: 'parameter_group_id',
-      referencedColumnName: 'id',
-    },
-    {
-      name: 'region',
-      referencedColumnName: 'region',
-    },
-  ])
-  parameterGroup?: ParameterGroup;
-
-  /**
-   * @public
    * Subnet group associated with the DB cluster
    */
   @ManyToOne(() => DBSubnetGroup, {

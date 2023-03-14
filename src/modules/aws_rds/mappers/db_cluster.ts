@@ -30,7 +30,6 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
     Object.is(a.engineVersion, b.engineVersion) &&
     !a.masterUserPassword && // Special case, if master password defined, will update the password
     Object.is(a.masterUsername, b.masterUsername) &&
-    Object.is(a.parameterGroup?.arn, b.parameterGroup?.arn) &&
     Object.is(a.port, b.port) &&
     Object.is(a.publiclyAccessible, b.publiclyAccessible) &&
     Object.is(a.storageEncrypted, b.storageEncrypted) &&
@@ -55,17 +54,6 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
     if (cluster.EngineVersion) out.engineVersion = cluster.EngineVersion;
     if (cluster.MasterUsername) out.masterUsername = cluster.MasterUsername;
 
-    if (cluster.DBClusterParameterGroup) {
-      out.parameterGroup =
-        (await this.module.parameterGroup.db.read(
-          ctx,
-          this.module.parameterGroup.generateId({ name: cluster.DBClusterParameterGroup, region }),
-        )) ??
-        (await this.module.parameterGroup.cloud.read(
-          ctx,
-          this.module.parameterGroup.generateId({ name: cluster.DBClusterParameterGroup, region }),
-        ));
-    }
     if (cluster.DBSubnetGroup) {
       out.subnetGroup =
         (await this.module.dbSubnetGroup.db.read(
@@ -198,7 +186,6 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
           StorageEncrypted: e.storageEncrypted,
           VpcSecurityGroupIds: securityGroupIds,
         };
-        if (e.parameterGroup) clusterParams.DBClusterParameterGroupName = e.parameterGroup.name;
         if (e.subnetGroup) clusterParams.DBSubnetGroupName = e.subnetGroup.name;
         const result = await this.createDBCluster(client.rdsClient, clusterParams);
         if (result) {
@@ -279,7 +266,6 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
           AllocatedStorage: e.allocatedStorage,
           BackupRetentionPeriod: e.backupRetentionPeriod,
           DBClusterInstanceClass: e.dbClusterInstanceClass,
-          DBClusterParameterGroupName: e.parameterGroup?.name,
           DeletionProtection: e.deletionProtection,
           EngineVersion: e.engineVersion,
           Iops: e.iops,

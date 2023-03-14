@@ -23,8 +23,6 @@ export class DBSubnetGroupMapper extends MapperBase<DBSubnetGroup> {
     (a.subnets?.every(asn => !!b.subnets?.find(bsn => Object.is(asn, bsn))) ?? false);
 
   async subnetGroupMapper(ctx: Context, sg: AWSDBSubnetGroup, region: string) {
-    console.log('in subnetGroupMapper');
-    console.log(sg);
     if (!sg.DBSubnetGroupArn) return undefined; // we cannot have a cloud subnet group without arn
     const out = new DBSubnetGroup();
     out.arn = sg.DBSubnetGroupArn;
@@ -36,8 +34,6 @@ export class DBSubnetGroupMapper extends MapperBase<DBSubnetGroup> {
     }
     out.subnets = subnets;
     out.region = region;
-    console.log('final is');
-    console.log(out);
     return out;
   }
 
