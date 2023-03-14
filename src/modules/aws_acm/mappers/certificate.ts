@@ -1,9 +1,16 @@
-import { ACM, CertificateDetail, KeyAlgorithm, paginateListCertificates } from '@aws-sdk/client-acm';
+import { ACM, CertificateDetail, KeyAlgorithm, paginateListCertificates, Tag } from '@aws-sdk/client-acm';
 import { ListCertificatesCommandInput } from '@aws-sdk/client-acm/dist-types/commands/ListCertificatesCommand';
 import { parse as parseArn } from '@aws-sdk/util-arn-parser';
 
 import { AwsAcmModule } from '..';
-import { AWS, crudBuilderFormat, mapLin, paginateBuilder } from '../../../services/aws_macros';
+import {
+  AWS,
+  crudBuilder,
+  crudBuilderFormat,
+  eqTags,
+  mapLin,
+  paginateBuilder,
+} from '../../../services/aws_macros';
 import { Context, Crud, MapperBase } from '../../interfaces';
 import {
   Certificate,
@@ -23,7 +30,8 @@ export class CertificateMapper extends MapperBase<Certificate> {
     Object.is(a.inUse, b.inUse) &&
     Object.is(a.renewalEligibility, b.renewalEligibility) &&
     Object.is(a.status, b.status) &&
-    Object.is(a.region, b.region);
+    Object.is(a.region, b.region) &&
+    eqTags(a.tags, b.tags);
 
   getCertificate = crudBuilderFormat<ACM, 'describeCertificate', CertificateDetail | undefined>(
     'describeCertificate',
@@ -79,7 +87,23 @@ export class CertificateMapper extends MapperBase<Certificate> {
     return Object.values<string>(certificateStatusEnum).includes(t);
   }
 
-  certificateMapper(e: CertificateDetail, region: string) {
+  getCertificateTags = crudBuilderFormat<ACM, 'listTagsForCertificate', Tag[] | undefined>(
+    'listTagsForCertificate',
+    CertificateArn => ({ CertificateArn }),
+    res => res?.Tags,
+  );
+
+  createCertificateTags = crudBuilder<ACM, 'addTagsToCertificate'>(
+    'addTagsToCertificate',
+    (CertificateArn, Tags: Tag[]) => ({ CertificateArn, Tags }),
+  );
+
+  deleteCertificateTags = crudBuilder<ACM, 'removeTagsFromCertificate'>(
+    'removeTagsFromCertificate',
+    (CertificateArn, Tags: Tag[]) => ({ CertificateArn, Tags }),
+  );
+
+  certificateMapper(e: CertificateDetail, region: string, eTags: Tag[]) {
     const out = new Certificate();
     // To ignore faulty data in AWS, instead of throwing an error on bad data, we return
     // undefined
@@ -93,6 +117,15 @@ export class CertificateMapper extends MapperBase<Certificate> {
     if (this.isRenewalEligibility(e.RenewalEligibility)) out.renewalEligibility = e.RenewalEligibility;
     if (this.isStatusType(e.Status)) out.status = e.Status;
     out.region = region;
+    if (eTags.length) {
+      const tags: { [key: string]: string } = {};
+      eTags
+        .filter(t => !!t.Key && !!t.Value)
+        .forEach(t => {
+          tags[t.Key as string] = t.Value as string;
+        });
+      out.tags = tags;
+    }
     return out;
   }
 
@@ -124,7 +157,8 @@ export class CertificateMapper extends MapperBase<Certificate> {
           const client = (await ctx.getAwsClient(region)) as AWS;
           const rawCert = await this.getCertificate(client.acmClient, arn);
           if (!rawCert) return;
-          return this.certificateMapper(rawCert, region);
+          const rawTags = await this.getCertificateTags(client.acmClient, arn);
+          return this.certificateMapper(rawCert, region, rawTags ?? []);
         }
       } else {
         const out: Certificate[] = [];
@@ -133,7 +167,8 @@ export class CertificateMapper extends MapperBase<Certificate> {
             const client = (await ctx.getAwsClient(region)) as AWS;
             const rawCerts = (await this.getCertificates(client.acmClient)) ?? [];
             for (const rawCert of rawCerts) {
-              const cert = this.certificateMapper(rawCert, region);
+              const rawTags = await this.getCertificateTags(client.acmClient, rawCert.CertificateArn);
+              const cert = this.certificateMapper(rawCert, region, rawTags ?? []);
               if (cert) out.push(cert);
             }
           }),
@@ -149,6 +184,19 @@ export class CertificateMapper extends MapperBase<Certificate> {
       for (const e of es) {
         const cloudRecord = ctx?.memo?.cloud?.Certificate?.[e.arn ?? ''];
         cloudRecord.id = e.id;
+        if (!eqTags(cloudRecord.tags, e.tags)) {
+          const client = (await ctx.getAwsClient(e.region)) as AWS;
+          const tags = Object.entries(e.tags ?? {}).map(([k, v]) => ({ Key: k, Value: v }));
+          const oldTags = Object.entries(cloudRecord.tags ?? {}).map(([k, v]) => ({ Key: k, Value: v }));
+          if (oldTags.length) {
+            await this.deleteCertificateTags(client.acmClient, cloudRecord.arn ?? '', oldTags);
+          }
+          if (tags.length) {
+            await this.createCertificateTags(client.acmClient, cloudRecord.arn ?? '', tags);
+          }
+          // we want to save the old record, but the new tags
+          cloudRecord.tags = e.tags;
+        }
         await this.module.certificate.db.update(cloudRecord, ctx);
         out.push(cloudRecord);
       }
