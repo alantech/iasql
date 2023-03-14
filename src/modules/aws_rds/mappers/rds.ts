@@ -41,8 +41,6 @@ export class RdsMapper extends MapperBase<RDS> {
     Object.is(a.multiAZ, b.multiAZ) &&
     Object.is(a.publiclyAccessible, b.publiclyAccessible) &&
     Object.is(a.storageEncrypted, b.storageEncrypted) &&
-    Object.is(a.subnetGroup?.name, b.subnetGroup?.name) &&
-    Object.is(a.databaseName, b.databaseName) &&
     Object.is(a.dbCluster?.dbClusterIdentifier, b.dbCluster?.dbClusterIdentifier);
 
   async rdsMapper(rds: any, ctx: Context, region: string) {
@@ -100,18 +98,6 @@ export class RdsMapper extends MapperBase<RDS> {
     out.multiAZ = rds.MultiAZ ?? false;
     out.storageEncrypted = rds.StorageEncrypted ?? false;
 
-    if (rds.DBSubnetGroup) {
-      out.subnetGroup =
-        (await this.module.dbSubnetGroup.db.read(
-          ctx,
-          this.module.dbSubnetGroup.generateId({ name: rds.DBSubnetGroup.DBsubnetGroupName, region }),
-        )) ??
-        (await this.module.dbSubnetGroup.cloud.read(
-          ctx,
-          this.module.dbSubnetGroup.generateId({ name: rds.DBSubnetGroup.DBSubnetGroupName, region }),
-        ));
-    } else out.subnetGroup = undefined;
-
     if (rds.DBClusterIdentifier) {
       out.dbCluster =
         (await this.module.dbCluster.db.read(
@@ -125,8 +111,6 @@ export class RdsMapper extends MapperBase<RDS> {
     } else out.dbCluster = undefined;
 
     out.region = region;
-    if (rds.DBName) out.databaseName = rds.DBName;
-    out.databaseName = rds.DBName;
     return out;
   }
   getDBInstance = crudBuilderFormat<AWSRDS, 'describeDBInstances', DBInstance | undefined>(
@@ -266,7 +250,6 @@ export class RdsMapper extends MapperBase<RDS> {
           DBInstanceIdentifier: e.dbInstanceIdentifier,
           DBClusterIdentifier: e.dbCluster?.dbClusterIdentifier,
           DBInstanceClass: e.dbInstanceClass,
-          DBName: e.databaseName,
           DeletionProtection: e.deletionProtection,
           Engine: e.engine,
           EngineVersion: e.engineVersion,

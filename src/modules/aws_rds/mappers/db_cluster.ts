@@ -14,7 +14,7 @@ import { AwsRdsModule } from '..';
 import { AWS, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
 import { awsSecurityGroupModule } from '../../aws_security_group';
 import { Context, Crud, MapperBase } from '../../interfaces';
-import { DBCluster, dbClusterEngineEnum } from '../entity';
+import { DBCluster, dbClusterEngineEnum } from '../entity/db_cluster';
 
 export class DBClusterMapper extends MapperBase<DBCluster> {
   module: AwsRdsModule;
@@ -23,7 +23,6 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
     Object.is(a.allocatedStorage, b.allocatedStorage) &&
     Object.is(a.iops, b.iops) &&
     Object.is(a.backupRetentionPeriod, b.backupRetentionPeriod) &&
-    Object.is(a.databaseName, b.databaseName) &&
     Object.is(a.dbClusterInstanceClass, b.dbClusterInstanceClass) &&
     Object.is(a.deletionProtection, b.deletionProtection) &&
     Object.is(a.engine, b.engine) &&
@@ -46,7 +45,6 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
       return undefined;
     out.allocatedStorage = cluster.AllocatedStorage;
     out.backupRetentionPeriod = cluster.BackupRetentionPeriod;
-    if (cluster.DatabaseName) out.databaseName = cluster.DatabaseName;
     out.dbClusterIdentifier = cluster.DBClusterIdentifier;
     out.dbClusterInstanceClass = cluster.DBClusterInstanceClass;
     out.deletionProtection = cluster.DeletionProtection ?? false;
@@ -173,7 +171,6 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
           BackupRetentionPeriod: e.backupRetentionPeriod,
           DBClusterIdentifier: e.dbClusterIdentifier,
           DBClusterInstanceClass: e.dbClusterInstanceClass,
-          DatabaseName: e.databaseName,
           DeletionProtection: e.deletionProtection,
           Engine: e.engine,
           EngineVersion: e.engineVersion,
@@ -247,7 +244,6 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
         // restore path
         if (
           !Object.is(e.engine, cloudRecord.engine) ||
-          !Object.is(e.databaseName, cloudRecord.databaseName) ||
           !Object.is(e.masterUsername, cloudRecord.masterUsername) ||
           !Object.is(e.publiclyAccessible, cloudRecord.publiclyAccessible) ||
           !Object.is(e.storageEncrypted, cloudRecord.storageEncrypted) ||

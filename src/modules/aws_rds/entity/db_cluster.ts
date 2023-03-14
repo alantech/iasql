@@ -103,11 +103,11 @@ export class DBCluster {
 
   /**
    * @public
-   * Subnet group associated with the DB cluster
+   * Reference to the subnet groups associated with the cluster
    */
-  @ManyToOne(() => DBSubnetGroup, {
-    eager: true,
+  @ManyToOne(() => DBSubnetGroup, subnetGroup => subnetGroup.name, {
     nullable: true,
+    eager: true,
   })
   @JoinColumn([
     {
@@ -120,15 +120,6 @@ export class DBCluster {
     },
   ])
   subnetGroup?: DBSubnetGroup;
-
-  /**
-   * @public
-   * The name for your database of up to 64 alphanumeric characters. If you do not provide a name, Amazon RDS doesn't create a database in the DB cluster you are creating.
-   */
-  @Column({
-    nullable: true,
-  })
-  databaseName?: string;
 
   /**
    * @public

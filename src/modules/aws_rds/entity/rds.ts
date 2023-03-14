@@ -14,7 +14,6 @@ import { AwsRegions } from '../../aws_account/entity';
 import { SecurityGroup } from '../../aws_security_group/entity';
 import { AvailabilityZone } from '../../aws_vpc/entity';
 import { DBCluster } from './db_cluster';
-import { DBSubnetGroup } from './db_subnet_group';
 import { ParameterGroup } from './parameter_group';
 
 /**
@@ -109,13 +108,6 @@ export class RDS {
 
   /**
    * @public
-   * The name for your database of up to 64 alphanumeric characters. If you do not provide a name, Amazon RDS doesn't create a database in the DB instance you are creating.
-   */
-  @Column({ nullable: true })
-  databaseName?: string;
-
-  /**
-   * @public
    * Class that represents the computation and memory capacity of an Amazon RDS DB instance
    * @see https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.DBInstanceClass.html#Concepts.DBInstanceClass.Types
    *
@@ -148,26 +140,6 @@ export class RDS {
     },
   ])
   dbCluster?: DBCluster;
-
-  /**
-   * @public
-   * Subnet group associated with the DB cluster
-   */
-  @ManyToOne(() => DBSubnetGroup, {
-    eager: true,
-    nullable: true,
-  })
-  @JoinColumn([
-    {
-      name: 'subnet_group_id',
-      referencedColumnName: 'id',
-    },
-    {
-      name: 'region',
-      referencedColumnName: 'region',
-    },
-  ])
-  subnetGroup?: DBSubnetGroup;
 
   /**
    * @public
