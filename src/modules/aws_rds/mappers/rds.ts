@@ -262,8 +262,11 @@ export class RdsMapper extends MapperBase<RDS> {
           VpcSecurityGroupIds: securityGroupIds,
         };
         if (e.parameterGroup) instanceParams.DBParameterGroupName = e.parameterGroup.name;
+        console.log('i want to craete');
+        console.log(instanceParams);
 
         const result = await this.createDBInstance(client.rdsClient, instanceParams);
+        console.log('after create');
         // TODO: Handle if it fails (somehow)
         if (!result?.hasOwnProperty('DBInstanceIdentifier')) {
           // Failure
@@ -296,7 +299,9 @@ export class RdsMapper extends MapperBase<RDS> {
         // property is not retrieved
         newEntity.masterUserPassword = undefined;
         // Save the record back into the database to get the new fields updated
+        console.log(newEntity);
         await this.module.rds.db.update(newEntity, ctx);
+        console.log('after update db');
         out.push(newEntity);
       }
       return out;

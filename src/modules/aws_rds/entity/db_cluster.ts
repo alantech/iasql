@@ -14,7 +14,6 @@ import { cloudId } from '../../../services/cloud-id';
 import { AwsRegions } from '../../aws_account/entity';
 import { SecurityGroup } from '../../aws_security_group/entity';
 import { DBSubnetGroup } from './db_subnet_group';
-import { ParameterGroup } from './parameter_group';
 
 /**
  * @enum
@@ -108,6 +107,7 @@ export class DBCluster {
   @ManyToOne(() => DBSubnetGroup, subnetGroup => subnetGroup.name, {
     nullable: true,
     eager: true,
+    cascade: true,
   })
   @JoinColumn([
     {
@@ -212,7 +212,7 @@ export class DBCluster {
    * @privateRemarks
    * TODO rename table
    */
-  @ManyToMany(() => SecurityGroup, { eager: true })
+  @ManyToMany(() => SecurityGroup, { eager: true, cascade: true })
   @JoinTable({
     name: 'db_cluster_security_groups',
   })

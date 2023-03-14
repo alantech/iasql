@@ -128,6 +128,7 @@ export class RDS {
   @ManyToOne(() => DBCluster, {
     eager: true,
     nullable: true,
+    cascade: true,
   })
   @JoinColumn([
     {
@@ -212,7 +213,7 @@ export class RDS {
    * Reference to the VPC security groups for the database
    * @see https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.RDSSecurityGroups.html
    */
-  @ManyToMany(() => SecurityGroup, { eager: true })
+  @ManyToMany(() => SecurityGroup, { eager: true, cascade: true })
   @JoinTable({
     name: 'rds_security_groups',
   })
@@ -252,6 +253,7 @@ export class RDS {
   @ManyToOne(() => ParameterGroup, {
     eager: true,
     nullable: true,
+    cascade: true,
   })
   @JoinColumn([
     {
