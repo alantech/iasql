@@ -87,10 +87,10 @@ export class CertificateMapper extends MapperBase<Certificate> {
     return Object.values<string>(certificateStatusEnum).includes(t);
   }
 
-  getCertificateTags = crudBuilderFormat<ACM, 'listTagsForCertificate', Tag[] | undefined>(
+  getCertificateTags = crudBuilderFormat<ACM, 'listTagsForCertificate', Tag[]>(
     'listTagsForCertificate',
     CertificateArn => ({ CertificateArn }),
-    res => res?.Tags,
+    res => res?.Tags ?? [],
   );
 
   createCertificateTags = crudBuilder<ACM, 'addTagsToCertificate'>(
@@ -158,7 +158,7 @@ export class CertificateMapper extends MapperBase<Certificate> {
           const rawCert = await this.getCertificate(client.acmClient, arn);
           if (!rawCert) return;
           const rawTags = await this.getCertificateTags(client.acmClient, arn);
-          return this.certificateMapper(rawCert, region, rawTags ?? []);
+          return this.certificateMapper(rawCert, region, rawTags);
         }
       } else {
         const out: Certificate[] = [];
@@ -168,7 +168,7 @@ export class CertificateMapper extends MapperBase<Certificate> {
             const rawCerts = (await this.getCertificates(client.acmClient)) ?? [];
             for (const rawCert of rawCerts) {
               const rawTags = await this.getCertificateTags(client.acmClient, rawCert.CertificateArn);
-              const cert = this.certificateMapper(rawCert, region, rawTags ?? []);
+              const cert = this.certificateMapper(rawCert, region, rawTags);
               if (cert) out.push(cert);
             }
           }),
@@ -186,8 +186,8 @@ export class CertificateMapper extends MapperBase<Certificate> {
         cloudRecord.id = e.id;
         if (!eqTags(cloudRecord.tags, e.tags)) {
           const client = (await ctx.getAwsClient(e.region)) as AWS;
-          const tags = Object.entries(e.tags ?? {}).map(([k, v]) => ({ Key: k, Value: v }));
-          const oldTags = Object.entries(cloudRecord.tags ?? {}).map(([k, v]) => ({ Key: k, Value: v }));
+          const tags = Object.entries(e.tags ?? {}).map(([Key, Value]) => ({ Key, Value }));
+          const oldTags = Object.entries(cloudRecord.tags ?? {}).map(([Key, Value]) => ({ Key, Value }));
           if (oldTags.length) {
             await this.deleteCertificateTags(client.acmClient, cloudRecord.arn ?? '', oldTags);
           }
