@@ -394,7 +394,7 @@ describe('RDS Integration Testing', () => {
     'creates an RDS subnet group',
     query(
       `
-    INSERT INTO db_subnet_group (name, descrioption, subnets)
+    INSERT INTO db_subnet_group (name, description, subnets)
     VALUES ('${prefix}cluster-test', 'test subnet group', (select array(select subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true and vpc.region = '${region}' limit 1)));
   `,
       undefined,
