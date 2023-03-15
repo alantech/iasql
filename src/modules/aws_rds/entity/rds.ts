@@ -231,7 +231,7 @@ export class RDS {
       referencedColumnName: 'id',
     },
     {
-      name: 'region',
+      name: 'db_cluster_region',
       referencedColumnName: 'region',
     },
   ])
