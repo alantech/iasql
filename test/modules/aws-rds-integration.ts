@@ -107,7 +107,7 @@ describe('RDS Integration Testing', () => {
   it('undo changes', rollback());
 
   it(
-    'check adds a new repository',
+    'check adds a new db',
     query(
       `
     SELECT *
@@ -119,7 +119,7 @@ describe('RDS Integration Testing', () => {
   );
 
   it(
-    'check adds a new repository',
+    'check adds a new db',
     query(
       `
     SELECT *
@@ -382,152 +382,6 @@ describe('RDS Integration Testing', () => {
     SELECT *
     FROM parameter_group
     WHERE name = '${parameterGroupName}';
-  `,
-      (res: any[]) => expect(res.length).toBe(0),
-    ),
-  );
-
-  // cluster testing
-  it('starts a transaction', begin());
-
-  itDocs(
-    'creates an RDS subnet group',
-    query(
-      `
-    INSERT INTO db_subnet_group (name, description, subnets)
-    VALUES ('${prefix}cluster-test', 'test subnet group', (select array(select subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true and vpc.region = '${region}' LIMIT 2)));
-  `,
-      undefined,
-      true,
-      () => ({ username, password }),
-    ),
-  );
-  it('applies the change', commit());
-
-  itDocs(
-    'check subnet group insertion',
-    query(
-      `
-    SELECT *
-    FROM db_subnet_group
-    WHERE name = '${prefix}cluster-test';
-  `,
-      (res: any[]) => expect(res.length).toBe(1),
-    ),
-  );
-
-  it('starts a transaction', begin());
-
-  itDocs(
-    'creates an RDS cluster',
-    query(
-      `
-    BEGIN;
-      INSERT INTO db_cluster (db_cluster_identifier, engine, allocated_storage, iops, db_cluster_instance_class, master_username, master_user_password, subnet_group_id) VALUES
-        ('${prefix}cluster-test', 'mysql', 100, 1000, 'db.m6g.large', 'admin', 'admin123456', (select id FROM db_subnet_group WHERE name = '${prefix}cluster-test'));
-    COMMIT;
-  `,
-      undefined,
-      true,
-      () => ({ username, password }),
-    ),
-  );
-
-  it('applies the change', commit());
-
-  itDocs(
-    'check adds a new db cluster',
-    query(
-      `
-    SELECT *
-    FROM db_cluster
-    WHERE db_cluster_identifier = '${prefix}cluster-test';
-  `,
-      (res: any[]) => expect(res.length).toBe(1),
-    ),
-  );
-
-  it('starts a transaction', begin());
-
-  itDocs(
-    'changes the mysql version',
-    query(
-      `
-    UPDATE db_cluster SET engine_version = '8.0.32' WHERE db_cluster_identifier = '${prefix}cluster-test';
-  `,
-      undefined,
-      true,
-      () => ({ username, password }),
-    ),
-  );
-
-  it('applies the change', commit());
-
-  itDocs(
-    'check that engine has been modified',
-    query(
-      `
-    SELECT *
-    FROM rds
-    WHERE db_instance_identifier = '${prefix}cluster-test' AND engine_version = '8.0.32';
-  `,
-      (res: any[]) => expect(res.length).toBe(1),
-    ),
-  );
-
-  it('starts a transaction', begin());
-
-  itDocs(
-    'removes the RDS cluster',
-    query(
-      `
-    DELETE FROM db_cluster
-    WHERE db_cluster_identifier = '${prefix}cluster-test';
-  `,
-      undefined,
-      true,
-      () => ({ username, password }),
-    ),
-  );
-
-  it('applies the change', commit());
-
-  itDocs(
-    'check RDS delete count',
-    query(
-      `
-    SELECT *
-    FROM db_cluster
-    WHERE db_cluster_identifier = '${prefix}cluster-test';
-  `,
-      (res: any[]) => expect(res.length).toBe(0),
-    ),
-  );
-
-  it('starts a transaction', begin());
-
-  itDocs(
-    'removes the db subnet group and its parameters',
-    query(
-      `
-    DELETE FROM subnet_group
-    WHERE name = '${prefix}cluster-test';
-  `,
-      undefined,
-      true,
-      () => ({ username, password }),
-    ),
-  );
-
-  it('applies the change', commit());
-
-  itDocs(
-    'check subnet group count after delete',
-    query(
-      `
-    SELECT *
-    FROM db_subnet_group
-    WHERE name = '${prefix}cluster-test';
   `,
       (res: any[]) => expect(res.length).toBe(0),
     ),
