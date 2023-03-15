@@ -395,7 +395,7 @@ describe('RDS Integration Testing', () => {
     query(
       `
     INSERT INTO db_subnet_group (name, description, subnets)
-    VALUES ('${prefix}cluster-test', 'test subnet group', (select array(select subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true and vpc.region = '${region}' limit 2)));
+    VALUES ('${prefix}cluster-test', 'test subnet group', (select array(select subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true and vpc.region = '${region}' LIMIT 2)));
   `,
       undefined,
       true,
@@ -423,7 +423,7 @@ describe('RDS Integration Testing', () => {
     query(
       `
     BEGIN;
-      INSERT INTO db_cluster (db_cluster_identifier, engine, allocated_storage, iops, db_cluster_instance_class, master_username, master_user_password, subnet_group) VALUES
+      INSERT INTO db_cluster (db_cluster_identifier, engine, allocated_storage, iops, db_cluster_instance_class, master_username, master_user_password, subnet_group_id) VALUES
         ('${prefix}cluster-test', 'mysql', 100, 1000, 'db.m6g.large', 'admin', 'admin123456', (select id FROM db_subnet_group WHERE name = '${prefix}cluster-test'));
     COMMIT;
   `,

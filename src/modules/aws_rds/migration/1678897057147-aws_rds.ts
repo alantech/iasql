@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class awsRds1678879484875 implements MigrationInterface {
-  name = 'awsRds1678879484875';
+export class awsRds1678897057147 implements MigrationInterface {
+  name = 'awsRds1678897057147';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
@@ -18,7 +18,7 @@ export class awsRds1678879484875 implements MigrationInterface {
       `CREATE TABLE "parameter_group" ("id" SERIAL NOT NULL, "name" character varying NOT NULL, "arn" character varying, "family" "public"."parameter_group_family_enum" NOT NULL, "description" character varying NOT NULL, "parameters" jsonb, "region" character varying NOT NULL DEFAULT default_aws_region(), CONSTRAINT "UQ_cd5d35716aae42c8f6acb7dc989" UNIQUE ("arn"), CONSTRAINT "paragrp_id_region" UNIQUE ("id", "region"), CONSTRAINT "paragrp_name_region" UNIQUE ("name", "region"), CONSTRAINT "PK_33d024772ff6924f4bc337d865a" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
-      `CREATE TABLE "rds" ("id" SERIAL NOT NULL, "db_instance_identifier" character varying NOT NULL, "allocated_storage" integer NOT NULL, "db_instance_class" character varying NOT NULL, "engine" character varying NOT NULL, "engine_version" character varying, "master_user_password" character varying, "master_username" character varying, "endpoint_addr" character varying, "endpoint_port" integer, "endpoint_hosted_zone_id" character varying, "backup_retention_period" integer NOT NULL DEFAULT '1', "region" character varying NOT NULL DEFAULT default_aws_region(), "availability_zone" character varying NOT NULL, "parameter_group_id" integer, "db_cluster_id" integer, "db_cluster_region" character varying, CONSTRAINT "UQ_identifier_region" UNIQUE ("db_instance_identifier", "region"), CONSTRAINT "PK_67d6c2133366c8eda49b40de7b0" PRIMARY KEY ("id"))`,
+      `CREATE TABLE "rds" ("id" SERIAL NOT NULL, "db_instance_identifier" character varying NOT NULL, "allocated_storage" integer NOT NULL, "db_instance_class" character varying NOT NULL, "engine" character varying NOT NULL, "engine_version" character varying, "master_user_password" character varying, "master_username" character varying, "endpoint_addr" character varying, "endpoint_port" integer, "endpoint_hosted_zone_id" character varying, "backup_retention_period" integer NOT NULL DEFAULT '1', "region" character varying NOT NULL DEFAULT default_aws_region(), "availability_zone" character varying NOT NULL, "parameter_group_id" integer, "db_cluster_id" integer, CONSTRAINT "UQ_identifier_region" UNIQUE ("db_instance_identifier", "region"), CONSTRAINT "PK_67d6c2133366c8eda49b40de7b0" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
       `CREATE TABLE "db_cluster_security_groups" ("db_cluster_id" integer NOT NULL, "security_group_id" integer NOT NULL, CONSTRAINT "PK_f2deb8fce796ceb5603f1422def" PRIMARY KEY ("db_cluster_id", "security_group_id"))`,
@@ -57,7 +57,7 @@ export class awsRds1678879484875 implements MigrationInterface {
       `ALTER TABLE "rds" ADD CONSTRAINT "FK_2303532f134366cb86aae40763f" FOREIGN KEY ("parameter_group_id", "region") REFERENCES "parameter_group"("id","region") ON DELETE NO ACTION ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
-      `ALTER TABLE "rds" ADD CONSTRAINT "FK_26d70889458b1b4adf19d46a278" FOREIGN KEY ("db_cluster_id", "db_cluster_region") REFERENCES "db_cluster"("id","region") ON DELETE NO ACTION ON UPDATE NO ACTION`,
+      `ALTER TABLE "rds" ADD CONSTRAINT "FK_798c0178dd91095e0800a30d2fb" FOREIGN KEY ("db_cluster_id") REFERENCES "db_cluster"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
       `ALTER TABLE "rds" ADD CONSTRAINT "FK_25dea9b640575575c8049dfb2e7" FOREIGN KEY ("region") REFERENCES "aws_regions"("region") ON DELETE NO ACTION ON UPDATE NO ACTION`,
@@ -90,7 +90,7 @@ export class awsRds1678879484875 implements MigrationInterface {
       `ALTER TABLE "db_cluster_security_groups" DROP CONSTRAINT "FK_d68400e3cedf412cde5b062a061"`,
     );
     await queryRunner.query(`ALTER TABLE "rds" DROP CONSTRAINT "FK_25dea9b640575575c8049dfb2e7"`);
-    await queryRunner.query(`ALTER TABLE "rds" DROP CONSTRAINT "FK_26d70889458b1b4adf19d46a278"`);
+    await queryRunner.query(`ALTER TABLE "rds" DROP CONSTRAINT "FK_798c0178dd91095e0800a30d2fb"`);
     await queryRunner.query(`ALTER TABLE "rds" DROP CONSTRAINT "FK_2303532f134366cb86aae40763f"`);
     await queryRunner.query(`ALTER TABLE "rds" DROP CONSTRAINT "FK_651e8eb207ea4120c252c5469f5"`);
     await queryRunner.query(`ALTER TABLE "parameter_group" DROP CONSTRAINT "FK_be8546b2c38fbd6dc4c146d732c"`);

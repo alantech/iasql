@@ -225,16 +225,6 @@ export class RDS {
     eager: true,
     nullable: true,
   })
-  @JoinColumn([
-    {
-      name: 'db_cluster_id',
-      referencedColumnName: 'id',
-    },
-    {
-      name: 'db_cluster_region',
-      referencedColumnName: 'region',
-    },
-  ])
   dbCluster?: DBCluster;
 
   /**
