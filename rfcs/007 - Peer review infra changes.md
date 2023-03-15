@@ -31,7 +31,7 @@ Eng teams move over from using cloud UIs to IaC because cloud infrastructure cha
 - Allow plain SQL or have an introspective ORM
 - Free and ideally open source
 - Baseline/ignore certain migrations
-- Be resilient to IaSQL schema upgrades which involve tables getting dropped and recreated
+- Be resilient to IaSQL schema upgrades which involve creating a new database and swamping it
 
 Data migrations require being able to baseline migrations to avoid duplicate record violations on IaSQL schema upgrades. Flyway comes closest to meeting all our requirements. However, it is not possible to baseline/ignore existing migrations on their free product.
 
@@ -47,7 +47,7 @@ Take inspiration from [RFC 006](./006%20-%20Replicate%20changes%20between%20stag
 
 The workflow simply suggests users run `iasql_begin`, perform all the necessary changes, and before doing `iasql_commit` they put the output of `iasql_preview` and the SQL generated thus far into a file within a repository of their liking. Once the PR is approved by their peers and landed, they can manually run `iasql_commit`. We can require a parameter for `iasql_commit(message)` which is a string attached as metadata for the transaction that can be set to be the PR URL. Best practices are thus enforced using convention and not configuration with a complete reference of what was done via the IaSQL audit log if necessary.
 
-The required work in the IaSQL engine is associating entries in the audit log with specific transactions and adding a `get_sql_for_transaction()` that returns the SQL for the current transaction so users don't have to provide a timestamp for `get_sql_since()`. To formalize the convention, it would be pretty easy to do a pure pl/pgsql function `iasql_create_review(title text, description text)` function that internally creates the context of the markdown file consisting of the title and description of the change, followed by `sql` code and <table> formatted blocks powered by get_sql_for_transaction() and iasql_preview() respectively. Then they just have to copy-paste this into GitHub or whatever version control system their team uses. The documentation can describe what it's doing under the hood with these two functions but reduce the friction involved in formatting the output for consumption.
+The required work in the IaSQL engine is associating entries in the audit log with specific transactions and adding a `get_sql_for_transaction()` that returns the SQL for the current transaction so users don't have to provide a timestamp for `get_sql_since()`. To formalize the convention, it would be pretty easy to do a pure pl/pgsql function `iasql_create_review(title text, description text)` function that internally creates the context of the markdown file consisting of the title and description of the change, followed by `sql` code and `<table>` formatted blocks powered by get_sql_for_transaction() and iasql_preview() respectively. Then they just have to copy-paste this into GitHub or whatever version control system their team uses. The documentation can describe what it's doing under the hood with these two functions but reduce the friction involved in formatting the output for consumption.
 
 Down the line, we can revisit another alternative for a longer-term implementation and/or automate different parts of the convention for this workflow when we have more data points and resources. It might be as simple as adding a job template in each CI platform that only requires a Postgres connection string and can be triggered manually within the CI/CD to open a PR with the details of the current transaction.
 
@@ -73,7 +73,7 @@ Pros:
 
 Cons: 
 - Migration files are static so there is no data model feedback and it is not possible to look at `iasql_preview` as you develop. This can be sidestepped by suggesting users do `iasql_begin`, write SQL, `iasql_preview`, `get_sql_since`, and then `iasql_rollback` at the cost of adding noise to the IaSQL audit log.
-- The user has to remember to baseline migrations after every `iasql_ugprade`.
+- The user has to remember to baseline migrations after IaSQL schema upgrades.
 - There needs to be IaSQL configuration exposed to the user to preserve migration tables on schema upgrades, but we can set the defaults in both places accordingly.
 
 ### IaSQL-specific CLI data migration system
