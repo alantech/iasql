@@ -145,4 +145,15 @@ export class GraphqlApi {
   @JoinColumn({ name: 'region' })
   @cloudId
   region: string;
+
+  /**
+   * @public
+   * Complex type to provide identifier tags
+   * @see https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-acm/interfaces/tag.html
+   */
+  @Column({
+    type: 'json',
+    nullable: true,
+  })
+  tags?: { [key: string]: string };
 }
