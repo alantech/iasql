@@ -252,3 +252,10 @@ export async function mapLin(
   }
   return out;
 }
+
+export function eqTags(a: { [key: string]: string } | undefined, b: { [key: string]: string } | undefined) {
+  return (
+    Object.is(Object.keys(a ?? {})?.length, Object.keys(b ?? {})?.length) &&
+    Object.keys(a ?? {})?.every(ak => (a ?? {})[ak] === (b ?? {})[ak])
+  );
+}
