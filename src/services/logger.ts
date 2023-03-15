@@ -22,22 +22,42 @@ const logFactory: LogFunctionFactory<Logger> = (scope: any) => {
       console.log(`Fatal error in LogDNA ${util.inspect(event)}`);
     });
     if (config.logger.forceLocal) {
-      return async (level, message, meta) => {
-        const { dbId } = scope;
-        let userId: string | undefined;
-        if (dbId) {
-          const user = await MetadataRepo.getUserFromDbId(dbId);
-          userId = user?.id;
-        }
-        console.log(`${level}: ${message} ${util.inspect({ ...meta, userId, dbId })}`);
-        logfn.log(message, {
-          level: level === 'warning' ? 'warn' : level, // Graphile Logger vs LogDNA levels fix
-          meta: { ...meta, userId, dbId },
-          indexMeta: true,
-          app: 'iasql-engine',
-          env: process.env.IASQL_ENV,
-        });
-      };
+      if (config.logger.debug) {
+        return async (level, message, meta) => {
+          const { dbId } = scope;
+          let userId: string | undefined;
+          if (dbId) {
+            const user = await MetadataRepo.getUserFromDbId(dbId);
+            userId = user?.id;
+          }
+          console.log(`${level}: ${message} ${util.inspect({ ...meta, userId, dbId })}`);
+          logfn.log(message, {
+            level: level === 'warning' ? 'warn' : level, // Graphile Logger vs LogDNA levels fix
+            meta: { ...meta, userId, dbId },
+            indexMeta: true,
+            app: 'iasql-engine',
+            env: process.env.IASQL_ENV,
+          });
+        };
+      } else {
+        return async (level, message, meta) => {
+          if (level === 'debug') return;
+          const { dbId } = scope;
+          let userId: string | undefined;
+          if (dbId) {
+            const user = await MetadataRepo.getUserFromDbId(dbId);
+            userId = user?.id;
+          }
+          console.log(`${level}: ${message} ${util.inspect({ ...meta, userId, dbId })}`);
+          logfn.log(message, {
+            level: level === 'warning' ? 'warn' : level, // Graphile Logger vs LogDNA levels fix
+            meta: { ...meta, userId, dbId },
+            indexMeta: true,
+            app: 'iasql-engine',
+            env: process.env.IASQL_ENV,
+          });
+        };
+      }
     } else {
       return async (level, message, meta) => {
         const { dbId } = scope;

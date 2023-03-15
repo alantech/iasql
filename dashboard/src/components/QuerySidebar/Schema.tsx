@@ -9,7 +9,11 @@ export default function Schema({
   functionData,
 }: {
   moduleData: {
-    [moduleName: string]: { [tableName: string]: { [columnName: string]: string } & { recordCount: number } };
+    [moduleName: string]: {
+      [tableName: string]: { [columnName: string]: { dataType: string; isMandatory: boolean } } & {
+        recordCount: number;
+      };
+    };
   };
   functionData: {
     [moduleName: string]: {
@@ -38,6 +42,7 @@ export default function Schema({
       'noreferrer',
     );
   };
+  type columnMetadata = { dataType: string; isMandatory: boolean };
 
   return (
     <VBox customClasses='w-full bg-transparent dark:bg-gray-800' id='schema-tab'>
@@ -66,15 +71,27 @@ export default function Schema({
               >
                 {Object.entries(moduleData[moduleName][tableName])
                   .filter(([col, _]) => col !== 'recordCount')
-                  .map(([col, typ]) => (
-                    <HBox key={col} customStyles='pl-8 grid grid-cols-2 gap-2'>
+                  .map(([col, meta]) => (
+                    <HBox
+                      key={col}
+                      customStyles={
+                        (meta as columnMetadata).isMandatory && !tableName.includes('iasql_')
+                          ? 'pl-8 grid grid-cols-2 gap-2 font-bold'
+                          : 'pl-8 grid grid-cols-2 gap-2'
+                      }
+                    >
                       <HBox alignment={align.start}>
                         <p className='text-ellipsis overflow-hidden' title={col}>
                           {col}
                         </p>
                       </HBox>
                       <HBox alignment={align.start}>
-                        <p className='text-ellipsis overflow-hidden'>{typ}</p>
+                        <p
+                          className='text-ellipsis overflow-hidden'
+                          title={(meta as columnMetadata).dataType}
+                        >
+                          {(meta as columnMetadata).dataType}
+                        </p>
                       </HBox>
                     </HBox>
                   ))}
