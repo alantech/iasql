@@ -31,7 +31,7 @@ Eng teams move over from using cloud UIs to IaC because cloud infrastructure cha
 - Allow plain SQL or have an introspective ORM
 - Free and ideally open source
 - Baseline/ignore certain migrations
-- Be resilient to IaSQL schema upgrades which involve creating a new database and swamping it
+- Be resilient to IaSQL schema upgrades which involve creating a new database and swapping it
 
 Data migrations require being able to baseline migrations to avoid duplicate record violations on IaSQL schema upgrades. Flyway comes closest to meeting all our requirements. However, it is not possible to baseline/ignore existing migrations on their free product.
 
