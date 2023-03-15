@@ -8,7 +8,7 @@ import {
 } from '@aws-sdk/client-appsync';
 
 import { AwsAppsyncModule } from '..';
-import { AWS, crudBuilder, crudBuilderFormat } from '../../../services/aws_macros';
+import { AWS, crudBuilder, crudBuilderFormat, eqTags } from '../../../services/aws_macros';
 import { Context, Crud, MapperBase } from '../../interfaces';
 import { AuthenticationType, GraphqlApi } from '../entity';
 
@@ -21,7 +21,8 @@ export class GraphqlApiMapper extends MapperBase<GraphqlApi> {
     Object.is(a.authenticationType, b.authenticationType) &&
     isEqual(a.lambdaAuthorizerConfig, b.lambdaAuthorizerConfig) &&
     isEqual(a.openIDConnectConfig, b.openIDConnectConfig) &&
-    isEqual(a.userPoolConfig, b.userPoolConfig);
+    isEqual(a.userPoolConfig, b.userPoolConfig) &&
+    eqTags(a.tags, b.tags);
 
   graphqlApiMapper(api: GraphqlApiAWS, region: string) {
     const out = new GraphqlApi();
@@ -45,6 +46,7 @@ export class GraphqlApiMapper extends MapperBase<GraphqlApi> {
       out.userPoolConfig = api.userPoolConfig as GraphqlApi['userPoolConfig'];
     } else out.userPoolConfig = undefined;
     out.region = region;
+    out.tags = api.tags;
     return out;
   }
 
@@ -66,6 +68,10 @@ export class GraphqlApiMapper extends MapperBase<GraphqlApi> {
 
   deleteGraphqlApi = crudBuilder<AppSync, 'deleteGraphqlApi'>('deleteGraphqlApi', input => input);
 
+  tagResource = crudBuilder<AppSync, 'tagResource'>('tagResource', input => input);
+
+  untagResource = crudBuilder<AppSync, 'untagResource'>('untagResource', input => input);
+
   cloud = new Crud({
     create: async (apis: GraphqlApi[], ctx: Context) => {
       const out = [];
@@ -77,8 +83,8 @@ export class GraphqlApiMapper extends MapperBase<GraphqlApi> {
           name: api.name,
           openIDConnectConfig: api.openIDConnectConfig,
           userPoolConfig: api.userPoolConfig,
+          tags: api.tags,
         };
-
         const res = await this.createGraphqlApi(client.appSyncClient, input);
         if (res && res.graphqlApi) {
           const newApi = this.graphqlApiMapper(res.graphqlApi, api.region);
@@ -139,19 +145,23 @@ export class GraphqlApiMapper extends MapperBase<GraphqlApi> {
             openIDConnectConfig: api.openIDConnectConfig,
             userPoolConfig: api.userPoolConfig,
           };
-          const res = await this.updateGraphqlApi(client.appSyncClient, input);
-          if (res && res.graphqlApi) {
-            const newApi: GraphqlApi | undefined = this.graphqlApiMapper(res.graphqlApi, api.region);
-            if (newApi) {
-              newApi.name = api.name;
-              newApi.id = api.id;
-              // Save the record back into the database to get the new fields updated
-              await this.module.graphqlApi.db.update(newApi, ctx);
-              out.push(newApi);
-            }
-          } else {
-            throw new Error('Error updating Graphql API');
+          await this.updateGraphqlApi(client.appSyncClient, input);
+          if (!eqTags(api.tags, cloudRecord.tags)) {
+            await this.untagResource(client.appSyncClient, {
+              resourceArn: api.arn,
+              tagKeys: Object.keys(cloudRecord.tags),
+            });
+            await this.tagResource(client.appSyncClient, { resourceArn: api.arn, tags: api.tags });
           }
+          // we need to force the memo update
+          delete ctx.memo?.cloud?.GraphqlApi?.[this.entityId(api)];
+          const newApi = await this.cloud.read(ctx, this.entityId(api));
+          if (!newApi) throw new Error('Error updating Graphql API');
+          newApi.name = api.name;
+          newApi.id = api.id;
+          // Save the record back into the database to get the new fields updated
+          await this.module.graphqlApi.db.update(newApi, ctx);
+          out.push(newApi);
         } else {
           // we just need simple update
           await this.module.graphqlApi.db.update(api, ctx);
