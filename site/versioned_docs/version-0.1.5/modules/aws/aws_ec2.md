@@ -18,6 +18,8 @@ import TabItem from '@theme/TabItem';
 
     [instance](../../aws/tables/aws_ec2_entity_instance.Instance)
 
+    [instance_block_device_mapping](../../aws/tables/aws_ec2_entity_instance_block_device_mapping.InstanceBlockDeviceMapping)
+
     [key_pair](../../aws/tables/aws_ec2_entity_key_pair.KeyPair)
 
     [registered_instance](../../aws/tables/aws_ec2_entity_registered_instance.RegisteredInstance)
@@ -25,6 +27,8 @@ import TabItem from '@theme/TabItem';
     [instance_metadata](../../aws/tables/aws_ec2_metadata_entity_instance_metadata.InstanceMetadata)
 
 ### Functions
+    [describe_ami](../../aws/tables/aws_ec2_rpcs_describe_ami.DescribeAmiRpc)
+
     [key_pair_import](../../aws/tables/aws_ec2_rpcs_import.KeyPairImportRpc)
 
     [key_pair_request](../../aws/tables/aws_ec2_rpcs_request.KeyPairRequestRpc)
@@ -45,6 +49,7 @@ import TabItem from '@theme/TabItem';
 
 ```testdoc
 modules/aws-ec2-integration.ts#EC2 Integration Testing#Manage EC2 instances
+modules/aws-ec2-multi-region.ts#EC2 Integration Testing#Move instance from region
 modules/aws-ec2-gpv-integration.ts#EC2 General Purpose Volume Integration Testing#Manage volumes
 ```
 

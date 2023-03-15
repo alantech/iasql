@@ -18,21 +18,13 @@ https://aws.amazon.com/ebs/general-purpose/
 
 ## Columns
 
-• `Optional` **attached\_instance**: [`instance`](aws_ec2_entity_instance.Instance.md)
-
-Reference to the ec2 instances where this volume is attached
-
 • **availability\_zone**: [`availability_zone`](aws_vpc_entity_availability_zone.AvailabilityZone.md)
 
 Reference to the availability zone for the volume
 
-• `Optional` **instance\_device\_name**: `string`
+• `Optional` **instance\_block\_device\_mappings**: [`instance_block_device_mapping`](aws_ec2_entity_instance_block_device_mapping.InstanceBlockDeviceMapping.md)[]
 
-Name for the device when it is attached to an instance
-
-**`See`**
-
-https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/device_naming.html
+Block device mappings for the instance
 
 • `Optional` **iops**: `number`
 
@@ -41,6 +33,14 @@ The number of I/O operations per second (IOPS)
 **`See`**
 
 https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-ec2/interfaces/createvolumerequest.html#iops
+
+• `Optional` **is\_root\_device**: `boolean`
+
+If set to true it will not be created and used only for defining initial EBS on instance creation
+
+**`See`**
+
+https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/block-device-mapping-concepts.html
 
 • **region**: `string`
 
