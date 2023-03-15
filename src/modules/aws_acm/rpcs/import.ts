@@ -100,7 +100,7 @@ export class CertificateImportRpc extends RpcBase {
         },
       ];
     }
-    const transformedTags = Object.entries(safeParse(tags))?.map(([k, v]) => ({ Key: k, Value: v })) ?? [];
+    const transformedTags = Object.entries(safeParse(tags))?.map(([Key, Value]) => ({ Key, Value })) ?? [];
     if (transformedTags.length) {
       await this.module.certificate.createCertificateTags(client.acmClient, importedCertArn, transformedTags);
     }
