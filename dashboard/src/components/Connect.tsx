@@ -20,12 +20,14 @@ export default function Connect({ closable }: { closable: boolean }) {
 
   let nextEnabled = true;
   let backEnabled = false;
+  let closeButtonEnabled = true;
   const current = stack[stack.length - 1];
   // Check relevant state per step to determine automatic actions to perform, such as deciding if
   // the Next button should be enabled or not
   switch (current) {
     case 'createdb':
       nextEnabled = !!awsRegion && !!awsAccessKeyId && !!awsSecretAccessKey;
+      closeButtonEnabled = true;
       break;
     case 'execdbcreate':
       nextEnabled = !!newDb;
@@ -40,9 +42,11 @@ export default function Connect({ closable }: { closable: boolean }) {
           data: { dbAlias, awsRegion, awsAccessKeyId, awsSecretAccessKey, awsSessionToken },
         });
       }
+      closeButtonEnabled = false;
       break;
     default:
       nextEnabled = true;
+      closeButtonEnabled = true;
       break;
   }
 
@@ -63,6 +67,7 @@ export default function Connect({ closable }: { closable: boolean }) {
         }
       }}
       backEnabled={backEnabled}
+      closeable={closeButtonEnabled}
       onClose={() => {
         dispatch({ action: ActionType.ShowConnect, data: { showConnect: false } });
         if (newDb) dispatch({ action: ActionType.ResetNewDb });

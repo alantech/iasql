@@ -6,6 +6,7 @@ import { ActionType, useAppContext } from '../providers/AppProvider';
 export function Wizard({
   icon,
   title,
+  closeable,
   start,
   stack,
   setStack,
@@ -18,6 +19,7 @@ export function Wizard({
 }: {
   icon?: any | any[];
   title: string;
+  closeable?: boolean;
   start: string;
   stack: string[];
   setStack: (arg0: string[]) => void;
@@ -47,7 +49,7 @@ export function Wizard({
     <Modal
       icon={icon}
       title={title}
-      closeable={(currentStep as any)?.props?.id !== 'execdbcreate'}
+      closeable={closeable ?? false}
       onClose={
         onClose ??
         (() => {
