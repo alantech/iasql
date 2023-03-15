@@ -59,7 +59,7 @@
     "@types/semver": "^7.3.10",
     "@types/sshpk": "^1.17.1",
     "@types/uuid": "^9.0.1",
-    "aws-sdk-client-mock": "^2.1.0",
+    "aws-sdk-client-mock": "^2.1.1",
     "copyfiles": "^2.4.1",
     "jest": "^27.5.1",
     "nodemon": "^2.0.20",
