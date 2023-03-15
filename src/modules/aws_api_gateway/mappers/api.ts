@@ -4,9 +4,10 @@ import {
   CreateApiCommandInput,
   UpdateApiCommandInput,
 } from '@aws-sdk/client-apigatewayv2';
+import { build as buildArn } from '@aws-sdk/util-arn-parser';
 
 import { AwsApiGatewayModule } from '..';
-import { AWS, crudBuilder, crudBuilderFormat } from '../../../services/aws_macros';
+import { AWS, crudBuilder, crudBuilderFormat, eqTags } from '../../../services/aws_macros';
 import { Context, Crud, MapperBase } from '../../interfaces';
 import { Api, Protocol } from '../entity';
 
@@ -19,7 +20,8 @@ export class ApiMapper extends MapperBase<Api> {
       Object.is(a.disableExecuteApiEndpoint, b.disableExecuteApiEndpoint) &&
       Object.is(a.protocolType, b.protocolType) &&
       Object.is(a.version, b.version) &&
-      Object.is(a.name, b.name);
+      Object.is(a.name, b.name) &&
+      eqTags(a.tags, b.tags);
     return res;
   };
 
@@ -37,6 +39,19 @@ export class ApiMapper extends MapperBase<Api> {
 
   updateApi = crudBuilder<ApiGatewayV2, 'updateApi'>('updateApi', input => input);
 
+  buildApiArn = (apiId: string, region: string, accountId = '') =>
+    buildArn({
+      partition: 'aws',
+      service: 'apigateway',
+      region,
+      accountId,
+      resource: `/apis/${apiId}`,
+    });
+
+  tagRes = crudBuilder<ApiGatewayV2, 'tagResource'>('tagResource', input => input);
+
+  untagRes = crudBuilder<ApiGatewayV2, 'untagResource'>('untagResource', input => input);
+
   cloud = new Crud<Api>({
     create: async (rs: Api[], ctx: Context) => {
       const out = [];
@@ -44,7 +59,6 @@ export class ApiMapper extends MapperBase<Api> {
         const client = (await ctx.getAwsClient(r.region)) as AWS;
         // add a default protocol
         if (!r.protocolType) r.protocolType = Protocol.HTTP;
-
         // if we have an id already, check if exists
         const input: CreateApiCommandInput = {
           Name: r.name,
@@ -54,16 +68,27 @@ export class ApiMapper extends MapperBase<Api> {
           Version: r.version,
         };
         const result = await this.createApi(client.apiGatewayClient, input);
-        if (result) {
-          const newApi = this.apiMapper(result, r.region);
-          // use the same ID as the one inserted, and set the name as is optionally returned
-          if (newApi) {
-            newApi.id = r.id;
-            newApi.name = r.name;
-            await this.module.api.db.update(newApi, ctx);
-            out.push(newApi);
+        if (!result) continue;
+        if (Object.keys(r.tags ?? {}).length) {
+          const tags: Record<string, string> = {};
+          for (const [k, v] of Object.entries(r.tags ?? {})) {
+            tags[k] = v;
           }
+          const arn = this.buildApiArn(result.ApiId ?? '', r.region);
+          await this.tagRes(client.apiGatewayClient, { ResourceArn: arn, Tags: tags });
+          // sleep for a few seconds to allow the tags to be applied
+          await new Promise(resolve => setTimeout(resolve, 5000));
         }
+        const newApi: Api = await this.cloud.read(
+          ctx,
+          this.generateId({ apiId: result?.ApiId ?? '', region: r.region }),
+        );
+        if (!newApi) continue;
+        // use the same ID as the one inserted, and set the name as is optionally returned
+        newApi.id = r.id;
+        newApi.name = r.name;
+        await this.module.api.db.update(newApi, ctx);
+        out.push(newApi);
       }
       return out;
     },
@@ -74,7 +99,9 @@ export class ApiMapper extends MapperBase<Api> {
         if (enabledRegions.includes(region)) {
           const client = (await ctx.getAwsClient(region)) as AWS;
           const rawApi = await this.getApi(client.apiGatewayClient, apiId);
-          if (rawApi) return this.apiMapper(rawApi, region);
+          if (rawApi) {
+            return this.apiMapper(rawApi, region);
+          }
         }
       } else {
         const out: Api[] = [];
@@ -111,17 +138,29 @@ export class ApiMapper extends MapperBase<Api> {
             Version: r.version,
           };
           const res = await this.updateApi(client.apiGatewayClient, input);
-          if (res) {
-            const newApi = this.apiMapper(res, r.region);
-            if (newApi) {
-              newApi.name = r.name;
-              newApi.id = r.id;
-              // Save the record back into the database to get the new fields updated
-              await this.module.api.db.update(newApi, ctx);
-              out.push(newApi);
-            }
-          } else {
-            throw new Error('Error updating API');
+          if (!res) continue;
+          if (!eqTags(r.tags, cloudRecord.tags)) {
+            const apiArn = this.buildApiArn(r.apiId, r.region);
+            await this.untagRes(client.apiGatewayClient, {
+              ResourceArn: apiArn,
+              TagKeys: Object.keys(cloudRecord.tags ?? {}),
+            });
+            // sleep for a few seconds to allow the tags to be applied
+            await new Promise(resolve => setTimeout(resolve, 5000));
+            await this.tagRes(client.apiGatewayClient, { ResourceArn: apiArn, Tags: r.tags });
+            // sleep for a few seconds to allow the tags to be applied
+            await new Promise(resolve => setTimeout(resolve, 5000));
+          }
+          delete ctx?.memo?.cloud?.Api?.[this.entityId(r)];
+          const newApi = await this.cloud.read(ctx, this.entityId(r));
+          if (newApi) {
+            newApi.name = r.name;
+            newApi.id = r.id;
+            // we keep tags updated in case they have taken a while to be applied
+            newApi.tags = r.tags;
+            // Save the record back into the database to get the new fields updated
+            await this.module.api.db.update(newApi, ctx);
+            out.push(newApi);
           }
         }
       }
@@ -154,6 +193,7 @@ export class ApiMapper extends MapperBase<Api> {
     }
     r.version = instance.Version;
     r.region = region;
+    r.tags = instance.Tags;
     return r;
   }
 }
