@@ -29,8 +29,8 @@ export default function Modal({
           closeable
             ? onClose
             : () => {
-              return void 0;
-            }
+                return void 0;
+              }
         }
         open={isOpen}
       >
