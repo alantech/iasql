@@ -423,7 +423,7 @@ describe('RDS Integration Testing', () => {
     query(
       `
     BEGIN;
-      INSERT INTO db_cluster (db_cluster_identifier, engine, allocated_storage, iops, db_cluster_instance_class, master_username, master_user_password, db_subnet_group) VALUES
+      INSERT INTO db_cluster (db_cluster_identifier, engine, allocated_storage, iops, db_cluster_instance_class, master_username, master_user_password, subnet_group) VALUES
         ('${prefix}cluster-test', 'mysql', 100, 1000, 'db.m6g.large', 'admin', 'admin123456', (select id FROM db_subnet_group WHERE name = '${prefix}cluster-test'));
     COMMIT;
   `,
