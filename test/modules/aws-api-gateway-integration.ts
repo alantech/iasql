@@ -122,8 +122,8 @@ describe('API Gateway Integration Testing', () => {
     'adds a new API gateway',
     query(
       `
-    INSERT INTO api (name, description, disable_execute_api_endpoint, version)
-    VALUES ('${apiName}', 'description', false, '1.0');
+    INSERT INTO api (name, description, disable_execute_api_endpoint, version, tags)
+    VALUES ('${apiName}', 'description', false, '1.0', '{"toUpdate": "value", "toDelete": "value"}');
   `,
       undefined,
       true,
@@ -139,6 +139,18 @@ describe('API Gateway Integration Testing', () => {
       `
   SELECT * FROM api WHERE name='${apiName}';
   `,
+      (res: any) => {console.log(res); return expect(res.length).toBe(1)},
+    ),
+  );
+
+  it(
+    'check API gateway tags',
+    query(
+      `
+        SELECT *
+        FROM api
+        WHERE name='${apiName}' AND tags->>'toUpdate' = 'value' AND tags->>'toDelete' = 'value';
+      `,
       (res: any) => expect(res.length).toBe(1),
     ),
   );
@@ -149,8 +161,8 @@ describe('API Gateway Integration Testing', () => {
     'tries to update API description',
     query(
       `
-  UPDATE api SET description='new description' WHERE name='${apiName}'
-  `,
+        UPDATE api SET description='new description', tags = '{"toUpdate": "value2", "newTag": "value"}' WHERE name='${apiName}';
+      `,
       undefined,
       true,
       () => ({ username, password }),
@@ -166,6 +178,30 @@ describe('API Gateway Integration Testing', () => {
   SELECT * FROM api WHERE description='new description' and name='${apiName}';
 `,
       (res: any) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it(
+    'checks that API has been been modified',
+    query(
+      `
+        SELECT *
+        FROM api
+        WHERE tags->>'toUpdate' = 'value2' AND tags->>'newTag' = 'value' AND name='${apiName}';
+      `,
+      (res: any) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it(
+    'checks that API has been been modified',
+    query(
+      `
+        SELECT *
+        FROM api
+        WHERE tags->>'toDelete' = 'value' AND name='${apiName}';
+      `,
+      (res: any) => expect(res.length).toBe(0),
     ),
   );
 
