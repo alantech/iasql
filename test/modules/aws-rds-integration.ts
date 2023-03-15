@@ -402,7 +402,6 @@ describe('RDS Integration Testing', () => {
       () => ({ username, password }),
     ),
   );
-
   it('applies the change', commit());
 
   itDocs(
