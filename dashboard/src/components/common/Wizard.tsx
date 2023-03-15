@@ -49,7 +49,7 @@ export function Wizard({
     <Modal
       icon={icon}
       title={title}
-      closeable={closeable ?? false}
+      closeable={(currentStep as any)?.props?.id !== 'execdbcreate'}
       onClose={
         onClose ??
         (() => {
