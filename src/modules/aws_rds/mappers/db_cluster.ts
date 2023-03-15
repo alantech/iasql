@@ -62,7 +62,7 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
           ctx,
           this.module.dbSubnetGroup.generateId({ name: cluster.DBSubnetGroup, region }),
         ));
-    } else out.subnetGroup = undefined;
+    }
 
     out.port = cluster.Port;
     out.publiclyAccessible = cluster.PubliclyAccessible ?? false;

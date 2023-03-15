@@ -1,0 +1,21 @@
+CREATE
+OR REPLACE FUNCTION block_rds_region_update () RETURNS TRIGGER AS $block_rds_region_update$
+    BEGIN
+        RAISE EXCEPTION 'RDS region cannot be modified'
+        USING detail = 'An RDS instance cannot be moved to another region', 
+        hint = 'If you want to change RDS region, first remove it and recreate with the desired name and region.';
+        RETURN OLD;
+    END;
+$block_rds_region_update$ LANGUAGE plpgsql;
+
+CREATE TRIGGER
+  block_rds_region_update BEFORE
+UPDATE
+  ON rds FOR EACH ROW
+  WHEN (
+    OLD.region IS DISTINCT
+    FROM
+      NEW.region
+  )
+EXECUTE
+  FUNCTION block_rds_region_update ();

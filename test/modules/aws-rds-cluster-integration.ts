@@ -30,7 +30,7 @@ const uninstall = runUninstall.bind(null, dbAlias);
 const region = defaultRegion();
 const modules = ['aws_security_group', 'aws_rds', 'aws_vpc'];
 
-jest.setTimeout(960000);
+jest.setTimeout(1800000);
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown());
 
@@ -121,7 +121,7 @@ describe('RDS Integration Testing', () => {
       `
     BEGIN;
       INSERT INTO db_cluster (db_cluster_identifier, engine, allocated_storage, iops, db_cluster_instance_class, master_username, master_user_password, subnet_group_id) VALUES
-        ('${prefix}cluster-test', 'mysql', 100, 1000, 'db.m6gd.large', 'admin', 'admin123456', (select id FROM db_subnet_group WHERE name = '${prefix}cluster-test'));
+        ('${prefix}cluster-test', 'mysql', 100, 1000, 'db.m6gd.xlarge', 'admin', 'admin123456', (select id FROM db_subnet_group WHERE name = '${prefix}cluster-test'));
     COMMIT;
   `,
       undefined,

@@ -105,7 +105,6 @@ export class DBCluster {
    * Reference to the subnet groups associated with the cluster
    */
   @ManyToOne(() => DBSubnetGroup, subnetGroup => subnetGroup.name, {
-    nullable: true,
     eager: true,
   })
   @JoinColumn([
@@ -118,7 +117,7 @@ export class DBCluster {
       referencedColumnName: 'region',
     },
   ])
-  subnetGroup?: DBSubnetGroup;
+  subnetGroup: DBSubnetGroup;
 
   /**
    * @public
