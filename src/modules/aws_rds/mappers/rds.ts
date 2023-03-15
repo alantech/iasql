@@ -376,7 +376,11 @@ export class RdsMapper extends MapperBase<RDS> {
         // Reminder: Password need to be null since when we read RDS instances from AWS this
         // property is not retrieved
         updatedRecord.masterUserPassword = null;
+        console.log('i am updating record');
+        console.log(updatedRecord);
         await this.module.rds.db.update(updatedRecord, ctx);
+        console.log('after update');
+        console.log(updatedRecord);
         updatedRecord.region = e.region;
         out.push(updatedRecord);
       }

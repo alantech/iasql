@@ -45,8 +45,8 @@ export class DBSubnetGroup {
    * @public
    * Description for the subnet group
    */
-  @Column({ nullable: true })
-  description?: string;
+  @Column()
+  description: string;
 
   /**
    * @public

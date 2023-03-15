@@ -1,11 +1,11 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class awsRds1678864251231 implements MigrationInterface {
-  name = 'awsRds1678864251231';
+export class awsRds1678874459222 implements MigrationInterface {
+  name = 'awsRds1678874459222';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
-      `CREATE TABLE "db_subnet_group" ("id" SERIAL NOT NULL, "name" character varying NOT NULL, "arn" character varying, "description" character varying, "subnets" character varying array, "region" character varying NOT NULL DEFAULT default_aws_region(), CONSTRAINT "UQ_5a641e6e9fdf00cecbaeb496f23" UNIQUE ("arn"), CONSTRAINT "db_subnet_group_id_region" UNIQUE ("id", "region"), CONSTRAINT "db_subnet_group_name_region" UNIQUE ("name", "region"), CONSTRAINT "PK_687ed5ce05bd63fa341f8f7fe6f" PRIMARY KEY ("id"))`,
+      `CREATE TABLE "db_subnet_group" ("id" SERIAL NOT NULL, "name" character varying NOT NULL, "arn" character varying, "description" character varying NOT NULL, "subnets" character varying array, "region" character varying NOT NULL DEFAULT default_aws_region(), CONSTRAINT "UQ_5a641e6e9fdf00cecbaeb496f23" UNIQUE ("arn"), CONSTRAINT "db_subnet_group_id_region" UNIQUE ("id", "region"), CONSTRAINT "db_subnet_group_name_region" UNIQUE ("name", "region"), CONSTRAINT "PK_687ed5ce05bd63fa341f8f7fe6f" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(`CREATE TYPE "public"."db_cluster_engine_enum" AS ENUM('mysql', 'postgres')`);
     await queryRunner.query(
