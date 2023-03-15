@@ -17,7 +17,7 @@ The addition of an Auth0 PostLogin JS webhook, which turned out to run during lo
 
 ## Detection
 
-The problem was around for roughly 16 hours when the faulty Auth0 PostLogin JS webhook was added until there was an attempt to access the production dashboard that did not work.
+The problem was around for roughly 16 hours when the faulty Auth0 PostLogin JS webhook was added until there was an attempt to access the production dashboard for our own usage that did not work.
 
 ## Response
 
