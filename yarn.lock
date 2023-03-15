@@ -539,10 +539,10 @@
     tslib "^2.3.1"
     uuid "^8.3.2"
 
-"@aws-sdk/client-ec2@^3.290.0":
-  version "3.290.0"
-  resolved "https://registry.yarnpkg.com/@aws-sdk/client-ec2/-/client-ec2-3.290.0.tgz#b7e6d0375cc1bdbd149ea57e6e72f190fa519b86"
-  integrity sha512-RHp/EHycc/24ucnk4siRxMV+puF0DziH82adruJMuAmWHUjVhd9fBGrz+c0iza+4Bo1BToS0QPO6ioyrfzKQyA==
+"@aws-sdk/client-ec2@^3.291.0":
+  version "3.291.0"
+  resolved "https://registry.yarnpkg.com/@aws-sdk/client-ec2/-/client-ec2-3.291.0.tgz#1bedbf384a8eb76a2ed2b9fa56047dd8c0079bff"
+  integrity sha512-nVw92++iwDB5RzBe7hCK+HiY/4hHFBd/tXBJlSg7rD6TGHyskv3Qn+n2ikpxPVSRYJgnZr/g9JYYQzm3r6RFxQ==
   dependencies:
     "@aws-crypto/sha256-browser" "3.0.0"
     "@aws-crypto/sha256-js" "3.0.0"
@@ -558,7 +558,7 @@
     "@aws-sdk/middleware-logger" "3.290.0"
     "@aws-sdk/middleware-recursion-detection" "3.290.0"
     "@aws-sdk/middleware-retry" "3.290.0"
-    "@aws-sdk/middleware-sdk-ec2" "3.290.0"
+    "@aws-sdk/middleware-sdk-ec2" "3.291.0"
     "@aws-sdk/middleware-serde" "3.290.0"
     "@aws-sdk/middleware-signing" "3.290.0"
     "@aws-sdk/middleware-stack" "3.290.0"
@@ -1994,10 +1994,10 @@
     tslib "^2.3.1"
     uuid "^8.3.2"
 
-"@aws-sdk/middleware-sdk-ec2@3.290.0":
-  version "3.290.0"
-  resolved "https://registry.yarnpkg.com/@aws-sdk/middleware-sdk-ec2/-/middleware-sdk-ec2-3.290.0.tgz#6690eacc37e50785d122ec42fd7742f7936b222d"
-  integrity sha512-7v1G30XM82fpMaoCWiLT/xEato6lI163Rgr+Dctf4g5X3oQgv4W4qO1+LWsqLCF+h36JoOSTv3rcl8xbsgjRvQ==
+"@aws-sdk/middleware-sdk-ec2@3.291.0":
+  version "3.291.0"
+  resolved "https://registry.yarnpkg.com/@aws-sdk/middleware-sdk-ec2/-/middleware-sdk-ec2-3.291.0.tgz#f5b88149d0680a84b2a35f8fb36fbd8337f32195"
+  integrity sha512-pWNJFp0hnXsAx0DIZ5Eti93SoVKHLteKQUyRSWWhw+Ebq4frqBL3JM2J6cxl2awXVVuIXQAWdmdGX3rcT3PlVw==
   dependencies:
     "@aws-sdk/middleware-endpoint" "3.290.0"
     "@aws-sdk/protocol-http" "3.290.0"
