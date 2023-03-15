@@ -27,10 +27,10 @@ export default function Modal({
         className='fixed z-10 inset-0 overflow-y-auto'
         onClose={
           closeable
-            ? () => {
-                return void 0;
-              }
-            : onClose
+            ? onClose
+            : () => {
+              return void 0;
+            }
         }
         open={isOpen}
       >
