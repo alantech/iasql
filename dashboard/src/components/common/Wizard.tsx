@@ -6,7 +6,6 @@ import { ActionType, useAppContext } from '../providers/AppProvider';
 export function Wizard({
   icon,
   title,
-  closeable,
   start,
   stack,
   setStack,
@@ -19,7 +18,6 @@ export function Wizard({
 }: {
   icon?: any | any[];
   title: string;
-  closeable?: boolean;
   start: string;
   stack: string[];
   setStack: (arg0: string[]) => void;

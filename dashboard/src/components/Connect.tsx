@@ -63,7 +63,6 @@ export default function Connect({ closable }: { closable: boolean }) {
         }
       }}
       backEnabled={backEnabled}
-      closeable={closable}
       onClose={() => {
         dispatch({ action: ActionType.ShowConnect, data: { showConnect: false } });
         if (newDb) dispatch({ action: ActionType.ResetNewDb });
