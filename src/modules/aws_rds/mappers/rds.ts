@@ -377,6 +377,7 @@ export class RdsMapper extends MapperBase<RDS> {
         // property is not retrieved
         updatedRecord.masterUserPassword = null;
         await this.module.rds.db.update(updatedRecord, ctx);
+        updatedRecord.region = e.region;
         out.push(updatedRecord);
       }
       return out;
