@@ -112,7 +112,7 @@
     "lodash.pick": "^4.4.0",
     "pg": "^8.10.0",
     "pg-format": "^1.0.4",
-    "pgsql-parser": "^13.3.14",
+    "pgsql-parser": "^13.5.0",
     "posthog-node": "^2.2.3",
     "reflect-metadata": "^0.1.13",
     "semver": "^7.3.7",

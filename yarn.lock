@@ -5714,7 +5714,7 @@ lodash.pick@^4.4.0:
   resolved "https://registry.yarnpkg.com/lodash.pick/-/lodash.pick-4.4.0.tgz#52f05610fff9ded422611441ed1fc123a03001b3"
   integrity sha512-hXt6Ul/5yWjfklSGvLQl8vM//l3FtyHZeuelpzK6mm99pNvN9yTDruNZPEJZD1oWrqo+izBmB7oUfWgcCX7s4Q==
 
-lodash@^4.17.20, lodash@^4.17.21, lodash@^4.7.0:
+lodash@^4.17.21, lodash@^4.7.0:
   version "4.17.21"
   resolved "https://registry.yarnpkg.com/lodash/-/lodash-4.17.21.tgz#679591c564c3bffaae8454cf0b3df370c3d6911c"
   integrity sha512-v2kDEe57lecTulaDIuNTPy3Ry4gLGJ6Z1O3vE1krgXZNrsQ+LFTGHVxVjcXPs17LhbZVGedAJv8XZ1tvj5FvSg==
@@ -6310,14 +6310,13 @@ pgpass@1.x:
   dependencies:
     split2 "^4.1.0"
 
-pgsql-deparser@^13.3.15:
-  version "13.3.15"
-  resolved "https://registry.yarnpkg.com/pgsql-deparser/-/pgsql-deparser-13.3.15.tgz#2ecf1f372ea069e87d13a6cb9d16f4b8a90b6656"
-  integrity sha512-Q/ZrQWYsymM+HefLaLK6PX1DNeDdfoKAH5wzfRrOxCsxRoTouIbWhwgVp3QaiovStjVPSeYNH+pqkLH4JsSn2A==
+pgsql-deparser@^13.4.0:
+  version "13.4.0"
+  resolved "https://registry.yarnpkg.com/pgsql-deparser/-/pgsql-deparser-13.4.0.tgz#21064f66c4fc6b75f04a0c20f131bac383aaf54a"
+  integrity sha512-mVECYO+utvPuw+PWXmPeIkQqVTERreRXVPW1rVmCS4XzXV3hpor9jKhcRbfvmGkGqSHs6KsRdDmYj9QdpdOMng==
   dependencies:
     "@babel/runtime" "^7.11.2"
     dotty "^0.1.0"
-    lodash "^4.17.20"
     pgsql-enums "^13.1.3"
 
 pgsql-enums@^13.1.3:
@@ -6327,15 +6326,15 @@ pgsql-enums@^13.1.3:
   dependencies:
     "@babel/runtime" "^7.4.2"
 
-pgsql-parser@^13.3.14:
-  version "13.4.1"
-  resolved "https://registry.yarnpkg.com/pgsql-parser/-/pgsql-parser-13.4.1.tgz#8948571b249818d99c6f6ef1d735937276479cdc"
-  integrity sha512-A0vaREC+i0+CPT8vmtBqtgvymiT9k/VMscS6dbK21SBUFK/7YQDb1W/DYvOp8sUH4jzmIxfArw9s0X4jI2J6Tg==
+pgsql-parser@^13.5.0:
+  version "13.5.0"
+  resolved "https://registry.yarnpkg.com/pgsql-parser/-/pgsql-parser-13.5.0.tgz#80c0f396273063433c7c7697ee9fd40f8d4e0f12"
+  integrity sha512-5eWkisSQo66x9F5m+RvDz12IRtKnAoEEGz3bygwCppQl+0EZ0yrNOB6hhZZHcxoZxJ1psNdobwoQMe7SzaZFWg==
   dependencies:
     "@babel/runtime" "^7.11.2"
     libpg-query "13.3.1"
     minimist "^1.2.6"
-    pgsql-deparser "^13.3.15"
+    pgsql-deparser "^13.4.0"
     pgsql-enums "^13.1.3"
 
 picocolors@^1.0.0:
