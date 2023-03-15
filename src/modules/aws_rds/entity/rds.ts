@@ -224,7 +224,6 @@ export class RDS {
   @ManyToOne(() => DBCluster, {
     eager: true,
     nullable: true,
-    cascade: true,
   })
   @JoinColumn([
     {

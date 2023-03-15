@@ -10,8 +10,8 @@ export class AwsRdsModule extends ModuleBase {
   constructor() {
     super();
     this.parameterGroup = new ParameterGroupMapper(this);
-    this.dbCluster = new DBClusterMapper(this);
     this.dbSubnetGroup = new DBSubnetGroupMapper(this);
+    this.dbCluster = new DBClusterMapper(this);
     this.rds = new RdsMapper(this);
     super.init();
   }

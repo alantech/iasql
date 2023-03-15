@@ -24,7 +24,6 @@ export class RdsMapper extends MapperBase<RDS> {
     Object.is(a.engineVersion, b.engineVersion) &&
     Object.is(a.dbInstanceClass, b.dbInstanceClass) &&
     Object.is(a.availabilityZone?.name, b.availabilityZone?.name) &&
-    Object.is(a.dbInstanceIdentifier, b.dbInstanceIdentifier) &&
     Object.is(a.endpointAddr, b.endpointAddr) &&
     Object.is(a.endpointHostedZoneId, b.endpointHostedZoneId) &&
     Object.is(a.endpointPort, b.endpointPort) &&
@@ -38,7 +37,6 @@ export class RdsMapper extends MapperBase<RDS> {
     Object.is(a.allocatedStorage, b.allocatedStorage) &&
     Object.is(a.backupRetentionPeriod, b.backupRetentionPeriod) &&
     Object.is(a.parameterGroup?.arn, b.parameterGroup?.arn) &&
-    Object.is(a.region, b.region) &&
     Object.is(a.dbCluster?.dbClusterIdentifier, b.dbCluster?.dbClusterIdentifier);
 
   async rdsMapper(rds: any, ctx: Context, region: string) {
@@ -253,50 +251,59 @@ export class RdsMapper extends MapperBase<RDS> {
           instanceParams.DBParameterGroupName = e.parameterGroup.name;
         }
 
-        try {
-          const result = await this.createDBInstance(client.rdsClient, instanceParams);
-          // TODO: Handle if it fails (somehow)
-          if (!result?.hasOwnProperty('DBInstanceIdentifier')) {
-            // Failure
-            throw new Error('what should we do here?');
-          }
-          // Re-get the inserted record to get all of the relevant records we care about
-          const newObject = await this.getDBInstance(client.rdsClient, result.DBInstanceIdentifier ?? '');
-          // We need to update the parameter groups if its a default one and it does not exists
-          const parameterGroupName = newObject?.DBParameterGroups?.[0].DBParameterGroupName;
-          if (
-            !(await this.module.parameterGroup.db.read(
-              ctx,
-              this.module.parameterGroup.generateId({ name: parameterGroupName ?? '', region: e.region }),
-            ))
-          ) {
-            const cloudParameterGroup = await this.module.parameterGroup.cloud.read(
-              ctx,
-              this.module.parameterGroup.generateId({ name: parameterGroupName ?? '', region: e.region }),
-            );
-            await this.module.parameterGroup.db.create(cloudParameterGroup, ctx);
-          }
-          // We map this into the same kind of entity as `obj`
-          const newEntity = await this.rdsMapper(newObject, ctx, e.region);
-          if (!newEntity) continue;
-          // We attach the original object's ID to this new one, indicating the exact record it is
-          // replacing in the database.
-          newEntity.id = e.id;
-          // Set password as null to avoid infinite loop trying to update the password.
-          // Reminder: Password need to be null since when we read RDS instances from AWS this
-          // property is not retrieved
-          newEntity.masterUserPassword = undefined;
-          // Save the record back into the database to get the new fields updated
-          console.log('i want to update with value');
-          console.log(newEntity);
-          await this.module.rds.db.update(newEntity, ctx);
-          out.push(newEntity);
-        } catch (e: any) {
-          console.log('error in create');
-          console.log(e);
+        const result = await this.createDBInstance(client.rdsClient, instanceParams);
+        // TODO: Handle if it fails (somehow)
+        if (!result?.hasOwnProperty('DBInstanceIdentifier')) {
+          // Failure
+          throw new Error('what should we do here?');
         }
+        // Re-get the inserted record to get all of the relevant records we care about
+        const newObject = await this.getDBInstance(client.rdsClient, result.DBInstanceIdentifier ?? '');
+        // We need to update the parameter groups if its a default one and it does not exists
+        const parameterGroupName = newObject?.DBParameterGroups?.[0].DBParameterGroupName;
+        if (
+          !(await this.module.parameterGroup.db.read(
+            ctx,
+            this.module.parameterGroup.generateId({ name: parameterGroupName ?? '', region: e.region }),
+          ))
+        ) {
+          const cloudParameterGroup = await this.module.parameterGroup.cloud.read(
+            ctx,
+            this.module.parameterGroup.generateId({ name: parameterGroupName ?? '', region: e.region }),
+          );
+          await this.module.parameterGroup.db.create(cloudParameterGroup, ctx);
+        }
+
+        // we need to update the db cluster if it does not exist
+        const dbId = newObject?.DBClusterIdentifier;
+        if (
+          dbId &&
+          !(await this.module.dbCluster.db.read(
+            ctx,
+            this.module.dbCluster.generateId({ dbClusterIdentifier: dbId, region: e.region }),
+          ))
+        ) {
+          const cloudCluster = await this.module.dbCluster.cloud.read(
+            ctx,
+            this.module.dbCluster.generateId({ dbClusterIdentifier: dbId, region: e.region }),
+          );
+          await this.module.dbCluster.db.create(cloudCluster, ctx);
+        }
+        // We map this into the same kind of entity as `obj`
+        const newEntity = await this.rdsMapper(newObject, ctx, e.region);
+        if (!newEntity) continue;
+        // We attach the original object's ID to this new one, indicating the exact record it is
+        // replacing in the database.
+        newEntity.id = e.id;
+        // Set password as null to avoid infinite loop trying to update the password.
+        // Reminder: Password need to be null since when we read RDS instances from AWS this
+        // property is not retrieved
+        newEntity.masterUserPassword = undefined;
+        // Save the record back into the database to get the new fields updated
+        await this.module.rds.db.update(newEntity, ctx);
+        newEntity.region = e.region;
+        out.push(newEntity);
       }
-      console.log('after');
       return out;
     },
     read: async (ctx: Context, id?: string) => {
@@ -375,7 +382,6 @@ export class RdsMapper extends MapperBase<RDS> {
     },
     delete: async (es: RDS[], ctx: Context) => {
       for (const e of es) {
-        console.log('in delete');
         const client = (await ctx.getAwsClient(e.region)) as AWS;
         const input = {
           DBInstanceIdentifier: e.dbInstanceIdentifier,
@@ -386,9 +392,7 @@ export class RdsMapper extends MapperBase<RDS> {
           // FinalDBSnapshotIdentifier: undefined,
           // DeleteAutomatedBackups: false,
         };
-        console.log(input);
         await this.deleteDBInstance(client.rdsClient, input);
-        console.log('after delete');
       }
     },
   });

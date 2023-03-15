@@ -107,7 +107,6 @@ export class DBCluster {
   @ManyToOne(() => DBSubnetGroup, subnetGroup => subnetGroup.name, {
     nullable: true,
     eager: true,
-    cascade: true,
   })
   @JoinColumn([
     {
@@ -212,7 +211,7 @@ export class DBCluster {
    * @privateRemarks
    * TODO rename table
    */
-  @ManyToMany(() => SecurityGroup, { eager: true, cascade: true })
+  @ManyToMany(() => SecurityGroup, { eager: true })
   @JoinTable({
     name: 'db_cluster_security_groups',
   })
