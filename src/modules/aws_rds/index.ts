@@ -19,7 +19,8 @@ export class AwsRdsModule extends ModuleBase {
 
 /**
  * ```testdoc
- * modules/aws-rds-integration.ts#RDS Integration Testing#Manage RDS
+ * modules/aws-rds-integration.ts#RDS Integration Testing#Manage RDS instances
+ * modules/aws-rds-cluster-integration.ts#DB Cluster Integration Testing#Manage Multi-AZ clusters
  * ```
  */
 export const awsRdsModule = new AwsRdsModule();

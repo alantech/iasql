@@ -36,7 +36,7 @@ afterAll(async () => await execComposeDown());
 
 let username: string, password: string;
 
-describe('RDS Integration Testing', () => {
+describe('DB Cluster Integration Testing', () => {
   it('creates a new test db elb', done => {
     (async () => {
       try {

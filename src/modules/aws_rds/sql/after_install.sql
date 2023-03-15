@@ -11,8 +11,7 @@ $block_rds_region_update$ LANGUAGE plpgsql;
 CREATE TRIGGER
   block_rds_region_update BEFORE
 UPDATE
-  ON rds FOR EACH ROW
-  WHEN (
+  ON rds FOR EACH ROW WHEN (
     OLD.region IS DISTINCT
     FROM
       NEW.region
