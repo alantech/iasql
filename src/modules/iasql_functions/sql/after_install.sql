@@ -105,8 +105,9 @@ begin
         PERFORM iasql_commit();
       EXCEPTION
         WHEN others THEN
-          INSERT INTO iasql_audit_log (ts, "user", table_name, change_type, change)
-          VALUES (clock_timestamp(), USER, 'iasql_audit_log', 'CLOSE_TRANSACTION', '{}'::json);
+          INSERT INTO iasql_audit_log (ts, "user", table_name, change_type, change, transaction_id)
+          VALUES (clock_timestamp(), USER, 'iasql_audit_log', 'CLOSE_TRANSACTION', '{}'::json, 
+            (SELECT transaction_id FROM iasql_audit_log WHERE change_type = 'OPEN_TRANSACTION' ORDER BY ts DESC LIMIT 1));
         END;
       RETURN 'iasql_commit called';
     ELSE
