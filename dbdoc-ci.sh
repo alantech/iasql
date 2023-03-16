@@ -67,7 +67,7 @@ echo "\nGenerate dbml from prisma schema"
 npx prisma generate
 
 echo "\nProject IaSQL {
-  database_type: "PostgreSQL"
+  database_type: 'PostgreSQL'
   Note: '''
     [IaSQL](https://iasql.com): Cloud infrastructure as data in PostgreSQL
   '''
