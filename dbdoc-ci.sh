@@ -51,6 +51,13 @@ echo 'datasource db {
   url      = env("DATABASE_URL")
 }
 
+Project IaSQL {
+  database_type: 'PostgreSQL'
+  Note: '''
+    [IaSQL](https://iasql.com) - Cloud infrastructure as data in PostgreSQL
+  '''
+}
+
 generator dbml {
   provider = "prisma-dbml-generator"
   outputName = "iasql.dbml"
