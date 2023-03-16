@@ -1951,7 +1951,7 @@ export async function getInstalledModules(orm: TypeormWrapper): Promise<ModuleIn
   );
 }
 
-async function getCurrentTransactionId(orm: TypeormWrapper): Promise<string> {
+export async function getCurrentTransactionId(orm: TypeormWrapper): Promise<string> {
   const transaction: IasqlAuditLog | undefined = await orm.findOne(IasqlAuditLog, {
     order: { ts: 'DESC' },
     where: {

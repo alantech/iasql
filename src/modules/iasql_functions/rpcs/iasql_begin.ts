@@ -6,6 +6,7 @@ import {
   RpcBase,
   RpcResponseObject,
 } from '../../interfaces';
+import { getCurrentTransactionId } from '../iasql';
 
 /**
  * Method that starts a transaction. It marks the start of a set
@@ -33,9 +34,10 @@ export class IasqlBegin extends RpcBase {
   call = async (
     _dbId: string,
     _dbUser: string,
-    _ctx: Context,
+    ctx: Context,
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
-    const message = 'Transaction started';
+    const currentTransactionId = await getCurrentTransactionId(ctx.orm);
+    const message = `Transaction ${currentTransactionId} started`;
     return [{ message }];
   };
 
