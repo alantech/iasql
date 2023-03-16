@@ -143,7 +143,7 @@ const testDoc = require('./src/rehype/testdoc');
                   target: '_self',
                 },
                 {
-                  to: 'schema',
+                  to: 'https://dbdocs.io/iasql/iasql',
                   target: '_self',
                   label: 'DbDoc Schema',
                 },
