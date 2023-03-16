@@ -1,3 +1,5 @@
+import { HttpProxyAgent, HttpsProxyAgent } from 'hpagent';
+
 import { ACM } from '@aws-sdk/client-acm';
 import { ApiGatewayV2 } from '@aws-sdk/client-apigatewayv2';
 import { AppSync } from '@aws-sdk/client-appsync';
@@ -27,7 +29,6 @@ import { SSM } from '@aws-sdk/client-ssm';
 import { STS } from '@aws-sdk/client-sts';
 import { defaultRetryDecider, StandardRetryStrategy } from '@aws-sdk/middleware-retry';
 import { NodeHttpHandler } from '@aws-sdk/node-http-handler';
-import { HttpProxyAgent, HttpsProxyAgent } from 'hpagent';
 
 import config from '../config';
 
