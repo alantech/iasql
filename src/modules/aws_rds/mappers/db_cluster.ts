@@ -305,17 +305,12 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
         if (e.masterUserPassword) clusterParams.MasterUserPassword = e.masterUserPassword;
 
         const result = await this.updateDBCluster(client.rdsClient, clusterParams);
-        console.log('after update db cluster');
         if (result) {
           // delete cache to force requery
           delete ctx.memo.cloud.DBCluster[this.entityId(e)];
           const newObject = await this.getDBCluster(client.rdsClient, e.dbClusterIdentifier);
-          console.log('new object is');
-          console.log(newObject);
           if (newObject) {
             const newEntity = await this.dbClusterMapper(newObject, ctx, e.region);
-            console.log('entity is');
-            console.log(newEntity);
             if (!newEntity) continue;
             // We attach the original object's ID to this new one, indicating the exact record it is
             // replacing in the database.
@@ -326,13 +321,10 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
             newEntity.masterUserPassword = undefined;
             // Save the record back into the database to get the new fields updated
             await this.module.dbCluster.db.update(newEntity, ctx);
-            console.log('after update db cluster');
             out.push(newEntity);
           }
         }
       }
-      console.log('recordsa re');
-      console.log(out);
       return out;
     },
     delete: async (es: DBCluster[], ctx: Context) => {

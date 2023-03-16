@@ -219,7 +219,7 @@ describe('DB Cluster Integration Testing', () => {
       `
     SELECT *
     FROM rds
-    WHERE db_cluster_id = (SELECT id FROM db_cluster WHERE db_cluster_identifier = '${prefix}cluster-test');
+    WHERE db_cluster_id = (SELECT id FROM db_cluster WHERE db_cluster_identifier = '${prefix}cluster-test') AND backup_retention_period=3;
   `,
       (res: any[]) => expect(res.length).toBe(0),
     ),

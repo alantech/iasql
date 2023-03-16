@@ -224,6 +224,7 @@ export class RDS {
   @ManyToOne(() => DBCluster, {
     eager: true,
     nullable: true,
+    onDelete: 'CASCADE',
   })
   dbCluster?: DBCluster;
 
