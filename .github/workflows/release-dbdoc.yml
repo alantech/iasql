@@ -49,9 +49,11 @@ jobs:
           DATABASE_URL: postgres://postgres:test@localhost:5432/iasql
 
       - name: Dump schema.prisma
+        if: ${{ always() }}
         run: cat examples/ecs-fargate/prisma/infra/prisma/schema.prisma
 
       - name: Dump iasql.dbml
+        if: ${{ always() }}
         run: cat examples/ecs-fargate/prisma/infra/prisma/dbml/iasql.dbml
 
   notify:
