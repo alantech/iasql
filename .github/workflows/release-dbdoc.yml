@@ -18,10 +18,11 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Use Node.js 16.x
-        uses: actions/setup-node@v1
+      - name: Use Node.js LTS
+        uses: actions/setup-node@v3
         with:
-          node-version: 16.x
+          node-version: 'lts/*'
+          cache: 'yarn'
 
       - name: Install dbdocs
         run: |
@@ -48,9 +49,11 @@ jobs:
           DATABASE_URL: postgres://postgres:test@localhost:5432/iasql
 
       - name: Dump schema.prisma
+        if: ${{ always() }}
         run: cat examples/ecs-fargate/prisma/infra/prisma/schema.prisma
 
       - name: Dump iasql.dbml
+        if: ${{ always() }}
         run: cat examples/ecs-fargate/prisma/infra/prisma/dbml/iasql.dbml
 
   notify:
