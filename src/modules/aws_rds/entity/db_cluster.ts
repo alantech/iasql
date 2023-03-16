@@ -218,7 +218,8 @@ export class DBCluster {
 
   /**
    * @public
-   * Region for the database
+   * Region for the cluster. Support for multi-az clusters may be limited on different regions.
+   * Please check AWS documentation for more details.
    */
   @Column({
     type: 'character varying',

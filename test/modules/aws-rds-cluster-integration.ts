@@ -21,7 +21,24 @@ const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
-const region = defaultRegion();
+const region = defaultRegion([
+  'ap-northeast-1',
+  'ap-northeast-2',
+  'ap-south-1',
+  'ap-southeast-1',
+  'ap-southeast-2',
+  'ca-central-1',
+  'eu-central-1',
+  'eu-north-1',
+  'eu-west-1',
+  'eu-west-2',
+  'eu-west-3',
+  'sa-east-1',
+  'us-east-2',
+  'us-west-1',
+  'us-west-2',
+]);
+
 const modules = ['aws_security_group', 'aws_rds', 'aws_vpc'];
 
 jest.setTimeout(1800000);
@@ -158,7 +175,7 @@ describe('DB Cluster Integration Testing', () => {
     'changes the mysql version',
     query(
       `
-    UPDATE db_cluster SET engine_version = '8.0.32' WHERE db_cluster_identifier = '${prefix}cluster-test';
+    UPDATE db_cluster SET backup_retention_period=10 WHERE db_cluster_identifier = '${prefix}cluster-test';
   `,
       undefined,
       true,
@@ -169,12 +186,12 @@ describe('DB Cluster Integration Testing', () => {
   it('applies the change', commit());
 
   itDocs(
-    'check that engine has been modified',
+    'check that retention period has been modified',
     query(
       `
     SELECT *
     FROM rds
-    WHERE db_instance_identifier = '${prefix}cluster-test' AND engine_version = '8.0.32';
+    WHERE db_instance_identifier = '${prefix}cluster-test' AND backup_retention_period=10;
   `,
       (res: any[]) => expect(res.length).toBe(1),
     ),

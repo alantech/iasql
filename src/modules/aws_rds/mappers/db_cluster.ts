@@ -7,16 +7,15 @@ import {
   ModifyDBClusterCommandInput,
   DeleteDBClusterMessage,
   waitUntilDBClusterDeleted,
-  waitUntilDBInstanceAvailable,
+  DescribeDBClustersCommandInput,
 } from '@aws-sdk/client-rds';
-import { WaiterOptions, WaiterState } from '@aws-sdk/util-waiter';
+import { createWaiter, WaiterOptions, WaiterState } from '@aws-sdk/util-waiter';
 
 import { AwsRdsModule } from '..';
 import { AWS, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
 import { awsSecurityGroupModule } from '../../aws_security_group';
 import { Context, Crud, MapperBase } from '../../interfaces';
 import { DBCluster, dbClusterEngineEnum } from '../entity/db_cluster';
-import supportedRegions from './supported_regions';
 
 export class DBClusterMapper extends MapperBase<DBCluster> {
   module: AwsRdsModule;
@@ -116,31 +115,32 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
 
   async updateDBCluster(client: RDS, clusterParams: ModifyDBClusterCommandInput) {
     await client.modifyDBCluster(clusterParams);
-    // wait until cluster and instances are available
-    let result = await waitUntilDBClusterAvailable(
-      {
-        client,
-        // all in seconds
-        maxWaitTime: 900,
-        minDelay: 1,
-        maxDelay: 4,
-      } as WaiterOptions<RDS>,
-      { DBClusterIdentifier: clusterParams.DBClusterIdentifier },
-    );
-    if (result.state !== WaiterState.SUCCESS) return false;
 
-    result = await waitUntilDBInstanceAvailable(
+    let out;
+    const clusterId = clusterParams.DBClusterIdentifier;
+    await createWaiter<RDS, DescribeDBClustersCommandInput>(
       {
         client,
         // all in seconds
-        maxWaitTime: 900,
+        maxWaitTime: 1200,
         minDelay: 1,
         maxDelay: 4,
-      } as WaiterOptions<RDS>,
-      { DBInstanceIdentifier: clusterParams.DBClusterIdentifier + '-instance-1' },
+      },
+      { DBClusterIdentifier: clusterId },
+      async (cl, cmd) => {
+        const data = await cl.describeDBClusters(cmd);
+        try {
+          out = data.DBClusters?.pop();
+
+          // check if we have pending modifications
+          if (out?.PendingModifiedValues) return { state: WaiterState.RETRY };
+          else return { state: WaiterState.SUCCESS };
+        } catch (e: any) {
+          throw e;
+        }
+      },
     );
-    if (result.state !== WaiterState.SUCCESS) return false;
-    return true;
+    return out;
   }
 
   async deleteDBCluster(client: RDS, deleteInput: DeleteDBClusterMessage) {
@@ -225,26 +225,22 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
       const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
       if (id) {
         const { dbClusterIdentifier, region } = this.idFields(id);
-        if (supportedRegions.includes(region)) {
-          const client = (await ctx.getAwsClient(region)) as AWS;
-          const rawCluster = await this.getDBCluster(client.rdsClient, dbClusterIdentifier);
-          if (!rawCluster || rawCluster.Engine?.includes('aurora')) return;
-          const result = await this.dbClusterMapper(rawCluster, ctx, region);
-          return result;
-        }
+        const client = (await ctx.getAwsClient(region)) as AWS;
+        const rawCluster = await this.getDBCluster(client.rdsClient, dbClusterIdentifier);
+        if (!rawCluster || rawCluster.Engine?.includes('aurora')) return;
+        const result = await this.dbClusterMapper(rawCluster, ctx, region);
+        return result;
       } else {
         const out: DBCluster[] = [];
         await Promise.all(
           enabledRegions.map(async region => {
-            if (supportedRegions.includes(region)) {
-              const client = (await ctx.getAwsClient(region)) as AWS;
-              const clusters = await this.getDBClusters(client.rdsClient);
-              for (const cluster of clusters) {
-                if (cluster.Engine.includes('aurora')) continue; // no support for aurora
-                const c = await this.dbClusterMapper(cluster, ctx, region);
-                if (!c) continue;
-                out.push(c);
-              }
+            const client = (await ctx.getAwsClient(region)) as AWS;
+            const clusters = await this.getDBClusters(client.rdsClient);
+            for (const cluster of clusters) {
+              if (cluster.Engine.includes('aurora')) continue; // no support for aurora
+              const c = await this.dbClusterMapper(cluster, ctx, region);
+              if (!c) continue;
+              out.push(c);
             }
           }),
         );
@@ -252,11 +248,8 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
       }
     },
     update: async (es: DBCluster[], ctx: Context) => {
-      console.log('in update cluster');
       const out = [];
       for (const e of es) {
-        console.log('i want to update');
-        console.log(e);
         const client = (await ctx.getAwsClient(e.region)) as AWS;
         const cloudRecord = ctx?.memo?.cloud?.DBCluster?.[this.entityId(e)];
 
@@ -295,8 +288,6 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
         if (!Object.is(e.engineVersion, cloudRecord.engineVersion))
           clusterParams.EngineVersion = e.engineVersion;
         if (!Object.is(e.iops, cloudRecord.iops)) clusterParams.Iops = e.iops;
-        if (!Object.is(e.deletionProtection, cloudRecord.deletion_protection))
-          clusterParams.DeletionProtection = e.deletionProtection;
         if (
           !Object.is(e.vpcSecurityGroups.length, cloudRecord.vpcSecurityGroups.length) &&
           (e.vpcSecurityGroups?.every(
@@ -312,15 +303,11 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
 
         // If a password value has been inserted, we update it.
         if (e.masterUserPassword) clusterParams.MasterUserPassword = e.masterUserPassword;
-        console.log('i update');
-        console.log(clusterParams);
 
         const result = await this.updateDBCluster(client.rdsClient, clusterParams);
         if (result) {
           // wait until cluster is available again
-          console.log('after');
           // requery to get modified fields after waiting for cache expiration
-          await new Promise(r => setTimeout(r, 41000));
           const newObject = await this.getDBCluster(client.rdsClient, e.dbClusterIdentifier);
           if (newObject) {
             const newEntity = await this.dbClusterMapper(newObject, ctx, e.region);
@@ -333,14 +320,11 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
             // property is not retrieved
             newEntity.masterUserPassword = undefined;
             // Save the record back into the database to get the new fields updated
-            console.log('before db update');
             await this.module.dbCluster.db.update(newEntity, ctx);
             out.push(newEntity);
           }
         }
       }
-      console.log('update results');
-      console.log(out);
       return out;
     },
     delete: async (es: DBCluster[], ctx: Context) => {
