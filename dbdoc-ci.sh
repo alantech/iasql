@@ -53,7 +53,7 @@ echo 'datasource db {
 
 Project IaSQL {
   database_type: 'PostgreSQL'
-  Note: 'IaSQL\nCloud infrastructure as data in PostgreSQL\nhttps://iasql.com'
+  Note: 'https://iasql.com'
 }
 
 generator dbml {
