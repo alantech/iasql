@@ -9,14 +9,16 @@ import {
   paginateListDistributions,
   SSLSupportMethod,
   waitUntilDistributionDeployed,
+  Tag,
 } from '@aws-sdk/client-cloudfront';
 import { WaiterOptions } from '@aws-sdk/util-waiter';
 
 import { AwsCloudfrontModule } from '..';
-import { AWS, crudBuilder } from '../../../services/aws_macros';
+import { AWS, crudBuilder, eqTags } from '../../../services/aws_macros';
 import { awsAcmModule } from '../../aws_acm';
 import { Context, Crud, MapperBase } from '../../interfaces';
 import { Distribution, viewerProtocolPolicyEnum } from '../entity';
+import { safeParse } from '../../../services/common';
 
 export class DistributionMapper extends MapperBase<Distribution> {
   module: AwsCloudfrontModule;
@@ -36,7 +38,8 @@ export class DistributionMapper extends MapperBase<Distribution> {
       isEqual(originsA, originsB) &&
       Object.is(a.eTag, b.eTag) &&
       Object.is(a.status, b.status) &&
-      Object.is(a.domainName, b.domainName)
+      Object.is(a.domainName, b.domainName) &&
+      eqTags(a.tags, b.tags)
     );
   };
 
@@ -67,7 +70,7 @@ export class DistributionMapper extends MapperBase<Distribution> {
     return out;
   }
 
-  createDistribution = crudBuilder<CloudFront, 'createDistribution'>('createDistribution', input => input);
+  createDistribution = crudBuilder<CloudFront, 'createDistributionWithTags'>('createDistributionWithTags', input => input);
 
   updateDistribution = crudBuilder<CloudFront, 'updateDistribution'>('updateDistribution', input => input);
 
@@ -75,6 +78,12 @@ export class DistributionMapper extends MapperBase<Distribution> {
     Id,
     IfMatch,
   }));
+
+  listTagsForResource = crudBuilder<CloudFront, 'listTagsForResource'>('listTagsForResource', Resource => ({ Resource }));
+
+  tagResource = crudBuilder<CloudFront, 'tagResource'>('tagResource', (Resource, Tags) => ({ Resource, Tags }));
+
+  untagResource = crudBuilder<CloudFront, 'untagResource'>('untagResource', (Resource, TagKeys) => ({ Resource, TagKeys }));
 
   async updateDistributionAndWait(
     client: CloudFront,
@@ -169,7 +178,7 @@ export class DistributionMapper extends MapperBase<Distribution> {
     return finalOrigins;
   }
 
-  async distributionMapper(distribution: GetDistributionCommandOutput, ctx: Context) {
+  async distributionMapper(distribution: GetDistributionCommandOutput, ctx: Context, tags: Tag[]) {
     const out = new Distribution();
     out.callerReference = distribution.Distribution?.DistributionConfig?.CallerReference;
     out.comment = distribution.Distribution?.DistributionConfig?.Comment;
@@ -234,8 +243,10 @@ export class DistributionMapper extends MapperBase<Distribution> {
             SSLSupportMethod: SSLSupportMethod.sni_only,
           };
         }
+        const transformedTags = Object.entries(e.tags ?? {})?.map(([Key, Value]) => ({ Key, Value })) ?? [];
         const res = await this.createDistribution(client.cloudfrontClient, {
           DistributionConfig: config,
+          Tags: { Items: transformedTags },
         });
 
         if (res) {
