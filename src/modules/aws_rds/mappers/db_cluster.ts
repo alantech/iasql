@@ -233,8 +233,11 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
       }
     },
     update: async (es: DBCluster[], ctx: Context) => {
+      console.log('in update cluster');
       const out = [];
       for (const e of es) {
+        console.log('i want to update');
+        console.log(e);
         const client = (await ctx.getAwsClient(e.region)) as AWS;
         const cloudRecord = ctx?.memo?.cloud?.DBCluster?.[this.entityId(e)];
 
@@ -257,22 +260,45 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
         }
 
         // update path
-        const clusterParams: ModifyDBClusterCommandInput = {
+        let clusterParams: ModifyDBClusterCommandInput = {
           DBClusterIdentifier: e.dbClusterIdentifier,
-          AllocatedStorage: e.allocatedStorage,
-          BackupRetentionPeriod: e.backupRetentionPeriod,
-          DBClusterInstanceClass: e.dbClusterInstanceClass,
-          DeletionProtection: e.deletionProtection,
-          EngineVersion: e.engineVersion,
-          Iops: e.iops,
-          VpcSecurityGroupIds: e.vpcSecurityGroups?.filter(sg => !!sg.groupId).map(sg => sg.groupId!) ?? [],
           ApplyImmediately: true,
         };
+
+        if (!Object.is(e.allocatedStorage, cloudRecord.allocatedStorage))
+          clusterParams.AllocatedStorage = e.allocatedStorage;
+        if (!Object.is(e.backupRetentionPeriod, cloudRecord.backupRetentionPeriod))
+          clusterParams.BackupRetentionPeriod = e.backupRetentionPeriod;
+        if (!Object.is(e.dbClusterInstanceClass, cloudRecord.dbClusterInstanceClass))
+          clusterParams.DBClusterInstanceClass = e.dbClusterInstanceClass;
+        if (!Object.is(e.deletionProtection, cloudRecord.deletionProtection))
+          clusterParams.DeletionProtection = e.deletionProtection;
+        if (!Object.is(e.engineVersion, cloudRecord.engineVersion))
+          clusterParams.EngineVersion = e.engineVersion;
+        if (!Object.is(e.iops, cloudRecord.iops)) clusterParams.Iops = e.iops;
+        if (!Object.is(e.deletionProtection, cloudRecord.deletion_protection))
+          clusterParams.DeletionProtection = e.deletionProtection;
+        if (
+          !Object.is(e.vpcSecurityGroups.length, cloudRecord.vpcSecurityGroups.length) &&
+          (e.vpcSecurityGroups?.every(
+            asg =>
+              !!cloudRecord.vpcSecurityGroups.find((bsg: { groupId: any }) =>
+                Object.is(asg.groupId, bsg.groupId),
+              ),
+          ) ??
+            false)
+        )
+          clusterParams.VpcSecurityGroupIds =
+            e.vpcSecurityGroups?.filter(sg => !!sg.groupId).map(sg => sg.groupId!) ?? [];
+
         // If a password value has been inserted, we update it.
         if (e.masterUserPassword) clusterParams.MasterUserPassword = e.masterUserPassword;
+        console.log('i update');
+        console.log(clusterParams);
 
         const result = await this.updateDBCluster(client.rdsClient, clusterParams);
         if (result) {
+          console.log('after');
           // requery to get modified fields
           const newObject = await this.getDBCluster(client.rdsClient, e.dbClusterIdentifier);
           if (newObject) {
@@ -286,11 +312,14 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
             // property is not retrieved
             newEntity.masterUserPassword = undefined;
             // Save the record back into the database to get the new fields updated
+            console.log('before db update');
             await this.module.dbCluster.db.update(newEntity, ctx);
             out.push(newEntity);
           }
         }
       }
+      console.log('update results');
+      console.log(out);
       return out;
     },
     delete: async (es: DBCluster[], ctx: Context) => {
