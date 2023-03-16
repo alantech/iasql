@@ -26,7 +26,7 @@ http://localhost:9876
 
 <ThemedImage
   alt="IaSQL dashboard"
-  style={{width: '440'}}
+  style={{ width: '440' }}
   sources={{
     light: useBaseUrl('/img/iasql-on-ec2/dashboard.png'),
     dark: useBaseUrl('/img/iasql-on-ec2/dashboard_dark.png'),
@@ -47,7 +47,7 @@ To deploy IaSQL on EC2, we need to:
 
 <ThemedImage
   alt="Overview of the resources to be deployed"
-  style={{width: '440'}}
+  style={{ width: '440' }}
   sources={{
     light: useBaseUrl('/img/iasql-on-ec2/iasql-on-ec2.png'),
     dark: useBaseUrl('/img/iasql-on-ec2/iasql-on-ec2_dark.png'),
@@ -84,7 +84,7 @@ Now it's time to launch our EC2 instance. Before we go for the instance itself, 
 
 <ThemedImage
   alt="aws_ec2 module dependencies"
-  style={{width: '440'}}
+  style={{ width: '440' }}
   sources={{
     light: useBaseUrl('/img/iasql-on-ec2/module-dependency.png'),
     dark: useBaseUrl('/img/iasql-on-ec2/module-dependency_dark.png'),
@@ -208,3 +208,42 @@ WHERE id = (SELECT id
 ```
 
 Now we can go to `http://<instance-ip>:9876/` URL, and we'll see the beautiful IaSQL dashboard deployed on our EC2 server.
+
+### Enable HTTPS and Connect To A Domain
+We're able to access the dashboard by the EC2 instance IP. There are some downsides to this IP-based access, for example we should connect to the instance using a plaintext HTTP connection. So it's better to polish this setup and:
+- Import our domain in Route53
+- Issue an SSL certificate for our domain
+- Launch an Elastic LoadBalancer and use the issued certificate to respond to incoming HTTPs traffic
+- Allow incoming traffic to the instance on port 9876 (dashboard port) only from the load balancer
+- Allow incoming traffic on the load balancer only from our IP
+
+This will make the setup very similar to IaSQL production setup.
+
+<!--Diagram Here-->
+
+Let's start with adding our domain to Route53. To be able to manage Route53 resources in IaSQL, we'll first need to install the corresponding module:
+```sql
+SELECT iasql_install('aws_route53');
+```
+Alright, now let's `INSERT` a row into the `hosted_zone` table to direct IaSQL engine to create a new Route53 hosted zone for us.
+
+:::note
+To know which tables are supported by the `aws_route53` module, you can visit [`aws_route53` module documentation](https://iasql.com/docs/modules/aws/aws_route53/).
+:::
+
+```sql
+SELECT iasql_begin();
+
+INSERT INTO hosted_zone (domain_name)
+VALUES ('<your-domain>');
+
+SELECT iasql_commit();
+```
+
+Simple `INSERT`, right? But wait! What are those `iasql_begin` and `iasql_commit` functions called before and after our insert command?
+
+To know how the above functions work, and why they exist, we should dive into the internals of IaSQL. IaSQL leverages [`pg_cron`](https://github.com/citusdata/pg_cron) Postgres extension to compare the state of the cloud with the database. Approximately every two minutes, IaSQL is triggered to check the state of the database, state of the cloud, and apply the needed changes whether on cloud or on the database. So any changes to the database will be "queued" until the next cron tick comes and applies them.
+
+But what if we need our changes to be pushed to the cloud immediately and not wait for that every-2-minutes cron tick? In that case we can surround our database modifications with a pair of `iasql_begin` and `iasql_commit`. In a nutshell, what they do is as follows:
+- `iasql_begin`: It'll stop the default cron behavior. therefore your changes won't be pushed to the cloud until you manually execute `iasql_commit`. This can be used to "batch" the changes and maybe review them (using `iasql_preview`) before applying.
+- `iasql_commit`: Immediately apply the changes from the database, and sync the state of the cloud.
