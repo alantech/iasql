@@ -31,7 +31,7 @@ Once the transaction is committed successfully and the desired changes are refle
 
 ```sql title="mycompanydb-staging"
 -- gets SQL from the audit log from a given point in time
-SELECT * FROM iasql_get_sql_since((now() - interval '2 hours')::text);
+SELECT * FROM iasql_get_sql_since(now() - interval '2 hours');
 ```
 
 Finally once everything looks good in staging, copy the SQL queries generated from invoking the `iasql_get_sql_since` in `mycompanydb-staging` as a starting point for the SQL you will run in `mycompanydb-prod`. Now `iasql_begin` a transaction in `mycompanydb-prod`, make any changes to the generated SQL if necessary, and `iasql_commit`. It is common for foreign keys, resource types, firewall settings, DNS records, etc to be different across environments.
