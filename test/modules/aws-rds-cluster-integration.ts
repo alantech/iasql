@@ -260,7 +260,7 @@ describe('DB Cluster Integration Testing', () => {
     'removes the db subnet group and its parameters',
     query(
       `
-    DELETE FROM subnet_group
+    DELETE FROM db_subnet_group
     WHERE name = '${prefix}cluster-test';
   `,
       undefined,
