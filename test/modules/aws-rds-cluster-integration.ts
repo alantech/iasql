@@ -1,3 +1,5 @@
+import { EC2 } from '@aws-sdk/client-ec2';
+
 import * as iasql from '../../src/services/iasql';
 import {
   defaultRegion,
@@ -9,24 +11,16 @@ import {
   runBegin,
   runCommit,
   runInstall,
-  runInstallAll,
   runQuery,
-  runRollback,
-  runUninstall,
 } from '../helpers';
 
 const prefix = getPrefix();
 const dbAlias = 'rdstest';
-const parameterGroupName = `${prefix}${dbAlias}pg`;
-const engineFamily = `postgres13`;
 
 const begin = runBegin.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
-const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
-const installAll = runInstallAll.bind(null, dbAlias);
-const uninstall = runUninstall.bind(null, dbAlias);
 const region = defaultRegion();
 const modules = ['aws_security_group', 'aws_rds', 'aws_vpc'];
 
@@ -36,8 +30,18 @@ afterAll(async () => await execComposeDown());
 
 let username: string, password: string;
 
+const accessKeyId = process.env.AWS_ACCESS_KEY_ID ?? '';
+const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY ?? '';
+const ec2client = new EC2({
+  credentials: {
+    accessKeyId,
+    secretAccessKey,
+  },
+  region,
+});
+
 describe('DB Cluster Integration Testing', () => {
-  it('creates a new test db elb', done => {
+  it('creates a new test db', done => {
     (async () => {
       try {
         const { user, password: pgPassword } = await iasql.connect(dbAlias, 'not-needed', 'not-needed');
@@ -92,7 +96,11 @@ describe('DB Cluster Integration Testing', () => {
     query(
       `
     INSERT INTO db_subnet_group (name, description, subnets)
-    VALUES ('${prefix}cluster-test', 'test subnet group', (select array(select subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true and vpc.region = '${region}' LIMIT 3)));
+    VALUES ('${prefix}cluster-test', 'test subnet group', (select array(
+      select subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true and vpc.region = '${region}' AND subnet.availability_zone = '${region}a' UNION
+      select subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true and vpc.region = '${region}' AND subnet.availability_zone = '${region}b' UNION
+      select subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true and vpc.region = '${region}' AND subnet.availability_zone = '${region}c'
+      )));
   `,
       undefined,
       true,
