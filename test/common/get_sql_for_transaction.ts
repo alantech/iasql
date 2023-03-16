@@ -24,7 +24,8 @@ const install = runInstall.bind(null, dbAlias);
 
 const lbName = `${dbAlias}lb`;
 const lbScheme = LoadBalancerSchemeEnum.INTERNET_FACING;
-const lbType = LoadBalancerTypeEnum.APPLICATION;
+const lbTypeApp = LoadBalancerTypeEnum.APPLICATION;
+const lbTypeNet = LoadBalancerTypeEnum.NETWORK;
 const lbIPAddressType = IpAddressType.IPV4;
 
 jest.setTimeout(360000);
@@ -73,11 +74,11 @@ describe('iasql_get_sql_for_transaction functionality', () => {
       `
         BEGIN;
           INSERT INTO load_balancer (load_balancer_name, scheme, vpc, load_balancer_type, ip_address_type)
-          VALUES ('${lbName}', '${lbScheme}', null, '${lbType}', '${lbIPAddressType}');
+          VALUES ('${lbName}', '${lbScheme}', null, '${lbTypeApp}', '${lbIPAddressType}');
 
           INSERT INTO load_balancer_security_groups(load_balancer_id, security_group_id)
-          SELECT (SELECT id FROM load_balancer WHERE load_balancer_name = '${lbName}'),
-                (SELECT id FROM security_group WHERE group_name = 'default' AND region = '${region}');
+          SELECT (SELECT id FROM load_balancer WHERE load_balancer_name = '${lbName}' LIMIT 1),
+                (SELECT id FROM security_group WHERE group_name = 'default' AND region = '${region}' LIMIT 1);
         COMMIT;
       `,
       undefined,
@@ -109,77 +110,140 @@ describe('iasql_get_sql_for_transaction functionality', () => {
       (res: any[]) => expect(res.length).toBe(1),
     ),
   );
-  
-  // todo: add tests
 
+  itDocs('preview changes done so far', query(`SELECT * FROM iasql_preview();`));
 
-  // itDocs('' 
+  itDocs(
+    'check sql for transaction',
+    query(
+      `
+    SELECT *
+    FROM iasql_get_sql_for_transaction(
+      (
+        SELECT transaction_id
+        FROM iasql_audit_log
+        WHERE change_type = 'OPEN_TRANSACTION'
+        ORDER BY ts DESC
+        LIMIT 1
+      )
+    );
+    `,
+      (res: any) => {
+        console.log(JSON.stringify(res));
+        expect(res.length).toBe(2);
+        expect(res[0].sql).toContain(`INSERT INTO load_balancer (`);
+        expect(res[1].sql).toContain(`INSERT INTO load_balancer_security_groups (`);
+      },
+    ),
+  );
 
-  // itDocs(
-  //   'checks sql sub-query tables load_balancer and security_group for load_balancer_security_group join table',
-  //   query(
-  //     `
-  //       SELECT * FROM iasql_get_sql_since();
-  //     `,
-  //     (res: any) => {
-  //       expect(
-  //         res.find((o: { sql: string }) => o.sql.includes('load_balancer_security_group')).sql,
-  //       ).toContain(`SELECT id FROM load_balancer`);
-  //       expect(
-  //         res.find((o: { sql: string }) => o.sql.includes('load_balancer_security_group')).sql,
-  //       ).toContain(`SELECT id FROM security_group`);
-  //     },
-  //   ),
-  // );
+  itDocs(
+    'Updates the load balancer',
+    query(
+      `
+        UPDATE load_balancer
+        SET load_balancer_type = '${lbTypeNet}'
+        WHERE load_balancer_name = '${lbName}';
+      `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
 
-  // it(
-  //   'Force latest inserts to have the same timestamp (this would be the case if on install we bring some load balancers from the cloud)',
-  //   query(
-  //     `
-  //       WITH load_balancer_ts AS (
-  //         SELECT ts
-  //         FROM iasql_audit_log
-  //         WHERE change_type = 'INSERT' AND table_name = 'load_balancer'
-  //         ORDER BY ts DESC
-  //         LIMIT 1
-  //       )
-  //       UPDATE iasql_audit_log
-  //       SET ts = load_balancer_ts.ts
-  //       FROM load_balancer_ts
-  //       WHERE change_type = 'INSERT' AND table_name = 'load_balancer_security_groups'
-  //     `,
-  //     undefined,
-  //     true,
-  //   ),
-  // );
+  it(
+    'checks load_balancer type update',
+    query(
+      `
+        SELECT *
+        FROM load_balancer
+        WHERE load_balancer_name = '${lbName}' AND load_balancer_type = '${lbTypeNet}';
+      `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
 
-  // itDocs(
-  //   'checks timestamp update',
-  //   query(
-  //     `
-  //       SELECT *
+  it(
+    'checks load_balancer type update',
+    query(
+      `
+        SELECT *
+        FROM load_balancer
+        WHERE load_balancer_name = '${lbName}' AND load_balancer_type = '${lbTypeApp}';
+      `,
+      (res: any[]) => expect(res.length).toBe(0),
+    ),
+  );
+
+  itDocs('preview changes done so far', query(`SELECT * FROM iasql_preview();`));
+
+  itDocs(
+    'check sql for transaction',
+    query(
+      `
+    SELECT *
+    FROM iasql_get_sql_for_transaction(
+      (
+        SELECT transaction_id
+        FROM iasql_audit_log
+        WHERE change_type = 'OPEN_TRANSACTION'
+        ORDER BY ts DESC
+        LIMIT 1
+      )
+    );
+    `,
+      (res: any) => {
+        console.log(JSON.stringify(res));
+        expect(res.length).toBe(3);
+        expect(res[2].sql).toContain(`UPDATE load_balancer`);
+      },
+    ),
+  );
+
+  itDocs(
+    'Deletes the load balancer',
+    query(
+      `
+        DELETE FROM load_balancer
+        WHERE load_balancer_name = '${lbName}';
+      `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it(
+    'checks load_balancer deletion',
+    query(
+      `
+        SELECT *
+        FROM load_balancer
+        WHERE load_balancer_name = '${lbName}';
+      `,
+      (res: any[]) => expect(res.length).toBe(0),
+    ),
+  );
+
+  itDocs('preview changes done so far', query(`SELECT * FROM iasql_preview();`));
+
+  // TODO: revive once the query is recreated properly
+  // itDocs('check sql for transaction', query(`
+  //   SELECT *
+  //   FROM iasql_get_sql_for_transaction(
+  //     (
+  //       SELECT transaction_id
   //       FROM iasql_audit_log
-  //       WHERE change_type = 'INSERT' AND table_name IN ('load_balancer_security_groups', 'load_balancer');
-  //     `,
-  //     (res: any) => {
-  //       expect(res.length).toBe(2);
-  //       expect(res[0].ts).toStrictEqual(res[1].ts);
-  //     },
-  //   ),
-  // );
-
-  // it(
-  //   'checks correct order of sql statements',
-  //   query(
-  //     `
-  //       SELECT * FROM iasql_get_sql_since();
-  //     `,
-  //     (res: any) => {
-  //       expect(res[res.length - 1].sql).toContain(`INSERT INTO load_balancer_security_groups (`);
-  //       expect(res[res.length - 2].sql).toContain(`INSERT INTO load_balancer (`);
-  //     },
-  //   ),
-  // );
+  //       WHERE change_type = 'OPEN_TRANSACTION'
+  //       ORDER BY ts DESC
+  //       LIMIT 1
+  //     )
+  //   );
+  //   `, (res: any) => {
+  //     console.log(JSON.stringify(res))
+  //   expect(res.length).toBe(5);
+  //   expect(res[3].sql).toContain(`DELETE FROM load_balancer`);
+  // }));
 
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 });
