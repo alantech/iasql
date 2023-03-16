@@ -186,4 +186,15 @@ export class Distribution {
    */
   @Column('varchar', { array: true, nullable: true })
   alternateDomainNames?: string[];
+
+  /**
+   * @public
+   * Complex type to provide identifier tags
+   * @see https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-cloudfront/interfaces/tags.html
+   */
+  @Column({
+    type: 'json',
+    nullable: true,
+  })
+  tags?: { [key: string]: string };
 }
