@@ -26,8 +26,12 @@ import { SQS } from '@aws-sdk/client-sqs';
 import { SSM } from '@aws-sdk/client-ssm';
 import { STS } from '@aws-sdk/client-sts';
 import { defaultRetryDecider, StandardRetryStrategy } from '@aws-sdk/middleware-retry';
+import { NodeHttpHandler } from '@aws-sdk/node-http-handler';
+import { HttpProxyAgent, HttpsProxyAgent } from 'hpagent';
 
 import config from '../config';
+
+const useProxy = !!process.env.HTTPS_PROXY && !!process.env.HTTP_PROXY;
 
 export type AWSCreds = {
   accessKeyId: string;
@@ -38,6 +42,7 @@ export type AWSCreds = {
 export type AWSConfig = {
   credentials: AWSCreds;
   region: string;
+  requestHandler?: NodeHttpHandler;
 };
 
 // The commented ones below are the "correct" way to do this as far as I can tell from the docs, but
@@ -124,6 +129,16 @@ export class AWS {
           ),
         ),
     });
+
+    // If the user defined the env vars for a proxy, create a proxy handler and inject it into the
+    // config
+    if (useProxy) {
+      awsConfig.requestHandler = new NodeHttpHandler({
+        // Forcing it as defined since `useProxy` can only be defined if both env vars are
+        httpAgent: new HttpProxyAgent({ proxy: process.env.HTTP_PROXY! }),
+        httpsAgent: new HttpsProxyAgent({ proxy: process.env.HTTPS_PROXY! }),
+      });
+    }
 
     this.region = awsConfig.region;
     this.apiGatewayClient = new ApiGatewayV2({
