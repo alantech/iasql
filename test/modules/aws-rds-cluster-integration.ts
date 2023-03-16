@@ -172,7 +172,7 @@ describe('DB Cluster Integration Testing', () => {
   it('starts a transaction', begin());
 
   itDocs(
-    'changes the mysql version',
+    'changes the backup retention period',
     query(
       `
     UPDATE db_cluster SET backup_retention_period=10 WHERE db_cluster_identifier = '${prefix}cluster-test';
@@ -190,10 +190,38 @@ describe('DB Cluster Integration Testing', () => {
     query(
       `
     SELECT *
-    FROM rds
-    WHERE db_instance_identifier = '${prefix}cluster-test' AND backup_retention_period=10;
+    FROM db_cluster
+    WHERE db_cluster_identifier = '${prefix}cluster-test' AND backup_retention_period=10;
   `,
       (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it('starts a transaction', begin());
+
+  itDocs(
+    'tries to update an instance belonging to a cluster',
+    query(
+      `
+    UPDATE rds SET backup_retention_period=3 WHERE db_cluster_id = (SELECT id FROM db_cluster WHERE db_cluster_identifier='${prefix}cluster-test');
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it('applies the change', commit());
+
+  itDocs(
+    'check that backup retention period for instances has not been modified',
+    query(
+      `
+    SELECT *
+    FROM rds
+    WHERE db_cluster_id = (SELECT id FROM db_cluster WHERE db_cluster_identifier = '${prefix}cluster-test');
+  `,
+      (res: any[]) => expect(res.length).toBe(0),
     ),
   );
 
