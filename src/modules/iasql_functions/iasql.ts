@@ -636,7 +636,7 @@ export async function commit(
   // We save the incoming orm from context if any and re-assign it before exiting
   const parentOrm = context?.orm;
   let orm: TypeormWrapper | null = null;
-  let currentTransactionId: string | undefined = undefined;
+  let currentTransactionId: string | null = null;
   try {
     orm = ormOpt ? ormOpt : await TypeormWrapper.createConn(dbId);
     context.orm = orm;
@@ -746,13 +746,11 @@ export async function commit(
     throw e;
   } finally {
     // Add transaction id to all audit log records inserted by iasql
-    if (orm && currentTransactionId) {
-      await updateIasqlRecordsSince(
-        dryRun ? AuditLogChangeType.PREVIEW_START_COMMIT : AuditLogChangeType.START_COMMIT,
-        orm,
-        currentTransactionId,
-      );
-    }
+    await updateIasqlRecordsSince(
+      dryRun ? AuditLogChangeType.PREVIEW_START_COMMIT : AuditLogChangeType.START_COMMIT,
+      orm,
+      currentTransactionId,
+    );
     // Create end commit object
     await insertLog(
       orm,
@@ -1026,7 +1024,7 @@ export async function rollback(dbId: string, context: Context, force = false, or
   // We save the incoming orm from context if any and re-assign it before exiting
   const parentOrm = context?.orm;
   let orm: TypeormWrapper | null = null;
-  let currentTransactionId: string | undefined = undefined;
+  let currentTransactionId: string | null = null;
   try {
     orm = ormOpt ? ormOpt : await TypeormWrapper.createConn(dbId);
     context.orm = orm;
@@ -1062,9 +1060,7 @@ export async function rollback(dbId: string, context: Context, force = false, or
     throw e;
   } finally {
     // Add transaction id to all audit log records inserted by iasql
-    if (orm && currentTransactionId) {
-      await updateIasqlRecordsSince(AuditLogChangeType.START_COMMIT, orm, currentTransactionId);
-    }
+    await updateIasqlRecordsSince(AuditLogChangeType.START_COMMIT, orm, currentTransactionId);
     // Create end commit object
     await insertLog(orm, AuditLogChangeType.END_COMMIT, currentTransactionId);
     // do not drop the conn if it was provided
@@ -1108,7 +1104,7 @@ export async function isCommitRunning(orm: TypeormWrapper): Promise<boolean> {
 async function insertLog(
   orm: TypeormWrapper | null,
   changeType: AuditLogChangeType,
-  transactionId?: string,
+  transactionId: string | null = null,
 ): Promise<IasqlAuditLog> {
   const commitLog = new IasqlAuditLog();
   commitLog.user = config.db.user;
@@ -1930,7 +1926,7 @@ export async function isOpenTransaction(orm: TypeormWrapper): Promise<boolean> {
 export async function insertErrorLog(
   orm: TypeormWrapper | null,
   err: string,
-  transactionId?: string,
+  transactionId: string | null = null,
 ): Promise<void> {
   const errorLog = new IasqlAuditLog();
   errorLog.user = config.db.user;
@@ -1962,23 +1958,23 @@ export async function getCurrentTransactionId(orm: TypeormWrapper): Promise<stri
 }
 
 async function associateTransaction(
-  orm: TypeormWrapper,
+  orm: TypeormWrapper | null,
   changes: IasqlAuditLog[],
-  transactionId: string,
+  transactionId: string | null = null,
 ): Promise<void> {
   for (const change of changes) {
-    change.transactionId = transactionId;
+    if (transactionId) change.transactionId = transactionId;
   }
-  await orm.save(IasqlAuditLog, changes);
+  await orm?.save(IasqlAuditLog, changes);
 }
 
 async function updateIasqlRecordsSince(
   changeType: AuditLogChangeType,
-  orm: TypeormWrapper,
-  transactionId: string,
+  orm: TypeormWrapper | null,
+  transactionId: string | null = null,
 ): Promise<void> {
   // Get last `AuditLogChangeType` record
-  const lastChangeTypeLog: IasqlAuditLog | undefined = await orm.findOne(IasqlAuditLog, {
+  const lastChangeTypeLog: IasqlAuditLog | undefined = await orm?.findOne(IasqlAuditLog, {
     order: { ts: 'DESC' },
     where: {
       changeType,
@@ -1986,7 +1982,7 @@ async function updateIasqlRecordsSince(
   });
   if (!lastChangeTypeLog) return;
   // Get iasql_audit_log records since last AuditLogChangeType`
-  const changes = await orm.find(IasqlAuditLog, {
+  const changes = await orm?.find(IasqlAuditLog, {
     order: { ts: 'DESC' },
     where: {
       changeType: In(['INSERT', 'UPDATE', 'DELETE']),
