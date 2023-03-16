@@ -54,7 +54,9 @@ echo 'datasource db {
 Project IaSQL {
   database_type: 'PostgreSQL'
   Note: '''
-    [IaSQL](https://iasql.com) - Cloud infrastructure as data in PostgreSQL
+    # IaSQL
+    Cloud infrastructure as data in PostgreSQL
+    https://iasql.com
   '''
 }
 
