@@ -38,7 +38,7 @@ jobs:
           while ! psql postgres://postgres:test@localhost:5432/iasql_metadata -b -q -c "SELECT iasql_engine_health()"; do sleep 1 && echo -n .; done;
 
       - name: Run generation script
-        run: dbdoc-ci.sh
+        run: ./dbdoc-ci.sh
         env:
           DBDOCS_TOKEN: ${{ secrets.DBDOCS_TOKEN }}
           # no infrastructure changes so aws envs are irrelevant
