@@ -1,7 +1,7 @@
 import * as levenshtein from 'fastest-levenshtein';
 import { default as cloneDeep } from 'lodash.clonedeep';
 import format from 'pg-format';
-import { Between, EntityMetadata, In, LessThan, MoreThan, Not } from 'typeorm';
+import { Between, EntityMetadata, In, IsNull, LessThan, MoreThan, Not } from 'typeorm';
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
 import { ColumnMetadata } from 'typeorm/metadata/ColumnMetadata';
 import { RelationMetadata } from 'typeorm/metadata/RelationMetadata';
@@ -658,7 +658,7 @@ export async function commit(
 
     const changesToCommit = await getChangesToCommit(orm, newStartCommit, previousStartCommit);
     // update changes to commit with the new transaction id
-    await updateChangesToCommit(orm, changesToCommit, currentTransactionId);
+    await associateTransaction(orm, changesToCommit, currentTransactionId);
     const tablesWithChanges = [...new Set(changesToCommit.map(c => c.tableName))];
 
     const installedModulesNames = (await orm.find(IasqlModule)).map((m: any) => m.name);
@@ -745,6 +745,14 @@ export async function commit(
     await insertErrorLog(orm, logErrSentry(e), currentTransactionId);
     throw e;
   } finally {
+    // Add transaction id to all audit log records inserted by iasql
+    if (orm && currentTransactionId) {
+      await updateIasqlRecordsSince(
+        dryRun ? AuditLogChangeType.PREVIEW_START_COMMIT : AuditLogChangeType.START_COMMIT,
+        orm,
+        currentTransactionId,
+      );
+    }
     // Create end commit object
     await insertLog(
       orm,
@@ -777,6 +785,8 @@ async function revert(
   } catch (e) {
     throw e;
   } finally {
+    // Update iasql audit log records with the current transaction id
+    await updateIasqlRecordsSince(AuditLogChangeType.START_REVERT, ctx.orm, currentTransactionId);
     await insertLog(ctx.orm, AuditLogChangeType.END_REVERT, currentTransactionId);
   }
 }
@@ -1051,6 +1061,10 @@ export async function rollback(dbId: string, context: Context, force = false, or
     await insertErrorLog(orm, logErrSentry(e), currentTransactionId);
     throw e;
   } finally {
+    // Add transaction id to all audit log records inserted by iasql
+    if (orm && currentTransactionId) {
+      await updateIasqlRecordsSince(AuditLogChangeType.START_COMMIT, orm, currentTransactionId);
+    }
     // Create end commit object
     await insertLog(orm, AuditLogChangeType.END_COMMIT, currentTransactionId);
     // do not drop the conn if it was provided
@@ -1895,6 +1909,8 @@ export async function maybeOpenTransaction(orm: TypeormWrapper): Promise<void> {
 export async function closeTransaction(orm: TypeormWrapper): Promise<void> {
   // Get current transaction identifier
   const currentTransactionId = await getCurrentTransactionId(orm);
+  // Assign transaction id to all possible iasql created records after the transaction was opened
+  await updateIasqlRecordsSince(AuditLogChangeType.OPEN_TRANSACTION, orm, currentTransactionId);
   await insertLog(orm, AuditLogChangeType.CLOSE_TRANSACTION, currentTransactionId);
 }
 
@@ -1945,13 +1961,39 @@ async function getCurrentTransactionId(orm: TypeormWrapper): Promise<string> {
   return transaction ? transaction.transactionId : '<no-id-found>';
 }
 
-async function updateChangesToCommit(
+async function associateTransaction(
   orm: TypeormWrapper,
   changes: IasqlAuditLog[],
   transactionId: string,
 ): Promise<void> {
   for (const change of changes) {
     change.transactionId = transactionId;
-    await orm.save(IasqlAuditLog, change);
   }
+  await orm.save(IasqlAuditLog, changes);
+}
+
+async function updateIasqlRecordsSince(
+  changeType: AuditLogChangeType,
+  orm: TypeormWrapper,
+  transactionId: string,
+): Promise<void> {
+  // Get last `AuditLogChangeType` record
+  const lastChangeTypeLog: IasqlAuditLog | undefined = await orm.findOne(IasqlAuditLog, {
+    order: { ts: 'DESC' },
+    where: {
+      changeType,
+    },
+  });
+  if (!lastChangeTypeLog) return;
+  // Get iasql_audit_log records since last AuditLogChangeType`
+  const changes = await orm.find(IasqlAuditLog, {
+    order: { ts: 'DESC' },
+    where: {
+      changeType: In(['INSERT', 'UPDATE', 'DELETE']),
+      transactionId: IsNull(),
+      ts: MoreThan(lastChangeTypeLog.ts),
+      user: config.db.user,
+    },
+  });
+  await associateTransaction(orm, changes, transactionId);
 }
