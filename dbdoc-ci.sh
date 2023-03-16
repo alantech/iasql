@@ -51,11 +51,6 @@ echo 'datasource db {
   url      = env("DATABASE_URL")
 }
 
-Project IaSQL {
-  database_type: 'PostgreSQL'
-  Note: 'https://iasql.com'
-}
-
 generator dbml {
   provider = "prisma-dbml-generator"
   outputName = "iasql.dbml"
@@ -70,6 +65,13 @@ rm prisma/schema.prisma; mv prisma/out.prisma prisma/schema.prisma
 
 echo "\nGenerate dbml from prisma schema"
 npx prisma generate
+
+echo "\nProject IaSQL {
+  database_type: "PostgreSQL"
+  Note: '''
+    [IaSQL](https://iasql.com): Cloud infrastructure as data in PostgreSQL
+  '''
+}" >> prisma/dbml/iasql.dbml
 
 echo "\nUploading new dbml to dbdocs..."
 dbdocs build prisma/dbml/iasql.dbml --project=iasql
