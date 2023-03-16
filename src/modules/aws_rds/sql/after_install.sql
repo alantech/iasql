@@ -11,11 +11,16 @@ $block_rds_in_cluster_pk_update$ LANGUAGE plpgsql;
 CREATE TRIGGER
   block_rds_in_cluster_pk_update BEFORE
 UPDATE
-  ON rds FOR EACH ROW WHEN ((
-    OLD.region IS DISTINCT
-    FROM
-      NEW.region OR OLD.db_instance_identifier IS DISTINCT FROM NEW.db_instance_identifier)
-      AND OLD.db_cluster_id IS NOT NULL
+  ON rds FOR EACH ROW WHEN (
+    (
+      OLD.region IS DISTINCT
+      FROM
+        NEW.region
+        OR OLD.db_instance_identifier IS DISTINCT
+      FROM
+        NEW.db_instance_identifier
+    )
+    AND OLD.db_cluster_id IS NOT NULL
   )
 EXECUTE
   FUNCTION block_rds_in_cluster_pk_update ();

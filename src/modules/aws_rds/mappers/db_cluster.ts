@@ -16,6 +16,7 @@ import { AWS, crudBuilderFormat, paginateBuilder } from '../../../services/aws_m
 import { awsSecurityGroupModule } from '../../aws_security_group';
 import { Context, Crud, MapperBase } from '../../interfaces';
 import { DBCluster, dbClusterEngineEnum } from '../entity/db_cluster';
+import supportedRegions from './supported_regions';
 
 export class DBClusterMapper extends MapperBase<DBCluster> {
   module: AwsRdsModule;
@@ -224,22 +225,26 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
       const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
       if (id) {
         const { dbClusterIdentifier, region } = this.idFields(id);
-        const client = (await ctx.getAwsClient(region)) as AWS;
-        const rawCluster = await this.getDBCluster(client.rdsClient, dbClusterIdentifier);
-        if (!rawCluster || rawCluster.Engine?.includes('aurora')) return;
-        const result = await this.dbClusterMapper(rawCluster, ctx, region);
-        return result;
+        if (supportedRegions.includes(region)) {
+          const client = (await ctx.getAwsClient(region)) as AWS;
+          const rawCluster = await this.getDBCluster(client.rdsClient, dbClusterIdentifier);
+          if (!rawCluster || rawCluster.Engine?.includes('aurora')) return;
+          const result = await this.dbClusterMapper(rawCluster, ctx, region);
+          return result;
+        }
       } else {
         const out: DBCluster[] = [];
         await Promise.all(
           enabledRegions.map(async region => {
-            const client = (await ctx.getAwsClient(region)) as AWS;
-            const clusters = await this.getDBClusters(client.rdsClient);
-            for (const cluster of clusters) {
-              if (cluster.Engine.includes('aurora')) continue; // no support for aurora
-              const c = await this.dbClusterMapper(cluster, ctx, region);
-              if (!c) continue;
-              out.push(c);
+            if (supportedRegions.includes(region)) {
+              const client = (await ctx.getAwsClient(region)) as AWS;
+              const clusters = await this.getDBClusters(client.rdsClient);
+              for (const cluster of clusters) {
+                if (cluster.Engine.includes('aurora')) continue; // no support for aurora
+                const c = await this.dbClusterMapper(cluster, ctx, region);
+                if (!c) continue;
+                out.push(c);
+              }
             }
           }),
         );
@@ -274,7 +279,7 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
         }
 
         // update path
-        let clusterParams: ModifyDBClusterCommandInput = {
+        const clusterParams: ModifyDBClusterCommandInput = {
           DBClusterIdentifier: e.dbClusterIdentifier,
           ApplyImmediately: true,
         };
@@ -315,7 +320,7 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
           // wait until cluster is available again
           console.log('after');
           // requery to get modified fields after waiting for cache expiration
-          await new Promise(r => setTimeout(r, 41000));          
+          await new Promise(r => setTimeout(r, 41000));
           const newObject = await this.getDBCluster(client.rdsClient, e.dbClusterIdentifier);
           if (newObject) {
             const newEntity = await this.dbClusterMapper(newObject, ctx, e.region);
