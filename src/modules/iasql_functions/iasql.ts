@@ -326,22 +326,6 @@ ${Object.keys(tableCollisions)
         dbId,
       );
     }
-    (async () => {
-      const user = await MetadataRepo.getUserFromDbId(dbId);
-      if (user && (moduleNames.length > 0 || moduleNames[0] !== 'aws_account')) {
-        // ignore installing of aws_account only on connect
-        telemetry.logInstall(
-          user?.id,
-          {
-            dbId,
-          },
-          {
-            params: moduleNames,
-            output: 'Done!',
-          },
-        );
-      }
-    })();
     return 'Done!';
   } catch (e: any) {
     throw e;
@@ -455,21 +439,6 @@ export async function uninstall(moduleList: string[], dbId: string, force = fals
   } finally {
     await queryRunner.release();
   }
-  (async () => {
-    const user = await MetadataRepo.getUserFromDbId(dbId);
-    if (user) {
-      telemetry.logUninstall(
-        user?.id,
-        {
-          dbId,
-        },
-        {
-          params: moduleList,
-          output: 'Done!',
-        },
-      );
-    }
-  })();
   return 'Done!';
 }
 
