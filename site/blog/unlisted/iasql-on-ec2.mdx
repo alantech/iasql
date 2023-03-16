@@ -221,6 +221,8 @@ This will make the setup very similar to IaSQL production setup.
 
 <!--Diagram Here-->
 
+#### Import Domain In Route53
+
 Let's start with adding our domain to Route53. To be able to manage Route53 resources in IaSQL, we'll first need to install the corresponding module:
 ```sql
 SELECT iasql_install('aws_route53');
@@ -240,10 +242,40 @@ VALUES ('<your-domain>');
 SELECT iasql_commit();
 ```
 
+:::note
 Simple `INSERT`, right? But wait! What are those `iasql_begin` and `iasql_commit` functions called before and after our insert command?
 
-To know how the above functions work, and why they exist, we should dive into the internals of IaSQL. IaSQL leverages [`pg_cron`](https://github.com/citusdata/pg_cron) Postgres extension to compare the state of the cloud with the database. Approximately every two minutes, IaSQL is triggered to check the state of the database, state of the cloud, and apply the needed changes whether on cloud or on the database. So any changes to the database will be "queued" until the next cron tick comes and applies them.
+To know how the above functions work, and why they exist, we should dive into the internals of IaSQL. IaSQL leverages [`pg_cron`](https://github.com/citusdata/pg_cron) Postgres extension to compare the state of the cloud with the database periodically. Every two minutes (or so), IaSQL is triggered to check the state of the database, state of the cloud, and apply the needed changes either on cloud or on the database. So any changes to the database will be "queued" until the next cron tick is triggered.
 
-But what if we need our changes to be pushed to the cloud immediately and not wait for that every-2-minutes cron tick? In that case we can surround our database modifications with a pair of `iasql_begin` and `iasql_commit`. In a nutshell, what they do is as follows:
-- `iasql_begin`: It'll stop the default cron behavior. therefore your changes won't be pushed to the cloud until you manually execute `iasql_commit`. This can be used to "batch" the changes and maybe review them (using `iasql_preview`) before applying.
-- `iasql_commit`: Immediately apply the changes from the database, and sync the state of the cloud.
+But what if we need our changes to be pushed to the cloud immediately and not wait for that every-2-minutes cron tick? Or perhaps we don't want our changes to be applied to the cloud, and we want to make a batch of changes, without getting interrupted by that possibly-in-middle cron tick that partially applies the changes? In that case we can surround our database modifications with a pair of `iasql_begin` and `iasql_commit`. In a nutshell, what they do is as follows:
+- `iasql_begin`: It'll stop the default cron behavior. Therefore, your changes won't be pushed to the cloud until you manually execute `iasql_commit`. This can be used to "batch" the changes and maybe review them (using `iasql_preview`) before applying. Or rolling back the whole batch (by `iasql_rollback`).
+- `iasql_commit`: Immediately apply the changes from the database to the cloud, and sync the state of the cloud back into the database afterwards.
+
+So why do we have those functions around our insert command? Because we don't want to wait for 2 minutes until the engine decides to push our changes and want them NOW! Why do we want them now? Maybe because we're just impatient, but also because we're going to call an RPC that needs the hosted zone configured for it to work properly.
+:::
+
+Now that we have created our hosted zone, we need to set our domain's nameservers to the ones that Route53 provides us. For each public hosted zone that you create, Amazon Route53 [automatically creates](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/SOA-NSrecords.html) a name server (NS) record and a start of authority (SOA) record. So we should log into the domain registrar, and set the name server values to the four name server values that Route53 has set. To get those values, we can simply run a `SELECT` query:
+```sql
+SELECT record as name_server
+FROM resource_record_set
+WHERE parent_hosted_zone_id = (SELECT id FROM hosted_zone WHERE domain_name = '<your-domain>')
+  AND record_type = 'NS';
+```
+After updating the name servers in the domain settings, we need to wait for those values to be propagated. This can happen in minutes, or even up to 48 hours depending on the registrar.
+
+#### Issue An SSL Certificate For Our Domain
+Having the domain setup in Route53, it's easy to use IaSQL's `certificate_request` RPC to issue a new certificate for it. If you try to go with this procedure through AWS console, you'll need to manually add the CNAME records from the AWS ACM to your hosted zone. But this RPC is implemented in a way that automagically [sets the DNS records](https://github.com/iasql/iasql/blob/ed1b1ef92ceaa92e7345449992c35a56b62fe571/src/modules/aws_acm/rpcs/request.ts#L177-L188), [waits for the certificate to be issued](https://github.com/iasql/iasql/blob/ed1b1ef92ceaa92e7345449992c35a56b62fe571/src/modules/aws_acm/rpcs/request.ts#L197), and then [removes those validation DNS records](https://github.com/iasql/iasql/blob/ed1b1ef92ceaa92e7345449992c35a56b62fe571/src/modules/aws_acm/rpcs/request.ts#L200).
+
+```sql
+-- SELECT iasql_install('aws_acm'); -- no need for this because aws_route53 depends on it and it's automatically installed
+SELECT certificate_request('<your-domain>', 'DNS', default_aws_region(), '{}');
+
+-- inspect the new certificate
+SELECT *
+FROM certificate
+WHERE domain_name = '<your-domain>' AND status = 'ISSUED';
+```
+
+The second query confirms that we have a new certificate for our domain, and it's ready to be used (status = `ISSUED`). Now we're ready to launch our load balancer, listen for HTTPS traffic with this new certificate, and forward the incoming traffic to our EC2 instance's 9876 port.
+
+#### Spawn An Elastic Load Balancer
