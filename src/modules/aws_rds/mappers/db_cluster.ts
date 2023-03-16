@@ -7,6 +7,7 @@ import {
   ModifyDBClusterCommandInput,
   DeleteDBClusterMessage,
   waitUntilDBClusterDeleted,
+  waitUntilDBInstanceAvailable,
 } from '@aws-sdk/client-rds';
 import { WaiterOptions, WaiterState } from '@aws-sdk/util-waiter';
 
@@ -114,8 +115,8 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
 
   async updateDBCluster(client: RDS, clusterParams: ModifyDBClusterCommandInput) {
     await client.modifyDBCluster(clusterParams);
-    // wait until cluster is available
-    const result = await waitUntilDBClusterAvailable(
+    // wait until cluster and instances are available
+    let result = await waitUntilDBClusterAvailable(
       {
         client,
         // all in seconds
@@ -125,7 +126,20 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
       } as WaiterOptions<RDS>,
       { DBClusterIdentifier: clusterParams.DBClusterIdentifier },
     );
-    return result.state === WaiterState.SUCCESS;
+    if (result.state !== WaiterState.SUCCESS) return false;
+
+    result = await waitUntilDBInstanceAvailable(
+      {
+        client,
+        // all in seconds
+        maxWaitTime: 900,
+        minDelay: 1,
+        maxDelay: 4,
+      } as WaiterOptions<RDS>,
+      { DBInstanceIdentifier: clusterParams.DBClusterIdentifier + '-instance-1' },
+    );
+    if (result.state !== WaiterState.SUCCESS) return false;
+    return true;
   }
 
   async deleteDBCluster(client: RDS, deleteInput: DeleteDBClusterMessage) {
@@ -271,7 +285,7 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
           clusterParams.BackupRetentionPeriod = e.backupRetentionPeriod;
         if (!Object.is(e.dbClusterInstanceClass, cloudRecord.dbClusterInstanceClass))
           clusterParams.DBClusterInstanceClass = e.dbClusterInstanceClass;
-        if (!Object.is(e.deletionProtection, cloudRecord.deletionProtection))
+        if (clusterParams.DeletionProtection !== cloudRecord.deletionProtection)
           clusterParams.DeletionProtection = e.deletionProtection;
         if (!Object.is(e.engineVersion, cloudRecord.engineVersion))
           clusterParams.EngineVersion = e.engineVersion;
@@ -298,6 +312,7 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
 
         const result = await this.updateDBCluster(client.rdsClient, clusterParams);
         if (result) {
+          // wait until cluster is available again
           console.log('after');
           // requery to get modified fields
           const newObject = await this.getDBCluster(client.rdsClient, e.dbClusterIdentifier);
