@@ -314,7 +314,8 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
         if (result) {
           // wait until cluster is available again
           console.log('after');
-          // requery to get modified fields
+          // requery to get modified fields after waiting for cache expiration
+          await new Promise(r => setTimeout(r, 41000));          
           const newObject = await this.getDBCluster(client.rdsClient, e.dbClusterIdentifier);
           if (newObject) {
             const newEntity = await this.dbClusterMapper(newObject, ctx, e.region);
