@@ -261,6 +261,8 @@ async function recreateSubQuery(
       logger.warn(e.message ?? 'Error finding relation');
       e = null;
     }
+    // Entity might have been deleted.
+    if (e === null) return '<relation_not_found>';
     let values = await Promise.all(
       cloudColumns.map(
         async (cc: string) =>
