@@ -19,7 +19,7 @@ on:
         'Dockerfile',
       ]
   pull_request:
-    branches: [main]
+    branches: [main, transaction-and-log]
     paths:
       [
         '.github/workflows/tests.yml',
