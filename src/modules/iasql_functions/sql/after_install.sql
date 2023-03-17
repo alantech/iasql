@@ -83,7 +83,7 @@ OR REPLACE FUNCTION maybe_commit () RETURNS TEXT LANGUAGE plpgsql SECURITY INVOK
 declare
     _change_type text;
     _ts TIMESTAMP WITH TIME ZONE;
-    _30_min_interval TIMESTAMP WITH TIME ZONE;
+    _5_hrs_interval TIMESTAMP WITH TIME ZONE;
     _almost_2_min_interval TIMESTAMP WITH TIME ZONE;
     _current_ts TIMESTAMP WITH TIME ZONE;
 begin
