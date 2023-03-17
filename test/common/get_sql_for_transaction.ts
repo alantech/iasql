@@ -64,6 +64,22 @@ describe('iasql_get_sql_for_transaction functionality', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
+  it('syncs the regions', commit());
+
+  it(
+    'sets the default region',
+    query(
+      `
+        UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
+      `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
   itDocs('installs the aws_elb module', install(['aws_elb']));
 
   itDocs('begin a transaction', begin());
