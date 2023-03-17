@@ -46,8 +46,11 @@ Reach out on Discord
 
 ## 🔨 Use cases
 
-- [Get started with ECR+ECS+ELB in minutes by using our ejectable abstraction for those services directly in your AWS account](https://iasql.com/blog/ecs-simplified)
+- [ECS Simplified! Get started in minutes with ECR+ECS+ELB by using our ejectable abstraction for those services directly in your AWS account](https://iasql.com/blog/ecs-simplified)
 - [Save on AWS by deleting untagged ECR images](https://iasql.com/blog/ecr-save)
+- [Deploy a static website](https://iasql.com/blog/deploy-static-website)
+- [Save $ on public S3 buckets using VPC endpoints via SQL](https://iasql.com/blog/save-s3-vpc)
+- [Securely connect to an Amazon RDS via PrivateLink](https://iasql.com/blog/rds-privatelink)
 
 ## 📄 Documentation
 
