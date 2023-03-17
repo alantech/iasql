@@ -131,7 +131,9 @@ describe('iasql_get_sql_for_transaction functionality', () => {
       (res: any) => {
         console.log(JSON.stringify(res));
         expect(res.length).toBe(2);
-        expect(res[0].sql).toContain(`INSERT INTO load_balancer (`);
+        expect(res[0].sql).toBe(
+          `INSERT INTO load_balancer (load_balancer_name, scheme, load_balancer_type, ip_address_type, region) VALUES ('${lbName}', '${lbScheme}', '${lbTypeApp}', '${lbIPAddressType}', (SELECT region FROM aws_regions WHERE region = '${region}'));`,
+        );
         expect(res[1].sql).toContain(`INSERT INTO load_balancer_security_groups (`);
       },
     ),
@@ -195,7 +197,9 @@ describe('iasql_get_sql_for_transaction functionality', () => {
       (res: any) => {
         console.log(JSON.stringify(res));
         expect(res.length).toBe(3);
-        expect(res[2].sql).toContain(`UPDATE load_balancer`);
+        expect(res[2].sql).toBe(
+          `UPDATE load_balancer SET load_balancer_name = '${lbName}', load_balancer_arn = NULL, dns_name = NULL, canonical_hosted_zone_id = NULL, created_time = NULL, scheme = '${lbScheme}', state = NULL, load_balancer_type = '${lbTypeNet}', subnets = NULL, availability_zones = NULL, ip_address_type = '${lbIPAddressType}', customer_owned_ipv4_pool = NULL, region = (SELECT region FROM aws_regions WHERE region = '${region}'), attributes = NULL, vpc = NULL WHERE load_balancer_name = '${lbName}' AND scheme = '${lbScheme}' AND load_balancer_type = '${lbTypeApp}' AND ip_address_type = '${lbIPAddressType}' AND region = (SELECT region FROM aws_regions WHERE region = '${region}');`,
+        );
       },
     ),
   );
@@ -245,7 +249,10 @@ describe('iasql_get_sql_for_transaction functionality', () => {
       (res: any) => {
         console.log(JSON.stringify(res));
         expect(res.length).toBe(5);
-        expect(res[3].sql).toContain(`DELETE FROM load_balancer`);
+        expect(res[3].sql).toBe(
+          `DELETE FROM load_balancer WHERE load_balancer_name = '${lbName}' AND scheme = '${lbScheme}' AND load_balancer_type = '${lbTypeNet}' AND ip_address_type = '${lbIPAddressType}' AND region = (SELECT region FROM aws_regions WHERE region = '${region}');`,
+        );
+        expect(res[4].sql).toContain(`DELETE FROM load_balancer_security_groups`);
       },
     ),
   );
