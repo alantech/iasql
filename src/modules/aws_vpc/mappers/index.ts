@@ -10,3 +10,4 @@ export * from './route';
 export * from './route_table';
 export * from './route_table_association';
 export * from './internet_gateway';
+export * from './dhcp_options';
