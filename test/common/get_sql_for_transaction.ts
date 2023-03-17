@@ -77,8 +77,8 @@ describe('iasql_get_sql_for_transaction functionality', () => {
           VALUES ('${lbName}', '${lbScheme}', null, '${lbTypeApp}', '${lbIPAddressType}');
 
           INSERT INTO load_balancer_security_groups(load_balancer_id, security_group_id)
-          SELECT (SELECT id FROM load_balancer WHERE load_balancer_name = '${lbName}' LIMIT 1),
-                (SELECT id FROM security_group WHERE group_name = 'default' AND region = '${region}' LIMIT 1);
+            SELECT (SELECT id FROM load_balancer WHERE load_balancer_name = '${lbName}' LIMIT 1),
+            (SELECT id FROM security_group WHERE group_name = 'default' AND region = '${region}' LIMIT 1);
         COMMIT;
       `,
       undefined,
@@ -117,17 +117,17 @@ describe('iasql_get_sql_for_transaction functionality', () => {
     'check sql for transaction',
     query(
       `
-    SELECT *
-    FROM iasql_get_sql_for_transaction(
-      (
-        SELECT transaction_id
-        FROM iasql_audit_log
-        WHERE change_type = 'OPEN_TRANSACTION'
-        ORDER BY ts DESC
-        LIMIT 1
-      )
-    );
-    `,
+        SELECT *
+        FROM iasql_get_sql_for_transaction(
+          (
+            SELECT transaction_id
+            FROM iasql_audit_log
+            WHERE change_type = 'OPEN_TRANSACTION'
+            ORDER BY ts DESC
+            LIMIT 1
+          )
+        );
+      `,
       (res: any) => {
         console.log(JSON.stringify(res));
         expect(res.length).toBe(2);
@@ -181,17 +181,17 @@ describe('iasql_get_sql_for_transaction functionality', () => {
     'check sql for transaction',
     query(
       `
-    SELECT *
-    FROM iasql_get_sql_for_transaction(
-      (
-        SELECT transaction_id
-        FROM iasql_audit_log
-        WHERE change_type = 'OPEN_TRANSACTION'
-        ORDER BY ts DESC
-        LIMIT 1
-      )
-    );
-    `,
+        SELECT *
+        FROM iasql_get_sql_for_transaction(
+          (
+            SELECT transaction_id
+            FROM iasql_audit_log
+            WHERE change_type = 'OPEN_TRANSACTION'
+            ORDER BY ts DESC
+            LIMIT 1
+          )
+        );
+      `,
       (res: any) => {
         console.log(JSON.stringify(res));
         expect(res.length).toBe(3);
@@ -227,23 +227,28 @@ describe('iasql_get_sql_for_transaction functionality', () => {
 
   itDocs('preview changes done so far', query(`SELECT * FROM iasql_preview();`));
 
-  // TODO: revive once the query is recreated properly
-  // itDocs('check sql for transaction', query(`
-  //   SELECT *
-  //   FROM iasql_get_sql_for_transaction(
-  //     (
-  //       SELECT transaction_id
-  //       FROM iasql_audit_log
-  //       WHERE change_type = 'OPEN_TRANSACTION'
-  //       ORDER BY ts DESC
-  //       LIMIT 1
-  //     )
-  //   );
-  //   `, (res: any) => {
-  //     console.log(JSON.stringify(res))
-  //   expect(res.length).toBe(5);
-  //   expect(res[3].sql).toContain(`DELETE FROM load_balancer`);
-  // }));
+  itDocs(
+    'check sql for transaction',
+    query(
+      `
+        SELECT *
+        FROM iasql_get_sql_for_transaction(
+          (
+            SELECT transaction_id
+            FROM iasql_audit_log
+            WHERE change_type = 'OPEN_TRANSACTION'
+            ORDER BY ts DESC
+            LIMIT 1
+          )
+        );
+      `,
+      (res: any) => {
+        console.log(JSON.stringify(res));
+        expect(res.length).toBe(5);
+        expect(res[3].sql).toContain(`DELETE FROM load_balancer`);
+      },
+    ),
+  );
 
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 });
