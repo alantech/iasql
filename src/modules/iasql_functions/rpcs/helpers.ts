@@ -140,6 +140,7 @@ async function findRelationOrReturnFormattedValue(
       if (!!columnMetadata?.relationMetadata) {
         return await recreateSubQuery(
           columnMetadata.referencedColumn?.databaseName ?? 'unknown_key',
+          columnMetadata.referencedColumn?.propertyName ?? 'unknownKey',
           value,
           columnMetadata.relationMetadata?.inverseEntityMetadata,
           modsIndexedByTable,
@@ -154,8 +155,10 @@ async function findRelationOrReturnFormattedValue(
     if (metadata instanceof RelationMetadata) {
       columnMetadata = metadata.joinColumns.filter(jc => jc.databaseName === key)?.pop();
       if (!!columnMetadata?.relationMetadata) {
+        console.log(`+-+ calling join columns relation metadata`);
         return await recreateSubQuery(
           columnMetadata.referencedColumn?.databaseName ?? 'unknown_key',
+          columnMetadata.referencedColumn?.propertyName ?? 'unknownKey',
           value,
           columnMetadata.relationMetadata?.entityMetadata,
           modsIndexedByTable,
@@ -164,8 +167,10 @@ async function findRelationOrReturnFormattedValue(
       }
       columnMetadata = metadata.inverseJoinColumns.filter(jc => jc.databaseName === key)?.pop();
       if (!!columnMetadata?.relationMetadata) {
+        console.log(`+-+ calling inverse column relation metadata`);
         return await recreateSubQuery(
           columnMetadata.referencedColumn?.databaseName ?? 'unknown_key',
+          columnMetadata.referencedColumn?.propertyName ?? 'unknownKey',
           value,
           columnMetadata.relationMetadata?.inverseEntityMetadata,
           modsIndexedByTable,
@@ -244,6 +249,7 @@ async function getMetadata(
  * The related entity will be found using the cloud columns decorators.
  */
 async function recreateSubQuery(
+  referencedDbKey: string,
   referencedKey: string,
   value: any,
   entityMetadata: EntityMetadata | undefined,
@@ -260,26 +266,44 @@ async function recreateSubQuery(
       logger.warn(e.message ?? 'Error finding relation');
       e = null;
     }
-    const values = await Promise.all(
+    let values = await Promise.all(
       cloudColumns.map(
         async (cc: string) =>
           await findRelationOrReturnFormattedValue(
             entityMetadata?.tableName ?? 'unknown_table',
             cc,
-            e[cc],
+            e?.[cc],
             modsIndexedByTable,
             orm,
           ),
       ),
     );
+    console.log(`+-+ values for entity ${entityMetadata?.tableName} are ${JSON.stringify(values)}`);
+    // If all cloud column values are null is quite useless to do the query, then we fall back to all db columns with values
+    // since they will help to identify the record.
+    let dbColumns: string[] = [];
+    if (values.every(v => v === 'NULL')) {
+      dbColumns =
+        entityMetadata?.ownColumns.filter(oc => !oc.relationMetadata && !!e[oc.propertyName] && !oc.isPrimary).map(oc => oc.propertyName) ?? [];
+      values = await Promise.all(
+        dbColumns.map(
+          async (dbc: string) =>
+            await findRelationOrReturnFormattedValue(
+              entityMetadata?.tableName ?? 'unknown_table',
+              dbc,
+              e?.[dbc],
+              modsIndexedByTable,
+              orm,
+            ),
+        ),
+      );
+    }
+    const columns = dbColumns.length ? dbColumns : cloudColumns;
     const subQuery = format(
-      `SELECT %I FROM %I WHERE ${cloudColumns.map(_ => '%I = %s').join(' AND ')}`,
-      referencedKey,
+      `SELECT %I FROM %I WHERE ${columns.map(_ => '%I = %s').join(' AND ')}`,
+      referencedDbKey,
       entityMetadata?.tableName,
-      ...cloudColumns.flatMap((cc, i) => [
-        snakeCase(cc),
-        values[i] !== undefined ? values[i] : '<unknown value>',
-      ]),
+      ...columns.flatMap((c, i) => [snakeCase(c), values[i] !== undefined ? values[i] : '<unknown value>']),
     );
     return `(${subQuery})`;
   }
