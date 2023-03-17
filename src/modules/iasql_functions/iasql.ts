@@ -1008,7 +1008,7 @@ export async function rollback(dbId: string, context: Context, force = false, or
     context.orm = orm;
 
     const isRunning = await isCommitRunning(orm);
-    if (isRunning) throw new Error('Another execution is in process. Please try again later.');
+    if (!force && isRunning) throw new Error('Another execution is in process. Please try again later.');
 
     const newStartCommit = await insertLog(orm, AuditLogChangeType.START_COMMIT);
     context.startCommit = newStartCommit;
