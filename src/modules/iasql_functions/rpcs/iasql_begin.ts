@@ -28,6 +28,7 @@ export class IasqlBegin extends RpcBase {
   /** @internal */
   outputTable = {
     message: 'varchar',
+    transaction_id: 'varchar',
   } as const;
 
   /** @internal */
@@ -38,7 +39,7 @@ export class IasqlBegin extends RpcBase {
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
     const currentTransactionId = await getCurrentTransactionId(ctx.orm);
     const message = `Transaction ${currentTransactionId} started`;
-    return [{ message }];
+    return [{ message, transaction_id: currentTransactionId }];
   };
 
   constructor(module: IasqlFunctions) {
