@@ -59,7 +59,7 @@ export async function recreateQueries(
             return {
               key: k,
               value,
-              hasJSONTypeMetadata: value.includes('::json'),
+              hasJSONTypeMetadata: !value.includes('::jsonb') && value.includes('::json'),
             };
           }),
         );
@@ -80,8 +80,9 @@ export async function recreateQueries(
           cl.tableName,
           ...relevantEntries.flatMap(([k, _]: [string, any], i) => {
             // On WHERE clauses we cannot compare JSON objects so we need to use the `::jsonb` cast in both, column and value.
-            if (valuesDeleted[i].hasJSONTypeMetadata)
+            if (valuesDeleted[i].hasJSONTypeMetadata) {
               return [k, valuesDeleted[i].value.replace('::json', '::jsonb')];
+            }
             return [k, valuesDeleted[i].value];
           }),
         );
@@ -108,7 +109,11 @@ export async function recreateQueries(
               modsIndexedByTable,
               orm,
             );
-            return { key: k, value, hasJSONTypeMetadata: value.includes('::json') };
+            return {
+              key: k,
+              value,
+              hasJSONTypeMetadata: !value.includes('::jsonb') && value.includes('::json'),
+            };
           }),
         );
         query = format(
