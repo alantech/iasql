@@ -27,7 +27,7 @@ export class IasqlGetSqlSince extends RpcBase {
   postTransactionCheck = PostTransactionCheck.NO_CHECK;
   /** @internal */
   inputTable: RpcInput = {
-    limitDate: { argType: 'varchar', default: null, rawDefault: true },
+    limitDate: { argType: 'timestamp with time zone', default: null, rawDefault: true },
   };
   /** @internal */
   outputTable = {
@@ -36,7 +36,7 @@ export class IasqlGetSqlSince extends RpcBase {
 
   documentation = {
     description: 'Generate SQL from the audit log from a given point in time',
-    sampleUsage: "SELECT * FROM iasql_get_sql_since((now() - interval '30 minutes')::text)",
+    sampleUsage: "SELECT * FROM iasql_get_sql_since(now() - interval '30 minutes')",
   };
 
   /** @internal */

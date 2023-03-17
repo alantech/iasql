@@ -6,27 +6,6 @@ If you are looking for IaSQL's documentation, go here instead: https://iasql.com
 
 This document is for people who want to contribute to IaSQL. There are multiple ways to contribute to the project other than code, such as reporting bugs, creating feature requests, helping other users in online spaces, Discord etc.
 
-Table of contents
-=================
-
-  * [Get Involved](#get-involved)
-    * [Contributor L1](#contributor-L1)
-    * [Contributor L2](#contributor-L2)
-  * [How IaSQL works](#how-iasql-works)
-  * [How to run IaSQL locally](#how-to-run-iasql-locally)
-  * [How to test IaSQL locally](#how-to-test-iasql-locally)
-    * [Migrations](#migrations)
-  * [How to test IaSQL via CI](#how-to-test-iasql-via-ci)
-    * [Common integration tests](#common-integration)
-    * [Modules](#modules)
-  * [How to release IaSQL via CI](#how-to-release-iasql-via-ci)
-  * [`apply` and `sync` Behavior](#apply-and-sync-behavior)
-    * [Terminology](#terminology)
-    * [Read-Diff-Execute Loop](#read-diff-execute-loop)
-    * [Why does Step 7 exist?](#why-does-step-7-exist?)
-  * [Module Mapper Footguns](#module-mapper-footguns)
-  * [How IaSQL PostgreSQL functions work](#how-iasql-postgresql-functions-work)
-
 ## Get Involved
 
 Anyone can become an IaSQL Contributor regardless of skill level, experience, or background. All types of contributions are meaningful. Our membership system was designed to reflect this.
