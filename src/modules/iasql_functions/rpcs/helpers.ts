@@ -150,7 +150,6 @@ async function findRelationOrReturnFormattedValue(
     if (metadata instanceof RelationMetadata) {
       columnMetadata = metadata.joinColumns.filter(jc => jc.databaseName === key)?.pop();
       if (!!columnMetadata?.relationMetadata) {
-        console.log(`+-+ calling join columns relation metadata`);
         return await recreateSubQuery(
           columnMetadata.referencedColumn?.databaseName ?? 'unknown_key',
           columnMetadata.referencedColumn?.propertyName ?? 'unknownKey',
@@ -162,7 +161,6 @@ async function findRelationOrReturnFormattedValue(
       }
       columnMetadata = metadata.inverseJoinColumns.filter(jc => jc.databaseName === key)?.pop();
       if (!!columnMetadata?.relationMetadata) {
-        console.log(`+-+ calling inverse column relation metadata`);
         return await recreateSubQuery(
           columnMetadata.referencedColumn?.databaseName ?? 'unknown_key',
           columnMetadata.referencedColumn?.propertyName ?? 'unknownKey',
@@ -275,7 +273,6 @@ async function recreateSubQuery(
           ),
       ),
     );
-    console.log(`+-+ values for entity ${entityMetadata?.tableName} are ${JSON.stringify(values)}`);
     // If all cloud column values are null is quite useless to do the query, then we fall back to all db columns with values
     // since they will help to identify the record.
     let dbColumns: string[] = [];
