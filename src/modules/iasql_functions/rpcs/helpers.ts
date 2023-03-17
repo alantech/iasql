@@ -48,23 +48,42 @@ export async function recreateQueries(
           ([k, v]: [string, any]) => k !== 'id' && v !== null,
         );
         const valuesDeleted = await Promise.all(
-          relevantEntries.map(
-            async ([k, v]: [string, any]) =>
-              await findRelationOrReturnFormattedValue(cl.tableName, k, v, modsIndexedByTable, orm),
-          ),
+          relevantEntries.map(async ([k, v]: [string, any]) => {
+            const value = await findRelationOrReturnFormattedValue(
+              cl.tableName,
+              k,
+              v,
+              modsIndexedByTable,
+              orm,
+            );
+            return {
+              key: k,
+              value,
+              hasJSONTypeMetadata: value.includes('::json'),
+            };
+          }),
         );
         query = format(
           `
             DELETE FROM %I
             WHERE ${relevantEntries
               .map(
-                ([_, v]: [string, any]) =>
-                  `${typeof v === 'object' && !Array.isArray(v) ? '%I::jsonb = %s' : '%I = %s'}`,
+                ([_, v]: [string, any], i) =>
+                  `${
+                    (typeof v === 'object' && !Array.isArray(v)) || valuesDeleted[i].hasJSONTypeMetadata
+                      ? '%I::jsonb = %s'
+                      : '%I = %s'
+                  }`,
               )
               .join(' AND ')};
           `,
           cl.tableName,
-          ...relevantEntries.flatMap(([k, _]: [string, any], i) => [k, valuesDeleted[i]]),
+          ...relevantEntries.flatMap(([k, _]: [string, any], i) => {
+            // On WHERE clauses we cannot compare JSON objects so we need to use the `::jsonb` cast in both, column and value.
+            if (valuesDeleted[i].hasJSONTypeMetadata)
+              return [k, valuesDeleted[i].value.replace('::json', '::jsonb')];
+            return [k, valuesDeleted[i].value];
+          }),
         );
         break;
       case AuditLogChangeType.UPDATE:
@@ -81,10 +100,16 @@ export async function recreateQueries(
           ),
         );
         const oldValues = await Promise.all(
-          originalEntries.map(
-            async ([k, v]: [string, any]) =>
-              await findRelationOrReturnFormattedValue(cl.tableName, k, v, modsIndexedByTable, orm),
-          ),
+          originalEntries.map(async ([k, v]: [string, any]) => {
+            const value = await findRelationOrReturnFormattedValue(
+              cl.tableName,
+              k,
+              v,
+              modsIndexedByTable,
+              orm,
+            );
+            return { key: k, value, hasJSONTypeMetadata: value.includes('::json') };
+          }),
         );
         query = format(
           `
@@ -92,14 +117,22 @@ export async function recreateQueries(
           SET ${updatedEntries.map(_ => `%I = %s`).join(', ')}
           WHERE ${originalEntries
             .map(
-              ([_, v]: [string, any]) =>
-                `${typeof v === 'object' && !Array.isArray(v) ? '%I::jsonb = %s' : '%I = %s'}`,
+              ([_, v]: [string, any], i) =>
+                `${
+                  (typeof v === 'object' && !Array.isArray(v)) || oldValues[i].hasJSONTypeMetadata
+                    ? '%I::jsonb = %s'
+                    : '%I = %s'
+                }`,
             )
             .join(' AND ')};
         `,
           cl.tableName,
           ...updatedEntries.flatMap(([k, _]: [string, any], i) => [k, updatedValues[i]]),
-          ...originalEntries.flatMap(([k, _]: [string, any], i) => [k, oldValues[i]]),
+          ...originalEntries.flatMap(([k, _]: [string, any], i) => {
+            // On WHERE clauses we cannot compare JSON objects so we need to use the `::jsonb` cast in both, column and value.
+            if (oldValues[i].hasJSONTypeMetadata) return [k, oldValues[i].value.replace('::json', '::jsonb')];
+            return [k, oldValues[i].value];
+          }),
         );
         break;
       default:
