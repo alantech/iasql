@@ -1,4 +1,6 @@
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, Unique } from 'typeorm';
+
+import { AttributeValue } from '@aws-sdk/client-ec2';
 
 import { cloudId } from '../../../services/cloud-id';
 import { AwsRegions } from '../../aws_account/entity';
@@ -9,6 +11,7 @@ import { AwsRegions } from '../../aws_account/entity';
  *
  * @see https://docs.aws.amazon.com/vpc/latest/userguide/VPC_DHCP_Options.html
  */
+@Unique('uq_dhcp_options_region', ['dhcpOptionsId', 'region'])
 @Entity()
 export class DhcpOptions {
   /**
@@ -36,7 +39,7 @@ export class DhcpOptions {
   })
   dhcpConfigurations?: {
     Key: string;
-    Values: string[];
+    Values: AttributeValue[];
   }[];
 
   /**

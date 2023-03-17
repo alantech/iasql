@@ -12,8 +12,8 @@ import {
   VpcMapper,
   InternetGatewayMapper,
   RouteMapper,
+  DhcpOptionsMapper,
 } from './mappers';
-import { DHCPOptionsMapper } from './mappers/dhcp_options';
 
 export class AwsVpcModule extends ModuleBase {
   /** @internal */
@@ -53,7 +53,7 @@ export class AwsVpcModule extends ModuleBase {
   route: RouteMapper;
 
   /** @internal */
-  dhcpOptions: DHCPOptionsMapper;
+  dhcpOptions: DhcpOptionsMapper;
 
   constructor() {
     super();
@@ -69,7 +69,7 @@ export class AwsVpcModule extends ModuleBase {
     this.endpointInterface = new EndpointInterfaceMapper(this);
     this.peeringConnection = new PeeringConnectionMapper(this);
     this.internetGateway = new InternetGatewayMapper(this);
-    this.dhcpOptions = new DHCPOptionsMapper(this);
+    this.dhcpOptions = new DhcpOptionsMapper(this);
 
     super.init();
   }

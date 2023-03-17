@@ -1,7 +1,11 @@
+import { raw } from 'express';
+import isEqual from 'lodash.isequal';
+
 import {
   CreateDhcpOptionsCommandInput,
   DhcpOptions as AWSDhcpOptions,
   EC2,
+  NewDhcpConfiguration,
   paginateDescribeDhcpOptions,
   Tag,
 } from '@aws-sdk/client-ec2';
@@ -9,16 +13,15 @@ import {
 import { AwsVpcModule } from '..';
 import { AWS, crudBuilder, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
 import { Context, Crud, MapperBase } from '../../interfaces';
-import { DhcpOptions } from '../entity/dhcp_options';
+import { DhcpOptions } from '../entity';
 import { eqTags } from './tags';
 
-export class DHCPOptionsMapper extends MapperBase<DhcpOptions> {
+export class DhcpOptionsMapper extends MapperBase<DhcpOptions> {
   module: AwsVpcModule;
   entity = DhcpOptions;
   equals = (a: DhcpOptions, b: DhcpOptions) =>
     Object.is(a.dhcpConfigurations?.length, b.dhcpConfigurations?.length) &&
-    !!a.dhcpConfigurations?.every(art => !!b.dhcpConfigurations?.find(brt => Object.is(art, brt))) &&
-    Object.is(a.dhcpConfigurations, b.dhcpConfigurations) &&
+    isEqual(a.dhcpConfigurations, b.dhcpConfigurations) &&
     eqTags(a.tags, b.tags);
 
   async dhcpOptionsMapper(e: AWSDhcpOptions, region: string, ctx: Context) {
@@ -61,8 +64,16 @@ export class DHCPOptionsMapper extends MapperBase<DhcpOptions> {
       const out = [];
       for (const e of es) {
         const client = (await ctx.getAwsClient(e.region)) as AWS;
+        const configs: NewDhcpConfiguration[] = [];
+        for (const c of e.dhcpConfigurations!) {
+          const values: string[] = [];
+          for (const v of c.Values) {
+            if (v.Value) values.push(v.Value);
+          }
+          configs.push({ Key: c.Key, Values: values ?? [] });
+        }
         const input: CreateDhcpOptionsCommandInput = {
-          DhcpConfigurations: e.dhcpConfigurations,
+          DhcpConfigurations: configs,
         };
         if (e.tags && Object.keys(e.tags).length) {
           const tags: Tag[] = Object.keys(e.tags).map((k: string) => {
@@ -123,7 +134,7 @@ export class DHCPOptionsMapper extends MapperBase<DhcpOptions> {
         const client = (await ctx.getAwsClient(e.region)) as AWS;
         const cloudRecord = ctx?.memo?.cloud?.DhcpOptions?.[this.entityId(e)];
         cloudRecord.id = e.id;
-        await this.module.endpointGateway.db.update(cloudRecord, ctx);
+        await this.module.dhcpOptions.db.update(cloudRecord, ctx);
         out.push(cloudRecord);
       }
       return out;
