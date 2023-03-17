@@ -38,7 +38,7 @@ export class IasqlBegin extends RpcBase {
     ctx: Context,
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
     const currentTransactionId = await getCurrentTransactionId(ctx.orm);
-    const message = `Transaction ${currentTransactionId} started`;
+    const message = `Transaction started`;
     return [{ message, transaction_id: currentTransactionId }];
   };
 
