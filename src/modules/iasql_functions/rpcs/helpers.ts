@@ -70,7 +70,7 @@ export async function recreateQueries(
       case AuditLogChangeType.UPDATE:
         const originalEntries = Object.entries(cl.change?.original ?? {})
           // We need to add an special case for AMIs since we know the revolve string can be used and it will not match with the actual AMI assigned
-          .filter(([k, _]: [string, any]) => k !== 'ami' && k !== 'id');
+          .filter(([k, v]: [string, any]) => k !== 'ami' && k !== 'id' && v !== null);
         const updatedEntries = Object.entries(cl.change?.change ?? {}).filter(
           ([k, _]: [string, any]) => k !== 'id',
         );
@@ -89,12 +89,7 @@ export async function recreateQueries(
         query = format(
           `
           UPDATE %I
-          SET ${updatedEntries
-            .map(
-              ([_, v]: [string, any]) =>
-                `${typeof v === 'object' && !Array.isArray(v) ? '%I::jsonb = %s' : '%I = %s'}`,
-            )
-            .join(', ')}
+          SET ${updatedEntries.map(_ => `%I = %s`).join(', ')}
           WHERE ${originalEntries
             .map(
               ([_, v]: [string, any]) =>
@@ -284,7 +279,9 @@ async function recreateSubQuery(
     let dbColumns: string[] = [];
     if (values.every(v => v === 'NULL')) {
       dbColumns =
-        entityMetadata?.ownColumns.filter(oc => !oc.relationMetadata && !!e[oc.propertyName] && !oc.isPrimary).map(oc => oc.propertyName) ?? [];
+        entityMetadata?.ownColumns
+          .filter(oc => !oc.relationMetadata && !!e[oc.propertyName] && !oc.isPrimary)
+          .map(oc => oc.propertyName) ?? [];
       values = await Promise.all(
         dbColumns.map(
           async (dbc: string) =>
