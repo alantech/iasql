@@ -33,7 +33,9 @@ export class IasqlRollback extends RpcBase {
   /** @internal */
   postTransactionCheck = PostTransactionCheck.UNLOCK_ALWAYS;
   /** @internal */
-  inputTable = {};
+  inputTable = {
+    force: { argType: 'boolean', default: 'false', rawDefault: true },
+  };
   /**
    * @internal
    */
@@ -54,8 +56,9 @@ export class IasqlRollback extends RpcBase {
     dbId: string,
     _dbUser: string,
     ctx: Context,
+    force?: string,
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
-    const res = (await iasql.rollback(dbId, ctx)).rows;
+    const res = (await iasql.rollback(dbId, ctx, force?.toLowerCase() === 'true')).rows;
     return (
       res?.map(rec => super.formatObjKeysToSnakeCase(rec) as RpcResponseObject<typeof this.outputTable>) ?? []
     );
