@@ -1,0 +1,4 @@
+{
+  "name": "ssh_accounts",
+  "dependencies": ["iasql_platform"]
+}

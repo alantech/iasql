@@ -8,7 +8,7 @@ export type ModJson = {
 };
 
 export const getModJsons = () => {
-  const modDir = fs.readdirSync(`${__dirname}/../modules`).filter(r => !/.ts$/.test(r));
+  const modDir = fs.readdirSync(`${__dirname}/../modules`).filter(r => !/\.ts$/.test(r));
   const modJsons: ModJson[] = modDir
     .map(r => fs.readFileSync(`${__dirname}/../modules/${r}/module.json`, 'utf8'))
     .map(r => JSON.parse(r) as ModJson);
