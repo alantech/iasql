@@ -18,7 +18,7 @@
 
 # Cloud infrastructure as data in PostgreSQL
 
-[IaSQL](https://iasql.com) is open-source software that treats infrastructure as data by maintaining a 2-way connection between a cloud account and a PostgreSQL database.
+[IaSQL](https://iasql.com) is open-source software to inspect and provision cloud infrastructure via SQL by maintaining a 2-way connection between an unmodified PostgreSQL database and your AWS account. The rows in the database tables represent the infrastructure in your cloud account.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="./site/static/img/ec2-typewriter_dark.gif">
@@ -28,13 +28,7 @@
 
 ## ⚡️ Try out IaSQL
 
-To [connect your AWS account](https://iasql.com/docs/aws) to a PostgreSQL database running locally generate AWS credentials, make sure docker is installed, and run:
-
-```bash
-docker run --pull=always -p 9876:9876 -p 5432:5432 --name iasql iasql/iasql
-```
-
-Alternatively, use a hosted version of IaSQL at [app.iasql.com](https://app.iasql.com)
+To get started with IaSQL our documentation. Visit [iasql.com/docs](https://iasql.com/docs)
 
 ## 💬 Community, Support, and Questions
 
@@ -46,15 +40,11 @@ Reach out on Discord
 
 ## 🔨 Use cases
 
-- [ECS Simplified! Get started in minutes with ECR+ECS+ELB by using our ejectable abstraction for those services directly in your AWS account](https://iasql.com/blog/ecs-simplified)
+- [Quickly setup ECR+ECS+ELB using our ejectable abstraction for those services](https://iasql.com/blog/ecs-simplified)
 - [Save on AWS by deleting untagged ECR images](https://iasql.com/blog/ecr-save)
 - [Deploy a static website](https://iasql.com/blog/deploy-static-website)
 - [Save $ on public S3 buckets using VPC endpoints via SQL](https://iasql.com/blog/save-s3-vpc)
 - [Securely connect to an Amazon RDS via PrivateLink](https://iasql.com/blog/rds-privatelink)
-
-## 📄 Documentation
-
-To get started with IaSQL our documentation. Visit [iasql.com/docs](https://iasql.com/docs)
 
 ## ☁️ Cloud Providers
 
