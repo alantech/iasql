@@ -28,7 +28,7 @@
 
 ## ⚡️ Try out IaSQL
 
-To get started with IaSQL our documentation. Visit [iasql.com/docs](https://iasql.com/docs)
+To get started with IaSQL using our documentation. Visit [iasql.com/docs](https://iasql.com/docs)
 
 ## 💬 Community, Support, and Questions
 
