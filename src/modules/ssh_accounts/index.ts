@@ -1,3 +1,5 @@
+import { Readable } from 'stream';
+
 import SSH2Promise from 'ssh2-promise';
 
 import {
@@ -56,7 +58,11 @@ class SshLs extends RpcBase {
    */
   outputTable = {
     filename: 'varchar',
-    longname: 'varchar', // This is stupid, though, see if I can parse this better
+    permissions: 'varchar',
+    link_count: 'integer',
+    owner_name: 'varchar',
+    group_name: 'varchar',
+    size_bytes: 'integer',
     attrs: 'json',
   } as const;
   /**
@@ -75,7 +81,68 @@ class SshLs extends RpcBase {
     path: string,
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
     const sshClient = await ctx.getSshClient(serverName);
-    return await sshClient.sftp().readdir(path);
+    return (await sshClient.sftp().readdir(path)).map((r: { filename: string, longname: string, attrs: { [key: string]: any }, }) => {
+      const parts = r.longname.split(/ +/);
+      return {
+        filename: r.filename,
+        permissions: parts[0],
+        link_count: parseInt(parts[1], 10),
+        owner_name: parts[2],
+        group_name: parts[3],
+        size_bytes: parseInt(parts[4], 10),
+        attrs: r.attrs,
+      };
+    });
+  }
+
+  constructor(module: SshAccounts) {
+    super();
+    this.module = module;
+    super.init();
+  }
+}
+
+// From https://stackoverflow.com/questions/10623798/how-do-i-read-the-contents-of-a-node-js-stream-into-a-string-variable#49428486
+function streamToString (stream: Readable): Promise<string> {
+  const chunks: Buffer[] = [];
+  return new Promise((resolve, reject) => {
+    stream.on('data', (chunk: Buffer | string) => chunks.push(Buffer.from(chunk)));
+    stream.on('error', (err: Error) => reject(err));
+    stream.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+  })
+}
+
+class SshReadFileText extends RpcBase {
+  /**
+   * @internal
+   */
+  module: SshAccounts;
+  /**
+   * @internal
+   */
+  outputTable = {
+    path: 'varchar',
+    data: 'text',
+  } as const;
+
+  call = async (
+    _dbId: string,
+    _dbUser: string,
+    ctx: Context,
+    serverName: string,
+    ...paths: string[]
+  ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
+    const sshClient = await ctx.getSshClient(serverName);
+    const out = [];
+    for (const path of paths) {
+      const filestream = await sshClient.sftp().createReadStream(path, { encoding: 'utf8' });
+      const data = await streamToString(filestream);
+      out.push({
+        path,
+        data,
+      });
+    }
+    return out;
   }
 
   constructor(module: SshAccounts) {
@@ -120,11 +187,13 @@ class SshAccounts extends ModuleBase {
   };
   sshCredentials: CredentialsMapper;
   sshLs: SshLs;
+  sshReadFileText: SshReadFileText;
 
   constructor() {
     super();
     this.sshCredentials = new CredentialsMapper(this);
     this.sshLs = new SshLs(this);
+    this.sshReadFileText = new SshReadFileText(this);
     super.init();
   }
 }
