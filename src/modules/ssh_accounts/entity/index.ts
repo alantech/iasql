@@ -62,4 +62,3 @@ export class SshCredentials {
   @Column({ nullable: true })
   keyPassphrase?: string;
 }
-

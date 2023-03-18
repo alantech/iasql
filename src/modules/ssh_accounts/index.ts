@@ -1,6 +1,5 @@
-import { Readable } from 'stream';
-
 import SSH2Promise from 'ssh2-promise';
+import { Readable } from 'stream';
 
 import {
   Context,
@@ -81,19 +80,21 @@ class SshLs extends RpcBase {
     path: string,
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
     const sshClient = await ctx.getSshClient(serverName);
-    return (await sshClient.sftp().readdir(path)).map((r: { filename: string, longname: string, attrs: { [key: string]: any }, }) => {
-      const parts = r.longname.split(/ +/);
-      return {
-        filename: r.filename,
-        permissions: parts[0],
-        link_count: parseInt(parts[1], 10),
-        owner_name: parts[2],
-        group_name: parts[3],
-        size_bytes: parseInt(parts[4], 10),
-        attrs: r.attrs,
-      };
-    });
-  }
+    return (await sshClient.sftp().readdir(path)).map(
+      (r: { filename: string; longname: string; attrs: { [key: string]: any } }) => {
+        const parts = r.longname.split(/ +/);
+        return {
+          filename: r.filename,
+          permissions: parts[0],
+          link_count: parseInt(parts[1], 10),
+          owner_name: parts[2],
+          group_name: parts[3],
+          size_bytes: parseInt(parts[4], 10),
+          attrs: r.attrs,
+        };
+      },
+    );
+  };
 
   constructor(module: SshAccounts) {
     super();
@@ -103,13 +104,13 @@ class SshLs extends RpcBase {
 }
 
 // From https://stackoverflow.com/questions/10623798/how-do-i-read-the-contents-of-a-node-js-stream-into-a-string-variable#49428486
-function streamToString (stream: Readable): Promise<string> {
+function streamToString(stream: Readable): Promise<string> {
   const chunks: Buffer[] = [];
   return new Promise((resolve, reject) => {
     stream.on('data', (chunk: Buffer | string) => chunks.push(Buffer.from(chunk)));
     stream.on('error', (err: Error) => reject(err));
     stream.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
-  })
+  });
 }
 
 class SshReadFileText extends RpcBase {
@@ -143,7 +144,7 @@ class SshReadFileText extends RpcBase {
       });
     }
     return out;
-  }
+  };
 
   constructor(module: SshAccounts) {
     super();
