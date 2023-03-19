@@ -2,7 +2,7 @@ import SSH2Promise from 'ssh2-promise';
 
 import { Context, Crud, MapperBase, ModuleBase, PartialContext } from '../interfaces';
 import { SshCredentials } from './entity';
-import { SshLs, SshReadFileText, SshWriteFileText, SshRm, SshMkdir, SshRmdir } from './rpcs';
+import { SshLs, SshReadFileText, SshWriteFileText, SshRm, SshMkdir, SshRmdir, SshMv, SshExec } from './rpcs';
 
 class CredentialsMapper extends MapperBase<SshCredentials> {
   module: SshAccounts;
@@ -72,21 +72,25 @@ export class SshAccounts extends ModuleBase {
     // the default region, perhaps, that is desired.
   };
   sshCredentials: CredentialsMapper;
-  sshMkdir: SshMkdir;
-  sshRmdir: SshRmdir;
+  sshExec: SshExec;
   sshLs: SshLs;
+  sshMkdir: SshMkdir;
+  sshMv: SshMv;
   sshReadFileText: SshReadFileText;
   sshRm: SshRm;
+  sshRmdir: SshRmdir;
   sshWriteFileText: SshWriteFileText;
 
   constructor() {
     super();
     this.sshCredentials = new CredentialsMapper(this);
-    this.sshMkdir = new SshMkdir(this);
-    this.sshRmdir = new SshRmdir(this);
+    this.sshExec = new SshExec(this);
     this.sshLs = new SshLs(this);
+    this.sshMkdir = new SshMkdir(this);
+    this.sshMv = new SshMv(this);
     this.sshReadFileText = new SshReadFileText(this);
     this.sshRm = new SshRm(this);
+    this.sshRmdir = new SshRmdir(this);
     this.sshWriteFileText = new SshWriteFileText(this);
     super.init();
   }
