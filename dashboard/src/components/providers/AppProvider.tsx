@@ -71,7 +71,11 @@ interface AppState {
     };
   };
   installedModules: {
-    [moduleName: string]: { [tableName: string]: { [columnName: string]: string } & { recordCount: number } };
+    [moduleName: string]: {
+      [tableName: string]: { [columnName: string]: { dataType: string; isMandatory: boolean } } & {
+        recordCount: number;
+      };
+    };
   };
   isDarkMode: boolean;
   shouldShowDisconnect: boolean;
@@ -97,17 +101,50 @@ interface AppStore extends AppState {
 
 const initializingQueries = `
   select * from iasql_help();
-  select
-    t.module, c.table_name, c.ordinal_position, c.column_name, c.data_type
+
+  select t.module,
+         c.table_name,
+         c.ordinal_position,
+         c.column_name,
+         c.data_type,
+         c.is_nullable,
+         c.column_default
   from information_schema.columns as c
-  inner join iasql_tables as t on c.table_name = t.table
-  order by
-    table_name, ordinal_position;
+           inner join iasql_tables as t on c.table_name = t.table
+  order by table_name, ordinal_position;
+
   select * from iasql_modules_list();
+
   select
     t.table as table_name,
     (xpath('/row/c/text()', query_to_xml(format('select count(*) as c from public.%I', t.table), FALSE, TRUE, '')))[1]::text::int AS record_count
   from iasql_tables as t;
+`;
+
+const gettingStarted = `-- Welcome to IaSQL!
+
+-- You can write any SQL query here and run it using the "Run query" button on the top
+-- right or by using the Ctrl+Enter (CMD+Return on Mac) keyboard shortcut.
+
+-- Open as many tabs as you want and run queries on each of them.
+
+-- You can start by installing a module by clicking the "Install" button from the modules list on the sidebar.
+
+-- Going to the sidebar's "Schema" tab you can see the tables and columns of the installed modules. There you
+-- can check the documentation of each module. You can also do a quick select query on any table with data.
+
+-- This editor can autocomplete your query's table and column names based on the installed modules.
+
+-- If you want to see all the currently available IaSQL functions you can execute the following query:
+-- SELECT * FROM iasql_help()
+
+-- To disconnect your database, click "Disconnect" on the top right. None of the cloud resources in the 
+-- account will be deleted.
+
+-- If you have any questions, you can always check the documentation at https://docs.iasql.com or contact us via
+-- Discord!
+
+-- Happy coding :)
 `;
 
 const reducer = (state: AppState, payload: Payload): AppState => {
@@ -179,7 +216,9 @@ const reducer = (state: AppState, payload: Payload): AppState => {
       const { autoCompleteRes } = payload.data;
       const moduleData = {} as {
         [moduleName: string]: {
-          [tableName: string]: { [columnName: string]: string } & { recordCount: number };
+          [tableName: string]: { [columnName: string]: { dataType: string; isMandatory: boolean } } & {
+            recordCount: number;
+          };
         };
       };
       const allModules = {} as { [moduleName: string]: string[] };
@@ -189,6 +228,7 @@ const reducer = (state: AppState, payload: Payload): AppState => {
         };
       };
       (autoCompleteRes?.[0]?.result ?? []).forEach((row: any) => {
+        // select * from iasql_help();
         const moduleName = row.module;
         const functionName = row.name;
         const functionSignature = row.signature;
@@ -196,18 +236,22 @@ const reducer = (state: AppState, payload: Payload): AppState => {
         functionData[moduleName][functionName] = functionSignature;
       });
       (autoCompleteRes?.[1]?.result ?? []).forEach((row: any) => {
+        // t.module, c.table_name, c.ordinal_position, c.column_name, c.data_type
         const moduleName = row.module;
         const tableName = row.table_name;
         const columnName = row.column_name;
         const dataType = row.data_type;
+        let isMandatory = true;
+        if (row.column_default !== null || row.is_nullable === 'YES') isMandatory = false;
         const recordCount =
-          autoCompleteRes?.[3]?.result?.find((r: any) => r.table_name === tableName)?.record_count ?? 0;
+          autoCompleteRes?.[3]?.result?.find((r: any) => r.table_name === tableName)?.record_count ?? 0; // t.table as table_name, xpath('/row/c/text()' ...
         moduleData[moduleName] = moduleData[moduleName] || {};
         moduleData[moduleName][tableName] = moduleData[moduleName][tableName] || {};
-        moduleData[moduleName][tableName][columnName] = dataType;
+        moduleData[moduleName][tableName][columnName] = { dataType, isMandatory };
         moduleData[moduleName][tableName]['recordCount'] = recordCount;
       });
       (autoCompleteRes?.[2]?.result ?? []).forEach((row: any) => {
+        // select * from iasql_modules_list();
         const moduleName = row.module_name;
         const moduleDependencies = row.dependencies.join(', ');
         allModules[moduleName] = moduleDependencies;
@@ -573,7 +617,7 @@ const AppProvider = ({ children }: { children: any }) => {
     editorSelectedTab: 0,
     editorTabsCreated: 1,
     editorTabs: [
-      { title: 'Welcome', content: '', closable: true },
+      { title: 'Getting started', content: gettingStarted, closable: true },
       {
         title: '+',
         content: '',

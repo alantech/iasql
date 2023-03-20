@@ -2,7 +2,13 @@ import format from 'pg-format';
 
 import { IasqlFunctions } from '..';
 import { TypeormWrapper } from '../../../services/typeorm';
-import { Context, RpcBase, RpcResponseObject } from '../../interfaces';
+import {
+  Context,
+  PostTransactionCheck,
+  PreTransactionCheck,
+  RpcBase,
+  RpcResponseObject,
+} from '../../interfaces';
 import * as iasql from '../iasql';
 
 /**
@@ -24,7 +30,10 @@ export class IasqlUninstall extends RpcBase {
    * @internal
    */
   module: IasqlFunctions;
-
+  /** @internal */
+  preTransactionCheck = PreTransactionCheck.WAIT_FOR_LOCK;
+  /** @internal */
+  postTransactionCheck = PostTransactionCheck.UNLOCK_ALWAYS;
   /**
    * @internal
    */

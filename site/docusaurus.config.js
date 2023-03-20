@@ -104,7 +104,7 @@ const testDoc = require('./src/rehype/testdoc');
               position: 'right',
             },
             {
-              href: 'https://discord.com/invite/machGGczea',
+              href: 'https://discord.iasql.com',
               position: 'right',
               className: 'header-discord-link',
               'aria-label': 'Discord',
@@ -143,7 +143,7 @@ const testDoc = require('./src/rehype/testdoc');
                   target: '_self',
                 },
                 {
-                  to: 'schema',
+                  to: 'https://dbdocs.io/iasql/iasql',
                   target: '_self',
                   label: 'DbDoc Schema',
                 },
@@ -183,7 +183,7 @@ const testDoc = require('./src/rehype/testdoc');
               items: [
                 {
                   label: 'Discord',
-                  to: 'https://discord.com/invite/yxNBQugGbH',
+                  to: 'https://discord.iasql.com',
                 },
                 {
                   label: 'Reddit',

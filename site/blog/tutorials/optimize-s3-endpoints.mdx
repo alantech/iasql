@@ -8,44 +8,48 @@ tags: [tutorial]
 
 Are you using S3 buckets as part of your cloud deployments? How are you accessing them?
 
-S3 buckets may need to be accessed over the public internet. One simple but costly way to do so
-is to rely on <a href="https://docs.aws.amazon.com/en_en/vpc/latest/userguide/vpc-nat-gateway.html" target="_blank">NAT gateways</a>.
+When running applications behind VPCs without public access, there may be the need to access S3 buckets from the private subnet over the public internet.
+One simple but costly way to do so is to rely on <a href="https://docs.aws.amazon.com/en_en/vpc/latest/userguide/vpc-nat-gateway.html" target="_blank">NAT gateways</a>.
 
-However, creating <a
-href="https://docs.aws.amazon.com/vpc/latest/privatelink/vpc-endpoints-s3.html"
-target="_blank">gateway or interface VPC endpoints</a> for each region where your buckets are exposed is a more optimal solution.
+<img src="/img/optimize-s3-endpoints/s3_nat_gateway.png" style={{ maxWidth: 400 }} />
 
-When the VPC endpoints are enabled you can access your S3 buckets using this endpoint. In this post, we will walk you through control your buckets from an internal network with the desired security, and without the extra costs of a
-NAT gateway using a VPC endpoint and IaSQL. IaSQL is an [open-source](https://github.com/iasql/iasql) software tool that creates a two-way connection between an unmodified PostgreSQL database and an AWS account so you can manage your infrastructure from a database.
+However, creating <a href="https://docs.aws.amazon.com/vpc/latest/privatelink/vpc-endpoints-s3.html" target="_blank">gateway or interface VPC endpoints</a> for each region where your buckets are exposed is a more optimal solution.
+
+<img src="/img/optimize-s3-endpoints/s3_privatelink.png" style={{ maxWidth: 600 }} />
+
+When the VPC endpoints are enabled you can access your S3 buckets using this endpoint. In this post, we will walk you through how to control your buckets from an internal network with the desired security, and without the extra costs of a NAT gateway using a VPC endpoint and IaSQL. IaSQL is an [open-source](https://github.com/iasql/iasql) software tool that creates a two-way connection between an unmodified PostgreSQL database and an AWS account so you can manage your infrastructure from a database.
 
 <!-- truncate -->
 
 ### Why use VPC Interface Endpoints
 
-AWS VPC Interface Endpoints are a component of AWS's <a href="https://aws.amazon.com/privatelink">PrivateLink</a> infrastructure. AWS PrivateLink provides private connectivity between virtual private clouds (VPCs),
-supported AWS services, and your on-premises networks without exposing your traffic to the public internet.
+AWS VPC Interface Endpoints are a component of AWS's <a href="https://aws.amazon.com/privatelink">PrivateLink</a> infrastructure. AWS PrivateLink provides private connectivity between virtual private clouds (VPCs), supported AWS services, and your on-premises networks without exposing your traffic to the public internet.
 
-Relying on PrivateLink offers a set of advantages in terms of **security** and **performance**.
+Relying on PrivateLink offers a set of advantages in terms of **cost**, **security** and **performance**.
+
+**Cost**
+
+When using NAT gateways, you are paying for the NAT gateway itself, and the bandwidth used to access the internet. A NAT gateway is a generic way for private instances to reach the internet, and can be useful for generic usage, such as pulling dependencies, updating repositories, etc... But when used for reaching AWS resources directly, there are more optimal and cheaper solutions such as VPC endpoints - they will not have generic access to internet but only to specified public AWS endpoints. When using VPC endpoints, you are paying for the bandwidth used to access the public endpoints, but not for the VPC endpoint itself.
+
+Costs for NAT gateway depend on each region, but it should be over _0.045 USD/hour_ per GB processed + _0.045 USD/hour_ for the instance itself. Costs for VPC endpoints are charged at _0.01 USD/hour_ per GB processed, being cheaper after the first PB.
+
+| Component    | Hourly pricing | Per GB pricing       |
+| ------------ | -------------- | -------------------- |
+| NAT gateway  | 0.045 USD/hour | 0.45 USD/hour per GB |
+| VPC endpoint | --             | 0.01 USD/hour per GB |
 
 **Security: no internet traversal**
 
-When deploying services in production, the concept of defense-in-depth is essential: have an information
-assurance strategy that provides multiple, redundant defensive measures in case a security control fails or
-a vulnerability is exploited.
-By using interface endpoints the services will be accessed via Amazon's internal networks. It is an essential
-security measure, that will prevent attackers from directly reaching the services by keeping them in a private
-network, reducing the surface area of attack.
+When deploying services in production, the concept of defense-in-depth is essential: have an information assurance strategy that provides multiple, redundant defensive measures in case a security control fails or a vulnerability is exploited.
+By using interface endpoints the services will be accessed via Amazon's internal networks. It is an essential security measure, that will prevent attackers from directly reaching the services by keeping them in a private network, reducing the surface area of attack.
 
 **Security: policies**
 
-AWS services can benefit from <a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/access_controlling.html">IAM policies</a>
-for fine-grained access control. When using interface endpoints, those policies can be applied to determine the traffic
-that can pass through the interface.
+AWS services can benefit from <a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/access_controlling.html">IAM policies</a> for fine-grained access control. When using interface endpoints, those policies can be applied to determine the traffic that can pass through the interface.
 
 **Performance: latency**
 
-Because the traffic stays within Amazon’s networks, the physical distance traveled, the number of hops
-and the risk of traversing congested networks are all significantly lower.
+Because the traffic stays within Amazon’s networks, the physical distance traveled, the number of hops and the risk of traversing congested networks are all significantly lower.
 
 **Performance: bandwidth**
 
@@ -96,27 +100,20 @@ FROM
   LEFT OUTER JOIN vpc ON vpc.region = bucket.region;
 ```
 
-Have you found missing endpoints? No problem, IaSQL can generate them for you. You can create two different
-types of endpoints: gateway and interface. We're going to describe their main features and you can create
-the desired type in an automated way.
+Have you found missing endpoints? No problem, IaSQL can generate them for you. You can create two different types of endpoints: gateway and interface. We're going to describe their main features and you can create the desired type in an automated way.
 
 ## Interface endpoints
 
-An interface endpoint is an elastic network interface with a private IP address that serves as an entry
-point for traffic destined for a supported AWS service. As they use ENIs, they can benefit from security groups
-to control traffic.
+An interface endpoint is an elastic network interface with a private IP address that serves as an entry point for traffic destined for a supported AWS service. As they use ENIs, they can benefit from security groups to control traffic.
 
 <a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/access_controlling.html">IAM policies</a>can also be
 added to control access to those endpoints.
 
-They are regional, meaning they can only be accessed by the same region they are created. However, Multi-region is possible by also using VPC peering, so resources in one region can be accessed from others, though this only supports IPv4
-TCP traffic.
+They are regional, meaning they can only be accessed by the same region they are created. However, Multi-region is possible by also using VPC peering, so resources in one region can be accessed from others, though this only supports IPv4 TCP traffic.
 
-An interface endpoint (except S3 interface endpoint) has a corresponding private DNS hostname, that can be
-used to access the resource.
+An interface endpoint (except S3 interface endpoint) has a corresponding private DNS hostname, that can be used to access the resource.
 
-Interface endpoints cover a wide range of services such as S3, Lambda, API Gateway, etc... <a href="https://docs.aws.amazon.com/vpc/latest/privatelink/create-interface-endpoint.html">
-Get more detail about interface endpoints</a>
+Interface endpoints cover a wide range of services such as S3, Lambda, API Gateway, etc... <a href="https://docs.aws.amazon.com/vpc/latest/privatelink/create-interface-endpoint.html">Get more detail about interface endpoints</a>
 
 This query will auto-generate the missing interface endpoints and will preview the changes to be applied on your cloud. Simply uncomment the final statement and run it to make the changes to your cloud account.
 
@@ -161,19 +158,15 @@ FROM
 
 ## Endpoint gateways
 
-An endpoint gateway is a gateway that can be configured as a target for a route in your route table, used
-to access traffic in DynamoDB or S3.
+An endpoint gateway is a gateway that can be configured as a target for a route in your route table, used to access traffic in DynamoDB or S3.
 
-Multiple gateway endpoints can be created in a single VPC, and those can be used on different route tables
-to enforce different access policies from different subnets to the same service.
+Multiple gateway endpoints can be created in a single VPC, and those can be used on different route tables to enforce different access policies from different subnets to the same service.
 
-Gateway endpoints are supported within the same region only, resources from multiple regions cannot be
-accessed, even using VPC peering. They also support IPv4 traffic only.
+Gateway endpoints are supported within the same region only, resources from multiple regions cannot be accessed, even using VPC peering. They also support IPv4 traffic only.
 
 To use them, DNS resolution must be enabled in the VPC.
 
-When a route is added, all instances in the subnets associated with the route table will automatically
-use the endpoint to access the service.
+When a route is added, all instances in the subnets associated with the route table will automatically use the endpoint to access the service.
 
 Gateway endpoints only support S3 and DynamoDB services. <a href="https://docs.aws.amazon.com/vpc/latest/privatelink/gateway-endpoints.html">Get more detail about gateway endpoints</a>.
 
@@ -221,8 +214,8 @@ FROM
 
 Once all the relevant endpoints have been created, you can confirm your access to the gateway endpoints from an internal EC2 instance on the same region as the endpoint you want to test:
 
-<img src="/img/ec2_using_vpc.png" style={{ maxWidth: 500 }} />
+<img src="/img/optimize-s3-endpoints/ec2_using_vpc.png" style={{ maxWidth: 500 }} />
 
 For interface endpoints, access also can be tested using the named endpoint:
 
-<img src="/img/s3_via_interface.png" style={{ maxWidth: 1200 }} />
+<img src="/img/optimize-s3-endpoints/s3_via_interface.png" />

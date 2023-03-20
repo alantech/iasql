@@ -17,7 +17,8 @@ const config: ConfigInterface = {
   logger: {
     debug: false,
     test: false,
-    forceLocal: false,
+    forceLocal: true,
+    logDnaKey: 'b98181227b606d8ee6c5674b5bb948e7',
   },
 };
 if (process.env.IASQL_TELEMETRY === 'on') {

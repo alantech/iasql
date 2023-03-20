@@ -33,7 +33,7 @@ jobs:
         id: format-version
         run: |
           VERSION="$(jq -r '.version' package.json)"
-          echo ::set-output name=version::${VERSION}
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
 
       - name: Emit for doc generation
         uses: mvasigh/dispatch-action@main

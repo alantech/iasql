@@ -86,10 +86,8 @@ But we're unable to access the file directly because S3 blocks public access by 
 
 We need to enable public access to our bucket files to be able to directly access the files. We can use the `public_access_block` table provided by `aws_s3` module to allow for public requests to reach our objects.
 
-<!-- TODO replace with aws_s3 doc url -->
-
 :::note
-If you want to know which resources (via tables) an IaSQL module handles, you can visit our documentation page. It also provides a list and explanation of all the RPCs that are provided by a module. In our case, we can visit [this link](https://iasql.com/docs/reference/sql/#aws_s3) to get a list of tables and RPCs available for `aws_s3` module.
+If you want to know which resources (via tables) an IaSQL module handles, you can visit our documentation page. It also provides a list and explanation of all the RPCs that are provided by a module. In our case, we can visit [this link](https://iasql.com/docs/modules/aws/aws_s3/) to get a list of tables and RPCs available for `aws_s3` module.
 :::
 
 ```sql title="Enable Public Access to The Bucket"

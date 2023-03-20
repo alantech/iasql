@@ -114,6 +114,8 @@ export async function install(
       )
       .map((m: ModuleInterface) => `${m.name}@${m.version}`);
   }
+  // ignore duplicated modules in moduleList
+  moduleList = [...new Set(moduleList)];
   const version = AllModules?.iasqlPlatform?.version ?? throwError('IasqlPlatform not found');
   const versionString = await TypeormWrapper.getVersionString(dbId);
   if (version !== versionString) throw new Error(`Unsupported version ${versionString}`);
@@ -350,6 +352,8 @@ export async function uninstall(moduleList: string[], dbId: string, force = fals
   await throwIfUpgrading(dbId, force);
   // Check to make sure that all specified modules actually exist
   const version = AllModules?.iasqlPlatform?.version ?? throwError('Core IasqlPlatform not found');
+  // ignore moduleList duplicates
+  moduleList = [...new Set(moduleList)];
   moduleList = moduleList.map((m: string) => (/@/.test(m) ? m : `${m}@${version}`));
   const mods = moduleList.map((n: string) =>
     (Object.values(AllModules) as ModuleInterface[]).find(m => `${m.name}@${m.version}` === n),

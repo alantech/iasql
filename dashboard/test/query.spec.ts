@@ -1,4 +1,4 @@
-import { test } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 import { auth0, click, fill, isDisabled, isVisible, press } from './helper';
 
@@ -16,13 +16,7 @@ export default function createTests() {
     await click(page.locator(`#iasql-editor`));
 
     // Check initial content
-    await click(page.locator(`#iasql-editor div.ace_content:has-text("SELECT * FROM iasql_help();")`));
-
-    // Click run iasql initial query
-    await click(page.locator(`button:has-text("Run query")`));
-
-    // Check response
-    await click(page.locator(`#query-builder-result table`));
+    await expect(page.locator(`#iasql-editor div.ace_content`)).toContainText(/\-\-\sWelcome\sto\sIaSQL/i);
 
     // Add fake query
     await fill(page.locator(`#iasql-editor textarea.ace_text-input`), 'SELECT * FROM fake_table;', false);

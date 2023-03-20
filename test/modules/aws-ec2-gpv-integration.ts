@@ -28,6 +28,8 @@ const ec2client = new EC2({
   },
   region,
 });
+const ubuntuAmiId =
+  'resolve:ssm:/aws/service/canonical/ubuntu/server/20.04/stable/current/amd64/hvm/ebs-gp2/ami-id';
 
 const getAvailabilityZones = async () => {
   return await ec2client.describeAvailabilityZones({
@@ -35,6 +37,21 @@ const getAvailabilityZones = async () => {
       {
         Name: 'region-name',
         Values: [region],
+      },
+    ],
+  });
+};
+const getInstanceTypeOffering = async (availabilityZones: string[]) => {
+  return await ec2client.describeInstanceTypeOfferings({
+    LocationType: 'availability-zone',
+    Filters: [
+      {
+        Name: 'location',
+        Values: availabilityZones,
+      },
+      {
+        Name: 'instance-type',
+        Values: ['t2.micro', 't3.micro'],
       },
     ],
   });
@@ -54,6 +71,7 @@ const installAll = runInstallAll.bind(null, dbAlias);
 
 const gp2VolumeName = `${prefix}gp2volume`;
 const gp3VolumeName = `${prefix}gp3volume`;
+let instanceType2: string;
 
 const modules = ['aws_ec2', 'aws_ec2_metadata', 'aws_security_group', 'aws_vpc', 'aws_elb', 'aws_iam'];
 
@@ -65,6 +83,8 @@ beforeAll(async () => {
     (await getAvailabilityZones())?.AvailabilityZones?.map(az => az.ZoneName ?? '') ?? [];
   availabilityZone1 = availabilityZones.pop() ?? '';
   availabilityZone2 = availabilityZones.pop() ?? '';
+  const instanceTypesByAz2 = await getInstanceTypeOffering([availabilityZone2]);
+  instanceType2 = instanceTypesByAz2.InstanceTypeOfferings?.pop()?.InstanceType ?? '';
   await execComposeUp();
 });
 afterAll(async () => await execComposeDown());
@@ -116,6 +136,214 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
   );
 
   itDocs('installs the module', install(modules));
+
+  it('starts a transaction', begin());
+
+  itDocs('creates an instance with specific size', (done: (arg0: any) => any) => {
+    query(
+      `
+      BEGIN;
+        INSERT INTO general_purpose_volume (volume_type, size, availability_zone, tags, is_root_device)
+        VALUES ('gp2', 15, '${availabilityZone2}', '{"Name": "${gp2VolumeName}"}', TRUE);
+        INSERT INTO instance (ami, instance_type, tags, subnet_id)
+          SELECT '${ubuntuAmiId}', '${instanceType2}', '{"name":"${prefix}-1"}', id
+          FROM subnet
+          WHERE availability_zone = '${availabilityZone2}'
+          LIMIT 1;
+        INSERT INTO instance_block_device_mapping (device_name, volume_id, instance_id) values ('/dev/sda1', (SELECT id FROM general_purpose_volume WHERE tags ->>'Name' = '${gp2VolumeName}' LIMIT 1),
+        (SELECT id FROM instance WHERE tags ->>'name' = '${prefix}-1' LIMIT 1));
+        
+      COMMIT;
+    `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    )((e?: any) => (!!e ? done(e) : done(undefined)));
+  });
+  it('creates the instance with specific volume', commit());
+
+  itDocs(
+    'check number of instances',
+    query(
+      `
+    SELECT *
+    FROM instance
+    WHERE tags ->> 'name' = '${prefix}-1';
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+  itDocs(
+    'check number of volumes',
+    query(
+      `
+    SELECT *
+    FROM general_purpose_volume INNER JOIN instance_block_device_mapping ON general_purpose_volume.id = instance_block_device_mapping.volume_id
+    WHERE instance_block_device_mapping.instance_id = (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1');
+  `,
+      (res: any[]) => {
+        expect(res.length).toBe(1);
+        expect(res[0].size).toBe(15);
+      },
+    ),
+  );
+
+  it('starts a transaction', begin());
+  itDocs('creates and attaches an extra volume to instance', (done: (arg0: any) => any) => {
+    query(
+      `
+      BEGIN;
+        INSERT INTO general_purpose_volume (volume_type, size, availability_zone, tags)
+        VALUES ('gp2', 20, '${availabilityZone2}', '{"Name": "${gp2VolumeName}-2"}');
+        INSERT INTO instance_block_device_mapping (device_name, volume_id, instance_id, delete_on_termination) values ('/dev/sda2', (SELECT id FROM general_purpose_volume WHERE tags ->>'Name' = '${gp2VolumeName}-2' LIMIT 1),
+        (SELECT id FROM instance WHERE tags ->>'name' = '${prefix}-1' LIMIT 1), FALSE);
+        
+      COMMIT;
+    `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    )((e?: any) => (!!e ? done(e) : done(undefined)));
+  });
+  it('attaches extra volume', commit());
+
+  itDocs(
+    'check extra volume has been created',
+    query(
+      `
+    SELECT *
+    FROM general_purpose_volume INNER JOIN instance_block_device_mapping ON general_purpose_volume.id = instance_block_device_mapping.volume_id
+    WHERE instance_block_device_mapping.instance_id = (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1');
+  `,
+      (res: any[]) => {
+        expect(res.length).toBe(2);
+      },
+    ),
+  );
+
+  it('starts a transaction', begin());
+
+  itDocs('creates an instance with specific size and an extra volume', (done: (arg0: any) => any) => {
+    query(
+      `
+        BEGIN;
+        INSERT INTO general_purpose_volume (volume_type, size, availability_zone, tags, is_root_device)
+        VALUES ('gp2', 15, '${availabilityZone2}', '{"Name": "${gp2VolumeName}-test-1"}', TRUE),
+        ('gp2', 20, '${availabilityZone2}', '{"Name": "${gp2VolumeName}-test-2"}', TRUE); 
+
+        INSERT INTO instance (ami, instance_type, tags, subnet_id)
+          SELECT '${ubuntuAmiId}', '${instanceType2}', '{"name":"${prefix}-2"}', id
+          FROM subnet
+          WHERE availability_zone = '${availabilityZone2}'
+          LIMIT 1;
+          INSERT INTO instance_block_device_mapping (device_name, volume_id, instance_id) values ('/dev/sda1', (SELECT id FROM general_purpose_volume WHERE tags ->>'Name' = '${gp2VolumeName}-test-1' LIMIT 1),
+          (SELECT id FROM instance WHERE tags ->>'name' = '${prefix}-2' LIMIT 1)),
+          ('/dev/sdb', (SELECT id FROM general_purpose_volume WHERE tags ->>'Name' = '${gp2VolumeName}-test-2' LIMIT 1),
+          (SELECT id FROM instance WHERE tags ->>'name' = '${prefix}-2' LIMIT 1)),
+          ('/dev/sdc', NULL, (SELECT id FROM instance WHERE tags ->>'name' = '${prefix}-2' LIMIT 1));        
+      COMMIT;
+    `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    )((e?: any) => (!!e ? done(e) : done(undefined)));
+  });
+  it('creates the instance with specific volumes', commit());
+
+  itDocs(
+    'check number of instances',
+    query(
+      `
+    SELECT *
+    FROM instance
+    WHERE tags ->> 'name' = '${prefix}-2';
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+  itDocs(
+    'check number of volumes',
+    query(
+      `
+    SELECT *
+    FROM general_purpose_volume INNER JOIN instance_block_device_mapping ON general_purpose_volume.id = instance_block_device_mapping.volume_id
+    WHERE instance_block_device_mapping.instance_id = (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-2');
+  `,
+      (res: any[]) => {
+        expect(res.length).toBe(2);
+        expect(res[0].size).toBe(15);
+        expect(res[1].size).toBe(20);
+      },
+    ),
+  );
+
+  it('starts a transaction', begin());
+
+  it(
+    'deletes all ec2 instances',
+    query(
+      `
+      DELETE FROM instance
+      WHERE tags ->> 'name' = '${prefix}-1' OR tags ->> 'name' = '${prefix}-2';
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it('applies the instances deletion', commit());
+
+  it(
+    'check number of instances',
+    query(
+      `
+    SELECT *
+    FROM instance
+    WHERE tags ->> 'name' = '${prefix}-1' OR tags ->> 'name' = '${prefix}-2';
+  `,
+      (res: any[]) => expect(res.length).toBe(0),
+    ),
+  );
+
+  it(
+    'check extra volume remains',
+    query(
+      `
+    SELECT *
+    FROM general_purpose_volume
+    WHERE tags ->> 'Name' = '${gp2VolumeName}-2';
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it(
+    'deletes extra volume',
+    query(
+      `
+      DELETE FROM general_purpose_volume
+      WHERE tags ->> 'Name' = '${gp2VolumeName}-2';  
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  itDocs(
+    'check number of volumes',
+    query(
+      `
+    SELECT *
+    FROM general_purpose_volume INNER JOIN instance_block_device_mapping ON general_purpose_volume.id = instance_block_device_mapping.volume_id
+    WHERE instance_block_device_mapping.instance_id = (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1' OR tags ->> 'name' = '${prefix}-2');
+  `,
+      (res: any[]) => {
+        expect(res.length).toBe(0);
+      },
+    ),
+  );
 
   it('starts a transaction', begin());
 
@@ -374,6 +602,19 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
     WHERE tags ->> 'Name' = '${gp2VolumeName}' OR tags ->> 'Name' = '${gp3VolumeName}';
     `,
       (res: any[]) => expect(res.length).toBe(0),
+    ),
+  );
+
+  itDocs(
+    'gets information about an AMI',
+    query(
+      `
+      SELECT * from describe_ami('${ubuntuAmiId}')
+  `,
+      (res: any[]) => {
+        expect(res.length).toBe(1);
+        expect(res[0].status).toBe('OK');
+      },
     ),
   );
 

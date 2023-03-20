@@ -28,8 +28,6 @@ export default function createTests() {
 
     await click(page.locator(`#iasql-editor div.ace_content:has-text("SELECT * FROM iasql_version()")`));
 
-    await click(page.locator('#database-settings'));
-
     await click(page.locator(`button:has-text("Disconnect")`));
 
     await click(page.locator(`button#disconnect-modal:has-text("Disconnect")`));

@@ -54,6 +54,9 @@ echo 'datasource db {
 generator dbml {
   provider = "prisma-dbml-generator"
   outputName = "iasql.dbml"
+  projectName = "IaSQL"
+  projectDatabaseType = "PostgreSQL"
+  projectNote = "https://iasql.com"
 }' > prisma/schema.prisma
 
 echo "\nIntrospect schema"

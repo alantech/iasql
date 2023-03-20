@@ -141,4 +141,15 @@ export class Certificate {
   @ManyToOne(() => AwsRegions, { nullable: false })
   @JoinColumn({ name: 'region' })
   region: string;
+
+  /**
+   * @public
+   * Complex type to provide identifier tags for the certificate
+   * @see https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-acm/interfaces/tag.html
+   */
+  @Column({
+    type: 'json',
+    nullable: true,
+  })
+  tags?: { [key: string]: string };
 }

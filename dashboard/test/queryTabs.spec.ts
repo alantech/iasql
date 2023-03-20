@@ -1,4 +1,4 @@
-import { test } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 import { auth0, click, fill, isDisabled, isNotVisible, isVisible, press } from './helper';
 
@@ -16,7 +16,10 @@ export default function createTests() {
     await click(page.locator(`#iasql-editor`));
 
     // Check initial content
-    await click(page.locator(`#iasql-editor div.ace_content:has-text("SELECT * FROM iasql_help();")`));
+    await expect(page.locator(`#iasql-editor div.ace_content`)).toContainText(/\-\-\sWelcome\sto\sIaSQL/i);
+    
+    // Add iasql_help query
+    await fill(page.locator(`#iasql-editor textarea.ace_text-input`), "SELECT * FROM iasql_help();", false);
 
     // Click run iasql initial query
     await click(page.locator(`button:has-text("Run query")`));
@@ -39,7 +42,7 @@ export default function createTests() {
     await isDisabled(page.locator(`#database-selection`));
 
     // Confirm cannot close tab
-    await isNotVisible(page.locator(`#tabs-and-editor button#Query-1 #close-bttn`));
+    await isNotVisible(page.locator(`#tabs-and-editor button#query-1 #close-bttn`));
 
     // Check result
     await click(page.locator(`#query-builder-result table`));
@@ -63,13 +66,13 @@ export default function createTests() {
     );
 
     // Go back to 'Welcome' tab
-    await click(page.locator(`#tabs-and-editor button#Welcome`));
+    await click(page.locator(`#tabs-and-editor button#getting-started`));
 
     // Check the result sill there
     await click(page.locator(`#query-builder-result table`));
 
     // Go back to first tab
-    await click(page.locator(`#tabs-and-editor button#Query-1`));
+    await click(page.locator(`#tabs-and-editor button#query-1`));
 
     // Check the result sill there
     await click(
@@ -79,7 +82,7 @@ export default function createTests() {
     );
 
     // Close tab
-    await click(page.locator(`#tabs-and-editor button#Query-1 #close-bttn`));
+    await click(page.locator(`#tabs-and-editor button#query-1 #close-bttn`));
 
     // Check initial welcome tab content
     await click(page.locator(`#iasql-editor div.ace_content:has-text("SELECT * FROM iasql_help();")`));

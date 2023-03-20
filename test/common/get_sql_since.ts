@@ -91,7 +91,7 @@ describe('iasql_get_sql_since functionality', () => {
     'should work with a dynamic date',
     query(
       `
-        SELECT * FROM iasql_get_sql_since((now() + interval '2 seconds')::text);
+        SELECT * FROM iasql_get_sql_since(now() + interval '2 seconds');
       `,
       (res: any) => {
         expect(res.length).toBe(0);
@@ -104,7 +104,7 @@ describe('iasql_get_sql_since functionality', () => {
       SELECT * FROM iasql_get_sql_since('abcd');
     `)((e?: any) => {
       try {
-        expect(e?.message).toBe('Cannot cast abcd to timestamp with time zone');
+        expect(e?.message).toContain('invalid input syntax for type timestamp with time zone');
       } catch (err) {
         done(err);
         return {};

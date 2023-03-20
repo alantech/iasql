@@ -8,6 +8,7 @@ import {
   execComposeUp,
   finish,
   getPrefix,
+  itDocs,
   runBegin,
   runCommit,
   runInstall,
@@ -148,7 +149,7 @@ describe('EC2 Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it('adds an ec2 instance', done => {
+  itDocs('adds an ec2 instance', (done: (arg0: any) => any) => {
     query(
       `
       INSERT INTO instance (ami, instance_type, tags, subnet_id)
@@ -165,7 +166,7 @@ describe('EC2 Integration Testing', () => {
       () => ({ username, password }),
     )((e?: any) => {
       if (!!e) return done(e);
-      done();
+      done(undefined);
     });
   });
 
@@ -199,10 +200,10 @@ describe('EC2 Integration Testing', () => {
     'check number of volumes',
     query(
       `
-    SELECT *
-    FROM general_purpose_volume
-    INNER JOIN instance on instance.id = general_purpose_volume.attached_instance_id
-    WHERE instance.tags ->> 'name' = '${prefix}-1';
+      SELECT general_purpose_volume.id FROM general_purpose_volume INNER JOIN instance_block_device_mapping
+      ON general_purpose_volume.id=instance_block_device_mapping.volume_id
+      WHERE instance_block_device_mapping.instance_id IN (SELECT instance.id FROM instance
+      WHERE instance.tags ->> 'name' = '${prefix}-1');
   `,
       (res: any[]) => expect(res.length).toBe(1),
     ),
@@ -353,54 +354,31 @@ describe('EC2 Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'moves the instance to another region',
     query(
       `
+      BEGIN;
+
     -- You can't move a registered instance at all, so unregister it
     DELETE FROM registered_instance WHERE instance = (
       SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'
     );
-    -- Because of interlinking constraints, we need to first "detach" the volume from the instance
-    -- then update the instance, then re-attach it. Hence the volume being updated twice to go to
-    -- a new region
-    UPDATE general_purpose_volume
-    SET
-      volume_id = null,
-      attached_instance_id = null,
-      instance_device_name = null,
-      snapshot_id = null
-    WHERE attached_instance_id = (
-      SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'
-    );
     -- We have to make sure the subnet is correct and we have to re-assign the AMI ID because they
     -- are different between regions
-    UPDATE instance
-    SET
-      instance_id = null,
-      region = 'us-east-1',
-      ami = '${ubuntuAmiId}',
-      subnet_id = (
-        SELECT id FROM subnet WHERE region = 'us-east-1' AND availability_zone = 'us-east-1a'
-      )
-    WHERE tags ->> 'name' = '${prefix}-1';
-    -- Re-attaching of the volume. But it is given a different name since /dev/xvda is reserved for
-    -- the initial boot volume and can't be re-used here. Technically an equivalent version of this
-    -- volume is automatically re-attached by the new instance being brought up.
-    UPDATE general_purpose_volume
-    SET
-      region = 'us-east-1',
-      availability_zone = 'us-east-1a',
-      attached_instance_id = (
-        SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'
-      ),
-      instance_device_name = '/dev/xvdb'
-    WHERE attached_instance_id IS NULL;
+    DELETE FROM instance_block_device_mapping WHERE instance_id = (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1');      
+    UPDATE instance set region='us-east-1', ami = '${ubuntuAmiId}',
+    subnet_id = (
+      SELECT id FROM subnet WHERE region = 'us-east-1' AND availability_zone = 'us-east-1a'
+    ) WHERE tags ->> 'name' = '${prefix}-1';
+    
     -- Also need to drop the security groups it is currently attached to. This is done with a join
     -- table so we get no good constraint checking on the validity here at the moment
     DELETE FROM instance_security_groups WHERE instance_id = (
       SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'
     );
+
+    COMMIT;
   `,
       undefined,
       true,
@@ -410,7 +388,7 @@ describe('EC2 Integration Testing', () => {
 
   it('applies the move', commit());
 
-  it(
+  itDocs(
     'check number of instances',
     query(
       `
@@ -465,13 +443,10 @@ describe('EC2 Integration Testing', () => {
     'deletes the instance',
     query(
       `
-      DELETE FROM general_purpose_volume
-      USING instance
-      WHERE instance.id = general_purpose_volume.attached_instance_id AND 
-        instance.tags ->> 'name' = '${prefix}-1';
-
       DELETE FROM instance
       WHERE tags ->> 'name' = '${prefix}-1';
+
+      DELETE FROM general_purpose_volume WHERE tags ->> 'name' = '${prefix}-1';
   `,
       undefined,
       true,
@@ -499,11 +474,10 @@ describe('EC2 Integration Testing', () => {
     'check number of volumes',
     query(
       `
-    SELECT *
-    FROM general_purpose_volume
-    INNER JOIN instance on instance.id = general_purpose_volume.attached_instance_id
-    WHERE instance.tags ->> 'name' = '${prefix}-1' OR
-      instance.tags ->> 'name' = '${prefix}-2';
+      SELECT general_purpose_volume.id FROM general_purpose_volume INNER JOIN instance_block_device_mapping
+      ON general_purpose_volume.id=instance_block_device_mapping.volume_id
+      WHERE instance_block_device_mapping.instance_id IN (SELECT instance.id FROM instance
+      WHERE (instance.tags ->> 'name' = '${prefix}-1' OR instance.tags ->> 'name' = '${prefix}-2'));
   `,
       (res: any[]) => expect(res.length).toBe(0),
     ),
