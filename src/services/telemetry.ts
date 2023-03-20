@@ -24,7 +24,6 @@ export type DbProps = {
 export type EventProps = {
   output?: string;
   error?: string;
-  dataOnly?: boolean;
   params?: string[];
   sql?: string;
   buttonAlias?: string;
@@ -83,14 +82,6 @@ export async function logConnect(uid: string, dbProps: DbProps, eventProps?: Eve
 
 export async function logDisconnect(uid: string, dbProps: DbProps, eventProps?: EventProps) {
   await logEvent(uid, DISCONNECT, dbProps, eventProps);
-}
-
-export async function logInstall(uid: string, dbProps: DbProps, eventProps: EventProps) {
-  await logEvent(uid, 'INSTALL', dbProps, eventProps);
-}
-
-export async function logUninstall(uid: string, dbProps: DbProps, eventProps: EventProps) {
-  await logEvent(uid, 'UNINSTALL', dbProps, eventProps);
 }
 
 export async function logCommitApply(uid: string, dbProps: DbProps, eventProps: EventProps) {
