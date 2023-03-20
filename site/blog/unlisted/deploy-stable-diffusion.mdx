@@ -1,0 +1,271 @@
+---
+slug: deploy-stable-diffusion
+title: Deploy Stable Diffusion in EC2 using a SQL query
+date: 2023-02-09
+authors: [yrobla]
+---
+
+# Deploy <a href="https://stability.ai/blog/stable-diffusion-public-release">Stable Diffusion</a> to AWS with one click
+
+Stable Diffusion is a deep learning, text-to-image model released in 2022. It is primarily used to generate detailed images conditioned on text descriptions, though it can also be applied to other tasks such as inpainting, outpainting, and generating image-to-image translations guided by a text prompt.
+
+There is a publicly available <a href="https://beta.dreamstudio.ai/dream">tool</a> limited to a maximum of 200 images generation. But because the model is open source, you can download and host your own version of it. There are different approaches to host it, but one easy option is to host it in an EC2 GPU instance, using IaSQL to setup everything with just a few SQL queries.
+IaSQL is an [open-source](https://github.com/iasql/iasql) software tool that creates a two-way connection between an unmodified PostgreSQL database and an AWS account so you can manage your infrastructure from a database.
+
+## Pre-requisites
+
+Stable Diffusion will need to run on GPU instances. These are likely not enabled in your AWS account by default, so you may need to increase your quota. This post uses _p_ instances, so you need to check your quota on <a href="https://us-east-2.console.aws.amazon.com/servicequotas/home/services/ec2/quotas">AWS</a> for the region where you want to deploy your model, and check if you have quota for this type. There is a need of 8 vCPUs per instance, so please request 8 vCPUS per each instance you want to deploy. As instances will take some time to terminate while other is started, it is recommended to request quota for at least 2 instances.
+
+<img src="/img/deploy-stable-diffusion/request_quota_increase.png" style={{ maxWidth: 600 }} />
+
+In order to run the model, there is the need to integrate with Nvidia GPU. This does not come out of the box, and needs to have a custom OS image with drivers installed. This is not a trivial process, but there are some AMIs in the marketplace that can help us with that. This post uses an image from marketplace, so a subscription will be needed in order to use it.
+Please visit the <a href="https://aws.amazon.com/marketplace/pp/prodview-64e4rx3h733ru?sr=0-1&ref_=beagle&applicationId=AWS-Marketplace-Console">AWS marketplace</a> and subscribe to the Amazon Linux 2 AMI with NVIDIA TESLA GPU Driver AMI offer.
+
+<img src="/img/deploy-stable-diffusion/subscribe_to_marketplace_ami.png" style={{ maxWidth: 600 }} />
+
+**Please note that you will incur in a cost of $3.06/Hour when using this AMI**
+
+## Stable Diffusion installation
+
+While Stable Diffusion is a complex model with lots of dependencies, there are pre-built Docker images from the community that ship with all the components on place. We will rely on <a href="https://sygil-dev.github.io/sygil-webui/docs/Installation/docker-guide">Sygil WebUI</a> images to deploy our model. These images are ready to be used out of the box, but there is possibility to build and customize the images in case it's needed.
+
+While this deployment may seem complex at first glance, it can be made easy with <a href="https://iasql.com/docs">IaSQL</a>. In the following paragraphs we will go through the steps needed to deploy Stable Diffusion just using SQL queries to inspect and modify the AWS infrastructure.
+
+We would need to start by getting the AMI ID for the image on the marketplace, in order to boot images based on that. We can get it with a simple query using IaSQL SDK module:
+
+```sql title="Get AMI ID"
+ -- install modules
+SELECT
+  *
+FROM
+  iasql_install ('aws_sdk');
+
+-- query for the image based on the image description
+SELECT
+  invoke_ec2 (
+    'describeImages',
+    '{"Filters": [{"Name": "description", "Values": ["Amazon Linux 2 Graphics AMI 2.0.20230119.1 x86_64 HVM gp2"]}, {"Name": "architecture", "Values": ["x86_64"]}]}'
+  ) -> 'Images' -> -1 -> 'ImageId';
+```
+
+Now with all pre-requisites solved, deploying Stable Diffusion can be done with one click using IaSQL engine. Please note that we will be using a beef p3.2xlarge instance with extra disk space storage, so running this experiment will incur in some extra costs:
+
+```sql title="Deploy Stable Diffusion"
+ -- install modules
+SELECT
+  *
+FROM
+  iasql_install ('aws_ec2', 'aws_ec2_metadata');
+
+-- start transaction
+SELECT
+  *
+FROM
+  iasql_begin ();
+
+-- set us-east-2 region as default to use it for all the resources in the deployment
+UPDATE
+  aws_regions
+SET
+  is_default = FALSE;
+
+UPDATE
+  aws_regions
+SET
+  is_default = TRUE
+WHERE
+  region = 'us-east-2';
+
+-- insert security groups
+INSERT INTO
+  security_group (description, group_name)
+VALUES
+  ('Stable Diffusion test security group', 'stable_diffusion_sg');
+
+INSERT INTO
+  security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
+SELECT
+  t.is_egress,
+  t.ip_protocol,
+  t.from_port,
+  t.to_port,
+  t.cidr_ipv4::cidr,
+  t.description,
+  security_group.id
+FROM
+  security_group,
+  (
+    VALUES
+      (FALSE, 'tcp', 22, 22, '0.0.0.0/0', 'stable_diffusion_sg_rule_ssh'),
+      (FALSE, 'tcp', 80, 80, '0.0.0.0/0', 'stable_diffusion_sg_rule_http'),
+      (TRUE, 'tcp', 1, 65535, '0.0.0.0/0', 'stable_diffusion_sg_rule_egress')
+  ) AS t (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description)
+WHERE
+  security_group.group_name = 'stable_diffusion_sg';
+
+-- insert instance with the right userdata
+INSERT INTO
+  general_purpose_volume (size, volume_type, availability_zone, tags, is_root_device)
+VALUES
+  (60, 'gp2', 'us-east-2a', '{"name": "stable-diffusion-blog"}', TRUE);
+
+INSERT INTO
+  instance (ami, instance_type, subnet_id, tags, user_data, region)
+SELECT
+  'ami-0890479ea4c515bf8', -- this AMI ID is the one we got from the query above
+  'p3.2xlarge',
+  subnet.id,
+  '{"name":"stable-diffusion-blog"}',
+  '#!/bin/bash
+yum update -y
+
+# install nginx
+amazon-linux-extras install nginx1 -y 
+systemctl enable nginx
+systemctl start nginx
+
+cat > /etc/nginx/conf.d/stable_diffusion.conf << EOF
+server {
+    listen 80;
+    index index.php index.html index.htm;
+    location / {
+        proxy_pass http://0.0.0.0:8501/;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header Host \$http_host;
+        proxy_redirect off;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+    error_page 404 /404.html;
+    error_page 500 502 503 504 /50x.html;
+
+    location = /50x.html {
+        root /usr/share/nginx/html;
+    }
+}
+EOF
+
+# install docker
+yum -y install docker
+usermod -a -G docker ec2-user
+id ec2-user
+newgrp docker
+
+systemctl enable docker.service
+systemctl start docker.service
+
+# install nvidia docker toolkit
+distribution=$(. /etc/os-release;echo $ID$VERSION_ID)    && curl -s -L https://nvidia.github.io/libnvidia-container/$distribution/libnvidia-container.repo | sudo tee /etc/yum.repos.d/nvidia-container-toolkit.repo
+yum -y clean  expire-cache
+pushd /tmp
+wget https://github.com/NVIDIA/libnvidia-container/raw/gh-pages/stable/amzn2/x86_64/libnvidia-container-tools-1.12.0-1.x86_64.rpm
+yum -y install  libnvidia-container-tools-1.12.0-1.x86_64.rpm
+yum install -y nvidia-container-toolkit
+nvidia-ctk runtime configure --runtime=docker
+systemctl restart docker
+popd
+
+# run docker image for stable diffusion
+docker pull hlky/sd-webui:runpod
+docker container run --rm -d -p 8501:8501 -e STREAMLIT_SERVER_HEADLESS=true -e "WEBUI_SCRIPT=webui_streamlit.py" --runtime=nvidia  -e "VALIDATE_MODELS=false" -v "${PWD}/outputs:/sd/outputs" --gpus all hlky/sd-webui:runpod
+systemctl reload nginx
+',
+  'us-east-2'
+FROM
+  subnet
+  INNER JOIN vpc ON vpc.id = subnet.vpc_id
+  AND vpc.is_default = 'Y'
+WHERE
+  vpc.region = 'us-east-2'
+  AND subnet.availability_zone = 'us-east-2a'
+LIMIT
+  1;
+
+INSERT INTO
+  instance_block_device_mapping (device_name, volume_id, instance_id)
+VALUES
+  (
+    '/dev/xvda',
+    (
+      SELECT
+        id
+      FROM
+        general_purpose_volume
+      WHERE
+        tags ->> 'name' = 'stable-diffusion-blog'
+      LIMIT
+        1
+    ),
+    (
+      SELECT
+        id
+      FROM
+        instance
+      WHERE
+        tags ->> 'name' = 'stable-diffusion-blog'
+      LIMIT
+        1
+    )
+  );
+
+-- insert instance security groups
+INSERT INTO
+  instance_security_groups (instance_id, security_group_id)
+SELECT
+  (
+    SELECT
+      id
+    FROM
+      instance
+    WHERE
+      tags ->> 'name' = 'stable-diffusion-blog'
+    LIMIT
+      1
+  ),
+  (
+    SELECT
+      id
+    FROM
+      security_group
+    WHERE
+      group_name = 'stable_diffusion_sg'
+      AND region = 'us-east-2'
+    LIMIT
+      1
+  );
+
+SELECT
+  *
+FROM
+  iasql_commit ();
+```
+
+## Accessing Stable Diffusion
+
+The installation procedure will run totally unattended and will take over 10-15 minutes, due to the volume of the artifacts to install. After the process finishes you will have your Stable Diffusion web interface up and running, publicly accessible through the public IP of the spinned instance.
+You can get the details of the public IP of your instance querying for the metadata:
+
+```sql
+SELECT
+  public_ip_address
+FROM
+  instance_metadata
+WHERE
+  id = (
+    SELECT
+      id
+    FROM
+      instance
+    WHERE
+      tags ->> 'name' = 'stable-diffusion-blog'
+    LIMIT
+      1
+  );
+```
+
+The initial Stable Diffusion installation will be available on the browser just query by `http://<public_ip_address>/`:
+
+<img src="/img/deploy-stable-diffusion/stable-diffusion-screenshot.png" style={{ maxWidth: 600 }} />
+
+Time to enjoy your image generation and start being creative with Stable Diffusion!
