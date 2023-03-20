@@ -20,6 +20,9 @@ export class AwsVpcModule extends ModuleBase {
   subnet: SubnetMapper;
 
   /** @internal */
+  dhcpOptions: DhcpOptionsMapper;
+
+  /** @internal */
   vpc: VpcMapper;
 
   /** @internal */
@@ -51,10 +54,6 @@ export class AwsVpcModule extends ModuleBase {
 
   /** @internal */
   route: RouteMapper;
-
-  /** @internal */
-  dhcpOptions: DhcpOptionsMapper;
-
   constructor() {
     super();
     // add modules in the right order
