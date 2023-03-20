@@ -6,7 +6,7 @@
 
 ### Accepted
 
-YYYY-MM-DD
+2023-03-17
 
 #### Approvers
 
@@ -17,7 +17,7 @@ YYYY-MM-DD
 
 ### Implementation
 
-- [ ] Implemented: [One or more PRs](https://github.com/iasql/iasql-engine/some-pr-link-here) YYYY-MM-DD
+- [x] Implemented: [Long-lived transactions](https://github.com/iasql/iasql-engine/some-pr-link-here), [Assign transactionId to iasql_audit_log records](https://github.com/iasql/iasql/pull/2260) 2023-03-20
 - [ ] Revoked/Superceded by: [RFC ###](./000 - RFC Template.md) YYYY-MM-DD
 
 ## Author(s)
