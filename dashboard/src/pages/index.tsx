@@ -7,10 +7,10 @@ import { ErrorDialog } from '@/components/common';
 import { AppProvider } from '@/components/providers/AppProvider';
 import { useAppConfigContext } from '@/components/providers/ConfigProvider';
 import { Auth0Provider } from '@auth0/auth0-react';
+import logdna from '@logdna/browser';
 
 import * as Posthog from '../services/posthog';
 import * as Sentry from '../services/sentry';
-import logdna from '@logdna/browser';
 
 function handleRageClicking(setIsRageClicking: (arg0: boolean) => void) {
   const now = Date.now();
