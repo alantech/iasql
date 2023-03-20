@@ -3478,9 +3478,10 @@ dns-packet@^5.2.2:
   dependencies:
     "@leichtgewicht/ip-codec" "^2.0.1"
 
-"docusaurus-plugin-iasql@https://github.com/iasql/docusaurus-plugin-iasql#v1.1.1":
-  version "1.1.1"
-  resolved "https://github.com/iasql/docusaurus-plugin-iasql#759043a58c7f62f1020c5a034dd4cce5f611f77b"
+"docusaurus-plugin-iasql@https://github.com/iasql/docusaurus-plugin-iasql#v1.1.2":
+  version "1.1.2"
+  uid "68e8b8d049e991dc8717ee2d44d4a93d3cb4ef0f"
+  resolved "https://github.com/iasql/docusaurus-plugin-iasql#68e8b8d049e991dc8717ee2d44d4a93d3cb4ef0f"
   dependencies:
     "@supercharge/strings" "^1.29.1"
     fs "^0.0.1-security"
@@ -7223,10 +7224,10 @@ typedoc-plugin-markdown@^3.14.0:
   dependencies:
     handlebars "^4.7.7"
 
-typedoc@>=0.23.0, typedoc@^0.23.26:
-  version "0.23.26"
-  resolved "https://registry.yarnpkg.com/typedoc/-/typedoc-0.23.26.tgz#ae082683698bad68757d8fe619242a56d6b5bf36"
-  integrity sha512-5m4KwR5tOLnk0OtMaRn9IdbeRM32uPemN9kur7YK9wFqx8U0CYrvO9aVq6ysdZSV1c824BTm+BuQl2Ze/k1HtA==
+typedoc@>=0.23.0, typedoc@^0.23.28:
+  version "0.23.28"
+  resolved "https://registry.yarnpkg.com/typedoc/-/typedoc-0.23.28.tgz#3ce9c36ef1c273fa849d2dea18651855100d3ccd"
+  integrity sha512-9x1+hZWTHEQcGoP7qFmlo4unUoVJLB0H/8vfO/7wqTnZxg4kPuji9y3uRzEu0ZKez63OJAUmiGhUrtukC6Uj3w==
   dependencies:
     lunr "^2.3.9"
     marked "^4.2.12"
