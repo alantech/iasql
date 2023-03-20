@@ -13,7 +13,7 @@ import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 import { AwsVpcModule } from '..';
 import { AWS, crudBuilder, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
 import { Context, Crud, MapperBase } from '../../interfaces';
-import { Subnet, Vpc, VpcState } from '../entity';
+import { RouteTable, RouteTableAssociation, Subnet, Vpc, VpcState } from '../entity';
 import { eqTags, updateTags } from './tags';
 
 export class VpcMapper extends MapperBase<Vpc> {
