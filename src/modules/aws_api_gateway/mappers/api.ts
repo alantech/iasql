@@ -3,8 +3,12 @@ import {
   Api as ApiAWS,
   CreateApiCommandInput,
   UpdateApiCommandInput,
+  TagResourceCommandInput,
+  GetApiCommandInput,
+  UntagResourceCommandInput,
 } from '@aws-sdk/client-apigatewayv2';
 import { build as buildArn } from '@aws-sdk/util-arn-parser';
+import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 
 import { AwsApiGatewayModule } from '..';
 import { AWS, crudBuilder, crudBuilderFormat, eqTags } from '../../../services/aws_macros';
@@ -48,9 +52,55 @@ export class ApiMapper extends MapperBase<Api> {
       resource: `/apis/${apiId}`,
     });
 
-  tagRes = crudBuilder<ApiGatewayV2, 'tagResource'>('tagResource', input => input);
+  tagResource = crudBuilder<ApiGatewayV2, 'tagResource'>('tagResource', input => input);
 
-  untagRes = crudBuilder<ApiGatewayV2, 'untagResource'>('untagResource', input => input);
+  async tagAndWait(client: ApiGatewayV2, input: TagResourceCommandInput, ApiId: string) {
+    await this.tagResource(client, input);
+    await createWaiter<ApiGatewayV2, GetApiCommandInput>(
+      {
+        client,
+        maxWaitTime: 300,
+        minDelay: 1,
+        maxDelay: 4,
+      },
+      { ApiId },
+      async cl => {
+        try {
+          const api = await this.getApi(cl, ApiId);
+          if (eqTags(api?.Tags, input.Tags)) return { state: WaiterState.SUCCESS };
+          return { state: WaiterState.RETRY };
+        } catch (e: any) {
+          return { state: WaiterState.RETRY };
+        }
+      },
+    );
+  }
+
+  untagResource = crudBuilder<ApiGatewayV2, 'untagResource'>('untagResource', input => input);
+
+  async untagAndWait(client: ApiGatewayV2, input: UntagResourceCommandInput, ApiId: string) {
+    await this.untagResource(client, input);
+    await createWaiter<ApiGatewayV2, GetApiCommandInput>(
+      {
+        client,
+        maxWaitTime: 300,
+        minDelay: 1,
+        maxDelay: 4,
+      },
+      { ApiId },
+      async cl => {
+        try {
+          const api = await this.getApi(cl, ApiId);
+          if (input.TagKeys?.every(tk => !Object.keys(api?.Tags ?? {}).find(atk => atk === tk))) {
+            return { state: WaiterState.SUCCESS };
+          }
+          return { state: WaiterState.RETRY };
+        } catch (e: any) {
+          return { state: WaiterState.RETRY };
+        }
+      },
+    );
+  }
 
   cloud = new Crud<Api>({
     create: async (rs: Api[], ctx: Context) => {
@@ -75,9 +125,11 @@ export class ApiMapper extends MapperBase<Api> {
             tags[k] = v;
           }
           const arn = this.buildApiArn(result.ApiId ?? '', r.region);
-          await this.tagRes(client.apiGatewayClient, { ResourceArn: arn, Tags: tags });
-          // sleep for a few seconds to allow the tags to be applied
-          await new Promise(resolve => setTimeout(resolve, 5000));
+          await this.tagAndWait(
+            client.apiGatewayClient,
+            { ResourceArn: arn, Tags: tags },
+            result.ApiId ?? '',
+          );
         }
         const newApi: Api = await this.cloud.read(
           ctx,
@@ -141,15 +193,15 @@ export class ApiMapper extends MapperBase<Api> {
           if (!res) continue;
           if (!eqTags(r.tags, cloudRecord.tags)) {
             const apiArn = this.buildApiArn(r.apiId, r.region);
-            await this.untagRes(client.apiGatewayClient, {
-              ResourceArn: apiArn,
-              TagKeys: Object.keys(cloudRecord.tags ?? {}),
-            });
-            // sleep for a few seconds to allow the tags to be applied
-            await new Promise(resolve => setTimeout(resolve, 5000));
-            await this.tagRes(client.apiGatewayClient, { ResourceArn: apiArn, Tags: r.tags });
-            // sleep for a few seconds to allow the tags to be applied
-            await new Promise(resolve => setTimeout(resolve, 5000));
+            await this.untagAndWait(
+              client.apiGatewayClient,
+              {
+                ResourceArn: apiArn,
+                TagKeys: Object.keys(cloudRecord.tags ?? {}),
+              },
+              r.apiId,
+            );
+            await this.tagAndWait(client.apiGatewayClient, { ResourceArn: apiArn, Tags: r.tags }, r.apiId);
           }
           delete ctx?.memo?.cloud?.Api?.[this.entityId(r)];
           const newApi = await this.cloud.read(ctx, this.entityId(r));
