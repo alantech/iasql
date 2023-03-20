@@ -29,7 +29,7 @@ select * from iasql_commit();
 
 Once the transaction is committed successfully and the desired changes are reflected in your staging AWS account, how do you easily replicate the analog of these changes in production? You can use another IaSQL function that looks at the IaSQL audit log and generates the SQL needed to represent changes done by a given transaction in `mycompany-staging`.
 
-<!-- TODO if no transaction is provided, default to current or latest -->
+<!-- TODO if no transaction id is provided, default to current or latest -->
 
 ```sql title="mycompanydb-staging"
 -- gets SQL from the audit log for the previous transaction
@@ -38,6 +38,7 @@ SELECT *
     (
       SELECT transaction_id
       FROM iasql_audit_log
+      WHERE change_type = 'OPEN_TRANSACTION'
       ORDER BY ts DESC
       LIMIT 1
     )
