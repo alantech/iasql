@@ -151,4 +151,13 @@ export class IasqlAuditLog {
     nullable: true,
   })
   message: string;
+
+  /**
+   * @public
+   * Transaction identifier
+   */
+  @Column({
+    nullable: true,
+  })
+  transactionId: string;
 }
