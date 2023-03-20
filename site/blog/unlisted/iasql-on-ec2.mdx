@@ -286,28 +286,60 @@ To set up an elastic load balancer, we need some kinds of resources:
 
 <img src={'/img/iasql-on-ec2/load-balancer-parts.png'} style={{maxWidth: 300}} />
 
-You know the drill: we `INSERT` rows in the corresponding tables, and IaSQL will apply our desired changes to the cloud.
+You know the drill: we `INSERT` rows in the corresponding tables, and IaSQL will apply our desired changes to the cloud (remember to replace `<your-ip>` with your own public IP address).
 
+First, we create a new security group for our load balancer that should allow traffic on 443 port only from our IP (while allowing outgoing traffic from our load balancer):
 ```sql
-BEGIN;
 INSERT INTO security_group (description, group_name, region)
 VALUES ('allows traffic on 443 port from my ip', 'iasql-lb', default_aws_region());
 
 WITH lb_security_group as (SELECT id FROM security_group WHERE group_name = 'iasql-lb')
 INSERT
-INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id,
-                          region)
+INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id, region)
 VALUES (false, 'tcp', 443, 443, '<your-ip>/32', 'allow incoming traffic on 443 from my ip',
         (SELECT id FROM lb_security_group), default_aws_region()),
        (true, '-1', -1, -1, '0.0.0.0/32', 'allow outgoing traffic from load balancer',
         (SELECT id FROM lb_security_group), default_aws_region());
-
-INSERT INTO load_balancer (load_balancer_name, scheme, load_balancer_type, ip_address_type, region)
-VALUES ('iasql', 'internet-facing', 'application', 'ipv4', default_aws_region());
-
-
-INSERT INTO load_balancer_security_groups(load_balancer_id, security_group_id)
-SELECT (SELECT id FROM load_balancer WHERE load_balancer_name = '${lbName}'),
-       (SELECT id FROM security_group WHERE group_name = '${sg1}');
-COMMIT;
 ```
+
+Then perform creation of the actual load balancer, the target group, and the listener:
+```sql
+INSERT INTO load_balancer (load_balancer_name, scheme, load_balancer_type, ip_address_type, region)
+VALUES ('iasql-lb', 'internet-facing', 'application', 'ipv4', default_aws_region());
+
+INSERT INTO target_group (target_group_name, target_type, protocol, port)
+VALUES ('iasql', 'instance', 'HTTPS', 9876);
+
+INSERT INTO listener (load_balancer_id, port, protocol, target_group_id)
+VALUES ((SELECT id FROM load_balancer WHERE load_balancer_name = 'iasql-lb'), 443, 'HTTPS',
+        (SELECT id FROM target_group WHERE target_group_name = 'iasql'));
+```
+
+And do not forget to assign the security group to our load balancer:
+```sql
+INSERT INTO load_balancer_security_groups (load_balancer_id, security_group_id)
+SELECT (SELECT id FROM load_balancer WHERE load_balancer_name = 'iasql-lb'),
+       (SELECT id FROM security_group WHERE group_name = 'iasql-lb');
+```
+
+The only step remaining is to allow incoming traffic to our instance on port 9876 only from our load balancer:
+```sql
+UPDATE security_group_rule
+SET source_security_group = (SELECT id FROM security_group WHERE group_name = 'iasql-lb'),
+    cidr_ipv4             = NULL
+WHERE cidr_ipv4 = '<my-ip>';
+```
+(we're basically updating the previous rule allowing direct access from our IP to allow access from load balancer security group)
+
+Waiting for enough time for the above changes to be propagated to the cloud, the load balancer should be up and listening on a DNS name:
+```sql
+SELECT dns_name FROM load_balancer WHERE load_balancer_name = 'iasql-lb'
+```
+
+Making a CNAME record pointing to that load balancer will make IaSQL working under our domain name:
+```sql
+INSERT INTO resource_record_set (name, record_type, record, ttl, parent_hosted_zone_id)
+VALUES ('<your-domain>', 'CNAME', (SELECT dns_name FROM load_balancer WHERE load_balancer_name = 'iasql-lb'), 300,
+        (SELECT id FROM hosted_zone WHERE domain_name = '<your-domain>'))
+```
+Now you can access IaSQL dashboard by simply visiting `https://<your-domain>/`!
