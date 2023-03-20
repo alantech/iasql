@@ -275,24 +275,42 @@ describe('RouteTable Integration Testing', () => {
 
   it('starts a transaction', begin());
   it(
-    'tries to delete the default route table',
-    query(`
-    DELETE
-    FROM route_table
-    WHERE region = '${region}'
-      AND route_table.id IN (SELECT route_table_id FROM route_table_association WHERE is_main)
-  `),
+    'tries to delete routes from default route table',
+    query(
+      `
+        DELETE
+        FROM route
+        USING route_table
+        WHERE route.region = '${region}'
+          AND route_table.id IN (SELECT route_table_id FROM route_table_association WHERE is_main)
+      `,
+    ),
   );
-  it('commits deletion of the route table', commit());
+
+  it('commits deletion of the routes', commit());
+
+  it(
+    'rechecks the routes are still there',
+    query(
+      `
+        SELECT *
+        FROM route
+        INNER JOIN route_table ON route_table.id = route.route_table_id
+        WHERE route.region = '${region}'
+          AND route_table.id IN (SELECT route_table_id FROM route_table_association WHERE is_main)
+      `,
+      (res: any[]) => expect(res.length).toBeGreaterThan(0),
+    ),
+  );
 
   it(
     'rechecks the route table is still there',
     query(
       `
-    SELECT * FROM route_table
-    WHERE region = '${region}'
-      AND route_table.id IN (SELECT route_table_id FROM route_table_association WHERE is_main)
-  `,
+        SELECT * FROM route_table
+        WHERE region = '${region}'
+          AND route_table.id IN (SELECT route_table_id FROM route_table_association WHERE is_main)
+      `,
       (res: any[]) => expect(res.length).toBeGreaterThan(0),
     ),
   );
