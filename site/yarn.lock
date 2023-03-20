@@ -2077,10 +2077,10 @@
   resolved "https://registry.yarnpkg.com/@types/mime/-/mime-3.0.1.tgz#5f8f2bca0a5863cb69bc0b0acd88c96cb1d4ae10"
   integrity sha512-Y4XFY5VJAuw0FgAqPNd6NNoV44jbq9Bz2L7Rh/J6jLTiHBSBJa9fxqQIvkIld4GsoDOcCbvzOUAbLPsSKKg+uA==
 
-"@types/node@*", "@types/node@^18.15.0":
-  version "18.15.0"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-18.15.0.tgz#286a65e3fdffd691e170541e6ecb0410b16a38be"
-  integrity sha512-z6nr0TTEOBGkzLGmbypWOGnpSpSIBorEhC4L+4HeQ2iezKCi4f77kyslRwvHeNitymGQ+oFyIWGP96l/DPSV9w==
+"@types/node@*", "@types/node@^18.15.3":
+  version "18.15.3"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-18.15.3.tgz#f0b991c32cfc6a4e7f3399d6cb4b8cf9a0315014"
+  integrity sha512-p6ua9zBxz5otCmbpb5D3U4B5Nanw6Pk3PPyX05xnxbB/fRv71N7CPmORg7uAD5P70T0xmx1pzAx/FUfa5X+3cw==
 
 "@types/node@^17.0.5":
   version "17.0.45"
@@ -3478,9 +3478,10 @@ dns-packet@^5.2.2:
   dependencies:
     "@leichtgewicht/ip-codec" "^2.0.1"
 
-"docusaurus-plugin-iasql@https://github.com/iasql/docusaurus-plugin-iasql#v1.1.1":
-  version "1.1.1"
-  resolved "https://github.com/iasql/docusaurus-plugin-iasql#759043a58c7f62f1020c5a034dd4cce5f611f77b"
+"docusaurus-plugin-iasql@https://github.com/iasql/docusaurus-plugin-iasql#v1.1.2":
+  version "1.1.2"
+  uid "68e8b8d049e991dc8717ee2d44d4a93d3cb4ef0f"
+  resolved "https://github.com/iasql/docusaurus-plugin-iasql#68e8b8d049e991dc8717ee2d44d4a93d3cb4ef0f"
   dependencies:
     "@supercharge/strings" "^1.29.1"
     fs "^0.0.1-security"
