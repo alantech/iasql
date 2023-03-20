@@ -83,21 +83,26 @@ OR REPLACE FUNCTION maybe_commit () RETURNS TEXT LANGUAGE plpgsql SECURITY INVOK
 declare
     _change_type text;
     _ts TIMESTAMP WITH TIME ZONE;
-    _30_min_interval TIMESTAMP WITH TIME ZONE;
+    _5_hrs_interval TIMESTAMP WITH TIME ZONE;
     _almost_2_min_interval TIMESTAMP WITH TIME ZONE;
     _current_ts TIMESTAMP WITH TIME ZONE;
 begin
     _current_ts := now();
-    _30_min_interval := _current_ts - interval '30 minutes';
+    _5_hrs_interval := _current_ts - interval '5 hours';
     _almost_2_min_interval := _current_ts - interval '1.9 minutes';
     -- Check if theres an open transaction
     SELECT change_type, ts INTO _change_type, _ts
     FROM iasql_audit_log
     WHERE 
-      change_type IN ('OPEN_TRANSACTION', 'CLOSE_TRANSACTION') AND
-      ts > _30_min_interval
+      change_type IN ('OPEN_TRANSACTION', 'CLOSE_TRANSACTION', 'START_COMMIT')
     ORDER BY ts DESC
     LIMIT 1;
+    -- If latest log is START_COMMIT and have been running for more than 5hrs we assume something wrong happened 
+    -- and we do a rollback to sync from cloud and close the commit
+    IF _change_type = 'START_COMMIT' AND _ts IS NOT NULL AND _ts < _5_hrs_interval THEN
+      PERFORM iasql_rollback(true);
+      RETURN 'iasql_rollback called';
+    END IF;
     -- If a transaction occurred less than 2 min ago we skip
     IF _change_type != 'OPEN_TRANSACTION' AND (_ts IS NULL OR _ts < _almost_2_min_interval) THEN
       PERFORM iasql_begin();

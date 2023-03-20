@@ -1030,7 +1030,7 @@ export async function rollback(dbId: string, context: Context, force = false, or
     context.orm = orm;
 
     const isRunning = await isCommitRunning(orm);
-    if (isRunning) throw new Error('Another execution is in process. Please try again later.');
+    if (!force && isRunning) throw new Error('Another execution is in process. Please try again later.');
 
     // Get current transaction identifier
     currentTransactionId = await getCurrentTransactionId(orm);
@@ -1884,8 +1884,7 @@ async function getChangesAfterCommitStartedByEntity(
 }
 
 export async function maybeOpenTransaction(orm: TypeormWrapper): Promise<void> {
-  // Check if no other transaction is open in the last 30 min
-  // Check if no commit is running
+  // Check for a couple of minutes if no other transaction is open and if no other commit is running
   let addedTransaction = false,
     loops = 120;
   do {
@@ -1911,12 +1910,10 @@ export async function closeTransaction(orm: TypeormWrapper): Promise<void> {
 }
 
 export async function isOpenTransaction(orm: TypeormWrapper): Promise<boolean> {
-  const limitDate = new Date(Date.now() - 30 * 60 * 1000);
   const transactions = await orm.find(IasqlAuditLog, {
     order: { ts: 'DESC' },
     where: {
       changeType: In([AuditLogChangeType.OPEN_TRANSACTION, AuditLogChangeType.CLOSE_TRANSACTION]),
-      ts: MoreThan(limitDate),
     },
     take: 1,
   });
