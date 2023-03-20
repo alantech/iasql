@@ -1,21 +1,21 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class awsVpc1679072138872 implements MigrationInterface {
-  name = 'awsVpc1679072138872';
+export class awsVpc1679077592987 implements MigrationInterface {
+  name = 'awsVpc1679077592987';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
       `CREATE TABLE "availability_zone" ("name" character varying NOT NULL, "region" character varying NOT NULL DEFAULT default_aws_region(), CONSTRAINT "uq_az_region" UNIQUE ("name", "region"), CONSTRAINT "PK_16d2ffe3b36dfa0f1de3c280c01" PRIMARY KEY ("name"))`,
     );
     await queryRunner.query(
-      `CREATE TABLE "dhcp_options" ("id" SERIAL NOT NULL, "dhcp_options_id" character varying, "dhcp_configurations" json, "tags" json, "region" character varying NOT NULL DEFAULT default_aws_region(), CONSTRAINT "uq_dhcp_options_region" UNIQUE ("dhcp_options_id", "region"), CONSTRAINT "PK_8e718fb869791fde6a1e5a3f08e" PRIMARY KEY ("id"))`,
+      `CREATE TABLE "dhcp_options" ("id" SERIAL NOT NULL, "dhcp_options_id" character varying, "dhcp_configurations" json, "tags" json, "region" character varying NOT NULL DEFAULT default_aws_region(), CONSTRAINT "uq_dhcp_options_id_region" UNIQUE ("id", "region"), CONSTRAINT "uq_dhcp_options_region" UNIQUE ("dhcp_options_id", "region"), CONSTRAINT "PK_8e718fb869791fde6a1e5a3f08e" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
       `CREATE TABLE "elastic_ip" ("id" SERIAL NOT NULL, "allocation_id" character varying, "public_ip" character varying, "tags" json, "region" character varying NOT NULL DEFAULT default_aws_region(), CONSTRAINT "UQ_7d16382cad0b5eea714bd8d79b1" UNIQUE ("public_ip"), CONSTRAINT "elasticip_id_region" UNIQUE ("id", "region"), CONSTRAINT "PK_8f7ca624855a83f6ce36f8a88a1" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(`CREATE TYPE "public"."vpc_state_enum" AS ENUM('available', 'pending')`);
     await queryRunner.query(
-      `CREATE TABLE "vpc" ("id" SERIAL NOT NULL, "vpc_id" character varying, "cidr_block" character varying NOT NULL, "state" "public"."vpc_state_enum", "is_default" boolean NOT NULL DEFAULT false, "enable_dns_hostnames" boolean NOT NULL DEFAULT false, "enable_dns_support" boolean NOT NULL DEFAULT false, "enable_network_address_usage_metrics" boolean NOT NULL DEFAULT false, "tags" json, "region" character varying NOT NULL DEFAULT default_aws_region(), CONSTRAINT "uq_vpc_id_region" UNIQUE ("vpc_id", "region"), CONSTRAINT "uq_vpc_region" UNIQUE ("id", "region"), CONSTRAINT "PK_293725cf47b341e1edc38bd2075" PRIMARY KEY ("id"))`,
+      `CREATE TABLE "vpc" ("id" SERIAL NOT NULL, "vpc_id" character varying, "cidr_block" character varying NOT NULL, "state" "public"."vpc_state_enum", "is_default" boolean NOT NULL DEFAULT false, "enable_dns_hostnames" boolean NOT NULL DEFAULT false, "enable_dns_support" boolean NOT NULL DEFAULT false, "enable_network_address_usage_metrics" boolean NOT NULL DEFAULT false, "tags" json, "region" character varying NOT NULL DEFAULT default_aws_region(), "dhcp_options_id" integer, CONSTRAINT "uq_vpc_id_region" UNIQUE ("vpc_id", "region"), CONSTRAINT "uq_vpc_region" UNIQUE ("id", "region"), CONSTRAINT "PK_293725cf47b341e1edc38bd2075" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
       `CREATE TYPE "public"."peering_connection_state_enum" AS ENUM('active', 'expired', 'failed', 'initiating-request', 'pending-acceptance', 'provisioning', 'rejected')`,
@@ -80,6 +80,9 @@ export class awsVpc1679072138872 implements MigrationInterface {
     );
     await queryRunner.query(
       `ALTER TABLE "elastic_ip" ADD CONSTRAINT "FK_f75b4d19cd93ba87e5ab6219df2" FOREIGN KEY ("region") REFERENCES "aws_regions"("region") ON DELETE NO ACTION ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "vpc" ADD CONSTRAINT "FK_cd834c0377f2390d05341b7a883" FOREIGN KEY ("dhcp_options_id", "region") REFERENCES "dhcp_options"("id","region") ON DELETE NO ACTION ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
       `ALTER TABLE "vpc" ADD CONSTRAINT "FK_4e3193d811417bcd61e4f305e74" FOREIGN KEY ("region") REFERENCES "aws_regions"("region") ON DELETE NO ACTION ON UPDATE NO ACTION`,
@@ -206,6 +209,7 @@ export class awsVpc1679072138872 implements MigrationInterface {
       `ALTER TABLE "peering_connection" DROP CONSTRAINT "FK_b195bf4246be413501fef93c5c7"`,
     );
     await queryRunner.query(`ALTER TABLE "vpc" DROP CONSTRAINT "FK_4e3193d811417bcd61e4f305e74"`);
+    await queryRunner.query(`ALTER TABLE "vpc" DROP CONSTRAINT "FK_cd834c0377f2390d05341b7a883"`);
     await queryRunner.query(`ALTER TABLE "elastic_ip" DROP CONSTRAINT "FK_f75b4d19cd93ba87e5ab6219df2"`);
     await queryRunner.query(`ALTER TABLE "dhcp_options" DROP CONSTRAINT "FK_ed409019eed270dc81df44e80cf"`);
     await queryRunner.query(

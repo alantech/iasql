@@ -12,6 +12,7 @@ import { AwsRegions } from '../../aws_account/entity';
  * @see https://docs.aws.amazon.com/vpc/latest/userguide/VPC_DHCP_Options.html
  */
 @Unique('uq_dhcp_options_region', ['dhcpOptionsId', 'region'])
+@Unique('uq_dhcp_options_id_region', ['id', 'region'])
 @Entity()
 export class DhcpOptions {
   /**
