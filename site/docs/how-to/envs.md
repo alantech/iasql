@@ -49,6 +49,7 @@ select * from iasql_preview();
 select * from iasql_commit();
 ```
 
+<!-- TODO add mention to how-to guide on peer reviewing transactions -->
 :::note
-We do not recommend using database migrations systems to try to version control changes as outlined by this [RFC](https://github.com/iasql/iasql/blob/main/rfcs/006%20-%20Replicate%20changes%20between%20staging%20and%20prod%20RFC.md). Version control + peer review of IaSQL infrastructure transactions without using migration systems is part of our roadmap. If you are interested let us know on [Discord](https://discord.iasql.com) so we can better understand your use case and solve for it.
+We do not recommend using database schema migrations systems to try to version control infrastructure changes as the approach is not resilient to IaSQL schema upgrades which require recreating the entire database.
 :::
