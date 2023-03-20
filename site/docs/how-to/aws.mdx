@@ -52,7 +52,7 @@ FROM
 
 ## Restricting AWS credentials to specific regions
 
-Sometimes, you may want or need to restrict your credentials to a specific region. To do this, you will need to create a custom policy that restricts access to AWS resources in that region. The following [guide](https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_create.html) will walk you through creating a new policy. Your policy will need to look something like this:
+Sometimes, you may want or need to restrict access to a specific region. To do this, you will need to make sure that the credentials for the IAM role given to IaSQL have a policy that restricts access only to AWS resources in that region. This can be done by creating a custom policy and attaching it to the relevant IAM role. The following [guide](https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_create.html) will walk you through creating a new policy. Your policy will need to look something like this:
 
 ```json
 {
