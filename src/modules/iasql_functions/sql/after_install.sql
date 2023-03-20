@@ -98,7 +98,7 @@ begin
     ORDER BY ts DESC
     LIMIT 1;
     -- If latest log is START_COMMIT and have been running for more than 5hrs we assume something wrong happened and we do a rollback to sync from cloud and close the commit
-    IF _change_type = 'START_COMMIT' AND _ts IS NOT NULL AND _ts > _5_hrs_interval THEN
+    IF _change_type = 'START_COMMIT' AND _ts IS NOT NULL AND _ts < _5_hrs_interval THEN
       PERFORM iasql_rollback(true);
       RETURN 'iasql_rollback called';
     END IF;
