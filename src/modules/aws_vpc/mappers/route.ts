@@ -1,17 +1,12 @@
 import _ from 'lodash';
 
-
-
 import { EC2 } from '@aws-sdk/client-ec2';
 import { Route as AwsRoute } from '@aws-sdk/client-ec2/dist-types/models';
-
-
 
 import { AWS, crudBuilder } from '../../../services/aws_macros';
 import { Context, Crud, IdFields, MapperBase } from '../../interfaces';
 import { Route, RouteTable, RouteTableAssociation } from '../entity';
 import { AwsVpcModule } from '../index';
-
 
 export class RouteMapper extends MapperBase<Route> {
   module: AwsVpcModule;
@@ -166,8 +161,17 @@ export class RouteMapper extends MapperBase<Route> {
           return;
         } else if (e.gatewayId === 'local') return;
 
-        const associations = await this.module.routeTableAssociation.db.read(ctx) as RouteTableAssociation[];
-        if (associations.find(a => a.isMain && a.routeTable.routeTableId === e.routeTable.routeTableId)) {
+        const associations = (await this.module.routeTableAssociation.db.read(
+          ctx,
+        )) as RouteTableAssociation[];
+        if (
+          associations.find(
+            a =>
+              a.isMain &&
+              a.routeTable.routeTableId === e.routeTable.routeTableId &&
+              a.routeTable.vpc.isDefault,
+          )
+        ) {
           // don't delete routes in the default route table
           await this.module.route.db.update(e, ctx);
           // Make absolutely sure it shows up in the memo
