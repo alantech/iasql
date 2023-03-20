@@ -283,7 +283,7 @@ describe('RouteTable Integration Testing', () => {
       AND route_table.id IN (SELECT route_table_id FROM route_table_association WHERE is_main)
   `),
   );
-  it('commits deletion of the route table');
+  it('commits deletion of the route table', commit());
 
   it(
     'rechecks the route table is still there',
