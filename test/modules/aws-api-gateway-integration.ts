@@ -139,7 +139,7 @@ describe('API Gateway Integration Testing', () => {
       `
   SELECT * FROM api WHERE name='${apiName}';
   `,
-      (res: any) => {console.log(res); return expect(res.length).toBe(1)},
+      (res: any) => expect(res.length).toBe(1),
     ),
   );
 
