@@ -24,8 +24,6 @@ export class RouteTableMapper extends MapperBase<RouteTable> {
 
   async routeTableMapper(routeTable: AwsRouteTable, region: string, ctx: Context) {
     const out = new RouteTable();
-    console.log('in route table mapper');
-    console.log(routeTable);
 
     out.routeTableId = routeTable.RouteTableId;
     out.vpc =
@@ -84,11 +82,7 @@ export class RouteTableMapper extends MapperBase<RouteTable> {
     read: async (ctx: Context, id?: string) => {
       const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
       if (!!id) {
-        console.log('i read by id');
-        console.log(id);
         const { routeTableId, region } = this.idFields(id);
-        console.log('after route table');
-        console.log(routeTableId);
         const client = (await ctx.getAwsClient(region)) as AWS;
         const rawRouteTable = await this.getRouteTable(client.ec2client, routeTableId);
         if (!rawRouteTable) return;
@@ -134,8 +128,6 @@ export class RouteTableMapper extends MapperBase<RouteTable> {
       await Promise.all(
         es.map(async e => {
           const client = (await ctx.getAwsClient(e.region)) as AWS;
-          console.log('in delete');
-          console.log(e);
           // fails if it's the main route table, but the routeTableAssociation.cloud.delete would write it back to the db
           try {
             await client.ec2client.deleteRouteTable({ RouteTableId: e.routeTableId });
@@ -159,13 +151,9 @@ export class RouteTableMapper extends MapperBase<RouteTable> {
     update: (es: RouteTable[], ctx: Context) => ctx.orm.save(RouteTable, es),
     delete: (es: RouteTable[], ctx: Context) => ctx.orm.remove(RouteTable, es),
     read: async (ctx: Context, id?: string) => {
-      console.log('in another read');
-      console.log(id);
       const { routeTableId, region } = id
         ? this.idFields(id)
         : { routeTableId: undefined, region: undefined };
-      console.log('route table id is');
-      console.log(routeTableId);
       const opts =
         routeTableId && region
           ? {
