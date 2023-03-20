@@ -41,15 +41,21 @@ export class RegisteredInstanceMapper extends MapperBase<RegisteredInstance> {
     ctx: Context,
   ) {
     const out = new RegisteredInstance();
-    out.instance =
-      (await this.module.instance.db.read(
-        ctx,
-        this.module.instance.generateId({ instanceId: registeredInstance.instanceId ?? '', region }),
-      )) ??
-      (await this.module.instance.cloud.read(
-        ctx,
-        this.module.instance.generateId({ instanceId: registeredInstance.instanceId ?? '', region }),
-      ));
+    try {
+      out.instance =
+        (await this.module.instance.db.read(
+          ctx,
+          this.module.instance.generateId({ instanceId: registeredInstance.instanceId ?? '', region }),
+        )) ??
+        (await this.module.instance.cloud.read(
+          ctx,
+          this.module.instance.generateId({ instanceId: registeredInstance.instanceId ?? '', region }),
+        ));
+    } catch (e: any) {
+      // If instance not found we have reached a weird state in AWS
+      if (e.Code === 'InvalidInstanceID.NotFound') return undefined;
+      throw e;
+    }
     out.targetGroup =
       (await awsElbModule.targetGroup.db.read(ctx, registeredInstance.targetGroupArn)) ??
       (await awsElbModule.targetGroup.cloud.read(ctx, registeredInstance.targetGroupArn));
