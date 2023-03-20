@@ -279,3 +279,35 @@ WHERE domain_name = '<your-domain>' AND status = 'ISSUED';
 The second query confirms that we have a new certificate for our domain, and it's ready to be used (status = `ISSUED`). Now we're ready to launch our load balancer, listen for HTTPS traffic with this new certificate, and forward the incoming traffic to our EC2 instance's 9876 port.
 
 #### Spawn An Elastic Load Balancer
+To set up an elastic load balancer, we need some kinds of resources:
+- `load_balancer` itself
+- A `target_group` pointing to our EC2 instance on port 9876
+- A `listener` on port 443 of the load balancer
+
+<img src={'/img/iasql-on-ec2/load-balancer-parts.png'} style={{maxWidth: 300}} />
+
+You know the drill: we `INSERT` rows in the corresponding tables, and IaSQL will apply our desired changes to the cloud.
+
+```sql
+BEGIN;
+INSERT INTO security_group (description, group_name, region)
+VALUES ('allows traffic on 443 port from my ip', 'iasql-lb', default_aws_region());
+
+WITH lb_security_group as (SELECT id FROM security_group WHERE group_name = 'iasql-lb')
+INSERT
+INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id,
+                          region)
+VALUES (false, 'tcp', 443, 443, '<your-ip>/32', 'allow incoming traffic on 443 from my ip',
+        (SELECT id FROM lb_security_group), default_aws_region()),
+       (true, '-1', -1, -1, '0.0.0.0/32', 'allow outgoing traffic from load balancer',
+        (SELECT id FROM lb_security_group), default_aws_region());
+
+INSERT INTO load_balancer (load_balancer_name, scheme, load_balancer_type, ip_address_type, region)
+VALUES ('iasql', 'internet-facing', 'application', 'ipv4', default_aws_region());
+
+
+INSERT INTO load_balancer_security_groups(load_balancer_id, security_group_id)
+SELECT (SELECT id FROM load_balancer WHERE load_balancer_name = '${lbName}'),
+       (SELECT id FROM security_group WHERE group_name = '${sg1}');
+COMMIT;
+```
