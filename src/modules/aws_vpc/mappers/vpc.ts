@@ -28,9 +28,8 @@ export class VpcMapper extends MapperBase<Vpc> {
         (Object.is(a.enableDnsHostnames, b.enableDnsHostnames) &&
           Object.is(a.enableDnsSupport, b.enableDnsSupport) &&
           Object.is(a.enableNetworkAddressUsageMetrics, b.enableNetworkAddressUsageMetrics))) &&
-      eqTags(a.tags, b.tags);
-    // &&
-    //Object.is(a.dhcpOptions?.dhcpOptionsId, b.dhcpOptions?.dhcpOptionsId);
+      eqTags(a.tags, b.tags) &&
+      Object.is(a.dhcpOptions?.dhcpOptionsId, b.dhcpOptions?.dhcpOptionsId);
     return result;
   };
 
@@ -74,7 +73,7 @@ export class VpcMapper extends MapperBase<Vpc> {
       out.enableNetworkAddressUsageMetrics = false;
     }
 
-    /*if (vpc.DhcpOptionsId && vpc.DhcpOptionsId !== 'default') {
+    if (vpc.DhcpOptionsId && vpc.DhcpOptionsId !== 'default') {
       // we encapsulate because it may not exist as existence is not validated by AWS
       out.dhcpOptions =
         (await this.module.dhcpOptions.db.read(
@@ -85,7 +84,7 @@ export class VpcMapper extends MapperBase<Vpc> {
           ctx,
           this.module.dhcpOptions.generateId({ dhcpOptionsId: vpc.DhcpOptionsId, region }),
         ));
-    }*/
+    }
 
     return out;
   }
@@ -227,10 +226,10 @@ export class VpcMapper extends MapperBase<Vpc> {
           newVpc.id = e.id;
 
           // if provided dhcp options are not the same as the defaults one, we need to associate the right ones
-          /*if (newVpc.dhcpOptions?.dhcpOptionsId !== e.dhcpOptions?.dhcpOptionsId) {
+          if (newVpc.dhcpOptions?.dhcpOptionsId !== e.dhcpOptions?.dhcpOptionsId) {
             await this.associateDhcpOptions(client.ec2client, e.dhcpOptions?.dhcpOptionsId, newVpc.vpcId);
             newVpc.dhcpOptions = e.dhcpOptions;
-          }*/
+          }
           await this.module.vpc.db.update(newVpc, ctx);
           out.push(newVpc);
         }
@@ -301,12 +300,12 @@ export class VpcMapper extends MapperBase<Vpc> {
             }
 
             // if provided dhcp options are not the same as the defaults one, we need to associate the right ones
-            /*if (e.dhcpOptions?.dhcpOptionsId !== cloudRecord.dhcpOptions?.dhcpOptionsId) {
+            if (e.dhcpOptions?.dhcpOptionsId !== cloudRecord.dhcpOptions?.dhcpOptionsId) {
               let optionId;
               if (!e.dhcpOptions) optionId = 'default';
               else optionId = e.dhcpOptions.dhcpOptionsId;
               await this.associateDhcpOptions(client.ec2client, optionId, e.vpcId);
-            }*/
+            }
 
             out.push(e);
           }

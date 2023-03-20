@@ -122,7 +122,7 @@ export class Vpc {
    * @public
    * The set of DHCP options you've associated with the VPC
    */
-  /*@ManyToOne(() => DhcpOptions, {
+  @ManyToOne(() => DhcpOptions, {
     eager: true,
     nullable: true,
   })
@@ -136,7 +136,7 @@ export class Vpc {
       referencedColumnName: 'region',
     },
   ])
-  dhcpOptions?: DhcpOptions;*/
+  dhcpOptions?: DhcpOptions;
 
   /**
    * @public
