@@ -58,19 +58,17 @@ export class AwsVpcModule extends ModuleBase {
   constructor() {
     super();
     // add modules in the right order
-    this.availabilityZone = new AvailabilityZoneMapper(this);
-    this.dhcpOptions = new DhcpOptionsMapper(this);
-    this.elasticIp = new ElasticIpMapper(this);
-    this.peeringConnection = new PeeringConnectionMapper(this);
-    this.vpc = new VpcMapper(this);
-    this.internetGateway = new InternetGatewayMapper(this);
     this.subnet = new SubnetMapper(this);
-    this.natGateway = new NatGatewayMapper(this);
+    this.elasticIp = new ElasticIpMapper(this);
+    this.dhcpOptions = new DhcpOptionsMapper(this);
     this.routeTable = new RouteTableMapper(this);
-    this.route = new RouteMapper(this);
     this.routeTableAssociation = new RouteTableAssociationMapper(this);
+    this.route = new RouteMapper(this);
+    this.natGateway = new NatGatewayMapper(this);
     this.endpointGateway = new EndpointGatewayMapper(this);
     this.endpointInterface = new EndpointInterfaceMapper(this);
+    this.peeringConnection = new PeeringConnectionMapper(this);
+    this.internetGateway = new InternetGatewayMapper(this);
 
     super.init();
   }
