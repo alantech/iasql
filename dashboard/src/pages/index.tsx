@@ -32,9 +32,8 @@ export default function App() {
       Sentry.init(config);
       Posthog.init(config);
       if (config?.logdna?.key) {
-        logdna.init(config.logdna.key);
+        logdna.init(config.logdna.key, { app: 'dashboard' });
         logdna.addContext({
-          app: 'dashboard',
           env: iasqlEnv,
         });
       }
