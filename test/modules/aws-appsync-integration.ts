@@ -110,9 +110,9 @@ describe('App Sync Integration Testing', () => {
     'adds a new GraphQL API entry',
     query(
       `
-    INSERT INTO graphql_api (name, authentication_type)
-    VALUES ('${apiName}', '${authType}');
-  `,
+        INSERT INTO graphql_api (name, authentication_type, tags)
+        VALUES ('${apiName}', '${authType}', '{ "toUpdate": "value", "toDelete": "value2" }');
+      `,
       undefined,
       true,
       () => ({ username, password }),
@@ -131,14 +131,29 @@ describe('App Sync Integration Testing', () => {
     ),
   );
 
+  it(
+    'check new Graphql API tags',
+    query(
+      `
+        SELECT *
+        FROM graphql_api
+        WHERE name='${apiName}'
+          AND tags ->> 'toDelete' = 'value2' AND tags ->> 'toUpdate' = 'value';
+      `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
   it('starts a transaction', begin());
 
   itDocs(
     'tries to update Graphql API auth type',
     query(
       `
-  UPDATE graphql_api SET authentication_type='${newAuthType}' WHERE name='${apiName}'
-  `,
+        UPDATE graphql_api
+        SET authentication_type='${newAuthType}', tags = '{ "toUpdate": "value2", "newTag": "value3" }'
+        WHERE name='${apiName}';
+      `,
       undefined,
       true,
       () => ({ username, password }),
@@ -154,6 +169,32 @@ describe('App Sync Integration Testing', () => {
   SELECT * FROM graphql_api WHERE authentication_type='${newAuthType}' and name='${apiName}';
 `,
       (res: any) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it(
+    'check Graphql API tags after update',
+    query(
+      `
+        SELECT *
+        FROM graphql_api
+        WHERE name = '${apiName}'
+          AND tags ->> 'toDelete' = 'value2';
+      `,
+      (res: any[]) => expect(res.length).toBe(0),
+    ),
+  );
+
+  it(
+    'check Graphql API tags after update',
+    query(
+      `
+        SELECT *
+        FROM graphql_api
+        WHERE name = '${apiName}'
+          AND tags ->> 'toUpdate' = 'value2' AND tags ->> 'newTag' = 'value3';
+      `,
+      (res: any[]) => expect(res.length).toBe(1),
     ),
   );
 
