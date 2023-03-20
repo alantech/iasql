@@ -149,7 +149,7 @@ export class GraphqlApi {
   /**
    * @public
    * Complex type to provide identifier tags
-   * @see https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-acm/interfaces/tag.html
+   * @see https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-appsync/interfaces/graphqlapi-3.html#tags-4
    */
   @Column({
     type: 'json',
