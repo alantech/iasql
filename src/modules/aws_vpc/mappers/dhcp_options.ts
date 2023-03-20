@@ -142,7 +142,11 @@ export class DhcpOptionsMapper extends MapperBase<DhcpOptions> {
     delete: async (es: DhcpOptions[], ctx: Context) => {
       for (const e of es) {
         const client = (await ctx.getAwsClient(e.region)) as AWS;
-        await this.deleteDhcpOptions(client.ec2client, e.dhcpOptionsId ?? '');
+        try {
+          await this.deleteDhcpOptions(client.ec2client, e.dhcpOptionsId ?? '');
+        } catch (e) {
+          // do not error, as we can hit legit error about deleting default dhcp options
+        }
       }
     },
   });

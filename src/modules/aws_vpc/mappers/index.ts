@@ -1,4 +1,5 @@
 export * from './availability_zone';
+export * from './dhcp_options';
 export * from './elastic_ip';
 export * from './endpoint_gateway';
 export * from './endpoint_interface';
@@ -10,4 +11,3 @@ export * from './route';
 export * from './route_table';
 export * from './route_table_association';
 export * from './internet_gateway';
-export * from './dhcp_options';
