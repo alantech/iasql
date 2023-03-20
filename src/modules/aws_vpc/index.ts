@@ -62,9 +62,9 @@ export class AwsVpcModule extends ModuleBase {
     this.elasticIp = new ElasticIpMapper(this);
     this.peeringConnection = new PeeringConnectionMapper(this);
     this.vpc = new VpcMapper(this);
-    this.natGateway = new NatGatewayMapper(this);
     this.internetGateway = new InternetGatewayMapper(this);
     this.subnet = new SubnetMapper(this);
+    this.natGateway = new NatGatewayMapper(this);
     this.routeTable = new RouteTableMapper(this);
     this.route = new RouteMapper(this);
     this.routeTableAssociation = new RouteTableAssociationMapper(this);
