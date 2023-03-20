@@ -101,4 +101,15 @@ export class Api {
   @JoinColumn({ name: 'region' })
   @cloudId
   region: string;
+
+  /**
+   * @public
+   * Complex type to provide identifier tags
+   * @see https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-apigatewayv2/interfaces/gettagsresponse.html#tags
+   */
+  @Column({
+    type: 'json',
+    nullable: true,
+  })
+  tags?: { [key: string]: string };
 }
