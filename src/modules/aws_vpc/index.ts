@@ -61,6 +61,7 @@ export class AwsVpcModule extends ModuleBase {
     this.subnet = new SubnetMapper(this);
     this.elasticIp = new ElasticIpMapper(this);
     this.dhcpOptions = new DhcpOptionsMapper(this);
+    this.vpc = new VpcMapper(this);
     this.routeTable = new RouteTableMapper(this);
     this.routeTableAssociation = new RouteTableAssociationMapper(this);
     this.route = new RouteMapper(this);
