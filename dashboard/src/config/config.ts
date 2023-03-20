@@ -24,6 +24,10 @@ export interface ConfigInterface {
     // TODO better type is not allowed, but eventually?
     integrations: [any];
   };
+  logdna?: {
+    // Not including this sub-object implies it is not enabled
+    key: string;
+  };
   // Configuration about which engine to communicate with
   engine: {
     pgHost: string;

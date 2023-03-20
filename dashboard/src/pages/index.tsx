@@ -10,6 +10,7 @@ import { Auth0Provider } from '@auth0/auth0-react';
 
 import * as Posthog from '../services/posthog';
 import * as Sentry from '../services/sentry';
+import logdna from '@logdna/browser';
 
 function handleRageClicking(setIsRageClicking: (arg0: boolean) => void) {
   const now = Date.now();
@@ -30,6 +31,13 @@ export default function App() {
     if (telemetry !== undefined && telemetry === 'on') {
       Sentry.init(config);
       Posthog.init(config);
+      if (config?.logdna?.key) {
+        logdna.init(config.logdna.key);
+        logdna.addContext({
+          app: 'dashboard',
+          env: iasqlEnv,
+        });
+      }
     }
     if (!config?.auth && uid) {
       Sentry.identify(config, uid);
