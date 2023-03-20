@@ -57,6 +57,7 @@ export class AwsVpcModule extends ModuleBase {
 
   constructor() {
     super();
+    // add modules in the right order
     this.availabilityZone = new AvailabilityZoneMapper(this);
     this.dhcpOptions = new DhcpOptionsMapper(this);
     this.elasticIp = new ElasticIpMapper(this);

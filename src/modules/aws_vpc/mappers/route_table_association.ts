@@ -77,6 +77,8 @@ export class RouteTableAssociationMapper extends MapperBase<RouteTableAssociatio
           await this.module.routeTableAssociation.db.delete(a, ctx);
           continue;
         }
+        console.log('in route table association');
+        console.log(a.routeTable);
 
         const client = (await ctx.getAwsClient(a.routeTable.region)) as AWS;
         a.routeTableAssociationId = (
@@ -94,6 +96,9 @@ export class RouteTableAssociationMapper extends MapperBase<RouteTableAssociatio
       await Promise.all(
         es.map(async a => {
           if (a.isMain) {
+            console.log('i delete route table association');
+            console.log(a.routeTable);
+
             if (
               !(await this.module.routeTable.db.read(
                 ctx,
@@ -159,6 +164,8 @@ export class RouteTableAssociationMapper extends MapperBase<RouteTableAssociatio
             await this.module.routeTableAssociation.db.update(cloudRecord, ctx);
             out.push(cloudRecord);
           } else {
+            console.log('i update route table association');
+            console.log(a.routeTable);
             // a new route table in the same vpc should be the main one
             a.routeTableAssociationId = (
               await client.ec2client.replaceRouteTableAssociation({
@@ -179,6 +186,8 @@ export class RouteTableAssociationMapper extends MapperBase<RouteTableAssociatio
           await this.module.routeTableAssociation.db.update(cloudRecord, ctx);
           out.push(cloudRecord);
         } else {
+          console.log('In assignation');
+          console.log(a.routeTable);
           // just explicitly associating the subnet to a new route table
           a.routeTableAssociationId = (
             await client.ec2client.replaceRouteTableAssociation({
