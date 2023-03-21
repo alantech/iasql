@@ -370,9 +370,13 @@ export class RdsMapper extends MapperBase<RDS> {
           continue;
         }
 
-        // if we want to modify resources we delete and recreate
+        // update rds tags
+        console.log('i want to update');
+        console.log(e);
         if (e.arn && !eqTags(e.tags, cloudRecord.tags)) {
+          console.log('here');
           await updateTags(client.rdsClient, e.arn, e.tags);
+          console.log('after update');
           updatedRecord.id = e.id;
           updatedRecord.region = e.region;
           updatedRecord.masterUserPassword = null;

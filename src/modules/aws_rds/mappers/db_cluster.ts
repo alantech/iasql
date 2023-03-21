@@ -8,14 +8,16 @@ import {
   DeleteDBClusterMessage,
   waitUntilDBClusterDeleted,
   DescribeDBClustersCommandInput,
+  Tag as AWSTag,
 } from '@aws-sdk/client-rds';
 import { createWaiter, WaiterOptions, WaiterState } from '@aws-sdk/util-waiter';
 
 import { AwsRdsModule } from '..';
-import { AWS, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
+import { AWS, crudBuilderFormat, eqTags, paginateBuilder } from '../../../services/aws_macros';
 import { awsSecurityGroupModule } from '../../aws_security_group';
 import { Context, Crud, MapperBase } from '../../interfaces';
 import { DBCluster, dbClusterEngineEnum } from '../entity/db_cluster';
+import { updateTags } from './tags';
 
 export class DBClusterMapper extends MapperBase<DBCluster> {
   module: AwsRdsModule;
@@ -36,6 +38,7 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
     Object.is(a.storageEncrypted, b.storageEncrypted) &&
     Object.is(a.subnetGroup?.name, b.subnetGroup?.name) &&
     Object.is(a.vpcSecurityGroups.length, b.vpcSecurityGroups.length) &&
+    eqTags(a.tags, b.tags) &&
     (a.vpcSecurityGroups?.every(
       asg => !!b.vpcSecurityGroups.find(bsg => Object.is(asg.groupId, bsg.groupId)),
     ) ??
@@ -93,6 +96,14 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
       } catch (e) {
         // Ignore
       }
+    }
+
+    if (cluster.TagList?.length) {
+      const tags: { [key: string]: string } = {};
+      cluster.TagList.filter((t: any) => !!t.Key && !!t.Value).forEach((t: any) => {
+        tags[t.Key as string] = t.Value as string;
+      });
+      out.tags = tags;
     }
 
     return out;
@@ -205,6 +216,17 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
           VpcSecurityGroupIds: securityGroupIds,
         };
         if (e.subnetGroup) clusterParams.DBSubnetGroupName = e.subnetGroup.name;
+
+        if (e.tags && Object.keys(e.tags).length) {
+          const tags: AWSTag[] = Object.keys(e.tags).map((k: string) => {
+            return {
+              Key: k,
+              Value: e.tags![k],
+            };
+          });
+          clusterParams.Tags = tags;
+        }
+
         const result = await this.createDBCluster(client.rdsClient, clusterParams);
         if (result) {
           // requery to get modified fields
@@ -274,6 +296,17 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
         ) {
           cloudRecord.id = e.id;
           await this.module.dbCluster.db.update(cloudRecord, ctx);
+          out.push(cloudRecord);
+          continue;
+        }
+
+        // update db cluster tags
+        if (e.arn && !eqTags(e.tags, cloudRecord.tags)) {
+          await updateTags(client.rdsClient, e.arn, e.tags);
+          cloudRecord.id = e.id;
+          cloudRecord.region = e.region;
+          cloudRecord.masterUserPassword = null;
+          await this.module.rds.db.update(cloudRecord, ctx);
           out.push(cloudRecord);
           continue;
         }
