@@ -30,6 +30,8 @@ IaSQL lets users connect an AWS account to a PostgreSQL DB and automatically bac
 
 ## Proposal
 
+TBD
+
 ## Alternatives Considered
 
 ### Poll for RPC progress
@@ -71,10 +73,6 @@ Pros:
 Cons:
 - The user can access tables that are being modified by the IaSQL engine which could cause hard to debug or reconcile "merge conflicts". The user could also run conflicting `iasql_install` queries. This argument falls apart under its own weight since currently, we allow users to open and run queries across dashboard tabs, or database connections, which can easily lead to the same issues. To truly consider this a con, we probably shouldn't allow simultaneous queries from dashboard tabs or database connections altogether.
 - `iasql_commit`'s UX remains as-is for now
-
-### Frontload module installation and prolong connect
-
-This is not an option since it only works for the dashboard and the problem would persist after `iasql_connect`, but listing it out to be exhaustive.
 
 ## Expected Semver Impact
 
