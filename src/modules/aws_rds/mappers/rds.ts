@@ -251,17 +251,7 @@ export class RdsMapper extends MapperBase<RDS> {
           instanceParams.DBParameterGroupName = e.parameterGroup.name;
         }
 
-        console.log('i create');
-        console.log(instanceParams);
-
-        let result;
-        try {
-          result = await this.createDBInstance(client.rdsClient, instanceParams);
-        } catch (e) {
-          console.log('error in create db instance');
-          console.log(e);
-          throw new Error('error in create db instance');
-        }
+        const result = await this.createDBInstance(client.rdsClient, instanceParams);
         // TODO: Handle if it fails (somehow)
         if (!result?.hasOwnProperty('DBInstanceIdentifier')) {
           // Failure
