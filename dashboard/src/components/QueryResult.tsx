@@ -13,9 +13,7 @@ export default function QueryResult() {
     longRunningRpc ? (
       <VBox>
         <p className='pt-20 px-20 font-bold'>
-          We are importing the entire state of the infrastructure from the cloud account and due to default
-          cloud SDK rate limiters this can take several minutes depending on how many resources are in the
-          cloud account. Please be patient.
+          Cloud operations can take several minutes due to default cloud SDK rate limiters depending on the number of resources in the cloud account. Please be patient.
         </p>
         <AWSSpinner />
       </VBox>
