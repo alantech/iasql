@@ -56,3 +56,18 @@
     box-shadow: 0 2.5em 0 0;
   }
 }
+
+.aws {
+  animation: rotation 8s infinite linear;
+  height: 4rem;
+  margin: 4rem;
+}
+
+@keyframes rotation {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(359deg);
+  }
+}

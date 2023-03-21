@@ -1,5 +1,5 @@
 import EmptyState from './EmptyState';
-import { Label, Spinner, Table, VBox } from './common';
+import { Label, Spinner, AWSSpinner, Table, VBox } from './common';
 import { useAppContext } from './providers/AppProvider';
 
 export default function QueryResult() {
@@ -9,14 +9,13 @@ export default function QueryResult() {
   const longRunningRpc = query.includes('iasql_commit()') || query.includes('iasql_install(');
 
   // TODO: show all statements with its respective query and not just the last one
-  return true ? (
-    <div>
-      { longRunningRpc && <div className='p-10'>
-        We are importing the entire state of the infrastructure from the cloud account and due to default cloud SDK rate limiters this can take up to several minutes depending on how many resources are in the cloud account. Please be patient.
-      </div>
-      }
-      <Spinner />
-    </div>
+  return editorTabs?.[editorSelectedTab]?.isRunning ? (
+      longRunningRpc ? <VBox>
+        <p className='pt-20 px-20 font-bold'>
+          We are importing the entire state of the infrastructure from the cloud account and due to default cloud SDK rate limiters this can take several minutes depending on how many resources are in the cloud account. Please be patient.
+        </p>
+        <AWSSpinner />
+      </VBox> : <Spinner />
   ) : queryRes === undefined ? (
     <EmptyState>
       <p>No query results</p>
