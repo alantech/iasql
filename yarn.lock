@@ -378,46 +378,46 @@
     fast-xml-parser "4.1.2"
     tslib "^2.3.1"
 
-"@aws-sdk/client-codebuild@^3.290.0":
-  version "3.290.0"
-  resolved "https://registry.yarnpkg.com/@aws-sdk/client-codebuild/-/client-codebuild-3.290.0.tgz#60a1ef34653aad3cf58c81888fe8c9e86dbdaafe"
-  integrity sha512-79gicMLcofgUpyDpqeNQTT10blfuOYOA0wR90Wf7lpe2Y9QfYr8x2JOtr4xgb0X8nZAaLcnU9vI0dXNI6sxcog==
+"@aws-sdk/client-codebuild@^3.295.0":
+  version "3.295.0"
+  resolved "https://registry.yarnpkg.com/@aws-sdk/client-codebuild/-/client-codebuild-3.295.0.tgz#e06ea4acd349af2d1cb820a5299a29c372b2e4d2"
+  integrity sha512-0ZpihwjHfTeexZaIf2OfWEwdiwD8S8oPwgN6Y9Z8wsGrJlf2s+WfIjNH1CjysnFT2AO3KENqMCtjSpIHt1osuw==
   dependencies:
     "@aws-crypto/sha256-browser" "3.0.0"
     "@aws-crypto/sha256-js" "3.0.0"
-    "@aws-sdk/client-sts" "3.290.0"
-    "@aws-sdk/config-resolver" "3.290.0"
-    "@aws-sdk/credential-provider-node" "3.290.0"
-    "@aws-sdk/fetch-http-handler" "3.290.0"
-    "@aws-sdk/hash-node" "3.290.0"
-    "@aws-sdk/invalid-dependency" "3.290.0"
-    "@aws-sdk/middleware-content-length" "3.290.0"
-    "@aws-sdk/middleware-endpoint" "3.290.0"
-    "@aws-sdk/middleware-host-header" "3.290.0"
-    "@aws-sdk/middleware-logger" "3.290.0"
-    "@aws-sdk/middleware-recursion-detection" "3.290.0"
-    "@aws-sdk/middleware-retry" "3.290.0"
-    "@aws-sdk/middleware-serde" "3.290.0"
-    "@aws-sdk/middleware-signing" "3.290.0"
-    "@aws-sdk/middleware-stack" "3.290.0"
-    "@aws-sdk/middleware-user-agent" "3.290.0"
-    "@aws-sdk/node-config-provider" "3.290.0"
-    "@aws-sdk/node-http-handler" "3.290.0"
-    "@aws-sdk/protocol-http" "3.290.0"
-    "@aws-sdk/smithy-client" "3.290.0"
-    "@aws-sdk/types" "3.290.0"
-    "@aws-sdk/url-parser" "3.290.0"
-    "@aws-sdk/util-base64" "3.208.0"
-    "@aws-sdk/util-body-length-browser" "3.188.0"
-    "@aws-sdk/util-body-length-node" "3.208.0"
-    "@aws-sdk/util-defaults-mode-browser" "3.290.0"
-    "@aws-sdk/util-defaults-mode-node" "3.290.0"
-    "@aws-sdk/util-endpoints" "3.290.0"
-    "@aws-sdk/util-retry" "3.290.0"
-    "@aws-sdk/util-user-agent-browser" "3.290.0"
-    "@aws-sdk/util-user-agent-node" "3.290.0"
-    "@aws-sdk/util-utf8" "3.254.0"
-    tslib "^2.3.1"
+    "@aws-sdk/client-sts" "3.295.0"
+    "@aws-sdk/config-resolver" "3.295.0"
+    "@aws-sdk/credential-provider-node" "3.295.0"
+    "@aws-sdk/fetch-http-handler" "3.295.0"
+    "@aws-sdk/hash-node" "3.295.0"
+    "@aws-sdk/invalid-dependency" "3.295.0"
+    "@aws-sdk/middleware-content-length" "3.295.0"
+    "@aws-sdk/middleware-endpoint" "3.295.0"
+    "@aws-sdk/middleware-host-header" "3.295.0"
+    "@aws-sdk/middleware-logger" "3.295.0"
+    "@aws-sdk/middleware-recursion-detection" "3.295.0"
+    "@aws-sdk/middleware-retry" "3.295.0"
+    "@aws-sdk/middleware-serde" "3.295.0"
+    "@aws-sdk/middleware-signing" "3.295.0"
+    "@aws-sdk/middleware-stack" "3.295.0"
+    "@aws-sdk/middleware-user-agent" "3.295.0"
+    "@aws-sdk/node-config-provider" "3.295.0"
+    "@aws-sdk/node-http-handler" "3.295.0"
+    "@aws-sdk/protocol-http" "3.295.0"
+    "@aws-sdk/smithy-client" "3.295.0"
+    "@aws-sdk/types" "3.295.0"
+    "@aws-sdk/url-parser" "3.295.0"
+    "@aws-sdk/util-base64" "3.295.0"
+    "@aws-sdk/util-body-length-browser" "3.295.0"
+    "@aws-sdk/util-body-length-node" "3.295.0"
+    "@aws-sdk/util-defaults-mode-browser" "3.295.0"
+    "@aws-sdk/util-defaults-mode-node" "3.295.0"
+    "@aws-sdk/util-endpoints" "3.295.0"
+    "@aws-sdk/util-retry" "3.295.0"
+    "@aws-sdk/util-user-agent-browser" "3.295.0"
+    "@aws-sdk/util-user-agent-node" "3.295.0"
+    "@aws-sdk/util-utf8" "3.295.0"
+    tslib "^2.5.0"
 
 "@aws-sdk/client-codedeploy@^3.290.0":
   version "3.290.0"
@@ -1519,7 +1519,7 @@
     fast-xml-parser "4.1.2"
     tslib "^2.3.1"
 
-"@aws-sdk/client-sts@3.294.0", "@aws-sdk/client-sts@^3.272.0":
+"@aws-sdk/client-sts@3.294.0":
   version "3.294.0"
   resolved "https://registry.yarnpkg.com/@aws-sdk/client-sts/-/client-sts-3.294.0.tgz#1d89acb6d49d02b0840c5a8b93e1b14acfb43b23"
   integrity sha512-AefqwhFjTDzelZuSYhriJbiI+GQwf2yKiKAnCt0gRj6rswewStM63Gtlhfb01sFPp+ZiqPcyQ47LqUaHp1mz/g==
@@ -1561,7 +1561,7 @@
     fast-xml-parser "4.1.2"
     tslib "^2.3.1"
 
-"@aws-sdk/client-sts@3.295.0":
+"@aws-sdk/client-sts@3.295.0", "@aws-sdk/client-sts@^3.272.0":
   version "3.295.0"
   resolved "https://registry.yarnpkg.com/@aws-sdk/client-sts/-/client-sts-3.295.0.tgz#d6a9739e9d5dd7af7ba1672958d0a1cc663dd32a"
   integrity sha512-KrLnG5EcXvry9tmsTAONhlj60F0+Z7P2PtT0XDsS8pLayHAtd9lKXsf14DOSQa9+LbPLMFbfLbuSwvPYvgxMzg==
@@ -2283,7 +2283,7 @@
     tslib "^2.3.1"
     uuid "^8.3.2"
 
-"@aws-sdk/middleware-retry@3.293.0", "@aws-sdk/middleware-retry@^3.160.0":
+"@aws-sdk/middleware-retry@3.293.0":
   version "3.293.0"
   resolved "https://registry.yarnpkg.com/@aws-sdk/middleware-retry/-/middleware-retry-3.293.0.tgz#e7706c926cce1f21e5dbea2ab8d2828e50d6a303"
   integrity sha512-7tiaz2GzRecNHaZ6YnF+Nrtk3au8qF6oiipf11R7MJiqJ0fkMLnz/iRrlakDziS9qF/a9v+3yxb4W4NHK3f4Tw==
@@ -2296,7 +2296,7 @@
     tslib "^2.3.1"
     uuid "^8.3.2"
 
-"@aws-sdk/middleware-retry@3.295.0":
+"@aws-sdk/middleware-retry@3.295.0", "@aws-sdk/middleware-retry@^3.160.0":
   version "3.295.0"
   resolved "https://registry.yarnpkg.com/@aws-sdk/middleware-retry/-/middleware-retry-3.295.0.tgz#6e56527c0df0f5c6663b014aee54d9ae22c6594b"
   integrity sha512-IdVX86VaDSSPcGI1JJM8lffabOMmGC9TUpskKkKdFnLW6eKtFohye+hlf2h6Y/2wdvoqCdi6XZyQX9WPJHiHtw==
@@ -2833,14 +2833,14 @@
   dependencies:
     tslib "^2.3.1"
 
-"@aws-sdk/types@3.292.0", "@aws-sdk/types@^3.222.0":
+"@aws-sdk/types@3.292.0":
   version "3.292.0"
   resolved "https://registry.yarnpkg.com/@aws-sdk/types/-/types-3.292.0.tgz#54aa7347123116ac368f08df5e02954207328c63"
   integrity sha512-1teYAY2M73UXZxMAxqZxVS2qwXjQh0OWtt7qyLfha0TtIk/fZ1hRwFgxbDCHUFcdNBSOSbKH/ESor90KROXLCQ==
   dependencies:
     tslib "^2.3.1"
 
-"@aws-sdk/types@3.295.0":
+"@aws-sdk/types@3.295.0", "@aws-sdk/types@^3.222.0":
   version "3.295.0"
   resolved "https://registry.yarnpkg.com/@aws-sdk/types/-/types-3.295.0.tgz#ff3380913a601d2904330160d7d5213a9868f1ec"
   integrity sha512-flwibucy5+PshdFLeMCClMqV3eFmjUDhcLkEUeQvVgyhGxJPIrU3ntGAfqz27bvk47ZVX5TUdCG5JdxuUaRO+A==
