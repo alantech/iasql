@@ -429,7 +429,7 @@ describe('VPC Integration Testing', () => {
       () => ({ username, password }),
     ),
   );
-  it('applies the deletion of peering connection', commit());  
+  it('applies the deletion of peering connection', commit());
 
   it('starts a transaction', begin());
   itDocs(
@@ -493,7 +493,7 @@ describe('VPC Integration Testing', () => {
       () => ({ username, password }),
     ),
   );
-  it('applies the dhcp options association', commit()); 
+  it('applies the dhcp options association', commit());
   it('starts a transaction', begin());
 
   itDocs(
