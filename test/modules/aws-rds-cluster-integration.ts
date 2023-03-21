@@ -114,9 +114,7 @@ describe('DB Cluster Integration Testing', () => {
       `
     INSERT INTO db_subnet_group (name, description, subnets)
     VALUES ('${prefix}cluster-test', 'test subnet group', (select array(
-      select subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true and vpc.region = '${region}' AND subnet.availability_zone = '${region}a' UNION
-      select subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true and vpc.region = '${region}' AND subnet.availability_zone = '${region}b' UNION
-      select subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true and vpc.region = '${region}' AND subnet.availability_zone = '${region}c'
+      select DISTINCT ON (subnet.availability_zone) subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true and vpc.region = '${region}' LIMIT 3
       )));
   `,
       undefined,
