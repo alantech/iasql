@@ -9,7 +9,7 @@ export { default as ErrorDialog } from './ErrorDialog';
 export { default as Input } from './Input';
 export { default as Label } from './Label';
 export { default as Modal } from './Modal';
-export { default as Spinner } from './Spinner/Spinner';
+export { default as Spinner, AWSSpinner } from './Spinner/Spinner';
 export { default as Table } from './Table';
 export { default as Header } from './Header';
 export { default as Dropdown } from './Dropdown';
