@@ -122,9 +122,9 @@ describe('RouteTable Integration Testing', () => {
     'creates a new vpc',
     query(
       `
-      INSERT INTO vpc (cidr_block, tags, region)
-      VALUES ('10.${randIPBlock}.0.0/16', '{"name":"${prefix}"}', '${region}');
-  `,
+          INSERT INTO vpc (cidr_block, tags, region)
+          VALUES ('10.${randIPBlock}.0.0/16', '{"name":"${prefix}"}', '${region}');
+      `,
       undefined,
       true,
       () => ({ username, password }),
@@ -135,11 +135,14 @@ describe('RouteTable Integration Testing', () => {
     'adds a subnet to the vpc',
     query(
       `
-      INSERT INTO subnet (availability_zone, vpc_id, cidr_block, region)
-      SELECT (SELECT name FROM availability_zone WHERE region = '${region}' ORDER BY 1 DESC LIMIT 1), id, '10.${randIPBlock}.1.0/24', '${region}'
-      FROM vpc
-      WHERE tags ->> 'name' = '${prefix}';
-  `,
+          INSERT INTO subnet (availability_zone, vpc_id, cidr_block, region)
+          SELECT (SELECT name FROM availability_zone WHERE region = '${region}' ORDER BY 1 DESC LIMIT 1),
+                 id,
+                 '10.${randIPBlock}.1.0/24',
+                 '${region}'
+          FROM vpc
+          WHERE tags ->> 'name' = '${prefix}';
+      `,
       undefined,
       true,
       () => ({ username, password }),
@@ -152,10 +155,10 @@ describe('RouteTable Integration Testing', () => {
     'adds a new route table to the vpc in the region',
     query(
       `
-      INSERT INTO route_table (vpc_id, tags, region)
-      VALUES ((SELECT id FROM vpc WHERE tags ->> 'name' = '${prefix}'), '{"name":"${prefix}"}',
-              '${region}');
-  `,
+          INSERT INTO route_table (vpc_id, tags, region)
+          VALUES ((SELECT id FROM vpc WHERE tags ->> 'name' = '${prefix}'), '{"name":"${prefix}"}',
+                  '${region}');
+      `,
       undefined,
       true,
       () => ({ username, password }),
@@ -195,14 +198,15 @@ describe('RouteTable Integration Testing', () => {
     'associates the route table to the subnet',
     query(
       `
-      INSERT INTO route_table_association (route_table_id, vpc_id, subnet_id)
-      VALUES ((SELECT id FROM route_table WHERE tags ->> 'name' = '${prefix}'),
-              (SELECT id FROM vpc WHERE tags ->> 'name' = '${prefix}'),
-              (SELECT id
-               FROM subnet
-               WHERE cidr_block = '10.${randIPBlock}.1.0/24'
-                 AND availability_zone = (SELECT name FROM availability_zone WHERE region = '${region}' ORDER BY 1 DESC LIMIT 1)));
-  `,
+          INSERT INTO route_table_association (route_table_id, vpc_id, subnet_id)
+          VALUES ((SELECT id FROM route_table WHERE tags ->> 'name' = '${prefix}'),
+                  (SELECT id FROM vpc WHERE tags ->> 'name' = '${prefix}'),
+                  (SELECT id
+                   FROM subnet
+                   WHERE cidr_block = '10.${randIPBlock}.1.0/24'
+                     AND availability_zone =
+                         (SELECT name FROM availability_zone WHERE region = '${region}' ORDER BY 1 DESC LIMIT 1)));
+      `,
       undefined,
       true,
       () => ({ username, password }),
@@ -239,15 +243,21 @@ describe('RouteTable Integration Testing', () => {
   );
   itDocs(
     'deletes the route table',
-    query(`
+    query(
+      `
       DELETE
       FROM route_table
       WHERE tags ->> 'name' = '${prefix}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
   itDocs(
     'deletes the subnet and vpc',
-    query(`
+    query(
+      `
       DELETE
       FROM subnet
       WHERE vpc_id = (SELECT id FROM vpc WHERE tags ->> 'name' = '${prefix}');
@@ -255,9 +265,70 @@ describe('RouteTable Integration Testing', () => {
       DELETE
       FROM vpc
       WHERE tags ->> 'name' = '${prefix}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
   it('applies deletion of resources', commit());
+
+  it('starts a transaction', begin());
+  it(
+    'tries to delete routes from default route table',
+    query(
+      `
+        DELETE
+        FROM route
+        USING route_table
+        WHERE route.region = '${region}'
+          AND route_table.id IN (SELECT route_table_id FROM route_table_association WHERE is_main)
+      `,
+    ),
+  );
+
+  it('commits deletion of the routes', commit());
+
+  it(
+    'rechecks the routes are still there',
+    query(
+      `
+        SELECT *
+        FROM route
+        INNER JOIN route_table ON route_table.id = route.route_table_id
+        WHERE route.region = '${region}'
+          AND route_table.id IN (SELECT route_table_id FROM route_table_association WHERE is_main)
+      `,
+      (res: any[]) => expect(res.length).toBeGreaterThan(0),
+    ),
+  );
+
+  it(
+    'rechecks the route table is still there',
+    query(
+      `
+        SELECT * FROM route_table
+        WHERE region = '${region}'
+          AND route_table.id IN (SELECT route_table_id FROM route_table_association WHERE is_main)
+      `,
+      (res: any[]) => expect(res.length).toBeGreaterThan(0),
+    ),
+  );
+
+  it(
+    'checks the route from default route table in default vpc to internet gateway exists',
+    query(
+      `
+      SELECT *
+      FROM route
+           JOIN route_table rt on route.route_table_id = rt.id
+           JOIN vpc v on v.id = rt.vpc_id
+           JOIN route_table_association rta on rt.id = rta.route_table_id
+      WHERE route.gateway_id IS NOT NULL AND destination = '0.0.0.0/0' AND v.is_default AND rta.is_main AND v.region = '${region}'
+`,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
 
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 });
