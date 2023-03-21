@@ -125,7 +125,17 @@ export class Vpc {
   @ManyToOne(() => DhcpOptions, {
     eager: true,
     nullable: true,
-  }) 
+  })
+  @JoinColumn([
+    {
+      name: 'dhcp_options_id',
+      referencedColumnName: 'id',
+    },
+    {
+      name: 'region',
+      referencedColumnName: 'region',
+    },
+  ])
   dhcpOptions?: DhcpOptions;
 
   /**
