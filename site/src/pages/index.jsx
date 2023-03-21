@@ -25,7 +25,8 @@ export default function Home() {
           <div className="row">
             <div className="col col--6 padding--lg">
               <h1 className="hero__title">Infrastructure as data in PostgreSQL</h1>
-              <p className="hero__subtitle">Manage and provision cloud infrastructure via a PostgreSQL database</p>
+              <p className="hero__subtitle">Inspect and provision cloud infrastructure via a PostgreSQL database</p>
+              <button className="button button--primary button--lg margin-top--lg" onClick={() => window.location.href="/docs"}>Get started</button>
             </div>
             <div className="col col--6 padding--lg">
               <BrowserWindow>
@@ -46,7 +47,7 @@ export default function Home() {
         <div className="container">
           <div className="row padding--md text--center">
             <h1 style={{width: '100%'}}>How IaSQL works</h1>
-            <p className="hero__subtitle">IaSQL is open-source software that models cloud infrastructure as data by maintaining a 2-way connection between an AWS account and a PostgreSQL database</p>
+            <p className="hero__subtitle">IaSQL is open-source software that maintains a 2-way connection between your AWS account and a PostgreSQL database. The rows in the database tables represent the infrastructure in your cloud account.</p>
           </div>
           <div className="text--center">
             <ThemedImage
@@ -132,10 +133,10 @@ export default function Home() {
           <div className="row text--center">
             <p className="hero__subtitle col">Drop us a line on Discord if you have any questions!</p>
           </div>
-          <div className="row">
-            <CodeBlock className="language-bash col col--8 col--offset-2">
-              {"docker run --pull=always -p 9876:9876 -p 5432:5432 --name iasql iasql/iasql"}
-            </CodeBlock>
+          <div className="row text--center">
+            <div className="col">
+              <button className="button button--primary button--lg" onClick={() => window.location.href="/docs"}>Get started</button>
+            </div>
           </div>
         </div>
       </div>
