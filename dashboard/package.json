@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@auth0/auth0-react": "^2.0.0",
+    "@logdna/browser": "^2.1.0",
     "@logdna/logger": "^2.6.6",
     "@next/font": "13.1.6",
     "@sentry/react": "^7.37.1",
