@@ -40,8 +40,9 @@ const region = defaultRegion([
 ]);
 
 const modules = ['aws_security_group', 'aws_rds', 'aws_vpc'];
+const engineVersion = '8.0.28';
 
-jest.setTimeout(1800000);
+jest.setTimeout(3600000);
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown());
 
@@ -113,10 +114,8 @@ describe('DB Cluster Integration Testing', () => {
     query(
       `
     INSERT INTO db_subnet_group (name, description, subnets)
-    VALUES ('${prefix}cluster-test', 'test subnet group', (select array(
-      select subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true and vpc.region = '${region}' AND subnet.availability_zone = '${region}a' UNION
-      select subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true and vpc.region = '${region}' AND subnet.availability_zone = '${region}b' UNION
-      select subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true and vpc.region = '${region}' AND subnet.availability_zone = '${region}c'
+    VALUES ('${prefix}cluster-test', 'test subnet group', (SELECT ARRAY(
+      SELECT DISTINCT ON (subnet.availability_zone) subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true and vpc.region = '${region}' LIMIT 3
       )));
   `,
       undefined,
@@ -144,10 +143,8 @@ describe('DB Cluster Integration Testing', () => {
     'creates an RDS cluster',
     query(
       `
-    BEGIN;
-      INSERT INTO db_cluster (db_cluster_identifier, engine, allocated_storage, iops, db_cluster_instance_class, master_username, master_user_password, subnet_group_id) VALUES
-        ('${prefix}cluster-test', 'mysql', 100, 1000, 'db.m5d.xlarge', 'admin', 'admin123456', (select id FROM db_subnet_group WHERE name = '${prefix}cluster-test'));
-    COMMIT;
+    INSERT INTO db_cluster (db_cluster_identifier, engine, engine_version, allocated_storage, iops, db_cluster_instance_class, master_username, master_user_password, subnet_group_id) VALUES
+      ('${prefix}cluster-test', 'mysql', '${engineVersion}', 100, 1000, 'db.m5d.xlarge', 'admin', 'admin123456', (select id FROM db_subnet_group WHERE name = '${prefix}cluster-test'));
   `,
       undefined,
       true,
