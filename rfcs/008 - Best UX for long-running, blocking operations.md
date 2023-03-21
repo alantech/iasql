@@ -51,7 +51,7 @@ The progress tracking could be added via:
 Pros:
 - Improves the UX of `iasql_commit` without any additional effort
 Cons:
-- Additional metadata and metadata generation in the IaSQL platform
+- Additional metadata tracking and generation in the IaSQL platform
 
 
 ### Realtime install progress and detailed logging
