@@ -263,13 +263,23 @@ describe('iasql_get_sql_for_transaction functionality', () => {
         );
       `,
       (res: any) => {
-        console.log(JSON.stringify(res));
         expect(res.length).toBe(5);
         expect(res[3].sql.replaceAll('\n', '').replaceAll(/\s\s+/g, ' ').trim()).toBe(
           `DELETE FROM load_balancer WHERE load_balancer_name = '${lbName}' AND scheme = '${lbScheme}' AND load_balancer_type = '${lbTypeNet}' AND ip_address_type = '${lbIPAddressType}' AND region = (SELECT region FROM aws_regions WHERE region = '${region}');`,
         );
         expect(res[4].sql).toContain(`DELETE FROM load_balancer_security_groups`);
       },
+    ),
+  );
+
+  itDocs(
+    'check sql for latest transaction',
+    query(
+      `
+        SELECT *
+        FROM iasql_get_sql_for_transaction();
+      `,
+      (res: any) => expect(res.length).toBe(5),
     ),
   );
 
