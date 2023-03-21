@@ -44,6 +44,15 @@ export class RDS {
 
   /**
    * @public
+   * ARN for the generated db instance
+   */
+  @Column({
+    nullable: true,
+  })
+  arn?: string;
+
+  /**
+   * @public
    * Amount of storage requested for the database
    * @see https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-rds/interfaces/createdbinstancecommandinput.html#allocatedstorage
    *

@@ -25,6 +25,7 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
     Object.is(a.iops, b.iops) &&
     Object.is(a.backupRetentionPeriod, b.backupRetentionPeriod) &&
     Object.is(a.dbClusterInstanceClass, b.dbClusterInstanceClass) &&
+    Object.is(a.arn, b.arn) &&
     Object.is(a.deletionProtection, b.deletionProtection) &&
     Object.is(a.engine, b.engine) &&
     Object.is(a.engineVersion, b.engineVersion) &&
@@ -47,6 +48,7 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
     out.allocatedStorage = cluster.AllocatedStorage;
     out.backupRetentionPeriod = cluster.BackupRetentionPeriod;
     out.dbClusterIdentifier = cluster.DBClusterIdentifier;
+    out.arn = cluster.DBClusterArn;
     out.dbClusterInstanceClass = cluster.DBClusterInstanceClass;
     out.deletionProtection = cluster.DeletionProtection ?? false;
     out.engine = cluster.Engine as dbClusterEngineEnum;
@@ -122,7 +124,11 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
       {
         client,
         // all in seconds
+<<<<<<< HEAD
         maxWaitTime: 60 * 30,
+=======
+        maxWaitTime: 30 * 60,
+>>>>>>> 1c36febea (add arn on entities to be able to update tags)
         minDelay: 1,
         maxDelay: 4,
       },
@@ -263,7 +269,8 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
           !Object.is(e.publiclyAccessible, cloudRecord.publiclyAccessible) ||
           !Object.is(e.storageEncrypted, cloudRecord.storageEncrypted) ||
           !Object.is(e.subnetGroup?.name, cloudRecord.subnetGroup?.name) ||
-          !Object.is(e.port, cloudRecord.port)
+          !Object.is(e.port, cloudRecord.port) ||
+          !Object.is(e.arn, cloudRecord.arn)
         ) {
           cloudRecord.id = e.id;
           await this.module.dbCluster.db.update(cloudRecord, ctx);

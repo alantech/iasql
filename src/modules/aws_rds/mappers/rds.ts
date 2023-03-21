@@ -40,7 +40,8 @@ export class RdsMapper extends MapperBase<RDS> {
     Object.is(a.backupRetentionPeriod, b.backupRetentionPeriod) &&
     Object.is(a.parameterGroup?.arn, b.parameterGroup?.arn) &&
     Object.is(a.dbCluster?.dbClusterIdentifier, b.dbCluster?.dbClusterIdentifier) &&
-    eqTags(a.tags, b.tags);
+    eqTags(a.tags, b.tags) &&
+    Object.is(a.arn, b.arn);
 
   async rdsMapper(rds: any, ctx: Context, region: string) {
     const out = new RDS();
@@ -51,6 +52,7 @@ export class RdsMapper extends MapperBase<RDS> {
     );
     out.dbInstanceClass = rds?.DBInstanceClass;
     out.dbInstanceIdentifier = rds?.DBInstanceIdentifier;
+    out.arn = rds?.DBInstanceArn;
     out.endpointAddr = rds?.Endpoint?.Address;
     out.endpointHostedZoneId = rds?.Endpoint?.HostedZoneId;
     out.endpointPort = rds?.Endpoint?.Port;
@@ -136,7 +138,7 @@ export class RdsMapper extends MapperBase<RDS> {
       {
         client,
         // all in seconds
-        maxWaitTime: 1200,
+        maxWaitTime: 30 * 60,
         minDelay: 1,
         maxDelay: 4,
       },
@@ -189,7 +191,7 @@ export class RdsMapper extends MapperBase<RDS> {
       {
         client,
         // all in seconds
-        maxWaitTime: 1200,
+        maxWaitTime: 30 * 60,
         minDelay: 1,
         maxDelay: 4,
       },
@@ -220,7 +222,7 @@ export class RdsMapper extends MapperBase<RDS> {
       {
         client,
         // all in seconds
-        maxWaitTime: 1200,
+        maxWaitTime: 30 * 60,
         minDelay: 1,
         maxDelay: 4,
       },
@@ -369,8 +371,8 @@ export class RdsMapper extends MapperBase<RDS> {
         }
 
         // if we want to modify resources we delete and recreate
-        if (!eqTags(e.tags, cloudRecord.tags)) {
-          await updateTags(client.rdsClient, e.dbInstanceIdentifier, e.tags);
+        if (e.arn && !eqTags(e.tags, cloudRecord.tags)) {
+          await updateTags(client.rdsClient, e.arn, e.tags);
           updatedRecord.id = e.id;
           updatedRecord.region = e.region;
           updatedRecord.masterUserPassword = null;
