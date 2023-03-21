@@ -41,7 +41,7 @@ const region = defaultRegion([
 
 const modules = ['aws_security_group', 'aws_rds', 'aws_vpc'];
 
-jest.setTimeout(1800000);
+jest.setTimeout(3600000);
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown());
 

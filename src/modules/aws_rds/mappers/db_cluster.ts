@@ -122,7 +122,7 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
       {
         client,
         // all in seconds
-        maxWaitTime: 1200,
+        maxWaitTime: 60 * 30,
         minDelay: 1,
         maxDelay: 4,
       },
