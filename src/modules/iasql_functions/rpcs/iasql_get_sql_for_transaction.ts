@@ -74,11 +74,22 @@ async function getUserChangeLogsByTransaction(
   orm: TypeormWrapper,
   transactionId: string,
 ): Promise<IasqlAuditLog[]> {
+  let id = transactionId;
+  // If no `transactionId` we get the latest transaction
+  if (!id) {
+    const latestOpenTransaction: IasqlAuditLog = await orm.findOne(IasqlAuditLog, {
+      order: { ts: 'DESC' },
+      where: {
+        changeType: AuditLogChangeType.OPEN_TRANSACTION,
+      },
+    });
+    id = latestOpenTransaction.transactionId;
+  }
   return orm.find(IasqlAuditLog, {
     order: { ts: 'ASC', id: 'ASC' },
     where: {
       changeType: In([AuditLogChangeType.INSERT, AuditLogChangeType.UPDATE, AuditLogChangeType.DELETE]),
-      transactionId,
+      transactionId: id,
       user: Not(config.db.user),
     },
   });
