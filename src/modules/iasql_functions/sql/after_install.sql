@@ -104,7 +104,7 @@ begin
       RETURN 'iasql_rollback called';
     END IF;
     -- If a transaction occurred less than 2 min ago we skip
-    IF _change_type != 'OPEN_TRANSACTION' AND (_ts IS NULL OR _ts < _almost_2_min_interval) THEN
+    IF _change_type = 'CLOSE_TRANSACTION' AND (_ts IS NULL OR _ts < _almost_2_min_interval) THEN
       PERFORM iasql_begin();
       BEGIN
         PERFORM iasql_commit();
