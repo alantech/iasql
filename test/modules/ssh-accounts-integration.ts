@@ -129,13 +129,19 @@ describe('EC2 Integration Testing', () => {
   it('installs the ec2 module', install(['aws_ec2']));
 
   // generate keypairs
-  it('generates a new keypair', query(`
+  it(
+    'generates a new keypair',
+    query(
+      `
     SELECT * FROM key_pair_request ('${prefix}-key-request', '${region}');
-  `, (res: any[]) => {
-    expect(res.length).toBe(1);
-    console.log(res);
-    privateKey = res[0].privatekey;
-  }));
+  `,
+      (res: any[]) => {
+        expect(res.length).toBe(1);
+        console.log(res);
+        privateKey = res[0].privatekey;
+      },
+    ),
+  );
 
   it(
     'check new keypair added',
@@ -187,8 +193,9 @@ describe('EC2 Integration Testing', () => {
 
   it('installs the ssh_accounts and aws_ec2_metadata modules', install(['ssh_accounts', 'aws_ec2_metadata']));
 
-  it('adds a new ssh server', (done) => {
-    query(`
+  it('adds a new ssh server', done => {
+    query(
+      `
       INSERT INTO ssh_credentials ("name", hostname, username, private_key)
       VALUES ('${prefix}', (
         SELECT host(im.public_ip_address)
@@ -198,36 +205,114 @@ describe('EC2 Integration Testing', () => {
         LIMIT 1
       ), 'ubuntu', $$${privateKey}$$);
     `,
-    undefined,
-    true,
-    () => ({ username, password }),
-  )((e?: any) => {
+      undefined,
+      true,
+      () => ({ username, password }),
+    )((e?: any) => {
       if (!!e) return done(e);
       done();
     });
   });
 
-  itDocs('can run a command', query(`
+  itDocs(
+    'can run a command',
+    query(
+      `
     SELECT * FROM ssh_exec('${prefix}', 'echo Hello, World');
-  `, (res: any[]) => expect(res[0].stdout.trim()).toEqual('Hello, World')));
+  `,
+      (res: any[]) => expect(res[0].stdout.trim()).toEqual('Hello, World'),
+    ),
+  );
+
+  itDocs(
+    'can list a directory',
+    query(
+      `
+    SELECT * FROM ssh_ls('${prefix}', '/home/ubuntu');
+  `,
+      (res: any[]) => expect(res.length).toBeGreaterThan(0),
+    ),
+  );
+
+  itDocs(
+    'can create a directory',
+    query(
+      `
+    SELECT * FROM ssh_mkdir('${prefix}', '/home/ubuntu/${prefix}');
+  `,
+      (res: any[]) => expect(res[0].status).toEqual('created'),
+    ),
+  );
+
+  itDocs(
+    'can create a file',
+    query(
+      `
+    SELECT * FROM ssh_write_file_text('${prefix}', '/home/ubuntu/${prefix}.txt', 'test file');
+  `,
+      (res: any[]) => expect(res[0].status).toEqual('written'),
+    ),
+  );
+
+  itDocs(
+    'can read a file',
+    query(
+      `
+    SELECT * FROM ssh_read_file_text('${prefix}', '/home/ubuntu/${prefix}.txt');
+  `,
+      (res: any[]) => expect(res[0].data).toEqual('test file'),
+    ),
+  );
+
+  itDocs(
+    'can move a file',
+    query(
+      `
+    SELECT * FROM ssh_mv('${prefix}', '/home/ubuntu/${prefix}.txt', '/home/ubuntu/${prefix}/new_location');
+  `,
+      (res: any[]) => expect(res[0].status).toEqual('moved'),
+    ),
+  );
+
+  itDocs(
+    'can delete a file',
+    query(
+      `
+    SELECT * FROM ssh_rm('${prefix}', '/home/ubuntu/${prefix}/new_location');
+  `,
+      (res: any[]) => expect(res[0].status).toEqual('deleted'),
+    ),
+  );
+
+  itDocs(
+    'can delete a directory',
+    query(
+      `
+    SELECT * FROM ssh_rmdir('${prefix}', '/home/ubuntu/${prefix}');
+  `,
+      (res: any[]) => expect(res[0].status).toEqual('deleted'),
+    ),
+  );
 
   it('starts a transaction', begin());
 
-  it('deletes the ssh server', query(`
+  it(
+    'deletes the ssh server',
+    query(`
     DELETE FROM ssh_credentials WHERE "name" = '${prefix}';
-  `));
+  `),
+  );
 
   it('applies the ssh deletion', commit());
 
   it('starts a transaction', begin());
 
-  // TODO: Why does this seem to be necessary?
-  it('deletes the ec2 instance', query(`
-    WITH i AS (
-      DELETE FROM instance WHERE tags ->> 'name' = 'ssh-${prefix}-1' RETURNING id
-    )
-    DELETE FROM instance_block_device_mapping USING i WHERE instance_id = i.id;
-  `));
+  it(
+    'deletes the ec2 instance',
+    query(`
+    DELETE FROM instance WHERE tags ->> 'name' = 'ssh-${prefix}-1';
+  `),
+  );
 
   it('applies the ec2 deletion', commit());
 
@@ -260,10 +345,13 @@ describe('EC2 Integration Testing', () => {
   );
 
   it('starts a transaction', begin());
-  it('deletes the security group', query(`
+  it(
+    'deletes the security group',
+    query(`
     DELETE FROM security_group_rule WHERE description = '${prefix}sshrule';
     DELETE FROM security_group WHERE group_name = 'ssh-${prefix}-sg';
-  `));
+  `),
+  );
   it('applies the security group deletion', commit());
 
   it('uninstalls the modules', uninstall(modules));
