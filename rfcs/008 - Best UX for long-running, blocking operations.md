@@ -1,4 +1,4 @@
-# 008 - Best UX for blocking operations, `iasql_install` and `iasql_commit`, RFC
+# 008 - Best UX for long-running, blocking operations like `iasql_install` and `iasql_commit` RFC
 
 ### Proposed
 
