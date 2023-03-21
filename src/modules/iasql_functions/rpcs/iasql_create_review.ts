@@ -80,7 +80,7 @@ function generateMarkdown(title: string, description: string, preview: any[], tr
   const titleMarkdown = `# ${title}`;
   const descriptionMarkdown = description;
   if (!preview.length) return;
-  const previewTitleMarkdown = '## IaSQL Preview';
+  const previewTitleMarkdown = '## IaSQL Preview\n';
   const previewKeys = Object.keys(preview[0]);
   const previewHeaderDelimiters = previewKeys.map(() => '---');
   const previewHeaderMarkdown = `| ${previewKeys.join(' | ')} |`;
@@ -94,10 +94,10 @@ function generateMarkdown(title: string, description: string, preview: any[], tr
     previewHeaderMarkdown,
     previewHeaderDelimitersMarkdown,
     ...previewRowsMarkdown,
-  ].join('<-- insert line break here -->');
+  ].join('\n');
   const sqlTitleMarkdown = '## SQL changes';
-  const sqlMarkdown = `\`\`\`sql<-- insert line break here -->
-${transactionSql}<-- insert line break here -->
+  const sqlMarkdown = `\`\`\`sql
+${transactionSql}
 \`\`\``;
-  return [titleMarkdown, descriptionMarkdown, previewMarkdown, sqlTitleMarkdown, sqlMarkdown].join('<-- insert line break here -->');
+  return [titleMarkdown, descriptionMarkdown, previewMarkdown, sqlTitleMarkdown, sqlMarkdown].join('\n\n');
 }
