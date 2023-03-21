@@ -40,6 +40,7 @@ const region = defaultRegion([
 ]);
 
 const modules = ['aws_security_group', 'aws_rds', 'aws_vpc'];
+const engineVersion = '8.0.28';
 
 jest.setTimeout(1800000);
 beforeAll(async () => await execComposeUp());
@@ -145,8 +146,8 @@ describe('DB Cluster Integration Testing', () => {
     query(
       `
     BEGIN;
-      INSERT INTO db_cluster (db_cluster_identifier, engine, allocated_storage, iops, db_cluster_instance_class, master_username, master_user_password, subnet_group_id) VALUES
-        ('${prefix}cluster-test', 'mysql', 100, 1000, 'db.m5d.xlarge', 'admin', 'admin123456', (select id FROM db_subnet_group WHERE name = '${prefix}cluster-test'));
+      INSERT INTO db_cluster (db_cluster_identifier, engine, engine_version, allocated_storage, iops, db_cluster_instance_class, master_username, master_user_password, subnet_group_id) VALUES
+        ('${prefix}cluster-test', 'mysql', '${engineVersion}', 100, 1000, 'db.m5d.xlarge', 'admin', 'admin123456', (select id FROM db_subnet_group WHERE name = '${prefix}cluster-test'));
     COMMIT;
   `,
       undefined,
