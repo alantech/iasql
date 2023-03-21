@@ -9,7 +9,7 @@ import {
 } from '../../interfaces';
 
 /**
- * Method that generates creates the markdown to be shared or used in any version control system
+ * Method that generates the markdown to be shared or used in any version control system
  */
 export class IasqlCreateReview extends RpcBase {
   /** @internal */
