@@ -43,28 +43,17 @@ export class IasqlCreateReview extends RpcBase {
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
     let preview: any[];
     let transactionSql: { sql: string }[];
+    let markdown: string;
     try {
       preview = (await ctx.orm.query('SELECT * FROM iasql_preview();')) ?? [];
-      // TODO: update once `iasql_get_sql_for_transaction` with no arguments works
-      transactionSql =
-        (await ctx.orm.query(`
-        SELECT *
-        FROM iasql_get_sql_for_transaction(
-          (
-            SELECT transaction_id
-            FROM iasql_audit_log
-            WHERE change_type = 'OPEN_TRANSACTION'
-            ORDER BY ts DESC
-            LIMIT 1
-          )
-        );
-      `)) ?? [];
+      transactionSql = (await ctx.orm.query(`SELECT * FROM iasql_get_sql_for_transaction();`)) ?? [];
+      markdown = generateMarkdown(title, description, preview, transactionSql?.[0]?.sql);
     } catch (e) {
       throw e;
     }
     return [
       {
-        markdown: generateMarkdown(title, description, preview, transactionSql?.[0]?.sql),
+        markdown,
       },
     ];
   };
@@ -76,10 +65,15 @@ export class IasqlCreateReview extends RpcBase {
   }
 }
 
-function generateMarkdown(title: string, description: string, preview: any[], transactionSql?: string) {
+function generateMarkdown(
+  title: string,
+  description: string,
+  preview: any[],
+  transactionSql?: string,
+): string {
   const titleMarkdown = `# ${title}`;
   const descriptionMarkdown = description;
-  if (!preview.length) return;
+  if (!preview.length) return [titleMarkdown, descriptionMarkdown].join('\n\n');
   const previewTitleMarkdown = '## IaSQL Preview\n';
   const previewKeys = Object.keys(preview[0]);
   const previewHeaderDelimiters = previewKeys.map(() => '---');
