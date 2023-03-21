@@ -5,7 +5,7 @@ import { Route as AwsRoute } from '@aws-sdk/client-ec2/dist-types/models';
 
 import { AWS, crudBuilder } from '../../../services/aws_macros';
 import { Context, Crud, IdFields, MapperBase } from '../../interfaces';
-import { Route, RouteTable } from '../entity';
+import { Route, RouteTable, RouteTableAssociation } from '../entity';
 import { AwsVpcModule } from '../index';
 
 export class RouteMapper extends MapperBase<Route> {
@@ -160,6 +160,24 @@ export class RouteMapper extends MapperBase<Route> {
           delete ctx.memo.db.Route[this.entityId(e)];
           return;
         } else if (e.gatewayId === 'local') return;
+
+        const associations = (await this.module.routeTableAssociation.db.read(
+          ctx,
+        )) as RouteTableAssociation[];
+        if (
+          associations.find(
+            a =>
+              a.isMain &&
+              a.routeTable.routeTableId === e.routeTable.routeTableId &&
+              a.routeTable.vpc.isDefault,
+          )
+        ) {
+          // don't delete routes in the default route table
+          await this.module.route.db.update(e, ctx);
+          // Make absolutely sure it shows up in the memo
+          ctx.memo.db.Route[this.entityId(e)] = e;
+        }
+
         const client = (await ctx.getAwsClient(e.region)) as AWS;
         await this.deleteRoute(client.ec2client, e);
       }
