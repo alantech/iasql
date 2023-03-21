@@ -300,15 +300,11 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
           continue;
         }
 
+        let isUpdate = false;
+
         // update db cluster tags
         if (e.arn && !eqTags(e.tags, cloudRecord.tags)) {
           await updateTags(client.rdsClient, e.arn, e.tags);
-          cloudRecord.id = e.id;
-          cloudRecord.region = e.region;
-          cloudRecord.masterUserPassword = null;
-          await this.module.rds.db.update(cloudRecord, ctx);
-          out.push(cloudRecord);
-          continue;
         }
 
         // update path
@@ -344,25 +340,26 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
         // If a password value has been inserted, we update it.
         if (e.masterUserPassword) clusterParams.MasterUserPassword = e.masterUserPassword;
 
-        const result = await this.updateDBCluster(client.rdsClient, clusterParams);
-        if (result) {
-          // delete cache to force requery
-          delete ctx.memo.cloud.DBCluster[this.entityId(e)];
-          const newObject = await this.getDBCluster(client.rdsClient, e.dbClusterIdentifier);
-          if (newObject) {
-            const newEntity = await this.dbClusterMapper(newObject, ctx, e.region);
-            if (!newEntity) continue;
-            // We attach the original object's ID to this new one, indicating the exact record it is
-            // replacing in the database.
-            newEntity.id = e.id;
-            // Set password as null to avoid infinite loop trying to update the password.
-            // Reminder: Password need to be null since when we read RDS instances from AWS this
-            // property is not retrieved
-            newEntity.masterUserPassword = undefined;
-            // Save the record back into the database to get the new fields updated
-            await this.module.dbCluster.db.update(newEntity, ctx);
-            out.push(newEntity);
-          }
+        if (Object.keys(clusterParams).length > 2) isUpdate = true; // 2 parameters are added by default, another one means update
+
+        if (isUpdate) await this.updateDBCluster(client.rdsClient, clusterParams);
+        // delete cache to force requery
+        delete ctx.memo.cloud.DBCluster[this.entityId(e)];
+
+        const newObject = await this.getDBCluster(client.rdsClient, e.dbClusterIdentifier);
+        if (newObject) {
+          const newEntity = await this.dbClusterMapper(newObject, ctx, e.region);
+          if (!newEntity) continue;
+          // We attach the original object's ID to this new one, indicating the exact record it is
+          // replacing in the database.
+          newEntity.id = e.id;
+          // Set password as null to avoid infinite loop trying to update the password.
+          // Reminder: Password need to be null since when we read RDS instances from AWS this
+          // property is not retrieved
+          newEntity.masterUserPassword = undefined;
+          // Save the record back into the database to get the new fields updated
+          await this.module.dbCluster.db.update(newEntity, ctx);
+          out.push(newEntity);
         }
       }
       return out;
