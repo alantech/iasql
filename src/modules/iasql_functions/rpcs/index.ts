@@ -12,3 +12,4 @@ export * from './iasql_begin';
 export * from './iasql_get_errors';
 export * from './iasql_get_sql_since';
 export * from './iasql_get_sql_for_transaction';
+export * from './iasql_create_review';
