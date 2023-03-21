@@ -36,10 +36,9 @@ TBD
 
 ### Poll for RPC progress
 
-Include a modal or some sort of dialog that includes a message about how we are importing the entire state of the infrastructure and due to AWS SDK rate limiters it might take several minutes. Below this generic message, we can show a somewhat accurate progress bar derived from a linear estimate of the count of resources and an average processing time per resource. This might be possible without introducing WebSockets by tracking some metadata about ongoing RPC calls within the engine either through:
+Include a modal or some sort of dialog that includes a message about how we are importing the entire state of the infrastructure and due to AWS SDK rate limiters it might take several minutes. Below this generic message, we can show a somewhat accurate progress bar derived from a linear estimate of the count of resources and an average processing time per resource. This might be possible without introducing WebSockets by having the engine track some metadata about ongoing RPC calls within the database through one of the following:
 
-- a new PG function called `rpcs_status` or `ongoing_rpcs` 
-- a new `iasql_*` table called `iasql_rpc_progress`
+- a new `iasql_*` table called `iasql_rpc_progress`, `iasql_rpc_progress` or `iasql_ongoing_rpcs`
 - a new type of entry in the `iasql_audit_log`
 
 Either of these mechanisms can be queried by the dashboard using the existing PG cron functionality to update the progress state of any ongoing installs or commits across the dashboard tabs. This logic could then be replicated to also improve the UX of `iasql_commit`. For users using Postgres clients instead of the dashboard, this ongoing progress is freely available to query.
