@@ -5,10 +5,18 @@ import { useAppContext } from './providers/AppProvider';
 export default function QueryResult() {
   const { editorSelectedTab, editorTabs } = useAppContext();
   const queryRes = editorTabs[editorSelectedTab]?.queryRes;
+  const query = editorTabs[editorSelectedTab]?.content;
+  const longRunningRpc = query.includes('iasql_commit()') || query.includes('iasql_install(');
 
   // TODO: show all statements with its respective query and not just the last one
-  return editorTabs?.[editorSelectedTab]?.isRunning ? (
-    <Spinner />
+  return true ? (
+    <div>
+      { longRunningRpc && <div className='p-10'>
+        We are importing the entire state of the infrastructure from the cloud account and due to default cloud SDK rate limiters this can take up to several minutes depending on how many resources are in the cloud account. Please be patient.
+      </div>
+      }
+      <Spinner />
+    </div>
   ) : queryRes === undefined ? (
     <EmptyState>
       <p>No query results</p>
