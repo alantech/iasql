@@ -230,6 +230,17 @@ export class RDS {
 
   /**
    * @public
+   * Complex type to provide identifier tags for the volume
+   * @see https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-rds/interfaces/tag.html
+   */
+  @Column({
+    type: 'json',
+    nullable: true,
+  })
+  tags?: { [key: string]: string };
+
+  /**
+   * @public
    * Region for the database
    */
   @Column({

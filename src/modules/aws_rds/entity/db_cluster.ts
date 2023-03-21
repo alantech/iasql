@@ -218,6 +218,17 @@ export class DBCluster {
 
   /**
    * @public
+   * Complex type to provide identifier tags
+   * @see https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-rds/interfaces/tag.html
+   */
+  @Column({
+    type: 'json',
+    nullable: true,
+  })
+  tags?: { [key: string]: string };
+
+  /**
+   * @public
    * Region for the cluster. Support for multi-az clusters may be limited on different regions.
    * Please check AWS documentation for more details.
    */
