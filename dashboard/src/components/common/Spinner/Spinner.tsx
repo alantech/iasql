@@ -5,5 +5,10 @@ export default function Spinner() {
 }
 
 export function AWSSpinner() {
-  return <img src="https://upload.wikimedia.org/wikipedia/commons/9/93/Amazon_Web_Services_Logo.svg" className={`${styles.aws} rotate`} />;
+  return (
+    <img
+      src='/aws.svg'
+      className={`${styles.aws} rotate`}
+    />
+  );
 }
