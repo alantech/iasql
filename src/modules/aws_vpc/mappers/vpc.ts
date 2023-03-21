@@ -226,7 +226,10 @@ export class VpcMapper extends MapperBase<Vpc> {
           newVpc.id = e.id;
 
           // if provided dhcp options are not the same as the defaults one, we need to associate the right ones
-          if (newVpc.dhcpOptions?.dhcpOptionsId !== e.dhcpOptions?.dhcpOptionsId) {
+          if (
+            e.dhcpOptions?.dhcpOptionsId &&
+            newVpc.dhcpOptions?.dhcpOptionsId !== e.dhcpOptions?.dhcpOptionsId
+          ) {
             await this.associateDhcpOptions(client.ec2client, e.dhcpOptions?.dhcpOptionsId, newVpc.vpcId);
             newVpc.dhcpOptions = e.dhcpOptions;
           }
