@@ -11,12 +11,12 @@ import {
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 
 import { AwsRdsModule } from '..';
-import { AWS, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
+import { AWS, crudBuilderFormat, eqTags, paginateBuilder } from '../../../services/aws_macros';
 import { awsSecurityGroupModule } from '../../aws_security_group';
 import { awsVpcModule } from '../../aws_vpc';
 import { Context, Crud, MapperBase } from '../../interfaces';
 import { RDS } from '../entity';
-import { eqTags, updateTags } from './tags';
+import { updateTags } from './tags';
 
 export class RdsMapper extends MapperBase<RDS> {
   module: AwsRdsModule;

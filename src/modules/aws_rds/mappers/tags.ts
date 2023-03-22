@@ -20,10 +20,3 @@ export const updateTags = async (client: RDS, resourceId: string, tags?: { [key:
     Tags: tgs,
   });
 };
-
-export function eqTags(a: { [key: string]: string } | undefined, b: { [key: string]: string } | undefined) {
-  return (
-    Object.is(Object.keys(a ?? {})?.length, Object.keys(b ?? {})?.length) &&
-    Object.keys(a ?? {})?.every(ak => (a ?? {})[ak] === (b ?? {})[ak])
-  );
-}
