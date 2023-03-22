@@ -299,7 +299,7 @@ describe('VPC Integration Testing', () => {
     'sets the default dhcp options for the vpc',
     query(
       `
-      UPDATE vpc SET dhcp_options_id = 'default' WHERE tags ->> 'name' = '${prefix}-2';;
+      UPDATE vpc SET dhcp_options_id = NULL WHERE tags ->> 'name' = '${prefix}-2';;
   `,
       undefined,
       true,
