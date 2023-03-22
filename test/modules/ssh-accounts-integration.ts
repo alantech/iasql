@@ -193,6 +193,8 @@ describe('EC2 Integration Testing', () => {
 
   it('installs the ssh_accounts and aws_ec2_metadata modules', install(['ssh_accounts', 'aws_ec2_metadata']));
 
+  it('starts a transaction', begin());
+
   it('adds a new ssh server', done => {
     query(
       `
@@ -213,6 +215,7 @@ describe('EC2 Integration Testing', () => {
       done();
     });
   });
+  it('commits the transaction', commit());
 
   itDocs(
     'can run a command',
