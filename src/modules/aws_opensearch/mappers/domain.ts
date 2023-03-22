@@ -12,7 +12,7 @@ import { Policy } from '../../../services/canonical-iam-policy';
 import { awsAcmModule } from '../../aws_acm';
 import { awsSecurityGroupModule } from '../../aws_security_group';
 import { awsVpcModule } from '../../aws_vpc';
-import { Context, Crud2, MapperBase } from '../../interfaces';
+import { Context, Crud, MapperBase } from '../../interfaces';
 import { Domain } from '../entity';
 import { AwsOpenSearchModule } from '../index';
 
@@ -72,7 +72,7 @@ export class DomainMapper extends MapperBase<Domain> {
     return out;
   }
 
-  cloud = new Crud2({
+  cloud = new Crud({
     create: async (es: Domain[], ctx: Context) => {
       for (const e of es) {
         const client = (await ctx.getAwsClient(e.region)) as AWS;
