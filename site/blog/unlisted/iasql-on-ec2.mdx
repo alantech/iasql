@@ -10,15 +10,20 @@ This is the first in a series of blog posts on deploying different services to A
 
 In this post we'll explore how to deploy IaSQL on EC2, using IaSQL!
 
+<!-- truncate -->
+
 ### Start IaSQL
 To manage the cloud resources for your deployment of IaSQL, we'll need to use a separate instance of IaSQL. You may use our SaaS offering at [app.iasql.com](https://app.iasql.com), or locally via [Docker](https://www.docker.com/):
+
 ```bash
 docker run -p 9876:9876 -p 5432:5432 --name iasql iasql/iasql
 ```
 This will download the latest [IaSQL image from dockerhub](https://hub.docker.com/r/iasql/iasql) and run it. After it's ready, you can access the dashboard at the following URL:
+
 ```
-[http://localhost:9876/](http://localhost:9876)
+http://localhost:9876
 ```
+
 <ThemedImage
   alt="IaSQL dashboard"
   style={{width: '440'}}
