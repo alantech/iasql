@@ -18,6 +18,16 @@ export default function createTests() {
     // Check initial content
     await expect(page.locator(`#iasql-editor div.ace_content`)).toContainText(/\-\-\sWelcome\sto\sIaSQL/i);
 
+    // Click run iasql
+    await click(page.locator(`button:has-text("Run query")`));
+
+    // Check response
+    await click(
+      page.locator(`#query-builder-result label`, {
+        hasText: 'No results returned',
+      }),
+    );
+
     // Add fake query
     await fill(page.locator(`#iasql-editor textarea.ace_text-input`), 'SELECT * FROM fake_table;', false);
 
@@ -65,6 +75,6 @@ export default function createTests() {
     await click(page.locator(`#query-builder-result table`));
 
     // make sure the query builder result has ph-no-capture class
-    await click(page.locator('#query-builder-result > .ph-no-capture'))
+    await click(page.locator('#query-builder-result > .ph-no-capture'));
   });
 }
