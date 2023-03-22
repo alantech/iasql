@@ -94,7 +94,7 @@
     "@aws-sdk/client-route-53": "^3.296.0",
     "@aws-sdk/client-s3": "^3.296.0",
     "@aws-sdk/client-secrets-manager": "^3.290.0",
-    "@aws-sdk/client-sns": "^3.290.0",
+    "@aws-sdk/client-sns": "^3.296.0",
     "@aws-sdk/client-sqs": "^3.290.0",
     "@aws-sdk/client-ssm": "^3.294.0",
     "@aws-sdk/client-sts": "^3.272.0",
