@@ -555,41 +555,58 @@ export class InstanceMapper extends MapperBase<Instance> {
             }
           }
 
+          console.log('after create i read again');
           const newEntity = await this.module.instance.cloud.read(
             ctx,
             this.module.instance.generateId({ instanceId, region: instance.region }),
           );
+          console.log(newEntity);
 
           newEntity.id = instance.id;
+          console.log('before update');
           await this.module.instance.db.update(newEntity, ctx);
+          console.log('after update');
           out.push(newEntity);
         }
       }
       return out;
     },
     read: async (ctx: Context, id?: string) => {
+      console.log('i read instances');
       if (id) {
+        console.log('i read by id');
         const { instanceId, region } = this.idFields(id);
         const client = (await ctx.getAwsClient(region)) as AWS;
         const rawInstance = await this.getInstance(client.ec2client, instanceId);
+        console.log('instance is raw');
+        console.log(rawInstance);
         // exclude spot instances
         if (!rawInstance || rawInstance.InstanceLifecycle === InstanceLifecycle.SPOT) return;
         if (rawInstance.State?.Name === 'terminated' || rawInstance.State?.Name === 'shutting-down') return;
         return this.instanceMapper(rawInstance, region, ctx);
       } else {
+        console.log('i read all');
         const out: Instance[] = [];
         const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
         await Promise.all(
           enabledRegions.map(async region => {
             const client = (await ctx.getAwsClient(region)) as AWS;
+            console.log('i read for region');
+            console.log(region);
             const rawInstances = (await this.getInstances(client.ec2client)) ?? [];
+            console.log('instances are');
+            console.log(rawInstances);
             for (const i of rawInstances) {
               if (i?.State?.Name === 'terminated' || i?.State?.Name === 'shutting-down') continue;
+              console.log('after status');
               const outInst = await this.instanceMapper(i, region, ctx);
+              console.log(outInst);
               if (outInst) out.push(outInst);
             }
           }),
         );
+        console.log('all instances are');
+        console.log(out);
         return out;
       }
     },
@@ -664,6 +681,8 @@ export class InstanceMapper extends MapperBase<Instance> {
     },
     delete: async (es: Instance[], ctx: Context) => {
       for (const entity of es) {
+        console.log('in nstance delete');
+        console.log(entity);
         if (!entity.instanceId) continue;
         const client = (await ctx.getAwsClient(entity.region)) as AWS;
 
@@ -718,6 +737,12 @@ export class InstanceMapper extends MapperBase<Instance> {
           }
         }
       }
+      console.log('after all delete');
+      console.log(this.module.instance.db.read(ctx));
+      console.log(this.module.instance.cloud.read(ctx));
+      console.log('in mapping');
+      console.log(this.module.instanceBlockDeviceMapping.db.read(ctx));
+      console.log(this.module.instanceBlockDeviceMapping.cloud.read(ctx));
     },
   });
 

@@ -1307,11 +1307,15 @@ async function apply(
       }
       const t5 = Date.now();
       logger.scope({ dbId }).debug(`Diff time: ${t5 - t4}ms`);
+
       const promiseGenerators = records
         .map(r => {
           const name = r.table;
           logger.scope({ dbId }).debug(`Checking ${name}`);
           const outArr = [];
+          console.log('in apply i have records');
+          console.log(r);
+          console.log(r.diff);
           recordsApplied += r.diff.entitiesInDbOnly.length;
           if (r.diff.entitiesInDbOnly.length > 0) {
             logger
@@ -1358,6 +1362,7 @@ async function apply(
         .map(r => {
           const name = r.table;
           logger.scope({ dbId }).debug(`Checking ${name}`);
+          console.log('in apply reverse');
           const outArr = [];
           recordsApplied += r.diff.entitiesInAwsOnly.length;
           if (r.diff.entitiesInAwsOnly.length > 0) {
@@ -1546,7 +1551,10 @@ async function sync(
         .map(r => {
           const name = r.table;
           logger.scope({ dbId }).debug(`Checking ${name}`);
+          console.log('in sync');
           const outArr = [];
+          console.log('records are');
+          console.log(r.diff);
           recordsSynced += r.diff.entitiesInAwsOnly.length;
           if (r.diff.entitiesInAwsOnly.length > 0) {
             logger
@@ -1594,6 +1602,8 @@ async function sync(
         .map(r => {
           const name = r.table;
           logger.scope({ dbId }).debug(`Checking ${name}`);
+          console.log('in revese sync');
+          console.log(r.diff);
           const outArr = [];
           recordsSynced += r.diff.entitiesInDbOnly.length;
           if (r.diff.entitiesInDbOnly.length > 0) {
