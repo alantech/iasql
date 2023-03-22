@@ -65,7 +65,7 @@ const query = runQuery.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 
-const modules = ['aws_ec2'];
+const modules = ['aws_ec2', 'aws_ec2_metadata', 'ssh_accounts'];
 
 jest.setTimeout(560000);
 beforeAll(async () => {
