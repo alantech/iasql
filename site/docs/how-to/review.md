@@ -11,7 +11,7 @@ The standard practice for code review of database changes is to write the change
 
 Instead, we recommend complex, or delicate, infrastructure changes should be treated as transactions in IaSQL. [IaSQL transactions](../concepts/transaction.md) are a bit different from normal DB transactions in that they lock all database changes from propagating into the cloud but do not lock the changes from being viewed by other database connections, making them "multiuser", so others can inspect the changes, and can preview what they would do with the [`iasql_preview`](../modules/builtin/iasql_functions.md) function, similar to Pulumi’s `preview` or Terraform’s `plan`.
 
-We set forth the best convention to review infrastructure changes within transactions which:
+But, reviewable artifacts are still very useful to summarize and explain the intent behind a proposed set of changes, so we have created an easy-to-follow yet comprehensive convention to review infrastructure changes within transactions which:
 - works with any cloud identity and access management structure
 - works with IaSQL schema upgrades
 - works with any version control system, not just GitHub, without the need for privileged access
