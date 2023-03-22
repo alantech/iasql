@@ -18,7 +18,7 @@ SELECT * FROM iasql_begin();
 
 UPDATE log_group SET log_group_arn = 'test' WHERE log_group_name = 'quickstart-log-group';
 
-SELECT * FROM iasql_create_review('My review' )
+SELECT * FROM iasql_create_review('My review')
 ```
 
 The raw markdown content returned will look as follows:
