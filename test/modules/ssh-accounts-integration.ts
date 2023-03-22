@@ -140,6 +140,8 @@ describe('EC2 Integration Testing', () => {
         console.log(res);
         privateKey = res[0].privatekey;
       },
+      true,
+      () => ({ username, password }),
     ),
   );
 
@@ -152,6 +154,8 @@ describe('EC2 Integration Testing', () => {
     WHERE name = '${prefix}-key-request';
   `,
       (res: any[]) => expect(res.length).toBe(1),
+      true,
+      () => ({ username, password }),
     ),
   );
 
@@ -193,8 +197,6 @@ describe('EC2 Integration Testing', () => {
 
   it('installs the ssh_accounts and aws_ec2_metadata modules', install(['ssh_accounts', 'aws_ec2_metadata']));
 
-  it('starts a transaction', begin());
-
   it('adds a new ssh server', done => {
     query(
       `
@@ -215,7 +217,6 @@ describe('EC2 Integration Testing', () => {
       done();
     });
   });
-  it('commits the transaction', commit());
 
   itDocs(
     'can run a command',
@@ -224,6 +225,8 @@ describe('EC2 Integration Testing', () => {
     SELECT * FROM ssh_exec('${prefix}', 'echo Hello, World');
   `,
       (res: any[]) => expect(res[0].stdout.trim()).toEqual('Hello, World'),
+      true,
+      () => ({ username, password }),
     ),
   );
 
@@ -234,6 +237,8 @@ describe('EC2 Integration Testing', () => {
     SELECT * FROM ssh_ls('${prefix}', '/home/ubuntu');
   `,
       (res: any[]) => expect(res.length).toBeGreaterThan(0),
+      true,
+      () => ({ username, password }),
     ),
   );
 
@@ -244,6 +249,8 @@ describe('EC2 Integration Testing', () => {
     SELECT * FROM ssh_mkdir('${prefix}', '/home/ubuntu/${prefix}');
   `,
       (res: any[]) => expect(res[0].status).toEqual('created'),
+      true,
+      () => ({ username, password }),
     ),
   );
 
@@ -254,6 +261,8 @@ describe('EC2 Integration Testing', () => {
     SELECT * FROM ssh_write_file_text('${prefix}', '/home/ubuntu/${prefix}.txt', 'test file');
   `,
       (res: any[]) => expect(res[0].status).toEqual('written'),
+      true,
+      () => ({ username, password }),
     ),
   );
 
@@ -264,6 +273,8 @@ describe('EC2 Integration Testing', () => {
     SELECT * FROM ssh_read_file_text('${prefix}', '/home/ubuntu/${prefix}.txt');
   `,
       (res: any[]) => expect(res[0].data).toEqual('test file'),
+      true,
+      () => ({ username, password }),
     ),
   );
 
@@ -274,6 +285,8 @@ describe('EC2 Integration Testing', () => {
     SELECT * FROM ssh_mv('${prefix}', '/home/ubuntu/${prefix}.txt', '/home/ubuntu/${prefix}/new_location');
   `,
       (res: any[]) => expect(res[0].status).toEqual('moved'),
+      true,
+      () => ({ username, password }),
     ),
   );
 
@@ -284,6 +297,8 @@ describe('EC2 Integration Testing', () => {
     SELECT * FROM ssh_rm('${prefix}', '/home/ubuntu/${prefix}/new_location');
   `,
       (res: any[]) => expect(res[0].status).toEqual('deleted'),
+      true,
+      () => ({ username, password }),
     ),
   );
 
@@ -294,6 +309,8 @@ describe('EC2 Integration Testing', () => {
     SELECT * FROM ssh_rmdir('${prefix}', '/home/ubuntu/${prefix}');
   `,
       (res: any[]) => expect(res[0].status).toEqual('deleted'),
+      true,
+      () => ({ username, password }),
     ),
   );
 
@@ -301,9 +318,14 @@ describe('EC2 Integration Testing', () => {
 
   it(
     'deletes the ssh server',
-    query(`
+    query(
+      `
     DELETE FROM ssh_credentials WHERE "name" = '${prefix}';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the ssh deletion', commit());
@@ -312,9 +334,14 @@ describe('EC2 Integration Testing', () => {
 
   it(
     'deletes the ec2 instance',
-    query(`
+    query(
+      `
     DELETE FROM instance WHERE tags ->> 'name' = 'ssh-${prefix}-1';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
 
   it('applies the ec2 deletion', commit());
@@ -344,16 +371,23 @@ describe('EC2 Integration Testing', () => {
     WHERE name = '${prefix}-key-request';
   `,
       (res: any[]) => expect(res.length).toBe(0),
+      true,
+      () => ({ username, password }),
     ),
   );
 
   it('starts a transaction', begin());
   it(
     'deletes the security group',
-    query(`
+    query(
+      `
     DELETE FROM security_group_rule WHERE description = '${prefix}sshrule';
     DELETE FROM security_group WHERE group_name = 'ssh-${prefix}-sg';
-  `),
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
   it('applies the security group deletion', commit());
 
