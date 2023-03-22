@@ -343,16 +343,16 @@
     "@aws-sdk/util-utf8" "3.295.0"
     tslib "^2.5.0"
 
-"@aws-sdk/client-cloudwatch@^3.296.0":
-  version "3.296.0"
-  resolved "https://registry.yarnpkg.com/@aws-sdk/client-cloudwatch/-/client-cloudwatch-3.296.0.tgz#129bf6d45401d3bebacfbba4755245a947aaeae6"
-  integrity sha512-C007gCHaBzmtZBQuwbR3oeMWD23Ix+C+OPqDcTjoKO4+Rn85uD9TRpgBVHZBetLjZkXAQF8u+MqvUdAsZPT8xw==
+"@aws-sdk/client-cloudwatch@^3.297.0":
+  version "3.297.0"
+  resolved "https://registry.yarnpkg.com/@aws-sdk/client-cloudwatch/-/client-cloudwatch-3.297.0.tgz#e846f04d723f068e7adbc235410d70f3b5703da4"
+  integrity sha512-F3Wzq4aLErYvFWzeJ/ksPB5xQ8NwVleWmJ4FFRPf48hY3jR2gi0YpsRAbfgcDdf7eWs6pEH1lMdacsBGedGxNw==
   dependencies:
     "@aws-crypto/sha256-browser" "3.0.0"
     "@aws-crypto/sha256-js" "3.0.0"
-    "@aws-sdk/client-sts" "3.296.0"
+    "@aws-sdk/client-sts" "3.297.0"
     "@aws-sdk/config-resolver" "3.296.0"
-    "@aws-sdk/credential-provider-node" "3.296.0"
+    "@aws-sdk/credential-provider-node" "3.297.0"
     "@aws-sdk/fetch-http-handler" "3.296.0"
     "@aws-sdk/hash-node" "3.296.0"
     "@aws-sdk/invalid-dependency" "3.296.0"
