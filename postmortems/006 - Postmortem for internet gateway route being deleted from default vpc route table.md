@@ -8,7 +8,7 @@
 
 ## Summary
 
-The internet gateway route have being deleted from the default vpc's route table by the `delete_all_records` method on test accounts. This has been an issue in the past for Codedeploy but something changed in AWS over the weekend (march 17th-19th) that made the failure appear on tutorials tests (Django and Prisma) blocking the whole test suite.
+The internet gateway route have being deleted from the default vpc's route table by the `delete_all_records` method on test accounts. This has been an issue in the past for Codedeploy but something changed in AWS over the weekend (March 17th-19th) that made the failure appear on tutorials tests (Django and Prisma) blocking the whole test suite.
 
 ## Timeline
 
