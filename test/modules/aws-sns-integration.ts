@@ -13,7 +13,6 @@ import {
   runBegin,
   runCommit,
   runInstall,
-  runInstallAll,
   runQuery,
   runRollback,
   runUninstall,
@@ -27,7 +26,6 @@ const commit = runCommit.bind(null, dbAlias);
 const rollback = runRollback.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
-const installAll = runInstallAll.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const region = defaultRegion();
 
