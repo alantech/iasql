@@ -128,7 +128,7 @@ const gettingStarted = `-- Welcome to IaSQL! Steps to get started:
 -- 2. Write any SQL query here and run it using the "Run query" button on the top
 -- right or by using the Ctrl+Enter (CMD+Return on Mac) keyboard shortcut.
 
--- The sidebar's "Schema" tab shows tables and columns of the installed modules. Clicking the help icon will take directly to the documentation of each module. The table icon will also show up next to any table with data and it can be used to do a quick select query.
+-- The sidebar's "Schema" tab shows tables and columns of the installed modules. Clicking the help icon will take directly to the documentation of each module. The table icon will also show up beside any table with data and it can be used to do a quick select query.
 
 -- Open as many tabs as you want in the top right corner and run queries on each of them.
 -- If you have any questions, use the navbar to check the documentation or contact us via Discord!
