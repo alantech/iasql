@@ -77,5 +77,3 @@ SET log_group_name = 'quickstart-log-group', log_group_arn = 'test', creation_ti
 WHERE log_group_name = 'quickstart-log-group' AND log_group_arn = 'arn:aws:logs:us-east-2:257682470237:log-group:quickstart-log-group:*' AND creation_time = '2023-01-25T11:17:14.045+00:00' AND region = (SELECT region FROM aws_regions WHERE region = 'us-east-2');
 
 ```
-
----
