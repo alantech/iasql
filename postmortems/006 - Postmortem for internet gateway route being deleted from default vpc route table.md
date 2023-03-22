@@ -1,4 +1,4 @@
-# 006 - Postmortem for internet gateway route being deleted from the default vpc route table
+# 006 - Postmortem for internet gateway route being deleted from the default vpc's route table
 
 ## Level: Internal
 
@@ -8,7 +8,7 @@
 
 ## Summary
 
-The internet gateway route have being deleted from the default vpc route table by the `delete_all_records` method on test accounts. This has been an issue in the past for Codedeploy but something changed in AWS over the weekend (march 17th-19th) that made the failure appear on tutorials tests (Django and Prisma) blocking the whole test suite.
+The internet gateway route have being deleted from the default vpc's route table by the `delete_all_records` method on test accounts. This has been an issue in the past for Codedeploy but something changed in AWS over the weekend (march 17th-19th) that made the failure appear on tutorials tests (Django and Prisma) blocking the whole test suite.
 
 ## Timeline
 
@@ -21,11 +21,11 @@ The tutorial tests start failing recurrently despite the retry attempts. @dfelli
 
 ## Response
 
-@mtp1376 started on March 20th a PR to fix Codedeploy avoiding the routes from the default vpc route table being deleted, test were failing though, so it was not merged. On Tuesday after @dfellis' analysis and arriving at the conclusion that was the internet gateway route issue, we brought over the line @mtp1376's PR and then run a script to restore the internet gateway route on all test accounts. 
+@mtp1376 started on March 20th a PR to fix Codedeploy avoiding the routes from the default vpc's route table being deleted, test were failing though, so it was not merged. On Tuesday after @dfellis' analysis and arriving at the conclusion that was the internet gateway route issue, we brought over the line @mtp1376's PR and then run a script to restore the internet gateway route on all test accounts. 
 
 ## Cause
 
-Firstly, the `delete_all_records` function was deleting the internet gateway record for the default vpc route table. Secondly, something has changed in AWS and this becomes an issue between the ECS and ECR communication.
+Firstly, the `delete_all_records` function was deleting the internet gateway record for the default vpc's route table. Secondly, something has changed in AWS and this becomes an issue between the ECS and ECR communication.
 
 ## Prevention
 
