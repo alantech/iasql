@@ -13,6 +13,7 @@ import { cloudId } from '../../../services/cloud-id';
 import { AwsRegions } from '../../aws_account/entity';
 import { SecurityGroup } from '../../aws_security_group/entity';
 import { AvailabilityZone } from '../../aws_vpc/entity';
+import { DBCluster } from './db_cluster';
 import { ParameterGroup } from './parameter_group';
 
 /**
@@ -40,6 +41,15 @@ export class RDS {
   @Column()
   @cloudId
   dbInstanceIdentifier: string;
+
+  /**
+   * @public
+   * ARN for the generated db instance
+   */
+  @Column({
+    nullable: true,
+  })
+  arn?: string;
 
   /**
    * @public
@@ -94,6 +104,15 @@ export class RDS {
    */
   @Column()
   engine: string;
+
+  /**
+   * @public
+   * The version number of the database engine to use.
+   */
+  @Column({
+    nullable: true,
+  })
+  engineVersion?: string;
 
   /**
    * @public
@@ -206,6 +225,28 @@ export class RDS {
     },
   ])
   parameterGroup?: ParameterGroup;
+
+  /**
+   * @public
+   * DB cluster associated to the DB instance
+   */
+  @ManyToOne(() => DBCluster, {
+    eager: true,
+    nullable: true,
+    onDelete: 'CASCADE',
+  })
+  dbCluster?: DBCluster;
+
+  /**
+   * @public
+   * Complex type to provide identifier tags for the volume
+   * @see https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-rds/interfaces/tag.html
+   */
+  @Column({
+    type: 'json',
+    nullable: true,
+  })
+  tags?: { [key: string]: string };
 
   /**
    * @public

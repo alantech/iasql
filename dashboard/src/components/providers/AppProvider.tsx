@@ -121,28 +121,17 @@ const initializingQueries = `
   from iasql_tables as t;
 `;
 
-const gettingStarted = `-- Welcome to IaSQL!
+const gettingStarted = `-- Welcome to IaSQL! Steps to get started:
 
--- You can write any SQL query here and run it using the "Run query" button on the top
+-- 1. An IaSQL modules roughly maps to a cloud service. Install a module by clicking the "Install" button from the modules list on the sidebar to automatically import existing infrastructure from the cloud service.
+
+-- 2. Write any SQL query here and run it using the "Run query" button on the top
 -- right or by using the Ctrl+Enter (CMD+Return on Mac) keyboard shortcut.
 
--- Open as many tabs as you want and run queries on each of them.
+-- The sidebar's "Schema" tab shows tables and columns of the installed modules. Clicking the help icon will take directly to the documentation of each module. The table icon will also show up beside any table with data and it can be used to do a quick select query.
 
--- You can start by installing a module by clicking the "Install" button from the modules list on the sidebar.
-
--- Going to the sidebar's "Schema" tab you can see the tables and columns of the installed modules. There you
--- can check the documentation of each module. You can also do a quick select query on any table with data.
-
--- This editor can autocomplete your query's table and column names based on the installed modules.
-
--- If you want to see all the currently available IaSQL functions you can execute the following query:
--- SELECT * FROM iasql_help()
-
--- To disconnect your database, click "Disconnect" on the top right. None of the cloud resources in the 
--- account will be deleted.
-
--- If you have any questions, you can always check the documentation at https://docs.iasql.com or contact us via
--- Discord!
+-- Open as many tabs as you want in the top right corner and run queries on each of them.
+-- If you have any questions, use the navbar to check the documentation or contact us via Discord!
 
 -- Happy coding :)
 `;

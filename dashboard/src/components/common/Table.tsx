@@ -26,7 +26,12 @@ export default function Table({ data }: { data: { [key: string]: any }[] }) {
             <tr key={i}>
               {Object.values(row).map((cell, j) => {
                 return (
-                  <td key={j} className='px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:bg-gray-800'>
+                  <td
+                    key={j}
+                    className={`px-6 py-4 text-sm text-gray-500 dark:bg-gray-800 ${
+                      typeof cell === 'string' ? 'whitespace-pre-line' : 'whitespace-nowrap'
+                    }`}
+                  >
                     <>
                       {typeof cell === 'object' && JSON.stringify(cell)}
                       {typeof cell === 'boolean' && <input type='checkbox' disabled={true} checked={cell} />}

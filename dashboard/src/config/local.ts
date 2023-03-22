@@ -17,6 +17,9 @@ const local: ConfigInterface = {
     integrations: [new posthog.SentryIntegration(posthog, 'iasql', 6544238)],
     environment: 'local',
   },
+  logdna: {
+    key: 'b98181227b606d8ee6c5674b5bb948e7',
+  },
 };
 
 export default local;
