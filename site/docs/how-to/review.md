@@ -25,7 +25,7 @@ UPDATE log_group SET log_group_arn = 'test' WHERE log_group_name = 'quickstart-l
 SELECT * FROM iasql_create_review('My review')
 ```
 
-The raw markdown content returned will look as follows:
+The output of `iasql_create_review` is markdown-formatted text and will look as follows:
 
 ```
 # My infra change
