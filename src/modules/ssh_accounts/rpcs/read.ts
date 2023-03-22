@@ -1,7 +1,13 @@
 import { Readable } from 'stream';
 
 import { SshAccounts } from '..';
-import { Context, RpcBase, RpcResponseObject } from '../../interfaces';
+import {
+  Context,
+  PostTransactionCheck,
+  PreTransactionCheck,
+  RpcBase,
+  RpcResponseObject,
+} from '../../interfaces';
 
 // From https://stackoverflow.com/questions/10623798/how-do-i-read-the-contents-of-a-node-js-stream-into-a-string-variable#49428486
 function streamToString(stream: Readable): Promise<string> {
@@ -18,6 +24,10 @@ export class SshReadFileText extends RpcBase {
    * @internal
    */
   module: SshAccounts;
+  /** @internal */
+  preTransactionCheck = PreTransactionCheck.NO_CHECK;
+  /** @internal */
+  postTransactionCheck = PostTransactionCheck.NO_CHECK;
   /**
    * @internal
    */

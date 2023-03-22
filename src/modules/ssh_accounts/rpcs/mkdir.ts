@@ -1,11 +1,22 @@
 import { SshAccounts } from '..';
-import { Context, RpcBase, RpcInput, RpcResponseObject } from '../../interfaces';
+import {
+  Context,
+  RpcBase,
+  RpcInput,
+  RpcResponseObject,
+  PreTransactionCheck,
+  PostTransactionCheck,
+} from '../../interfaces';
 
 export class SshMkdir extends RpcBase {
   /**
    * @internal
    */
   module: SshAccounts;
+  /** @internal */
+  preTransactionCheck = PreTransactionCheck.NO_CHECK;
+  /** @internal */
+  postTransactionCheck = PostTransactionCheck.NO_CHECK;
   /**
    * @internal
    */

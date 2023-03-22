@@ -1,11 +1,22 @@
 import { SshAccounts } from '..';
-import { Context, RpcBase, RpcInput, RpcResponseObject } from '../../interfaces';
+import {
+  Context,
+  PostTransactionCheck,
+  PreTransactionCheck,
+  RpcBase,
+  RpcInput,
+  RpcResponseObject,
+} from '../../interfaces';
 
 export class SshLs extends RpcBase {
   /**
    * @internal
    */
   module: SshAccounts;
+  /** @internal */
+  preTransactionCheck = PreTransactionCheck.NO_CHECK;
+  /** @internal */
+  postTransactionCheck = PostTransactionCheck.NO_CHECK;
   /**
    * @internal
    */
