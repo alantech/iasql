@@ -372,12 +372,8 @@ export class RdsMapper extends MapperBase<RDS> {
         }
 
         // update rds tags
-        console.log('i want to update');
-        console.log(e);
         if (e.arn && !eqTags(e.tags, cloudRecord.tags)) {
-          console.log('here');
           await updateTags(client.rdsClient, e.arn, e.tags);
-          console.log('after update');
           isUpdate = true;
         }
 

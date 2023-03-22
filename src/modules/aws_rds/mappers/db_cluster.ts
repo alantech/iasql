@@ -39,6 +39,7 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
     Object.is(a.subnetGroup?.name, b.subnetGroup?.name) &&
     Object.is(a.vpcSecurityGroups.length, b.vpcSecurityGroups.length) &&
     eqTags(a.tags, b.tags) &&
+    Object.is(a.arn, b.arn) &&
     (a.vpcSecurityGroups?.every(
       asg => !!b.vpcSecurityGroups.find(bsg => Object.is(asg.groupId, bsg.groupId)),
     ) ??
@@ -135,11 +136,7 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
       {
         client,
         // all in seconds
-<<<<<<< HEAD
         maxWaitTime: 60 * 30,
-=======
-        maxWaitTime: 30 * 60,
->>>>>>> 1c36febea (add arn on entities to be able to update tags)
         minDelay: 1,
         maxDelay: 4,
       },
