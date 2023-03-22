@@ -7,7 +7,7 @@ slug: '/review'
 
 Engineering teams move from using cloud UIs to IaC because cloud infrastructure changes can lead to outages more often than business logic changes. As a result, it is a DevOps best practice to code review infrastructure changes using IaC tools, showing the `preview` of the resulting change in pull requests to raise the quality bar and reduce the possibility of mistakes.
 
-The standard practice for code review of database changes is to write the changes via a [migration system](https://en.wikipedia.org/wiki/Schema_migration) that are executed after approval. We do not recommend that cloud infrastructure changes done with IaSQL follow this pattern for two reason: first, these migration tools often do not support data changes, only schema changes, and the IaSQL schema is defined by [modules](../concepts/module.md) that can be upgraded and changed over time, and second, you lose all of the feedback the database can give you on whether or not your SQL statements are valid and what impact they will have on your cloud infrastructure.
+The standard practice for code review of database changes is to write the changes via a [migration system](https://en.wikipedia.org/wiki/Schema_migration) such that the changes are executed after approval. We do not recommend that cloud infrastructure changes done with IaSQL follow this pattern for two reasons: first, these migration tools often do not support data changes, only schema changes, and the IaSQL schema is defined by [modules](../concepts/module.md) that can be upgraded and changed over time, and second, you lose all of the feedback the database can give you on whether or not your SQL statements are valid and what impact they will have on your cloud infrastructure.
 
 Instead, we recommend complex, or delicate, infrastructure changes should be treated as transactions in IaSQL. [IaSQL transactions](../concepts/transaction.md) are a bit different from normal DB transactions in that they lock all database changes from propagating into the cloud but do not lock the changes from being viewed by other database connections, making them "multiuser", so others can inspect the changes, and can preview what they would do with the [`iasql_preview`](../modules/builtin/iasql_functions.md) function, similar to Pulumi’s `preview` or Terraform’s `plan`.
 
@@ -18,12 +18,16 @@ But, reviewable artifacts are still very useful to summarize and explain the int
 - preserves the ability to `iasql_preview` changes in development and get the type-safety feedback from the dashboard editor
 
 ```sql title="Create review for an infrastructure change within a transaction"
+-- First, we open a new transaction with `iasql_begin`
 SELECT * FROM iasql_begin();
-
-UPDATE log_group SET log_group_arn = 'test' WHERE log_group_name = 'quickstart-log-group';
-
-SELECT * FROM iasql_create_review('My review')
-```
+-- Then we make the infrastructure changes we need.
+-- If a SQL statement is invalid, Postgres will prevent it
+-- from running and it won't end up in the transaction, so
+-- we can use it as our IDE.
+UPDATE log_group SET log_group_name = 'test' WHERE id = 4;
+-- We create the review artifact with `iasql_create_review`, providing
+-- a title and a description of why we're doing this.
+SELECT * FROM iasql_create_review('My infra change', 'Why this change is necessary')
 
 The output of `iasql_create_review` is markdown-formatted text and will look as follows:
 
@@ -56,15 +60,13 @@ The above string should be pasted into a markdown file within a version-controll
 SELECT * FROM iasql_commit();
 ```
 
-Below is the visualization in markdown of the above string:
-
+Finally, find below the visualization in markdown of the above string:
 
 ----
 
+# My infra change
 
-# Change log group name
-
-Review description
+Why this infra change is necessary
 
 ## IaSQL Preview
 
