@@ -16,7 +16,7 @@ We set forth the best convention to review infrastructure changes within transac
 ```sql title="Create review for an infrastructure change within a transaction"
 SELECT * FROM iasql_begin();
 
-UPDATE log_group SET log_group_name = 'test' WHERE id = 4;
+UPDATE log_group SET log_group_arn = 'test' WHERE log_group_name = 'quickstart-log-group';
 
 SELECT * FROM iasql_create_review('My review' )
 ```
