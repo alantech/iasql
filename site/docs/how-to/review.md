@@ -24,9 +24,9 @@ SELECT * FROM iasql_create_review('My review')
 The raw markdown content returned will look as follows:
 
 ```
-# My review
+# My infra change
 
-Review description
+Why this change is necessary
 
 ## IaSQL Preview
 
