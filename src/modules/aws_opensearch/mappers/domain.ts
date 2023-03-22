@@ -1,11 +1,14 @@
 import {
   AutoTuneDesiredState,
   CreateDomainCommandInput,
+  DescribeDomainsCommandInput,
   DomainStatus as AwsDomain,
+  OpenSearch,
   OpenSearchPartitionInstanceType,
   OpenSearchWarmPartitionInstanceType,
 } from '@aws-sdk/client-opensearch';
 import { DomainInfo } from '@aws-sdk/client-opensearch/dist-types/models/models_0';
+import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 
 import { AWS } from '../../../services/aws_macros';
 import { Policy } from '../../../services/canonical-iam-policy';
@@ -21,8 +24,29 @@ export class DomainMapper extends MapperBase<Domain> {
   entity = Domain;
   equals = (a: Domain, b: Domain) => true;
 
+  private async waitForCreation(client: OpenSearch, domainName: string) {
+    await createWaiter<OpenSearch, DescribeDomainsCommandInput>(
+      {
+        client,
+        // all in seconds
+        maxWaitTime: 300,
+        minDelay: 1,
+        maxDelay: 4,
+      },
+      { DomainNames: [domainName] },
+      async (cl, cmd) => {
+        const data = await cl.describeDomains(cmd);
+        if (!!data.DomainStatusList?.[0].Endpoint && data.DomainStatusList?.[0].Processing === false)
+          return { state: WaiterState.SUCCESS };
+        else return { state: WaiterState.RETRY };
+      },
+    );
+  }
+
   private async domainMapper(domain: AwsDomain, region: string, ctx: Context) {
     const out: Domain = new Domain();
+    if (domain.Deleted) return undefined;
+
     out.domainName = domain.DomainName!;
     if (domain.DomainEndpointOptions?.CustomEndpoint) {
       const certificateId = awsAcmModule.certificate.generateId({
@@ -83,7 +107,7 @@ export class DomainMapper extends MapperBase<Domain> {
             InstanceType: e.instanceType,
             InstanceCount: e.instanceCount,
             DedicatedMasterEnabled: !!e.dedicatedMasterCount,
-            ZoneAwarenessEnabled: !!e.availabilityZoneCount,
+            ZoneAwarenessEnabled: e.availabilityZoneCount > 1,
             DedicatedMasterType: e.dedicatedMasterType,
             DedicatedMasterCount: e.dedicatedMasterCount,
             WarmEnabled: !!e.warmInstanceCount,
@@ -100,7 +124,10 @@ export class DomainMapper extends MapperBase<Domain> {
           EncryptionAtRestOptions: { Enabled: true },
           NodeToNodeEncryptionOptions: { Enabled: true },
           AutoTuneOptions: {
-            DesiredState: AutoTuneDesiredState.ENABLED,
+            DesiredState:
+              e.instanceType.includes('t2.') || e.instanceType.includes('t3.')
+                ? AutoTuneDesiredState.DISABLED
+                : AutoTuneDesiredState.ENABLED,
             UseOffPeakWindow: true,
           },
           OffPeakWindowOptions: {
@@ -109,7 +136,7 @@ export class DomainMapper extends MapperBase<Domain> {
           },
           SoftwareUpdateOptions: { AutoSoftwareUpdateEnabled: true },
         };
-        if (!!e.availabilityZoneCount)
+        if (e.availabilityZoneCount > 1)
           input.ClusterConfig!.ZoneAwarenessConfig = {
             AvailabilityZoneCount: e.availabilityZoneCount,
           };
@@ -131,6 +158,10 @@ export class DomainMapper extends MapperBase<Domain> {
           (e.fineGrainedAccessControlMasterUsername && e.fineGrainedAccessControlMasterPassword) ||
           e.fineGrainedAccessControlUserArn
         ) {
+          input.DomainEndpointOptions = input.DomainEndpointOptions ?? {};
+          input.DomainEndpointOptions.EnforceHTTPS = true;
+          input.DomainEndpointOptions.TLSSecurityPolicy = 'Policy-Min-TLS-1-0-2019-07';
+
           input.AdvancedSecurityOptions = {
             Enabled: true,
             InternalUserDatabaseEnabled: !e.fineGrainedAccessControlUserArn,
@@ -147,6 +178,8 @@ export class DomainMapper extends MapperBase<Domain> {
         }
         // TODO: Cognito
         await client.opensearchClient.createDomain(input);
+        // wait for it to become available
+        await this.waitForCreation(client.opensearchClient, e.domainName);
       }
     },
     read: async (ctx: Context, id?: string) => {
@@ -176,7 +209,8 @@ export class DomainMapper extends MapperBase<Domain> {
             (await client.opensearchClient.describeDomains({ DomainNames: domainNames })).DomainStatusList ??
             [];
           for (const rawDomain of rawDomains) {
-            out.push(await this.domainMapper(rawDomain, region, ctx));
+            const domain = await this.domainMapper(rawDomain, region, ctx);
+            if (!!domain) out.push(domain);
           }
         }),
       );
@@ -186,8 +220,13 @@ export class DomainMapper extends MapperBase<Domain> {
     update: async (es: Domain[], ctx: Context) => {
       return Promise.resolve(undefined);
     },
-    delete: async (e: Domain[], ctx: Context) => {
-      return Promise.resolve(undefined);
+    delete: async (es: Domain[], ctx: Context) => {
+      for (const e of es) {
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
+        await client.opensearchClient.deleteDomain({
+          DomainName: e.domainName,
+        });
+      }
     },
   });
 
