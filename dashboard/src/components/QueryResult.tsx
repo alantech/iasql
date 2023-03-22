@@ -50,6 +50,7 @@ export default function QueryResult() {
 
       {!!queryRes &&
         queryRes instanceof Array &&
+        !!queryRes[0] &&
         !('affected_records' in queryRes[0]) &&
         (queryRes[0]?.result ?? []) instanceof Array &&
         queryRes.filter((r: any) => (r.result ?? []).length > 0).length === 0 && (
