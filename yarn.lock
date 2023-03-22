@@ -981,50 +981,50 @@
     fast-xml-parser "4.1.2"
     tslib "^2.3.1"
 
-"@aws-sdk/client-route-53@^3.290.0":
-  version "3.290.0"
-  resolved "https://registry.yarnpkg.com/@aws-sdk/client-route-53/-/client-route-53-3.290.0.tgz#5259f35e74af1d20f91c905aa726421694e07314"
-  integrity sha512-N8VbikzLVjA60+v7Vyq5H2ikBj1DJXO9MO0vLK/WZBS9k2EcOUNYlDl3U8G1vnjanGZ+NY0/IyfqT4ao5uQHXA==
+"@aws-sdk/client-route-53@^3.296.0":
+  version "3.296.0"
+  resolved "https://registry.yarnpkg.com/@aws-sdk/client-route-53/-/client-route-53-3.296.0.tgz#5da55780f1245c16543338e1a52bd56fdc362415"
+  integrity sha512-0hipWnbCllHLlevHZE3mx534ZTz7/3+rwdxMetFdGAQTW6MaZO8qTSMCYAHjDgEHEdLxZhDPSfbdk/tJDPBDqQ==
   dependencies:
     "@aws-crypto/sha256-browser" "3.0.0"
     "@aws-crypto/sha256-js" "3.0.0"
-    "@aws-sdk/client-sts" "3.290.0"
-    "@aws-sdk/config-resolver" "3.290.0"
-    "@aws-sdk/credential-provider-node" "3.290.0"
-    "@aws-sdk/fetch-http-handler" "3.290.0"
-    "@aws-sdk/hash-node" "3.290.0"
-    "@aws-sdk/invalid-dependency" "3.290.0"
-    "@aws-sdk/middleware-content-length" "3.290.0"
-    "@aws-sdk/middleware-endpoint" "3.290.0"
-    "@aws-sdk/middleware-host-header" "3.290.0"
-    "@aws-sdk/middleware-logger" "3.290.0"
-    "@aws-sdk/middleware-recursion-detection" "3.290.0"
-    "@aws-sdk/middleware-retry" "3.290.0"
-    "@aws-sdk/middleware-sdk-route53" "3.290.0"
-    "@aws-sdk/middleware-serde" "3.290.0"
-    "@aws-sdk/middleware-signing" "3.290.0"
-    "@aws-sdk/middleware-stack" "3.290.0"
-    "@aws-sdk/middleware-user-agent" "3.290.0"
-    "@aws-sdk/node-config-provider" "3.290.0"
-    "@aws-sdk/node-http-handler" "3.290.0"
-    "@aws-sdk/protocol-http" "3.290.0"
-    "@aws-sdk/smithy-client" "3.290.0"
-    "@aws-sdk/types" "3.290.0"
-    "@aws-sdk/url-parser" "3.290.0"
-    "@aws-sdk/util-base64" "3.208.0"
-    "@aws-sdk/util-body-length-browser" "3.188.0"
-    "@aws-sdk/util-body-length-node" "3.208.0"
-    "@aws-sdk/util-defaults-mode-browser" "3.290.0"
-    "@aws-sdk/util-defaults-mode-node" "3.290.0"
-    "@aws-sdk/util-endpoints" "3.290.0"
-    "@aws-sdk/util-retry" "3.290.0"
-    "@aws-sdk/util-user-agent-browser" "3.290.0"
-    "@aws-sdk/util-user-agent-node" "3.290.0"
-    "@aws-sdk/util-utf8" "3.254.0"
-    "@aws-sdk/util-waiter" "3.290.0"
-    "@aws-sdk/xml-builder" "3.201.0"
+    "@aws-sdk/client-sts" "3.296.0"
+    "@aws-sdk/config-resolver" "3.296.0"
+    "@aws-sdk/credential-provider-node" "3.296.0"
+    "@aws-sdk/fetch-http-handler" "3.296.0"
+    "@aws-sdk/hash-node" "3.296.0"
+    "@aws-sdk/invalid-dependency" "3.296.0"
+    "@aws-sdk/middleware-content-length" "3.296.0"
+    "@aws-sdk/middleware-endpoint" "3.296.0"
+    "@aws-sdk/middleware-host-header" "3.296.0"
+    "@aws-sdk/middleware-logger" "3.296.0"
+    "@aws-sdk/middleware-recursion-detection" "3.296.0"
+    "@aws-sdk/middleware-retry" "3.296.0"
+    "@aws-sdk/middleware-sdk-route53" "3.296.0"
+    "@aws-sdk/middleware-serde" "3.296.0"
+    "@aws-sdk/middleware-signing" "3.296.0"
+    "@aws-sdk/middleware-stack" "3.296.0"
+    "@aws-sdk/middleware-user-agent" "3.296.0"
+    "@aws-sdk/node-config-provider" "3.296.0"
+    "@aws-sdk/node-http-handler" "3.296.0"
+    "@aws-sdk/protocol-http" "3.296.0"
+    "@aws-sdk/smithy-client" "3.296.0"
+    "@aws-sdk/types" "3.296.0"
+    "@aws-sdk/url-parser" "3.296.0"
+    "@aws-sdk/util-base64" "3.295.0"
+    "@aws-sdk/util-body-length-browser" "3.295.0"
+    "@aws-sdk/util-body-length-node" "3.295.0"
+    "@aws-sdk/util-defaults-mode-browser" "3.296.0"
+    "@aws-sdk/util-defaults-mode-node" "3.296.0"
+    "@aws-sdk/util-endpoints" "3.296.0"
+    "@aws-sdk/util-retry" "3.296.0"
+    "@aws-sdk/util-user-agent-browser" "3.296.0"
+    "@aws-sdk/util-user-agent-node" "3.296.0"
+    "@aws-sdk/util-utf8" "3.295.0"
+    "@aws-sdk/util-waiter" "3.296.0"
+    "@aws-sdk/xml-builder" "3.295.0"
     fast-xml-parser "4.1.2"
-    tslib "^2.3.1"
+    tslib "^2.5.0"
 
 "@aws-sdk/client-s3@^3.290.0":
   version "3.290.0"
@@ -2643,13 +2643,13 @@
     "@aws-sdk/util-format-url" "3.290.0"
     tslib "^2.3.1"
 
-"@aws-sdk/middleware-sdk-route53@3.290.0":
-  version "3.290.0"
-  resolved "https://registry.yarnpkg.com/@aws-sdk/middleware-sdk-route53/-/middleware-sdk-route53-3.290.0.tgz#26b495587f9dc89d61685498690a182e01de290b"
-  integrity sha512-6flUTs93yoLY7l888kjwgYsGU8HXWfjGgVU+V+R6GhlRMe15Zrxq7ez6vfiYlrs/h63Nluo2XcDJT/Y1pWQo/w==
+"@aws-sdk/middleware-sdk-route53@3.296.0":
+  version "3.296.0"
+  resolved "https://registry.yarnpkg.com/@aws-sdk/middleware-sdk-route53/-/middleware-sdk-route53-3.296.0.tgz#35f52a04759db78de1590644c59fa44f16495c0d"
+  integrity sha512-zMIMXpcS9CuCyttQoinws7p4dKNL18C6grDrjudbuZ6rLAX6nOzz6/zZnJTuyCHGHh8nXzNS2KvPRMrqac77Jg==
   dependencies:
-    "@aws-sdk/types" "3.290.0"
-    tslib "^2.3.1"
+    "@aws-sdk/types" "3.296.0"
+    tslib "^2.5.0"
 
 "@aws-sdk/middleware-sdk-s3@3.290.0":
   version "3.290.0"
@@ -3872,6 +3872,13 @@
   integrity sha512-brRdB1wwMgjWEnOQsv7zSUhIQuh7DEicrfslAqHop4S4FtSI3GQAShpQqgOpMTNFYcpaWKmE/Y1MJmNY7xLCnw==
   dependencies:
     tslib "^2.3.1"
+
+"@aws-sdk/xml-builder@3.295.0":
+  version "3.295.0"
+  resolved "https://registry.yarnpkg.com/@aws-sdk/xml-builder/-/xml-builder-3.295.0.tgz#bd649bdc9571148e7852c2bbbf3d2ce0c35c7bf9"
+  integrity sha512-7VX3Due7Ip73yfYErFDHZvhgBohC4IyMTfW49DI4C/LFKFCcAoB888MdevUkB87GoiNaRLeT3ZMZ86IWlSEaow==
+  dependencies:
+    tslib "^2.5.0"
 
 "@babel/code-frame@^7.0.0", "@babel/code-frame@^7.12.13", "@babel/code-frame@^7.16.7", "@babel/code-frame@^7.18.6":
   version "7.18.6"
