@@ -143,8 +143,8 @@ describe('DB Cluster Integration Testing', () => {
     'creates an RDS cluster',
     query(
       `
-    INSERT INTO db_cluster (db_cluster_identifier, engine, engine_version, allocated_storage, iops, db_cluster_instance_class, master_username, master_user_password, subnet_group_id) VALUES
-      ('${prefix}cluster-test', 'mysql', '${engineVersion}', 100, 1000, 'db.m5d.xlarge', 'admin', 'admin123456', (select id FROM db_subnet_group WHERE name = '${prefix}cluster-test'));
+    INSERT INTO db_cluster (db_cluster_identifier, engine, engine_version, allocated_storage, iops, db_cluster_instance_class, master_username, master_user_password, subnet_group_id, tags) VALUES
+      ('${prefix}cluster-test', 'mysql', '${engineVersion}', 100, 1000, 'db.m5d.xlarge', 'admin', 'admin123456', (select id FROM db_subnet_group WHERE name = '${prefix}cluster-test'), '{"name":"${prefix}-1"}');
   `,
       undefined,
       true,
@@ -160,7 +160,7 @@ describe('DB Cluster Integration Testing', () => {
       `
     SELECT *
     FROM db_cluster
-    WHERE db_cluster_identifier = '${prefix}cluster-test';
+    WHERE tags->>'name' = '${prefix}-1';
   `,
       (res: any[]) => expect(res.length).toBe(1),
     ),
@@ -172,7 +172,7 @@ describe('DB Cluster Integration Testing', () => {
     'changes the backup retention period',
     query(
       `
-    UPDATE db_cluster SET backup_retention_period=10 WHERE db_cluster_identifier = '${prefix}cluster-test';
+    UPDATE db_cluster SET backup_retention_period=10 WHERE tags->>'name' = '${prefix}-1';
   `,
       undefined,
       true,
@@ -188,7 +188,7 @@ describe('DB Cluster Integration Testing', () => {
       `
     SELECT *
     FROM db_cluster
-    WHERE db_cluster_identifier = '${prefix}cluster-test' AND backup_retention_period=10;
+    WHERE tags->>'name' = '${prefix}-1' AND backup_retention_period=10;
   `,
       (res: any[]) => expect(res.length).toBe(1),
     ),
@@ -225,11 +225,27 @@ describe('DB Cluster Integration Testing', () => {
   it('starts a transaction', begin());
 
   itDocs(
+    'updates db_cluster tags',
+    query(
+      `
+    UPDATE db_cluster SET tags = '{"name":"${prefix}-2"}' WHERE tags ->> 'name' = '${prefix}-1';
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it('applies the change', commit());
+
+  it('starts a transaction', begin());
+
+  itDocs(
     'removes the RDS cluster',
     query(
       `
     DELETE FROM db_cluster
-    WHERE db_cluster_identifier = '${prefix}cluster-test';
+    WHERE tags->>'name' = '${prefix}-2';
   `,
       undefined,
       true,
@@ -245,7 +261,7 @@ describe('DB Cluster Integration Testing', () => {
       `
     SELECT *
     FROM db_cluster
-    WHERE db_cluster_identifier = '${prefix}cluster-test';
+    WHERE tags->>'name' = '${prefix}-2';
   `,
       (res: any[]) => expect(res.length).toBe(0),
     ),

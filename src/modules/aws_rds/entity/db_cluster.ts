@@ -54,6 +54,15 @@ export class DBCluster {
 
   /**
    * @public
+   * ARN for the generated db cluster
+   */
+  @Column({
+    nullable: true,
+  })
+  arn?: string;
+
+  /**
+   * @public
    * The amount of storage in gibibytes (GiB) to allocate to each DB instance in the Multi-AZ DB cluster.
    * @see https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Storage.html#USER_PIOPS
    */
@@ -215,6 +224,17 @@ export class DBCluster {
     name: 'db_cluster_security_groups',
   })
   vpcSecurityGroups: SecurityGroup[];
+
+  /**
+   * @public
+   * Complex type to provide identifier tags
+   * @see https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-rds/interfaces/tag.html
+   */
+  @Column({
+    type: 'json',
+    nullable: true,
+  })
+  tags?: { [key: string]: string };
 
   /**
    * @public

@@ -8,14 +8,16 @@ import {
   DeleteDBClusterMessage,
   waitUntilDBClusterDeleted,
   DescribeDBClustersCommandInput,
+  Tag as AWSTag,
 } from '@aws-sdk/client-rds';
 import { createWaiter, WaiterOptions, WaiterState } from '@aws-sdk/util-waiter';
 
 import { AwsRdsModule } from '..';
-import { AWS, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
+import { AWS, crudBuilderFormat, eqTags, paginateBuilder } from '../../../services/aws_macros';
 import { awsSecurityGroupModule } from '../../aws_security_group';
 import { Context, Crud, MapperBase } from '../../interfaces';
 import { DBCluster, dbClusterEngineEnum } from '../entity/db_cluster';
+import { updateTags } from './tags';
 
 export class DBClusterMapper extends MapperBase<DBCluster> {
   module: AwsRdsModule;
@@ -25,6 +27,7 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
     Object.is(a.iops, b.iops) &&
     Object.is(a.backupRetentionPeriod, b.backupRetentionPeriod) &&
     Object.is(a.dbClusterInstanceClass, b.dbClusterInstanceClass) &&
+    Object.is(a.arn, b.arn) &&
     Object.is(a.deletionProtection, b.deletionProtection) &&
     Object.is(a.engine, b.engine) &&
     Object.is(a.engineVersion, b.engineVersion) &&
@@ -35,6 +38,8 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
     Object.is(a.storageEncrypted, b.storageEncrypted) &&
     Object.is(a.subnetGroup?.name, b.subnetGroup?.name) &&
     Object.is(a.vpcSecurityGroups.length, b.vpcSecurityGroups.length) &&
+    eqTags(a.tags, b.tags) &&
+    Object.is(a.arn, b.arn) &&
     (a.vpcSecurityGroups?.every(
       asg => !!b.vpcSecurityGroups.find(bsg => Object.is(asg.groupId, bsg.groupId)),
     ) ??
@@ -47,6 +52,7 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
     out.allocatedStorage = cluster.AllocatedStorage;
     out.backupRetentionPeriod = cluster.BackupRetentionPeriod;
     out.dbClusterIdentifier = cluster.DBClusterIdentifier;
+    out.arn = cluster.DBClusterArn;
     out.dbClusterInstanceClass = cluster.DBClusterInstanceClass;
     out.deletionProtection = cluster.DeletionProtection ?? false;
     out.engine = cluster.Engine as dbClusterEngineEnum;
@@ -91,6 +97,14 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
       } catch (e) {
         // Ignore
       }
+    }
+
+    if (cluster.TagList?.length) {
+      const tags: { [key: string]: string } = {};
+      cluster.TagList.filter((t: any) => !!t.Key && !!t.Value).forEach((t: any) => {
+        tags[t.Key as string] = t.Value as string;
+      });
+      out.tags = tags;
     }
 
     return out;
@@ -199,6 +213,17 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
           VpcSecurityGroupIds: securityGroupIds,
         };
         if (e.subnetGroup) clusterParams.DBSubnetGroupName = e.subnetGroup.name;
+
+        if (e.tags && Object.keys(e.tags).length) {
+          const tags: AWSTag[] = Object.keys(e.tags).map((k: string) => {
+            return {
+              Key: k,
+              Value: e.tags![k],
+            };
+          });
+          clusterParams.Tags = tags;
+        }
+
         const result = await this.createDBCluster(client.rdsClient, clusterParams);
         if (result) {
           // requery to get modified fields
@@ -263,12 +288,20 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
           !Object.is(e.publiclyAccessible, cloudRecord.publiclyAccessible) ||
           !Object.is(e.storageEncrypted, cloudRecord.storageEncrypted) ||
           !Object.is(e.subnetGroup?.name, cloudRecord.subnetGroup?.name) ||
-          !Object.is(e.port, cloudRecord.port)
+          !Object.is(e.port, cloudRecord.port) ||
+          !Object.is(e.arn, cloudRecord.arn)
         ) {
           cloudRecord.id = e.id;
           await this.module.dbCluster.db.update(cloudRecord, ctx);
           out.push(cloudRecord);
           continue;
+        }
+
+        let isUpdate = false;
+
+        // update db cluster tags
+        if (e.arn && !eqTags(e.tags, cloudRecord.tags)) {
+          await updateTags(client.rdsClient, e.arn, e.tags);
         }
 
         // update path
@@ -304,25 +337,26 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
         // If a password value has been inserted, we update it.
         if (e.masterUserPassword) clusterParams.MasterUserPassword = e.masterUserPassword;
 
-        const result = await this.updateDBCluster(client.rdsClient, clusterParams);
-        if (result) {
-          // delete cache to force requery
-          delete ctx.memo.cloud.DBCluster[this.entityId(e)];
-          const newObject = await this.getDBCluster(client.rdsClient, e.dbClusterIdentifier);
-          if (newObject) {
-            const newEntity = await this.dbClusterMapper(newObject, ctx, e.region);
-            if (!newEntity) continue;
-            // We attach the original object's ID to this new one, indicating the exact record it is
-            // replacing in the database.
-            newEntity.id = e.id;
-            // Set password as null to avoid infinite loop trying to update the password.
-            // Reminder: Password need to be null since when we read RDS instances from AWS this
-            // property is not retrieved
-            newEntity.masterUserPassword = undefined;
-            // Save the record back into the database to get the new fields updated
-            await this.module.dbCluster.db.update(newEntity, ctx);
-            out.push(newEntity);
-          }
+        if (Object.keys(clusterParams).length > 2) isUpdate = true; // 2 parameters are added by default, another one means update
+
+        if (isUpdate) await this.updateDBCluster(client.rdsClient, clusterParams);
+        // delete cache to force requery
+        delete ctx.memo.cloud.DBCluster[this.entityId(e)];
+
+        const newObject = await this.getDBCluster(client.rdsClient, e.dbClusterIdentifier);
+        if (newObject) {
+          const newEntity = await this.dbClusterMapper(newObject, ctx, e.region);
+          if (!newEntity) continue;
+          // We attach the original object's ID to this new one, indicating the exact record it is
+          // replacing in the database.
+          newEntity.id = e.id;
+          // Set password as null to avoid infinite loop trying to update the password.
+          // Reminder: Password need to be null since when we read RDS instances from AWS this
+          // property is not retrieved
+          newEntity.masterUserPassword = undefined;
+          // Save the record back into the database to get the new fields updated
+          await this.module.dbCluster.db.update(newEntity, ctx);
+          out.push(newEntity);
         }
       }
       return out;
