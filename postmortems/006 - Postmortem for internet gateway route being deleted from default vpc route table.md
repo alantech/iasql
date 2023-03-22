@@ -19,6 +19,14 @@ The internet gateway route have being deleted from the default vpc's route table
 
 The tutorial tests start failing recurrently despite the retry attempts. @dfellis decided to dig in and realized it was a network issue between ECS and ECR. Since we were already trying to handle the issue for Codedeploy it makes sense to relate both issues. So we did and look for the network configuration for an account where the tutorials were failing and found the internet gateway route absence.
 
+While debugging, @dfellis found [this](https://repost.aws/knowledge-center/ecs-unable-to-pull-secrets) that has the following text:
+
+> The [AWS Fargate platform version 1.4.0](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/platform-linux-fargate.html#platform-version-1-4) uses the task elastic network interface to pull the image and secrets. All network traffic flows through the elastic network interface within your Amazon Virtual Private Cloud (Amazon VPC).
+
+It goes on to say that with 1.4.0 of Fargate it no longer has its own built-in link to ECR, so you need to make sure your VPC has access to the ECR repository you're using, which matches the error message in this screenshot:
+
+![screenshot of ecr access failure](https://cdn.discordapp.com/attachments/920885549668114472/1087470750698590278/Screenshot_from_2023-03-20_15-20-35.png)
+
 ## Response
 
 @mtp1376 started on March 20th a PR to fix Codedeploy avoiding the routes from the default vpc's route table being deleted, test were failing though, so it was not merged. On Tuesday after @dfellis' analysis and arriving at the conclusion that was the internet gateway route issue, we brought over the line @mtp1376's PR and then run a script to restore the internet gateway route on all test accounts. 
