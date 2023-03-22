@@ -1,12 +1,12 @@
 import { expect, test } from '@playwright/test';
 
-import { auth0, click, fill, isDisabled, isNotVisible, isVisible, press } from './helper';
+import { click, fill, isDisabled, isNotVisible, isVisible, press, goTo } from './helper';
 
 export default function createTests() {
   test('Query Tabs', async ({ page, browserName }) => {
     const { [`DB_ALIAS_${browserName}`]: dbAlias, [`IS_OSX_${browserName}`]: isOSx } = process.env;
 
-    await auth0(page);
+    await goTo(page);
 
     await click(page.locator('#database-selection'));
 

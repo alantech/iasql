@@ -1,12 +1,12 @@
 import { test, } from '@playwright/test';
 
-import { auth0, click, fill, } from './helper';
+import { goTo, click, fill, } from './helper';
 
 export default function createTests() {
   test('Disconnect account', async ({ page, browserName }) => {
     const { [`DB_ALIAS_${browserName}`]: dbAlias, } = process.env;
 
-    await auth0(page);
+    await goTo(page);
 
     await click(
       page.locator('#database-selection')

@@ -1,12 +1,12 @@
 import { test, } from '@playwright/test';
 
-import { auth0, click, fill, isDisabled, } from './helper';
+import { goTo, click, fill, isDisabled, } from './helper';
 
 export default function createTests() {
   test('The Button (new db)', async ({ page, }) => {
     const {AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, } = process.env;
 
-    await auth0(page, '#/button/Get%20the%20Version/SELECT%20*%20FROM%20iasql_version()');
+    await goTo(page, '#/button/Get%20the%20Version/SELECT%20*%20FROM%20iasql_version()');
   
     await click(
       page.locator(`text=Create a new Database`)
