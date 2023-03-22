@@ -25,7 +25,7 @@ The tutorial tests start failing recurrently despite the retry attempts. @dfelli
 
 ## Cause
 
-Firstly, the `delete_all_records` function was deleting the internet gateway record for the default vpc's route table. Secondly, something has changed in AWS and this becomes an issue between the ECS and ECR communication.
+Firstly, the `delete_all_records` function was deleting the internet gateway record for the default vpc's route table. Secondly, something has changed in AWS and this becomes an issue between the ECS and ECR communication, likely the change in version 1.4.0 of Fargate.
 
 ## Prevention
 
