@@ -18,7 +18,7 @@
 
 # Cloud infrastructure as data in PostgreSQL
 
-[IaSQL](https://iasql.com) is open-source software to inspect and provision cloud infrastructure via SQL by maintaining a 2-way connection between an unmodified PostgreSQL database and your AWS account. The rows in the database tables represent the infrastructure in your cloud account.
+[IaSQL](https://iasql.com) is an open-source developer tool to inspect and provision cloud infrastructure via SQL by maintaining a 2-way connection between an unmodified PostgreSQL database and your AWS account. The rows in the database tables represent the infrastructure in your cloud account.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="./site/static/img/ec2-typewriter_dark.gif">
