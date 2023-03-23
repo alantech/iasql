@@ -24,7 +24,7 @@ function handleRageClicking(setIsRageClicking: (arg0: boolean) => void) {
 }
 
 export default function App() {
-  const { config, configError, telemetry, uid, iasqlEnv } = useAppConfigContext();
+  const { config, configError, telemetry, iasqlEnv } = useAppConfigContext();
   const [isRageClicking, setIsRageClicking] = useState(false);
 
   useEffect(() => {
@@ -38,11 +38,7 @@ export default function App() {
         });
       }
     }
-    if (!config?.auth && uid) {
-      Sentry.identify(config, uid);
-      Posthog.identify(config, uid);
-    }
-  }, [telemetry, uid, config]);
+  }, [telemetry, config]);
 
   const body = (
     <AppProvider>

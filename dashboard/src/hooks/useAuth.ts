@@ -9,24 +9,28 @@ import * as Sentry from '../services/sentry';
 export function useAuth() {
   const [token, setToken] = useState(null) as unknown as [string | null, (arg0: string) => void];
   const { getAccessTokenSilently, loginWithRedirect, isAuthenticated, isLoading, user } = useAuth0();
-  const { config } = useAppConfigContext();
+  const { config, uid } = useAppConfigContext();
   useEffect(() => {
     if (!config?.auth) {
+      if (uid) {
+        Sentry.identify(config, uid);
+        Posthog.identify(config, uid);
+      }
       return setToken('noauth');
     }
-    if (!isAuthenticated && !isLoading) {
-      return void loginWithRedirect({ redirectUri: window.location.href } as any);
-    }
-    if (user && user.sub) {
+    // auth path
+    const { audience, scope } = config?.auth?.authorizationParams;
+    if (!isAuthenticated) {
+      if (!isLoading) return void loginWithRedirect({ redirectUri: window.location.href } as any);
+      if (!token)
+        getAccessTokenSilently({
+          audience,
+          scope,
+        } as any).then((accessToken: any) => setToken(accessToken));
+    } else if (user && user.sub) {
       Sentry.identify(config, user.sub, user.email);
       Posthog.identify(config, user.sub);
     }
-    const { audience, scope } = config?.auth?.authorizationParams;
-    if (isAuthenticated && !token)
-      getAccessTokenSilently({
-        audience,
-        scope,
-      } as any).then((accessToken: any) => setToken(accessToken));
   }, [isAuthenticated, user, isLoading, getAccessTokenSilently, loginWithRedirect, token, setToken, config]);
   return {
     token,
