@@ -12,7 +12,7 @@ RUN ["bash", "-c", "curl https://www.postgresql.org/media/keys/ACCC4CF8.asc | gp
 RUN ["bash", "-c", "echo 'deb http://apt.postgresql.org/pub/repos/apt/ bullseye-pgdg main' > /etc/apt/sources.list.d/postgresql.list"]
 RUN apt update
 RUN apt upgrade -y
-RUN apt install --no-install-recommends postgresql-client-14 postgresql-14 postgresql-14-cron=1.5.0 -y \
+RUN apt install --no-install-recommends postgresql-client-14 postgresql-14 postgresql-14-cron -y \
   && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Delete unnecessary cache files

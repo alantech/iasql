@@ -49,6 +49,11 @@ fi
 
 service postgresql start
 
+timeout -s TERM 360 bash -c \
+  'until pg_isready; do \
+    sleep 5;\
+  done'
+
 su - postgres -c "psql -c \"ALTER ROLE postgres WITH password '$(node ./dist/scripts/from-config.js db.password)'\""
 
 service postgresql restart
