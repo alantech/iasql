@@ -101,11 +101,11 @@ describe('OpenSearch Integration Testing', () => {
     'adds a new domain',
     query(
       `
-          INSERT INTO domain (domain_name, deployment_type, version,
+          INSERT INTO domain (domain_name, version,
                               availability_zone_count, instance_type, instance_count, ebs_options,
                               enable_fine_grained_access_control, fine_grained_access_control_master_username,
                               fine_grained_access_control_master_password, access_policy, region)
-          VALUES ('${prefix}', 'DEVELOPMENT_AND_TESTING', 'OpenSearch_2.3', 1, 'c5.large.search', 1,
+          VALUES ('${prefix}', 'OpenSearch_2.3', 1, 'c5.large.search', 1,
                   '{"Iops": 3000, "EBSEnabled": true, "Throughput": 125, "VolumeSize": 10, "VolumeType": "gp3"}', true,
                   'admin', '123456aA@',
                   '{"Version": "2012-10-17", "Statement": [{"Action": "es:*", "Effect": "Allow", "Resource": "*", "Principal": {"AWS": "*"}}]}',
