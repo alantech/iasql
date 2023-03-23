@@ -1,7 +1,6 @@
 import React from 'react';
 import Layout from '@theme/Layout';
 import ThemedImage from '@theme/ThemedImage';
-import CodeBlock from '@theme/CodeBlock';
 import useBaseUrl from '@docusaurus/useBaseUrl';
 
 function BrowserWindow(props) {
@@ -47,7 +46,7 @@ export default function Home() {
         <div className="container">
           <div className="row padding--md text--center">
             <h1 style={{width: '100%'}}>How IaSQL works</h1>
-            <p className="hero__subtitle">IaSQL is open-source software that maintains a 2-way connection between your AWS account and a PostgreSQL database. The rows in the database tables represent the infrastructure in your cloud account.</p>
+            <p className="hero__subtitle">IaSQL is an open-source developer tool that maintains a 2-way connection between your AWS account and a PostgreSQL database. The rows in the database tables represent the infrastructure in your cloud account.</p>
           </div>
           <div className="text--center">
             <ThemedImage
