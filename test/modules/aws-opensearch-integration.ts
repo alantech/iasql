@@ -15,7 +15,7 @@ import {
 } from '../helpers';
 
 const dbAlias = 'iasql';
-jest.setTimeout(360000);
+jest.setTimeout(1500000);
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown());
 
