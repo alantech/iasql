@@ -32,7 +32,7 @@ SELECT * FROM iasql_create_review('My infra change', 'Why this change is necessa
 
 The output of `iasql_create_review` is markdown-formatted text and will look as follows:
 
-```
+````
 # My infra change
 
 Why this change is necessary
@@ -42,7 +42,6 @@ Why this change is necessary
 | action | table_name | id | description |
 | --- | --- | --- | --- |
 | update | log_group | 4 | quickstart-log-group\|us-east-2 |
-```
 
 ## SQL changes
 
@@ -51,8 +50,8 @@ Why this change is necessary
 UPDATE log_group
 SET log_group_name = 'quickstart-log-group', log_group_arn = 'test', creation_time = '2023-01-25T11:17:14.045+00:00', region = (SELECT region FROM aws_regions WHERE region = 'us-east-2')
 WHERE log_group_name = 'quickstart-log-group' AND log_group_arn = 'arn:aws:logs:us-east-2:257682470237:log-group:quickstart-log-group:*' AND creation_time = '2023-01-25T11:17:14.045+00:00' AND region = (SELECT region FROM aws_regions WHERE region = 'us-east-2');
-
 ```
+````
 
 The above string should be pasted into a markdown file within a version-controlled repository of your choosing and submitted for review by the relevant team members. Once the change has been approved and merged, come back to the transaction in the SQL REPL and simply commit it.
 
