@@ -27,7 +27,8 @@ export function useAuth() {
           audience,
           scope,
         } as any).then((accessToken: any) => setToken(accessToken));
-    } else if (user && user.sub) {
+    }
+    if (user && user.sub) {
       Sentry.identify(config, user.sub, user.email);
       Posthog.identify(config, user.sub);
     }
