@@ -63,7 +63,10 @@ export default function createTests() {
 
     // Let's wait a couple of seconds to make sure the db got disconnected behind scenes
     await new Promise(r => setTimeout(r, 3000));
-
+    
+    // Lets refresh to make sure the db got disconnected
+    await goTo(page);
+    
     await click(
       page.locator('#database-selection')
     );
