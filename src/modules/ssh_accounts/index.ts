@@ -96,4 +96,10 @@ export class SshAccounts extends ModuleBase {
   }
 }
 
+/**
+ *
+ * ```testdoc
+ * modules/ssh-accounts-integration.ts#SSH Accounts Integration Testing
+ * ```
+ */
 export const sshAccounts = new SshAccounts();

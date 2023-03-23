@@ -8,6 +8,12 @@ import {
   PostTransactionCheck,
 } from '../../interfaces';
 
+/**
+ * Method for creating a directory on a remote server
+ *
+ * Returns a single record with a `status` column having the value `created` on success
+ *
+ */
 export class SshMkdir extends RpcBase {
   /**
    * @internal

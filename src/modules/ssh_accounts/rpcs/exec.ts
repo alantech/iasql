@@ -8,6 +8,12 @@ import {
   RpcResponseObject,
 } from '../../interfaces';
 
+/**
+ * Method for executing a command on a server.
+ *
+ * Returns the stdout of the process on success, and an error on failure
+ *
+ */
 export class SshExec extends RpcBase {
   /**
    * @internal

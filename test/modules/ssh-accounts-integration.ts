@@ -80,7 +80,7 @@ afterAll(async () => await execComposeDown());
 
 let username: string, password: string, privateKey: string;
 
-describe('EC2 Integration Testing', () => {
+describe('SSH Accounts Integration Testing', () => {
   it('creates a new test db', done => {
     (async () => {
       try {
@@ -196,7 +196,7 @@ describe('EC2 Integration Testing', () => {
 
   it('installs the ssh_accounts and aws_ec2_metadata modules', install(['ssh_accounts', 'aws_ec2_metadata']));
 
-  it('adds a new ssh server', done => {
+  itDocs('adds a new ssh server', (done: (e?: Error) => any) => {
     query(
       `
       INSERT INTO ssh_credentials ("name", hostname, username, private_key)
@@ -315,7 +315,7 @@ describe('EC2 Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
+  itDocs(
     'deletes the ssh server',
     query(
       `

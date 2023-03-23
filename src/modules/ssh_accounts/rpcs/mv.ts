@@ -8,6 +8,12 @@ import {
   RpcResponseObject,
 } from '../../interfaces';
 
+/**
+ * Method for moving or renaming a file or directory
+ *
+ * Returns a single record with a `status` column having the value `moved` on success
+ *
+ */
 export class SshMv extends RpcBase {
   /**
    * @internal

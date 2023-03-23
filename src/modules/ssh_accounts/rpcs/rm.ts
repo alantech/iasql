@@ -8,6 +8,12 @@ import {
   RpcResponseObject,
 } from '../../interfaces';
 
+/**
+ * Method for removing a file on a remote server
+ *
+ * Returns a single record with a `status` column having the value `deleted` on success
+ *
+ */
 export class SshRm extends RpcBase {
   /**
    * @internal

@@ -19,6 +19,19 @@ function streamToString(stream: Readable): Promise<string> {
   });
 }
 
+/**
+ * Method for reading one or more text files on a remote server
+ *
+ * After the server name is provided, all remaining columns are treated as fully-qualified
+ * file paths to read
+ *
+ * Returns the following columns:
+ *
+ * - path: The fully-qualified file path for the file in question
+ *
+ * - data: The text contents of the file in question
+ *
+ */
 export class SshReadFileText extends RpcBase {
   /**
    * @internal

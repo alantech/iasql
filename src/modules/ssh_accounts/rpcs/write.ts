@@ -8,6 +8,12 @@ import {
   RpcResponseObject,
 } from '../../interfaces';
 
+/**
+ * Method for writing a text file on a remote server
+ *
+ * Returns a single record with a `status` column having the value `written` on success
+ *
+ */
 export class SshWriteFileText extends RpcBase {
   /**
    * @internal
