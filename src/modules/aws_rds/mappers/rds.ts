@@ -432,7 +432,7 @@ export class RdsMapper extends MapperBase<RDS> {
         if (e.dbCluster) {
           // check if it exists in the db, or has been deleted due to cascade
           const dbId = this.module.dbCluster.entityId(e.dbCluster);
-          delete ctx.memo.db.dbCluster[dbId];
+          delete ctx?.memo?.db?.dbCluster?.[dbId];
           const cluster = await this.module.dbCluster.db.read(ctx, dbId);
           if (!cluster) {
             // remove instance from the memo as well to avoid sync issues
