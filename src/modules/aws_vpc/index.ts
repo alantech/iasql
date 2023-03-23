@@ -13,6 +13,7 @@ import {
   InternetGatewayMapper,
   RouteMapper,
   DhcpOptionsMapper,
+  NetworkAclMapper,
 } from './mappers';
 
 export class AwsVpcModule extends ModuleBase {
@@ -74,7 +75,7 @@ export class AwsVpcModule extends ModuleBase {
     this.endpointInterface = new EndpointInterfaceMapper(this);
     this.peeringConnection = new PeeringConnectionMapper(this);
     this.internetGateway = new InternetGatewayMapper(this);
-
+    this.networkAcl = new NetworkAclMapper(this);
     super.init();
   }
 }
@@ -86,6 +87,7 @@ export class AwsVpcModule extends ModuleBase {
  * modules/aws-vpc-endpoint-gateway-integration.ts#VPC Integration Testing#Manage Endpoint Gateways
  * modules/aws-vpc-endpoint-interface-integration.ts#VPC Endpoint interface Integration Testing#Manage Endpoint Interfaces
  * modules/aws-vpc-routetable-integration.ts#RouteTable Integration Testing#Manage Routing tables
+ * modules/aws-vpc-network-acl-integration.ts#VPC Network ACL Integration Testing#Manage Network ACLs
  * ```
  */
 export const awsVpcModule = new AwsVpcModule();

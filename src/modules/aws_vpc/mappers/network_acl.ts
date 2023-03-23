@@ -39,6 +39,7 @@ export class NetworkAclMapper extends MapperBase<NetworkAcl> {
       });
       out.tags = tags;
     }
+    out.networkAclId = eg.NetworkAclId;
     out.region = region;
     return out;
   }
