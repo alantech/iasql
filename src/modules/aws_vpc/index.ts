@@ -53,6 +53,9 @@ export class AwsVpcModule extends ModuleBase {
   internetGateway: InternetGatewayMapper;
 
   /** @internal */
+  networkAcl: NetworkAclMapper;
+
+  /** @internal */
   route: RouteMapper;
   constructor() {
     super();
