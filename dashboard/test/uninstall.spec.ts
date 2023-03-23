@@ -1,12 +1,12 @@
 import { test, } from '@playwright/test';
 
-import { auth0, click, } from './helper';
+import { goTo, click, } from './helper';
 
 export default function createTests() {
   test('Uninstall module', async ({ page, browserName }) => {
     const { [`DB_ALIAS_${browserName}`]: dbAlias } = process.env;
 
-    await auth0(page);
+    await goTo(page);
   
     await click(
       page.locator('#database-selection')

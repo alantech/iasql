@@ -1,12 +1,12 @@
 import { test, } from '@playwright/test';
 
-import { auth0, click, fill, isDisabled, isNotVisible, isVisible, } from './helper';
+import { goTo, click, fill, isDisabled, isNotVisible, isVisible, } from './helper';
 
 export default function createTests() {
   test('Connect using invalid credentials', async ({ page, browserName }) => {
     const { [`DB_ALIAS_${browserName}`]: dbAlias, } = process.env;
 
-    await auth0(page);
+    await goTo(page);
 
     try {
       await page.locator('button:has-text("Connect Account")').waitFor({timeout: 20000})
@@ -63,10 +63,10 @@ export default function createTests() {
 
     // Let's wait a couple of seconds to make sure the db got disconnected behind scenes
     await new Promise(r => setTimeout(r, 3000));
-
+    
     // Lets refresh to make sure the db got disconnected
-    await auth0(page);
-
+    await goTo(page);
+    
     await click(
       page.locator('#database-selection')
     );

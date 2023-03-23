@@ -1,11 +1,11 @@
 import { test } from '@playwright/test';
 
-import { auth0, click } from './helper';
+import { click, goTo } from './helper';
 
 export default function createTests() {
   test(`Make sure all dbs have been disconnected`, async ({ page }) => {
     test.setTimeout(5 * 60 * 1000); // 5 min test
-    await auth0(page);
+    await goTo(page);
     let hasDbs = true;
     do {
       try {

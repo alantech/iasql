@@ -1,12 +1,12 @@
 import { test, } from '@playwright/test';
 
-import { auth0, click, fill, isDisabled, isVisible, } from './helper';
+import { goTo, click, fill, isDisabled, isVisible, } from './helper';
 
 export default function createTests() {
   test('Connect account', async ({ page, browserName }) => {
     const { [`DB_ALIAS_${browserName}`]: dbAlias, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, } = process.env;
 
-    await auth0(page);
+    await goTo(page);
 
     try {
       await page.locator('button:has-text("Connect Account")').waitFor({timeout: 20000})
