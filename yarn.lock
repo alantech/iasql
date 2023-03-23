@@ -5828,10 +5828,10 @@ postgres-interval@^1.1.0:
   dependencies:
     xtend "^4.0.0"
 
-posthog-node@^2.2.3:
-  version "2.5.4"
-  resolved "https://registry.yarnpkg.com/posthog-node/-/posthog-node-2.5.4.tgz#24cedd7366208e56cdf33cff4af5b4fec2f08880"
-  integrity sha512-CdywlVh0CZU05/3MrBc0qY/zsLdU2X9XSz/yL1qMRhbyZhD8lrnuGlI69G2cpzZtli6S/nu64wcmULz/mFFA5w==
+posthog-node@^2.6.0:
+  version "2.6.0"
+  resolved "https://registry.yarnpkg.com/posthog-node/-/posthog-node-2.6.0.tgz#63665d85806a20ea023ea6ce9ac4e114e082a351"
+  integrity sha512-/BiFw/jwdP0uJSRAIoYqLoBTjZ612xv74b1L/a3T/p1nJVL8e0OrHuxbJW56c6WVW/IKm9gBF/zhbqfaz0XgJQ==
   dependencies:
     axios "^0.27.0"
 
