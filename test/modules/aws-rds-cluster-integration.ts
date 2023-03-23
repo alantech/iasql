@@ -224,6 +224,36 @@ describe('DB Cluster Integration Testing', () => {
 
   it('starts a transaction', begin());
 
+  it(
+    'removes the RDS cluster',
+    query(
+      `
+    DELETE FROM db_cluster
+    WHERE tags->>'name' = '${prefix}-1';
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it('confirms that you cannot delete a cluster with protection enabled', done =>
+    void query(`
+    SELECT * FROM iasql_commit();
+  `)((e?: any) => {
+      console.log({ e });
+      try {
+        expect(e?.message).toContain('Cannot delete a cluster with deletion protection');
+      } catch (err) {
+        done(err);
+        return {};
+      }
+      done();
+      return {};
+    }));
+
+  it('starts a transaction', begin());
+
   itDocs(
     'updates db_cluster tags and removes deletion protection',
     query(
