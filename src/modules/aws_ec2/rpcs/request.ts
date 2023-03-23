@@ -71,7 +71,7 @@ export class KeyPairRequestRpc extends RpcBase {
   }
 
   call = async (
-    dbId: string,
+    _dbId: string,
     _dbUser: string,
     ctx: Context,
     name: string,
