@@ -1,15 +1,14 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class awsOpensearch1678398834485 implements MigrationInterface {
-  name = 'awsOpensearch1678398834485';
+export class awsOpensearch1679582938781 implements MigrationInterface {
+  name = 'awsOpensearch1679582938781';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(
-      `CREATE TYPE "public"."domain_deployment_type_enum" AS ENUM('PRODUCTION', 'DEVELOPMENT_AND_TESTING', 'CUSTOM')`,
-    );
-    await queryRunner.query(
-      `CREATE TABLE "domain" ("id" SERIAL NOT NULL, "domain_name" character varying NOT NULL, "custom_endpoint" character varying, "deployment_type" "public"."domain_deployment_type_enum" NOT NULL DEFAULT 'DEVELOPMENT_AND_TESTING', "version" character varying NOT NULL, "availability_zone_count" integer NOT NULL, "instance_type" character varying NOT NULL, "instance_count" integer NOT NULL, "ebs_options" jsonb, "warm_instance_type" character varying, "warm_instance_count" integer, "cold_storage" boolean DEFAULT false, "dedicated_master_type" character varying, "dedicated_master_count" integer, "auto_tune" boolean NOT NULL DEFAULT true, "enable_fine_grained_access_control" boolean NOT NULL DEFAULT false, "fine_grained_access_control_user_arn" character varying, "fine_grained_access_control_master_username" character varying, "fine_grained_access_control_master_password" character varying, "access_policy" jsonb NOT NULL, "endpoint" character varying, "region" character varying NOT NULL DEFAULT default_aws_region(), "endpoint_certificate_id" integer, CONSTRAINT "PK_27e3ec3ea0ae02c8c5bceab3ba9" PRIMARY KEY ("id"))`,
-    );
+    await queryRunner.query(`CREATE TABLE "domain" ("id" SERIAL NOT NULL, "domain_name" character varying NOT NULL, "custom_endpoint" character varying, "version" character varying NOT NULL, "availability_zone_count" integer NOT NULL, "instance_type" character varying NOT NULL, "instance_count" integer NOT NULL, "ebs_options" jsonb, "warm_instance_type" character varying, "warm_instance_count" integer, "cold_storage" boolean DEFAULT false, "dedicated_master_type" character varying, "dedicated_master_count" integer, "auto_tune" boolean NOT NULL DEFAULT true, "enable_fine_grained_access_control" boolean NOT NULL DEFAULT false, "fine_grained_access_control_user_arn" character varying, "fine_grained_access_control_master_username" character varying, "fine_grained_access_control_master_password" character varying, "access_policy" jsonb NOT NULL, "endpoint" character varying, "region" character varying NOT NULL DEFAULT default_aws_region(), "endpoint_certificate_id" integer, CONSTRAINT "CHK_721dd127301180197106da2763" CHECK (
+    "version" ~ '^Elasticsearch_[0-9]{1}.[0-9]{1,2}$|^OpenSearch_[0-9]{1,2}.[0-9]{1,2}$'
+  ), CONSTRAINT "CHK_3fefaf9db6215c7b49bd0d150d" CHECK (
+    fine_grained_access_control_master_password IS NULL OR length(fine_grained_access_control_master_password) >= 8
+  ), CONSTRAINT "PK_27e3ec3ea0ae02c8c5bceab3ba9" PRIMARY KEY ("id"))`);
     await queryRunner.query(
       `CREATE TABLE "domain_subnets" ("domain_id" integer NOT NULL, "subnet_id" integer NOT NULL, CONSTRAINT "PK_642b5f1b64f643e6caadcd4859c" PRIMARY KEY ("domain_id", "subnet_id"))`,
     );
@@ -66,6 +65,5 @@ export class awsOpensearch1678398834485 implements MigrationInterface {
     await queryRunner.query(`DROP INDEX "public"."IDX_c39c8bb0bd855c5dc210fafe1e"`);
     await queryRunner.query(`DROP TABLE "domain_subnets"`);
     await queryRunner.query(`DROP TABLE "domain"`);
-    await queryRunner.query(`DROP TYPE "public"."domain_deployment_type_enum"`);
   }
 }

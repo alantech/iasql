@@ -1,5 +1,6 @@
 import { Max, Min } from 'class-validator';
 import {
+  Check,
   Column,
   Entity,
   JoinColumn,
@@ -21,12 +22,6 @@ import { AwsRegions } from '../../aws_account/entity';
 import { Certificate } from '../../aws_acm/entity';
 import { SecurityGroup } from '../../aws_security_group/entity';
 import { Subnet } from '../../aws_vpc/entity';
-
-export enum deploymentTypeEnum {
-  PRODUCTION = 'PRODUCTION',
-  DEVELOPMENT_AND_TESTING = 'DEVELOPMENT_AND_TESTING',
-  CUSTOM = 'CUSTOM',
-}
 
 @Entity()
 export class Domain {
@@ -55,14 +50,10 @@ export class Domain {
   @JoinColumn({ name: 'endpoint_certificate_id', referencedColumnName: 'id' })
   customEndpointCertificate?: Certificate;
 
-  @Column({
-    type: 'enum',
-    enum: deploymentTypeEnum,
-    default: deploymentTypeEnum.DEVELOPMENT_AND_TESTING,
-  })
-  deploymentType?: deploymentTypeEnum;
-
   @Column()
+  @Check(`
+    "version" ~ '^Elasticsearch_[0-9]{1}\.[0-9]{1,2}$|^OpenSearch_[0-9]{1,2}\.[0-9]{1,2}$'
+  `)
   version: string;
 
   @Min(1)
@@ -117,6 +108,9 @@ export class Domain {
   fineGrainedAccessControlMasterUsername?: string;
 
   @Column({ nullable: true })
+  @Check(`
+    fine_grained_access_control_master_password IS NULL OR length(fine_grained_access_control_master_password) >= 8
+  `)
   fineGrainedAccessControlMasterPassword?: string;
 
   @Column({ type: 'jsonb' })

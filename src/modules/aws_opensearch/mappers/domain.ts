@@ -1,15 +1,20 @@
+import _ from 'lodash';
+
 import {
   AutoTuneDesiredState,
   CreateDomainCommandInput,
+  DescribeDomainChangeProgressCommandInput,
   DescribeDomainsCommandInput,
   DomainStatus as AwsDomain,
   OpenSearch,
   OpenSearchPartitionInstanceType,
   OpenSearchWarmPartitionInstanceType,
+  UpdateDomainConfigCommandInput,
 } from '@aws-sdk/client-opensearch';
 import { DomainInfo } from '@aws-sdk/client-opensearch/dist-types/models/models_0';
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 
+import { policiesAreSame } from '../../../services/aws-diff';
 import { AWS } from '../../../services/aws_macros';
 import { Policy } from '../../../services/canonical-iam-policy';
 import { awsAcmModule } from '../../aws_acm';
@@ -22,9 +27,52 @@ import { AwsOpenSearchModule } from '../index';
 export class DomainMapper extends MapperBase<Domain> {
   module: AwsOpenSearchModule;
   entity = Domain;
-  equals = (a: Domain, b: Domain) => true;
+  equals = (a: Domain, b: Domain) =>
+    Object.is(a.customEndpoint, b.customEndpoint) &&
+    Object.is(a.customEndpointCertificate?.arn, b.customEndpointCertificate?.arn) &&
+    Object.is(a.version, b.version) &&
+    Object.is(a.availabilityZoneCount, b.availabilityZoneCount) &&
+    Object.is(a.instanceType, b.instanceType) &&
+    Object.is(a.instanceCount, b.instanceCount) &&
+    _.isEqual(a.ebsOptions, b.ebsOptions) &&
+    Object.is(a.warmInstanceType, b.warmInstanceType) &&
+    Object.is(a.coldStorage, b.coldStorage) &&
+    Object.is(a.dedicatedMasterType, b.dedicatedMasterType) &&
+    Object.is(a.dedicatedMasterCount, b.dedicatedMasterCount) &&
+    Object.is(a.autoTune, b.autoTune) &&
+    Object.is(a.subnets?.length, b.subnets?.length) &&
+    !!a.subnets?.every(sa => !!b.subnets?.find(sb => Object.is(sa.id, sb.id))) &&
+    Object.is(a.securityGroups?.length, b.securityGroups?.length) &&
+    !!a.securityGroups?.every(sa => !!b.securityGroups?.find(sb => Object.is(sa.id, sb.id))) &&
+    Object.is(a.enableFineGrainedAccessControl, b.enableFineGrainedAccessControl) &&
+    Object.is(a.fineGrainedAccessControlUserArn, b.fineGrainedAccessControlUserArn) &&
+    Object.is(a.fineGrainedAccessControlMasterUsername, b.fineGrainedAccessControlMasterUsername) &&
+    Object.is(a.fineGrainedAccessControlMasterPassword, b.fineGrainedAccessControlMasterPassword) &&
+    policiesAreSame(a.accessPolicy, b.accessPolicy) &&
+    Object.is(a.endpoint, b.endpoint);
 
   private async waitForCreation(client: OpenSearch, domainName: string) {
+    await createWaiter<OpenSearch, DescribeDomainChangeProgressCommandInput>(
+      {
+        client,
+        // all in seconds
+        maxWaitTime: 1800,
+        minDelay: 1,
+        maxDelay: 4,
+      },
+      { DomainName: domainName },
+      async (cl, cmd) => {
+        const response = await cl.describeDomainChangeProgress(cmd);
+        if (!response.ChangeProgressStatus) return { state: WaiterState.RETRY };
+        if (response.ChangeProgressStatus.Status === 'COMPLETED') return { state: WaiterState.SUCCESS };
+        else if (['PENDING', 'PROCESSING'].includes(response.ChangeProgressStatus.Status ?? ''))
+          return { state: WaiterState.RETRY };
+        else if (response.ChangeProgressStatus.Status === 'FAILED') return { state: WaiterState.FAILURE };
+
+        return { state: WaiterState.RETRY };
+      },
+    );
+
     await createWaiter<OpenSearch, DescribeDomainsCommandInput>(
       {
         client,
@@ -70,8 +118,9 @@ export class DomainMapper extends MapperBase<Domain> {
       | OpenSearchPartitionInstanceType
       | undefined;
     out.autoTune = ['ENABLED', 'ENABLE_IN_PROGRESS'].includes(domain.AutoTuneOptions?.State ?? '');
+    out.subnets = [];
+    out.securityGroups = [];
     if (domain.VPCOptions?.SubnetIds && domain.VPCOptions.SecurityGroupIds) {
-      out.subnets = [];
       domain.VPCOptions.SubnetIds.map(async subnetId => {
         const subnetMapperId = awsVpcModule.subnet.generateId({ subnetId, region });
         out.subnets!.push(
@@ -79,7 +128,6 @@ export class DomainMapper extends MapperBase<Domain> {
             (await awsVpcModule.subnet.cloud.read(ctx, subnetMapperId)),
         );
       });
-      out.securityGroups = [];
       domain.VPCOptions.SecurityGroupIds.map(async groupId => {
         const sgMapperId = awsSecurityGroupModule.securityGroup.generateId({ groupId, region });
         out.securityGroups!.push(
@@ -98,6 +146,7 @@ export class DomainMapper extends MapperBase<Domain> {
 
   cloud = new Crud({
     create: async (es: Domain[], ctx: Context) => {
+      const out: Domain[] = [];
       for (const e of es) {
         const client = (await ctx.getAwsClient(e.region)) as AWS;
         const input: CreateDomainCommandInput = {
@@ -180,7 +229,20 @@ export class DomainMapper extends MapperBase<Domain> {
         await client.opensearchClient.createDomain(input);
         // wait for it to become available
         await this.waitForCreation(client.opensearchClient, e.domainName);
+        const rawDomain = await client.opensearchClient.describeDomain({ DomainName: e.domainName });
+        if (!rawDomain || !rawDomain.DomainStatus) continue;
+        // now let's replace values with cloud ones to avoid infinite loop
+        const domain = await this.domainMapper(rawDomain.DomainStatus, e.region, ctx);
+        if (!domain) continue;
+        e.endpoint = domain.endpoint;
+        e.fineGrainedAccessControlMasterUsername =
+          e.fineGrainedAccessControlMasterPassword =
+          e.fineGrainedAccessControlUserArn =
+            undefined;
+        await this.module.domain.db.update(e, ctx);
+        out.push(domain);
       }
+      return out;
     },
     read: async (ctx: Context, id?: string) => {
       const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
@@ -218,7 +280,92 @@ export class DomainMapper extends MapperBase<Domain> {
     },
     updateOrReplace: (prev: Domain, next: Domain) => 'update',
     update: async (es: Domain[], ctx: Context) => {
-      return Promise.resolve(undefined);
+      const out: Domain[] = [];
+      for (const e of es) {
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
+
+        const cRecord = ctx?.memo?.cloud?.Domain?.[this.entityId(e)];
+        const cloudRecord = (await client.opensearchClient.describeDomain({ DomainName: e.domainName }))
+          .DomainStatus;
+
+        const input: UpdateDomainConfigCommandInput = {
+          DomainName: e.domainName,
+          ClusterConfig: {
+            InstanceType: e.instanceType,
+            InstanceCount: e.instanceCount,
+            DedicatedMasterEnabled: !!e.dedicatedMasterCount,
+            ZoneAwarenessEnabled: e.availabilityZoneCount > 1,
+            DedicatedMasterType: e.dedicatedMasterType,
+            DedicatedMasterCount: e.dedicatedMasterCount,
+            WarmEnabled: !!e.warmInstanceCount,
+            WarmType: e.warmInstanceType,
+            WarmCount: e.warmInstanceCount,
+            ColdStorageOptions: {
+              Enabled: e.coldStorage,
+            },
+          },
+          AccessPolicies: JSON.stringify(e.accessPolicy),
+          SnapshotOptions: {
+            AutomatedSnapshotStartHour: cloudRecord?.SnapshotOptions?.AutomatedSnapshotStartHour ?? 0,
+          },
+          EncryptionAtRestOptions: {
+            Enabled: cloudRecord?.EncryptionAtRestOptions?.Enabled,
+          },
+          NodeToNodeEncryptionOptions: { Enabled: true },
+          AutoTuneOptions: {
+            DesiredState:
+              e.instanceType.includes('t2.') || e.instanceType.includes('t3.')
+                ? AutoTuneDesiredState.DISABLED
+                : AutoTuneDesiredState.ENABLED,
+            UseOffPeakWindow: cloudRecord?.AutoTuneOptions?.UseOffPeakWindow,
+          },
+          OffPeakWindowOptions: {
+            Enabled: cloudRecord?.OffPeakWindowOptions?.Enabled,
+            OffPeakWindow: {
+              WindowStartTime: {
+                Hours: cloudRecord?.OffPeakWindowOptions?.OffPeakWindow?.WindowStartTime?.Hours ?? 0,
+                Minutes: cloudRecord?.OffPeakWindowOptions?.OffPeakWindow?.WindowStartTime?.Minutes ?? 0,
+              },
+            },
+          },
+          SoftwareUpdateOptions: { AutoSoftwareUpdateEnabled: true },
+        };
+        if (e.ebsOptions) input.EBSOptions = e.ebsOptions;
+        if (e.customEndpoint && e.customEndpointCertificate)
+          input.DomainEndpointOptions = {
+            EnforceHTTPS: true,
+            TLSSecurityPolicy: 'Policy-Min-TLS-1-0-2019-07',
+            CustomEndpointEnabled: !!e.customEndpoint,
+            CustomEndpoint: e.customEndpoint,
+            CustomEndpointCertificateArn: e.customEndpointCertificate.arn,
+          };
+        if (
+          (e.fineGrainedAccessControlMasterUsername && e.fineGrainedAccessControlMasterPassword) ||
+          e.fineGrainedAccessControlUserArn
+        ) {
+          input.DomainEndpointOptions = input.DomainEndpointOptions ?? {};
+          input.DomainEndpointOptions.EnforceHTTPS = true;
+          input.DomainEndpointOptions.TLSSecurityPolicy = 'Policy-Min-TLS-1-0-2019-07';
+
+          input.AdvancedSecurityOptions = {
+            Enabled: true,
+            InternalUserDatabaseEnabled: !e.fineGrainedAccessControlUserArn,
+          };
+          if (e.fineGrainedAccessControlUserArn)
+            input.AdvancedSecurityOptions.MasterUserOptions = {
+              MasterUserARN: e.fineGrainedAccessControlUserArn,
+            };
+          else
+            input.AdvancedSecurityOptions.MasterUserOptions = {
+              MasterUserName: e.fineGrainedAccessControlMasterUsername,
+              MasterUserPassword: e.fineGrainedAccessControlMasterPassword,
+            };
+        }
+
+        await client.opensearchClient.updateDomainConfig(input);
+        out.push(e);
+      }
+      return out;
     },
     delete: async (es: Domain[], ctx: Context) => {
       for (const e of es) {
