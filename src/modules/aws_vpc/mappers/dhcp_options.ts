@@ -32,8 +32,8 @@ export class DhcpOptionsMapper extends MapperBase<DhcpOptions> {
 
     if (e.Tags?.length) {
       const tags: { [key: string]: string } = {};
-      e.Tags.filter((t: any) => !!t.Key && !!t.Value).forEach((t: any) => {
-        tags[t.Key as string] = t.Value as string;
+      e.Tags.filter((t: Tag) => !!t.Key && !!t.Value).forEach((t: Tag) => {
+        tags[t.Key!] = t.Value!;
       });
       out.tags = tags;
     }
