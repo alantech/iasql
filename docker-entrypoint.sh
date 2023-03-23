@@ -49,8 +49,6 @@ fi
 
 service postgresql start
 
-sleep 60 # Maybe it'll self-resolve?
-
 su - postgres -c "psql -c \"ALTER ROLE postgres WITH password '$(node ./dist/scripts/from-config.js db.password)'\""
 
 service postgresql restart
