@@ -120,28 +120,39 @@ describe('OpenSearch Integration Testing', () => {
   );
   it('applies creation of the domain and waits for the creation', commit());
 
-  it('gets the domain and fetches it using the username and password', query(`
+  it(
+    'gets the domain and fetches it using the username and password',
+    query(
+      `
     SELECT endpoint FROM domain WHERE domain_name = '${prefix}';
-  `, (res: any[]) => {
-    expect(res.length).toBe(1);
+  `,
+      (res: any[]) => {
+        expect(res.length).toBe(1);
 
-    const headers = new Headers();
-    headers.set('Authorization', 'Basic ' + Buffer.from('admin:' + initialPassword).toString('base64'));
-    fetch('https://' + res[0].endpoint, {
-      method: 'GET',
-      headers,
-    }).then(r => r.json()).then(r => expect(r.version.number).toBe('2.3.0'));
+        const headers = new Headers();
+        headers.set('Authorization', 'Basic ' + Buffer.from('admin:' + initialPassword).toString('base64'));
+        fetch('https://' + res[0].endpoint, {
+          method: 'GET',
+          headers,
+        })
+          .then(r => r.json())
+          .then(r => expect(r.version.number).toBe('2.3.0'));
 
-    // should not respond with wrong password
-    headers.set('Authorization', 'Basic ' + Buffer.from('admin:wrongpass').toString('base64'));
-    fetch('https://' + res[0].endpoint, {
-      method: 'GET',
-      headers,
-    }).then(r => r.text()).then(r => expect(r).toBe('Unauthorized'));
-  }));
+        // should not respond with wrong password
+        headers.set('Authorization', 'Basic ' + Buffer.from('admin:wrongpass').toString('base64'));
+        fetch('https://' + res[0].endpoint, {
+          method: 'GET',
+          headers,
+        })
+          .then(r => r.text())
+          .then(r => expect(r).toBe('Unauthorized'));
+      },
+    ),
+  );
 
   it('starts a transaction', begin());
-  it('changes the password of the domain',
+  it(
+    'changes the password of the domain',
     query(
       `
           UPDATE domain
@@ -151,22 +162,31 @@ describe('OpenSearch Integration Testing', () => {
       `,
       undefined,
       true,
-      () => ({ username, password })),
+      () => ({ username, password }),
+    ),
   );
   it('applies change of the password for the domain', commit());
 
-  it('fetches the domain using the second password', query(`
+  it(
+    'fetches the domain using the second password',
+    query(
+      `
     SELECT endpoint FROM domain WHERE domain_name = '${prefix}';
-  `, (res: any[]) => {
-    expect(res.length).toBe(1);
+  `,
+      (res: any[]) => {
+        expect(res.length).toBe(1);
 
-    const headers = new Headers();
-    headers.set('Authorization', 'Basic ' + Buffer.from('admin:' + secondPassword).toString('base64'));
-    fetch('https://' + res[0].endpoint, {
-      method: 'GET',
-      headers,
-    }).then(r => r.json()).then(r => expect(r.version.number).toBe('2.3.0'));
-  }));
+        const headers = new Headers();
+        headers.set('Authorization', 'Basic ' + Buffer.from('admin:' + secondPassword).toString('base64'));
+        fetch('https://' + res[0].endpoint, {
+          method: 'GET',
+          headers,
+        })
+          .then(r => r.json())
+          .then(r => expect(r.version.number).toBe('2.3.0'));
+      },
+    ),
+  );
 
   it('starts a transaction', begin());
   itDocs(
