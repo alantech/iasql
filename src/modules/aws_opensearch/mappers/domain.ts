@@ -51,7 +51,7 @@ export class DomainMapper extends MapperBase<Domain> {
     policiesAreSame(a.accessPolicy, b.accessPolicy) &&
     Object.is(a.endpoint, b.endpoint);
 
-  private async waitForCreation(client: OpenSearch, domainName: string) {
+  private async waitForUpdate(client: OpenSearch, domainName: string) {
     await createWaiter<OpenSearch, DescribeDomainChangeProgressCommandInput>(
       {
         client,
@@ -228,7 +228,7 @@ export class DomainMapper extends MapperBase<Domain> {
         // TODO: Cognito
         await client.opensearchClient.createDomain(input);
         // wait for it to become available
-        await this.waitForCreation(client.opensearchClient, e.domainName);
+        await this.waitForUpdate(client.opensearchClient, e.domainName);
         const rawDomain = await client.opensearchClient.describeDomain({ DomainName: e.domainName });
         if (!rawDomain || !rawDomain.DomainStatus) continue;
         // now let's replace values with cloud ones to avoid infinite loop
@@ -284,8 +284,14 @@ export class DomainMapper extends MapperBase<Domain> {
       for (const e of es) {
         const client = (await ctx.getAwsClient(e.region)) as AWS;
 
-        const cRecord = ctx?.memo?.cloud?.Domain?.[this.entityId(e)];
-        const cloudRecord = (await client.opensearchClient.describeDomain({ DomainName: e.domainName }))
+        const cloudMemoRecord: Domain = ctx?.memo?.cloud?.Domain?.[this.entityId(e)];
+        if (e.endpoint !== cloudMemoRecord.endpoint) {
+          // endpoint comes from the cloud, cannot change
+          e.endpoint = cloudMemoRecord.endpoint;
+          await this.module.domain.db.update(e, ctx);
+        }
+
+        const cloudData = (await client.opensearchClient.describeDomain({ DomainName: e.domainName }))
           .DomainStatus;
 
         const input: UpdateDomainConfigCommandInput = {
@@ -306,10 +312,10 @@ export class DomainMapper extends MapperBase<Domain> {
           },
           AccessPolicies: JSON.stringify(e.accessPolicy),
           SnapshotOptions: {
-            AutomatedSnapshotStartHour: cloudRecord?.SnapshotOptions?.AutomatedSnapshotStartHour ?? 0,
+            AutomatedSnapshotStartHour: cloudData?.SnapshotOptions?.AutomatedSnapshotStartHour ?? 0,
           },
           EncryptionAtRestOptions: {
-            Enabled: cloudRecord?.EncryptionAtRestOptions?.Enabled,
+            Enabled: cloudData?.EncryptionAtRestOptions?.Enabled,
           },
           NodeToNodeEncryptionOptions: { Enabled: true },
           AutoTuneOptions: {
@@ -317,14 +323,14 @@ export class DomainMapper extends MapperBase<Domain> {
               e.instanceType.includes('t2.') || e.instanceType.includes('t3.')
                 ? AutoTuneDesiredState.DISABLED
                 : AutoTuneDesiredState.ENABLED,
-            UseOffPeakWindow: cloudRecord?.AutoTuneOptions?.UseOffPeakWindow,
+            UseOffPeakWindow: cloudData?.AutoTuneOptions?.UseOffPeakWindow,
           },
           OffPeakWindowOptions: {
-            Enabled: cloudRecord?.OffPeakWindowOptions?.Enabled,
+            Enabled: cloudData?.OffPeakWindowOptions?.Enabled,
             OffPeakWindow: {
               WindowStartTime: {
-                Hours: cloudRecord?.OffPeakWindowOptions?.OffPeakWindow?.WindowStartTime?.Hours ?? 0,
-                Minutes: cloudRecord?.OffPeakWindowOptions?.OffPeakWindow?.WindowStartTime?.Minutes ?? 0,
+                Hours: cloudData?.OffPeakWindowOptions?.OffPeakWindow?.WindowStartTime?.Hours ?? 0,
+                Minutes: cloudData?.OffPeakWindowOptions?.OffPeakWindow?.WindowStartTime?.Minutes ?? 0,
               },
             },
           },
@@ -363,6 +369,13 @@ export class DomainMapper extends MapperBase<Domain> {
         }
 
         await client.opensearchClient.updateDomainConfig(input);
+        await this.waitForUpdate(client.opensearchClient, e.domainName);
+
+        e.fineGrainedAccessControlMasterUsername =
+          e.fineGrainedAccessControlMasterPassword =
+          e.fineGrainedAccessControlUserArn =
+            undefined;
+        await this.module.domain.db.update(e, ctx);
         out.push(e);
       }
       return out;
