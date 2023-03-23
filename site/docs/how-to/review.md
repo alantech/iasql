@@ -42,6 +42,7 @@ Why this change is necessary
 | action | table_name | id | description |
 | --- | --- | --- | --- |
 | update | log_group | 4 | quickstart-log-group\|us-east-2 |
+```
 
 ## SQL changes
 
