@@ -17,6 +17,7 @@ import { ElastiCache } from '@aws-sdk/client-elasticache';
 import { IAM } from '@aws-sdk/client-iam';
 import { Lambda } from '@aws-sdk/client-lambda';
 import { MemoryDB } from '@aws-sdk/client-memorydb';
+import { OpenSearch } from '@aws-sdk/client-opensearch';
 import { RDS } from '@aws-sdk/client-rds';
 import { Route53 } from '@aws-sdk/client-route-53';
 import { S3 } from '@aws-sdk/client-s3';
@@ -28,7 +29,6 @@ import { STS } from '@aws-sdk/client-sts';
 import { defaultRetryDecider, StandardRetryStrategy } from '@aws-sdk/middleware-retry';
 
 import config from '../config';
-import { OpenSearch } from '@aws-sdk/client-opensearch';
 
 export type AWSCreds = {
   accessKeyId: string;

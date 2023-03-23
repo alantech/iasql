@@ -1,3 +1,5 @@
+import { OpenSearch } from '@aws-sdk/client-opensearch';
+
 import * as iasql from '../../src/services/iasql';
 import {
   defaultRegion,
@@ -11,7 +13,6 @@ import {
   runInstall,
   runQuery,
 } from '../helpers';
-import { OpenSearch } from '@aws-sdk/client-opensearch';
 
 const dbAlias = 'iasql';
 jest.setTimeout(360000);
@@ -95,7 +96,6 @@ describe('OpenSearch Integration Testing', () => {
 
   itDocs('installs the opensearch module', install(['aws_opensearch']));
 
-
   it('starts a transaction', begin());
   itDocs(
     'adds a new domain',
@@ -119,12 +119,16 @@ describe('OpenSearch Integration Testing', () => {
   it('applies creation of the domain and waits for the creation', commit());
 
   it('starts a transaction', begin());
-  itDocs('deletes the domain', query(`
+  itDocs(
+    'deletes the domain',
+    query(
+      `
     DELETE FROM domain WHERE domain_name = '${prefix}';
   `,
-    undefined,
-    true,
-    () => ({ username, password })),
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
   );
   it('applies deletion of the domain', commit());
 

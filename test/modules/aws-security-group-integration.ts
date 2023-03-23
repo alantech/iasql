@@ -991,6 +991,7 @@ describe('Security Group install/uninstall', () => {
       'aws_codepipeline',
       'aws_lambda',
       'aws_cloudfront',
+      'aws_opensearch',
     ]),
   );
 
