@@ -137,7 +137,6 @@ describe('EC2 Integration Testing', () => {
   `,
       (res: any[]) => {
         expect(res.length).toBe(1);
-        console.log(res);
         privateKey = res[0].privatekey;
       },
       true,
