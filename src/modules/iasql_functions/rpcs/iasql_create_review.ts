@@ -80,7 +80,9 @@ function generateMarkdown(
   const previewHeaderMarkdown = `| ${previewKeys.join(' | ')} |`;
   const previewHeaderDelimitersMarkdown = `| ${previewHeaderDelimiters.join(' | ')} |`;
   const previewRowsMarkdown = preview.map(row => {
-    const rowValues = previewKeys.map(key => row[key]);
+    const rowValues = previewKeys.map(key =>
+      typeof row[key] === 'string' ? row[key].replaceAll('|', '\\|') : row[key],
+    );
     return `| ${rowValues.join(' | ')} |`;
   });
   const previewMarkdown = [
