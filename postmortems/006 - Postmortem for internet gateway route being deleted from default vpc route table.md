@@ -25,7 +25,7 @@ While debugging, @dfellis found [this](https://repost.aws/knowledge-center/ecs-u
 
 It goes on to say that with 1.4.0 of Fargate it no longer has its own built-in link to ECR, so you need to make sure your VPC has access to the ECR repository you're using, which matches the error message in this screenshot:
 
-![screenshot of ecr access failure](https://cdn.discordapp.com/attachments/920885549668114472/1087470750698590278/Screenshot_from_2023-03-20_15-20-35.png)
+![screenshot of ecr access failure](./assets/ecr-access-failure.png)
 
 ## Response
 
