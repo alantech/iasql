@@ -6,7 +6,7 @@ date: 2023-03-06
 tags: [tutorial]
 ---
 
-Do you have some database instances on RDS and wonder what's the most secure way to reach them? In this post, we will walk you through how to securely connect to an AWS RDS instance using Private Link and IaSQL. IaSQL is an [open-source](https://github.com/iasql/iasql) software tool that creates a two-way connection between an unmodified PostgreSQL database and an AWS account so you can manage your infrastructure from a database.
+Do you have some database instances on RDS and wonder what's the most secure way to reach them? In this post, we will walk you through how to securely connect to an AWS RDS instance using PrivateLink and IaSQL. AWS PrivateLink provides private connectivity between virtual private clouds (VPCs), supported AWS services, and your on-premises networks without exposing your traffic to the public internet. IaSQL is an [open-source](https://github.com/iasql/iasql) software tool that creates a two-way connection between an unmodified PostgreSQL database and an AWS account so you can manage your infrastructure from a database.
 
 <!-- truncate -->
 
@@ -14,13 +14,9 @@ When creating a database, AWS provides some specific information about the hostn
 
 <img src="/img/how_to_connect_rds.png" />
 
-On a public VPC, those endpoints will be public by default. But you should consider creating them under a
-private VPC and access them internally, to grant additional security to those services that are critical.
+On a public VPC, those endpoints will be public by default. However, consider creating them under a private VPC and accessing them internally, to grant additional security to critical services. AWS PrivateLink offers the possibility to securely access those services without exposing them to the internet, just using Amazon's private network.
 
-AWS PrivateLink offers the possibility to securely access those services without exposing them to the internet,
-just using Amazon's private network.
-
-### Do you want to know if you have it properly configured?
+### Are my RDS instances properly configured?
 
 Please use this query to check it:
 
@@ -91,10 +87,7 @@ FROM
 select * from iasql_rollback();
 ```
 
-Running this query on an IaSQL database will auto-generate the missing endpoint interfaces and will allow you to preview the changes to be applied on your cloud. Once you are OK with the results,
-you can uncomment the `iasql_commit` query, comment the `iasql_rollback` query, and it will create the endpoints for you.
-
-If the final results in the cloud are not as expected, you can always roll back your changes by calling the `iasql_rollback` command.
+Running this query on an IaSQL database will auto-generate the missing endpoint interfaces and will allow you to preview the changes to be applied on your cloud. Once you are OK with the results, you can uncomment the `iasql_commit` query, comment the `iasql_rollback` query, and it will create the endpoints for you. If the final results in the cloud are not as expected, you can always roll back your changes by calling the `iasql_rollback` command.
 
 ### Testing the result
 
@@ -104,13 +97,10 @@ After running the query, you should have Endpoint Interfaces created for your RD
   <img src="/img/rds_endpoint_interfaces_created.png" height="200" />
 </div>
 
-To start testing the result, you can start a new EC2 instance on a private VPC in the same region
-where your RDS and Endpoint interface are configured. You can double-check that there is no internet
-connectivity. But the RDS endpoint could still be reached, by using the interface that has been created:
+To start testing the result, you can start a new EC2 instance on a private VPC in the same region where your RDS and Endpoint interface is configured. You can double-check that there is no internet connectivity. But the RDS endpoint could still be reached, by using the interface that has been created:
 
 <div class="col col--12">
   <img src="/img/access_rds_endpoint.png" height="200" />
 </div>
 
-Please note that you could only use those endpoints from the same region. You could reach the services in multiple regions with the use of <a href="https://docs.aws.amazon.com/vpc/latest/peering/what-is-vpc-peering.html" target="_blank">
-VPC peering</a>
+Please note that you could only use those endpoints from the same region. You could reach the services in multiple regions with the use of [VPC peering](https://docs.aws.amazon.com/vpc/latest/peering/what-is-vpc-peering.html)

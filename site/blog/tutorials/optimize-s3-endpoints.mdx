@@ -9,11 +9,11 @@ tags: [tutorial]
 Are you using S3 buckets as part of your cloud deployments? How are you accessing them?
 
 When running applications behind VPCs without public access, there may be the need to access S3 buckets from the private subnet over the public internet.
-One simple but costly way to do so is to rely on <a href="https://docs.aws.amazon.com/en_en/vpc/latest/userguide/vpc-nat-gateway.html" target="_blank">NAT gateways</a>.
+One simple but costly way to do so is to rely on [NAT gateways](https://docs.aws.amazon.com/en_en/vpc/latest/userguide/vpc-nat-gateway.html).
 
 <img src="/img/optimize-s3-endpoints/s3_nat_gateway.png" style={{ maxWidth: 400 }} />
 
-However, creating <a href="https://docs.aws.amazon.com/vpc/latest/privatelink/vpc-endpoints-s3.html" target="_blank">gateway or interface VPC endpoints</a> for each region where your buckets are exposed is a more optimal solution.
+However, creating [gateway or interface VPC endpoints](https://docs.aws.amazon.com/vpc/latest/privatelink/vpc-endpoints-s3.html) for each region where your buckets are exposed is a more optimal solution.
 
 <img src="/img/optimize-s3-endpoints/s3_privatelink.png" style={{ maxWidth: 600 }} />
 
@@ -23,7 +23,7 @@ When the VPC endpoints are enabled you can access your S3 buckets using this end
 
 ### Why use VPC Interface Endpoints
 
-AWS VPC Interface Endpoints are a component of AWS's <a href="https://aws.amazon.com/privatelink">PrivateLink</a> infrastructure. AWS PrivateLink provides private connectivity between virtual private clouds (VPCs), supported AWS services, and your on-premises networks without exposing your traffic to the public internet.
+AWS VPC Interface Endpoints are a component of AWS's [PrivateLink](https://aws.amazon.com/privatelink) infrastructure. AWS PrivateLink provides private connectivity between virtual private clouds (VPCs), supported AWS services, and your on-premises networks without exposing your traffic to the public internet.
 
 Relying on PrivateLink offers a set of advantages in terms of **cost**, **security** and **performance**.
 
@@ -45,7 +45,7 @@ By using interface endpoints the services will be accessed via Amazon's internal
 
 **Security: policies**
 
-AWS services can benefit from <a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/access_controlling.html">IAM policies</a> for fine-grained access control. When using interface endpoints, those policies can be applied to determine the traffic that can pass through the interface.
+AWS services can benefit from [IAM policies](https://docs.aws.amazon.com/IAM/latest/UserGuide/access_controlling.html) for fine-grained access control. When using interface endpoints, those policies can be applied to determine the traffic that can pass through the interface.
 
 **Performance: latency**
 
@@ -106,14 +106,14 @@ Have you found missing endpoints? No problem, IaSQL can generate them for you. Y
 
 An interface endpoint is an elastic network interface with a private IP address that serves as an entry point for traffic destined for a supported AWS service. As they use ENIs, they can benefit from security groups to control traffic.
 
-<a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/access_controlling.html">IAM policies</a>can also be
+[IAM policies](https://docs.aws.amazon.com/IAM/latest/UserGuide/access_controlling.html) can also be
 added to control access to those endpoints.
 
 They are regional, meaning they can only be accessed by the same region they are created. However, Multi-region is possible by also using VPC peering, so resources in one region can be accessed from others, though this only supports IPv4 TCP traffic.
 
 An interface endpoint (except S3 interface endpoint) has a corresponding private DNS hostname, that can be used to access the resource.
 
-Interface endpoints cover a wide range of services such as S3, Lambda, API Gateway, etc... <a href="https://docs.aws.amazon.com/vpc/latest/privatelink/create-interface-endpoint.html">Get more detail about interface endpoints</a>
+Interface endpoints cover a wide range of services such as S3, Lambda, API Gateway, etc... [Get more detail about interface endpoints](https://docs.aws.amazon.com/vpc/latest/privatelink/create-interface-endpoint.html)
 
 This query will auto-generate the missing interface endpoints and will preview the changes to be applied on your cloud. Simply uncomment the final statement and run it to make the changes to your cloud account.
 
@@ -168,7 +168,7 @@ To use them, DNS resolution must be enabled in the VPC.
 
 When a route is added, all instances in the subnets associated with the route table will automatically use the endpoint to access the service.
 
-Gateway endpoints only support S3 and DynamoDB services. <a href="https://docs.aws.amazon.com/vpc/latest/privatelink/gateway-endpoints.html">Get more detail about gateway endpoints</a>.
+Gateway endpoints only support S3 and DynamoDB services. [Get more detail about gateway endpoints](https://docs.aws.amazon.com/vpc/latest/privatelink/gateway-endpoints.html).
 
 This query will auto-generate the missing endpoint gateways and will allow you to preview the changes to be applied on your cloud.
 
