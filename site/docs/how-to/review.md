@@ -28,6 +28,7 @@ UPDATE log_group SET log_group_name = 'test' WHERE id = 4;
 -- We create the review artifact with `iasql_create_review`, providing
 -- a title and a description of why we're doing this.
 SELECT * FROM iasql_create_review('My infra change', 'Why this change is necessary')
+```
 
 The output of `iasql_create_review` is markdown-formatted text and will look as follows:
 
