@@ -15,6 +15,8 @@ import {
 } from '../helpers';
 
 const dbAlias = 'iasql';
+const initialPassword = '123456aA@';
+const secondPassword = 'newPa@ss123!';
 jest.setTimeout(1500000);
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown());
@@ -107,7 +109,7 @@ describe('OpenSearch Integration Testing', () => {
                               fine_grained_access_control_master_password, access_policy, region)
           VALUES ('${prefix}', 'OpenSearch_2.3', 1, 'c5.large.search', 1,
                   '{"Iops": 3000, "EBSEnabled": true, "Throughput": 125, "VolumeSize": 10, "VolumeType": "gp3"}', true,
-                  'admin', '123456aA@',
+                  'admin', '${initialPassword}',
                   '{"Version": "2012-10-17", "Statement": [{"Action": "es:*", "Effect": "Allow", "Resource": "*", "Principal": {"AWS": "*"}}]}',
                   '${region}');
       `,
@@ -117,6 +119,54 @@ describe('OpenSearch Integration Testing', () => {
     ),
   );
   it('applies creation of the domain and waits for the creation', commit());
+
+  it('gets the domain and fetches it using the username and password', query(`
+    SELECT endpoint FROM domain WHERE domain_name = '${prefix}';
+  `, (res: any[]) => {
+    expect(res.length).toBe(1);
+
+    const headers = new Headers();
+    headers.set('Authorization', 'Basic ' + Buffer.from('admin:' + initialPassword).toString('base64'));
+    fetch('https://' + res[0].endpoint, {
+      method: 'GET',
+      headers,
+    }).then(r => r.json()).then(r => expect(r.version.number).toBe('2.3.0'));
+
+    // should not respond with wrong password
+    headers.set('Authorization', 'Basic ' + Buffer.from('admin:wrongpass').toString('base64'));
+    fetch('https://' + res[0].endpoint, {
+      method: 'GET',
+      headers,
+    }).then(r => r.text()).then(r => expect(r).toBe('Unauthorized'));
+  }));
+
+  it('starts a transaction', begin());
+  it('changes the password of the domain',
+    query(
+      `
+          UPDATE domain
+          SET fine_grained_access_control_master_username = 'admin',
+              fine_grained_access_control_master_password = '${secondPassword}'
+          WHERE domain_name = '${prefix}';
+      `,
+      undefined,
+      true,
+      () => ({ username, password })),
+  );
+  it('applies change of the password for the domain', commit());
+
+  it('fetches the domain using the second password', query(`
+    SELECT endpoint FROM domain WHERE domain_name = '${prefix}';
+  `, (res: any[]) => {
+    expect(res.length).toBe(1);
+
+    const headers = new Headers();
+    headers.set('Authorization', 'Basic ' + Buffer.from('admin:' + secondPassword).toString('base64'));
+    fetch('https://' + res[0].endpoint, {
+      method: 'GET',
+      headers,
+    }).then(r => r.json()).then(r => expect(r.version.number).toBe('2.3.0'));
+  }));
 
   it('starts a transaction', begin());
   itDocs(
