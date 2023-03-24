@@ -185,8 +185,7 @@ describe('Cloudfront Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  itDocs('adds a new s3 distribution', (done: (arg0: any) => any) => {
-    query(
+  itDocs('adds a new s3 distribution', query(
       `
     INSERT INTO distribution (caller_reference, comment, enabled, is_ipv6_enabled, default_cache_behavior, origins )
     VALUES ('${s3CallerReference}', 'a comment', true, false, '${s3behaviorString}', '${s3OriginsString}');
@@ -194,11 +193,8 @@ describe('Cloudfront Integration Testing', () => {
       undefined,
       true,
       () => ({ username, password }),
-    )((e?: any) => {
-      if (!!e) return done(e);
-      done(undefined);
-    });
-  });
+    ),
+  );
 
   it('applies the distribution change', commit());
 
@@ -208,6 +204,20 @@ describe('Cloudfront Integration Testing', () => {
       `
   SELECT * FROM distribution WHERE caller_reference='${s3CallerReference}';
   `,
+      (res: any) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it('uninstalls the Cloudfront module', uninstall(modules));
+  
+  it('installs the Cloudfront module', install(modules));
+
+  itDocs(
+    'check distribution is available',
+    query(
+      `
+        SELECT * FROM distribution WHERE caller_reference='${s3CallerReference}';
+      `,
       (res: any) => expect(res.length).toBe(1),
     ),
   );
