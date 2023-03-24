@@ -66,12 +66,12 @@ export class Distribution {
 
   /**
    * @public
-   * An unique value to identify the CloudFront distribution
+   * An unique value to identify the CloudFront distribution. Default to a timestamp as AWS suggests
    */
   @Column({
-    nullable: true,
+    default: () => 'now()',
   })
-  callerReference?: string;
+  callerReference: string;
 
   /**
    * @public

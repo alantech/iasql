@@ -170,6 +170,7 @@ class DistributionMapper extends MapperBase<Distribution> {
 
   async distributionMapper(distribution: GetDistributionCommandOutput, ctx: Context) {
     const out = new Distribution();
+    if (!distribution.Distribution?.DistributionConfig?.CallerReference) return undefined;
     out.callerReference = distribution.Distribution?.DistributionConfig?.CallerReference;
     out.comment = distribution.Distribution?.DistributionConfig?.Comment;
     out.distributionId = distribution.Distribution?.Id;
@@ -251,6 +252,7 @@ class DistributionMapper extends MapperBase<Distribution> {
 
           if (res && res.Distribution) {
             const newDistribution = await this.distributionMapper(res, ctx);
+            if (!newDistribution) continue;
             newDistribution.id = e.id;
             newDistribution.status = 'Deployed';
 
@@ -278,13 +280,16 @@ class DistributionMapper extends MapperBase<Distribution> {
         const rawDistribution = await this.getDistribution(client.cloudfrontClient, id);
         if (rawDistribution) {
           const result = await this.distributionMapper(rawDistribution, ctx);
+          if (!result) return undefined;
           return result;
         }
       } else {
         const distributions = await this.getDistributions(client.cloudfrontClient);
         const out = [];
         for (const distribution of distributions) {
-          out.push(await this.distributionMapper(distribution, ctx));
+          const newDistribution = await this.distributionMapper(distribution, ctx);
+          if (!newDistribution) continue;
+          out.push(newDistribution);
         }
         return out;
       }
@@ -313,6 +318,7 @@ class DistributionMapper extends MapperBase<Distribution> {
             );
             if (res && res.Distribution) {
               const newDistribution = await this.distributionMapper(res, ctx);
+              if (!newDistribution) continue;
               newDistribution.id = e.id;
               newDistribution.status = 'Deployed';
 
@@ -360,6 +366,7 @@ class DistributionMapper extends MapperBase<Distribution> {
           );
           if (res && res.Distribution) {
             const newDistribution = await this.distributionMapper(res, ctx);
+            if (!newDistribution) continue;
             newDistribution.id = e.id;
             newDistribution.status = 'Deployed';
             e.eTag = newDistribution.eTag;
