@@ -362,13 +362,24 @@ export class DBClusterMapper extends MapperBase<DBCluster> {
       return out;
     },
     delete: async (es: DBCluster[], ctx: Context) => {
+      let needsThrow = false;
       for (const e of es) {
         const client = (await ctx.getAwsClient(e.region)) as AWS;
+
+        // check if deletion protection is enabled and throw error
+        if (e.deletionProtection) {
+          needsThrow = true;
+          continue;
+        }
         await this.deleteDBCluster(client.rdsClient, {
           DBClusterIdentifier: e.dbClusterIdentifier,
           SkipFinalSnapshot: true,
         });
       }
+      if (needsThrow)
+        throw new Error(
+          "Cannot delete a cluster with deletion protection. Please set the cluster's deletion protection to false and try again.",
+        );
     },
   });
 

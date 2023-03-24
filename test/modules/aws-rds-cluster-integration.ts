@@ -143,8 +143,8 @@ describe('DB Cluster Integration Testing', () => {
     'creates an RDS cluster',
     query(
       `
-    INSERT INTO db_cluster (db_cluster_identifier, engine, engine_version, allocated_storage, iops, db_cluster_instance_class, master_username, master_user_password, subnet_group_id, tags) VALUES
-      ('${prefix}cluster-test', 'mysql', '${engineVersion}', 100, 1000, 'db.m5d.xlarge', 'admin', 'admin123456', (select id FROM db_subnet_group WHERE name = '${prefix}cluster-test'), '{"name":"${prefix}-1"}');
+    INSERT INTO db_cluster (db_cluster_identifier, engine, engine_version, allocated_storage, iops, db_cluster_instance_class, master_username, master_user_password, subnet_group_id, tags, deletion_protection) VALUES
+      ('${prefix}cluster-test', 'mysql', '${engineVersion}', 100, 1000, 'db.m5d.xlarge', 'admin', 'admin123456', (select id FROM db_subnet_group WHERE name = '${prefix}cluster-test'), '{"name":"${prefix}-1"}', TRUE);
   `,
       undefined,
       true,
@@ -224,11 +224,41 @@ describe('DB Cluster Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  itDocs(
-    'updates db_cluster tags',
+  it(
+    'removes the RDS cluster',
     query(
       `
-    UPDATE db_cluster SET tags = '{"name":"${prefix}-2"}' WHERE tags ->> 'name' = '${prefix}-1';
+    DELETE FROM db_cluster
+    WHERE tags->>'name' = '${prefix}-1';
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it('confirms that you cannot delete a cluster with protection enabled', done =>
+    void query(`
+    SELECT * FROM iasql_commit();
+  `)((e?: any) => {
+      console.log({ e });
+      try {
+        expect(e?.message).toContain('Cannot delete a cluster with deletion protection');
+      } catch (err) {
+        done(err);
+        return {};
+      }
+      done();
+      return {};
+    }));
+
+  it('starts a transaction', begin());
+
+  itDocs(
+    'updates db_cluster tags and removes deletion protection',
+    query(
+      `
+    UPDATE db_cluster SET tags = '{"name":"${prefix}-2"}', deletion_protection=FALSE WHERE tags ->> 'name' = '${prefix}-1';
   `,
       undefined,
       true,
