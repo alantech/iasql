@@ -303,7 +303,7 @@ async function run(req: NextApiRequest, res: NextApiResponse) {
         if (!isCust)
           res.status(403).json({
             error: 'User is not a stripe customer',
-            paymentLink: `${config.stripe?.paymentLink}?client_reference_id=${encodeURI(username)}`,
+            paymentLink: `${config.stripe?.paymentLink}?client_reference_id=${username}`,
           });
         const out = await runSql(sql, dbAlias, username, password, res);
         return out;
