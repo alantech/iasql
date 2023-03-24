@@ -12,11 +12,15 @@ import {
   VpcMapper,
   InternetGatewayMapper,
   RouteMapper,
+  DhcpOptionsMapper,
 } from './mappers';
 
 export class AwsVpcModule extends ModuleBase {
   /** @internal */
   subnet: SubnetMapper;
+
+  /** @internal */
+  dhcpOptions: DhcpOptionsMapper;
 
   /** @internal */
   vpc: VpcMapper;
@@ -50,13 +54,15 @@ export class AwsVpcModule extends ModuleBase {
 
   /** @internal */
   route: RouteMapper;
-
   constructor() {
     super();
+    // add modules in the right order
     this.availabilityZone = new AvailabilityZoneMapper(this);
+    this.dhcpOptions = new DhcpOptionsMapper(this);
     this.vpc = new VpcMapper(this);
     this.subnet = new SubnetMapper(this);
     this.elasticIp = new ElasticIpMapper(this);
+
     this.routeTable = new RouteTableMapper(this);
     this.routeTableAssociation = new RouteTableAssociationMapper(this);
     this.route = new RouteMapper(this);
@@ -65,6 +71,7 @@ export class AwsVpcModule extends ModuleBase {
     this.endpointInterface = new EndpointInterfaceMapper(this);
     this.peeringConnection = new PeeringConnectionMapper(this);
     this.internetGateway = new InternetGatewayMapper(this);
+
     super.init();
   }
 }

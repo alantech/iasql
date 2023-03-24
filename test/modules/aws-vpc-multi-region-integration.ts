@@ -184,7 +184,7 @@ describe('VPC Multi-region Integration Testing', () => {
       WHERE cidr_block='192.${randIPBlock}.0.0/16' AND availability_zone='${nonDefaultRegionAvailabilityZone}' AND region = '${nonDefaultRegion}'
     )
     UPDATE vpc
-    SET region='${region}'
+    SET region='${region}', dhcp_options_id=NULL
     WHERE cidr_block='192.${randIPBlock}.0.0/16' AND state='available' AND tags ->> 'name' = '${prefix}-1' AND region = '${nonDefaultRegion}';
   `,
       undefined,

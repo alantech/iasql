@@ -1,4 +1,5 @@
 export * from './peering_connection';
+export * from './dhcp_options';
 export * from './availability_zone';
 export * from './elastic_ip';
 export * from './endpoint_gateway';

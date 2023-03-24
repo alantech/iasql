@@ -245,6 +245,90 @@ describe('VPC Integration Testing', () => {
   );
 
   it('starts a transaction', begin());
+  itDocs(
+    'creates new DHCP options',
+    query(
+      `
+      INSERT INTO dhcp_options (dhcp_configurations, tags) VALUES ('[{"Key":"domain-name","Values":[{"Value":"test-domain.com"}]},{"Key":"domain-name-servers","Values":[{"Value":"8.8.8.8"}]}]', '{"name":"${prefix}-1"}');
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+  it('applies the dhcp options creation', commit());
+
+  itDocs(
+    'checks addition of dhcp options',
+    query(
+      `
+      SELECT *
+      FROM dhcp_options 
+      WHERE tags ->> 'name' = '${prefix}-1';
+  `,
+      (res: any) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it('starts a transaction', begin());
+  itDocs(
+    'associates option with VPC',
+    query(
+      `
+      UPDATE vpc SET dhcp_options_id = (SELECT id FROM dhcp_options WHERE tags ->> 'name' = '${prefix}-1') WHERE tags ->> 'name' = '${prefix}-2';;
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+  it('applies the dhcp options association', commit());
+
+  itDocs(
+    'checks that VPC has the correct dhcp options',
+    query(
+      `
+      SELECT dhcp_options_id FROM vpc WHERE tags ->> 'name' = '${prefix}-2' AND dhcp_options_id = (SELECT id FROM dhcp_options WHERE tags ->> 'name' = '${prefix}-1');
+  `,
+      (res: any) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it('starts a transaction', begin());
+  itDocs(
+    'sets the default dhcp options for the vpc',
+    query(
+      `
+      UPDATE vpc SET dhcp_options_id = NULL WHERE tags ->> 'name' = '${prefix}-2';;
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  itDocs(
+    'deletes the dhcp options',
+    query(
+      `
+      DELETE FROM dhcp_options WHERE tags ->> 'name' = '${prefix}-1';`,
+    ),
+  );
+  it('applies the dhcp options removal', commit());
+
+  itDocs(
+    'checks removal of dhcp options',
+    query(
+      `
+      SELECT *
+      FROM dhcp_options 
+      WHERE tags ->> 'name' = '${prefix}-1';
+  `,
+      (res: any) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it('starts a transaction', begin());
 
   itDocs(
     'tries to update vpc cidr',
@@ -429,7 +513,9 @@ describe('VPC Integration Testing', () => {
       () => ({ username, password }),
     ),
   );
+  it('applies the deletion of peering connection', commit());
 
+  it('starts a transaction', begin());
   it(
     'deletes the second vpc',
     query(

@@ -1,4 +1,5 @@
 export * from './availability_zone';
+export * from './dhcp_options';
 export * from './elastic_ip';
 export * from './endpoint_gateway';
 export * from './endpoint_interface';
