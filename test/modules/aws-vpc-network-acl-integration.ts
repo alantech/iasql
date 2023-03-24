@@ -113,6 +113,159 @@ describe('VPC Network ACL Integration Testing', () => {
 
   it('applies the vpc change', commit());
 
+  it(
+    'confirms that VPC exists',
+    query(
+      `
+    SELECT * FROM vpc WHERE tags ->> 'name' = '${prefix}-1';
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it('creates network ACL', begin());
+
+  itDocs(
+    'adds a new network ACL',
+    query(
+      `  
+    INSERT INTO network_acl (vpc_id, entries, tags)
+    VALUES ((SELECT id FROM vpc WHERE  tags ->> 'name' = '${prefix}-1'), '[]', '{"name":"${prefix}-1"}');
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it('applies the ACL change', commit());
+
+  it(
+    'confirms that network ACL exists',
+    query(
+      `
+    SELECT * FROM network_acl WHERE tags ->> 'name' = '${prefix}-1';
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it('creates a default network ACL', begin());
+
+  it(
+    'adds a default network ACL',
+    query(
+      `  
+    INSERT INTO network_acl (is_default, vpc_id, entries, tags)
+    VALUES (TRUE, (SELECT id FROM vpc WHERE  tags ->> 'name' = '${prefix}-1'), '[]', '{"name":"${prefix}-2"}');
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it('applies the ACL creation', commit());
+
+  it(
+    'confirms that network ACL has not been created',
+    query(
+      `
+    SELECT * FROM network_acl WHERE tags ->> 'name' = '${prefix}-2';
+  `,
+      (res: any[]) => expect(res.length).toBe(0),
+    ),
+  );
+
+  it('updates ACL entries', begin());
+
+  it(
+    'updates ACL entries',
+    query(
+      `  
+    UPDATE network_acl SET entries = '[{"CidrBlock":"10.0.0.0/0","Egress":true,"Protocol":"-1","RuleAction":"deny","RuleNumber":1},{"CidrBlock":"0.0.0.0/0","Egress":false,"Protocol":"-1","RuleAction":"deny","RuleNumber":2}]'
+    WHERE  tags ->> 'name' = '${prefix}-1';
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it('applies the ACL change', commit());
+
+  it(
+    'confirms that network ACL entries have been modified',
+    query(
+      `
+    SELECT * FROM network_acl WHERE tags ->> 'name' = '${prefix}-1';
+  `,
+      (res: any[]) => {
+        expect(res.length).toBe(1);
+        expect(res[0]['entries']).toEqual(
+          JSON.parse(
+            `[{"CidrBlock": "0.0.0.0/0", "Egress": true, "Protocol": "-1", "RuleAction": "deny", "RuleNumber": 1}, {"CidrBlock": "0.0.0.0/0", "Egress": true, "Protocol": "-1", "RuleAction": "deny", "RuleNumber": 32767}, {"CidrBlock": "0.0.0.0/0", "Egress": false, "Protocol": "-1", "RuleAction": "deny", "RuleNumber": 2}, {"CidrBlock": "0.0.0.0/0", "Egress": false, "Protocol": "-1", "RuleAction": "deny", "RuleNumber": 32767}]`,
+          ),
+        );
+      },
+    ),
+  );
+
+  it('updates ACL tags', begin());
+
+  it(
+    'updates ACL tags',
+    query(
+      `  
+    UPDATE network_acl SET tags = '{"name":"${prefix}-2"}' WHERE  tags ->> 'name' = '${prefix}-1';
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it('applies the ACL change', commit());
+
+  it(
+    'confirms that network ACL tags have been modified',
+    query(
+      `
+    SELECT * FROM network_acl WHERE tags ->> 'name' = '${prefix}-2';
+  `,
+      (res: any[]) => {
+        expect(res.length).toBe(1);
+      },
+    ),
+  );
+  it('updates ACL tags', begin());
+
+  it(
+    'deletes network ACL',
+    query(
+      `  
+    DELETE FROM network_acl WHERE tags ->> 'name' = '${prefix}-2';
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it('applies the ACL removal', commit());
+
+  it(
+    'confirms that network ACL tags have been removed',
+    query(
+      `
+    SELECT * FROM network_acl WHERE tags ->> 'name' = '${prefix}-2';
+  `,
+      (res: any[]) => {
+        expect(res.length).toBe(0);
+      },
+    ),
+  );
+
   it('starts a transaction', begin());
 
   itDocs(

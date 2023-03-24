@@ -1,6 +1,7 @@
+import isEqual from 'lodash.isequal';
+
 import {
   CreateNetworkAclCommandInput,
-  CreateNetworkAclEntryCommandInput,
   EC2,
   NetworkAcl as AwsNetworkAcl,
   paginateDescribeNetworkAcls,
@@ -16,12 +17,14 @@ import { updateTags } from './tags';
 export class NetworkAclMapper extends MapperBase<NetworkAcl> {
   module: AwsVpcModule;
   entity = NetworkAcl;
-  equals = (a: NetworkAcl, b: NetworkAcl) =>
-    Object.is(a.isDefault, b.isDefault) &&
-    Object.is(a.vpc?.vpcId, b.vpc?.vpcId) &&
-    Object.is(a.entries?.length, b.entries?.length) &&
-    !!a.entries?.every(art => !!b.entries?.find(brt => Object.is(art, brt))) &&
-    eqTags(a.tags, b.tags);
+  equals = (a: NetworkAcl, b: NetworkAcl) => {
+    return (
+      Object.is(a.isDefault, b.isDefault) &&
+      Object.is(a.vpc?.vpcId, b.vpc?.vpcId) &&
+      isEqual(a.entries, b.entries) &&
+      eqTags(a.tags, b.tags)
+    );
+  };
 
   async networkAclMapper(eg: AwsNetworkAcl, region: string, ctx: Context) {
     if (!eg.NetworkAclId) return undefined;
@@ -69,8 +72,15 @@ export class NetworkAclMapper extends MapperBase<NetworkAcl> {
   cloud: Crud<NetworkAcl> = new Crud({
     create: async (es: NetworkAcl[], ctx: Context) => {
       const out = [];
+
       for (const e of es) {
         const client = (await ctx.getAwsClient(e.region)) as AWS;
+
+        // we cannot create a default network acl
+        if (e.isDefault) {
+          await this.db.delete(e, ctx);
+          continue;
+        }
 
         const input: CreateNetworkAclCommandInput = {
           VpcId: e.vpc?.vpcId,
@@ -93,7 +103,7 @@ export class NetworkAclMapper extends MapperBase<NetworkAcl> {
         if (res) {
           // now we need to add the entries
           for (const entry of e.entries ?? []) {
-            const newEntry = await this.createNetworkAclEntry(client.ec2client, entry);
+            await this.createNetworkAclEntry(client.ec2client, entry);
           }
         }
 
@@ -101,7 +111,11 @@ export class NetworkAclMapper extends MapperBase<NetworkAcl> {
         const rawAcl = await this.getNetworkAcl(client.ec2client, res?.NetworkAclId);
         if (rawAcl) {
           const newAcl = await this.networkAclMapper(rawAcl, e.region, ctx);
-          if (newAcl) out.push(newAcl);
+          if (newAcl) {
+            newAcl.id = e.id;
+            await this.db.update(newAcl, ctx);
+            if (newAcl) out.push(newAcl);
+          }
         }
       }
       return out;
@@ -139,9 +153,9 @@ export class NetworkAclMapper extends MapperBase<NetworkAcl> {
         const client = (await ctx.getAwsClient(e.region)) as AWS;
         const cloudRecord = ctx?.memo?.cloud?.NetworkAcl?.[this.entityId(e)];
         const isUpdate = this.module.networkAcl.cloud.updateOrReplace(cloudRecord, e) === 'update';
-        if (isUpdate) {
-          // if user has modified isDefault, go to restore path
-          if (!Object.is(e.isDefault, cloudRecord.isDefault)) {
+        if (isUpdate || cloudRecord.isDefault) {
+          // if user has modified isDefault or is trying to modify a default acl, go to restore path
+          if (cloudRecord.isDefault || !Object.is(e.isDefault, cloudRecord.isDefault)) {
             cloudRecord.id = e.id;
             await this.module.networkAcl.db.update(cloudRecord, ctx);
             out.push(cloudRecord);
@@ -149,17 +163,21 @@ export class NetworkAclMapper extends MapperBase<NetworkAcl> {
           }
 
           let update = false;
-          if (
-            !(
-              Object.is(cloudRecord.entries?.length, e.entries?.length) &&
-              !!cloudRecord.entries?.every((crrt: any) => !!e.entries?.find(ert => Object.is(crrt, ert)))
-            )
-          ) {
-            // remove all rules and recreate them
-            for (const cloudRule of cloudRecord.entries ?? [])
-              await this.deleteNetworkAclEntry(client.ec2client, cloudRule);
-            for (const entityRule of e.entries ?? [])
-              await this.createNetworkAclEntry(client.ec2client, entityRule);
+          if (!isEqual(cloudRecord.entries, e.entries)) {
+            // remove all non-default rules and recreate them
+            for (const cloudRule of cloudRecord.entries ?? []) {
+              if (!cloudRule.RuleNumber || cloudRule.RuleNumber > 32766) continue;
+              await this.deleteNetworkAclEntry(client.ec2client, {
+                NetworkAclId: e.networkAclId,
+                Egress: cloudRule.Egress,
+                RuleNumber: cloudRule.RuleNumber,
+              });
+            }
+            for (const entityRule of e.entries ?? []) {
+              if (!entityRule.RuleNumber || entityRule.RuleNumber > 32766) continue;
+              const input = { ...entityRule, NetworkAclId: e.networkAclId ?? '' };
+              await this.createNetworkAclEntry(client.ec2client, input);
+            }
             update = true;
           }
           if (!eqTags(cloudRecord.tags, e.tags)) {
@@ -188,6 +206,12 @@ export class NetworkAclMapper extends MapperBase<NetworkAcl> {
     },
     delete: async (es: NetworkAcl[], ctx: Context) => {
       for (const e of es) {
+        // if user tried to delete a default network acl, we need to restore it
+        if (e.isDefault) {
+          const out = await this.db.create(e, ctx);
+          if (!out || out instanceof Array) return out;
+          return [out];
+        }
         const client = (await ctx.getAwsClient(e.region)) as AWS;
         await this.deleteNetworkAcl(client.ec2client, e.networkAclId ?? '');
       }
