@@ -179,9 +179,8 @@ db.post('/rpc', async (req: Request, res: Response) => {
       try {
         const recordCount = await iasql.getDbRecCount(conn);
         await MetadataRepo.updateRecordCount(dbId, recordCount);
-        // list is called by us and has no dbAlias so ignore
-        // log RPC calls outside iasql functions which have their own telemetry
-        if (uid && modulename !== 'iasqlFunctions')
+        // If the user is not the default user, log the RPC call
+        if (uid && dbUser !== config.db.user) {
           telemetry.logRpc(
             uid,
             modulename,
@@ -199,6 +198,7 @@ db.post('/rpc', async (req: Request, res: Response) => {
               error,
             },
           );
+        }
       } catch (e: any) {
         logger.error('could not log op event', e);
       } finally {
