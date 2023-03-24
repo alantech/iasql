@@ -687,6 +687,14 @@ export async function commit(
         applyErr = e;
       }
     }
+    let revertErr;
+    if (applyErr) {
+      try {
+        await revert(dbId, context, installedModulesSorted, crupdes, currentTransactionId);
+      } catch (e) {
+        revertErr = e;
+      }
+    }
     let syncRes, syncErr;
     try {
       logger.scope({ dbId }).debug('Starting sync phase for all modules');
@@ -695,16 +703,10 @@ export async function commit(
       logger.scope({ dbId }).warn(`Something failed during sync phase for all modules\n${e}`);
       syncErr = e;
     }
-    if (applyErr || syncErr) {
-      let rollbackErr;
-      try {
-        await revert(dbId, context, installedModulesSorted, crupdes, currentTransactionId);
-      } catch (e) {
-        rollbackErr = e;
-      }
-      const errMessage = mergeErrorMessages([rollbackErr, syncErr, applyErr]);
+    if (syncErr || revertErr || applyErr) {
+      const errMessage = mergeErrorMessages([syncErr, revertErr, applyErr]);
       const err: any | Error =
-        applyErr ?? syncErr ?? rollbackErr ?? new Error(`Something went wrong. ${errMessage}`);
+        syncErr ?? revertErr ?? applyErr ?? new Error(`Something went wrong. ${errMessage}`);
       err.message = errMessage;
       throw err;
     }
