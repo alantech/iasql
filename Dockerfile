@@ -35,9 +35,9 @@ RUN apt install build-essential git make g++ postgresql-server-dev-14 libcurl4-o
 FROM build AS pgsql-stage
 WORKDIR /
 
-RUN git clone --depth 1 https://github.com/pramsey/pgsql-http
+RUN git clone --branch v1.5.0 --depth 1 https://github.com/pramsey/pgsql-http
 RUN cd pgsql-http && make && make install
-RUN git clone --branch v1.5.0 --depth 1 https://github.com/citusdata/pg_cron
+RUN git clone --branch v1.5.1 --depth 1 https://github.com/citusdata/pg_cron
 RUN cd pg_cron && make && make install
 
 #####################################################################################################################################################
