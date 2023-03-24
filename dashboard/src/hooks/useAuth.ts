@@ -20,8 +20,9 @@ export function useAuth() {
     }
     // auth path
     const { audience, scope } = config?.auth?.authorizationParams;
-    if (!isAuthenticated && !isLoading)
+    if (!isAuthenticated && !isLoading) {
       return void loginWithRedirect({ redirectUri: window.location.href } as any);
+    }
     if (isAuthenticated && !token) {
       getAccessTokenSilently({
         audience,
