@@ -12,7 +12,7 @@ RUN ["bash", "-c", "curl https://www.postgresql.org/media/keys/ACCC4CF8.asc | gp
 RUN ["bash", "-c", "echo 'deb http://apt.postgresql.org/pub/repos/apt/ bullseye-pgdg main' > /etc/apt/sources.list.d/postgresql.list"]
 RUN apt update
 RUN apt upgrade -y
-RUN apt install --no-install-recommends postgresql-client-14 postgresql-14 postgresql-14-cron -y \
+RUN apt install --no-install-recommends postgresql-client-14 postgresql-14 -y \
   && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Delete unnecessary cache files
@@ -29,12 +29,14 @@ RUN apt install build-essential git make g++ postgresql-server-dev-14 libcurl4-o
 
 #####################################################################################################################################################
 
-# pgsql-http
+# pgsql-http and pg_cron
 FROM build AS pgsql-stage
 WORKDIR /
 
-RUN git clone --depth 1 https://github.com/pramsey/pgsql-http
+RUN git clone --branch v1.5.0 --depth 1 https://github.com/pramsey/pgsql-http
 RUN cd pgsql-http && make && make install
+RUN git clone --branch v1.4.2 --depth 1 https://github.com/citusdata/pg_cron
+RUN cd pg_cron && make && make install
 
 #####################################################################################################################################################
 
