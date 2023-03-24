@@ -1,7 +1,5 @@
 # Base run image
-# FROM node:lts-bullseye-slim AS base
-# Try via a pinned release
-FROM node@sha256:7d67f2765f8d1b13f3833001bebbc6513581ef3f300aa4b1019a0b6dff2c0b25 AS base
+FROM node:lts-bullseye-slim AS base
 
 ## Install OS Packages
 RUN apt update

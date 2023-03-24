@@ -49,21 +49,9 @@ fi
 
 service postgresql start
 
-timeout -s TERM 360 bash -c \
-  'until pg_isready; do \
-    cat /var/log/postgresql/postgresql-14-main.log;\
-    sleep 5;\
-  done'
-
 su - postgres -c "psql -c \"ALTER ROLE postgres WITH password '$(node ./dist/scripts/from-config.js db.password)'\""
 
 service postgresql restart
-
-timeout -s TERM 360 bash -c \
-  'until pg_isready; do \
-    cat /var/log/postgresql/postgresql-14-main.log;\
-    sleep 5;\
-  done'
 
 su - postgres -c "echo \"SELECT 'CREATE DATABASE iasql_metadata' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'iasql_metadata')\gexec\" | psql"
 su - postgres -c "psql iasql_metadata -c \"CREATE EXTENSION IF NOT EXISTS pg_cron;\""
