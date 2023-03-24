@@ -23,6 +23,10 @@ const s3CallerReference = `s3-${prefix}-caller`;
 const originId = `${prefix}-origin-id`;
 const s3OriginId = `${prefix}-s3-origin-id`;
 const bucket = `${prefix}-bucket`;
+const s3OriginId2 = `${prefix}-s3-origin-id-2`;
+const bucket2 = `${prefix}-bucket-2`;
+const s3OriginId3 = `${prefix}-s3-origin-id-3`;
+const bucket3 = `${prefix}-bucket-3`;
 const domainName = `${prefix}${dbAlias}.com`;
 const [key, cert] = getKeyCertPair(domainName);
 
@@ -45,6 +49,22 @@ const s3Origins = [
     DomainName: `${bucket}.s3.amazonaws.com`,
     Id: s3OriginId,
     S3OriginConfig: { OriginAccessIdentity: '' },
+    ConnectionAttempts: 3,
+    ConnectionTimeout: 10,
+  },
+  {
+    DomainName: `${bucket2}.s3.amazonaws.com`,
+    Id: s3OriginId2,
+    S3OriginConfig: { OriginAccessIdentity: '' },
+    ConnectionAttempts: 3,
+    ConnectionTimeout: 10,
+  },
+  {
+    DomainName: `${bucket3}.s3.amazonaws.com`,
+    Id: s3OriginId3,
+    S3OriginConfig: { OriginAccessIdentity: '' },
+    ConnectionAttempts: 3,
+    ConnectionTimeout: 10,
   },
 ];
 const s3OriginsString = JSON.stringify(s3Origins);
@@ -135,7 +155,10 @@ describe('Cloudfront Integration Testing', () => {
     'creates a dummy s3 resource',
     query(
       `
-    INSERT INTO bucket (name) VALUES ('${bucket}')`,
+        INSERT INTO bucket (name) VALUES ('${bucket}')
+        INSERT INTO bucket (name) VALUES ('${bucket2}')
+        INSERT INTO bucket (name) VALUES ('${bucket3}')
+      `,
       undefined,
       true,
       () => ({ username, password }),
@@ -372,6 +395,8 @@ describe('Cloudfront Integration Testing', () => {
     query(
       `
     DELETE FROM bucket WHERE name = '${bucket}';
+    DELETE FROM bucket WHERE name = '${bucket2}';
+    DELETE FROM bucket WHERE name = '${bucket3}';
   `,
       undefined,
       true,
