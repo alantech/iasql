@@ -22,11 +22,12 @@ export function useAuth() {
     const { audience, scope } = config?.auth?.authorizationParams;
     if (!isAuthenticated && !isLoading)
       return void loginWithRedirect({ redirectUri: window.location.href } as any);
-    if (isAuthenticated && !token)
+    if (isAuthenticated && !token) {
       getAccessTokenSilently({
         audience,
         scope,
       } as any).then((accessToken: any) => setToken(accessToken));
+    }
     if (user && user.sub) {
       Sentry.identify(config, user.sub, user.email);
       Posthog.identify(config, user.sub);
