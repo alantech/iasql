@@ -20,13 +20,14 @@ export function useAuth() {
     }
     // auth path
     const { audience, scope } = config?.auth?.authorizationParams;
-    if (!isAuthenticated) {
-      if (!isLoading) return void loginWithRedirect({ redirectUri: window.location.href } as any);
-      if (!token)
-        getAccessTokenSilently({
-          audience,
-          scope,
-        } as any).then((accessToken: any) => setToken(accessToken));
+    if (!isAuthenticated && !isLoading) {
+      return void loginWithRedirect({ redirectUri: window.location.href } as any);
+    }
+    if (isAuthenticated && !token) {
+      getAccessTokenSilently({
+        audience,
+        scope,
+      } as any).then((accessToken: any) => setToken(accessToken));
     }
     if (user && user.sub) {
       Sentry.identify(config, user.sub, user.email);
