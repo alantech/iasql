@@ -1,4 +1,9 @@
-import { EC2, Subnet as AwsSubnet, paginateDescribeSubnets } from '@aws-sdk/client-ec2';
+import {
+  EC2,
+  Subnet as AwsSubnet,
+  paginateDescribeSubnets,
+  NetworkAcl as AwsNetworkAcl,
+} from '@aws-sdk/client-ec2';
 
 import { AwsVpcModule } from '..';
 import { AWS, crudBuilder, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
@@ -11,7 +16,21 @@ export class SubnetMapper extends MapperBase<Subnet> {
   equals = (a: Subnet, b: Subnet) =>
     Object.is(a.cidrBlock, b.cidrBlock) &&
     Object.is(a?.availabilityZone?.name, b?.availabilityZone?.name) &&
-    Object.is(a?.vpc?.vpcId, b?.vpc?.vpcId);
+    Object.is(a?.vpc?.vpcId, b?.vpc?.vpcId) &&
+    Object.is(a.networkAcl?.networkAclId, b.networkAcl?.networkAclId);
+
+  getNetworkAclBySubnet = crudBuilderFormat<EC2, 'describeNetworkAcls', AwsNetworkAcl | undefined>(
+    'describeNetworkAcls',
+    subnetId => ({
+      Filters: [
+        {
+          Name: 'association.subnet-id',
+          Values: [subnetId],
+        },
+      ],
+    }),
+    res => res?.NetworkAcls?.pop(),
+  );
 
   async subnetMapper(sn: AwsSubnet, ctx: Context, region: string) {
     const out = new Subnet();
@@ -37,6 +56,24 @@ export class SubnetMapper extends MapperBase<Subnet> {
     out.ownerId = sn.OwnerId;
     out.subnetArn = sn.SubnetArn;
     out.region = region;
+
+    // retrieve the acls
+    const client = (await ctx.getAwsClient(region)) as AWS;
+    const networkAcl = await this.getNetworkAclBySubnet(client.ec2client, sn.SubnetId);
+    for (const association of networkAcl?.Associations ?? []) {
+      if (association.SubnetId == sn.SubnetId && association.NetworkAclId) {
+        out.networkAcl =
+          (await this.module.networkAcl.db.read(
+            ctx,
+            this.module.networkAcl.generateId({ networkAclId: association.NetworkAclId, region }),
+          )) ??
+          (await this.module.networkAcl.cloud.read(
+            ctx,
+            this.module.networkAcl.generateId({ networkAclId: association.NetworkAclId, region }),
+          ));
+        break;
+      }
+    }
     return out;
   }
 
@@ -48,6 +85,10 @@ export class SubnetMapper extends MapperBase<Subnet> {
   );
   getSubnets = paginateBuilder<EC2>(paginateDescribeSubnets, 'Subnets');
   deleteSubnet = crudBuilder<EC2, 'deleteSubnet'>('deleteSubnet', input => input);
+  replaceNetworkAclAssociation = crudBuilder<EC2, 'replaceNetworkAclAssociation'>(
+    'replaceNetworkAclAssociation',
+    input => input,
+  );
 
   cloud: Crud<Subnet> = new Crud({
     create: async (es: Subnet[], ctx: Context) => {
@@ -55,6 +96,7 @@ export class SubnetMapper extends MapperBase<Subnet> {
       // constraint that a single subnet is set as default)
       const out = [];
       for (const e of es) {
+        const region = e.region;
         const client = (await ctx.getAwsClient(e.region)) as AWS;
         const input: any = {
           AvailabilityZone: e.availabilityZone.name,
@@ -63,11 +105,39 @@ export class SubnetMapper extends MapperBase<Subnet> {
         if (e.cidrBlock) input.CidrBlock = e.cidrBlock;
         const res = await this.createSubnet(client.ec2client, input);
         if (!res?.Subnet) continue;
+
         const rawSubnet = await this.getSubnet(client.ec2client, res.Subnet.SubnetId);
         if (!rawSubnet) continue;
+
         const newSubnet = await this.subnetMapper(rawSubnet, ctx, e.region);
         if (!newSubnet) continue;
         newSubnet.id = e.id;
+
+        // retrieve the current association for acl and check if that's different
+        if (e.networkAcl?.networkAclId) {
+          const networkAcl = await this.getNetworkAclBySubnet(client.ec2client, newSubnet.subnetId);
+          for (const association of networkAcl?.Associations ?? []) {
+            if (association.SubnetId == newSubnet.subnetId && association.NetworkAclId) {
+              if (association.NetworkAclId != newSubnet.networkAcl?.networkAclId) {
+                // trigger a replacement
+                await this.replaceNetworkAclAssociation(client.ec2client, {
+                  AssociationId: association.NetworkAclAssociationId,
+                  NetworkAclId: e.networkAcl?.networkAclId,
+                });
+                newSubnet.networkAcl =
+                  (await this.module.networkAcl.db.read(
+                    ctx,
+                    this.module.networkAcl.generateId({ networkAclId: e.networkAcl?.networkAclId, region }),
+                  )) ??
+                  (await this.module.networkAcl.cloud.read(
+                    ctx,
+                    this.module.networkAcl.generateId({ networkAclId: e.networkAcl.networkAclId, region }),
+                  ));
+              }
+              break;
+            }
+          }
+        }
         await this.module.subnet.db.update(newSubnet, ctx);
         out.push(newSubnet);
       }
@@ -105,6 +175,26 @@ export class SubnetMapper extends MapperBase<Subnet> {
         const cloudRecord =
           ctx?.memo?.cloud?.Subnet?.[this.entityId(e)] ??
           (await this.module.subnet.cloud.read(ctx, this.entityId(e)));
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
+
+        // if acl changed we can replace it
+        if (e.networkAcl?.networkAclId !== cloudRecord?.networkAcl?.networkAclId) {
+          const networkAcl = await this.getNetworkAclBySubnet(
+            client.ec2client,
+            cloudRecord.networkAcl?.networkAclId,
+          );
+          for (const association of networkAcl?.Associations ?? []) {
+            if (association.SubnetId == cloudRecord.subnetId && association.NetworkAclId) {
+              // trigger a replacement
+              await this.replaceNetworkAclAssociation(client.ec2client, {
+                AssociationId: association.NetworkAclAssociationId,
+                NetworkAclId: e.networkAcl?.networkAclId,
+              });
+              break;
+            }
+          }
+        }
+
         if (cloudRecord?.vpc?.vpcId !== e.vpc?.vpcId) {
           // If vpc changes we need to take into account the one from the `cloudRecord` since it will be the most updated one
           e.vpc = cloudRecord.vpc;

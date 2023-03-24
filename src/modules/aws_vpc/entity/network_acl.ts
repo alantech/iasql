@@ -1,4 +1,4 @@
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, Unique } from 'typeorm';
 
 import { NetworkAclEntry } from '@aws-sdk/client-ec2';
 
@@ -6,6 +6,8 @@ import { cloudId } from '../../../services/cloud-id';
 import { AwsRegions } from '../../aws_account/entity';
 import { Vpc } from './vpc';
 
+@Unique('uq_acl_id_region', ['id', 'region'])
+@Unique('uq_network_acl_id_region', ['networkAclId', 'region'])
 @Entity()
 export class NetworkAcl {
   /**
