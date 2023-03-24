@@ -129,8 +129,8 @@ describe('OpenSearch Integration Testing', () => {
       (res: any[]) => {
         expect(res.length).toBe(1);
 
-        const headers = new Headers();
-        headers.set('Authorization', 'Basic ' + Buffer.from('admin:' + initialPassword).toString('base64'));
+        const headers: Record<string, string> = {};
+        headers.Authorization = 'Basic ' + Buffer.from('admin:' + initialPassword).toString('base64');
         fetch('https://' + res[0].endpoint, {
           method: 'GET',
           headers,
@@ -139,7 +139,7 @@ describe('OpenSearch Integration Testing', () => {
           .then(r => expect(r.version.number).toBe('2.3.0'));
 
         // should not respond with wrong password
-        headers.set('Authorization', 'Basic ' + Buffer.from('admin:wrongpass').toString('base64'));
+        headers.Authorization = 'Basic ' + Buffer.from('admin:wrongpass').toString('base64');
         fetch('https://' + res[0].endpoint, {
           method: 'GET',
           headers,
@@ -176,8 +176,8 @@ describe('OpenSearch Integration Testing', () => {
       (res: any[]) => {
         expect(res.length).toBe(1);
 
-        const headers = new Headers();
-        headers.set('Authorization', 'Basic ' + Buffer.from('admin:' + secondPassword).toString('base64'));
+        const headers: Record<string, string> = {};
+        headers.Authorization = 'Basic ' + Buffer.from('admin:' + secondPassword).toString('base64');
         fetch('https://' + res[0].endpoint, {
           method: 'GET',
           headers,
