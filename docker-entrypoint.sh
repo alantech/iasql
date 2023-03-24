@@ -51,6 +51,7 @@ service postgresql start
 
 timeout -s TERM 360 bash -c \
   'until pg_isready; do \
+    cat /var/log/postgresql/postgresql-14-main.log;\
     sleep 5;\
   done'
 
