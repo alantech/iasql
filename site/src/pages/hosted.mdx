@@ -16,15 +16,15 @@ export const Tooltip = ({children, summary, details}) => {
 };
 
 <h1 style={{ textAlign: 'center'}}>Hosted IaSQL with simple, transparent pricing</h1>
-<p style={{ textAlign: 'center', marginBottom: '3rem', fontSize: '1.3rem'}}>Pay based on the amount of records across all the hosted PostgreSQL databases</p>
+<p style={{ textAlign: 'center', marginBottom: '3rem', fontSize: '1.3rem'}}>Pay based on the maximum amount of records in the hosted PostgreSQL databases</p>
 
 <div style={{ marginBottom: '4rem'}}>
 
 |         | Starter | Business | Enterprise |
 | :------ | :-----: | :------: | :--------: |
-|  | <div style={{ fontSize: '1.5rem' }}>Free</div> | <div style={{ fontSize: '1.5rem' }}>$100/mo</div>  | <div style={{ fontSize: '1.5rem' }}>Contact us</div> |
+|  | <div style={{ fontSize: '1.5rem' }}>$50/mo</div> | <div style={{ fontSize: '1.5rem' }}>Contact us</div>  | <div style={{ fontSize: '1.5rem' }}>Contact us</div> |
 | <Tooltip summary='Databases' details='The total amount of databases connected to a cloud account.'/> | Unlimited  | Unlimited   | Unlimited |
-| <Tooltip summary='Database Records' details='The total amount of records in the public schema across all databases. A database record roughly maps to a cloud resource.'/> | 500  | 5000   | Unlimited |
+| <Tooltip summary='Database Records' details='The total amount of records in the public schema per database. A database record roughly maps to a cloud resource.'/> | 1k  | 10k | Unlimited |
 | <Tooltip summary='Import existing infrastructure' details='Automatically backfills the database with existing cloud resources.'/> | &check;  | &check; | &check; |
 | <Tooltip summary='Automatic database backups' details='Periodic database snapshots that can be used to restore infrastructure.'/> | --  | &check; | &check; |
 | <Tooltip summary='Granular access control' details='Determine which team members have access to which tables or cloud resources.'/> | --  | -- | &check; |

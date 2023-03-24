@@ -4,6 +4,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import pg from 'pg';
 import format from 'pg-format';
 import { parse, deparse } from 'pgsql-parser';
+import Stripe from 'stripe';
 import { DataSource } from 'typeorm';
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
 import { v4 as uuidv4 } from 'uuid';
@@ -11,6 +12,21 @@ import { v4 as uuidv4 } from 'uuid';
 import { throwError } from '@/config/config';
 import config from '@/server-config';
 import { createLogger } from '@logdna/logger';
+
+const stripe = config.stripe ? new Stripe(config.stripe?.secretKey, { apiVersion: '2022-11-15' }) : undefined;
+
+export async function isCustomer(uid: string): Promise<boolean> {
+  // always return true if stripe is not setup
+  if (stripe === undefined) return true;
+  let isCustomer = false;
+  for await (const session of stripe.checkout.sessions.list()) {
+    if (!!session.customer && session.status === 'complete' && session.client_reference_id === uid) {
+      isCustomer = true;
+      break;
+    }
+  }
+  return isCustomer;
+}
 
 export function isString(obj: unknown): obj is string {
   return typeof obj === 'string';
@@ -283,6 +299,12 @@ async function run(req: NextApiRequest, res: NextApiResponse) {
         const tokenInfo = await validateToken(token);
         const { dbAlias, sql } = req.body;
         const { username, password } = await getUserAndPassword(tokenInfo, dbAlias);
+        const isCust = await isCustomer(username);
+        if (!isCust)
+          res.status(403).json({
+            error: 'User is not a stripe customer',
+            paymentLink: `${config.stripe?.paymentLink}?client_reference_id=${encodeURI(username)}`,
+          });
         const out = await runSql(sql, dbAlias, username, password, res);
         return out;
       })(),

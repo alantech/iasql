@@ -16,6 +16,10 @@ const staging: ConfigInterface = {
   logDna: {
     key: 'b98181227b606d8ee6c5674b5bb948e7',
   },
+  stripe: {
+    secretKey: process.env.STRIPE_SECRET_KEY ?? throwError('No Stripe Secret Key defined'),
+    paymentLink: 'https://buy.stripe.com/test_bIY3fy7X4bzz4Io000',
+  },
 };
 
 export default staging;
