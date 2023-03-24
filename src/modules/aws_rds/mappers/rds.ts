@@ -430,12 +430,14 @@ export class RdsMapper extends MapperBase<RDS> {
       for (const e of es) {
         // if instance has an associated cluster we do not delete it
         if (e.dbCluster) {
+          // if RDS has been deleted in cascade for an incorrect cluster, throw an error
+          if (e.dbCluster.deletionProtection) throw new Error('Cannot delete a cluster with deletion protection');
           // check if it exists in the db, or has been deleted due to cascade
           const dbId = this.module.dbCluster.entityId(e.dbCluster);
           delete ctx?.memo?.db?.dbCluster?.[dbId];
           const cluster = await this.module.dbCluster.db.read(ctx, dbId);
-          // database can only be removed if there is no cluster, or cluster is not protected
-          if (!cluster || !e.dbCluster.deletionProtection) {
+          // database can only be removed if there is no cluster
+          if (!cluster) {
             // remove instance from the memo as well to avoid sync issues
             delete ctx?.memo?.cloud?.RDS?.[this.entityId(e)];
             delete ctx?.memo?.db?.RDS?.[this.entityId(e)];
