@@ -300,6 +300,7 @@ async function run(req: NextApiRequest, res: NextApiResponse) {
         const { dbAlias, sql } = req.body;
         const { username, password } = await getUserAndPassword(tokenInfo, dbAlias);
         const isCust = await isCustomer(username);
+        console.log(`${config.stripe?.paymentLink}?client_reference_id=${username}`)
         if (!isCust)
           res.status(403).json({
             error: 'User is not a stripe customer',
