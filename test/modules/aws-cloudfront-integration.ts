@@ -155,9 +155,9 @@ describe('Cloudfront Integration Testing', () => {
     'creates a dummy s3 resource',
     query(
       `
-        INSERT INTO bucket (name) VALUES ('${bucket}')
-        INSERT INTO bucket (name) VALUES ('${bucket2}')
-        INSERT INTO bucket (name) VALUES ('${bucket3}')
+        INSERT INTO bucket (name) VALUES ('${bucket}');
+        INSERT INTO bucket (name) VALUES ('${bucket2}');
+        INSERT INTO bucket (name) VALUES ('${bucket3}');
       `,
       undefined,
       true,
