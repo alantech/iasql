@@ -434,7 +434,8 @@ export class RdsMapper extends MapperBase<RDS> {
           const dbId = this.module.dbCluster.entityId(e.dbCluster);
           delete ctx?.memo?.db?.dbCluster?.[dbId];
           const cluster = await this.module.dbCluster.db.read(ctx, dbId);
-          if (!cluster) {
+          // database can only be removed if there is no cluster, or cluster is not protected
+          if (!cluster || !cluster.deletionProtection) {
             // remove instance from the memo as well to avoid sync issues
             delete ctx?.memo?.cloud?.RDS?.[this.entityId(e)];
             delete ctx?.memo?.db?.RDS?.[this.entityId(e)];
