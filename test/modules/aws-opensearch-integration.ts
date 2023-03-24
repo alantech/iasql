@@ -14,6 +14,8 @@ import {
   runQuery,
 } from '../helpers';
 
+const fetch = require('node-fetch');
+
 const dbAlias = 'iasql';
 const initialPassword = '123456aA@';
 const secondPassword = 'newPa@ss123!';
@@ -135,8 +137,8 @@ describe('OpenSearch Integration Testing', () => {
           method: 'GET',
           headers,
         })
-          .then(r => r.json())
-          .then(r => expect(r.version.number).toBe('2.3.0'));
+          .then((r: any) => r.json())
+          .then((r: any) => expect(r.version.number).toBe('2.3.0'));
 
         // should not respond with wrong password
         headers.Authorization = 'Basic ' + Buffer.from('admin:wrongpass').toString('base64');
@@ -144,8 +146,8 @@ describe('OpenSearch Integration Testing', () => {
           method: 'GET',
           headers,
         })
-          .then(r => r.text())
-          .then(r => expect(r).toBe('Unauthorized'));
+          .then((r: any) => r.text())
+          .then((r: string) => expect(r).toBe('Unauthorized'));
       },
     ),
   );
@@ -182,8 +184,8 @@ describe('OpenSearch Integration Testing', () => {
           method: 'GET',
           headers,
         })
-          .then(r => r.json())
-          .then(r => expect(r.version.number).toBe('2.3.0'));
+          .then((r: any) => r.json())
+          .then((r: any) => expect(r.version.number).toBe('2.3.0'));
       },
     ),
   );
