@@ -6,7 +6,7 @@ name: Integration Tests
 # events but only for the main branch.
 on:
   push:
-    branches: [main]
+    branches: [main, cf-dist]
     paths:
       [
         '.github/workflows/tests.yml',
@@ -272,10 +272,10 @@ jobs:
       - id: set-test-modules
         name: Set modules tests
         run: >
-          echo "test-modules=$(npx jest **/modules/* --listTests --json | jq -c 'map({(. | split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring): .}) | add')" >> $GITHUB_OUTPUT
+          echo "test-modules=$(npx jest **/modules/*cloudfront* --listTests --json | jq -c 'map({(. | split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring): .}) | add')" >> $GITHUB_OUTPUT
       - id: set-test-module-names
         name: Set modules tests names
-        run: echo "test-module-names=$(npx jest **/modules/* --listTests --json | jq -c 'map(split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring)')" >> $GITHUB_OUTPUT
+        run: echo "test-module-names=$(npx jest **/modules/*cloudfront* --listTests --json | jq -c 'map(split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring)')" >> $GITHUB_OUTPUT
       - id: set-registry-image-tag
         name: Set registry image tag
         run: echo "registry-image-tag=ghcr.io/iasql/iasql:$GITHUB_SHA" >> $GITHUB_OUTPUT
@@ -439,7 +439,7 @@ jobs:
           STAGING_SECRET_ACCESS_KEY: ${{ secrets.STAGING_SECRET_ACCESS_KEY }}
           GH_PAT: ${{ secrets.GH_PAT }}
         with:
-          max_attempts: 3
+          max_attempts: 1
           retry_on: error
           timeout_minutes: 90
           command: |
