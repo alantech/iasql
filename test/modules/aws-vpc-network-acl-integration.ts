@@ -301,8 +301,9 @@ describe('VPC Network ACL Integration Testing', () => {
     ),
   );
 
-  it('delete subnet', begin());
-
+  it('applies delete subnet', commit());
+  
+  it('updates ACL entries', begin());
   it(
     'updates ACL entries',
     query(
