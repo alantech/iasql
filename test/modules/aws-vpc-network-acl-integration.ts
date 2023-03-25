@@ -157,7 +157,7 @@ describe('VPC Network ACL Integration Testing', () => {
     query(
       `  
     INSERT INTO network_acl (is_default, vpc_id, entries, tags)
-    VALUES (TRUE, (SELECT id FROM vpc WHERE  tags ->> 'name' = '${prefix}-1'), '[]', '{"name":"${prefix}-2"}');
+    VALUES (TRUE, (SELECT id FROM vpc WHERE  tags ->> 'name' = '${prefix}-1'), '[]', '{"name":"${prefix}-3"}');
   `,
       undefined,
       true,
@@ -171,13 +171,137 @@ describe('VPC Network ACL Integration Testing', () => {
     'confirms that network ACL has not been created',
     query(
       `
-    SELECT * FROM network_acl WHERE tags ->> 'name' = '${prefix}-2';
+    SELECT * FROM network_acl WHERE tags ->> 'name' = '${prefix}-3';
   `,
       (res: any[]) => expect(res.length).toBe(0),
     ),
   );
 
-  it('updates ACL entries', begin());
+  it('starts a transaction', begin());
+
+  itDocs(
+    'adds a subnet',
+    query(
+      `
+    INSERT INTO subnet (availability_zone, vpc_id, cidr_block, network_acl_id)
+    SELECT (SELECT name FROM availability_zone WHERE region = '${region}' LIMIT 1), id, '192.${randIPBlock}.0.0/16',
+    (SELECT id FROM network_acl WHERE  tags ->> 'name' = '${prefix}-1')
+    FROM vpc
+    WHERE is_default = false
+    AND cidr_block = '192.${randIPBlock}.0.0/16';
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it('applies the subnet change', commit());
+
+  it(
+    'confirms that subnet has been created with the proper network ACL',
+    query(
+      `
+    SELECT * FROM subnet WHERE vpc_id=(SELECT id FROM vpc WHERE tags ->>'name' = '${prefix}-1') AND
+    cidr_block = '192.${randIPBlock}.0.0/16' AND
+    network_acl_id = (SELECT id FROM network_acl WHERE  tags ->> 'name' = '${prefix}-1');
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it('creates a second network ACL', begin());
+
+  itDocs(
+    'adds a new network ACL',
+    query(
+      `  
+    INSERT INTO network_acl (vpc_id, entries, tags)
+    VALUES ((SELECT id FROM vpc WHERE  tags ->> 'name' = '${prefix}-1'), '[]', '{"name":"${prefix}-2"}');
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it('applies the ACL change', commit());
+
+  it('starts a transaction', begin());
+
+  it(
+    'updates subnet to remove acl',
+    query(
+      `
+      UPDATE subnet SET network_acl_id = NULL WHERE vpc_id=(SELECT id FROM vpc WHERE tags ->>'name' = '${prefix}-1') AND
+      cidr_block = '192.${randIPBlock}.0.0/16';
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+  it('applies the subnet change', commit());
+
+  it(
+    'confirms that subnet ACL has not been replaced',
+    query(
+      `
+    SELECT * FROM subnet WHERE vpc_id=(SELECT id FROM vpc WHERE tags ->>'name' = '${prefix}-1') AND
+    cidr_block = '192.${randIPBlock}.0.0/16' AND network_acl_id=(SELECT id FROM network_acl WHERE  tags ->> 'name' = '${prefix}-1');
+  `,
+      (res: any[]) => {
+        console.log(res);
+        expect(res.length).toBe(1);
+      },
+    ),
+  );
+
+  it('starts a transaction', begin());
+
+  itDocs(
+    'updates subnet to use a different acl',
+    query(
+      `
+      UPDATE subnet SET network_acl_id = (SELECT id FROM network_acl WHERE tags ->> 'name' = '${prefix}-2') WHERE vpc_id=(SELECT id FROM vpc WHERE tags ->>'name' = '${prefix}-1') AND
+      cidr_block = '192.${randIPBlock}.0.0/16';
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+  it('applies the subnet change', commit());
+
+  it(
+    'confirms that subnet ACL has been replaced',
+    query(
+      `
+    SELECT * FROM subnet WHERE vpc_id=(SELECT id FROM vpc WHERE tags ->>'name' = '${prefix}-2') AND
+    cidr_block = '192.${randIPBlock}.0.0/16' AND network_acl_id=(SELECT id FROM network_acl WHERE  tags ->> 'name' = '${prefix}-1');
+  `,
+      (res: any[]) => {
+        console.log(res);
+        expect(res.length).toBe(1);
+      },
+    ),
+  );
+
+  it('deletes subnet', begin());
+
+  it(
+    'deletes subnet',
+    query(
+      `  
+    DELETE FROM subnet WHERE vpc_id=(SELECT id FROM vpc WHERE tags ->>'name' = '${prefix}-1') AND cidr_block = '192.${randIPBlock}.0.0/16';
+  `,
+      undefined,
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it('delete subnet', begin());
 
   it(
     'updates ACL entries',
@@ -217,7 +341,7 @@ describe('VPC Network ACL Integration Testing', () => {
     'updates ACL tags',
     query(
       `  
-    UPDATE network_acl SET tags = '{"name":"${prefix}-2"}' WHERE  tags ->> 'name' = '${prefix}-1';
+    UPDATE network_acl SET tags = '{"name":"${prefix}-3"}' WHERE  tags ->> 'name' = '${prefix}-1';
   `,
       undefined,
       true,
@@ -231,20 +355,20 @@ describe('VPC Network ACL Integration Testing', () => {
     'confirms that network ACL tags have been modified',
     query(
       `
-    SELECT * FROM network_acl WHERE tags ->> 'name' = '${prefix}-2';
+    SELECT * FROM network_acl WHERE tags ->> 'name' = '${prefix}-3';
   `,
       (res: any[]) => {
         expect(res.length).toBe(1);
       },
     ),
   );
-  it('updates ACL tags', begin());
+  it('deletes network ACLs', begin());
 
   it(
-    'deletes network ACL',
+    'deletes network ACLs',
     query(
       `  
-    DELETE FROM network_acl WHERE tags ->> 'name' = '${prefix}-2';
+    DELETE FROM network_acl WHERE tags ->> 'name' = '${prefix}-2' OR tags ->> 'name' = '${prefix}-3';
   `,
       undefined,
       true,
@@ -258,7 +382,7 @@ describe('VPC Network ACL Integration Testing', () => {
     'confirms that network ACL tags have been removed',
     query(
       `
-    SELECT * FROM network_acl WHERE tags ->> 'name' = '${prefix}-2';
+    SELECT * FROM network_acl WHERE tags ->> 'name' = '${prefix}-2' OR tags ->> 'name' = '${prefix}-3';
   `,
       (res: any[]) => {
         expect(res.length).toBe(0);
@@ -290,6 +414,9 @@ describe('VPC Network ACL Integration Testing', () => {
     DELETE FROM security_group
     USING vpc
     WHERE vpc_id = vpc.id;
+
+    DELETE FROM subnet
+    USING vpc WHERE vpc_id = vpc.id;
 
     DELETE FROM vpc
     WHERE cidr_block = '191.${randIPBlock}.0.0/16';
