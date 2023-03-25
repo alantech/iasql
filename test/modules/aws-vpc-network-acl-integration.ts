@@ -277,8 +277,8 @@ describe('VPC Network ACL Integration Testing', () => {
     'confirms that subnet ACL has been replaced',
     query(
       `
-    SELECT * FROM subnet WHERE vpc_id=(SELECT id FROM vpc WHERE tags ->>'name' = '${prefix}-2') AND
-    cidr_block = '192.${randIPBlock}.0.0/16' AND network_acl_id=(SELECT id FROM network_acl WHERE  tags ->> 'name' = '${prefix}-1');
+    SELECT * FROM subnet WHERE vpc_id=(SELECT id FROM vpc WHERE tags ->>'name' = '${prefix}-1') AND
+    cidr_block = '192.${randIPBlock}.0.0/16' AND network_acl_id=(SELECT id FROM network_acl WHERE  tags ->> 'name' = '${prefix}-2');
   `,
       (res: any[]) => {
         console.log(res);
