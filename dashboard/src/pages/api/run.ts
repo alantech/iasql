@@ -300,11 +300,16 @@ async function run(req: NextApiRequest, res: NextApiResponse) {
         const { dbAlias, sql } = req.body;
         const { username, password } = await getUserAndPassword(tokenInfo, dbAlias);
         const isCust = await isCustomer(username);
-        if (!isCust)
+        if (!isCust) {
+          // https://stripe.com/docs/payment-links/url-parameters#streamline-reconciliation-with-a-url-parameter
+          // client_reference_id can be composed of alphanumeric characters, dashes, or underscores, and be any value up to 200 characters.
+          // Invalid values are silently dropped so the payment page continues to work as expected, but in our case it needs to work.
+          const uid = username.replace(/[^a-zA-Z 0-9 _ -]+/g,'');
           res.status(403).json({
             error: 'User is not a stripe customer',
-            paymentLink: `${config.stripe?.paymentLink}?client_reference_id=${encodeURI(username)}`,
+            paymentLink: `${config.stripe?.paymentLink}?client_reference_id=${uid}`,
           });
+        }
         const out = await runSql(sql, dbAlias, username, password, res);
         return out;
       })(),
