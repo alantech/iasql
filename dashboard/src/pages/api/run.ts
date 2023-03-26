@@ -20,7 +20,11 @@ export async function isCustomer(uid: string): Promise<boolean> {
   if (stripe === undefined) return true;
   let isCustomer = false;
   for await (const session of stripe.checkout.sessions.list()) {
-    if (!!session.customer && session.status === 'complete' && session.client_reference_id === conformUidToStripe(uid)) {
+    if (
+      !!session.customer &&
+      session.status === 'complete' &&
+      session.client_reference_id === conformUidToStripe(uid)
+    ) {
       isCustomer = true;
       break;
     }
@@ -57,7 +61,7 @@ function conformUidToStripe(uid: string) {
   // https://stripe.com/docs/payment-links/url-parameters#streamline-reconciliation-with-a-url-parameter
   // client_reference_id can be composed of alphanumeric characters, dashes, or underscores, and be any value up to 200 characters.
   // Invalid values are silently dropped so the payment page continues to work as expected, but in our case it needs to work.
-  return uid.replace(/[^a-zA-Z 0-9 _ -]+/g,'');
+  return uid.replace(/[^a-zA-Z 0-9 _ -]+/g, '');
 }
 
 function extractTokenFromHeader(e: NextApiRequest) {
