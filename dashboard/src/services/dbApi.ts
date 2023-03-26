@@ -27,7 +27,7 @@ async function redirectIfUnauthorized(response: any) {
   if (response.status === 403) {
     const obj = await response.json();
     console.dir(obj);
-    if (obj.paymentLink) window.location.href = obj.paymentLink;
+    //if (obj.paymentLink) window.location.href = obj.paymentLink;
   }
 }
 
