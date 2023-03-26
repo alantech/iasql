@@ -18,7 +18,7 @@ const staging: ConfigInterface = {
   },
   stripe: {
     secretKey: process.env.STRIPE_SECRET_KEY ?? throwError('No Stripe Secret Key defined'),
-    paymentLink: 'https://buy.stripe.com/test_bIY3fy7X4bzz4Io000',
+    paymentLink: 'https://buy.stripe.com/test_6oE8zSelsgTT0s8001',
   },
 };
 
