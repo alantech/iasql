@@ -150,7 +150,7 @@ export class Subnet {
    * @public
    * Reference to the network ACL associated to that subnet
    */
-  @ManyToOne(() => NetworkAcl, { nullable: true, eager: true, onDelete: 'CASCADE' })
+  @ManyToOne(() => NetworkAcl, { nullable: true, eager: true })
   @JoinColumn([
     {
       name: 'network_acl_id',
