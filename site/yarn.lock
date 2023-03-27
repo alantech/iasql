@@ -1728,10 +1728,10 @@
   resolved "https://registry.yarnpkg.com/@mdx-js/util/-/util-1.6.22.tgz#219dfd89ae5b97a8801f015323ffa4b62f45718b"
   integrity sha512-H1rQc1ZOHANWBvPcW+JpGwr+juXSxM8Q8YCkm3GhZd8REu1fHR3z99CErO1p9pkcfcxZnMdIZdIsXkOHY0NilA==
 
-"@mxssfd/typedoc-theme@^1.0.3":
-  version "1.0.3"
-  resolved "https://registry.yarnpkg.com/@mxssfd/typedoc-theme/-/typedoc-theme-1.0.3.tgz#3740a8d281a739a571ec5908d1283d74393dda68"
-  integrity sha512-xtgE5+Pe3Dk2NSqYyZKIz8Zi6/Mupps+nIFtfL7hFTN3vjXpvcFFevJg7DcCwD51q/tPy0VEivOhbfpCrocvsA==
+"@mxssfd/typedoc-theme@^1.0.4":
+  version "1.0.4"
+  resolved "https://registry.yarnpkg.com/@mxssfd/typedoc-theme/-/typedoc-theme-1.0.4.tgz#7fe85dde10030ff957e1e71d801e3fbb86bf27b6"
+  integrity sha512-TKXelI23Mjukf7Kwzw75ghZi5K6KaVCMBsH0czWv9ZzrS4UGf4ylroLbX/thbnbxakfrDwZDHTxyWX3JFcxpkQ==
 
 "@nodelib/fs.scandir@2.1.5":
   version "2.1.5"
