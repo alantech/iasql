@@ -17,7 +17,7 @@
   "dependencies": {
     "@docusaurus/core": "^2.3.1",
     "@docusaurus/preset-classic": "^2.3.1",
-    "@mxssfd/typedoc-theme": "^1.0.3",
+    "@mxssfd/typedoc-theme": "^1.0.4",
     "@svgr/webpack": "^6.5.1",
     "acorn-loose": "^8.3.0",
     "acorn-walk": "^8.2.0",
