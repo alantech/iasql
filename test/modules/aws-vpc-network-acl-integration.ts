@@ -302,7 +302,7 @@ describe('VPC Network ACL Integration Testing', () => {
   );
 
   it('applies delete subnet', commit());
-  
+
   it('updates ACL entries', begin());
   it(
     'updates ACL entries',
@@ -401,7 +401,7 @@ describe('VPC Network ACL Integration Testing', () => {
     WHERE security_group_id = (
       SELECT id
       FROM security_group
-      WHERE vpc_id = (
+      WHERE security_group.vpc_id = (
         SELECT id
         FROM vpc
         WHERE cidr_block = '191.${randIPBlock}.0.0/16' AND tags ->> 'name' = '${prefix}-2'
@@ -416,6 +416,11 @@ describe('VPC Network ACL Integration Testing', () => {
     USING vpc
     WHERE vpc_id = vpc.id;
 
+    WITH vpc as (
+      SELECT id
+      FROM vpc
+      WHERE cidr_block = '191.${randIPBlock}.0.0/16' AND tags ->> 'name' = '${prefix}-2'
+    )
     DELETE FROM subnet
     USING vpc WHERE vpc_id = vpc.id;
 

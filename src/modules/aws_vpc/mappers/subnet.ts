@@ -35,7 +35,7 @@ export class SubnetMapper extends MapperBase<Subnet> {
   async getAssociation(client: EC2, subnetId: string) {
     const networkAcl = await this.getNetworkAclBySubnet(client, subnetId);
     for (const association of networkAcl?.Associations ?? []) {
-      if (association.SubnetId == subnetId && association.NetworkAclId) return association;
+      if (association.SubnetId === subnetId && association.NetworkAclId) return association;
     }
     return undefined;
   }
@@ -123,21 +123,22 @@ export class SubnetMapper extends MapperBase<Subnet> {
           const association = await this.getAssociation(client.ec2client, newSubnet.subnetId);
           if (association && association.NetworkAclAssociationId) {
             // trigger a replacement
-            const input = {
+            const aclInput = {
               AssociationId: association.NetworkAclAssociationId,
               NetworkAclId: e.networkAcl?.networkAclId,
             };
-            await this.replaceNetworkAclAssociation(client.ec2client, input);
-
-            // read record again to get generated ACL
-            const rawSubnet1 = await this.getSubnet(client.ec2client, newSubnet.subnetId);
-            if (!rawSubnet1) continue;
-
-            newSubnet = await this.subnetMapper(rawSubnet1, ctx, e.region);
-            if (!newSubnet) continue;
-            newSubnet.id = e.id;
+            await this.replaceNetworkAclAssociation(client.ec2client, aclInput);
           }
         }
+
+        // read record again to get generated ACL
+        const rawSubnet1 = await this.getSubnet(client.ec2client, newSubnet.subnetId);
+        if (!rawSubnet1) continue;
+
+        newSubnet = await this.subnetMapper(rawSubnet1, ctx, e.region);
+        if (!newSubnet) continue;
+        newSubnet.id = e.id;
+
         await this.module.subnet.db.update(newSubnet, ctx);
         out.push(newSubnet);
       }
