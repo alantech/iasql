@@ -92,7 +92,7 @@
     "@aws-sdk/client-lambda": "^3.297.0",
     "@aws-sdk/client-memorydb": "^3.297.0",
     "@aws-sdk/client-rds": "^3.297.0",
-    "@aws-sdk/client-route-53": "^3.297.0",
+    "@aws-sdk/client-route-53": "^3.299.0",
     "@aws-sdk/client-s3": "^3.297.0",
     "@aws-sdk/client-secrets-manager": "^3.297.0",
     "@aws-sdk/client-sns": "^3.296.0",
