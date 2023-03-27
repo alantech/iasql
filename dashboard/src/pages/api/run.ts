@@ -15,9 +15,11 @@ import { createLogger } from '@logdna/logger';
 
 const stripe = config.stripe ? new Stripe(config.stripe?.secretKey, { apiVersion: '2022-11-15' }) : undefined;
 
-export async function isCustomer(uid: string): Promise<boolean> {
+export async function isCustomer(uid: string, email: string): Promise<boolean> {
   // always return true if stripe is not setup
   if (stripe === undefined) return true;
+  // ignore emails from whitelisted domains
+  if (config.stripe?.whitelistedDomains.some(d => email.endsWith(d))) return true;
   let isCustomer = false;
   for await (const session of stripe.checkout.sessions.list()) {
     if (
@@ -206,10 +208,10 @@ const numberCharset = Array(10)
 const passwordCharset = [...lowerCharset, ...upperCharset, ...numberCharset, ...'.^*'.split('')];
 const randChar = (a: string[]): string => a[Math.floor(Math.random() * a.length)];
 
-async function getUserAndPassword(
+async function getUserData(
   tokenInfo: JwtPayload,
   dbAlias: string,
-): Promise<{ username: string; password: string }> {
+): Promise<{ username: string; password: string; email: string }> {
   let username;
   let email;
   if (config?.auth) {
@@ -269,7 +271,7 @@ async function getUserAndPassword(
       maxTries--;
     } while (!success && maxTries);
   }
-  return { username, password };
+  return { username, password, email };
 }
 
 function until<T>(p: Promise<T>, timeout: number): Promise<T> {
@@ -309,8 +311,8 @@ async function run(req: NextApiRequest, res: NextApiResponse) {
         let token: string = extractTokenFromHeader(req) || '';
         const tokenInfo = await validateToken(token);
         const { dbAlias, sql } = req.body;
-        const { username, password } = await getUserAndPassword(tokenInfo, dbAlias);
-        const isCust = await isCustomer(username);
+        const { username, password, email } = await getUserData(tokenInfo, dbAlias);
+        const isCust = await isCustomer(username, email);
         if (!isCust) {
           res.status(403).json({
             error: 'User is not a stripe customer',
