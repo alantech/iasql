@@ -76,7 +76,7 @@ SQL immediately stands out here because it was designed for making [relational a
 
 ## SQL is the best option for Infrastructure Management
 
-There are negatives to representing your infrastructure as SQL, of course, as there is no perfect solution for all situations, but we believe IaSQL is a superset versus IaC in all but one category.
+There are negatives to representing your infrastructure as SQL, of course, as there is no perfect solution for all situations, but we believe [IaSQL](https://iasql.com) is a superset versus IaC in all but one category.
 
 - SQL is an old, irregular language to work with, but it is better known than HCL and we already have a Pulumi/CDK in the form of every ORM with introspection (like [Javascript's Prisma](https://www.prisma.io/docs/concepts/components/introspection), [Python's Django](https://docs.djangoproject.com/en/4.1/howto/legacy-databases/), [Go's XO](https://github.com/xo/xo) etc) and QueryBuilder ([LINQ](https://learn.microsoft.com/en-us/dotnet/csharp/programming-guide/concepts/linq/), [Knex](https://knexjs.org/), etc) in whatever programming language you prefer.
 - Peer review of changes is *different* versus IaC. [Migration tools](https://en.wikipedia.org/wiki/Schema_migration) *can* be used to approximate the IaC review process, with the CI system wrapping the migration SQL in an [IaSQL transaction](/docs/transaction) and previewing the operation, but since IaSQL transactions are intentionally *not* actual Postgres transactions, you can simply make the proposed infrastructure changes in the database within an uncommitted IaSQL transaction and allow your peers to inspect/review the database state and call the commit, with the audit log keeping track of the change history for you.
