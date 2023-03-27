@@ -1,6 +1,6 @@
 {
   "name": "docs",
-  "version": "0.1.7-beta",
+  "version": "0.1.7",
   "license": "AGPL-3.0-only",
   "scripts": {
     "docusaurus": "docusaurus",
