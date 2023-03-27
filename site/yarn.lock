@@ -1984,10 +1984,10 @@
   resolved "https://registry.yarnpkg.com/@mdx-js/util/-/util-1.6.22.tgz#219dfd89ae5b97a8801f015323ffa4b62f45718b"
   integrity sha512-H1rQc1ZOHANWBvPcW+JpGwr+juXSxM8Q8YCkm3GhZd8REu1fHR3z99CErO1p9pkcfcxZnMdIZdIsXkOHY0NilA==
 
-"@mxssfd/typedoc-theme@^1.0.4":
-  version "1.0.4"
-  resolved "https://registry.yarnpkg.com/@mxssfd/typedoc-theme/-/typedoc-theme-1.0.4.tgz#7fe85dde10030ff957e1e71d801e3fbb86bf27b6"
-  integrity sha512-TKXelI23Mjukf7Kwzw75ghZi5K6KaVCMBsH0czWv9ZzrS4UGf4ylroLbX/thbnbxakfrDwZDHTxyWX3JFcxpkQ==
+"@mxssfd/typedoc-theme@^1.0.6":
+  version "1.0.6"
+  resolved "https://registry.yarnpkg.com/@mxssfd/typedoc-theme/-/typedoc-theme-1.0.6.tgz#6bcded2da1563561c7617b533232370065d74677"
+  integrity sha512-GmaVRWWCaL9jIr58uKyXuBS+yn5L4e5BznclGCB+VlDSGHfZEc8GZdVc4ApKFUC3UEtZkS3fWy9S5aJMQttUyQ==
 
 "@nodelib/fs.scandir@2.1.5":
   version "2.1.5"
