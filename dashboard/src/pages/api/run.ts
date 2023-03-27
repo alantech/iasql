@@ -61,7 +61,7 @@ function conformUidToStripe(uid: string) {
   // https://stripe.com/docs/payment-links/url-parameters#streamline-reconciliation-with-a-url-parameter
   // client_reference_id can be composed of alphanumeric characters, dashes, or underscores, and be any value up to 200 characters.
   // Invalid values are silently dropped so the payment page continues to work as expected, but in our case it needs to work.
-  return uid.replace(/[^a-zA-Z 0-9 _ -]+/g, '');
+  return uid.replace(/[^a-zA-Z0-9_-]+/g, '');
 }
 
 function extractTokenFromHeader(e: NextApiRequest) {
