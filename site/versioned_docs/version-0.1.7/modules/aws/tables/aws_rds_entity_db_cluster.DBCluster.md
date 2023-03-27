@@ -29,6 +29,10 @@ The amount of storage in gibibytes (GiB) to allocate to each DB instance in the 
 
 https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Storage.html#USER_PIOPS
 
+• `Optional` **arn**: `string`
+
+ARN for the generated db cluster
+
 • `Optional` **backup\_retention\_period**: `number`
 
 The number of days for which automated backups are retained.
@@ -98,6 +102,18 @@ A value that indicates whether the DB cluster is encrypted.
 • **subnet\_group**: [`db_subnet_group`](aws_rds_entity_db_subnet_group.DBSubnetGroup.md)
 
 Reference to the subnet groups associated with the cluster
+
+• `Optional` **tags**: `Object`
+
+Complex type to provide identifier tags
+
+**`See`**
+
+https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-rds/interfaces/tag.html
+
+#### Type definition
+
+▪ [key: `string`]: `string`
 
 • **vpc\_security\_groups**: [`security_group`](aws_security_group_entity.SecurityGroup.md)[]
 
