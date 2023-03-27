@@ -76,7 +76,7 @@ export class Subnet {
    * @public
    * Reference to the VPC associated with this subnet
    */
-  @ManyToOne(() => Vpc, { nullable: false, eager: true })
+  @ManyToOne(() => Vpc, { nullable: false, eager: true, onDelete: 'CASCADE' })
   @JoinColumn([
     {
       name: 'vpc_id',
