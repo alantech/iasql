@@ -173,20 +173,31 @@ export class SubnetMapper extends MapperBase<Subnet> {
       // next loop through should delete the old one
       const out = [];
       for (const e of es) {
+        console.log('i try to update');
+        console.log(e);
         const cloudRecord =
           ctx?.memo?.cloud?.Subnet?.[this.entityId(e)] ??
           (await this.module.subnet.cloud.read(ctx, this.entityId(e)));
+        console.log(cloudRecord);
         const client = (await ctx.getAwsClient(e.region)) as AWS;
 
-        // if acl changed we can replace it
-        if (e.networkAcl?.networkAclId !== cloudRecord?.networkAcl?.networkAclId) {
+        // if only acl changed we can replace it
+        if (
+          e.networkAcl?.networkAclId !== cloudRecord?.networkAcl?.networkAclId &&
+          Object.is(e.cidrBlock, cloudRecord.cidrBlock) &&
+          Object.is(e?.availabilityZone?.name, cloudRecord?.availabilityZone?.name) &&
+          Object.is(e?.vpc?.vpcId, cloudRecord?.vpc?.vpcId)
+        ) {
+          console.log('i try to update acl');
           if (!e.networkAcl?.networkAclId) {
+            console.log('i restore');
             // just restore the values and continue
             e.networkAcl = cloudRecord?.networkAcl;
             await this.db.update(e, ctx);
             out.push(e);
             continue;
           } else {
+            console.log('i modify association');
             const association = await this.getAssociation(client.ec2client, cloudRecord.subnetId);
             if (association) {
               // trigger a replacement
@@ -209,12 +220,28 @@ export class SubnetMapper extends MapperBase<Subnet> {
             out.push(e);
           }
         } else {
+          console.log('i need to recreate');
           if (cloudRecord?.vpc?.vpcId !== e.vpc?.vpcId) {
+            console.log('i modify vpc');
             // If vpc changes we need to take into account the one from the `cloudRecord` since it will be the most updated one
             e.vpc = cloudRecord.vpc;
+            e.networkAcl = undefined;
           }
           const newSubnet = await this.module.subnet.cloud.create(e, ctx);
-          if (newSubnet && !Array.isArray(newSubnet)) out.push(newSubnet);
+
+          // need to query for subnet updates as acl may have changed
+          if (newSubnet && !Array.isArray(newSubnet)) {
+            const rawSubnet = await this.getSubnet(client.ec2client, newSubnet.subnetId);
+            if (!rawSubnet) continue;
+
+            const newSubnet1 = await this.subnetMapper(rawSubnet, ctx, e.region);
+            if (!newSubnet1) continue;
+
+            newSubnet1.id = e.id;
+            await this.db.update(newSubnet1, ctx);
+
+            out.push(newSubnet1);
+          }
         }
       }
       return out;
