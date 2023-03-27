@@ -20,7 +20,11 @@ export async function isCustomer(uid: string): Promise<boolean> {
   if (stripe === undefined) return true;
   let isCustomer = false;
   for await (const session of stripe.checkout.sessions.list()) {
-    if (!!session.customer && session.status === 'complete' && session.client_reference_id === uid) {
+    if (
+      !!session.customer &&
+      session.status === 'complete' &&
+      session.client_reference_id === conformUidToStripe(uid)
+    ) {
       isCustomer = true;
       break;
     }
@@ -52,6 +56,13 @@ export const baseConnConfig: PostgresConnectionOptions = {
     ssl: { rejectUnauthorized: false },
   }, // TODO: remove once DB instance with custom ssl cert is in place
 };
+
+function conformUidToStripe(uid: string) {
+  // https://stripe.com/docs/payment-links/url-parameters#streamline-reconciliation-with-a-url-parameter
+  // client_reference_id can be composed of alphanumeric characters, dashes, or underscores, and be any value up to 200 characters.
+  // Invalid values are silently dropped so the payment page continues to work as expected, but in our case it needs to work.
+  return uid.replace(/[^a-zA-Z0-9_-]+/g, '');
+}
 
 function extractTokenFromHeader(e: NextApiRequest) {
   if (Object.keys(e.headers ?? {})?.length && e.headers.authorization?.split(' ')[0] === 'Bearer') {
@@ -300,11 +311,12 @@ async function run(req: NextApiRequest, res: NextApiResponse) {
         const { dbAlias, sql } = req.body;
         const { username, password } = await getUserAndPassword(tokenInfo, dbAlias);
         const isCust = await isCustomer(username);
-        if (!isCust)
+        if (!isCust) {
           res.status(403).json({
             error: 'User is not a stripe customer',
-            paymentLink: `${config.stripe?.paymentLink}?client_reference_id=${encodeURI(username)}`,
+            paymentLink: `${config.stripe?.paymentLink}?client_reference_id=${conformUidToStripe(username)}`,
           });
+        }
         const out = await runSql(sql, dbAlias, username, password, res);
         return out;
       })(),
