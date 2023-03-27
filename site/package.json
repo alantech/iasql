@@ -52,7 +52,7 @@
     "trim": "1.0.1"
   },
   "devDependencies": {
-    "@types/node": "^18.15.3",
+    "@types/node": "^18.15.10",
     "remarkable-external-link": "^2.1.0",
     "typescript": "^4.9.4"
   }
