@@ -61,7 +61,7 @@ export class NetworkAcl {
    * @public
    * Reference to the VPC associated to this endpoint
    */
-  @ManyToOne(() => Vpc, { nullable: false, eager: true, onDelete: 'CASCADE' })
+  @ManyToOne(() => Vpc, { nullable: false, eager: true })
   @JoinColumn([
     {
       name: 'vpc_id',
