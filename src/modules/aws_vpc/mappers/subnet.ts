@@ -109,6 +109,8 @@ export class SubnetMapper extends MapperBase<Subnet> {
         };
         if (e.cidrBlock) input.CidrBlock = e.cidrBlock;
         const res = await this.createSubnet(client.ec2client, input);
+        console.log("i created subnet");
+        console.log(res);
         if (!res?.Subnet) continue;
 
         const rawSubnet = await this.getSubnet(client.ec2client, res.Subnet.SubnetId);
@@ -117,6 +119,8 @@ export class SubnetMapper extends MapperBase<Subnet> {
         let newSubnet = await this.subnetMapper(rawSubnet, ctx, e.region);
         if (!newSubnet) continue;
         newSubnet.id = e.id;
+        console.log("new subnet is");
+        console.log(newSubnet);
 
         // retrieve the current association for acl and check if that's different
         if (e.networkAcl?.networkAclId && newSubnet.subnetId) {
@@ -127,21 +131,29 @@ export class SubnetMapper extends MapperBase<Subnet> {
               AssociationId: association.NetworkAclAssociationId,
               NetworkAclId: e.networkAcl?.networkAclId,
             };
+            console.log("before replace acl");
             await this.replaceNetworkAclAssociation(client.ec2client, aclInput);
           }
         }
 
         // read record again to get generated ACL
+        console.log("i query again");
+        console.log(newSubnet.subnetId);
         const rawSubnet1 = await this.getSubnet(client.ec2client, newSubnet.subnetId);
+        console.log(rawSubnet1);
         if (!rawSubnet1) continue;
 
         newSubnet = await this.subnetMapper(rawSubnet1, ctx, e.region);
+        console.log("mapped is");
+        console.log(newSubnet);
         if (!newSubnet) continue;
         newSubnet.id = e.id;
 
         await this.module.subnet.db.update(newSubnet, ctx);
+        console.log("after i push");
         out.push(newSubnet);
       }
+      console.log(out);
       return out;
     },
     read: async (ctx: Context, id?: string) => {
