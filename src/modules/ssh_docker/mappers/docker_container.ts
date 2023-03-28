@@ -85,6 +85,7 @@ export class DockerContainerMapper extends MapperBase<DockerContainer> {
           Object.keys(e.ports).map((p: string) => (exposedPorts[p] = {}));
         }
 
+        await docker.pull(e.image);
         const rawContainer = await docker.createContainer({
           name: e.name,
           Env: e.env,
@@ -179,7 +180,8 @@ export class DockerContainerMapper extends MapperBase<DockerContainer> {
         const container = await docker!.getContainer(e.containerId!);
         switch (e.state) {
           case dockerContainerStates.running:
-            await container.start();
+            if (cloudRecord.state === dockerContainerStates.paused) await container.unpause();
+            else await container.start();
             break;
           case dockerContainerStates.exited:
             await container.stop();
