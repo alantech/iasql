@@ -279,6 +279,7 @@ export class SubnetMapper extends MapperBase<Subnet> {
         // Any attempt to update it is instead turned into *restoring* the value in
         // the database to match the cloud value
         if (e.vpc?.isDefault) {
+          console.log('default vpc');
           // For delete, we have un-memoed the record, but the record passed in *is* the one
           // we're interested in, which makes it a bit simpler here
           const vpc =
@@ -290,9 +291,15 @@ export class SubnetMapper extends MapperBase<Subnet> {
           // Make absolutely sure it shows up in the memo
           ctx.memo.db.Subnet[this.entityId(e)] = e;
         } else {
-          await this.deleteSubnet(client.ec2client, {
-            SubnetId: e.subnetId,
-          });
+          console.log('I delete');
+          try {
+            await this.deleteSubnet(client.ec2client, {
+              SubnetId: e.subnetId,
+            });
+          } catch (err) {
+            console.log('error in deleting subnet');
+            console.log(err);
+          }
         }
       }
     },
