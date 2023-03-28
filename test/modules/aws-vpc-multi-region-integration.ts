@@ -180,7 +180,7 @@ describe('VPC Multi-region Integration Testing', () => {
     DELETE FROM security_group WHERE vpc_id = (SELECT id FROM vpc WHERE tags ->> 'name' = '${prefix}-1');
     WITH updated_subnet AS (
       UPDATE subnet
-      SET region='${region}', availability_zone=(SELECT name FROM availability_zone WHERE region = '${region}' ORDER BY name LIMIT 1)
+      SET region='${region}', network_acl_id=NULL, availability_zone=(SELECT name FROM availability_zone WHERE region = '${region}' ORDER BY name LIMIT 1)
       WHERE cidr_block='192.${randIPBlock}.0.0/16' AND availability_zone='${nonDefaultRegionAvailabilityZone}' AND region = '${nonDefaultRegion}'
     )
     UPDATE vpc

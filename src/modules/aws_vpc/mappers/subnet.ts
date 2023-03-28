@@ -112,6 +112,7 @@ export class SubnetMapper extends MapperBase<Subnet> {
         };
         if (e.cidrBlock) input.CidrBlock = e.cidrBlock;
         const res = await this.createSubnet(client.ec2client, input);
+
         if (!res?.Subnet) throw new Error('Failed to create subnet');
 
         const rawSubnet = await this.getSubnet(client.ec2client, res.Subnet.SubnetId);
@@ -192,15 +193,9 @@ export class SubnetMapper extends MapperBase<Subnet> {
         ) {
           if (!e.networkAcl?.networkAclId && e.subnetId) {
             // just restore the values and continue
-            e.networkAcl = cloudRecord?.networkAcl;
-            try {
-              await this.module.subnet.db.update(e, ctx);
-            } catch (err) {
-              console.log('error updating to default acl');
-              console.error(err);
-            }
-            out.push(e);
-            console.log('after i push');
+            cloudRecord.id = e.id;
+            await this.module.subnet.db.update(cloudRecord, ctx);
+            out.push(cloudRecord);
             continue;
           } else {
             const association = await this.getAssociation(client.ec2client, e.subnetId!);
@@ -227,7 +222,6 @@ export class SubnetMapper extends MapperBase<Subnet> {
           }
         } else {
           if (cloudRecord?.vpc?.vpcId !== e.vpc?.vpcId) {
-            console.log('i replace vpc');
             // If vpc changes we need to take into account the one from the `cloudRecord` since it will be the most updated one
             e.vpc = cloudRecord.vpc;
             e.networkAcl = undefined;
