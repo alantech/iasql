@@ -105,6 +105,8 @@ export class SubnetMapper extends MapperBase<Subnet> {
           console.log('i want to create sunet');
           const region = e.region;
           const client = (await ctx.getAwsClient(e.region)) as AWS;
+
+          // check if we need to read vpc id again
           const input: any = {
             AvailabilityZone: e.availabilityZone.name,
             VpcId: e.vpc.vpcId,

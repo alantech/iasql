@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class awsVpc1679998494139 implements MigrationInterface {
-  name = 'awsVpc1679998494139';
+export class awsVpc1680009819175 implements MigrationInterface {
+  name = 'awsVpc1680009819175';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
@@ -130,7 +130,7 @@ export class awsVpc1679998494139 implements MigrationInterface {
       `ALTER TABLE "subnet" ADD CONSTRAINT "FK_0e2c2bf1604ba2ffd4103157d24" FOREIGN KEY ("vpc_id", "region") REFERENCES "vpc"("id","region") ON DELETE NO ACTION ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
-      `ALTER TABLE "subnet" ADD CONSTRAINT "FK_67a874ed15b81ee5f7eeb3c8086" FOREIGN KEY ("network_acl_id", "region") REFERENCES "network_acl"("id","region") ON DELETE CASCADE ON UPDATE CASCADE`,
+      `ALTER TABLE "subnet" ADD CONSTRAINT "FK_701856b5cac83db222fc36a127e" FOREIGN KEY ("network_acl_id") REFERENCES "network_acl"("id") ON DELETE CASCADE ON UPDATE CASCADE`,
     );
     await queryRunner.query(
       `ALTER TABLE "subnet" ADD CONSTRAINT "FK_01b828964edce6b867e4e554b97" FOREIGN KEY ("region") REFERENCES "aws_regions"("region") ON DELETE NO ACTION ON UPDATE NO ACTION`,
@@ -195,7 +195,7 @@ export class awsVpc1679998494139 implements MigrationInterface {
     await queryRunner.query(`ALTER TABLE "nat_gateway" DROP CONSTRAINT "FK_630cbc267698f4fbe265bc9aecf"`);
     await queryRunner.query(`ALTER TABLE "nat_gateway" DROP CONSTRAINT "FK_a8a06631830bd53add76d00579b"`);
     await queryRunner.query(`ALTER TABLE "subnet" DROP CONSTRAINT "FK_01b828964edce6b867e4e554b97"`);
-    await queryRunner.query(`ALTER TABLE "subnet" DROP CONSTRAINT "FK_67a874ed15b81ee5f7eeb3c8086"`);
+    await queryRunner.query(`ALTER TABLE "subnet" DROP CONSTRAINT "FK_701856b5cac83db222fc36a127e"`);
     await queryRunner.query(`ALTER TABLE "subnet" DROP CONSTRAINT "FK_0e2c2bf1604ba2ffd4103157d24"`);
     await queryRunner.query(`ALTER TABLE "subnet" DROP CONSTRAINT "FK_89d16ba5682889f8fae7927052c"`);
     await queryRunner.query(

@@ -156,11 +156,6 @@ export class Subnet {
       name: 'network_acl_id',
       referencedColumnName: 'id',
     },
-    // we defined this one to make sure we are using the right region
-    {
-      name: 'region',
-      referencedColumnName: 'region',
-    },
   ])
   networkAcl?: NetworkAcl;
 
