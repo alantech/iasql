@@ -310,7 +310,10 @@ newgrp docker'
     'deletes the ssh server',
     query(
       `
-    DELETE FROM ssh_credentials WHERE "name" = '${prefix}';
+    BEGIN;
+        DELETE FROM docker_container WHERE server_name = '${prefix}';
+        DELETE FROM ssh_credentials WHERE "name" = '${prefix}';
+    COMMIT;
   `,
       undefined,
       true,
