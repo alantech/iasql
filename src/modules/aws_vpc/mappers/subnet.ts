@@ -103,6 +103,7 @@ export class SubnetMapper extends MapperBase<Subnet> {
       for (const e of es) {
         const region = e.region;
         const client = (await ctx.getAwsClient(e.region)) as AWS;
+        if (!e.vpc.vpcId) continue;
 
         // check if we need to read vpc id again
         const input: any = {
@@ -119,8 +120,6 @@ export class SubnetMapper extends MapperBase<Subnet> {
         // if we do not have the matching ACL we wait until we have
         let newSubnet = await this.subnetMapper(rawSubnet, ctx, e.region);
         if (!newSubnet) continue;
-        const acl = await this.module.networkAcl.db.read(ctx, newSubnet.networkAcl?.networkAclId);
-        if (!acl) continue;
         newSubnet.id = e.id;
 
         // retrieve the current association for acl and check if that's different
@@ -194,8 +193,14 @@ export class SubnetMapper extends MapperBase<Subnet> {
           if (!e.networkAcl?.networkAclId && e.subnetId) {
             // just restore the values and continue
             e.networkAcl = cloudRecord?.networkAcl;
-            await this.db.update(e, ctx);
+            try {
+              await this.module.subnet.db.update(e, ctx);
+            } catch (err) {
+              console.log('error updating to default acl');
+              console.error(err);
+            }
             out.push(e);
+            console.log('after i push');
             continue;
           } else {
             const association = await this.getAssociation(client.ec2client, e.subnetId!);
@@ -216,12 +221,13 @@ export class SubnetMapper extends MapperBase<Subnet> {
               if (!newSubnet) continue;
 
               newSubnet.id = e.id;
-              await this.db.update(newSubnet, ctx);
+              await this.module.subnet.db.update(newSubnet, ctx);
             }
             out.push(e);
           }
         } else {
           if (cloudRecord?.vpc?.vpcId !== e.vpc?.vpcId) {
+            console.log('i replace vpc');
             // If vpc changes we need to take into account the one from the `cloudRecord` since it will be the most updated one
             e.vpc = cloudRecord.vpc;
             e.networkAcl = undefined;
@@ -237,7 +243,7 @@ export class SubnetMapper extends MapperBase<Subnet> {
             if (!newSubnet1) continue;
 
             newSubnet1.id = e.id;
-            await this.db.update(newSubnet1, ctx);
+            await this.module.subnet.db.update(newSubnet1, ctx);
 
             out.push(newSubnet1);
           }
