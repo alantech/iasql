@@ -179,6 +179,7 @@ export class VpcMapper extends MapperBase<Vpc> {
       // that a single VPC is set as default)
       const out = [];
       for (const e of es) {
+        console.log('i create vpc');
         const client = (await ctx.getAwsClient(e.region)) as AWS;
         let tgs: Tag[] = [];
         if (e.tags !== undefined && e.tags !== null) {
@@ -204,6 +205,8 @@ export class VpcMapper extends MapperBase<Vpc> {
           ];
         }
         const res: AwsVpc | undefined = await this.createVpc(client.ec2client, input);
+        console.log('after i create vpc');
+        console.log(res);
         if (res) {
           // also update the vpc attributes if they are not the default
           // doing on the same run because if we wait for taking it on the loop, users can trigger endpoint creation
@@ -237,6 +240,7 @@ export class VpcMapper extends MapperBase<Vpc> {
           out.push(newVpc);
         }
       }
+      console.log('after');
 
       return out;
     },
