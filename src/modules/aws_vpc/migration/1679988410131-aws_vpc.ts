@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class awsVpc1679986631268 implements MigrationInterface {
-  name = 'awsVpc1679986631268';
+export class awsVpc1679988410131 implements MigrationInterface {
+  name = 'awsVpc1679988410131';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
@@ -130,7 +130,7 @@ export class awsVpc1679986631268 implements MigrationInterface {
       `ALTER TABLE "subnet" ADD CONSTRAINT "FK_0e2c2bf1604ba2ffd4103157d24" FOREIGN KEY ("vpc_id", "region") REFERENCES "vpc"("id","region") ON DELETE CASCADE ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
-      `ALTER TABLE "subnet" ADD CONSTRAINT "FK_67a874ed15b81ee5f7eeb3c8086" FOREIGN KEY ("network_acl_id", "region") REFERENCES "network_acl"("id","region") ON DELETE SET NULL ON UPDATE NO ACTION`,
+      `ALTER TABLE "subnet" ADD CONSTRAINT "FK_67a874ed15b81ee5f7eeb3c8086" FOREIGN KEY ("network_acl_id", "region") REFERENCES "network_acl"("id","region") ON DELETE CASCADE ON UPDATE CASCADE`,
     );
     await queryRunner.query(
       `ALTER TABLE "subnet" ADD CONSTRAINT "FK_01b828964edce6b867e4e554b97" FOREIGN KEY ("region") REFERENCES "aws_regions"("region") ON DELETE NO ACTION ON UPDATE NO ACTION`,
