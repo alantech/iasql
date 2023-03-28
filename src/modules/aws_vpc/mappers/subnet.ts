@@ -101,80 +101,53 @@ export class SubnetMapper extends MapperBase<Subnet> {
       // constraint that a single subnet is set as default)
       const out = [];
       for (const e of es) {
-        try {
-          console.log('i want to create sunet');
-          const region = e.region;
-          const client = (await ctx.getAwsClient(e.region)) as AWS;
+        const region = e.region;
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
 
-          // check if we need to read vpc id again
-          const input: any = {
-            AvailabilityZone: e.availabilityZone.name,
-            VpcId: e.vpc.vpcId,
-          };
-          if (e.cidrBlock) input.CidrBlock = e.cidrBlock;
-          console.log(input);
-          const res = await this.createSubnet(client.ec2client, input);
-          if (!res?.Subnet) throw new Error('Failed to create subnet');
-          console.log('after create subnet');
+        // check if we need to read vpc id again
+        const input: any = {
+          AvailabilityZone: e.availabilityZone.name,
+          VpcId: e.vpc.vpcId,
+        };
+        if (e.cidrBlock) input.CidrBlock = e.cidrBlock;
+        const res = await this.createSubnet(client.ec2client, input);
+        if (!res?.Subnet) throw new Error('Failed to create subnet');
 
-          const rawSubnet = await this.getSubnet(client.ec2client, res.Subnet.SubnetId);
-          if (!rawSubnet) continue;
-          console.log('raw is');
-          console.log(rawSubnet);
+        const rawSubnet = await this.getSubnet(client.ec2client, res.Subnet.SubnetId);
+        if (!rawSubnet) continue;
 
-          // if we do not have the matching ACL we wait until we have
-          let newSubnet = await this.subnetMapper(rawSubnet, ctx, e.region);
-          if (!newSubnet) continue;
-          console.log('new sunbet is');
-          console.log(newSubnet);
-          const acl = await this.module.networkAcl.db.read(ctx, newSubnet.networkAcl?.networkAclId);
-          if (!acl) continue;
-          console.log('acl is');
-          console.log(acl);
-          newSubnet.id = e.id;
+        // if we do not have the matching ACL we wait until we have
+        let newSubnet = await this.subnetMapper(rawSubnet, ctx, e.region);
+        if (!newSubnet) continue;
+        const acl = await this.module.networkAcl.db.read(ctx, newSubnet.networkAcl?.networkAclId);
+        if (!acl) continue;
+        newSubnet.id = e.id;
 
-          // retrieve the current association for acl and check if that's different
-          if (e.networkAcl?.networkAclId && newSubnet.subnetId) {
-            console.log('acl is different');
-            const association = await this.getAssociation(client.ec2client, newSubnet.subnetId);
-            console.log('association is');
-            console.log(association);
-            if (association && association.NetworkAclAssociationId) {
-              // trigger a replacement
-              const aclInput = {
-                AssociationId: association.NetworkAclAssociationId,
-                NetworkAclId: e.networkAcl?.networkAclId,
-              };
-              console.log(aclInput);
-              await this.replaceNetworkAclAssociation(client.ec2client, aclInput);
-              console.log('aft replace');
+        // retrieve the current association for acl and check if that's different
+        if (e.networkAcl?.networkAclId && newSubnet.subnetId) {
+          const association = await this.getAssociation(client.ec2client, newSubnet.subnetId);
+          if (association && association.NetworkAclAssociationId) {
+            // trigger a replacement
+            const aclInput = {
+              AssociationId: association.NetworkAclAssociationId,
+              NetworkAclId: e.networkAcl?.networkAclId,
+            };
+            await this.replaceNetworkAclAssociation(client.ec2client, aclInput);
 
-              // read record again to get generated ACL
-              delete ctx.memo.cloud.Subnet[this.entityId(e)];
-              const rawSubnet1 = await this.getSubnet(client.ec2client, newSubnet.subnetId);
-              console.log('raw subnet 1 is');
-              console.log(rawSubnet1);
-              if (!rawSubnet1) continue;
+            // read record again to get generated ACL
+            delete ctx.memo.cloud.Subnet[this.entityId(e)];
+            const rawSubnet1 = await this.getSubnet(client.ec2client, newSubnet.subnetId);
+            if (!rawSubnet1) continue;
 
-              newSubnet = await this.subnetMapper(rawSubnet1, ctx, e.region);
-            }
+            newSubnet = await this.subnetMapper(rawSubnet1, ctx, e.region);
           }
-          console.log('final subnet is');
-          console.log(newSubnet);
-          if (!newSubnet) continue;
-          newSubnet.id = e.id;
-
-          await this.module.subnet.db.update(newSubnet, ctx);
-          console.log('after updated');
-          out.push(newSubnet);
-        } catch (err) {
-          console.log('error is');
-          console.log(err);
-          throw new Error('Failed to create subnet');
         }
+        if (!newSubnet) continue;
+        newSubnet.id = e.id;
+
+        await this.module.subnet.db.update(newSubnet, ctx);
+        out.push(newSubnet);
       }
-      console.log('created recordsa re');
-      console.log(out);
       return out;
     },
     read: async (ctx: Context, id?: string) => {
@@ -279,7 +252,6 @@ export class SubnetMapper extends MapperBase<Subnet> {
         // Any attempt to update it is instead turned into *restoring* the value in
         // the database to match the cloud value
         if (e.vpc?.isDefault) {
-          console.log('default vpc');
           // For delete, we have un-memoed the record, but the record passed in *is* the one
           // we're interested in, which makes it a bit simpler here
           const vpc =
@@ -291,15 +263,9 @@ export class SubnetMapper extends MapperBase<Subnet> {
           // Make absolutely sure it shows up in the memo
           ctx.memo.db.Subnet[this.entityId(e)] = e;
         } else {
-          console.log('I delete');
-          try {
-            await this.deleteSubnet(client.ec2client, {
-              SubnetId: e.subnetId,
-            });
-          } catch (err) {
-            console.log('error in deleting subnet');
-            console.log(err);
-          }
+          await this.deleteSubnet(client.ec2client, {
+            SubnetId: e.subnetId,
+          });
         }
       }
     },
