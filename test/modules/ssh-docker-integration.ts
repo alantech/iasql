@@ -374,6 +374,7 @@ newgrp docker'
     'deletes the security group',
     query(
       `
+    DELETE FROM security_group_rule WHERE description = '${prefix}outbound';
     DELETE FROM security_group_rule WHERE description = '${prefix}sshrule';
     DELETE FROM security_group_rule WHERE description = '${prefix}httpdrule';
     DELETE FROM security_group WHERE group_name = 'ssh-${prefix}-sg';
