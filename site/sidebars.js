@@ -18,7 +18,8 @@ async function getSectionLinks(section) {
 
   const items = [];
   for (const file of files) {
-    if (file.endsWith('.md') && !file.includes('entity') && !file.includes('_rpcs')) {
+    // TODO: Better way to deal with helper files in the future
+    if (file.endsWith('.md') && !file.includes('entity') && !file.includes('_rpcs') && !file.includes('iasql_functions_iasql')) {
       // just strip md
       const name = file.split('.')[0];
       items.push({
