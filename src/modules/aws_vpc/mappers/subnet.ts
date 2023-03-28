@@ -101,6 +101,7 @@ export class SubnetMapper extends MapperBase<Subnet> {
       // constraint that a single subnet is set as default)
       const out = [];
       for (const e of es) {
+        if (!e.vpc.vpcId) continue;
         const region = e.region;
         const client = (await ctx.getAwsClient(e.region)) as AWS;
         const input: any = {
@@ -119,11 +120,14 @@ export class SubnetMapper extends MapperBase<Subnet> {
         if (!newSubnet) continue;
         const acl = await this.module.networkAcl.db.read(ctx, newSubnet.networkAcl?.networkAclId);
         if (!acl) continue;
+        console.log('acl is');
+        console.log(acl);
 
         newSubnet.id = e.id;
 
         // retrieve the current association for acl and check if that's different
         if (e.networkAcl?.networkAclId && newSubnet.subnetId) {
+          console.log('i need to add nont default');
           const association = await this.getAssociation(client.ec2client, newSubnet.subnetId);
           if (association && association.NetworkAclAssociationId) {
             // trigger a replacement
@@ -141,12 +145,15 @@ export class SubnetMapper extends MapperBase<Subnet> {
             newSubnet = await this.subnetMapper(rawSubnet1, ctx, e.region);
           }
         }
+        console.log('after');
         if (!newSubnet) continue;
         newSubnet.id = e.id;
 
         await this.module.subnet.db.update(newSubnet, ctx);
+        console.log('after update');
         out.push(newSubnet);
       }
+      console.log('i return after cerate');
       return out;
     },
     read: async (ctx: Context, id?: string) => {

@@ -82,6 +82,9 @@ export class NetworkAclMapper extends MapperBase<NetworkAcl> {
           continue;
         }
 
+        // we need to wait until vpc is created
+        if (!e.vpc?.vpcId) continue;
+
         const input: CreateNetworkAclCommandInput = {
           VpcId: e.vpc?.vpcId,
         };
