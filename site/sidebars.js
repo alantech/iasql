@@ -8,32 +8,32 @@
 
  Create as many sidebars as you want.
  */
-async function getDocsLinks() {
-  // read all documents at directory
+
+async function getSectionLinks(section) {
   var fs = require('fs');
   var path = require('path');
-  var filesPath = path.join(__dirname, 'docs', 'modules', 'aws');
+  var filesPath = path.join(__dirname, 'docs', 'modules', section);
 
   let files = fs.readdirSync(filesPath);
 
-  // read aws
-  const aws_items = [];
+  const items = [];
   for (const file of files) {
     if (file.endsWith('.md') && !file.includes('entity') && !file.includes('_rpcs')) {
       // just strip md
       const name = file.split('.')[0];
-      aws_items.push({
+      items.push({
         type: 'doc',
         label: name,
-        id: 'modules/aws/' + name,
+        id: `modules/${section}/${name}`,
         customProps: {
           label: name,
         },
       });
     }
   }
-
-  // add global
+  return items;
+}
+async function getDocsLinks() {
   const items = [
     {
       type: 'doc',
@@ -49,33 +49,21 @@ async function getDocsLinks() {
       label: 'Builtin',
       collapsible: true,
       collapsed: true,
-      items: [
-        {
-          type: 'doc',
-          label: 'iasql_functions',
-          id: 'modules/builtin/iasql_functions',
-          customProps: {
-            fragment: '',
-            label: 'iasql_functions',
-          },
-        },
-        {
-          type: 'doc',
-          label: 'iasql_platform',
-          id: 'modules/builtin/iasql_platform',
-          customProps: {
-            fragment: '',
-            label: 'iasql_platform',
-          },
-        },
-      ],
+      items: await getSectionLinks('builtin'),
     },
     {
       type: 'category',
       label: 'AWS',
       collapsible: true,
       collapsed: true,
-      items: aws_items,
+      items: await getSectionLinks('aws'),
+    },
+    {
+      type: 'category',
+      label: 'Server (via SSH)',
+      collapsible: true,
+      collapsed: true,
+      items: await getSectionLinks('ssh'),
     },
   ];
 
