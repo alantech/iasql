@@ -82,7 +82,7 @@ afterAll(async () => await execComposeDown());
 
 let username: string, password: string, privateKey: string;
 
-describe('SSH Accounts Integration Testing', () => {
+describe('SSH Docker Integration Testing', () => {
   it('creates a new test db', done => {
     (async () => {
       try {
@@ -258,7 +258,7 @@ newgrp docker'
     'checks docker is running',
     query(
       `
-    SELECT * FROM ssh_exec('${prefix}', 'docker ps');
+    SELECT * FROM ssh_exec('${prefix}', 'sudo docker ps');
   `,
       (res: any[]) => expect(res[0].stdout.trim()).toContain('CONTAINER ID'),
       true,
@@ -284,17 +284,25 @@ newgrp docker'
   );
   it('commits creation of the httpd server', commit());
 
-  it('can access the httpd server', query(`
+  it(
+    'can access the httpd server',
+    query(
+      `
       SELECT host(im.public_ip_address) as ip
       FROM instance_metadata im
                INNER JOIN instance i ON im.instance_id = i.instance_id
       WHERE i.tags ->> 'name' = 'ssh-${prefix}-1'
       LIMIT 1
-   `, (res: any[]) => {
-    fetch('http://' + res[0].ip + ':8080', {
-      method: 'GET',
-    }).then((r: any) => r.text()).then((r: any) => expect(r).toContain('It works!'));
-  }));
+   `,
+      (res: any[]) => {
+        fetch('http://' + res[0].ip + ':8080', {
+          method: 'GET',
+        })
+          .then((r: any) => r.text())
+          .then((r: any) => expect(r).toContain('It works!'));
+      },
+    ),
+  );
 
   it('starts a transaction', begin());
 
