@@ -12,7 +12,6 @@ import {
 import { cloudId } from '../../../services/cloud-id';
 import { AwsRegions } from '../../aws_account/entity';
 import { DhcpOptions } from './dhcp_options';
-import { NetworkAcl } from './network_acl';
 
 /**
  * @enum
