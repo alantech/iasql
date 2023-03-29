@@ -14,8 +14,6 @@ import {
   runQuery,
 } from '../helpers';
 
-const fetch = require('node-fetch');
-
 const dbAlias = 'iasql';
 const initialPassword = '123456aA@';
 const secondPassword = 'newPa@ss123!';
@@ -122,7 +120,7 @@ describe('OpenSearch Integration Testing', () => {
   );
   it('applies creation of the domain and waits for the creation', commit());
 
-  it(
+  itDocs(
     'gets the domain and fetches it using the username and password',
     query(
       `
@@ -153,7 +151,7 @@ describe('OpenSearch Integration Testing', () => {
   );
 
   it('starts a transaction', begin());
-  it(
+  itDocs(
     'changes the password of the domain',
     query(
       `

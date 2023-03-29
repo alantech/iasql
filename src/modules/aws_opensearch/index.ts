@@ -16,7 +16,7 @@ export class AwsOpenSearchModule extends ModuleBase {
 
 /**
  * ```testdoc
- * modules/aws-opensearch-integration.ts#Opensearch Integration Testing#Manage ElasticSearch
+ * modules/aws-opensearch-integration.ts#Opensearch Integration Testing#Manage OpenSearch
  * ```
  */
 export const awsOpensearch = new AwsOpenSearchModule();
