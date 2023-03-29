@@ -10,13 +10,63 @@ Infrastructure is the heart of your company. Without it, nothing can actually be
 
 In this post, we will geek out on various software abstractions and data structures, tools used by professionals of various sorts, and dig into the pros and cons of these with respect to cloud infrastructure management in particular. We'll see that while SQL has its own warts, it is the "least worst" of all of the options out there.
 
+<!--truncate-->
+
 ## Following these instructions is imperative
 
 The simplest way to define how to set something up is to write up a list of instructions to follow, in order, to build whatever infrastructure you're dealing with, whether its the instructions on how to build a restaurant or an AWS Fargate cluster. This list of steps to process (with a LISt Processor, or [LISP](https://en.wikipedia.org/wiki/Lisp_%28programming_language%29), if you will 😉), which can include instructions to repeat or skip over steps based on conditions you have run into, is called [imperative programming](https://en.wikipedia.org/wiki/Imperative_programming) in the software world.
 
-For your cloud infrastructure, this is similar to using the [AWS SDK](https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/) and directly calling the various methods, checking their results and eventually arriving at the desired infrastructure. It is *also* like following a step-by-step guide clicking through the various AWS console UI elements to set up your infrastructure, like in [this guide](https://towardsdatascience.com/deploy-your-python-app-with-aws-fargate-tutorial-7a48535da586). The latter may not be automated, to you, but your company executives don't care how the infrastructure building was accomplished as long as it was done quickly, cheaply, and reliably, and you know they always want all three. 😉
+For your cloud infrastructure, this is similar to using the [AWS SDK](https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/) and directly calling the various methods, checking their results and eventually arriving at the desired infrastructure. It is *also* like following a step-by-step guide clicking through the various AWS console UI elements to set up your infrastructure, like in [this guide](https://towardsdatascience.com/deploy-your-python-app-with-aws-fargate-tutorial-7a48535da586). The latter may not be automated, to you, but to your company executives it is as they don't care how the infrastructure building was accomplished as long as it was done quickly, cheaply, and reliably, and you know they always want all three. 😉
 
-Imperative infrastructure management works *well* for initial setup of new infrastructure. There's nothing there to interfere with it, so you can just write the "happy path" and get it working. And if that fails, you can just tear it all down and start all over again if that's cheap, which it is for cloud infrastructure (though not for building a restaurant), so the [cyclomatic complexity](https://en.wikipedia.org/wiki/Cyclomatic_complexity) of the code you write is low and everyone can follow along with it.
+Imperative infrastructure management works *well* for initial setup of new infrastructure. There's nothing there to interfere with it, so you can just write the "happy path" and get it working. And if that fails, you can just tear it all down and start all over again if that's cheap, which it is for cloud infrastructure (though not for building a restaurant), so the [cyclomatic complexity](https://en.wikipedia.org/wiki/Cyclomatic_complexity) of the code you write is low and everyone can follow along with it. For example, one can use the [`aws` cli application](https://aws.amazon.com/cli/) inside of a [`bash` script](https://www.gnu.org/software/bash/) to create a new [ssh keypair](https://en.wikipedia.org/wiki/Ssh-keygen) in AWS, a [security group](https://docs.aws.amazon.com/vpc/latest/userguide/security-groups.html) enabling ssh access, a new EC2 instance associated with both, and then access that instance (to demonstrate that it works).
+
+```bash
+#!/bin/bash
+
+aws ec2 create-key-pair \
+  --region us-west-2 \
+  --key-name login \
+  --key-type ed25519 | \
+  jq -r .KeyMaterial > login.pem
+chmod 600 login.pem
+SG_ID=$(aws ec2 create-security-group \
+  --group-name login-sg \
+  --description "Login security group" \
+  --region us-west-2 \
+  --vpc-id $(aws ec2 describe-vpcs \
+    --region us-west-2 | \
+    jq -r '.Vpcs[] | select(.IsDefault = true) | .VpcId') | \
+  jq -r .GroupId)
+aws ec2 authorize-security-group-ingress \
+  --group-name login-sg \
+  --region us-west-2 \
+  --ip-permissions 'IpProtocol=tcp,FromPort=22,ToPort=22,IpRanges=[{CidrIp=0.0.0.0/0}]' > /dev/null
+INSTANCE_ID=$(aws ec2 run-instances \
+  --region us-west-2 \
+  --subnet-id $(aws ec2 describe-subnets \
+    --region us-west-2 | \
+    jq -r .Subnets[0].SubnetId) \
+  --instance-type t3.small \
+  --image-id resolve:ssm:/aws/service/canonical/ubuntu/server/20.04/stable/current/amd64/hvm/ebs-gp2/ami-id \
+  --security-group-ids ${SG_ID} \
+  --key-name login \
+  --associate-public-ip-address \
+  --tag-specifications 'ResourceType=instance,Tags=[{Key=name,Value=login-inst}]' \
+  --output json | \
+  jq -r .Instances[0].InstanceId)
+echo EC2 instance ${INSTANCE_ID} starting 
+aws ec2 wait instance-status-ok \
+  --region us-west-2 \
+  --instance-ids ${INSTANCE_ID}
+PUBLIC_IP=$(aws ec2 describe-instances \
+  --region us-west-2 \
+  --filters Name=tag:name,Values=[login-inst] \
+  --filters Name=instance-state-name,Values=[running] | \
+  jq -r .Reservations[0].Instances[0].PublicIpAddress)
+echo Server accessible at ${PUBLIC_IP}
+ssh -i login.pem -o "StrictHostKeyChecking no" ubuntu@${PUBLIC_IP} uname -a
+```
+
 
 However, once you need to make changes to your existing infrastructure, that original code you wrote is more than likely useless to you. To get from the *current* state of your infrastructure to your *desired* state, you need to call different APIs than you did before, and its much riskier to make a mistake because this infrastructure is already in use.
 
