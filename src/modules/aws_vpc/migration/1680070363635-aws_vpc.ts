@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class awsVpc1680029604832 implements MigrationInterface {
-  name = 'awsVpc1680029604832';
+export class awsVpc1680070363635 implements MigrationInterface {
+  name = 'awsVpc1680070363635';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
@@ -33,7 +33,7 @@ export class awsVpc1680029604832 implements MigrationInterface {
       `CREATE TABLE "endpoint_interface" ("id" SERIAL NOT NULL, "vpc_endpoint_id" character varying, "service" "public"."endpoint_interface_service_enum" NOT NULL, "policy" json, "state" character varying, "private_dns_enabled" boolean DEFAULT false, "dns_name_record_type" "public"."endpoint_interface_dns_name_record_type_enum" DEFAULT 'ipv4', "tags" json, "region" character varying NOT NULL DEFAULT default_aws_region(), "vpc_id" integer NOT NULL, CONSTRAINT "PK_a68d55bf3f06feb8ac5d8b8eee6" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
-      `CREATE TABLE "network_acl" ("id" SERIAL NOT NULL, "network_acl_id" character varying, "is_default" boolean NOT NULL DEFAULT false, "entries" json, "tags" json, "region" character varying NOT NULL DEFAULT default_aws_region(), "vpc_id" integer NOT NULL, CONSTRAINT "uq_network_acl_id_region" UNIQUE ("network_acl_id", "region"), CONSTRAINT "uq_acl_id_region" UNIQUE ("id", "region"), CONSTRAINT "PK_08d30551742efc4f5fa200dacda" PRIMARY KEY ("id"))`,
+      `CREATE TABLE "network_acl" ("id" SERIAL NOT NULL, "network_acl_id" character varying, "entries" json, "tags" json, "region" character varying NOT NULL DEFAULT default_aws_region(), "vpc_id" integer NOT NULL, CONSTRAINT "uq_network_acl_id_region" UNIQUE ("network_acl_id", "region"), CONSTRAINT "uq_acl_id_region" UNIQUE ("id", "region"), CONSTRAINT "PK_08d30551742efc4f5fa200dacda" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
       `CREATE TABLE "route_table" ("id" SERIAL NOT NULL, "route_table_id" character varying, "tags" json, "region" character varying NOT NULL DEFAULT default_aws_region(), "vpc_id" integer NOT NULL, CONSTRAINT "uq_route_table_region" UNIQUE ("id", "region"), CONSTRAINT "PK_122d1d594e0cc44b4f62baa0934" PRIMARY KEY ("id"))`,

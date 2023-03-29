@@ -18,22 +18,15 @@ export class NetworkAclMapper extends MapperBase<NetworkAcl> {
   module: AwsVpcModule;
   entity = NetworkAcl;
   equals = (a: NetworkAcl, b: NetworkAcl) => {
-    return (
-      Object.is(a.isDefault, b.isDefault) &&
-      Object.is(a.vpc?.vpcId, b.vpc?.vpcId) &&
-      isEqual(a.entries, b.entries) &&
-      eqTags(a.tags, b.tags)
-    );
+    return Object.is(a.vpc?.vpcId, b.vpc?.vpcId) && isEqual(a.entries, b.entries) && eqTags(a.tags, b.tags);
   };
 
   async networkAclMapper(eg: AwsNetworkAcl, region: string, ctx: Context) {
     if (!eg.NetworkAclId) return undefined;
     const out = new NetworkAcl();
-    out.isDefault = eg.IsDefault ?? false;
     out.vpc =
       (await this.module.vpc.db.read(ctx, this.module.vpc.generateId({ vpcId: eg.VpcId ?? '', region }))) ??
       (await this.module.vpc.cloud.read(ctx, this.module.vpc.generateId({ vpcId: eg.VpcId ?? '', region })));
-    if (!out.vpc) return undefined;
     out.entries = eg.Entries;
     if (eg.Tags?.length) {
       const tags: { [key: string]: string } = {};
@@ -76,12 +69,6 @@ export class NetworkAclMapper extends MapperBase<NetworkAcl> {
       for (const e of es) {
         const client = (await ctx.getAwsClient(e.region)) as AWS;
 
-        // we cannot create a default network acl
-        if (e.isDefault) {
-          await this.db.delete(e, ctx);
-          continue;
-        }
-
         // we need to wait until vpc is created
         if (!e.vpc?.vpcId) continue;
 
@@ -117,7 +104,7 @@ export class NetworkAclMapper extends MapperBase<NetworkAcl> {
           if (newAcl) {
             newAcl.id = e.id;
             await this.db.update(newAcl, ctx);
-            if (newAcl) out.push(newAcl);
+            out.push(newAcl);
           }
         }
       }
@@ -128,7 +115,7 @@ export class NetworkAclMapper extends MapperBase<NetworkAcl> {
         const { networkAclId, region } = this.idFields(id);
         const client = (await ctx.getAwsClient(region)) as AWS;
         const rawAcl = await this.getNetworkAcl(client.ec2client, networkAclId);
-        if (!rawAcl) return;
+        if (!rawAcl || rawAcl.IsDefault) return undefined; // cannot read default acls
         return await this.networkAclMapper(rawAcl, region, ctx);
       } else {
         const out: NetworkAcl[] = [];
@@ -137,8 +124,11 @@ export class NetworkAclMapper extends MapperBase<NetworkAcl> {
           enabledRegions.map(async region => {
             const client = (await ctx.getAwsClient(region)) as AWS;
             for (const eg of await this.getNetworkAcls(client.ec2client)) {
-              const outEg = await this.networkAclMapper(eg, region, ctx);
-              if (outEg) out.push(outEg);
+              if (eg && !eg.IsDefault) {
+                // skip default acls
+                const outEg = await this.networkAclMapper(eg, region, ctx);
+                if (outEg) out.push(outEg);
+              }
             }
           }),
         );
@@ -151,20 +141,12 @@ export class NetworkAclMapper extends MapperBase<NetworkAcl> {
       return 'update';
     },
     update: async (es: NetworkAcl[], ctx: Context) => {
-      const out = [];
+      const out: NetworkAcl[] = [];
       for (const e of es) {
         const client = (await ctx.getAwsClient(e.region)) as AWS;
         const cloudRecord = ctx?.memo?.cloud?.NetworkAcl?.[this.entityId(e)];
         const isUpdate = this.module.networkAcl.cloud.updateOrReplace(cloudRecord, e) === 'update';
-        if (isUpdate || cloudRecord.isDefault) {
-          // if user has modified isDefault or is trying to modify a default acl, go to restore path
-          if (cloudRecord.isDefault || !Object.is(e.isDefault, cloudRecord.isDefault)) {
-            cloudRecord.id = e.id;
-            await this.module.networkAcl.db.update(cloudRecord, ctx);
-            out.push(cloudRecord);
-            continue;
-          }
-
+        if (isUpdate) {
           let update = false;
           if (!isEqual(cloudRecord.entries, e.entries)) {
             // remove all non-default rules and recreate them
@@ -199,10 +181,9 @@ export class NetworkAclMapper extends MapperBase<NetworkAcl> {
           }
         } else {
           // Replace record
-          let newNetworkAcl;
-          newNetworkAcl = await this.module.networkAcl.cloud.create(e, ctx);
           await this.module.networkAcl.cloud.delete(cloudRecord, ctx);
-          out.push(newNetworkAcl);
+          const newAcl = await this.module.networkAcl.cloud.create(e, ctx);
+          out.push(newAcl as NetworkAcl);
         }
       }
       return out;
@@ -210,11 +191,6 @@ export class NetworkAclMapper extends MapperBase<NetworkAcl> {
     delete: async (es: NetworkAcl[], ctx: Context) => {
       for (const e of es) {
         // if user tried to delete a default network acl, we need to restore it
-        if (e.isDefault) {
-          const out = await this.db.create(e, ctx);
-          if (!out || out instanceof Array) return out;
-          return [out];
-        }
         const client = (await ctx.getAwsClient(e.region)) as AWS;
         await this.deleteNetworkAcl(client.ec2client, e.networkAclId ?? '');
       }

@@ -27,16 +27,6 @@ export class NetworkAcl {
 
   /**
    * @public
-   * Indicates whether this is the default network ACL for the VPC.
-   */
-  @Column({
-    type: 'boolean',
-    default: false,
-  })
-  isDefault: boolean;
-
-  /**
-   * @public
    * One or more entries (rules) in the network ACL.
    * @see https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html#nacl-rules
    */

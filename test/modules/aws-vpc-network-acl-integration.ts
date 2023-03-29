@@ -150,33 +150,6 @@ describe('VPC Network ACL Integration Testing', () => {
     ),
   );
 
-  it('creates a default network ACL', begin());
-
-  it(
-    'adds a default network ACL',
-    query(
-      `  
-    INSERT INTO network_acl (is_default, vpc_id, entries, tags)
-    VALUES (TRUE, (SELECT id FROM vpc WHERE  tags ->> 'name' = '${prefix}-1'), '[]', '{"name":"${prefix}-3"}');
-  `,
-      undefined,
-      true,
-      () => ({ username, password }),
-    ),
-  );
-
-  it('applies the ACL creation', commit());
-
-  it(
-    'confirms that network ACL has not been created',
-    query(
-      `
-    SELECT * FROM network_acl WHERE tags ->> 'name' = '${prefix}-3';
-  `,
-      (res: any[]) => expect(res.length).toBe(0),
-    ),
-  );
-
   it('starts a transaction', begin());
 
   itDocs(
@@ -229,8 +202,8 @@ describe('VPC Network ACL Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it(
-    'updates subnet to remove acl',
+  itDocs(
+    'updates subnet to use default acl',
     query(
       `
       UPDATE subnet SET network_acl_id = NULL WHERE vpc_id=(SELECT id FROM vpc WHERE tags ->>'name' = '${prefix}-1') AND
@@ -244,15 +217,15 @@ describe('VPC Network ACL Integration Testing', () => {
   it('applies the subnet change', commit());
 
   it(
-    'confirms that subnet ACL has not been replaced',
+    'confirms that subnet ACL has been set to default',
     query(
       `
     SELECT * FROM subnet WHERE vpc_id=(SELECT id FROM vpc WHERE tags ->>'name' = '${prefix}-1') AND
-    cidr_block = '192.${randIPBlock}.0.0/16' AND network_acl_id=(SELECT id FROM network_acl WHERE  tags ->> 'name' = '${prefix}-1');
+    cidr_block = '192.${randIPBlock}.0.0/16';
   `,
       (res: any[]) => {
-        console.log(res);
         expect(res.length).toBe(1);
+        expect(res[0].network_acl_id).toBeNull();
       },
     ),
   );
@@ -281,7 +254,6 @@ describe('VPC Network ACL Integration Testing', () => {
     cidr_block = '192.${randIPBlock}.0.0/16' AND network_acl_id=(SELECT id FROM network_acl WHERE  tags ->> 'name' = '${prefix}-2');
   `,
       (res: any[]) => {
-        console.log(res);
         expect(res.length).toBe(1);
       },
     ),

@@ -69,7 +69,7 @@ export class SubnetMapper extends MapperBase<Subnet> {
     const client = (await ctx.getAwsClient(region)) as AWS;
     const association = await this.getAssociation(client.ec2client, sn.SubnetId);
     if (association && association.NetworkAclId) {
-      out.networkAcl =
+      const acl =
         (await this.module.networkAcl.db.read(
           ctx,
           this.module.networkAcl.generateId({ networkAclId: association.NetworkAclId, region }),
@@ -78,6 +78,11 @@ export class SubnetMapper extends MapperBase<Subnet> {
           ctx,
           this.module.networkAcl.generateId({ networkAclId: association.NetworkAclId, region }),
         ));
+
+      // if acl is default one, we set to null
+      const rawAcl = await this.module.networkAcl.getNetworkAcl(client.ec2client, association.NetworkAclId);
+      if (rawAcl && rawAcl.IsDefault) out.networkAcl = undefined;
+      else out.networkAcl = acl;
     }
     return out;
   }
@@ -93,6 +98,12 @@ export class SubnetMapper extends MapperBase<Subnet> {
   replaceNetworkAclAssociation = crudBuilder<EC2, 'replaceNetworkAclAssociation'>(
     'replaceNetworkAclAssociation',
     input => input,
+  );
+
+  getNetworkAclForVpc = crudBuilderFormat<EC2, 'describeNetworkAcls', AwsNetworkAcl | undefined>(
+    'describeNetworkAcls',
+    vpcId => ({ Filters: [{ Name: 'vpc-id', Values: [vpcId] }] }),
+    res => res?.NetworkAcls?.pop(),
   );
 
   cloud: Crud<Subnet> = new Crud({
@@ -117,8 +128,6 @@ export class SubnetMapper extends MapperBase<Subnet> {
 
         const rawSubnet = await this.getSubnet(client.ec2client, res.Subnet.SubnetId);
         if (!rawSubnet) continue;
-
-        // if we do not have the matching ACL we wait until we have
         let newSubnet = await this.subnetMapper(rawSubnet, ctx, e.region);
         if (!newSubnet) continue;
         newSubnet.id = e.id;
@@ -191,33 +200,33 @@ export class SubnetMapper extends MapperBase<Subnet> {
           Object.is(e?.availabilityZone?.name, cloudRecord?.availabilityZone?.name) &&
           Object.is(e?.vpc?.vpcId, cloudRecord?.vpc?.vpcId)
         ) {
+          let newAcl;
           if (!e.networkAcl?.networkAclId && e.subnetId) {
-            // just restore the values and continue
-            cloudRecord.id = e.id;
-            await this.module.subnet.db.update(cloudRecord, ctx);
-            out.push(cloudRecord);
-            continue;
-          } else {
-            const association = await this.getAssociation(client.ec2client, e.subnetId!);
-            if (association) {
-              // trigger a replacement
-              const input = {
-                AssociationId: association.NetworkAclAssociationId,
-                NetworkAclId: e.networkAcl?.networkAclId,
-              };
-              await this.replaceNetworkAclAssociation(client.ec2client, input);
+            // we need to find the default ACL for that VPC
+            const acl = await this.getNetworkAclForVpc(client.ec2client, e.vpc.vpcId!);
+            if (acl) newAcl = acl.NetworkAclId;
+          } else newAcl = e.networkAcl?.networkAclId;
 
-              // query record again to get updated results
-              delete ctx.memo.cloud.Subnet[this.entityId(e)];
-              const rawSubnet = await this.getSubnet(client.ec2client, e.subnetId);
-              if (!rawSubnet) continue;
+          // replace it
+          const association = await this.getAssociation(client.ec2client, e.subnetId!);
+          if (association && newAcl) {
+            // trigger a replacement
+            const input = {
+              AssociationId: association.NetworkAclAssociationId,
+              NetworkAclId: newAcl,
+            };
+            await this.replaceNetworkAclAssociation(client.ec2client, input);
 
-              const newSubnet = await this.subnetMapper(rawSubnet, ctx, e.region);
-              if (!newSubnet) continue;
+            // query record again to get updated results
+            delete ctx.memo.cloud.Subnet[this.entityId(e)];
+            const rawSubnet = await this.getSubnet(client.ec2client, e.subnetId);
+            if (!rawSubnet) continue;
 
-              newSubnet.id = e.id;
-              await this.module.subnet.db.update(newSubnet, ctx);
-            }
+            const newSubnet = await this.subnetMapper(rawSubnet, ctx, e.region);
+            if (!newSubnet) continue;
+
+            newSubnet.id = e.id;
+            await this.module.subnet.db.update(newSubnet, ctx);
             out.push(e);
           }
         } else {
