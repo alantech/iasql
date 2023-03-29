@@ -45,6 +45,14 @@ const origins = [
 ];
 
 const s3Origins = [
+  
+  {
+    DomainName: `${bucket3}.s3.amazonaws.com`,
+    Id: s3OriginId3,
+    S3OriginConfig: { OriginAccessIdentity: '' },
+    ConnectionAttempts: 3,
+    ConnectionTimeout: 10,
+  },
   {
     DomainName: `${bucket}.s3.amazonaws.com`,
     Id: s3OriginId,
@@ -52,16 +60,10 @@ const s3Origins = [
     ConnectionAttempts: 3,
     ConnectionTimeout: 10,
   },
+  
   {
     DomainName: `${bucket2}.s3.amazonaws.com`,
     Id: s3OriginId2,
-    S3OriginConfig: { OriginAccessIdentity: '' },
-    ConnectionAttempts: 3,
-    ConnectionTimeout: 10,
-  },
-  {
-    DomainName: `${bucket3}.s3.amazonaws.com`,
-    Id: s3OriginId3,
     S3OriginConfig: { OriginAccessIdentity: '' },
     ConnectionAttempts: 3,
     ConnectionTimeout: 10,
@@ -72,8 +74,9 @@ const s3OriginsString = JSON.stringify(s3Origins);
 const originsString = JSON.stringify(origins);
 const s3behavior = {
   TargetOriginId: s3OriginId,
-  ViewerProtocolPolicy: 'allow-all',
-  CachePolicyId: '658327ea-f89d-4fab-a63d-7e88639e58f6',
+  ViewerProtocolPolicy: 'redirect-to-https',
+  // ViewerProtocolPolicy: 'allow-all',
+  // CachePolicyId: '658327ea-f89d-4fab-a63d-7e88639e58f6',
 };
 const s3behaviorString = JSON.stringify(s3behavior);
 
