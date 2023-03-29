@@ -162,7 +162,7 @@ describe('SSH Docker Integration Testing', () => {
 
   it('starts a transaction', begin());
 
-  it('adds an ec2 instance with this private key', done => {
+  it('adds an ec2 instance and installs docker on it', done => {
     query(
       `
       BEGIN;
@@ -267,7 +267,7 @@ newgrp docker'
   it('installs the ssh_docker modules', install(['ssh_docker']));
 
   it('starts a transaction', begin());
-  it(
+  itDocs(
     'creates a new httpd container',
     query(
       `
@@ -301,7 +301,7 @@ newgrp docker'
   );
 
   it('starts a transaction', begin());
-  it(
+  itDocs(
     'updates the container state to running',
     query(
       `
@@ -338,7 +338,7 @@ newgrp docker'
   );
 
   it('starts a transaction', begin());
-  it(
+  itDocs(
     'stops the container',
     query(
       `
@@ -373,7 +373,7 @@ newgrp docker'
   );
 
   it('starts a transaction', begin());
-  it(
+  itDocs(
     'deletes the container',
     query(
       `
@@ -388,7 +388,7 @@ newgrp docker'
   );
   it('commits deletion of the container', commit());
 
-  it(
+  itDocs(
     'checks the container is deleted',
     query(
       `
@@ -403,7 +403,7 @@ newgrp docker'
   );
 
   it('starts a transaction', begin());
-  itDocs(
+  it(
     'deletes the ssh server',
     query(
       `

@@ -2,6 +2,7 @@ import { ModuleBase } from '../interfaces';
 import { DockerContainerMapper } from './mappers';
 
 export class SshDocker extends ModuleBase {
+  /** @internal */
   dockerContainer: DockerContainerMapper;
 
   constructor() {
