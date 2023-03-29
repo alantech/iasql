@@ -279,7 +279,7 @@ WHERE domain_name = '<your-domain>' AND status = 'ISSUED';
 The second query confirms that we have a new certificate for our domain, and it's ready to be used (status = `ISSUED`). Now we're ready to launch our load balancer, listen for HTTPS traffic with this new certificate, and forward the incoming traffic to our EC2 instance's 9876 port.
 
 #### Spawn An Elastic Load Balancer
-To set up an elastic load balancer, we need some kinds of resources:
+To set up an elastic load balancer, we need the following resources:
 - `load_balancer` itself
 - A `target_group` pointing to our EC2 instance on port 9876
 - A `listener` on port 443 of the load balancer
