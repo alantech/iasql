@@ -76,7 +76,7 @@ const s3behavior = {
   TargetOriginId: s3OriginId,
   ViewerProtocolPolicy: 'redirect-to-https',
   // ViewerProtocolPolicy: 'allow-all',
-  // CachePolicyId: '658327ea-f89d-4fab-a63d-7e88639e58f6',
+  CachePolicyId: '658327ea-f89d-4fab-a63d-7e88639e58f6',
 };
 const s3behaviorString = JSON.stringify(s3behavior);
 
