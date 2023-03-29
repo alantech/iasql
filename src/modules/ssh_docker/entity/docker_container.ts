@@ -78,21 +78,21 @@ export class DockerContainer {
    * @public
    * Environment variables as a list, in form of {'A=B', 'C=D'}
    */
-  @Column({ nullable: true, type: 'jsonb' })
+  @Column({ nullable: true, type: 'varchar', array: true })
   env?: string[]; // ['A=B', 'C=D']
 
   /**
    * @public
    * CMD of the docker container
    */
-  @Column({ nullable: true, type: 'jsonb' })
+  @Column({ nullable: true, type: 'varchar', array: true })
   command?: string[];
 
   /**
    * @public
    * Entrypoint of the docker container
    */
-  @Column({ nullable: true, type: 'jsonb' })
+  @Column({ nullable: true, type: 'varchar', array: true })
   entrypoint?: string[];
 
   /**
@@ -139,10 +139,11 @@ export class DockerContainer {
    * Volume definition of the docker container - for example {'vol-name': {}}
    */
   @Column({
-    type: 'jsonb',
+    type: 'varchar',
+    array: true,
     nullable: true,
   })
-  volumes?: { [volume: string]: {} };
+  volumes?: string[];
 
   /**
    * @public

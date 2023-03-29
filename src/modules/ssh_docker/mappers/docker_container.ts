@@ -45,7 +45,7 @@ export class DockerContainerMapper extends MapperBase<DockerContainer> {
     out.ports = container.HostConfig.PortBindings ?? undefined;
     out.labels = container.Config.Labels;
     out.state = container.State.Status;
-    out.volumes = container.Config.Volumes ?? undefined;
+    out.volumes = Object.keys(container.Config.Volumes ?? {}).sort() ?? undefined;
     out.mounts = container.HostConfig.Mounts ?? undefined;
     out.binds = container.HostConfig.Binds ?? undefined;
     return out;
@@ -93,7 +93,7 @@ export class DockerContainerMapper extends MapperBase<DockerContainer> {
           Entrypoint: e.entrypoint,
           Image: e.image,
           Labels: e.labels,
-          Volumes: e.volumes,
+          Volumes: this.arrayToObject(e.volumes),
           ExposedPorts: exposedPorts,
           HostConfig: {
             Mounts: e.mounts,
@@ -221,5 +221,11 @@ export class DockerContainerMapper extends MapperBase<DockerContainer> {
     super();
     this.module = module;
     super.init();
+  }
+
+  private arrayToObject(array: string[] | undefined) {
+    const out: { [key: string]: {} } = {};
+    array?.map(k => (out[k] = {}));
+    return out;
   }
 }
