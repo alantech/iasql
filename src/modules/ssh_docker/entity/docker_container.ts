@@ -136,7 +136,7 @@ export class DockerContainer {
 
   /**
    * @public
-   * Volume definition of the docker container - for example {'vol-name': {}}
+   * Volume definition of the docker container - for example {'vol-name1', 'vol-name2'}
    */
   @Column({
     type: 'varchar',
