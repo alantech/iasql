@@ -15,8 +15,6 @@ import {
   runUninstall,
 } from '../helpers';
 
-declare function fetch(input: Request | string, init?: RequestInit): Promise<Response>;
-
 const dbAlias = 'sshaccounttest';
 const region = defaultRegion();
 const accessKeyId = process.env.AWS_ACCESS_KEY_ID ?? '';
@@ -275,7 +273,7 @@ newgrp docker'
       `
           INSERT INTO docker_container (server_name, name, image, ports, state)
           VALUES ('${prefix}', 'httpd-container', 'httpd',
-                  '{"80/tcp": [{"HostIp": "", "HostPort": "8080"}]}', 'running');
+                  '{"80/tcp": [{"HostIp": "", "HostPort": "8080"}]}', 'created');
       `,
       undefined,
       false,
@@ -283,6 +281,41 @@ newgrp docker'
     ),
   );
   it('commits creation of the httpd server', commit());
+
+  it(
+    'cannot access the httpd server because the container has not started',
+    query(
+      `
+      SELECT host(im.public_ip_address) as ip
+      FROM instance_metadata im
+               INNER JOIN instance i ON im.instance_id = i.instance_id
+      WHERE i.tags ->> 'name' = 'ssh-${prefix}-1'
+      LIMIT 1
+   `,
+      (res: any[]) => {
+        fetch('http://' + res[0].ip + ':8080', {
+          method: 'GET',
+        }).catch((e: any) => expect(e.message).toBe('fetch failed'));
+      },
+    ),
+  );
+
+  it('starts a transaction', begin());
+  it(
+    'updates the container state to running',
+    query(
+      `
+          UPDATE docker_container
+          set state = 'running'
+          WHERE server_name = '${prefix}'
+            AND name = 'httpd-container';
+      `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
+  );
+  it('commits start of the httpd server', commit());
 
   it(
     'can access the httpd server',
@@ -305,7 +338,71 @@ newgrp docker'
   );
 
   it('starts a transaction', begin());
+  it(
+    'stops the container',
+    query(
+      `
+          UPDATE docker_container
+          set state = 'exited'
+          WHERE server_name = '${prefix}'
+            AND name = 'httpd-container';
+      `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
+  );
+  it('commits stop of the httpd server', commit());
 
+  it(
+    'cannot access the httpd server because the container is exited',
+    query(
+      `
+      SELECT host(im.public_ip_address) as ip
+      FROM instance_metadata im
+               INNER JOIN instance i ON im.instance_id = i.instance_id
+      WHERE i.tags ->> 'name' = 'ssh-${prefix}-1'
+      LIMIT 1
+   `,
+      (res: any[]) => {
+        fetch('http://' + res[0].ip + ':8080', {
+          method: 'GET',
+        }).catch((e: any) => expect(e.message).toBe('fetch failed'));
+      },
+    ),
+  );
+
+  it('starts a transaction', begin());
+  it(
+    'deletes the container',
+    query(
+      `
+          DELETE FROM docker_container
+          WHERE server_name = '${prefix}'
+            AND name = 'httpd-container';
+      `,
+      undefined,
+      false,
+      () => ({ username, password }),
+    ),
+  );
+  it('commits deletion of the container', commit());
+
+  it(
+    'checks the container is deleted',
+    query(
+      `
+      SELECT * FROM docker_container
+        WHERE server_name = '${prefix}'
+        AND name = 'httpd-container';
+   `,
+      (res: any[]) => {
+        expect(res.length).toBe(0);
+      },
+    ),
+  );
+
+  it('starts a transaction', begin());
   itDocs(
     'deletes the ssh server',
     query(
