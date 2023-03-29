@@ -675,7 +675,6 @@ export async function commit(
       }
     } catch (e) {
       logger.scope({ dbId, e }).warn(`Something failed applying for modules with changes.`);
-      console.dir(e, { depth: 4 });
       applyErr = e;
     }
     if (applyErr) {
