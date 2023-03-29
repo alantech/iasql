@@ -1,37 +1,37 @@
 ---
 slug: deploy-stable-diffusion
 title: Deploy Stable Diffusion in EC2 using a SQL query
-date: 2023-02-09
+date: 2023-03-29
 authors: [yrobla]
 ---
 
-# Deploy <a href="https://stability.ai/blog/stable-diffusion-public-release">Stable Diffusion</a> to AWS with one click
+# Deploy [Stable Diffusion](https://stability.ai/blog/stable-diffusion-public-release) to AWS with one click
 
-Stable Diffusion is a deep learning, text-to-image model released in 2022. It is primarily used to generate detailed images conditioned on text descriptions, though it can also be applied to other tasks such as inpainting, outpainting, and generating image-to-image translations guided by a text prompt.
+Stable Diffusion is a deep learning, text-to-image model initially released in 2022. It is primarily used to generate detailed images conditioned on text descriptions, though it can also be applied to other tasks such as inpainting, outpainting, and generating image-to-image translations guided by a text prompt.
 
-There is a publicly available <a href="https://beta.dreamstudio.ai/dream">tool</a> limited to a maximum of 200 images generation. But because the model is open source, you can download and host your own version of it. There are different approaches to host it, but one easy option is to host it in an EC2 GPU instance, using IaSQL to setup everything with just a few SQL queries.
+There is a publicly available [tool](https://beta.dreamstudio.ai/dream) limited to a maximum of 200 images generated. But because the model is open source, you can download and host your own version of it. There are different approaches to host it, but one easy option is to host it in an EC2 GPU instance, using IaSQL to setup everything with just a few SQL queries.
 IaSQL is an [open-source](https://github.com/iasql/iasql) software tool that creates a two-way connection between an unmodified PostgreSQL database and an AWS account so you can manage your infrastructure from a database.
 
 ## Pre-requisites
 
-Stable Diffusion will need to run on GPU instances. These are likely not enabled in your AWS account by default, so you may need to increase your quota. This post uses _p_ instances, so you need to check your quota on <a href="https://us-east-2.console.aws.amazon.com/servicequotas/home/services/ec2/quotas">AWS</a> for the region where you want to deploy your model, and check if you have quota for this type. There is a need of 8 vCPUs per instance, so please request 8 vCPUS per each instance you want to deploy. As instances will take some time to terminate while other is started, it is recommended to request quota for at least 2 instances.
+Stable Diffusion will need to run on GPU instances. These are likely not enabled in your AWS account by default, so you may need to increase your quota. This post uses _p_ instances, so you need to check your [AWS quota](https://us-east-2.console.aws.amazon.com/servicequotas/home/services/ec2/quotas) for the region where you want to deploy your model and check if you have quota for this type. The model needs 8 vCPUs per instance, so please request 8 vCPUS per each instance you want to deploy. As instances will take some time to terminate while other is started, it is recommended to request quota for at least 2 instances.
 
 <img src="/img/deploy-stable-diffusion/request_quota_increase.png" style={{ maxWidth: 600 }} />
 
-In order to run the model, there is the need to integrate with Nvidia GPU. This does not come out of the box, and needs to have a custom OS image with drivers installed. This is not a trivial process, but there are some AMIs in the marketplace that can help us with that. This post uses an image from marketplace, so a subscription will be needed in order to use it.
-Please visit the <a href="https://aws.amazon.com/marketplace/pp/prodview-64e4rx3h733ru?sr=0-1&ref_=beagle&applicationId=AWS-Marketplace-Console">AWS marketplace</a> and subscribe to the Amazon Linux 2 AMI with NVIDIA TESLA GPU Driver AMI offer.
+The model needs to integrate with Nvidia GPU to run. This needs to have a custom OS image with drivers installed which does not come built-in. Setting this up is not trivial, but some of the AMIs in the marketplace can help us with that. This post uses an image from the marketplace, so a subscription will be needed to use it.
+Please visit the [AWS marketplace](https://aws.amazon.com/marketplace/pp/prodview-64e4rx3h733ru?sr=0-1&ref_=beagle&applicationId=AWS-Marketplace-Console) and subscribe to the Amazon Linux 2 AMI with NVIDIA TESLA GPU Driver AMI offer.
 
 <img src="/img/deploy-stable-diffusion/subscribe_to_marketplace_ami.png" style={{ maxWidth: 600 }} />
 
-**Please note that you will incur in a cost of $3.06/Hour when using this AMI**
+**Please note that you will incur a cost of $3.06/Hour when using this AMI**
 
-## Stable Diffusion installation
+## Stable Diffusion Installation
 
-While Stable Diffusion is a complex model with lots of dependencies, there are pre-built Docker images from the community that ship with all the components on place. We will rely on <a href="https://sygil-dev.github.io/sygil-webui/docs/Installation/docker-guide">Sygil WebUI</a> images to deploy our model. These images are ready to be used out of the box, but there is possibility to build and customize the images in case it's needed.
+While Stable Diffusion is a complex model with lots of dependencies, there are pre-built Docker images from the community that ships with all the components in place. We will rely on [Sygil WebUI](https://sygil-dev.github.io/sygil-webui/docs/Installation/docker-guide) images to deploy our model. These images are ready to be used out of the box, but there is the possibility to build and customize the images in case it's needed.
 
-While this deployment may seem complex at first glance, it can be made easy with <a href="https://iasql.com/docs">IaSQL</a>. In the following paragraphs we will go through the steps needed to deploy Stable Diffusion just using SQL queries to inspect and modify the AWS infrastructure.
+While this deployment may seem complex at first glance, it can be made easy with [IaSQL](https://iasql.com/docs). In the following section will take you through the steps needed to deploy Stable Diffusion just using SQL queries to inspect and modify the AWS infrastructure.
 
-We would need to start by getting the AMI ID for the image on the marketplace, in order to boot images based on that. We can get it with a simple query using IaSQL SDK module:
+We would need to start by getting the AMI ID for the image on the marketplace, to boot images based on that. We can get it with a simple query using IaSQL SDK module:
 
 ```sql title="Get AMI ID"
  -- install modules
@@ -48,7 +48,7 @@ SELECT
   ) -> 'Images' -> -1 -> 'ImageId';
 ```
 
-Now with all pre-requisites solved, deploying Stable Diffusion can be done with one click using IaSQL engine. Please note that we will be using a beef p3.2xlarge instance with extra disk space storage, so running this experiment will incur in some extra costs:
+Now with all prerequisites solved, deploying Stable Diffusion can be done with one click using IaSQL engine. Please note that we will be using a beef p3.2xlarge instance with extra disk space storage, so running this experiment will incur some extra costs:
 
 ```sql title="Deploy Stable Diffusion"
  -- install modules
@@ -243,8 +243,7 @@ FROM
 
 ## Accessing Stable Diffusion
 
-The installation procedure will run totally unattended and will take over 10-15 minutes, due to the volume of the artifacts to install. After the process finishes you will have your Stable Diffusion web interface up and running, publicly accessible through the public IP of the spinned instance.
-You can get the details of the public IP of your instance querying for the metadata:
+The installation procedure will run to completion without intervention and will take over 10-15 minutes, due to the volume of the artifacts to install. After the process finishes you will have your Stable Diffusion web interface up and running, publicly accessible through the public IP of the recently created instance. You can get the details of the public IP of your instance by querying the metadata table in IaSQL:
 
 ```sql
 SELECT
