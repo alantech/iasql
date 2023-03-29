@@ -23,6 +23,13 @@ async function maybeHandleFetchError(response: any) {
   }
 }
 
+async function redirectIfUnauthorized(response: any) {
+  if (response.status === 403) {
+    const obj = await response.json();
+    if (obj.paymentLink) window.location.href = obj.paymentLink;
+  }
+}
+
 async function post(token: string, backendUrl: string, endpoint: string, body: any, raw = false) {
   const resp = await fetch(`${backendUrl}/${endpoint}`, {
     method: 'POST',
@@ -32,6 +39,7 @@ async function post(token: string, backendUrl: string, endpoint: string, body: a
       Authorization: `Bearer ${token}`,
     },
   });
+  await redirectIfUnauthorized(resp);
   await maybeHandleFetchError(resp);
   return resp;
 }

@@ -4,6 +4,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import pg from 'pg';
 import format from 'pg-format';
 import { parse, deparse } from 'pgsql-parser';
+import Stripe from 'stripe';
 import { DataSource } from 'typeorm';
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
 import { v4 as uuidv4 } from 'uuid';
@@ -11,6 +12,27 @@ import { v4 as uuidv4 } from 'uuid';
 import { throwError } from '@/config/config';
 import config from '@/server-config';
 import { createLogger } from '@logdna/logger';
+
+const stripe = config.stripe ? new Stripe(config.stripe?.secretKey, { apiVersion: '2022-11-15' }) : undefined;
+
+export async function isCustomer(uid: string, email: string): Promise<boolean> {
+  // always return true if stripe is not setup
+  if (stripe === undefined) return true;
+  // ignore emails from whitelisted domains
+  if (config.stripe?.whitelistedDomains.some(d => email.endsWith(d))) return true;
+  let isCustomer = false;
+  for await (const session of stripe.checkout.sessions.list()) {
+    if (
+      !!session.customer &&
+      session.status === 'complete' &&
+      session.client_reference_id === conformUidToStripe(uid)
+    ) {
+      isCustomer = true;
+      break;
+    }
+  }
+  return isCustomer;
+}
 
 export function isString(obj: unknown): obj is string {
   return typeof obj === 'string';
@@ -36,6 +58,13 @@ export const baseConnConfig: PostgresConnectionOptions = {
     ssl: { rejectUnauthorized: false },
   }, // TODO: remove once DB instance with custom ssl cert is in place
 };
+
+function conformUidToStripe(uid: string) {
+  // https://stripe.com/docs/payment-links/url-parameters#streamline-reconciliation-with-a-url-parameter
+  // client_reference_id can be composed of alphanumeric characters, dashes, or underscores, and be any value up to 200 characters.
+  // Invalid values are silently dropped so the payment page continues to work as expected, but in our case it needs to work.
+  return uid.replace(/[^a-zA-Z0-9_-]+/g, '');
+}
 
 function extractTokenFromHeader(e: NextApiRequest) {
   if (Object.keys(e.headers ?? {})?.length && e.headers.authorization?.split(' ')[0] === 'Bearer') {
@@ -179,10 +208,10 @@ const numberCharset = Array(10)
 const passwordCharset = [...lowerCharset, ...upperCharset, ...numberCharset, ...'.^*'.split('')];
 const randChar = (a: string[]): string => a[Math.floor(Math.random() * a.length)];
 
-async function getUserAndPassword(
+async function getUserData(
   tokenInfo: JwtPayload,
   dbAlias: string,
-): Promise<{ username: string; password: string }> {
+): Promise<{ username: string; password: string; email: string }> {
   let username;
   let email;
   if (config?.auth) {
@@ -242,7 +271,7 @@ async function getUserAndPassword(
       maxTries--;
     } while (!success && maxTries);
   }
-  return { username, password };
+  return { username, password, email };
 }
 
 function until<T>(p: Promise<T>, timeout: number): Promise<T> {
@@ -282,7 +311,14 @@ async function run(req: NextApiRequest, res: NextApiResponse) {
         let token: string = extractTokenFromHeader(req) || '';
         const tokenInfo = await validateToken(token);
         const { dbAlias, sql } = req.body;
-        const { username, password } = await getUserAndPassword(tokenInfo, dbAlias);
+        const { username, password, email } = await getUserData(tokenInfo, dbAlias);
+        const isCust = await isCustomer(username, email);
+        if (!isCust) {
+          res.status(403).json({
+            error: 'User is not a stripe customer',
+            paymentLink: `${config.stripe?.paymentLink}?client_reference_id=${conformUidToStripe(username)}`,
+          });
+        }
         const out = await runSql(sql, dbAlias, username, password, res);
         return out;
       })(),

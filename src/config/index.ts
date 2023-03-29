@@ -10,7 +10,7 @@ if (!['production', 'staging', 'local', 'test', 'ci', 'debug'].includes(IASQL_EN
 const config: ConfigObj = {
   // tslint:disable-next-line:no-var-requires
   ...require(`./${IASQL_ENV}`).default,
-  version: '0.1.7-beta',
+  version: '0.1.8-beta',
 };
 if (!!config.sentry) config.sentry.release = config.version;
 

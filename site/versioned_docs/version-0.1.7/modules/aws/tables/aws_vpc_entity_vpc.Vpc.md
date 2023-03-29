@@ -27,6 +27,10 @@ Amazon VPC supports IPv4 and IPv6 addressing. A VPC must have an IPv4 CIDR block
 
 https://docs.aws.amazon.com/vpc/latest/userguide/configure-your-vpc.html#vpc-cidr-blocks
 
+• `Optional` **dhcp\_options**: [`dhcp_options`](aws_vpc_entity_dhcp_options.DhcpOptions.md)
+
+The set of DHCP options you've associated with the VPC
+
 • **enable\_dns\_hostnames**: `boolean`
 
 Determines whether the VPC supports assigning public DNS hostnames to instances with public IP addresses.

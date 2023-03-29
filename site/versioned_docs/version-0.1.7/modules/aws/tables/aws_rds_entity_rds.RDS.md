@@ -28,6 +28,10 @@ Amount of storage requested for the database
 
 https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-rds/interfaces/createdbinstancecommandinput.html#allocatedstorage
 
+• `Optional` **arn**: `string`
+
+ARN for the generated db instance
+
 • **availability\_zone**: [`availability_zone`](aws_vpc_entity_availability_zone.AvailabilityZone.md)
 
 Reference to the availability zones for the database
@@ -119,6 +123,18 @@ List of the parameter groups associated with the database
 • **region**: `string`
 
 Region for the database
+
+• `Optional` **tags**: `Object`
+
+Complex type to provide identifier tags for the volume
+
+**`See`**
+
+https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-rds/interfaces/tag.html
+
+#### Type definition
+
+▪ [key: `string`]: `string`
 
 • **vpc\_security\_groups**: [`security_group`](aws_security_group_entity.SecurityGroup.md)[]
 

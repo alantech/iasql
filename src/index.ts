@@ -56,7 +56,7 @@ function runServer() {
       sentry.Handlers.errorHandler({
         shouldHandleError(error) {
           // Capture all 4xx and 5xx errors
-          if ((error?.status ?? 500) >= 400) return true;
+          if (+(error?.status ?? 500) >= 400) return true;
           return false;
         },
       }),

@@ -16,6 +16,8 @@ import TabItem from '@theme/TabItem';
 
     [availability_zone](../../aws/tables/aws_vpc_entity_availability_zone.AvailabilityZone)
 
+    [dhcp_options](../../aws/tables/aws_vpc_entity_dhcp_options.DhcpOptions)
+
     [elastic_ip](../../aws/tables/aws_vpc_entity_elastic_ip.ElasticIp)
 
     [endpoint_gateway](../../aws/tables/aws_vpc_entity_endpoint_gateway.EndpointGateway)

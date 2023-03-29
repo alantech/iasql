@@ -1,4 +1,10 @@
 export interface ConfigInterface {
+  // stripe
+  stripe?: {
+    secretKey: string;
+    paymentLink: string;
+    whitelistedDomains: string[];
+  };
   // Configuration for the auth0 access control
   auth?: {
     domain: string;

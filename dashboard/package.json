@@ -1,6 +1,6 @@
 {
   "name": "dashboard",
-  "version": "0.1.7-beta",
+  "version": "0.1.8-beta",
   "license": "AGPL-3.0-only",
   "scripts": {
     "start:local": "NEXT_PUBLIC_IASQL_ENV=local next dev -p 9876",
@@ -32,6 +32,7 @@
     "react-ace": "^10.1.0",
     "react-dom": "18.2.0",
     "semver": "^7.3.8",
+    "stripe": "^11.15.0",
     "typeorm": "^0.3.12",
     "unique-names-generator": "^4.7.1",
     "web-vitals": "^3.1.1"
