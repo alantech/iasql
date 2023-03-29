@@ -247,6 +247,7 @@ export class SubnetMapper extends MapperBase<Subnet> {
             if (!newSubnet1) continue;
 
             newSubnet1.id = e.id;
+            newSubnet1.region = e.region;
             await this.module.subnet.db.update(newSubnet1, ctx);
 
             out.push(newSubnet1);
