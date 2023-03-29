@@ -123,7 +123,6 @@ export class SubnetMapper extends MapperBase<Subnet> {
         };
         if (e.cidrBlock) input.CidrBlock = e.cidrBlock;
         const res = await this.createSubnet(client.ec2client, input);
-
         if (!res?.Subnet) throw new Error('Failed to create subnet');
 
         const rawSubnet = await this.getSubnet(client.ec2client, res.Subnet.SubnetId);
