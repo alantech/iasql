@@ -1,3 +1,5 @@
+import SSH2Promise from 'ssh2-promise';
+
 import { SshAccounts } from '..';
 import {
   Context,
@@ -64,7 +66,7 @@ export class SshLs extends RpcBase {
     serverName: string,
     path: string,
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
-    const sshClient = await ctx.getSshClient(serverName);
+    const sshClient: SSH2Promise = await ctx.getSshClient(serverName);
     return (await sshClient.sftp().readdir(path)).map(
       (r: { filename: string; longname: string; attrs: { [key: string]: any } }) => {
         const parts = r.longname.split(/ +/);

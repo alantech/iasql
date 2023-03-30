@@ -1,3 +1,5 @@
+import SSH2Promise from 'ssh2-promise';
+
 import { SshAccounts } from '..';
 import {
   Context,
@@ -46,7 +48,7 @@ export class SshMv extends RpcBase {
     origin: string,
     destination: string,
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
-    const sshClient = await ctx.getSshClient(serverName);
+    const sshClient: SSH2Promise = await ctx.getSshClient(serverName);
     await sshClient.sftp().rename(origin, destination);
     return [{ status: 'moved' }]; // If it reaches here, it was successful
   };
