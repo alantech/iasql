@@ -8,7 +8,7 @@ import { SshCredentials } from '../../ssh_accounts/entity';
  * @enum
  * Different states a docker container can be - it's used to start/pause/unpause/stop the container
  */
-export enum dockerContainerStates {
+export enum DockerContainerStates {
   created = 'created',
   restarting = 'restarting',
   running = 'running',
@@ -131,7 +131,7 @@ export class DockerContainer {
    * @public
    * State of the docker container - it can be used to start/stop/pause/unpause the container
    */
-  @Column({ nullable: true, default: dockerContainerStates.running, enum: dockerContainerStates })
+  @Column({ nullable: true, default: DockerContainerStates.running, enum: DockerContainerStates })
   state?: string;
 
   /**

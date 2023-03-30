@@ -1,12 +1,12 @@
 import Modem from 'docker-modem';
 import Docker, { ContainerInspectInfo, DockerOptions } from 'dockerode';
-import _ from 'lodash';
+import { isEqual } from 'lodash';
 import SSH2Promise from 'ssh2-promise';
 
 import { Context, Crud, MapperBase } from '../../interfaces';
 import { sshAccounts } from '../../ssh_accounts';
 import { SshCredentials } from '../../ssh_accounts/entity';
-import { DockerContainer, dockerContainerStates } from '../entity';
+import { DockerContainer, DockerContainerStates } from '../entity';
 import { SshDocker } from '../index';
 
 export class DockerContainerMapper extends MapperBase<DockerContainer> {
@@ -16,16 +16,16 @@ export class DockerContainerMapper extends MapperBase<DockerContainer> {
     return (
       Object.is(a.name, b.name) &&
       Object.is(a.image, b.image) &&
-      _.isEqual(a.env, b.env) &&
-      _.isEqual(a.command, b.command) &&
-      _.isEqual(a.entrypoint, b.entrypoint) &&
+      isEqual(a.env, b.env) &&
+      isEqual(a.command, b.command) &&
+      isEqual(a.entrypoint, b.entrypoint) &&
       Object.is(a.created?.getTime(), b.created?.getTime()) &&
-      _.isEqual(a.ports, b.ports) &&
-      _.isEqual(a.labels, b.labels) &&
+      isEqual(a.ports, b.ports) &&
+      isEqual(a.labels, b.labels) &&
       Object.is(a.state, b.state) &&
-      _.isEqual(a.volumes, b.volumes) &&
-      _.isEqual(a.mounts, b.mounts) &&
-      _.isEqual(a.binds, b.binds)
+      isEqual(a.volumes, b.volumes) &&
+      isEqual(a.mounts, b.mounts) &&
+      isEqual(a.binds, b.binds)
     );
   };
 
@@ -67,7 +67,7 @@ export class DockerContainerMapper extends MapperBase<DockerContainer> {
     const docker = new Docker({ modem } as DockerOptions);
     try {
       await docker.ping();
-    } catch (e) {
+    } catch (_) {
       return undefined;
     }
     return docker;
@@ -152,7 +152,7 @@ export class DockerContainerMapper extends MapperBase<DockerContainer> {
         'binds',
       ];
       for (const key of replaceFields) {
-        if (!_.isEqual(prev[key], next[key])) return 'replace';
+        if (!isEqual(prev[key], next[key])) return 'replace';
       }
       // state or created changed
       return 'update';
@@ -179,20 +179,20 @@ export class DockerContainerMapper extends MapperBase<DockerContainer> {
         const docker = await this.getDockerForServer(ctx, e.serverName);
         const container = await docker!.getContainer(e.containerId!);
         switch (e.state) {
-          case dockerContainerStates.running:
-            if (cloudRecord.state === dockerContainerStates.paused) await container.unpause();
+          case DockerContainerStates.running:
+            if (cloudRecord.state === DockerContainerStates.paused) await container.unpause();
             else await container.start();
             break;
-          case dockerContainerStates.exited:
+          case DockerContainerStates.exited:
             await container.stop();
             break;
-          case dockerContainerStates.paused:
+          case DockerContainerStates.paused:
             await container.pause();
             break;
-          case dockerContainerStates.created:
-          case dockerContainerStates.restarting:
-          case dockerContainerStates.dead:
-          case dockerContainerStates.removing:
+          case DockerContainerStates.created:
+          case DockerContainerStates.restarting:
+          case DockerContainerStates.dead:
+          case DockerContainerStates.removing:
             // it's not possible to push the states towards these values, write back the state from cloud
             e.state = cloudRecord.state;
             await this.db.update(e, ctx);

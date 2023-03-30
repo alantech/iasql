@@ -306,7 +306,7 @@ newgrp docker'
     query(
       `
           UPDATE docker_container
-          set state = 'running'
+          SET state = 'running'
           WHERE server_name = '${prefix}'
             AND name = 'httpd-container';
       `,
@@ -343,7 +343,7 @@ newgrp docker'
     query(
       `
           UPDATE docker_container
-          set state = 'exited'
+          SET state = 'exited'
           WHERE server_name = '${prefix}'
             AND name = 'httpd-container';
       `,
@@ -369,6 +369,21 @@ newgrp docker'
           method: 'GET',
         }).catch((e: any) => expect(e.message).toBe('fetch failed'));
       },
+    ),
+  );
+
+  it('uninstalls the module', uninstall(['ssh_docker']));
+  it('installs the module again', uninstall(['ssh_docker']));
+
+  it(
+    'checks the docker container is synced after install',
+    query(
+      `
+      SELECT * FROM docker_container
+        WHERE server_name = '${prefix}'
+            AND name = 'httpd-container';
+   `,
+      (res: any[]) => expect(res.length).toBe(1),
     ),
   );
 
