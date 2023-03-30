@@ -198,7 +198,7 @@ const testDoc = require('./src/rehype/testdoc');
           ],
         },
         prism: {
-          additionalLanguages: [],
+          additionalLanguages: ['hcl'],
           theme: lightCodeTheme,
           darkTheme: darkCodeTheme,
         },

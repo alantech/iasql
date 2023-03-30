@@ -16,6 +16,18 @@ In this post, we will geek out on various software abstractions and data structu
 
 The simplest way to define how to set something up is to write up a list of instructions to follow, in order, to build whatever infrastructure you're dealing with, whether its the instructions on how to build a restaurant or an AWS Fargate cluster. This list of steps to process (with a LISt Processor, or [LISP](https://en.wikipedia.org/wiki/Lisp_%28programming_language%29), if you will 😉), which can include instructions to repeat or skip over steps based on conditions you have run into, is called [imperative programming](https://en.wikipedia.org/wiki/Imperative_programming) in the software world.
 
+:::note Imperative Restaurant Instructions
+
+![Man in hard-hat builds your restaurant](/img/why-sql-for-infrastructure/man-in-hard-hat-builds-your-restaurant.png)
+
+1. Design restaurant.
+2. Flatten the ground.
+3. Prop up pieces of wood next to each other.
+4. Bang nails into wood.
+5. Is restaurant finished? No, go to 3.
+
+:::
+
 For your cloud infrastructure, this is similar to using the [AWS SDK](https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/) and directly calling the various methods, checking their results and eventually arriving at the desired infrastructure. It is *also* like following a step-by-step guide clicking through the various AWS console UI elements to set up your infrastructure, like in [this guide](https://towardsdatascience.com/deploy-your-python-app-with-aws-fargate-tutorial-7a48535da586). The latter may not be automated, to you, but to your company executives it is as they don't care how the infrastructure building was accomplished as long as it was done quickly, cheaply, and reliably, and you know they always want all three. 😉
 
 Imperative infrastructure management works *well* for initial setup of new infrastructure. There's nothing there to interfere with it, so you can just write the "happy path" and get it working. And if that fails, you can just tear it all down and start all over again if that's cheap, which it is for cloud infrastructure (though not for building a restaurant), so the [cyclomatic complexity](https://en.wikipedia.org/wiki/Cyclomatic_complexity) of the code you write is low and everyone can follow along with it. For example, one can use the [`aws` cli application](https://aws.amazon.com/cli/) inside of a [`bash` script](https://www.gnu.org/software/bash/) to create a new [ssh keypair](https://en.wikipedia.org/wiki/Ssh-keygen) in AWS, a [security group](https://docs.aws.amazon.com/vpc/latest/userguide/security-groups.html) enabling ssh access, a new EC2 instance associated with both, and then access that instance (to demonstrate that it works).
@@ -67,20 +79,33 @@ echo Server accessible at ${PUBLIC_IP}
 ssh -i login.pem -o "StrictHostKeyChecking no" ubuntu@${PUBLIC_IP} uname -a
 ```
 
+Keep in mind that this is a *simple* script that does not handle failure of any of the commands called, creating one EC2 instance with two supporting elements (a security group to allow access to the SSH port and an SSH keypair to log into the instance). If you intend to actually use it multiple times, several of the arguments currently hardwired should be turned into shell arguments themselves, and all of the error paths should be tackled.
 
-However, once you need to make changes to your existing infrastructure, that original code you wrote is more than likely useless to you. To get from the *current* state of your infrastructure to your *desired* state, you need to call different APIs than you did before, and its much riskier to make a mistake because this infrastructure is already in use.
-
-<!-- TODO: This section should be expanded with example code that does a relatively simple task. Something that we can use across all of the sections of this post to better emphasize the point we're making -->
+However, the vast majority of the time you are not creating clones of the same infrastructure over and over again, instead you need to make changes to your existing infrastructure, and that original code is more than likely useless to you. To get from the *current* state of your infrastructure to your *desired* state, you need to call different APIs than you did before, and its much riskier to make a mistake because this infrastructure is already in use.
 
 ## Declare your intentions at once
 
 When the desired state is relatively simple to define and the mechanism to reach that state is not that important, writing up a declaration of what is needed and letting something/someone else deal with it is the most logical abstraction. This would be like drafting up the architectural draft for your new restaurant and paying a contracting company to actually build it, or [writing HTML and letting a web browser render it](https://en.wikipedia.org/wiki/Declarative_programming#Domain-specific_languages), or writing a [Terraform HCL](https://github.com/hashicorp/hcl) file and letting the Terraform CLI tool `apply` it. This is called [declarative programming](https://en.wikipedia.org/wiki/Declarative_programming) in the software world, and has many advantages (and a few disadvantages!) for cloud infrastructure management.
+
+:::note Declarative Restaurant Instructions
+
+![King in robes on throne](/img/why-sql-for-infrastructure/king-in-robes-on-throne.png)
+
+*By decree of the king, a restaurant shall be built!*
+
+:::
 
 In declarative programming you have some initial state and in comparatively dense and high-level declarative code define the desired state. In many use-cases (like web browsers and sometimes for restaurant-building contractors) the initial state is "blank" and the engine that transforms the declarative code into imperative operations can often be a relatively straightforward [interpreter](https://en.wikipedia.org/wiki/Interpreter_%28computing%29) walking the [AST](https://en.wikipedia.org/wiki/Abstract_syntax_tree) of the declarative code.
 
 Infrastructure management *generally* is not that straightforward. Changes to infrastructure require in-place mutations of the current state. A full [blue/green deployment](https://en.wikipedia.org/wiki/Blue-green_deployment) of the entirety of your production infrastructure is very expensive, requiring all resource costs to be doubled, and deployments to require some amount of downtime for users to swap over and state to be resynchronized. Particularly for databases this approach is essentially impossible as there is too much state to swap.
 
 So declarative programming for infrastructure, also known as [Infrastructure as Code](https://en.wikipedia.org/wiki/Infrastructure_as_code), must take the existing state and generate the imperative operations to perform based on the differences between the existing state and the declared desired state. This is like a contracting company being given an architecture draft for a new restaurant and being told to remodel an existing commercial space (maybe it was also a restaurant, maybe it was a clothing store, etc) and the contracting company figuring out what needs to be torn down first, what can be re-used, and what needs to be built new.
+
+```hcl
+resource "ssh_accessible_ec2_instance" {
+  implementation = "tbd"
+}
+```
 
 This diffing of original and desired state can be resolved several ways. The contracting company could spend a lot of time inspecting the existing commercial space to find absolutely every piece that can be re-used, removing them and setting them aside with the materials that need to be purchased, then rework the interior walls, and build everything from scratch, or it could decide to tear everything out back into an empty space and rebuild from scratch (like what your web browser does between web pages), or perhaps you need to keep the space mostly usable for customers, minimizing disruption to the current operations while things are changed. This last case is what infrastructure management tools need to tackle your infrastructure with the least amount of downtime or no downtime at all, if you're *careful* with it.
 
