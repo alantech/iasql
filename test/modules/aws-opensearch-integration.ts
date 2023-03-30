@@ -193,9 +193,15 @@ describe('OpenSearch Integration Testing', () => {
   it('uninstalls the module', uninstall(['aws_opensearch']));
   it('reinstalls the module', install(['aws_opensearch']));
 
-  it('makes sure the domain is still there after installation', query(`
+  it(
+    'makes sure the domain is still there after installation',
+    query(
+      `
     SELECT * FROM domain WHERE domain_name = '${prefix}';
-  `, (res: any[]) => expect(res.length).toBe(1)));
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
 
   it('starts a transaction', begin());
   itDocs(
