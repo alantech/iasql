@@ -79,14 +79,16 @@ export class RouteTableAssociationMapper extends MapperBase<RouteTableAssociatio
         }
 
         const client = (await ctx.getAwsClient(a.routeTable.region)) as AWS;
-        a.routeTableAssociationId = (
-          await client.ec2client.associateRouteTable({
-            SubnetId: a.subnet!.subnetId,
-            RouteTableId: a.routeTable.routeTableId,
-          })
-        ).AssociationId;
-        await this.module.routeTableAssociation.db.update(a, ctx); // write back the associationId to the db
-        out.push(a);
+        if (a.routeTable.routeTableId) {
+          a.routeTableAssociationId = (
+            await client.ec2client.associateRouteTable({
+              SubnetId: a.subnet!.subnetId,
+              RouteTableId: a.routeTable.routeTableId,
+            })
+          ).AssociationId;
+          await this.module.routeTableAssociation.db.update(a, ctx); // write back the associationId to the db
+          out.push(a);
+        }
       }
       return out;
     },

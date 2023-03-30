@@ -1,3 +1,4 @@
+import SSH2Promise from 'ssh2-promise';
 import { Readable } from 'stream';
 
 import { SshAccounts } from '..';
@@ -56,7 +57,7 @@ export class SshReadFileText extends RpcBase {
     serverName: string,
     ...paths: string[]
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
-    const sshClient = await ctx.getSshClient(serverName);
+    const sshClient: SSH2Promise = await ctx.getSshClient(serverName);
     const out = [];
     for (const path of paths) {
       const filestream = await sshClient.sftp().createReadStream(path, { encoding: 'utf8' });
