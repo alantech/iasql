@@ -373,7 +373,7 @@ newgrp docker'
   );
 
   it('uninstalls the module', uninstall(['ssh_docker']));
-  it('installs the module again', uninstall(['ssh_docker']));
+  it('installs the module again', install(['ssh_docker']));
 
   it(
     'checks the docker container is synced after install',

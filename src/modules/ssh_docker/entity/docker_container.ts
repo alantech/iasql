@@ -131,7 +131,12 @@ export class DockerContainer {
    * @public
    * State of the docker container - it can be used to start/stop/pause/unpause the container
    */
-  @Column({ nullable: true, default: DockerContainerStates.running, enum: DockerContainerStates })
+  @Column({
+    nullable: true,
+    type: 'enum',
+    default: DockerContainerStates.running,
+    enum: DockerContainerStates,
+  })
   state?: string;
 
   /**
