@@ -12,6 +12,7 @@ import {
   runCommit,
   runInstall,
   runQuery,
+  runUninstall,
 } from '../helpers';
 
 const dbAlias = 'iasql';
@@ -24,6 +25,7 @@ afterAll(async () => await execComposeDown());
 const begin = runBegin.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
+const uninstall = runUninstall.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
 const region = defaultRegion();
 
@@ -187,6 +189,13 @@ describe('OpenSearch Integration Testing', () => {
       },
     ),
   );
+
+  it('uninstalls the module', uninstall(['aws_opensearch']));
+  it('reinstalls the module', install(['aws_opensearch']));
+
+  it('makes sure the domain is still there after installation', query(`
+    SELECT * FROM domain WHERE domain_name = '${prefix}';
+  `, (res: any[]) => expect(res.length).toBe(1)));
 
   it('starts a transaction', begin());
   itDocs(

@@ -9,7 +9,6 @@ export class AwsOpenSearchModule extends ModuleBase {
     super();
     // Mappers
     this.domain = new DomainMapper(this);
-    // RPCs
     super.init();
   }
 }

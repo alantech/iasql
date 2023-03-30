@@ -1,4 +1,4 @@
-import _ from 'lodash';
+import isEqual from 'lodash.isequal';
 
 import {
   AutoTuneDesiredState,
@@ -34,7 +34,7 @@ export class DomainMapper extends MapperBase<Domain> {
     Object.is(a.availabilityZoneCount, b.availabilityZoneCount) &&
     Object.is(a.instanceType, b.instanceType) &&
     Object.is(a.instanceCount, b.instanceCount) &&
-    _.isEqual(a.ebsOptions, b.ebsOptions) &&
+    isEqual(a.ebsOptions, b.ebsOptions) &&
     Object.is(a.warmInstanceType, b.warmInstanceType) &&
     Object.is(a.coldStorage, b.coldStorage) &&
     Object.is(a.dedicatedMasterType, b.dedicatedMasterType) &&
@@ -168,7 +168,7 @@ export class DomainMapper extends MapperBase<Domain> {
           },
           AccessPolicies: JSON.stringify(e.accessPolicy),
           SnapshotOptions: {
-            AutomatedSnapshotStartHour: 0, // input?
+            AutomatedSnapshotStartHour: 0, // TODO: get it from the input
           },
           EncryptionAtRestOptions: { Enabled: true },
           NodeToNodeEncryptionOptions: { Enabled: true },

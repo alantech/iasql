@@ -91,7 +91,7 @@ export class Domain {
 
   /**
    * @public
-   * Number of instances that'll run opensearch
+   * Number of instances that'll run opensearch. Min: 1 - Max: 80
    */
   @Min(1)
   @Max(80)
