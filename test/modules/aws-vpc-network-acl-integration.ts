@@ -335,6 +335,21 @@ describe('VPC Network ACL Integration Testing', () => {
       },
     ),
   );
+
+  it('uninstalls the vpc module', uninstall(modules));
+
+  it('installs the vpc module again (to make sure it reloads stuff)', install(modules));
+
+  it(
+    'queries the acls to confirm the record is present',
+    query(
+      `
+    SELECT * FROM network_acl WHERE tags ->> 'name' = '${prefix}-2' OR tags ->> 'name' = '${prefix}-3'
+  `,
+      (res: any) => expect(res.length).toBeGreaterThan(0),
+    ),
+  );
+
   it('deletes network ACLs', begin());
 
   it(

@@ -15,6 +15,7 @@ import { NetworkAcl } from '../entity';
 import { updateTags } from './tags';
 
 export class NetworkAclMapper extends MapperBase<NetworkAcl> {
+  static readonly maxRuleNumber = 32766;
   module: AwsVpcModule;
   entity = NetworkAcl;
   equals = (a: NetworkAcl, b: NetworkAcl) => {
@@ -151,7 +152,9 @@ export class NetworkAclMapper extends MapperBase<NetworkAcl> {
           if (!isEqual(cloudRecord.entries, e.entries)) {
             // remove all non-default rules and recreate them
             for (const cloudRule of cloudRecord.entries ?? []) {
-              if (!cloudRule.RuleNumber || cloudRule.RuleNumber > 32766) continue;
+              // entries as 0 or >37266 are default rules and cannot be deleted
+              if (!cloudRule.RuleNumber || cloudRule.RuleNumber > NetworkAclMapper.maxRuleNumber) continue;
+
               await this.deleteNetworkAclEntry(client.ec2client, {
                 NetworkAclId: e.networkAclId,
                 Egress: cloudRule.Egress,
