@@ -3,6 +3,7 @@ slug: iasql-on-ec2
 title: Deploy IaSQL on EC2 using IaSQL
 authors: [mtp1376]
 ---
+
 import useBaseUrl from '@docusaurus/useBaseUrl';
 import ThemedImage from '@theme/ThemedImage';
 
@@ -249,10 +250,12 @@ WHERE parent_hosted_zone_id = (SELECT id FROM hosted_zone WHERE domain_name = '<
 ```
 After updating the name servers in the domain settings, we need to wait for those values to be propagated. This can happen in minutes, or even up to 48 hours depending on the registrar.
 
+
+:::note
 You can find out which NS records are accessible from your DNS with the [`dig` command](https://linux.die.net/man/1/dig):
 
 ```sh
-dig <your_domain_name> ns
+dig <your-domain> ns
 ```
 
 It should look something like this when ready:
@@ -282,6 +285,7 @@ skybase.dev.	        21600	IN	NS	ns-697.awsdns-23.net.
 ;; WHEN: Wed Mar 29 20:48:04 CDT 2023
 ;; MSG SIZE  rcvd: 179
 ```
+:::
 
 #### Issue An SSL Certificate For Our Domain
 Having the domain setup in Route53, it's easy to use IaSQL's `certificate_request` RPC to issue a new certificate for it. If you try to go with this procedure through AWS console, you'll need to manually add the CNAME records from the AWS ACM to your hosted zone. But this RPC is implemented in a way that automagically [sets the DNS records](https://github.com/iasql/iasql/blob/v0.1.7/src/modules/aws_acm/rpcs/request.ts#L177-L188), [waits for the certificate to be issued](https://github.com/iasql/iasql/blob/v0.1.7/src/modules/aws_acm/rpcs/request.ts#L197), and then [removes those validation DNS records](https://github.com/iasql/iasql/blob/v0.1.7/src/modules/aws_acm/rpcs/request.ts#L200).
@@ -316,7 +320,7 @@ INSERT
 INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id, region)
 VALUES (false, 'tcp', 443, 443, '<your-ip>/32', 'allow incoming traffic on 443 from my ip',
         (SELECT id FROM lb_security_group), default_aws_region()),
-       (true, '-1', -1, -1, '0.0.0.0/32', 'allow outgoing traffic from load balancer',
+       (true, 'tcp', 1, 65535, '0.0.0.0/32', 'allow outgoing traffic from load balancer',
         (SELECT id FROM lb_security_group), default_aws_region());
 ```
 
