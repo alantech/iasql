@@ -1118,7 +1118,7 @@ async function augmentValue(
   // We might need to recreate a sub-query because it could be column referencing other table.
   // For this we need to get Typeorm metadata for the `tableName` and inspect the columns and relations in order to recreate the sub-query if necessary.
   // We need to recreate the sub-query because related columns might not be the same across databases connected to the same cloud account.
-  const metadata = await getMetadata(tableName, modsIndexedByTable, orm);
+  const metadata = await getTableMetadata(tableName, modsIndexedByTable, orm);
   let columnMetadata: ColumnMetadata | undefined;
   if (value && metadata) {
     // If `metadata instanceof EntityMetadata` means that the `key` is one of the Entity's properties
