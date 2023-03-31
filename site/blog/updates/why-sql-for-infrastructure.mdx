@@ -168,6 +168,18 @@ resource "aws_instance" "login" {
 }
 ```
 
+This example still requires the following lines from the imperative example to get the public IP address of the new EC2 instance and log into it:
+
+```bash
+PUBLIC_IP=$(aws ec2 describe-instances \
+  --region us-west-2 \
+  --filters Name=tag:name,Values=[login-inst] \
+  --filters Name=instance-state-name,Values=[running] | \
+  jq -r .Reservations[0].Instances[0].PublicIpAddress)
+echo Server accessible at ${PUBLIC_IP}
+ssh -i login.pem -o "StrictHostKeyChecking no" ubuntu@${PUBLIC_IP} uname -a
+```
+
 This diffing of original and desired state can be resolved several ways. The contracting company could spend a lot of time inspecting the existing commercial space to find absolutely every piece that can be re-used, removing them and setting them aside with the materials that need to be purchased, then rework the interior walls, and build everything from scratch, or it could decide to tear everything out back into an empty space and rebuild from scratch (like what your web browser does between web pages), or perhaps you need to keep the space mostly usable for customers, minimizing disruption to the current operations while things are changed. This last case is what infrastructure management tools need to tackle your infrastructure with the least amount of downtime or no downtime at all, if you're *careful* with it.
 
 How can you "careful" with declarative programming tools, if you don't have direct control over what they do? Terraform does this with a [plan](https://developer.hashicorp.com/terraform/cli/commands/plan) command, which performs the diffing of current and desired state and reports back to you the operations it expects to execute to do so. Terraform will tell you when a change it intends to make is going to provision new resources, alter existing resources, drop resources, and *replace* resources. That last one is particularly annoying when it shows up because it means the change you want to perform can only be done by dropping it and recreating it with the new configuration.
@@ -363,6 +375,97 @@ But IaSQL is much newer than the IaC tools. We have coverage at the time of writ
 *Me too, Craig, me too...*
 
 :::
+
+With that said, what does our EC2 instance example look like in IaSQL, uh, SQL?
+
+```sql
+-- Assuming that the AWS credentials have already been inserted as done during the setup wizard
+SELECT default_aws_region('us-west-2');
+
+-- Install the necessary modules
+SELECT iasql_install('aws_ec2', 'aws_ec2_metadata', 'ssh_accounts');
+
+-- Create the key-pair and put it in our ssh_credentials table
+-- We will update this later with the public IP address
+INSERT INTO ssh_credentials ("name", hostname, username, private_key)
+VALUES ('login', 'tbd', 'ubuntu', (SELECT privateKey FROM key_pair_request('login', 'us-west-2')));
+
+-- Start an IaSQL transaction so these changes don't mutate our infrastructure immediately
+SELECT iasql_begin();
+
+-- Define the security group
+INSERT INTO security_group (description, group_name)
+VALUES ('Login security group', 'login-sg');
+
+-- And it's ingress rule
+INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, security_group_id)
+SELECT false, 'tcp', 22, 22, '0.0.0.0/0', id
+FROM security_group
+WHERE group_name = 'login-sg';
+
+-- Define the instance and the key-pair to use
+INSERT INTO instance (ami, instance_type, key_pair_name, tags, subnet_id)
+  SELECT
+    'resolve:ssm:/aws/service/canonical/ubuntu/server/20.04/stable/current/amd64/hvm/ebs-gp2/ami-id',
+    't3.small',
+    'login',
+    '{"name":"login"}',
+    id
+  FROM subnet
+  WHERE availability_zone = 'us-west-2a'
+  LIMIT 1;
+
+-- Associate the instance with the security group
+INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
+  (SELECT id FROM instance WHERE tags ->> 'name' = 'login'),
+  (SELECT id FROM security_group WHERE group_name='login-sg' AND region = 'us-west-2');
+```
+
+We can then `SELECT * FROM iasql_preview();` to see what this does, like a `terraform plan`:
+
+:::note `iasql_preview` output
+| action | table_name | id | description |
+| :----- | :--------- | -: | ----------: |
+| create | instance | 1 | 1 |
+| create | security_group | 18 | 18 |
+| create | security_group_rule | 1 | 1 |
+:::
+
+This is a "high level" overview with minimal details. We can get back a listing of all changes, represented in auto-generated SQL with `SELECT * FROM iasql_get_sql_for_transaction();`
+
+```sql
+INSERT INTO security_group (description, group_name, region)
+VALUES ('Login security group', 'login-sg', (SELECT region FROM aws_regions WHERE region = 'us-west-2'));
+
+
+INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, region, security_group_id)
+VALUES ('f', 'tcp', '22', '22', '0.0.0.0/0', (SELECT region FROM aws_regions WHERE region = 'us-west-2'), (SELECT id FROM security_group WHERE group_id = NULL AND region = (SELECT region FROM aws_regions WHERE region = 'us-west-2')));
+
+
+INSERT INTO instance (ami, instance_type, key_pair_name, state, tags, hibernation_enabled, region, subnet_id)
+VALUES ('resolve:ssm:/aws/service/canonical/ubuntu/server/20.04/stable/current/amd64/hvm/ebs-gp2/ami-id', 't3.small', 'login', 'running', '{"name":"login"}'::jsonb, 'f', (SELECT region FROM aws_regions WHERE region = 'us-west-2'), (SELECT id FROM subnet WHERE subnet_id = 'subnet-06140fd708a495450' AND region = (SELECT region FROM aws_regions WHERE region = 'us-west-2')));
+
+
+INSERT INTO instance_security_groups (instance_id, security_group_id)
+VALUES ((SELECT id FROM instance WHERE instance_id = NULL AND region = (SELECT region FROM aws_regions WHERE region = 'us-west-2')), (SELECT id FROM security_group WHERE group_id = NULL AND region = (SELECT region FROM aws_regions WHERE region = 'us-west-2')));
+```
+
+which in this case is very similar to (though a bit more verbose than) our original SQL statements, but if you were going back and forth on what exact changes you're going to make, it can be a good summary.
+
+If we're good with this, we can `SELECT iasql_apply()` to push this to our cloud account and then update our `ssh_credentials` record with the public IP address and check the connection:
+
+```sql
+WITH h AS (
+  SELECT host(im.public_ip_address) AS hostname
+  FROM instance_metadata im
+  INNER JOIN instance i ON im.instance_id = i.instance_id
+  WHERE i.tags ->> 'name' = 'login'
+  LIMIT 1
+)
+UPDATE ssh_credentials SET hostname = h.hostname FROM ssh_credentials, h WHERE hostname = 'tbd';
+
+SELECT * FROM ssh_exec('login', 'uname -a');
+```
 
 ## SQL is the best option for Infrastructure Management
 
