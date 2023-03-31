@@ -3,6 +3,7 @@ slug: iasql-on-ec2
 title: Deploy IaSQL on EC2 using IaSQL
 authors: [mtp1376]
 ---
+
 import useBaseUrl from '@docusaurus/useBaseUrl';
 import ThemedImage from '@theme/ThemedImage';
 
@@ -26,7 +27,7 @@ http://localhost:9876
 
 <ThemedImage
   alt="IaSQL dashboard"
-  style={{width: '440'}}
+  style={{ width: '440' }}
   sources={{
     light: useBaseUrl('/img/iasql-on-ec2/dashboard.png'),
     dark: useBaseUrl('/img/iasql-on-ec2/dashboard_dark.png'),
@@ -45,14 +46,6 @@ To deploy IaSQL on EC2, we need to:
 - Import an SSH key pair into AWS to be able to access the EC2 instance afterwards
 - Set a security group for the instance to allow SSH, while disallowing unauthorized access to the dashboard
 
-<ThemedImage
-  alt="Overview of the resources to be deployed"
-  style={{width: '440'}}
-  sources={{
-    light: useBaseUrl('/img/iasql-on-ec2/iasql-on-ec2.png'),
-    dark: useBaseUrl('/img/iasql-on-ec2/iasql-on-ec2_dark.png'),
-  }}
-/>
 
 #### Install IaSQL Modules
 
@@ -84,7 +77,7 @@ Now it's time to launch our EC2 instance. Before we go for the instance itself, 
 
 <ThemedImage
   alt="aws_ec2 module dependencies"
-  style={{width: '440'}}
+  style={{ width: '440' }}
   sources={{
     light: useBaseUrl('/img/iasql-on-ec2/module-dependency.png'),
     dark: useBaseUrl('/img/iasql-on-ec2/module-dependency_dark.png'),
@@ -208,3 +201,167 @@ WHERE id = (SELECT id
 ```
 
 Now we can go to `http://<instance-ip>:9876/` URL, and we'll see the beautiful IaSQL dashboard deployed on our EC2 server.
+
+### Enable HTTPS and Connect To A Domain
+We're able to access the dashboard by the EC2 instance IP. There are some downsides to this IP-based access, for example we have to connect to the instance using a plaintext HTTP connection. So it's better to polish this setup and:
+- Import our domain in Route53
+- Issue an SSL certificate for our domain
+- Launch an Elastic LoadBalancer and use the issued certificate to respond to incoming HTTPs traffic
+- Allow incoming traffic to the instance on port 9876 (dashboard port) only from the load balancer
+- Allow incoming traffic on the load balancer only from our IP
+
+This will make the setup very similar to the IaSQL production setup.
+
+<img src='/img/iasql-on-ec2/production-setup.png' />
+
+#### Import Domain In Route53
+
+Let's start with adding our domain to Route53. To be able to manage Route53 resources in IaSQL, we'll first need to install the corresponding module:
+```sql
+SELECT iasql_install('aws_route53');
+```
+Alright, now let's `INSERT` a row into the `hosted_zone` table to direct the IaSQL engine to create a new Route53 hosted zone for us.
+
+:::note
+To know which tables are supported by the `aws_route53` module, you can visit [`aws_route53` module documentation](https://iasql.com/docs/modules/aws/aws_route53/).
+:::
+
+```sql
+SELECT iasql_begin();
+
+INSERT INTO hosted_zone (domain_name)
+VALUES ('<your-domain>');
+
+SELECT iasql_commit();
+```
+
+:::note
+Simple `INSERT`, right? But wait! What are those `iasql_begin` and `iasql_commit` functions called before and after our insert command?
+
+Quick answer is that if you need your changes to be applied now instead of eventually in the future, you'll wrap the changes between an `iasql_begin` and an `iasql_commit`. For more info on what they do, visit [our documentation on IaSQL transactions](https://iasql.com/docs/transaction/).
+:::
+
+Now that we have created our hosted zone, we need to set our domain's nameservers to the ones that Route53 provides us. For each public hosted zone that you create, Amazon Route53 [automatically creates](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/SOA-NSrecords.html) a name server (NS) record and a start of authority (SOA) record. So we need to log into our domain registrar and set the name server values to the four name server values that Route53 has set. How this is done exactly varies from registrar to registrar, but we can get those NS values with a `SELECT` query:
+```sql
+SELECT record as name_server
+FROM resource_record_set
+WHERE parent_hosted_zone_id = (SELECT id FROM hosted_zone WHERE domain_name = '<your-domain>')
+  AND record_type = 'NS';
+```
+After updating the name servers in the domain settings, we need to wait for those values to be propagated. This can happen in minutes, or even up to 48 hours depending on the registrar.
+
+
+:::note
+You can find out which NS records are accessible from your DNS with the [`dig` command](https://linux.die.net/man/1/dig):
+
+```sh
+dig <your-domain> ns
+```
+
+It should look something like this when ready:
+
+```sh
+$ dig skybase.dev ns
+
+; <<>> DiG 9.18.1-1ubuntu1.3-Ubuntu <<>> skybase.dev ns
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 27469
+;; flags: qr rd ra; QUERY: 1, ANSWER: 4, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 65494
+;; QUESTION SECTION:
+;skybase.dev.		                IN	NS
+
+;; ANSWER SECTION:
+skybase.dev.	        21600	IN	NS	ns-1243.awsdns-27.org.
+skybase.dev.	        21600	IN	NS	ns-1944.awsdns-51.co.uk.
+skybase.dev.	        21600	IN	NS	ns-49.awsdns-06.com.
+skybase.dev.	        21600	IN	NS	ns-697.awsdns-23.net.
+
+;; Query time: 60 msec
+;; SERVER: 127.0.0.53#53(127.0.0.53) (UDP)
+;; WHEN: Wed Mar 29 20:48:04 CDT 2023
+;; MSG SIZE  rcvd: 179
+```
+:::
+
+#### Issue An SSL Certificate For Our Domain
+Having the domain setup in Route53, it's easy to use IaSQL's `certificate_request` RPC to issue a new certificate for it. If you try to go with this procedure through AWS console, you'll need to manually add the CNAME records from the AWS ACM to your hosted zone. But this RPC is implemented in a way that automagically [sets the DNS records](https://github.com/iasql/iasql/blob/v0.1.7/src/modules/aws_acm/rpcs/request.ts#L177-L188), [waits for the certificate to be issued](https://github.com/iasql/iasql/blob/v0.1.7/src/modules/aws_acm/rpcs/request.ts#L197), and then [removes those validation DNS records](https://github.com/iasql/iasql/blob/v0.1.7/src/modules/aws_acm/rpcs/request.ts#L200).
+
+```sql
+-- SELECT iasql_install('aws_acm'); -- no need for this because aws_route53 depends on it and it's automatically installed
+SELECT certificate_request('<your-domain>', 'DNS', default_aws_region(), '{}');
+
+-- inspect the new certificate
+SELECT *
+FROM certificate
+WHERE domain_name = '<your-domain>' AND status = 'ISSUED';
+```
+
+The second query confirms that we have a new certificate for our domain, and it's ready to be used (status = `ISSUED`). Now we're ready to launch our load balancer, listen for HTTPS traffic with this new certificate, and forward the incoming traffic to our EC2 instance's 9876 port.
+
+#### Spawn An Elastic Load Balancer
+To set up an elastic load balancer, we need the following resources:
+- `load_balancer` itself
+- A `target_group` pointing to our EC2 instance on port 9876
+- A `listener` on port 443 of the load balancer
+
+You know the drill: we `INSERT` rows in the corresponding tables, and IaSQL will apply our desired changes to the cloud (remember to replace `<your-ip>` with your own public IP address).
+
+First, we create a new security group for our load balancer that should allow traffic on 443 port only from our IP (while allowing outgoing traffic from our load balancer):
+```sql
+INSERT INTO security_group (description, group_name, region)
+VALUES ('allows traffic on 443 port from my ip', 'iasql-lb', default_aws_region());
+
+WITH lb_security_group as (SELECT id FROM security_group WHERE group_name = 'iasql-lb')
+INSERT
+INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id, region)
+VALUES (false, 'tcp', 443, 443, '<your-ip>/32', 'allow incoming traffic on 443 from my ip',
+        (SELECT id FROM lb_security_group), default_aws_region()),
+       (true, 'tcp', 1, 65535, '0.0.0.0/32', 'allow outgoing traffic from load balancer',
+        (SELECT id FROM lb_security_group), default_aws_region());
+```
+
+Then perform creation of the actual load balancer, the target group, and the listener:
+```sql
+INSERT INTO load_balancer (load_balancer_name, scheme, load_balancer_type, ip_address_type, region)
+VALUES ('iasql-lb', 'internet-facing', 'application', 'ipv4', default_aws_region());
+
+INSERT INTO target_group (target_group_name, target_type, protocol, port)
+VALUES ('iasql', 'instance', 'HTTPS', 9876);
+
+INSERT INTO listener (load_balancer_id, port, protocol, target_group_id)
+VALUES ((SELECT id FROM load_balancer WHERE load_balancer_name = 'iasql-lb'), 443, 'HTTPS',
+        (SELECT id FROM target_group WHERE target_group_name = 'iasql'));
+```
+
+And do not forget to assign the security group to our load balancer:
+```sql
+INSERT INTO load_balancer_security_groups (load_balancer_id, security_group_id)
+SELECT (SELECT id FROM load_balancer WHERE load_balancer_name = 'iasql-lb'),
+       (SELECT id FROM security_group WHERE group_name = 'iasql-lb');
+```
+
+The only step remaining is to allow incoming traffic to our instance on port 9876 only from our load balancer:
+```sql
+UPDATE security_group_rule
+SET source_security_group = (SELECT id FROM security_group WHERE group_name = 'iasql-lb'),
+    cidr_ipv4             = NULL
+WHERE cidr_ipv4 = '<my-ip>';
+```
+(we're basically updating the previous rule that allowed direct access from our IP to no longer allow direct access and instead only allow access from load balancer security group)
+
+Waiting for enough time for the above changes to be propagated to the cloud, the load balancer should be up and listening on a DNS name:
+```sql
+SELECT dns_name FROM load_balancer WHERE load_balancer_name = 'iasql-lb'
+```
+
+Finally, we will create a CNAME record pointing to that load balancer that will make IaSQL working under our domain name:
+```sql
+INSERT INTO resource_record_set (name, record_type, record, ttl, parent_hosted_zone_id)
+VALUES ('<your-domain>', 'CNAME', (SELECT dns_name FROM load_balancer WHERE load_balancer_name = 'iasql-lb'), 300,
+        (SELECT id FROM hosted_zone WHERE domain_name = '<your-domain>'))
+```
+Now you (and only you) can access IaSQL dashboard by simply visiting `https://<your-domain>/`!
