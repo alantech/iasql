@@ -102,8 +102,69 @@ Infrastructure management *generally* is not that straightforward. Changes to in
 So declarative programming for infrastructure, also known as [Infrastructure as Code](https://en.wikipedia.org/wiki/Infrastructure_as_code), must take the existing state and generate the imperative operations to perform based on the differences between the existing state and the declared desired state. This is like a contracting company being given an architecture draft for a new restaurant and being told to remodel an existing commercial space (maybe it was also a restaurant, maybe it was a clothing store, etc) and the contracting company figuring out what needs to be torn down first, what can be re-used, and what needs to be built new.
 
 ```hcl
-resource "ssh_accessible_ec2_instance" {
-  implementation = "tbd"
+terraform {
+  required_providers {
+    aws = {
+      source = "hashicorp/aws"
+      version = "4.60.0"
+    }
+  }
+}
+
+data "external" "example" {
+  program = [
+    "bash",
+    "-c",
+    <<-EOT
+      if [ ! -f ./login.pem ]; then
+        # Terraform doesn't support creating the PEM file via AWS. It has to be
+        # created locally and then imported into AWS. Inside of a conditional so
+        # we don't accidentally re-create the file between 'plan' and 'apply'
+        yes '' | ssh-keygen -t ed25519 -m PEM -f login.pem
+      fi
+      chmod 600 login.pem
+      # The output of this script needs to be JSON formatted. This is a bit wonky
+      # but building it over time via 'jq' operators is actually harder to follow
+      echo {
+      echo   '"access_key_id": "'$(aws configure get aws_access_key_id)'",'
+      echo   '"secret_access_key": "'$(aws configure get aws_secret_access_key)'",'
+      echo   '"public_key": "'$(cat login.pem.pub)'"'
+      echo }
+    EOT
+  ]
+}
+
+provider "aws" {
+  region = "us-west-2"
+  access_key = data.external.example.result["access_key_id"]
+  secret_key = data.external.example.result["secret_access_key"]
+}
+
+resource "aws_key_pair" "login" {
+  key_name = "login"
+  public_key = data.external.example.result["public_key"]
+}
+
+resource "aws_security_group" "login_sg" {
+  name = "login-sg"
+  description = "Login security group"
+  ingress {
+    from_port = 22
+    to_port = 22
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_instance" "login" {
+  ami = "resolve:ssm:/aws/service/canonical/ubuntu/server/20.04/stable/current/amd64/hvm/ebs-gp2/ami-id"
+  instance_type = "t3.small"
+  associate_public_ip_address = true
+  key_name = aws_key_pair.login.key_name
+  vpc_security_group_ids = [aws_security_group.login_sg.id]
+  tags = {
+    name = "login-inst"
+  }
 }
 ```
 
@@ -114,7 +175,112 @@ How can you "careful" with declarative programming tools, if you don't have dire
 ```bash
 $ terraform plan
 
-TERRAFORM OUTPUT HERE
+data.external.example: Reading...
+data.external.example: Read complete after 1s [id=-]
+
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  + create
+
+Terraform will perform the following actions:
+
+  # aws_instance.login will be created
+  + resource "aws_instance" "login" {
+      + ami                                  = "resolve:ssm:/aws/service/canonical/ubuntu/server/20.04/stable/current/amd64/hvm/ebs-gp2/ami-id"
+      + arn                                  = (known after apply)
+      + associate_public_ip_address          = true
+      + availability_zone                    = (known after apply)
+      + cpu_core_count                       = (known after apply)
+      + cpu_threads_per_core                 = (known after apply)
+      + disable_api_stop                     = (known after apply)
+      + disable_api_termination              = (known after apply)
+      + ebs_optimized                        = (known after apply)
+      + get_password_data                    = false
+      + host_id                              = (known after apply)
+      + host_resource_group_arn              = (known after apply)
+      + iam_instance_profile                 = (known after apply)
+      + id                                   = (known after apply)
+      + instance_initiated_shutdown_behavior = (known after apply)
+      + instance_state                       = (known after apply)
+      + instance_type                        = "t3.small"
+      + ipv6_address_count                   = (known after apply)
+      + ipv6_addresses                       = (known after apply)
+      + key_name                             = "login"
+      + monitoring                           = (known after apply)
+      + outpost_arn                          = (known after apply)
+      + password_data                        = (known after apply)
+      + placement_group                      = (known after apply)
+      + placement_partition_number           = (known after apply)
+      + primary_network_interface_id         = (known after apply)
+      + private_dns                          = (known after apply)
+      + private_ip                           = (known after apply)
+      + public_dns                           = (known after apply)
+      + public_ip                            = (known after apply)
+      + secondary_private_ips                = (known after apply)
+      + security_groups                      = (known after apply)
+      + source_dest_check                    = true
+      + subnet_id                            = (known after apply)
+      + tags                                 = {
+          + "name" = "login-inst"
+        }
+      + tags_all                             = {
+          + "name" = "login-inst"
+        }
+      + tenancy                              = (known after apply)
+      + user_data                            = (known after apply)
+      + user_data_base64                     = (known after apply)
+      + user_data_replace_on_change          = false
+      + vpc_security_group_ids               = (known after apply)
+    }
+
+  # aws_key_pair.login will be created
+  + resource "aws_key_pair" "login" {
+      + arn             = (known after apply)
+      + fingerprint     = (known after apply)
+      + id              = (known after apply)
+      + key_name        = "login"
+      + key_name_prefix = (known after apply)
+      + key_pair_id     = (known after apply)
+      + key_type        = (known after apply)
+      + public_key      = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIF4yiy4lef2WFQ7zdtuOZUHz9onyADTJ16l0OX8a211y damocles@zelbinion"
+      + tags_all        = (known after apply)
+    }
+
+  # aws_security_group.login_sg will be created
+  + resource "aws_security_group" "login_sg" {
+      + arn                    = (known after apply)
+      + description            = "Login security group"
+      + egress                 = (known after apply)
+      + id                     = (known after apply)
+      + ingress                = [
+          + {
+              + cidr_blocks      = [
+                  + "0.0.0.0/0",
+                ]
+              + description      = ""
+              + from_port        = 22
+              + ipv6_cidr_blocks = []
+              + prefix_list_ids  = []
+              + protocol         = "tcp"
+              + security_groups  = []
+              + self             = false
+              + to_port          = 22
+            },
+        ]
+      + name                   = "login-sg"
+      + name_prefix            = (known after apply)
+      + owner_id               = (known after apply)
+      + revoke_rules_on_delete = false
+      + tags_all               = (known after apply)
+      + vpc_id                 = (known after apply)
+    }
+
+Plan: 3 to add, 0 to change, 0 to destroy.
+
+─────────────────────────────────────────────────────────────────────────────
+
+Note: You didn't use the -out option to save this plan, so Terraform can't
+guarantee to take exactly these actions if you run "terraform apply" now.
 ```
 
 When you see steps where Terraform plans to drop or replace resources, you can decide if that's actually alright, or if it will negatively impact your business during the deployment, and then you can abort and define an intermediate state to first transition to, usually creating a new resource without dropping the old one, then do whatever operation is necessary to move internal state to it, then continue by deleting the old resource. This is like checking up on your contracting company before they start doing their work to make sure they don't do anything strange you don't want, and sometimes needing to handhold them through details of your business to come up with the new plan of action.
@@ -141,7 +307,7 @@ Needing to learn Terraform's HCL language to make infrastructure changes has bee
 
 A bijective function has a one-to-one mapping of all state in one set with all state in another set. Both representations are equivalent (given the appropriate transform functions), both sets (of possible cloud states) are the same size (conceptually), and for any one particular state in one set there is exactly one state in the other set. Programming Languages don't fit the bill here, as was demonstrated earlier, but what does? What, exactly, defines your cloud resources in the most minimal way?
 
-The answer is ~~~[water vapor](https://en.wikipedia.org/wiki/Cloud)~~~ [Entities](https://en.wikipedia.org/wiki/Entity#In_computer_science). Each cloud resource has some unique identifier and a set of properties that configure it. Some of those properties can be relations or dependencies on other cloud resources. The ordering of the entities does not matter, so long as the dependencies are explicitly defined to make determination of the order of operations possible. You may have noticed that this sounds a lot like [Objects](https://en.wikipedia.org/wiki/Object_%28computer_science%29) in [Object-Oriented Programming](https://en.wikipedia.org/wiki/Object-oriented_programming). It is very much the same, with the only difference being that the unique identifier *must* be unique, so if we considered an array of pointers to these objects as the entity IDs, multiple pointers to the same object wouldn't be allowed.
+The answer is ~~[water vapor](https://en.wikipedia.org/wiki/Cloud)~~ [Entities](https://en.wikipedia.org/wiki/Entity#In_computer_science). Each cloud resource has some unique identifier and a set of properties that configure it. Some of those properties can be relations or dependencies on other cloud resources. The ordering of the entities does not matter, so long as the dependencies are explicitly defined to make determination of the order of operations possible. You may have noticed that this sounds a lot like [Objects](https://en.wikipedia.org/wiki/Object_%28computer_science%29) in [Object-Oriented Programming](https://en.wikipedia.org/wiki/Object-oriented_programming). It is very much the same, with the only difference being that the unique identifier *must* be unique, so if we considered an array of pointers to these objects as the entity IDs, multiple pointers to the same object wouldn't be allowed.
 
 This means the representation of your cloud resources should be *data*, not code. Particularly, it should be [relational data](https://en.wikipedia.org/wiki/Relational_model) to allow the references/relations with other entities that actually exist within your cloud. Modeling each entity as a wholly-siloed object without those relations explicitly tracked *might* work for read-only cases, but puts the burden of properly joining the entities on the user and could lead to unexpected errors during mutation if the disjointed state is not carefully kept in sync. This mutation of that data would be the code, and fits very well into a classic [REST architecture](https://www.redhat.com/en/blog/rest-architecture) (in the original sense, though it could also work in the [Web-oriented RESTful meaning](https://en.wikipedia.org/wiki/Overview_of_RESTful_API_Description_Languages#Hypertext-driven_API).
 
