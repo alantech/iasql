@@ -1183,6 +1183,12 @@ async function augmentValue(
         typeof columnMetadata.type === 'string'
           ? format('array[%L]::%I[]', value, columnMetadata.type)
           : format('array[%L]', value);
+    } else if (typeof value === 'object') {
+      augmentedValue.isJson = true;
+      augmentedValue.formattedValue =
+        typeof columnMetadata?.type === 'string'
+          ? format('%L::%I', JSON.stringify(value), columnMetadata.type)
+          : format('%L', JSON.stringify(value));
     } else {
       augmentedValue.formattedValue = format('%L', value);
     }
