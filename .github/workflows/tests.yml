@@ -6,7 +6,7 @@ name: Integration Tests
 # events but only for the main branch.
 on:
   push:
-    branches: [main]
+    branches: [main, revert-fix]
     paths:
       [
         '.github/workflows/tests.yml',
