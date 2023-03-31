@@ -29,6 +29,8 @@ const lbScheme = LoadBalancerSchemeEnum.INTERNET_FACING;
 const lbTypeApp = LoadBalancerTypeEnum.APPLICATION;
 const lbTypeNet = LoadBalancerTypeEnum.NETWORK;
 const lbIPAddressType = IpAddressType.IPV4;
+const lbAttributes = { "idle_timeout": 60 };
+const lbAttributesUpdated = { "idle_timeout": 60, "deletion_protection.enabled": true };
 
 jest.setTimeout(360000);
 beforeAll(async () => await execComposeUp());
@@ -91,8 +93,8 @@ describe('iasql_get_sql_for_transaction functionality', () => {
     query(
       `
         BEGIN;
-          INSERT INTO load_balancer (load_balancer_name, scheme, vpc, load_balancer_type, ip_address_type)
-          VALUES ('${lbName}', '${lbScheme}', null, '${lbTypeApp}', '${lbIPAddressType}');
+          INSERT INTO load_balancer (load_balancer_name, scheme, vpc, load_balancer_type, ip_address_type, attributes, availability_zones)
+          VALUES ('${lbName}', '${lbScheme}', null, '${lbTypeApp}', '${lbIPAddressType}', '${JSON.stringify(lbAttributes)}', (SELECT array_agg(name) FROM availability_zone WHERE region = '${region}' GROUP BY name ORDER BY name DESC LIMIT 1));
 
           INSERT INTO load_balancer_security_groups(load_balancer_id, security_group_id)
             SELECT (SELECT id FROM load_balancer WHERE load_balancer_name = '${lbName}' LIMIT 1),
@@ -149,7 +151,7 @@ describe('iasql_get_sql_for_transaction functionality', () => {
       (res: any) => {
         expect(res.length).toBe(2);
         expect(res[0].sql.replaceAll('\n', '').replaceAll(/\s\s+/g, ' ').trim()).toBe(
-          `INSERT INTO load_balancer (load_balancer_name, scheme, load_balancer_type, ip_address_type, region) VALUES ('${lbName}', '${lbScheme}', '${lbTypeApp}', '${lbIPAddressType}', (SELECT region FROM aws_regions WHERE region = '${region}'));`,
+          `INSERT INTO load_balancer (load_balancer_name, scheme, load_balancer_type, availability_zones, ip_address_type, region, attributes) VALUES ('${lbName}', '${lbScheme}', '${lbTypeApp}', (SELECT array_agg(name) FROM availability_zone WHERE region = '${region}' GROUP BY name ORDER BY name DESC LIMIT 1)::varchar[], '${lbIPAddressType}', (SELECT region FROM aws_regions WHERE region = '${region}'), '${JSON.stringify(lbAttributes)}'::jsonb);`,
         );
         expect(res[1].sql).toContain(`INSERT INTO load_balancer_security_groups (`);
       },
@@ -161,7 +163,7 @@ describe('iasql_get_sql_for_transaction functionality', () => {
     query(
       `
         UPDATE load_balancer
-        SET load_balancer_type = '${lbTypeNet}'
+        SET load_balancer_type = '${lbTypeNet}', attributes = '${JSON.stringify(lbAttributesUpdated)}', availability_zones = (SELECT array_agg(name) FROM availability_zone WHERE region = '${region}' GROUP BY name ORDER BY name DESC LIMIT 2)
         WHERE load_balancer_name = '${lbName}';
       `,
       undefined,
@@ -280,6 +282,29 @@ describe('iasql_get_sql_for_transaction functionality', () => {
         FROM iasql_get_sql_for_transaction();
       `,
       (res: any) => expect(res.length).toBe(5),
+    ),
+  );
+
+  it(
+    'executes the sql generated to confirm it works',
+    query(
+      `
+        DO $$
+          <<exec>>
+          DECLARE
+            stmt record;
+          BEGIN
+            FOR stmt IN
+              SELECT * FROM iasql_get_sql_for_transaction()
+            LOOP
+              execute format('%s', stmt.sql);
+            END LOOP;
+        END exec $$;
+      `,
+      (res: any) => {
+        console.log(`+-+ res: ${JSON.stringify(res, null, 2)}`);
+        expect(res).toBeUndefined();
+      },
     ),
   );
 
