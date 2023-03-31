@@ -4,6 +4,7 @@ import {
   PostTransactionCheck,
   PreTransactionCheck,
   RpcBase,
+  RpcInput,
   RpcResponseObject,
 } from '../../interfaces';
 import * as iasql from '../iasql';
@@ -26,7 +27,12 @@ export class IasqlCommit extends RpcBase {
   /** @internal */
   postTransactionCheck = PostTransactionCheck.UNLOCK_ALWAYS;
   /** @internal */
-  inputTable = {};
+  inputTable: RpcInput = {
+    message: {
+      argType: 'varchar',
+      default: null,
+    },
+  };
   /** @internal */
   outputTable = {
     action: 'varchar',
@@ -45,8 +51,9 @@ export class IasqlCommit extends RpcBase {
     dbId: string,
     _dbUser: string,
     ctx: Context,
+    commitMessage?: string,
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
-    const res = (await iasql.commit(dbId, false, ctx))?.rows ?? [];
+    const res = (await iasql.commit(dbId, false, ctx, false, undefined, commitMessage))?.rows ?? [];
     return (
       res?.map(rec => super.formatObjKeysToSnakeCase(rec) as RpcResponseObject<typeof this.outputTable>) ?? []
     );
