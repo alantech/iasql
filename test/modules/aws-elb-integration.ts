@@ -890,6 +890,7 @@ describe('ELB install/uninstall', () => {
       'aws_elb',
       'aws_lambda',
       'aws_cloudfront',
+      'aws_opensearch',
     ]),
   );
 

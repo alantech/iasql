@@ -778,6 +778,7 @@ describe('Route53 install/uninstall', () => {
       'aws_codedeploy',
       'aws_codepipeline',
       'aws_cloudfront',
+      'aws_opensearch',
     ]),
   );
 
