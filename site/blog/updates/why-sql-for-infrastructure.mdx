@@ -305,7 +305,7 @@ Why does Terraform need this JSON-based statefile when it has the much cleaner H
 
 Needing to learn Terraform's HCL language to make infrastructure changes has been cited as a [weakness](https://www.pulumi.com/why-pulumi/) that can be mitigated by wrapping it in the syntaxes more familiar to the user like [Terraform CDK](https://developer.hashicorp.com/terraform/cdktf), [Pulumi](https://www.pulumi.com), or [AWS CDK](https://docs.aws.amazon.com/cdk/v2/guide/home.html). This *is* a weakness, but we believe that the HCL-to-Statefile transformation being [surjective](https://en.wikipedia.org/wiki/Surjective_function) instead of [bijective](https://en.wikipedia.org/wiki/Bijection) is actually the bigger issue.
 
-<!-- TODO: This section could use actual HCL code, and ideally some way you can trigger a corruption of the statefile vs AWS's actual state -->
+<!-- TODO: This section could ideally show some way you can trigger a corruption of the statefile vs AWS's actual state -->
 
 ## The Objective is Bi- hmmmm....
 
