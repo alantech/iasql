@@ -64,6 +64,11 @@ export class SshAccounts extends ModuleBase {
       });
       return this.sshClients[serverName];
     },
+    // Returns all of the server names in the database
+    async getServerNames() {
+      const creds = await this.orm.find(SshCredentials, {});
+      return creds.map((c: SshCredentials) => c.name);
+    },
     sshClients: {}, // Initializing this cache with no clients. The cache doesn't expire explicitly
     // as we simply drop the context at the end of the execution.
     // This function returns the list of regions that are currently enabled, allowing multi-region
