@@ -115,7 +115,7 @@ jobs:
             psql "postgres://$IASQL_USERNAME:$IASQL_PASSWORD@localhost:5432/iasql" -c "select * from iasql_begin();"
 
             # Remove delete protection
-            echo "\nDelete all records..."
+            echo "\nDisable delete protection..."
             psql "postgres://$IASQL_USERNAME:$IASQL_PASSWORD@localhost:5432/iasql" -c "UPDATE db_cluster SET delete_protection=FALSE;"
 
             echo "\nApply removal..."
