@@ -4,8 +4,6 @@ import {
   CodeDeploy,
   CreateDeploymentGroupCommandInput,
   DeploymentGroupInfo,
-  DeploymentOption,
-  DeploymentType,
   paginateListDeploymentGroups,
   UpdateDeploymentGroupCommandOutput,
 } from '@aws-sdk/client-codedeploy';
@@ -18,6 +16,8 @@ import {
   CodedeployApplication,
   CodedeployDeploymentGroup,
   DeploymentConfigType,
+  DeploymentOption,
+  DeploymentType,
   EC2TagFilterType,
 } from '../entity';
 
@@ -161,7 +161,7 @@ export class CodedeployDeploymentGroupMapper extends MapperBase<CodedeployDeploy
         if (!groupId) continue;
 
         // we need to read the created deployment because some default fields are added
-        const dgId = await this.module.deploymentGroup.generateId({
+        const dgId = this.module.deploymentGroup.generateId({
           deploymentGroupName: e.name,
           applicationName: e.application.name,
           region: e.region,
@@ -244,7 +244,7 @@ export class CodedeployDeploymentGroupMapper extends MapperBase<CodedeployDeploy
           await this.module.application.db.update(cloudRecord, ctx);
           out.push(cloudRecord);
         } else {
-          const result = await this.updateDeploymentGroup(client.cdClient, {
+          await this.updateDeploymentGroup(client.cdClient, {
             applicationName: group.application.name,
             currentDeploymentGroupName: group.name,
             ec2TagFilters: group.ec2TagFilters,
@@ -254,7 +254,7 @@ export class CodedeployDeploymentGroupMapper extends MapperBase<CodedeployDeploy
           });
 
           // we need to read that again because some fields may have changed
-          const dgId = await this.module.deploymentGroup.generateId({
+          const dgId = this.module.deploymentGroup.generateId({
             deploymentGroupName: group.name,
             applicationName: group.application.name,
             region: group.region,
