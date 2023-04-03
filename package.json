@@ -98,7 +98,7 @@
     "@aws-sdk/client-secrets-manager": "^3.299.0",
     "@aws-sdk/client-sns": "^3.299.0",
     "@aws-sdk/client-sqs": "^3.299.0",
-    "@aws-sdk/client-ssm": "^3.299.0",
+    "@aws-sdk/client-ssm": "^3.303.0",
     "@aws-sdk/client-sts": "^3.299.0",
     "@aws-sdk/middleware-retry": "^3.160.0",
     "@aws-sdk/util-waiter": "^3.162.0",
