@@ -1,3 +1,5 @@
+import { EC2 } from '@aws-sdk/client-ec2';
+
 import {
   IpAddressType,
   LoadBalancerSchemeEnum,
@@ -18,6 +20,29 @@ import {
 
 const dbAlias = 'getsqlfortransaction';
 const region = defaultRegion();
+const accessKeyId = process.env.AWS_ACCESS_KEY_ID ?? '';
+const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY ?? '';
+
+const ec2client = new EC2({
+  credentials: {
+    accessKeyId,
+    secretAccessKey,
+  },
+  region,
+});
+
+const getAvailabilityZones = async () => {
+  return await ec2client.describeAvailabilityZones({
+    Filters: [
+      {
+        Name: 'region-name',
+        Values: [region],
+      },
+    ],
+  });
+};
+
+let az1: string, az2: string;
 
 const begin = runBegin.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
@@ -29,11 +54,16 @@ const lbScheme = LoadBalancerSchemeEnum.INTERNET_FACING;
 const lbTypeApp = LoadBalancerTypeEnum.APPLICATION;
 const lbTypeNet = LoadBalancerTypeEnum.NETWORK;
 const lbIPAddressType = IpAddressType.IPV4;
-const lbAttributes = { "idle_timeout": 60 };
-const lbAttributesUpdated = { "idle_timeout": 60, "deletion_protection.enabled": true };
+const lbAttributes = { idle_timeout: 60 };
+const lbAttributesUpdated = { idle_timeout: 60, 'deletion_protection.enabled': true };
 
 jest.setTimeout(360000);
-beforeAll(async () => await execComposeUp());
+beforeAll(async () => {
+  const azs = (await getAvailabilityZones())?.AvailabilityZones?.map(az => az.ZoneName)?.sort() ?? [];
+  az1 = azs[0] ?? '';
+  az2 = azs[1] ?? '';
+  await execComposeUp();
+});
 afterAll(async () => await execComposeDown());
 
 let username: string, password: string;
@@ -94,7 +124,9 @@ describe('iasql_get_sql_for_transaction functionality', () => {
       `
         BEGIN;
           INSERT INTO load_balancer (load_balancer_name, scheme, vpc, load_balancer_type, ip_address_type, attributes, availability_zones)
-          VALUES ('${lbName}', '${lbScheme}', null, '${lbTypeApp}', '${lbIPAddressType}', '${JSON.stringify(lbAttributes)}', (SELECT array_agg(name) FROM availability_zone WHERE region = '${region}' GROUP BY name ORDER BY name DESC LIMIT 1));
+          VALUES ('${lbName}', '${lbScheme}', null, '${lbTypeApp}', '${lbIPAddressType}', '${JSON.stringify(
+        lbAttributes,
+      )}', (SELECT array_agg(az.name) FROM (SELECT name from availability_zone WHERE region = '${region}' GROUP BY name ORDER BY name ASC LIMIT 1) as az));
 
           INSERT INTO load_balancer_security_groups(load_balancer_id, security_group_id)
             SELECT (SELECT id FROM load_balancer WHERE load_balancer_name = '${lbName}' LIMIT 1),
@@ -151,9 +183,44 @@ describe('iasql_get_sql_for_transaction functionality', () => {
       (res: any) => {
         expect(res.length).toBe(2);
         expect(res[0].sql.replaceAll('\n', '').replaceAll(/\s\s+/g, ' ').trim()).toBe(
-          `INSERT INTO load_balancer (load_balancer_name, scheme, load_balancer_type, availability_zones, ip_address_type, region, attributes) VALUES ('${lbName}', '${lbScheme}', '${lbTypeApp}', (SELECT array_agg(name) FROM availability_zone WHERE region = '${region}' GROUP BY name ORDER BY name DESC LIMIT 1)::varchar[], '${lbIPAddressType}', (SELECT region FROM aws_regions WHERE region = '${region}'), '${JSON.stringify(lbAttributes)}'::jsonb);`,
+          `INSERT INTO load_balancer (load_balancer_name, scheme, load_balancer_type, availability_zones, ip_address_type, region, attributes) VALUES ('${lbName}', '${lbScheme}', '${lbTypeApp}', array['${az1}']::varchar[], '${lbIPAddressType}', (SELECT region FROM aws_regions WHERE region = '${region}'), '${JSON.stringify(
+            lbAttributes,
+          )}'::jsonb);`,
         );
         expect(res[1].sql).toContain(`INSERT INTO load_balancer_security_groups (`);
+      },
+    ),
+  );
+
+  it(
+    'executes the INSERT sql generated to confirm it works',
+    query(
+      `
+        DELETE FROM load_balancer WHERE load_balancer_name = '${lbName}';
+        DO $$
+          <<exec>>
+          DECLARE
+            stmt record;
+          BEGIN
+            FOR stmt IN
+              SELECT *
+              FROM iasql_get_sql_for_transaction(
+                (
+                  SELECT transaction_id
+                  FROM iasql_audit_log
+                  WHERE change_type = 'OPEN_TRANSACTION'
+                  ORDER BY ts DESC
+                  LIMIT 1
+                )
+              )
+            LOOP
+              EXECUTE format('%s', stmt.sql);
+            END LOOP;
+        END exec $$;
+      `,
+      (res: any) => {
+        console.log(`+-+ res before execute: ${JSON.stringify(res, null, 2)}`);
+        expect(res).toBeUndefined();
       },
     ),
   );
@@ -163,7 +230,9 @@ describe('iasql_get_sql_for_transaction functionality', () => {
     query(
       `
         UPDATE load_balancer
-        SET load_balancer_type = '${lbTypeNet}', attributes = '${JSON.stringify(lbAttributesUpdated)}', availability_zones = (SELECT array_agg(name) FROM availability_zone WHERE region = '${region}' GROUP BY name ORDER BY name DESC LIMIT 2)
+        SET load_balancer_type = '${lbTypeNet}', attributes = '${JSON.stringify(
+        lbAttributesUpdated,
+      )}', availability_zones = (SELECT array_agg(az.name) FROM (SELECT name from availability_zone WHERE region = '${region}' GROUP BY name ORDER BY name ASC LIMIT 2) as az)
         WHERE load_balancer_name = '${lbName}';
       `,
       undefined,
