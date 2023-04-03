@@ -110,6 +110,17 @@ jobs:
           command: |
             export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
             export AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
+            # Remove delete protection from clusters
+            echo "\nStarting transaction..."
+            psql "postgres://$IASQL_USERNAME:$IASQL_PASSWORD@localhost:5432/iasql" -c "select * from iasql_begin();"
+
+            # Remove delete protection
+            echo "\nDelete all records..."
+            psql "postgres://$IASQL_USERNAME:$IASQL_PASSWORD@localhost:5432/iasql" -c "UPDATE db_cluster SET delete_protection=FALSE;"
+
+            echo "\nApply removal..."
+            psql $PSQL_CONN -c "select * from iasql_commit();"
+                        
             echo "\nStart transaction..."
             psql "postgres://$IASQL_USERNAME:$IASQL_PASSWORD@localhost:5432/iasql" -c "select * from iasql_begin();"
             echo "\nDelete all records..."
