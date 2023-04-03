@@ -7,10 +7,6 @@ export class PackageMapper extends MapperBase<Package> {
   entity = Package;
 
   equals = (a: Package, b: Package) =>
-    Object.is(a.server, b.server) &&
-    Object.is(a.package, b.package) &&
-    Object.is(a.version, b.version) &&
-    Object.is(a.architecture, b.architecture) &&
     Object.is(a.description, b.description) &&
     Object.is(a.installed, b.installed) &&
     Object.is(a.upgradable, b.upgradable);
