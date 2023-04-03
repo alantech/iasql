@@ -718,6 +718,7 @@ describe('VPC install/uninstall', () => {
       'aws_codepipeline',
       'aws_lambda',
       'aws_cloudfront',
+      'aws_opensearch',
     ]),
   );
 

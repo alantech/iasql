@@ -675,7 +675,7 @@ export async function commit(
         if (dryRun) return applyRes;
       }
     } catch (e) {
-      logger.scope({ dbId }).warn(`Something failed applying for modules with changes.\n${e}`);
+      logger.scope({ dbId, e }).warn(`Something failed applying for modules with changes.`);
       applyErr = e;
     }
     if (applyErr) {

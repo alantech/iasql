@@ -1,3 +1,5 @@
+import SSH2Promise from 'ssh2-promise';
+
 import { SshAccounts } from '..';
 import {
   Context,
@@ -46,7 +48,7 @@ export class SshWriteFileText extends RpcBase {
     path: string,
     data: string,
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
-    const sshClient = await ctx.getSshClient(serverName);
+    const sshClient: SSH2Promise = await ctx.getSshClient(serverName);
     const filestream = await sshClient.sftp().createWriteStream(path, { encoding: 'utf8', autoClose: false });
     await new Promise((resolve, reject) => {
       filestream.end(data, 'utf8', (err?: Error) => {

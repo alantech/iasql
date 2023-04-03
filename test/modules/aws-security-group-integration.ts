@@ -955,7 +955,7 @@ describe('Security Group install/uninstall', () => {
     select * from iasql_install('aws_security_group', 'aws_vpc');
   `,
       (res: any[]) => {
-        expect(res.length).toBe(16);
+        expect(res.length).toBe(17);
       },
     ),
   );
@@ -967,7 +967,7 @@ describe('Security Group install/uninstall', () => {
     select * from iasql_uninstall('aws_security_group', 'aws_vpc');
   `,
       (res: any[]) => {
-        expect(res.length).toBe(16);
+        expect(res.length).toBe(17);
       },
     ),
   );
@@ -991,6 +991,7 @@ describe('Security Group install/uninstall', () => {
       'aws_codepipeline',
       'aws_lambda',
       'aws_cloudfront',
+      'aws_opensearch',
     ]),
   );
 

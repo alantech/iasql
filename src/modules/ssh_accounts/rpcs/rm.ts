@@ -1,3 +1,5 @@
+import SSH2Promise from 'ssh2-promise';
+
 import { SshAccounts } from '..';
 import {
   Context,
@@ -44,7 +46,7 @@ export class SshRm extends RpcBase {
     serverName: string,
     path: string,
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
-    const sshClient = await ctx.getSshClient(serverName);
+    const sshClient: SSH2Promise = await ctx.getSshClient(serverName);
     await sshClient.sftp().unlink(path);
     return [{ status: 'deleted' }]; // If it reaches here, it was successful
   };
