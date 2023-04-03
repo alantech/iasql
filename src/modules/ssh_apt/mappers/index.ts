@@ -63,7 +63,7 @@ export class PackageMapper extends MapperBase<Package> {
             const description = allPackages[i + 1];
             const [nameAndSource, version, architecture] = mainLine.split(' ');
             const name = nameAndSource.replace(/\/.*$/, '');
-            const id = this.generateId({
+            const packageId = this.generateId({
               server,
               package: name,
               version,
@@ -77,29 +77,29 @@ export class PackageMapper extends MapperBase<Package> {
             p.description = description;
             p.installed = false;
             p.upgradable = false;
-            packagesObj[id] = p;
+            packagesObj[packageId] = p;
           }
           for (const packageLine of installedPackages) {
             const [nameAndSource, version, architecture] = packageLine.split(' ');
             const name = nameAndSource.replace(/\/.*$/, '');
-            const id = this.generateId({
+            const packageId = this.generateId({
               server,
               package: name,
               version,
               architecture,
             });
-            packagesObj[id].installed = true;
+            packagesObj[packageId].installed = true;
           }
           for (const packageLine of upgradablePackages) {
             const [nameAndSource, version, architecture] = packageLine.split(' ');
             const name = nameAndSource.replace(/\/.*$/, '');
-            const id = this.generateId({
+            const packageId = this.generateId({
               server,
               package: name,
               version,
               architecture,
             });
-            packagesObj[id].upgradable = true;
+            packagesObj[packageId].upgradable = true;
           }
           out.push(...Object.values(packagesObj));
         }),
