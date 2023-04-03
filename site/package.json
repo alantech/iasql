@@ -54,6 +54,6 @@
   "devDependencies": {
     "@types/node": "^18.15.10",
     "remarkable-external-link": "^2.1.0",
-    "typescript": "^5.0.2"
+    "typescript": "^5.0.3"
   }
 }
