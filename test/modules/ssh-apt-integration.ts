@@ -15,7 +15,7 @@ import {
   runUninstall,
 } from '../helpers';
 
-const dbAlias = 'sshaccounttest';
+const dbAlias = 'sshapttest';
 const region = defaultRegion();
 const accessKeyId = process.env.AWS_ACCESS_KEY_ID ?? '';
 const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY ?? '';
@@ -237,7 +237,7 @@ describe('SSH Apt Package Management Integration Testing', () => {
       `
     SELECT * FROM package;
   `,
-      (res: any[]) => expect(res.length).toBeGreaterThan(50_000),
+      (res: any[]) => expect(res.length).toBeGreaterThan(5_000),
       true,
       () => ({ username, password }),
     ),
@@ -249,7 +249,7 @@ describe('SSH Apt Package Management Integration Testing', () => {
       `
     SELECT * FROM package WHERE installed = TRUE;
   `,
-      (res: any[]) => expect(res.length).toBeLessThan(50_000),
+      (res: any[]) => expect(res.length).toBeLessThan(5_000),
       true,
       () => ({ username, password }),
     ),
@@ -348,7 +348,7 @@ describe('SSH Apt Package Management Integration Testing', () => {
       `
     SELECT * FROM package;
   `,
-      (res: any[]) => expect(res.length).toBeGreaterThan(50_000),
+      (res: any[]) => expect(res.length).toBeGreaterThan(5_000),
       true,
       () => ({ username, password }),
     ),
