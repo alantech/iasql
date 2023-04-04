@@ -1318,6 +1318,11 @@ export async function rollback(dbId: string, context: Context, force = false, or
 
     const newStartCommit = await insertLog(orm, AuditLogChangeType.START_COMMIT, currentTransactionId);
     context.startCommit = newStartCommit;
+    const previousStartCommit = await getPreviousStartCommit(orm, newStartCommit.ts);
+
+    const changes = await getChangesToCommit(orm, newStartCommit, previousStartCommit);
+    // update changes to commit with the new transaction id
+    await associateTransaction(orm, changes, currentTransactionId);
 
     const installedModulesNames = (await orm.find(IasqlModule)).map((m: any) => m.name);
     const installedModules: ModuleInterface[] = (Object.values(importedModules) as ModuleInterface[]).filter(
