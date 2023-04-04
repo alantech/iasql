@@ -16,4 +16,11 @@ export class SshAptModule extends ModuleBase {
   }
 }
 
+
+/**
+ *
+ * ```testdoc
+ * modules/ssh-apt-integration.ts#SSH Apt Package Management Integration Testing
+ * ```
+ */
 export const sshApt = new SshAptModule();

@@ -11,7 +11,8 @@ import {
 } from '../../interfaces';
 
 /**
- * Method for updating the apt package list.
+ * Method for updating the apt package list. Creates its own transaction to make sure the
+ * package table is updated when done
  *
  * Returns the stdout of the process on success, and an error on failure
  *
@@ -22,9 +23,9 @@ export class AptUpdate extends RpcBase {
    */
   module: SshAptModule;
   /** @internal */
-  preTransactionCheck = PreTransactionCheck.NO_CHECK;
+  preTransactionCheck = PreTransactionCheck.WAIT_FOR_LOCK;
   /** @internal */
-  postTransactionCheck = PostTransactionCheck.NO_CHECK;
+  postTransactionCheck = PostTransactionCheck.UNLOCK_ALWAYS;
   /**
    * @internal
    */
