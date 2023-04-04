@@ -409,6 +409,17 @@ jobs:
               );
             ";
 
+            # Remove delete protection from clusters
+            echo "\nStarting transaction..."
+            psql postgres://$username:$password@localhost:5432/iasql -c "select * from iasql_begin();"
+
+            # Remove delete protection
+            echo "\nDisable delete protection..."
+            psql "postgres://$username:$password@localhost:5432/iasql" -c "UPDATE db_cluster SET delete_protection=FALSE;"
+
+            echo "\nApply removal..."
+            psql $PSQL_CONN -c "select * from iasql_commit();" ; docker logs $(docker ps -a --filter "name=iasql" --format "{{.Names}}")
+
             # Start transaction
             echo "\nStarting transaction..."
             psql postgres://$username:$password@localhost:5432/iasql -c "select * from iasql_begin();"
