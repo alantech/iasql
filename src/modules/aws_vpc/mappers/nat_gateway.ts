@@ -119,8 +119,8 @@ export class NatGatewayMapper extends MapperBase<NatGateway> {
           out = data.NatGateways?.pop();
           // If it is not a final state we retry
           if (
-            [AwsNatGatewayState.DELETING, AwsNatGatewayState.PENDING].includes(
-              out?.State as AwsNatGatewayState,
+            [AwsNatGatewayState.DELETING as string, AwsNatGatewayState.PENDING as string].includes(
+              out?.State!,
             )
           ) {
             return { state: WaiterState.RETRY };
@@ -155,8 +155,8 @@ export class NatGatewayMapper extends MapperBase<NatGateway> {
           const nat = data.NatGateways?.pop();
           // If it is not a final state we retry
           if (
-            [AwsNatGatewayState.DELETING, AwsNatGatewayState.PENDING].includes(
-              nat?.State as AwsNatGatewayState,
+            [AwsNatGatewayState.DELETING as string, AwsNatGatewayState.PENDING as string].includes(
+              nat?.State!,
             )
           ) {
             return { state: WaiterState.RETRY };
