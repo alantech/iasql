@@ -81,6 +81,7 @@ export enum AuditLogChangeType {
   ERROR = 'ERROR',
   START_REVERT = 'START_REVERT',
   END_REVERT = 'END_REVERT',
+  SET_COMMIT_MESSAGE = 'SET_COMMIT_MESSAGE',
 }
 
 /**
