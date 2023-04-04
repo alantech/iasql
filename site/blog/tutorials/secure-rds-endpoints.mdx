@@ -12,7 +12,7 @@ Do you have some database instances on RDS and wonder what's the most secure way
 
 When creating a database, AWS provides some specific information about the hostnames and ports used. You can access those to reach your databases by using specific clients for MySQL, Postgres, etc...:
 
-<img src="/img/how_to_connect_rds.png" />
+<img src="/secure-rds/how_to_connect_rds.png" />
 
 On a public VPC, those endpoints will be public by default. However, consider creating them under a private VPC and accessing them internally, to grant additional security to critical services. AWS PrivateLink offers the possibility to securely access those services without exposing them to the internet, just using Amazon's private network.
 
@@ -94,13 +94,13 @@ Running this query on an IaSQL database will auto-generate the missing endpoint 
 After running the query, you should have Endpoint Interfaces created for your RDS resources. Those should be on the region and VPC where you had your databases:
 
 <div class="col col--12">
-  <img src="/img/rds_endpoint_interfaces_created.png" height="200" />
+  <img src="/secure-rds/rds_endpoint_interfaces_created.png" height="200" />
 </div>
 
 To start testing the result, you can start a new EC2 instance on a private VPC in the same region where your RDS and Endpoint interface is configured. You can double-check that there is no internet connectivity. But the RDS endpoint could still be reached, by using the interface that has been created:
 
 <div class="col col--12">
-  <img src="/img/access_rds_endpoint.png" height="200" />
+  <img src="/secure-rds/access_rds_endpoint.png" height="200" />
 </div>
 
 Please note that you could only use those endpoints from the same region. You could reach the services in multiple regions with the use of [VPC peering](https://docs.aws.amazon.com/vpc/latest/peering/what-is-vpc-peering.html)

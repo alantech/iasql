@@ -33,8 +33,8 @@ export default function Home() {
                   alt="Create EC2 Instance"
                   className='shadow--tl browser-content'
                   sources={{
-                    light: useBaseUrl('/img/ec2-typewriter.gif'),
-                    dark: useBaseUrl('/img/ec2-typewriter_dark.gif'),
+                    light: useBaseUrl('/home/ec2-typewriter.gif'),
+                    dark: useBaseUrl('/home/ec2-typewriter_dark.gif'),
                   }}
                 />
               </BrowserWindow>
@@ -53,8 +53,8 @@ export default function Home() {
               alt="Two way connection"
               style={{width: '60%'}}
               sources={{
-                light: useBaseUrl('/img/iasql-connector.gif'),
-                dark: useBaseUrl('/img/iasql-connector_dark.gif'),
+                light: useBaseUrl('/home/iasql-connector.gif'),
+                dark: useBaseUrl('/home/iasql-connector_dark.gif'),
               }}
             />
           </div>
@@ -120,7 +120,7 @@ export default function Home() {
             <h1 style={{width: '100%'}}>Backed by</h1>
           </div>
           <div className="text--center">
-            <img style={{width: '60%'}} src={useBaseUrl('/img/investors.png')}></img>
+            <img style={{width: '60%'}} src={useBaseUrl('/home/investors.png')}></img>
           </div>
         </div>
       </div>
