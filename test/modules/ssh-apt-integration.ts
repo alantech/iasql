@@ -360,7 +360,7 @@ describe('SSH Apt Package Management Integration Testing', () => {
     ),
   );
 
-  it('uninstalls the ssh modules', uninstall(['ssh_apt', 'ssh_account']));
+  it('uninstalls the ssh modules', uninstall(['ssh_apt', 'ssh_accounts']));
 
   it('starts a transaction', begin());
 
