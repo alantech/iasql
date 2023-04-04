@@ -121,7 +121,9 @@ export class PackageMapper extends MapperBase<Package> {
       // Finally, once this is all done, we call a cloud read and sync the packages manually into
       // the database for any side-effect installed/uninstalled flags for other packages.
       // All of this must be batched per server
-      const packageGroupsByServer: { [key: string]: { toRestore: Package[], toInstall: Package[], toUninstall: Package[] } } = {};
+      const packageGroupsByServer: {
+        [key: string]: { toRestore: Package[]; toInstall: Package[]; toUninstall: Package[] };
+      } = {};
       for (const e of es) {
         const packageGroup = packageGroupsByServer[e.server] || {
           toRestore: [],
@@ -138,7 +140,8 @@ export class PackageMapper extends MapperBase<Package> {
         if (e.description !== cloudE.description || e.upgradable !== cloudE.upgradable) {
           cloudE.id = e.id;
           packageGroup.toRestore.push(cloudE);
-        } else if (e.installed) { // We know this is the only other column, so it must have changed
+        } else if (e.installed) {
+          // We know this is the only other column, so it must have changed
           packageGroup.toInstall.push(e);
         } else {
           packageGroup.toUninstall.push(e);
@@ -150,34 +153,38 @@ export class PackageMapper extends MapperBase<Package> {
           client: await ctx.getSshClient(s),
         })),
       );
-      await Promise.all(clientsAndServers.map(async (clientAndServer) => {
-        const { client, server } = clientAndServer;
-        const packageGroup = packageGroupsByServer[server];
-        if (packageGroup.toRestore.length) {
-          await this.db.update(packageGroup.toRestore, ctx);
-        }
-        if (packageGroup.toUninstall.length) {
-          const removeCommand = `sudo apt remove ${packageGroup.toUninstall.map(e => e.package).join(' ')}`;
-          try {
-            await client.exec(removeCommand);
-          } catch (e) {
-            // stderr causes a throw in this API, so it's not important; we will also explicitly
-            // sync the db with the cloud state once done, anyways
+      await Promise.all(
+        clientsAndServers.map(async clientAndServer => {
+          const { client, server } = clientAndServer;
+          const packageGroup = packageGroupsByServer[server];
+          if (packageGroup.toRestore.length) {
+            await this.db.update(packageGroup.toRestore, ctx);
           }
-        }
-        if (packageGroup.toInstall.length) {
-          const installCommand = `sudo apt install ${packageGroup.toInstall.map(e => `${e.package}=${e.version}`).join(' ')}`;
-          try {
-            await client.exec(installCommand);
-          } catch (e) {
-            // stderr causes a throw in this API, so it's not important; we will also explicitly
-            // sync the db with the cloud state once done, anyways
+          if (packageGroup.toUninstall.length) {
+            const removeCommand = `sudo apt remove ${packageGroup.toUninstall.map(e => e.package).join(' ')}`;
+            try {
+              await client.exec(removeCommand);
+            } catch (e) {
+              // stderr causes a throw in this API, so it's not important; we will also explicitly
+              // sync the db with the cloud state once done, anyways
+            }
           }
-        }
-      }));
+          if (packageGroup.toInstall.length) {
+            const installCommand = `sudo apt install ${packageGroup.toInstall
+              .map(e => `${e.package}=${e.version}`)
+              .join(' ')}`;
+            try {
+              await client.exec(installCommand);
+            } catch (e) {
+              // stderr causes a throw in this API, so it's not important; we will also explicitly
+              // sync the db with the cloud state once done, anyways
+            }
+          }
+        }),
+      );
       // Flush the cache to be sure we're re-reading from the servers
       delete ctx.memo.cloud.Package;
-      const newPackages: Package[] = await this.cloud.read(ctx) ?? [];
+      const newPackages: Package[] = (await this.cloud.read(ctx)) ?? [];
       const out = await this.db.update(newPackages, ctx);
       if (Array.isArray(out) || !out) return out;
       return [out];
