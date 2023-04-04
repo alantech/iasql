@@ -313,7 +313,7 @@ describe('SSH Apt Package Management Integration Testing', () => {
     ),
   );
 
-  it('applies the ec2 deletion', commit());
+  it('applies the package installation', commit());
 
   itDocs(
     'confirms the package is installed',
@@ -342,7 +342,7 @@ describe('SSH Apt Package Management Integration Testing', () => {
     ),
   );
 
-  it('starts a transaction', begin());
+  it('applies the package removal', commit());
 
   it('uninstalls the ssh_apt module', uninstall(['ssh_apt']));
 
