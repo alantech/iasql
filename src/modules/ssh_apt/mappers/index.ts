@@ -184,7 +184,21 @@ export class PackageMapper extends MapperBase<Package> {
       );
       // Flush the cache to be sure we're re-reading from the servers
       delete ctx.memo.cloud.Package;
-      const newPackages: Package[] = (await this.cloud.read(ctx)) ?? [];
+      await this.cloud.read(ctx);
+      // For this pass, only worry about the packages that were marked to be updated and replace
+      // only those in the database
+      const newPackages = [];
+      for (const e of es) {
+        const id = this.generateId({
+          server: e.server,
+          package: e.package,
+          version: e.version,
+          architecture: e.architecture,
+        });
+        const newPackage = await this.cloud.read(ctx, id) as Package;
+        newPackage.id = e.id;
+        newPackages.push(newPackage);
+      }
       const out = await this.db.update(newPackages, ctx);
       if (Array.isArray(out) || !out) return out;
       return [out];
