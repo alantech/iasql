@@ -295,23 +295,25 @@ describe('SSH Apt Package Management Integration Testing', () => {
   );
   */
 
+  it('starts a transaction', begin());
+
   itDocs(
     'can install a package',
     query(
       `
-    SELECT * FROM iasql_begin();
     UPDATE package SET installed = TRUE
     WHERE package.package = 'vim' AND
     id = (
       SELECT max(id) FROM package WHERE package.package = 'vim'
     );
-    SELECT * FROM iasql_commit();
   `,
       (res: any[]) => expect(res.length).toBeGreaterThan(0),
       true,
       () => ({ username, password }),
     ),
   );
+
+  it('applies the ec2 deletion', commit());
 
   itDocs(
     'confirms the package is installed',
@@ -325,20 +327,22 @@ describe('SSH Apt Package Management Integration Testing', () => {
     ),
   );
 
+  it('starts a transaction', begin());
+
   itDocs(
     'can uninstall the package',
     query(
       `
-    SELECT * FROM iasql_begin();
     UPDATE package SET installed = FALSE
     WHERE package.package = 'vim'
-    SELECT * FROM iasql_commit();
   `,
       (res: any[]) => expect(res.length).toBeGreaterThan(0),
       true,
       () => ({ username, password }),
     ),
   );
+
+  it('starts a transaction', begin());
 
   it('uninstalls the ssh_apt module', uninstall(['ssh_apt']));
 
