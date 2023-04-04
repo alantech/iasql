@@ -195,7 +195,7 @@ export class PackageMapper extends MapperBase<Package> {
           version: e.version,
           architecture: e.architecture,
         });
-        const newPackage = await this.cloud.read(ctx, id) as Package;
+        const newPackage = (await this.cloud.read(ctx, id)) as Package;
         newPackage.id = e.id;
         newPackages.push(newPackage);
       }
