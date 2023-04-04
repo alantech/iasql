@@ -228,7 +228,7 @@ describe('SSH Apt Package Management Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(1),
       true,
       () => ({ username, password }),
-    )
+    ),
   );
 
   itDocs(
@@ -254,7 +254,6 @@ describe('SSH Apt Package Management Integration Testing', () => {
       () => ({ username, password }),
     ),
   );
-
 
   itDocs(
     'can list upgradable packages',

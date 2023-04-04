@@ -16,7 +16,6 @@ export class SshAptModule extends ModuleBase {
   }
 }
 
-
 /**
  *
  * ```testdoc
