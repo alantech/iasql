@@ -118,6 +118,8 @@ export class PackageMapper extends MapperBase<Package> {
       // 3. To follow the user's intent best, we should do uninstalls first, followed by installs,
       //    this is to make sure the set of packages marked as installed are still present in case
       //    uninstalling a package triggers an uninstall of a package marked as to be installed.
+      // Finally, once this is all done, we call a cloud read and sync the packages manually into
+      // the database for any side-effect installed/uninstalled flags for other packages.
       // All of this must be batched per server
       const packageGroupsByServer: {
         [key: string]: { toRestore: Package[]; toInstall: Package[]; toUninstall: Package[] };
@@ -181,11 +183,11 @@ export class PackageMapper extends MapperBase<Package> {
         }),
       );
       // Flush the cache to be sure we're re-reading from the servers
-      /*delete ctx.memo.cloud.Package;
+      delete ctx.memo.cloud.Package;
       const newPackages: Package[] = (await this.cloud.read(ctx)) ?? [];
       const out = await this.db.update(newPackages, ctx);
       if (Array.isArray(out) || !out) return out;
-      return [out];*/
+      return [out];
     },
     delete: async (es: Package[], ctx: Context) => {
       // Similarly, users cannot delete packages, only uninstall packages, so restore these
