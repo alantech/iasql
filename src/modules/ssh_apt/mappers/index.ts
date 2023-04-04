@@ -106,9 +106,81 @@ export class PackageMapper extends MapperBase<Package> {
       );
       return out;
     },
-    update: async (_es: Package[], _ctx: Context) => {
-      // TODO
-      return undefined;
+    update: async (es: Package[], ctx: Context) => {
+      // Changes to these records fall under three categories:
+      // 1. A change to the description or updatable status should be restored.
+      // 2. Setting the installed flag to true means it should be installed.
+      // 3. Setting the installed flag to false means it should be uninstalled.
+      // These operations are batched, for the following reasons:
+      // 1. Restoring incorrectly modified records doesn't require talking to the server, so
+      //    we don't need to keep it in the loop
+      // 2. We can batch install/uninstall packages with the `apt install` / `apt remove` commands
+      // 3. To follow the user's intent best, we should do uninstalls first, followed by installs,
+      //    this is to make sure the set of packages marked as installed are still present in case
+      //    uninstalling a package triggers an uninstall of a package marked as to be installed.
+      // Finally, once this is all done, we call a cloud read and sync the packages manually into
+      // the database for any side-effect installed/uninstalled flags for other packages.
+      // All of this must be batched per server
+      const packageGroupsByServer: { [key: string]: { toRestore: Package[], toInstall: Package[], toUninstall: Package[] } } = {};
+      for (const e of es) {
+        const packageGroup = packageGroupsByServer[e.server] || {
+          toRestore: [],
+          toInstall: [],
+          toUninstall: [],
+        };
+        const id = this.generateId({
+          server: e.server,
+          package: e.package,
+          version: e.version,
+          architecture: e.architecture,
+        });
+        const cloudE = ctx.memo.cloud.Package[id] as Package;
+        if (e.description !== cloudE.description || e.upgradable !== cloudE.upgradable) {
+          cloudE.id = e.id;
+          packageGroup.toRestore.push(cloudE);
+        } else if (e.installed) { // We know this is the only other column, so it must have changed
+          packageGroup.toInstall.push(e);
+        } else {
+          packageGroup.toUninstall.push(e);
+        }
+      }
+      const clientsAndServers = await Promise.all(
+        Object.keys(packageGroupsByServer).map(async (s: string) => ({
+          server: s,
+          client: await ctx.getSshClient(s),
+        })),
+      );
+      await Promise.all(clientsAndServers.map(async (clientAndServer) => {
+        const { client, server } = clientAndServer;
+        const packageGroup = packageGroupsByServer[server];
+        if (packageGroup.toRestore.length) {
+          await this.db.update(packageGroup.toRestore, ctx);
+        }
+        if (packageGroup.toUninstall.length) {
+          const removeCommand = `sudo apt remove ${packageGroup.toUninstall.map(e => e.package).join(' ')}`;
+          try {
+            await client.exec(removeCommand);
+          } catch (e) {
+            // stderr causes a throw in this API, so it's not important; we will also explicitly
+            // sync the db with the cloud state once done, anyways
+          }
+        }
+        if (packageGroup.toInstall.length) {
+          const installCommand = `sudo apt install ${packageGroup.toInstall.map(e => `${e.package}=${e.version}`).join(' ')}`;
+          try {
+            await client.exec(installCommand);
+          } catch (e) {
+            // stderr causes a throw in this API, so it's not important; we will also explicitly
+            // sync the db with the cloud state once done, anyways
+          }
+        }
+      }));
+      // Flush the cache to be sure we're re-reading from the servers
+      delete ctx.memo.cloud.Package;
+      const newPackages: Package[] = await this.cloud.read(ctx) ?? [];
+      const out = await this.db.update(newPackages, ctx);
+      if (Array.isArray(out) || !out) return out;
+      return [out];
     },
     delete: async (es: Package[], ctx: Context) => {
       // Similarly, users cannot delete packages, only uninstall packages, so restore these
