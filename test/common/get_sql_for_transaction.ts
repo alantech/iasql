@@ -16,6 +16,7 @@ import {
   defaultRegion,
   itDocs,
   runCommit,
+  runRollback,
 } from '../helpers';
 
 const dbAlias = 'getsqlfortransaction';
@@ -42,26 +43,49 @@ const getAvailabilityZones = async () => {
   });
 };
 
-let az1: string, az2: string;
+let az1: string, az2: string, az3: string;
 
 const begin = runBegin.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const commit = runCommit.bind(null, dbAlias);
+const rollback = runRollback.bind(null, dbAlias);
 
 const lbName = `${dbAlias}lb`;
 const lbScheme = LoadBalancerSchemeEnum.INTERNET_FACING;
 const lbTypeApp = LoadBalancerTypeEnum.APPLICATION;
 const lbTypeNet = LoadBalancerTypeEnum.NETWORK;
 const lbIPAddressType = IpAddressType.IPV4;
-const lbAttributes = { idle_timeout: 60 };
-const lbAttributesUpdated = { idle_timeout: 60, 'deletion_protection.enabled': true };
+const lbInitDefaultAttributes = [
+  { Key: 'access_logs.s3.enabled', Value: 'false' },
+  { Key: 'access_logs.s3.bucket', Value: '' },
+  { Key: 'access_logs.s3.prefix', Value: '' },
+  { Key: 'idle_timeout.timeout_seconds', Value: '60' },
+  { Key: 'deletion_protection.enabled', Value: 'false' },
+  { Key: 'routing.http2.enabled', Value: 'true' },
+  { Key: 'routing.http.drop_invalid_header_fields.enabled', Value: 'false' },
+  { Key: 'routing.http.xff_client_port.enabled', Value: 'false' },
+  { Key: 'routing.http.preserve_host_header.enabled', Value: 'false' },
+  { Key: 'routing.http.xff_header_processing.mode', Value: 'append' },
+  { Key: 'load_balancing.cross_zone.enabled', Value: 'true' },
+  { Key: 'routing.http.desync_mitigation_mode', Value: 'defensive' },
+  { Key: 'waf.fail_open.enabled', Value: 'false' },
+  { Key: 'routing.http.x_amzn_tls_version_and_cipher_suite.enabled', Value: 'false' },
+];
+const lbUpdatedWDefaultAttributes = [
+  { Key: 'access_logs.s3.prefix', Value: '' },
+  { Key: 'deletion_protection.enabled', Value: 'false' },
+  { Key: 'load_balancing.cross_zone.enabled', Value: 'false' },
+  { Key: 'access_logs.s3.enabled', Value: 'false' },
+  { Key: 'access_logs.s3.bucket', Value: '' },
+];
 
 jest.setTimeout(360000);
 beforeAll(async () => {
   const azs = (await getAvailabilityZones())?.AvailabilityZones?.map(az => az.ZoneName)?.sort() ?? [];
   az1 = azs[0] ?? '';
   az2 = azs[1] ?? '';
+  az3 = azs[2] ?? '';
   await execComposeUp();
 });
 afterAll(async () => await execComposeDown());
@@ -125,8 +149,8 @@ describe('iasql_get_sql_for_transaction functionality', () => {
         BEGIN;
           INSERT INTO load_balancer (load_balancer_name, scheme, vpc, load_balancer_type, ip_address_type, attributes, availability_zones)
           VALUES ('${lbName}', '${lbScheme}', null, '${lbTypeApp}', '${lbIPAddressType}', '${JSON.stringify(
-        lbAttributes,
-      )}', (SELECT array_agg(az.name) FROM (SELECT name from availability_zone WHERE region = '${region}' GROUP BY name ORDER BY name ASC LIMIT 1) as az));
+        lbInitDefaultAttributes,
+      )}', (SELECT array_agg(az.name) FROM (SELECT name from availability_zone WHERE region = '${region}' GROUP BY name ORDER BY name ASC LIMIT 2) as az));
 
           INSERT INTO load_balancer_security_groups(load_balancer_id, security_group_id)
             SELECT (SELECT id FROM load_balancer WHERE load_balancer_name = '${lbName}' LIMIT 1),
@@ -163,28 +187,20 @@ describe('iasql_get_sql_for_transaction functionality', () => {
     ),
   );
 
-  itDocs('preview changes done so far', query(`SELECT * FROM iasql_preview();`));
+  itDocs('rollback insert changes', rollback());
 
   itDocs(
     'check sql for transaction',
     query(
       `
         SELECT *
-        FROM iasql_get_sql_for_transaction(
-          (
-            SELECT transaction_id
-            FROM iasql_audit_log
-            WHERE change_type = 'OPEN_TRANSACTION'
-            ORDER BY ts DESC
-            LIMIT 1
-          )
-        );
+        FROM iasql_get_sql_for_transaction();
       `,
       (res: any) => {
         expect(res.length).toBe(2);
         expect(res[0].sql.replaceAll('\n', '').replaceAll(/\s\s+/g, ' ').trim()).toBe(
-          `INSERT INTO load_balancer (load_balancer_name, scheme, load_balancer_type, availability_zones, ip_address_type, region, attributes) VALUES ('${lbName}', '${lbScheme}', '${lbTypeApp}', array['${az1}']::varchar[], '${lbIPAddressType}', (SELECT region FROM aws_regions WHERE region = '${region}'), '${JSON.stringify(
-            lbAttributes,
+          `INSERT INTO load_balancer (load_balancer_name, scheme, load_balancer_type, availability_zones, ip_address_type, region, attributes) VALUES ('${lbName}', '${lbScheme}', '${lbTypeApp}', array['${az1}','${az2}']::varchar[], '${lbIPAddressType}', (SELECT region FROM aws_regions WHERE region = '${region}'), '${JSON.stringify(
+            lbInitDefaultAttributes,
           )}'::jsonb);`,
         );
         expect(res[1].sql).toContain(`INSERT INTO load_balancer_security_groups (`);
@@ -193,10 +209,14 @@ describe('iasql_get_sql_for_transaction functionality', () => {
   );
 
   it(
+    'checks transaction sql',
+    query(`SELECT * FROM iasql_get_sql_for_transaction();`, (res: any) => expect(res.length).toBe(2)),
+  );
+
+  it(
     'executes the INSERT sql generated to confirm it works',
     query(
       `
-        DELETE FROM load_balancer WHERE load_balancer_name = '${lbName}';
         DO $$
           <<exec>>
           DECLARE
@@ -204,26 +224,49 @@ describe('iasql_get_sql_for_transaction functionality', () => {
           BEGIN
             FOR stmt IN
               SELECT *
-              FROM iasql_get_sql_for_transaction(
-                (
-                  SELECT transaction_id
-                  FROM iasql_audit_log
-                  WHERE change_type = 'OPEN_TRANSACTION'
-                  ORDER BY ts DESC
-                  LIMIT 1
-                )
-              )
+              FROM iasql_get_sql_for_transaction()
             LOOP
               EXECUTE format('%s', stmt.sql);
             END LOOP;
         END exec $$;
       `,
       (res: any) => {
-        console.log(`+-+ res before execute: ${JSON.stringify(res, null, 2)}`);
-        expect(res).toBeUndefined();
+        expect(res.length).toBe(0);
       },
+      true,
+      () => ({ username, password }),
     ),
   );
+
+  it('begin a transaction', begin());
+
+  it('commits the insertion', commit());
+
+  it(
+    'checks load_balancer insertion',
+    query(
+      `
+        SELECT *
+        FROM load_balancer
+        WHERE load_balancer_name = '${lbName}';
+      `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it(
+    'check load_balancer_security_groups insertion',
+    query(
+      `
+        SELECT *
+        FROM load_balancer_security_groups
+        WHERE load_balancer_id = (SELECT id FROM load_balancer WHERE load_balancer_name = '${lbName}');
+      `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
+  itDocs('begin a transaction', begin());
 
   itDocs(
     'Updates the load balancer',
@@ -231,8 +274,8 @@ describe('iasql_get_sql_for_transaction functionality', () => {
       `
         UPDATE load_balancer
         SET load_balancer_type = '${lbTypeNet}', attributes = '${JSON.stringify(
-        lbAttributesUpdated,
-      )}', availability_zones = (SELECT array_agg(az.name) FROM (SELECT name from availability_zone WHERE region = '${region}' GROUP BY name ORDER BY name ASC LIMIT 2) as az)
+        lbUpdatedWDefaultAttributes,
+      )}', availability_zones = (SELECT array_agg(az.name) FROM (SELECT name from availability_zone WHERE region = '${region}' GROUP BY name ORDER BY name ASC LIMIT 3) as az)
         WHERE load_balancer_name = '${lbName}';
       `,
       undefined,
@@ -265,31 +308,79 @@ describe('iasql_get_sql_for_transaction functionality', () => {
     ),
   );
 
-  itDocs('preview changes done so far', query(`SELECT * FROM iasql_preview();`));
+  it('rollback update changes', rollback());
 
   itDocs(
     'check sql for transaction',
     query(
       `
         SELECT *
-        FROM iasql_get_sql_for_transaction(
-          (
-            SELECT transaction_id
-            FROM iasql_audit_log
-            WHERE change_type = 'OPEN_TRANSACTION'
-            ORDER BY ts DESC
-            LIMIT 1
-          )
-        );
+        FROM iasql_get_sql_for_transaction();
       `,
       (res: any) => {
-        expect(res.length).toBe(3);
-        expect(res[2].sql.replaceAll('\n', '').replaceAll(/\s\s+/g, ' ').trim()).toBe(
-          `UPDATE load_balancer SET load_balancer_name = '${lbName}', load_balancer_arn = NULL, dns_name = NULL, canonical_hosted_zone_id = NULL, created_time = NULL, scheme = '${lbScheme}', state = NULL, load_balancer_type = '${lbTypeNet}', subnets = NULL, availability_zones = NULL, ip_address_type = '${lbIPAddressType}', customer_owned_ipv4_pool = NULL, region = (SELECT region FROM aws_regions WHERE region = '${region}'), attributes = NULL, vpc = NULL WHERE load_balancer_name = '${lbName}' AND scheme = '${lbScheme}' AND load_balancer_type = '${lbTypeApp}' AND ip_address_type = '${lbIPAddressType}' AND region = (SELECT region FROM aws_regions WHERE region = '${region}');`,
-        );
+        expect(res.length).toBe(1);
+        const sql = res[0].sql.replaceAll('\n', '').replaceAll(/\s\s+/g, ' ').trim();
+        expect(sql).toContain(`load_balancer_type = '${lbTypeNet}'`);
+        expect(sql).toContain(`load_balancer_type = '${lbTypeApp}'`);
+        expect(sql).toContain(`availability_zones = array['${az1}','${az2}','${az3}']::varchar[]`);
+        expect(sql).toContain(`attributes = '${JSON.stringify(lbUpdatedWDefaultAttributes)}'::jsonb`);
+        expect(sql).toContain(`attributes::jsonb = '${JSON.stringify(lbInitDefaultAttributes)}'::jsonb`);
       },
     ),
   );
+
+  it(
+    'executes the UPDATE sql generated to confirm it works',
+    query(
+      `
+        DO $$
+          <<exec>>
+          DECLARE
+            stmt record;
+          BEGIN
+            FOR stmt IN
+              SELECT *
+              FROM iasql_get_sql_for_transaction()
+            LOOP
+              EXECUTE format('%s', stmt.sql);
+            END LOOP;
+        END exec $$;
+      `,
+      (res: any) => expect(res.length).toBe(0),
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it('begin a transaction', begin());
+
+  it('commits the insertion', commit());
+
+  it(
+    'checks load_balancer type update',
+    query(
+      `
+        SELECT *
+        FROM load_balancer
+        WHERE load_balancer_name = '${lbName}' AND load_balancer_type = '${lbTypeNet}';
+      `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it(
+    'checks load_balancer type update',
+    query(
+      `
+        SELECT *
+        FROM load_balancer
+        WHERE load_balancer_name = '${lbName}' AND load_balancer_type = '${lbTypeApp}';
+      `,
+      (res: any[]) => expect(res.length).toBe(0),
+    ),
+  );
+
+  itDocs('begin a transaction', begin());
 
   itDocs(
     'Deletes the load balancer',
@@ -316,46 +407,29 @@ describe('iasql_get_sql_for_transaction functionality', () => {
     ),
   );
 
-  itDocs('preview changes done so far', query(`SELECT * FROM iasql_preview();`));
+  itDocs('rollback delete changes', rollback());
 
   itDocs(
     'check sql for transaction',
     query(
       `
         SELECT *
-        FROM iasql_get_sql_for_transaction(
-          (
-            SELECT transaction_id
-            FROM iasql_audit_log
-            WHERE change_type = 'OPEN_TRANSACTION'
-            ORDER BY ts DESC
-            LIMIT 1
-          )
-        );
+        FROM iasql_get_sql_for_transaction();
       `,
       (res: any) => {
-        expect(res.length).toBe(5);
-        expect(res[3].sql.replaceAll('\n', '').replaceAll(/\s\s+/g, ' ').trim()).toBe(
-          `DELETE FROM load_balancer WHERE load_balancer_name = '${lbName}' AND scheme = '${lbScheme}' AND load_balancer_type = '${lbTypeNet}' AND ip_address_type = '${lbIPAddressType}' AND region = (SELECT region FROM aws_regions WHERE region = '${region}');`,
-        );
-        expect(res[4].sql).toContain(`DELETE FROM load_balancer_security_groups`);
+        expect(res.length).toBe(1);
+        const sql = res[0].sql.replaceAll('\n', '').replaceAll(/\s\s+/g, ' ').trim();
+        expect(sql).toContain(`load_balancer_name = '${lbName}'`);
+        expect(sql).toContain(`load_balancer_type = '${lbTypeNet}'`);
+        expect(sql).toContain(`scheme = '${lbScheme}'`);
+        expect(sql).toContain(`ip_address_type = '${lbIPAddressType}'`);
+        expect(sql).toContain(`attributes::jsonb = '${JSON.stringify(lbUpdatedWDefaultAttributes)}'::jsonb`);
       },
     ),
   );
 
-  itDocs(
-    'check sql for latest transaction',
-    query(
-      `
-        SELECT *
-        FROM iasql_get_sql_for_transaction();
-      `,
-      (res: any) => expect(res.length).toBe(5),
-    ),
-  );
-
   it(
-    'executes the sql generated to confirm it works',
+    'executes the DELETE sql generated to confirm it works',
     query(
       `
         DO $$
@@ -364,16 +438,44 @@ describe('iasql_get_sql_for_transaction functionality', () => {
             stmt record;
           BEGIN
             FOR stmt IN
-              SELECT * FROM iasql_get_sql_for_transaction()
+              SELECT *
+              FROM iasql_get_sql_for_transaction()
             LOOP
-              execute format('%s', stmt.sql);
+              EXECUTE format('%s', stmt.sql);
             END LOOP;
         END exec $$;
       `,
-      (res: any) => {
-        console.log(`+-+ res: ${JSON.stringify(res, null, 2)}`);
-        expect(res).toBeUndefined();
-      },
+      (res: any) => expect(res.length).toBe(0),
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  it('begin a transaction', begin());
+
+  it('commits the insertion', commit());
+
+  it(
+    'checks load_balancer deletion',
+    query(
+      `
+        SELECT *
+        FROM load_balancer
+        WHERE load_balancer_name = '${lbName}';
+      `,
+      (res: any[]) => expect(res.length).toBe(0),
+    ),
+  );
+
+  it(
+    'check load_balancer_security_groups insertion',
+    query(
+      `
+        SELECT *
+        FROM load_balancer_security_groups
+        WHERE load_balancer_id = (SELECT id FROM load_balancer WHERE load_balancer_name = '${lbName}');
+      `,
+      (res: any[]) => expect(res.length).toBe(0),
     ),
   );
 
