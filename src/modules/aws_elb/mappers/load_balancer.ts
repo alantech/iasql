@@ -14,6 +14,7 @@ import { AwsElbModule } from '..';
 import { AWS, crudBuilder, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
 import { awsSecurityGroupModule } from '../../aws_security_group';
 import { awsVpcModule } from '../../aws_vpc';
+import { Subnet } from '../../aws_vpc/entity';
 import { Context, Crud, MapperBase } from '../../interfaces';
 import {
   IpAddressType,
@@ -244,7 +245,17 @@ export class LoadBalancerMapper extends MapperBase<LoadBalancer> {
       const out = [];
       for (const e of es) {
         const client = (await ctx.getAwsClient(e.region)) as AWS;
-        const subnets = (await this.getSubnets(client.ec2client)).map(s => s.SubnetId ?? '');
+        const subnets =
+          (await awsVpcModule.subnet.cloud.read(ctx))
+            ?.filter((s: Subnet) => !!s)
+            .filter((s: Subnet) => s.region === e.region && s.vpc.isDefault)
+            .filter((s: Subnet) => {
+              if (e.availabilityZones?.length) {
+                return e.availabilityZones.includes(s.availabilityZone.name);
+              }
+              return true;
+            })
+            .map((s: Subnet) => s.subnetId ?? '') ?? [];
 
         const securityGroups = e.securityGroups?.map(sg => {
           if (!sg.groupId) throw new Error('Security group need to be loaded first');
