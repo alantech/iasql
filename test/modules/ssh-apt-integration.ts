@@ -302,10 +302,7 @@ describe('SSH Apt Package Management Integration Testing', () => {
     query(
       `
     UPDATE package SET installed = TRUE
-    WHERE package = '7zip' AND
-    id = (
-      SELECT max(id) FROM package WHERE package = '7zip'
-    );
+    WHERE package = '7zip';
   `,
       (res: any[]) => expect(res.length).toBeGreaterThan(0),
       true,
