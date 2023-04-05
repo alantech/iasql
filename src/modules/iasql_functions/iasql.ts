@@ -815,7 +815,7 @@ export async function recreateQueries(
   for (const cl of changeLogs) {
     recreatedEntitiesFromChangelogs.push(
       await recreateEntity(
-        !!cl.change?.change ? cl.change?.change : cl.change?.original,
+        !!cl.change?.change ? cl.change.change : cl.change.original,
         tableToEntityMetadataMapper[cl.tableName],
         orm,
       ),
@@ -2167,10 +2167,18 @@ async function recreateEntity(
   const originalE: any = {};
   // Recreate object with original properties
   Object.entries(originalChange).forEach(
-    ([k, v]: [string, any]) =>
-      (originalE[
-        entityMetadata.ownColumns.find(col => col.databaseName === k)?.propertyName ?? camelCase(k)
-      ] = v),
+    ([k, v]: [string, any]) => {
+      const col = entityMetadata.ownColumns.find(col => col.databaseName === k);
+      let eKey;
+      if (!!col?.referencedColumn) {
+        eKey = col.propertyAliasName;
+      } else if (!!col) {
+        eKey = col.propertyName;
+      } else {
+        eKey = camelCase(k);
+      }
+      originalE[eKey] = v
+    }
   );
   await recreateRelation('OneToMany', originalE, entityMetadata, orm);
   await recreateRelation('ManyToOne', originalE, entityMetadata, orm);
@@ -2188,7 +2196,7 @@ async function recreateRelation(
   const relations = entityMetadata.ownRelations
     .filter(or => or.isEager && or[`is${rel}`])
     .map(or => ({
-      targetEntity: or.inverseEntityMetadata.target,
+      targetEntity: or.inverseEntityMetadata.targetName,
       propertyName: or.propertyName,
       colsWithReferences: or.joinColumns.map(jc => [jc.propertyName, jc.referencedColumn?.propertyName]),
     }));
