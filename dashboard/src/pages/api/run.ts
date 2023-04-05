@@ -178,7 +178,7 @@ Please provide this error ID when reporting this bug: ${errorId}`,
   }
   // Let's make this a bit easier to parse. Error -> error path, single table -> array of objects,
   // multiple tables -> array of array of objects
-  return out.map((t: { statement: any, queryRes: QueryResult}) => {
+  return out.map((t: { statement: any; queryRes: QueryResult }) => {
     if (
       !!t.queryRes.rows &&
       t.queryRes.rows.length === 0 &&
@@ -192,7 +192,7 @@ Please provide this error ID when reporting this bug: ${errorId}`,
       return {
         statement: t.statement,
         result: t.queryRes.rows,
-        types: Object.fromEntries(t.queryRes.fields.map(f => ([f.name, f.dataTypeID]))),
+        types: Object.fromEntries(t.queryRes.fields.map(f => [f.name, f.dataTypeID])),
       };
     } else {
       return { statement: t.statement, error: `unexpected result: ${t.queryRes}` }; // TODO: Error this out

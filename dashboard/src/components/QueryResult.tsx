@@ -44,7 +44,10 @@ export default function QueryResult() {
                 .filter((r: any) => (r.result ?? []).length > 0)
                 .map((r: any) => r.result ?? [])
                 .at(-1)}
-              dataTypes={queryRes.filter((r: any) => (r.result ?? []).length > 0).map((r: any) => r.types).at(-1)}
+              dataTypes={queryRes
+                .filter((r: any) => (r.result ?? []).length > 0)
+                .map((r: any) => r.types)
+                .at(-1)}
             />
           </VBox>
         )}
