@@ -162,7 +162,9 @@ export class PackageMapper extends MapperBase<Package> {
             await this.db.update(packageGroup.toRestore, ctx);
           }
           if (packageGroup.toUninstall.length) {
-            const removeCommand = `yes | sudo apt remove ${packageGroup.toUninstall.map(e => e.package).join(' ')}`;
+            const removeCommand = `yes | sudo apt remove ${packageGroup.toUninstall
+              .map(e => e.package)
+              .join(' ')}`;
             try {
               await client.exec(removeCommand);
             } catch (e) {
