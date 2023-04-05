@@ -6,7 +6,7 @@ export default function QueryResult() {
   const { editorSelectedTab, editorTabs } = useAppContext();
   const queryRes = editorTabs[editorSelectedTab]?.queryRes;
   const query = editorTabs[editorSelectedTab]?.content;
-  const longRunningRpc = query.includes('iasql_commit()') || query.includes('iasql_install(');
+  const longRunningRpc = query.includes('iasql_commit(') || query.includes('iasql_install(');
 
   // TODO: show all statements with its respective query and not just the last one
   return editorTabs?.[editorSelectedTab]?.isRunning ? (
@@ -44,6 +44,7 @@ export default function QueryResult() {
                 .filter((r: any) => (r.result ?? []).length > 0)
                 .map((r: any) => r.result ?? [])
                 .at(-1)}
+              dataTypes={queryRes.filter((r: any) => (r.result ?? []).length > 0).map((r: any) => r.types).at(-1)}
             />
           </VBox>
         )}
