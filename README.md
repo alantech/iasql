@@ -21,8 +21,8 @@
 [IaSQL](https://iasql.com) is an open-source developer tool to inspect and provision cloud infrastructure via SQL by maintaining a 2-way connection between an unmodified PostgreSQL database and your AWS account. The rows in the database tables represent the infrastructure in your cloud account.
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="./site/static/img/ec2-typewriter_dark.gif">
-  <source media="(prefers-color-scheme: light)" srcset="/site/static/img/ec2-typewriter.gif">
+  <source media="(prefers-color-scheme: dark)" srcset="./site/static/home/ec2-typewriter_dark.gif">
+  <source media="(prefers-color-scheme: light)" srcset="/site/static/home/ec2-typewriter.gif">
   <img width="700"/>
 </picture>
 

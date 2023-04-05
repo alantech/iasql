@@ -5,7 +5,6 @@ import {
   DescribeCertificateCommandInput,
   DescribeCertificateCommandOutput,
   paginateListCertificates,
-  RecordType,
   RequestCertificateCommandInput,
 } from '@aws-sdk/client-acm';
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
@@ -14,7 +13,7 @@ import { AwsAcmModule } from '..';
 import { AWS, paginateBuilder } from '../../../services/aws_macros';
 import { safeParse } from '../../../services/common';
 import { awsRoute53Module } from '../../aws_route53';
-import { HostedZone, ResourceRecordSet } from '../../aws_route53/entity';
+import { HostedZone, ResourceRecordSet, RecordType } from '../../aws_route53/entity';
 import { modules } from '../../iasql_functions/iasql';
 import { Context, RpcBase, RpcInput, RpcResponseObject } from '../../interfaces';
 import { Certificate } from '../entity';

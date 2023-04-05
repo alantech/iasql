@@ -597,6 +597,7 @@ export async function commit(
   context: Context,
   force = false,
   ormOpt?: TypeormWrapper,
+  commitMessage?: string,
 ) {
   const t1 = Date.now();
   logger.scope({ dbId }).debug(`Committing to ${dbId}`);
@@ -617,6 +618,9 @@ export async function commit(
     // Get current transaction identifier
     currentTransactionId = await getCurrentTransactionId(orm);
 
+    if (commitMessage) {
+      await insertLog(orm, AuditLogChangeType.SET_COMMIT_MESSAGE, currentTransactionId, commitMessage);
+    }
     const newStartCommit: IasqlAuditLog = await insertLog(
       orm,
       dryRun ? AuditLogChangeType.PREVIEW_START_COMMIT : AuditLogChangeType.START_COMMIT,
@@ -1442,6 +1446,7 @@ async function insertLog(
   orm: TypeormWrapper | null,
   changeType: AuditLogChangeType,
   transactionId: string | null = null,
+  message: string | null = null,
 ): Promise<IasqlAuditLog> {
   const commitLog = new IasqlAuditLog();
   commitLog.user = config.db.user;
@@ -1450,6 +1455,7 @@ async function insertLog(
   commitLog.tableName = 'iasql_audit_log';
   commitLog.ts = new Date();
   if (transactionId) commitLog.transactionId = transactionId;
+  if (message) commitLog.message = message;
   await orm?.save(IasqlAuditLog, commitLog);
   return commitLog;
 }
