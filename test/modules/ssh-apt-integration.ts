@@ -67,7 +67,7 @@ const install = runInstall.bind(null, dbAlias);
 
 const modules = ['aws_ec2', 'aws_ec2_metadata', 'ssh_accounts', 'ssh_apt'];
 
-jest.setTimeout(560000);
+jest.setTimeout(3600000);
 beforeAll(async () => {
   const availabilityZones =
     (await getAvailabilityZones())?.AvailabilityZones?.map(az => az.ZoneName ?? '') ?? [];
@@ -172,6 +172,11 @@ describe('SSH Apt Package Management Integration Testing', () => {
         FROM security_group
         WHERE group_name = 'ssh-${prefix}-sg';
 
+        INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
+        SELECT true, '-1', -1, -1, '0.0.0.0/0', '${prefix}outbound', id
+        FROM security_group
+        WHERE group_name = 'ssh-${prefix}-sg';
+
         INSERT INTO instance (ami, instance_type, key_pair_name, tags, subnet_id)
           SELECT '${ubuntuAmiId}', '${instanceType1}', '${prefix}-key-request', '{"name":"ssh-${prefix}-1"}', id
           FROM subnet
@@ -225,7 +230,10 @@ describe('SSH Apt Package Management Integration Testing', () => {
       `
     SELECT * FROM apt_update('${prefix}');
   `,
-      (res: any[]) => expect(res.length).toBe(1),
+      (res: any[]) => {
+        expect(res.length).toBe(1);
+        console.log(res);
+      },
       true,
       () => ({ username, password }),
     ),
@@ -237,7 +245,10 @@ describe('SSH Apt Package Management Integration Testing', () => {
       `
     SELECT * FROM package;
   `,
-      (res: any[]) => expect(res.length).toBeGreaterThan(5_000),
+      (res: any[]) => {
+        expect(res.length).toBeGreaterThan(5_000);
+        console.log(res);
+      },
       true,
       () => ({ username, password }),
     ),
@@ -250,6 +261,18 @@ describe('SSH Apt Package Management Integration Testing', () => {
     SELECT * FROM package WHERE installed = TRUE;
   `,
       (res: any[]) => expect(res.length).toBeLessThan(5_000),
+      true,
+      () => ({ username, password }),
+    ),
+  );
+
+  itDocs(
+    'has apache2 available to install',
+    query(
+      `
+    SELECT * FROM package WHERE package = 'apache2';
+  `,
+      (res: any[]) => expect(res.length).toBeGreaterThan(0),
       true,
       () => ({ username, password }),
     ),
@@ -301,8 +324,10 @@ describe('SSH Apt Package Management Integration Testing', () => {
     'can install a package',
     query(
       `
-    UPDATE package SET installed = TRUE
-    WHERE package = '7zip';
+    UPDATE package SET installed = TRUE WHERE package = 'apache2' AND
+    id = (
+      SELECT min(id) FROM package WHERE package = 'apache2'
+    );
   `,
       (res: any[]) => expect(res.length).toBeGreaterThan(0),
       true,
@@ -316,7 +341,7 @@ describe('SSH Apt Package Management Integration Testing', () => {
     'confirms the package is installed',
     query(
       `
-    SELECT * FROM package WHERE package = '7zip' AND installed = TRUE
+    SELECT * FROM package WHERE package = 'apache2' AND installed = TRUE
   `,
       (res: any[]) => expect(res.length).toEqual(1),
       true,
@@ -331,7 +356,7 @@ describe('SSH Apt Package Management Integration Testing', () => {
     query(
       `
     UPDATE package SET installed = FALSE
-    WHERE package = '7zip' AND installed = TRUE
+    WHERE package = 'apache2' AND installed = TRUE
   `,
       (res: any[]) => expect(res.length).toBeGreaterThan(0),
       true,
@@ -345,9 +370,9 @@ describe('SSH Apt Package Management Integration Testing', () => {
     'confirms the package is uninstalled',
     query(
       `
-    SELECT * FROM package WHERE package = '7zip' AND installed = FALSE
+    SELECT * FROM package WHERE package = 'apache2' AND installed = FALSE
   `,
-      (res: any[]) => expect(res.length).toEqual(1),
+      (res: any[]) => expect(res.length).toBeGreaterThan(0),
       true,
       () => ({ username, password }),
     ),
@@ -423,6 +448,7 @@ describe('SSH Apt Package Management Integration Testing', () => {
     query(
       `
     DELETE FROM security_group_rule WHERE description = '${prefix}sshrule';
+    DELETE FROM security_group_rule WHERE description = '${prefix}outbound';
     DELETE FROM security_group WHERE group_name = 'ssh-${prefix}-sg';
   `,
       undefined,

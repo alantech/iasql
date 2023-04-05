@@ -173,7 +173,7 @@ export class PackageMapper extends MapperBase<Package> {
             }
           }
           if (packageGroup.toInstall.length) {
-            const installCommand = `sudo apt install ${packageGroup.toInstall
+            const installCommand = `yes | sudo apt install ${packageGroup.toInstall
               .map(e => `'${e.package}=${e.version}'`)
               .join(' ')}`;
             try {
