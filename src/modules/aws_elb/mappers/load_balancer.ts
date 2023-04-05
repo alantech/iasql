@@ -423,7 +423,31 @@ export class LoadBalancerMapper extends MapperBase<LoadBalancer> {
           // We need to delete the current cloud record and create the new one.
           // The id will be the same in database since `e` will keep it.
           await this.module.loadBalancer.cloud.delete(cloudRecord, ctx);
-          out.push(await this.module.loadBalancer.cloud.create(e, ctx));
+          let newRecord = await this.module.loadBalancer.cloud.create(e, ctx);
+          if (newRecord && !Array.isArray(newRecord)) {
+            if (
+              !(
+                Object.is(newRecord.attributes?.length, e.attributes?.length) &&
+                (newRecord.attributes?.every(
+                  (aatt: any) =>
+                    !!e.attributes?.find(
+                      batt => Object.is(aatt.Key, batt.Key) && Object.is(aatt.Value, batt.Value),
+                    ),
+                ) ??
+                  false)
+              )
+            ) {
+              // Attributes are not returned by the create call, so we need to update them
+              await this.modifyLoadBalancerAttributes(client.elbClient, {
+                LoadBalancerArn: newRecord.loadBalancerArn,
+                Attributes: e.attributes?.filter(att => !!att),
+              });
+              newRecord = await this.cloud.read(ctx, newRecord.loadBalancerArn);
+              if (!newRecord) continue;
+              await this.module.loadBalancer.db.update(newRecord, ctx);
+            }
+            out.push(newRecord);
+          }
         }
       }
       return out;
