@@ -933,8 +933,6 @@ async function getFormattedQuery(
   }
   switch (type) {
     case AuditLogChangeType.INSERT: {
-      console.log(`+-+ formatting INSERT query for ${tableName}`);
-      console.log(`+-+ firstValues: ${JSON.stringify(firstValues, null, 2)}`);
       query = format(
         `
           INSERT INTO %I (${firstValues.map(_ => '%I').join(', ')})
@@ -1267,9 +1265,6 @@ async function augmentValue(
 }
 
 function formatValue(augmentedValue: AugmentedValue): string {
-  if (augmentedValue.key === 'availability_zones') {
-    console.log(`+-+ ${JSON.stringify(augmentedValue)} +--+`);
-  }
   if (augmentedValue.isSubQuery) return augmentedValue.value;
   if (augmentedValue.isArray) {
     return augmentedValue.type
@@ -1300,7 +1295,6 @@ async function recreateSubQuery(
   // Get cloud columns of the entity we want to look for.
   const cloudIds = getCloudId(entityMetadata?.target);
   let cloudColumns: { dbName: string; propertyName: string }[] = [];
-  console.log(`+-+ cloud column ${JSON.stringify(cloudIds)} +--+`);
   if (cloudIds && !(cloudIds instanceof Error)) {
     cloudColumns = cloudIds.map(cid => ({ dbName: snakeCase(cid), propertyName: cid }));
     let e: any;
@@ -1352,7 +1346,6 @@ async function recreateSubQuery(
         ),
       );
     }
-    console.log(`+-+ subquery values ${JSON.stringify(values)} +--+`);
     const columns = dbColumns.length ? dbColumns : cloudColumns;
     const subQuery = format(
       `SELECT %I FROM %I WHERE ${values
