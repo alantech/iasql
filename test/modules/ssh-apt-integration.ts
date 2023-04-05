@@ -302,9 +302,9 @@ describe('SSH Apt Package Management Integration Testing', () => {
     query(
       `
     UPDATE package SET installed = TRUE
-    WHERE package.package = 'vim' AND
+    WHERE package = '7zip' AND
     id = (
-      SELECT max(id) FROM package WHERE package.package = 'vim'
+      SELECT max(id) FROM package WHERE package = '7zip'
     );
   `,
       (res: any[]) => expect(res.length).toBeGreaterThan(0),
@@ -319,7 +319,7 @@ describe('SSH Apt Package Management Integration Testing', () => {
     'confirms the package is installed',
     query(
       `
-    SELECT * FROM package WHERE package.package = 'vim' AND installed = TRUE
+    SELECT * FROM package WHERE package = '7zip' AND installed = TRUE
   `,
       (res: any[]) => expect(res.length).toEqual(1),
       true,
@@ -334,7 +334,7 @@ describe('SSH Apt Package Management Integration Testing', () => {
     query(
       `
     UPDATE package SET installed = FALSE
-    WHERE package.package = 'vim'
+    WHERE package = '7zip' AND installed = TRUE
   `,
       (res: any[]) => expect(res.length).toBeGreaterThan(0),
       true,
@@ -343,6 +343,18 @@ describe('SSH Apt Package Management Integration Testing', () => {
   );
 
   it('applies the package removal', commit());
+
+  itDocs(
+    'confirms the package is uninstalled',
+    query(
+      `
+    SELECT * FROM package WHERE package = '7zip' AND installed = FALSE
+  `,
+      (res: any[]) => expect(res.length).toEqual(1),
+      true,
+      () => ({ username, password }),
+    ),
+  );
 
   it('uninstalls the ssh_apt module', uninstall(['ssh_apt']));
 

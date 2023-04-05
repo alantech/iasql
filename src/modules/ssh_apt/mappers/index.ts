@@ -130,6 +130,7 @@ export class PackageMapper extends MapperBase<Package> {
           toInstall: [],
           toUninstall: [],
         };
+        packageGroupsByServer[e.server] = packageGroup;
         const id = this.generateId({
           server: e.server,
           package: e.package,
@@ -161,7 +162,7 @@ export class PackageMapper extends MapperBase<Package> {
             await this.db.update(packageGroup.toRestore, ctx);
           }
           if (packageGroup.toUninstall.length) {
-            const removeCommand = `sudo apt remove ${packageGroup.toUninstall.map(e => e.package).join(' ')}`;
+            const removeCommand = `yes | sudo apt remove ${packageGroup.toUninstall.map(e => e.package).join(' ')}`;
             try {
               await client.exec(removeCommand);
             } catch (e) {
@@ -171,7 +172,7 @@ export class PackageMapper extends MapperBase<Package> {
           }
           if (packageGroup.toInstall.length) {
             const installCommand = `sudo apt install ${packageGroup.toInstall
-              .map(e => `${e.package}=${e.version}`)
+              .map(e => `'${e.package}=${e.version}'`)
               .join(' ')}`;
             try {
               await client.exec(installCommand);
