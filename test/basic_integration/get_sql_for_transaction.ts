@@ -187,7 +187,7 @@ describe('iasql_get_sql_for_transaction functionality', () => {
     ),
   );
 
-  itDocs('rollback insert changes', rollback());
+  it('rollback insert changes', rollback());
 
   itDocs(
     'check sql for transaction',
@@ -209,11 +209,6 @@ describe('iasql_get_sql_for_transaction functionality', () => {
   );
 
   it(
-    'checks transaction sql',
-    query(`SELECT * FROM iasql_get_sql_for_transaction();`, (res: any) => expect(res.length).toBe(2)),
-  );
-
-  it(
     'executes the INSERT sql generated to confirm it works',
     query(
       `
@@ -230,9 +225,7 @@ describe('iasql_get_sql_for_transaction functionality', () => {
             END LOOP;
         END exec $$;
       `,
-      (res: any) => {
-        expect(res.length).toBe(0);
-      },
+      (res: any) => expect(res.length).toBe(0),
       true,
       () => ({ username, password }),
     ),
@@ -407,7 +400,7 @@ describe('iasql_get_sql_for_transaction functionality', () => {
     ),
   );
 
-  itDocs('rollback delete changes', rollback());
+  it('rollback delete changes', rollback());
 
   itDocs(
     'check sql for transaction',
