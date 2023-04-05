@@ -791,18 +791,26 @@ export async function recreateQueries(
   withRelationSubQueries = false,
 ): Promise<string[]> {
   const queries: string[] = [];
-  console.log(`+-+ executing for ${changeLogs.length} change logs`);
-  // const mod = modsIndexedByTable[c.tableName];
-  //   const mappers = Object.values(mod).filter(val => val instanceof MapperBase);
-  //   const entityMapper: { [key: string]: MapperBase<any> } = {};
-  //   mappers.forEach(m => (entityMapper[m.entity.name] = m));
-  //   for (const e of Object.keys(entityMapper)) {
-  //     const entity = entityMapper[e].entity;
-  // const entitiesFromChangeLogs = await Promise.all(changeLogs.map(async (cl) => {
-  //   if (cl.change.original) {
-  //     return await recreateEntity();
-  //   }
-  // }));
+
+  // Fill entity mapper object
+  const entityMapper: { [key: string]: MapperBase<any> } = {};
+  const tableToEntityMetadataMapper: { [tableName: string]: EntityMetadata } = {};
+  for (const cl of changeLogs) {
+    const mod = modsIndexedByTable[cl.tableName];
+    const mappers = Object.values(mod).filter(val => val instanceof MapperBase);
+    mappers.forEach(m => (entityMapper[m.entity.name] = m));
+    for (const entityName of Object.keys(entityMapper)) {
+      const entity = entityMapper[entityName].entity;
+      const entityMetadata = await orm.getEntityMetadata(entity);
+      // following the one table per mapper logic this should be true
+      tableToEntityMetadataMapper[cl.tableName] = entityMetadata;
+    }
+  }
+  // Recreate entities from change logs
+  const recreatedEntitiesFromChangelogs: any[] = [];
+  for (const cl of changeLogs) {
+    recreatedEntitiesFromChangelogs.push(await recreateEntity(!!cl.change?.change ? cl.change?.change : cl.change?.original, tableToEntityMetadataMapper[cl.tableName], orm));
+  }
   for (const cl of changeLogs) {
     let query: string = '';
     switch (cl.changeType) {
@@ -812,7 +820,7 @@ export async function recreateQueries(
           Object.entries(cl.change.change ?? {})
             .filter(([k, v]: [string, any]) => k !== 'id' && v !== null)
             .map(async ([k, v]: [string, any]) => {
-              return await augmentValue(cl.tableName, k, v, modsIndexedByTable, orm, withRelationSubQueries);
+              return await augmentValue(cl.tableName, k, v, modsIndexedByTable, orm, withRelationSubQueries, recreatedEntitiesFromChangelogs);
             }),
         );
         // Get formatted query
@@ -825,7 +833,7 @@ export async function recreateQueries(
           Object.entries(cl.change.original ?? {})
             .filter(([k, v]: [string, any]) => k !== 'id' && v !== null)
             .map(async ([k, v]: [string, any]) => {
-              return await augmentValue(cl.tableName, k, v, modsIndexedByTable, orm, withRelationSubQueries);
+              return await augmentValue(cl.tableName, k, v, modsIndexedByTable, orm, withRelationSubQueries, recreatedEntitiesFromChangelogs);
             }),
         );
         // Get formatted query
@@ -838,14 +846,14 @@ export async function recreateQueries(
           Object.entries(cl.change.original ?? {})
             .filter(([k, v]: [string, any]) => k !== 'id' && v !== null)
             .map(async ([k, v]: [string, any]) => {
-              return await augmentValue(cl.tableName, k, v, modsIndexedByTable, orm, withRelationSubQueries);
+              return await augmentValue(cl.tableName, k, v, modsIndexedByTable, orm, withRelationSubQueries, recreatedEntitiesFromChangelogs);
             }),
         );
         const augmentedChangedEntries = await Promise.all(
           Object.entries(cl.change.change ?? {})
             .filter(([k, v]: [string, any]) => k !== 'id' && v !== null)
             .map(async ([k, v]: [string, any]) => {
-              return await augmentValue(cl.tableName, k, v, modsIndexedByTable, orm, withRelationSubQueries);
+              return await augmentValue(cl.tableName, k, v, modsIndexedByTable, orm, withRelationSubQueries, recreatedEntitiesFromChangelogs);
             }),
         );
         // Get formatted query
@@ -892,7 +900,7 @@ async function getFormattedQuery(
         `,
         tableName,
         ...firstValues.map(e => e.key),
-        ...firstValues.map(e => formatValue(e)),
+        ...firstValues.map(e => e.isJson && Array.isArray(e.value) ? `${formatValue(e)}::jsonb` : formatValue(e)),
       );
       break;
     }
@@ -911,10 +919,12 @@ async function getFormattedQuery(
           // We need to add an special case for AMIs since we know the revolve string can be used and it will not match with the actual AMI assigned
           .filter(e => e.key !== 'ami')
           .flatMap(e => {
-            if (e.isJson) {
+            if (e.isJson && !Array.isArray(e.value)) {
               // regex to match ::json, ::jsonb or ::simple-json
               const jsonRegex = /::json(?:b)?|::simple-json/g;
               return [e.key, formatValue(e).replace(jsonRegex, '::jsonb')];
+            } else if (e.isJson && Array.isArray(e.value)) {
+              return [e.key, `${formatValue(e)}::jsonb`];
             }
             return [e.key, formatValue(e)];
           }),
@@ -936,15 +946,17 @@ async function getFormattedQuery(
           .join(' AND ')};
       `,
         tableName,
-        ...(updatedValues?.flatMap(e => [e.key, formatValue(e)]) ?? []),
+        ...(updatedValues?.flatMap(e => e.isJson && Array.isArray(e.value) ? [e.key, `${formatValue(e)}::jsonb`] : [e.key, formatValue(e)]) ?? []),
         ...(originalValues
           // We need to add an special case for AMIs since we know the revolve string can be used and it will not match with the actual AMI assigned
           ?.filter(e => e.key !== 'ami')
           ?.flatMap(e => {
-            if (e.isJson) {
+            if (e.isJson && !Array.isArray(e.value)) {
               // regex to match ::json, ::jsonb or ::simple-json
               const jsonRegex = /::json(?:b)?|::simple-json/g;
               return [e.key, formatValue(e).replace(jsonRegex, '::jsonb')];
+            } else if (e.isJson && Array.isArray(e.value)) {
+              return [e.key, `${formatValue(e)}::jsonb`];
             }
             return [e.key, formatValue(e)];
           }) ?? []),
@@ -1120,6 +1132,7 @@ async function augmentValue(
   modsIndexedByTable: { [key: string]: ModuleInterface },
   orm: TypeormWrapper,
   withRelationSubQueries: boolean,
+  recreatedEntities?: any[],
 ): Promise<AugmentedValue> {
   const augmentedValue: AugmentedValue = {
     isPrimary: false,
@@ -1149,6 +1162,7 @@ async function augmentValue(
           modsIndexedByTable,
           orm,
           withRelationSubQueries,
+          recreatedEntities,
         );
       }
     }
@@ -1168,6 +1182,7 @@ async function augmentValue(
           modsIndexedByTable,
           orm,
           withRelationSubQueries,
+          recreatedEntities,
         );
       }
       columnMetadata = metadata.inverseJoinColumns.filter(jc => jc.databaseName === key)?.pop();
@@ -1181,6 +1196,7 @@ async function augmentValue(
           modsIndexedByTable,
           orm,
           withRelationSubQueries,
+          recreatedEntities,
         );
       }
     }
@@ -1214,6 +1230,9 @@ function formatValue(augmentedValue: AugmentedValue): string {
       ? format('array[%L]::%I[]', augmentedValue.value, augmentedValue.type)
       : format('array[%L]', augmentedValue.value);
   }
+  if (augmentedValue.isJson && Array.isArray(augmentedValue.value)) {
+    return format('%L', JSON.stringify(augmentedValue.value))
+  }
   return format('%L', augmentedValue.value);
 }
 
@@ -1230,6 +1249,7 @@ async function recreateSubQuery(
   modsIndexedByTable: { [key: string]: ModuleInterface },
   orm: TypeormWrapper,
   withRelationSubQueries: boolean,
+  recreatedEntities?: any[],
 ): Promise<string> {
   // Get cloud columns of the entity we want to look for.
   const cloudIds = getCloudId(entityMetadata?.target);
@@ -1244,8 +1264,11 @@ async function recreateSubQuery(
       logger.warn(e.message ?? 'Error finding relation');
       e = null;
     }
-    // Entity might have been deleted.
-    if (e === null) return '<relation_not_found>';
+    // Entity might have been deleted. Let's try to look for in the recreated entities.
+    if (e === null) {
+      e = recreatedEntities?.find(re => re[referencedKey] === value);
+      if (!e) return '<relation_not_found>';
+    }
     let values = await Promise.all(
       cloudColumns.map(
         async cc =>
@@ -1256,6 +1279,7 @@ async function recreateSubQuery(
             modsIndexedByTable,
             orm,
             withRelationSubQueries,
+            recreatedEntities,
           ),
       ),
     );
@@ -1277,6 +1301,7 @@ async function recreateSubQuery(
               modsIndexedByTable,
               orm,
               withRelationSubQueries,
+              recreatedEntities,
             ),
         ),
       );
