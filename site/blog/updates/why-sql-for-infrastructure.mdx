@@ -467,7 +467,7 @@ UPDATE ssh_credentials SET hostname = h.hostname FROM ssh_credentials, h WHERE h
 SELECT * FROM ssh_exec('login', 'uname -a');
 ```
 
-## SQL is the best option for Infrastructure Management
+## SQL is the least bad option for Infrastructure Management
 
 Infrastructure Management is a complex beast. The cloud APIs are massive with a rich collection of knobs to tweak, and mistakes can be dangerous because the changes often take a long time and recovery even more so. We have learned about the two main types of infrastructure management: imperative and declarative, where ad-hoc usage of the AWS console fits under the imperative umbrella along with scripts calling an SDK, while IaC has until recently been the only way to declaratively manage your infrastructure.
 
