@@ -813,7 +813,13 @@ export async function recreateQueries(
   // Recreate entities from change logs
   const recreatedEntitiesFromChangelogs: any[] = [];
   for (const cl of changeLogs) {
-    recreatedEntitiesFromChangelogs.push(await recreateEntity(!!cl.change?.change ? cl.change?.change : cl.change?.original, tableToEntityMetadataMapper[cl.tableName], orm));
+    recreatedEntitiesFromChangelogs.push(
+      await recreateEntity(
+        !!cl.change?.change ? cl.change?.change : cl.change?.original,
+        tableToEntityMetadataMapper[cl.tableName],
+        orm,
+      ),
+    );
   }
   for (const cl of changeLogs) {
     let query: string = '';
@@ -824,7 +830,15 @@ export async function recreateQueries(
           Object.entries(cl.change.change ?? {})
             .filter(([k, v]: [string, any]) => k !== 'id' && v !== null)
             .map(async ([k, v]: [string, any]) => {
-              return await augmentValue(cl.tableName, k, v, modsIndexedByTable, orm, withRelationSubQueries, recreatedEntitiesFromChangelogs);
+              return await augmentValue(
+                cl.tableName,
+                k,
+                v,
+                modsIndexedByTable,
+                orm,
+                withRelationSubQueries,
+                recreatedEntitiesFromChangelogs,
+              );
             }),
         );
         // Get formatted query
@@ -837,7 +851,15 @@ export async function recreateQueries(
           Object.entries(cl.change.original ?? {})
             .filter(([k, v]: [string, any]) => k !== 'id' && v !== null)
             .map(async ([k, v]: [string, any]) => {
-              return await augmentValue(cl.tableName, k, v, modsIndexedByTable, orm, withRelationSubQueries, recreatedEntitiesFromChangelogs);
+              return await augmentValue(
+                cl.tableName,
+                k,
+                v,
+                modsIndexedByTable,
+                orm,
+                withRelationSubQueries,
+                recreatedEntitiesFromChangelogs,
+              );
             }),
         );
         // Get formatted query
@@ -850,14 +872,30 @@ export async function recreateQueries(
           Object.entries(cl.change.original ?? {})
             .filter(([k, v]: [string, any]) => k !== 'id' && v !== null)
             .map(async ([k, v]: [string, any]) => {
-              return await augmentValue(cl.tableName, k, v, modsIndexedByTable, orm, withRelationSubQueries, recreatedEntitiesFromChangelogs);
+              return await augmentValue(
+                cl.tableName,
+                k,
+                v,
+                modsIndexedByTable,
+                orm,
+                withRelationSubQueries,
+                recreatedEntitiesFromChangelogs,
+              );
             }),
         );
         const augmentedChangedEntries = await Promise.all(
           Object.entries(cl.change.change ?? {})
             .filter(([k, v]: [string, any]) => k !== 'id' && v !== null)
             .map(async ([k, v]: [string, any]) => {
-              return await augmentValue(cl.tableName, k, v, modsIndexedByTable, orm, withRelationSubQueries, recreatedEntitiesFromChangelogs);
+              return await augmentValue(
+                cl.tableName,
+                k,
+                v,
+                modsIndexedByTable,
+                orm,
+                withRelationSubQueries,
+                recreatedEntitiesFromChangelogs,
+              );
             }),
         );
         // Get formatted query
@@ -904,7 +942,9 @@ async function getFormattedQuery(
         `,
         tableName,
         ...firstValues.map(e => e.key),
-        ...firstValues.map(e => e.isJson && Array.isArray(e.value) ? `${formatValue(e)}::jsonb` : formatValue(e)),
+        ...firstValues.map(e =>
+          e.isJson && Array.isArray(e.value) ? `${formatValue(e)}::jsonb` : formatValue(e),
+        ),
       );
       break;
     }
@@ -950,7 +990,9 @@ async function getFormattedQuery(
           .join(' AND ')};
       `,
         tableName,
-        ...(updatedValues?.flatMap(e => e.isJson && Array.isArray(e.value) ? [e.key, `${formatValue(e)}::jsonb`] : [e.key, formatValue(e)]) ?? []),
+        ...(updatedValues?.flatMap(e =>
+          e.isJson && Array.isArray(e.value) ? [e.key, `${formatValue(e)}::jsonb`] : [e.key, formatValue(e)],
+        ) ?? []),
         ...(originalValues
           // We need to add an special case for AMIs since we know the revolve string can be used and it will not match with the actual AMI assigned
           ?.filter(e => e.key !== 'ami')
@@ -1235,7 +1277,7 @@ function formatValue(augmentedValue: AugmentedValue): string {
       : format('array[%L]', augmentedValue.value);
   }
   if (augmentedValue.isJson && Array.isArray(augmentedValue.value)) {
-    return format('%L', JSON.stringify(augmentedValue.value))
+    return format('%L', JSON.stringify(augmentedValue.value));
   }
   return format('%L', augmentedValue.value);
 }
