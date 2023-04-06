@@ -1346,11 +1346,10 @@ async function recreateSubQuery(
         ),
       );
     }
-    const columns = dbColumns.length ? dbColumns : cloudColumns;
     const subQuery = format(
       `SELECT %I FROM %I WHERE ${values
-        ?.filter(e => e.key !== 'ami')
-        ?.map(e => `${formatValue(e) === 'NULL' ? '%I IS %s' : e.isJson ? '%I::jsonb = %s' : '%I = %s'}`)
+        ?.filter(v => v.key !== 'ami')
+        ?.map(v => `${formatValue(v) === 'NULL' ? '%I IS %s' : v.isJson ? '%I::jsonb = %s' : '%I = %s'}`)
         .join(' AND ')}`,
       referencedDbKey,
       entityMetadata?.tableName,
@@ -2159,20 +2158,18 @@ async function recreateEntity(
 ): Promise<any | undefined> {
   const originalE: any = {};
   // Recreate object with original properties
-  Object.entries(originalChange).forEach(
-    ([k, v]: [string, any]) => {
-      const col = entityMetadata.ownColumns.find(col => col.databaseName === k);
-      let eKey;
-      if (!!col?.referencedColumn) {
-        eKey = col.propertyAliasName;
-      } else if (!!col) {
-        eKey = col.propertyName;
-      } else {
-        eKey = camelCase(k);
-      }
-      originalE[eKey] = v
+  Object.entries(originalChange).forEach(([k, v]: [string, any]) => {
+    const colMetadata = entityMetadata.ownColumns.find(oc => oc.databaseName === k);
+    let eKey;
+    if (!!colMetadata?.referencedColumn) {
+      eKey = colMetadata.propertyAliasName;
+    } else if (!!colMetadata) {
+      eKey = colMetadata.propertyName;
+    } else {
+      eKey = camelCase(k);
     }
-  );
+    originalE[eKey] = v;
+  });
   await recreateRelation('OneToMany', originalE, entityMetadata, orm);
   await recreateRelation('ManyToOne', originalE, entityMetadata, orm);
   await recreateRelation('OneToOne', originalE, entityMetadata, orm);
