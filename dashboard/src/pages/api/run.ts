@@ -1,7 +1,7 @@
 import { verify as jwtVerify, decode as jwtDecode, JwtPayload } from 'jsonwebtoken';
 import jwksRsa from 'jwks-rsa';
 import type { NextApiRequest, NextApiResponse } from 'next';
-import pg from 'pg';
+import pg, { QueryResult } from 'pg';
 import format from 'pg-format';
 import { parse, deparse } from 'pgsql-parser';
 import Stripe from 'stripe';
@@ -178,7 +178,7 @@ Please provide this error ID when reporting this bug: ${errorId}`,
   }
   // Let's make this a bit easier to parse. Error -> error path, single table -> array of objects,
   // multiple tables -> array of array of objects
-  return out.map((t: any) => {
+  return out.map((t: { statement: any; queryRes: QueryResult }) => {
     if (
       !!t.queryRes.rows &&
       t.queryRes.rows.length === 0 &&
@@ -189,7 +189,11 @@ Please provide this error ID when reporting this bug: ${errorId}`,
     } else if (isString(t.queryRes)) {
       return { statement: t.statement, result: t.queryRes };
     } else if (!!t.queryRes.rows) {
-      return { statement: t.statement, result: t.queryRes.rows };
+      return {
+        statement: t.statement,
+        result: t.queryRes.rows,
+        types: Object.fromEntries(t.queryRes.fields.map(f => [f.name, f.dataTypeID])),
+      };
     } else {
       return { statement: t.statement, error: `unexpected result: ${t.queryRes}` }; // TODO: Error this out
     }

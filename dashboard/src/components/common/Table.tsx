@@ -1,6 +1,60 @@
-import { Label } from '.';
+import { IconContext } from 'react-icons';
+import {
+  MdAccessTime,
+  MdDataArray,
+  MdDataObject,
+  MdDateRange,
+  MdNumbers,
+  MdOutlineApps,
+  MdOutlineToggleOff,
+  MdTextFields,
+} from 'react-icons/md';
+import { TbNetwork } from 'react-icons/tb';
 
-export default function Table({ data }: { data: { [key: string]: any }[] }) {
+import { align, HBox, Label } from '.';
+
+function getIconForDataType(dataType: number | undefined) {
+  // https://github.com/brianc/node-pg-types/blob/master/lib/builtins.js#L12-L73
+  switch (dataType) {
+    case 16: // boolean
+      return <MdOutlineToggleOff />;
+    case 20:
+    case 21:
+    case 23:
+    case 1700: // integer
+      return <MdNumbers />;
+    case 2950: // uuid
+    case 25: // text
+    case 1043: // varchar
+      return <MdTextFields />;
+    case 3802: // jsonb
+    case 114: // json
+      return <MdDataObject />;
+    case 1082: // date
+    case 1083: // time
+      return <MdDateRange />;
+    case 650: // cidr
+      return <TbNetwork />;
+    case 1114:
+    case 1184: // timestamp
+      return <MdAccessTime />;
+    case 1009:
+    case 1015:
+    case 1005:
+    case 1007: // array
+      return <MdDataArray />;
+    default:
+      return <MdOutlineApps />;
+  }
+}
+
+export default function Table({
+  data,
+  dataTypes,
+}: {
+  data: { [key: string]: any }[];
+  dataTypes?: { [columnName: string]: number };
+}) {
   const columns = data.length > 0 ? Object.keys(data[0]) : [];
 
   if (data.length === 0) return <Label>No results returned</Label>;
@@ -15,7 +69,12 @@ export default function Table({ data }: { data: { [key: string]: any }[] }) {
               scope='col'
               key={column}
             >
-              {column}
+              <HBox alignment={align.start}>
+                <IconContext.Provider value={{ className: 'inline-block', size: '1.5em' }}>
+                  {getIconForDataType(dataTypes?.[column])}
+                </IconContext.Provider>
+                <div className={'inline-block pl-2'}>{column}</div>
+              </HBox>
             </th>
           ))}
         </tr>
