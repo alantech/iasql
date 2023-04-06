@@ -3,6 +3,7 @@ import { QuestionMarkCircleIcon } from '@heroicons/react/solid';
 
 import { Accordion, align, HBox, VBox } from '../common';
 import { ActionType, useAppContext } from '../providers/AppProvider';
+import { MdOutlineTag } from 'react-icons/md';
 
 export default function Schema({
   moduleData,
@@ -76,16 +77,19 @@ export default function Schema({
                       key={col}
                       customStyles={
                         (meta as columnMetadata).isMandatory && !tableName.includes('iasql_')
-                          ? 'pl-8 grid grid-cols-2 gap-2 font-bold'
-                          : 'pl-8 grid grid-cols-2 gap-2'
+                          ? 'pl-8 grid grid-cols-12 gap-1 font-bold'
+                          : 'pl-8 grid grid-cols-12 gap-1'
                       }
                     >
-                      <HBox alignment={align.start}>
+                      <HBox customStyles={'col-span-1'}>
+                        <MdOutlineTag />
+                      </HBox>
+                      <HBox alignment={align.start} customStyles={'col-span-5'}>
                         <p className='text-ellipsis overflow-hidden' title={col}>
                           {col}
                         </p>
                       </HBox>
-                      <HBox alignment={align.start}>
+                      <HBox alignment={align.start} customStyles={'col-span-6'}>
                         <p
                           className='text-ellipsis overflow-hidden'
                           title={(meta as columnMetadata).dataType}
