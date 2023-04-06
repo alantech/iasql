@@ -1,11 +1,12 @@
 import { IconContext } from 'react-icons';
 import {
   MdAccessTime,
+  MdDataArray,
   MdDataObject,
   MdDateRange,
   MdNumbers,
+  MdOutlineApps,
   MdOutlineToggleOff,
-  MdQuestionMark,
   MdTextFields,
 } from 'react-icons/md';
 
@@ -21,8 +22,9 @@ function getIconForDataType(dataType: number | undefined) {
     case 23:
     case 1700: // integer
       return <MdNumbers />;
+    case 2950: // uuid
     case 25: // text
-    case 1043:
+    case 1043: // varchar
       return <MdTextFields />;
     case 3802: // jsonb
     case 114: // json
@@ -33,9 +35,10 @@ function getIconForDataType(dataType: number | undefined) {
     case 1114:
     case 1184: // timestamp
       return <MdAccessTime />;
-    case 2950: // uuid
+    case 1009: // array
+      return <MdDataArray />;
     default:
-      return <MdQuestionMark />;
+      return <MdOutlineApps />;
   }
 }
 
@@ -64,7 +67,7 @@ export default function Table({
                 <IconContext.Provider value={{ className: 'inline-block', size: '1.5em' }}>
                   {getIconForDataType(dataTypes?.[column])}
                 </IconContext.Provider>
-                <div className={'inline-block pl-3'}>{column}</div>
+                <div className={'inline-block pl-2'}>{column}</div>
               </HBox>
             </th>
           ))}
