@@ -796,31 +796,40 @@ export async function recreateQueries(
 ): Promise<string[]> {
   const queries: string[] = [];
 
-  // Fill entity mapper object
-  const entityMapper: { [key: string]: MapperBase<any> } = {};
-  const tableToEntityMetadataMapper: { [tableName: string]: EntityMetadata } = {};
-  for (const cl of changeLogs) {
-    const mod = modsIndexedByTable[cl.tableName];
-    const mappers = Object.values(mod).filter(val => val instanceof MapperBase);
-    mappers.forEach(m => (entityMapper[m.entity.name] = m));
-    for (const entityName of Object.keys(entityMapper)) {
-      const entity = entityMapper[entityName].entity;
-      const entityMetadata = await orm.getEntityMetadata(entity);
-      // following the one table per mapper logic this should be true
-      tableToEntityMetadataMapper[cl.tableName] = entityMetadata;
-    }
-  }
-  // Recreate entities from change logs
-  const recreatedEntitiesFromChangelogs: any[] = [];
-  for (const cl of changeLogs) {
-    recreatedEntitiesFromChangelogs.push(
-      await recreateEntity(
-        !!cl.change?.change ? cl.change.change : cl.change.original,
-        tableToEntityMetadataMapper[cl.tableName],
-        orm,
-      ),
-    );
-  }
+  // // Fill entity mapper object
+  // const entityMapper: { [key: string]: MapperBase<any> } = {};
+  // const tableToEntityMetadataMapper: { [tableName: string]: EntityMetadata } = {};
+  // for (const cl of changeLogs) {
+  //   const mod = modsIndexedByTable[cl.tableName];
+  //   const mappers = Object.values(mod).filter(val => val instanceof MapperBase);
+  //   mappers.forEach(m => (entityMapper[m.entity.name] = m));
+  //   for (const entityName of Object.keys(entityMapper)) {
+  //     const entity = entityMapper[entityName].entity;
+  //     const entityMetadata = await orm.getEntityMetadata(entity);
+  //     if (cl.tableName === entityMetadata.tableName) {
+  //       tableToEntityMetadataMapper[cl.tableName] = entityMetadata;
+  //     }
+  //   }
+  // }
+  // console.log(`+-+ tableToEntityMetadataMapper: ${inspect(tableToEntityMetadataMapper, { depth: 2 })}`)
+  // // Recreate entities from change logs
+  // const recreatedEntitiesFromChangelogs: any[] = [];
+  // for (const cl of changeLogs) {
+  //   console.log(`+-+ calling recreate entity from recreateQueries for ${cl.tableName}`)
+  //   recreatedEntitiesFromChangelogs.push(
+  //     await recreateEntity(
+  //       !!cl.change?.change ? cl.change.change : cl.change.original,
+  //       tableToEntityMetadataMapper[cl.tableName],
+  //       orm,
+  //     ),
+  //   );
+  // }
+  const changesByEntity: { [entityName: string]: any[] } = await getChangesByEntity(
+    orm,
+    changeLogs,
+    modsIndexedByTable,
+  );
+
   for (const cl of changeLogs) {
     let query: string = '';
     switch (cl.changeType) {
@@ -837,7 +846,7 @@ export async function recreateQueries(
                 modsIndexedByTable,
                 orm,
                 withRelationSubQueries,
-                recreatedEntitiesFromChangelogs,
+                changesByEntity,
               );
             }),
         );
@@ -858,7 +867,7 @@ export async function recreateQueries(
                 modsIndexedByTable,
                 orm,
                 withRelationSubQueries,
-                recreatedEntitiesFromChangelogs,
+                changesByEntity,
               );
             }),
         );
@@ -879,7 +888,7 @@ export async function recreateQueries(
                 modsIndexedByTable,
                 orm,
                 withRelationSubQueries,
-                recreatedEntitiesFromChangelogs,
+                changesByEntity,
               );
             }),
         );
@@ -894,7 +903,7 @@ export async function recreateQueries(
                 modsIndexedByTable,
                 orm,
                 withRelationSubQueries,
-                recreatedEntitiesFromChangelogs,
+                changesByEntity,
               );
             }),
         );
@@ -1087,7 +1096,7 @@ async function augmentValue(
   modsIndexedByTable: { [key: string]: ModuleInterface },
   orm: TypeormWrapper,
   withRelationSubQueries: boolean,
-  recreatedEntities?: any[],
+  changesByEntity?: { [entityName: string]: any[] },
 ): Promise<AugmentedValue> {
   const augmentedValue: AugmentedValue = {
     isPrimary: false,
@@ -1117,7 +1126,7 @@ async function augmentValue(
           modsIndexedByTable,
           orm,
           withRelationSubQueries,
-          recreatedEntities,
+          changesByEntity,
         );
       }
     }
@@ -1137,7 +1146,7 @@ async function augmentValue(
           modsIndexedByTable,
           orm,
           withRelationSubQueries,
-          recreatedEntities,
+          changesByEntity,
         );
       }
       columnMetadata = metadata.inverseJoinColumns.filter(jc => jc.databaseName === key)?.pop();
@@ -1151,7 +1160,7 @@ async function augmentValue(
           modsIndexedByTable,
           orm,
           withRelationSubQueries,
-          recreatedEntities,
+          changesByEntity,
         );
       }
     }
@@ -1201,7 +1210,7 @@ async function recreateSubQuery(
   modsIndexedByTable: { [key: string]: ModuleInterface },
   orm: TypeormWrapper,
   withRelationSubQueries: boolean,
-  recreatedEntities?: any[],
+  changesByEntity?: { [entityName: string]: any[] },
 ): Promise<string> {
   // Get cloud columns of the entity we want to look for.
   const cloudIds = getCloudId(entityMetadata?.target);
@@ -1217,7 +1226,8 @@ async function recreateSubQuery(
     }
     // Entity might have been deleted. Let's try to look for in the recreated entities.
     if (e === null) {
-      e = recreatedEntities?.find(re => re[referencedKey] === value);
+      const changesForEntity = changesByEntity?.[entityMetadata?.name ?? ''];
+      e = changesForEntity?.find(re => re[referencedKey] === value);
       if (!e) return '<relation_not_found>';
     }
     let values = await Promise.all(
@@ -1230,7 +1240,7 @@ async function recreateSubQuery(
             modsIndexedByTable,
             orm,
             withRelationSubQueries,
-            recreatedEntities,
+            changesByEntity,
           ),
       ),
     );
@@ -1252,7 +1262,7 @@ async function recreateSubQuery(
               modsIndexedByTable,
               orm,
               withRelationSubQueries,
-              recreatedEntities,
+              changesByEntity,
             ),
         ),
       );
@@ -2071,8 +2081,6 @@ async function recreateEntity(
 ): Promise<any | undefined> {
   const originalE: any = {};
   // Recreate object with original properties
-  if (entityMetadata.name === 'RegisteredInstance')
-    console.log(`+-+ change: ${JSON.stringify(originalChange)}`);
   Object.entries(originalChange).forEach(([k, v]: [string, any]) => {
     const colMetadata = entityMetadata.ownColumns.find(oc => oc.databaseName === k);
     let eKey;
