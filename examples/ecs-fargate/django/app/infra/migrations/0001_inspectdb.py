@@ -7,7 +7,6 @@ import django.db.models.deletion
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("infra", "0001_install"),
     ]
 
     operations = [

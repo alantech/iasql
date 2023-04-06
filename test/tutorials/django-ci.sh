@@ -12,8 +12,23 @@ cd examples/ecs-fargate/django/app
 echo "\nInstall pip packages"
 pip install -r requirements.txt
 
-echo "\nRun Django migrations"
+# install ecs_simplified and codebuild modules
+psql "postgres://$IASQL_USERNAME:$IASQL_PASSWORD@localhost:5432/iasql" -c "
+  SELECT * FROM iasql_install(
+      'aws_ecs_simplified', 'aws_codebuild'
+  );
+"
+
+echo "\nRun Django migrations - no real action on the database"
 python manage.py migrate --database infra infra
+
+# create the ecs_simplified app
+psql "postgres://$IASQL_USERNAME:$IASQL_PASSWORD@localhost:5432/iasql" -c "
+  SELECT iasql_begin();
+  INSERT INTO ecs_simplified (app_name, public_ip, app_port, image_tag, cpu_mem, desired_count)
+  VALUES ('quickstart', true, 8088, 'latest', 'vCPU2-8GB', 1);
+  SELECT iasql_commit();
+"
 
 psql "postgres://$IASQL_USERNAME:$IASQL_PASSWORD@localhost:5432/iasql" -c "
   SELECT ecr_build(
