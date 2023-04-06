@@ -450,7 +450,7 @@ jobs:
           STAGING_SECRET_ACCESS_KEY: ${{ secrets.STAGING_SECRET_ACCESS_KEY }}
           GH_PAT: ${{ secrets.GH_PAT }}
         with:
-          max_attempts: 3
+          max_attempts: 1
           retry_on: error
           timeout_minutes: 90
           command: |
