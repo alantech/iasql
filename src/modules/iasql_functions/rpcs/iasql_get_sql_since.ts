@@ -14,8 +14,6 @@ import {
 import { getInstalledModules, recreateQueries } from '../iasql';
 import { indexModsByTable } from '../iasql';
 
-// import { recreateQueries } from './helpers';
-
 /**
  * Method that generates SQL from the audit log from a given point in time.
  */
