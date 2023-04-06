@@ -6,6 +6,7 @@ import {
   MdOutlineApps,
   MdOutlineToggleOff,
   MdTextFields,
+  MdQuestionMark,
 } from 'react-icons/md';
 import { TbNetwork } from 'react-icons/tb';
 
@@ -37,8 +38,9 @@ function getIconForDataType(dataType: string) {
     case 'ARRAY':
       return <MdDataArray />;
     case 'USER-DEFINED':
-    default:
       return <MdOutlineApps />;
+    default:
+      return <MdQuestionMark />;
   }
 }
 
