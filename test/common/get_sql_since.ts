@@ -17,7 +17,7 @@ import {
 
 const dbAlias = 'getsqlsince';
 const dbAlias2 = 'getsqlsince2';
-const region = 'eu-west-2'; // defaultRegion();
+const region = defaultRegion();
 
 const begin = runBegin.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
@@ -29,6 +29,22 @@ const lbName = `${dbAlias}lb`;
 const lbScheme = LoadBalancerSchemeEnum.INTERNET_FACING;
 const lbType = LoadBalancerTypeEnum.APPLICATION;
 const lbIPAddressType = IpAddressType.IPV4;
+const lbAttributes = [
+  { Key: 'access_logs.s3.enabled', Value: 'false' },
+  { Key: 'access_logs.s3.bucket', Value: '' },
+  { Key: 'access_logs.s3.prefix', Value: '' },
+  { Key: 'idle_timeout.timeout_seconds', Value: '60' },
+  { Key: 'deletion_protection.enabled', Value: 'false' },
+  { Key: 'routing.http2.enabled', Value: 'true' },
+  { Key: 'routing.http.drop_invalid_header_fields.enabled', Value: 'false' },
+  { Key: 'routing.http.xff_client_port.enabled', Value: 'false' },
+  { Key: 'routing.http.preserve_host_header.enabled', Value: 'false' },
+  { Key: 'routing.http.xff_header_processing.mode', Value: 'append' },
+  { Key: 'load_balancing.cross_zone.enabled', Value: 'true' },
+  { Key: 'routing.http.desync_mitigation_mode', Value: 'defensive' },
+  { Key: 'waf.fail_open.enabled', Value: 'false' },
+  { Key: 'routing.http.x_amzn_tls_version_and_cipher_suite.enabled', Value: 'false' },
+];
 
 jest.setTimeout(360000);
 beforeAll(async () => await execComposeUp());
@@ -143,8 +159,10 @@ describe('iasql_get_sql_since functionality', () => {
     query(
       `
         BEGIN;
-          INSERT INTO load_balancer (load_balancer_name, scheme, vpc, load_balancer_type, ip_address_type)
-          VALUES ('${lbName}', '${lbScheme}', null, '${lbType}', '${lbIPAddressType}');
+          INSERT INTO load_balancer (load_balancer_name, scheme, vpc, load_balancer_type, ip_address_type, attributes, availability_zones)
+          VALUES ('${lbName}', '${lbScheme}', null, '${lbType}', '${lbIPAddressType}', '${JSON.stringify(
+        lbAttributes,
+      )}', (SELECT array_agg(az.name) FROM (SELECT name from availability_zone WHERE region = '${region}' GROUP BY name ORDER BY name ASC LIMIT 2) as az));
 
           INSERT INTO load_balancer_security_groups(load_balancer_id, security_group_id)
           SELECT (SELECT id FROM load_balancer WHERE load_balancer_name = '${lbName}'),
@@ -287,7 +305,6 @@ describe('iasql_get_sql_since functionality', () => {
       (res: any) => {
         expect(res.length).toBe(2);
         sql = res.map((o: { sql: string }) => o.sql).join('\n');
-        console.log(`+-+ sql: ${sql}`);
       },
       false,
       () => ({ username, password }),

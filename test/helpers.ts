@@ -107,9 +107,14 @@ export function runQuery(
   assertFn?: (res: any[]) => void,
   log = true,
   withUserAndPassword = () => ({ username: config.db.user, password: config.db.password }),
+  queryReplacements: () => { [key: string]: string } = () => ({}),
 ) {
   return function (done: (e?: any) => {}) {
     const { username, password } = withUserAndPassword();
+    const replaceWith = queryReplacements();
+    for (const [key, value] of Object.entries(replaceWith)) {
+      queryString = queryString.replace(`##${key}##`, value);
+    }
     if (log) logger.info(queryString);
     new Connection({
       name: uuidv4(),
