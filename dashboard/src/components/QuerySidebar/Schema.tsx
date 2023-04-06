@@ -1,9 +1,45 @@
+import {
+  MdDataArray,
+  MdDataObject,
+  MdDateRange,
+  MdNumbers,
+  MdOutlineApps,
+  MdOutlineToggleOff,
+  MdTextFields,
+} from 'react-icons/md';
+import { TbNetwork } from 'react-icons/tb';
+
 import { TableIcon } from '@heroicons/react/outline';
 import { QuestionMarkCircleIcon } from '@heroicons/react/solid';
 
 import { Accordion, align, HBox, VBox } from '../common';
 import { ActionType, useAppContext } from '../providers/AppProvider';
-import { MdOutlineTag } from 'react-icons/md';
+
+function getIconForDataType(dataType: string) {
+  switch (dataType) {
+    case 'boolean':
+      return <MdOutlineToggleOff />;
+    case 'smallint':
+    case 'double precision':
+    case 'integer':
+      return <MdNumbers />;
+    case 'character varying':
+    case 'text':
+      return <MdTextFields />;
+    case 'json':
+    case 'jsonb':
+      return <MdDataObject />;
+    case 'timestamp with time zone':
+    case 'timestamp without time zone':
+      return <MdDateRange />;
+    case 'cidr':
+      return <TbNetwork />;
+    case 'ARRAY':
+      return <MdDataArray />;
+    case 'USER-DEFINED':
+      return <MdOutlineApps />;
+  }
+}
 
 export default function Schema({
   moduleData,
@@ -82,7 +118,7 @@ export default function Schema({
                       }
                     >
                       <HBox customStyles={'col-span-1'}>
-                        <MdOutlineTag />
+                        {getIconForDataType((meta as columnMetadata).dataType)}
                       </HBox>
                       <HBox alignment={align.start} customStyles={'col-span-5'}>
                         <p className='text-ellipsis overflow-hidden' title={col}>
