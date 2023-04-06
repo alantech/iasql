@@ -25,8 +25,12 @@ python manage.py migrate --database infra infra
 # create the ecs_simplified app
 psql "postgres://$IASQL_USERNAME:$IASQL_PASSWORD@localhost:5432/iasql" -c "
   SELECT iasql_begin();
+"
+psql "postgres://$IASQL_USERNAME:$IASQL_PASSWORD@localhost:5432/iasql" -c "
   INSERT INTO ecs_simplified (app_name, public_ip, app_port, image_tag, cpu_mem, desired_count)
   VALUES ('quickstart', true, 8088, 'latest', 'vCPU2-8GB', 1);
+"
+psql "postgres://$IASQL_USERNAME:$IASQL_PASSWORD@localhost:5432/iasql" -c "
   SELECT iasql_commit();
 "
 
