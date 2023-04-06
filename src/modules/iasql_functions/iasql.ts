@@ -1556,11 +1556,11 @@ async function apply(
         const modsIndexedByTable = indexModsByTable(relevantModules);
         changesByEntity = await getChangesByEntity(context.orm, changesToCommit, modsIndexedByTable);
       }
-      
+
       records.forEach(r => {
         r.diff = findDiff(r.dbEntity, r.cloudEntity, r.idGen, r.comparator);
-        if (r.table === 'RegisteredInstance') console.log(`+-+ diff: ${JSON.stringify(r.diff)}`)
-        if (r.table === 'RegisteredInstance') console.log(`+-+ changes: ${JSON.stringify(changesByEntity)}`)
+        if (r.table === 'RegisteredInstance') console.log(`+-+ diff: ${JSON.stringify(r.diff)}`);
+        if (r.table === 'RegisteredInstance') console.log(`+-+ changes: ${JSON.stringify(changesByEntity)}`);
         // If we have changes done by the user to be applied, then filter them.
         // Else, only filter changes done after this commit started to avoid overrides.
         if (changesByEntity) {
@@ -2071,6 +2071,8 @@ async function recreateEntity(
 ): Promise<any | undefined> {
   const originalE: any = {};
   // Recreate object with original properties
+  if (entityMetadata.name === 'RegisteredInstance')
+    console.log(`+-+ change: ${JSON.stringify(originalChange)}`);
   Object.entries(originalChange).forEach(([k, v]: [string, any]) => {
     const colMetadata = entityMetadata.ownColumns.find(oc => oc.databaseName === k);
     let eKey;
@@ -2083,9 +2085,13 @@ async function recreateEntity(
     }
     originalE[eKey] = v;
   });
+  if (entityMetadata.name === 'RegisteredInstance')
+    console.log(`+-+ originalE before rel: ${JSON.stringify(originalE)}`);
   await recreateRelation('OneToMany', originalE, entityMetadata, orm);
   await recreateRelation('ManyToOne', originalE, entityMetadata, orm);
   await recreateRelation('OneToOne', originalE, entityMetadata, orm);
+  if (entityMetadata.name === 'RegisteredInstance')
+    console.log(`+-+ originalE with rels: ${JSON.stringify(originalE)}`);
   return Object.keys(originalE).length ? originalE : undefined;
 }
 
@@ -2103,6 +2109,9 @@ async function recreateRelation(
       propertyName: or.propertyName,
       colsWithReferences: or.joinColumns.map(jc => [jc.propertyName, jc.referencedColumn?.propertyName]),
     }));
+  if (entityMetadata.name === 'RegisteredInstance')
+    console.log(`+-+ relations: ${JSON.stringify(relations)}`);
+  if (entityMetadata.name === 'RegisteredInstance') console.log(`+-+ mutE: ${JSON.stringify(mutE)}`);
   for (const r of relations) {
     if (isSingleResult) {
       const relE = await orm.findOne(r.targetEntity, {
