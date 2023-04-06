@@ -37,6 +37,7 @@ function getIconForDataType(dataType: string) {
     case 'ARRAY':
       return <MdDataArray />;
     case 'USER-DEFINED':
+    default:
       return <MdOutlineApps />;
   }
 }
