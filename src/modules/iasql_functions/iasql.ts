@@ -2107,7 +2107,7 @@ async function recreateRelation(
     .map(or => ({
       targetEntity: or.inverseEntityMetadata.targetName,
       propertyName: or.propertyName,
-      colsWithReferences: or.joinColumns.map(jc => [jc.propertyName, jc.referencedColumn?.propertyName]),
+      colsWithReferences: or.joinColumns.map(jc => [jc.propertyAliasName, jc.referencedColumn?.propertyName]),
     }));
   if (entityMetadata.name === 'RegisteredInstance')
     console.log(`+-+ relations: ${JSON.stringify(relations)}`);
