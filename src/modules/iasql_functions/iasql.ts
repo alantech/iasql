@@ -1556,9 +1556,11 @@ async function apply(
         const modsIndexedByTable = indexModsByTable(relevantModules);
         changesByEntity = await getChangesByEntity(context.orm, changesToCommit, modsIndexedByTable);
       }
-
+      
       records.forEach(r => {
         r.diff = findDiff(r.dbEntity, r.cloudEntity, r.idGen, r.comparator);
+        if (r.table === 'RegisteredInstance') console.log(`+-+ diff: ${JSON.stringify(r.diff)}`)
+        if (r.table === 'RegisteredInstance') console.log(`+-+ changes: ${JSON.stringify(changesByEntity)}`)
         // If we have changes done by the user to be applied, then filter them.
         // Else, only filter changes done after this commit started to avoid overrides.
         if (changesByEntity) {
