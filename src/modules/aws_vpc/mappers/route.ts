@@ -165,7 +165,7 @@ export class RouteMapper extends MapperBase<Route> {
           } else if (e.gatewayId === 'local') return;
         } else return;
 
-        const associations = (await this.module.routeTableAssociation.db.read(
+        const associations = (await this.module.routeTableAssociation.cloud.read(
           ctx,
         )) as RouteTableAssociation[];
         if (
