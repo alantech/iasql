@@ -16,11 +16,14 @@ import {
 } from '../helpers';
 
 const dbAlias = 'getsqlsince';
-const region = defaultRegion();
+const dbAlias2 = 'getsqlsince2';
+const region = 'eu-west-2'; // defaultRegion();
 
 const begin = runBegin.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
+const query2 = runQuery.bind(null, dbAlias2);
 const install = runInstall.bind(null, dbAlias);
+const install2 = runInstall.bind(null, dbAlias2);
 
 const lbName = `${dbAlias}lb`;
 const lbScheme = LoadBalancerSchemeEnum.INTERNET_FACING;
@@ -32,6 +35,9 @@ beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown());
 
 let username: string, password: string;
+let username2: string, password2: string;
+let timestamp: string;
+let sql: string;
 
 describe('iasql_get_sql_since functionality', () => {
   it('creates a new test db', done => {
@@ -114,6 +120,21 @@ describe('iasql_get_sql_since functionality', () => {
     }));
 
   itDocs('installs the aws_elb module', install(['aws_elb']));
+
+  it(
+    'saves the timestamp to be used later',
+    query(
+      `
+        SELECT current_timestamp;
+      `,
+      (res: any) => {
+        expect(res.length).toBe(1);
+        timestamp = res
+          ?.map((o: { current_timestamp: string }) => new Date(o.current_timestamp).toISOString())
+          .pop();
+      },
+    ),
+  );
 
   itDocs('begin a transaction', begin());
 
@@ -223,6 +244,81 @@ describe('iasql_get_sql_since functionality', () => {
         expect(res[res.length - 1].sql).toContain(`INSERT INTO load_balancer_security_groups (`);
         expect(res[res.length - 2].sql).toContain(`INSERT INTO load_balancer (`);
       },
+    ),
+  );
+
+  it('creates a new test db', done => {
+    (async () => {
+      try {
+        const { user, password: pgPassword } = await iasql.connect(dbAlias2, 'not-needed', 'not-needed');
+        username2 = user;
+        password2 = pgPassword;
+        if (!username2 || !password2) throw new Error('Did not fetch pg credentials');
+        done();
+      } catch (e) {
+        done(e);
+      }
+    })();
+  });
+
+  it('installs the aws_account module', install2(['aws_account']));
+
+  it(
+    'inserts aws credentials',
+    query2(
+      `
+        INSERT INTO aws_credentials (access_key_id, secret_access_key)
+        VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
+      `,
+      undefined,
+      false,
+      () => ({ username: username2, password: password2 }),
+    ),
+  );
+
+  it('installs the aws_elb module in the new db', install2(['aws_elb']));
+
+  it(
+    'saves the sql generated in the sql variable to be used in the new db in the next test',
+    query(
+      `
+        SELECT * FROM iasql_get_sql_since('##timestamp##'::timestamp with time zone);
+      `,
+      (res: any) => {
+        expect(res.length).toBe(2);
+        sql = res.map((o: { sql: string }) => o.sql).join('\n');
+        console.log(`+-+ sql: ${sql}`);
+      },
+      false,
+      () => ({ username, password }),
+      () => ({ timestamp }),
+    ),
+  );
+
+  it(
+    'executes the generated sql to confirm it works',
+    query2(
+      `
+        BEGIN;
+          ##sql##
+        COMMIT;
+      `,
+      undefined,
+      true,
+      () => ({ username: username2, password: password2 }),
+      () => ({ sql }),
+    ),
+  );
+
+  it(
+    'checks load_balancer insertion',
+    query2(
+      `
+        SELECT *
+        FROM load_balancer
+        WHERE load_balancer_name = '${lbName}';
+      `,
+      (res: any[]) => expect(res.length).toBe(1),
     ),
   );
 
