@@ -9,6 +9,7 @@ import {
   MdOutlineToggleOff,
   MdTextFields,
 } from 'react-icons/md';
+import { TbNetwork } from 'react-icons/tb';
 
 import { align, HBox, Label } from '.';
 
@@ -32,10 +33,15 @@ function getIconForDataType(dataType: number | undefined) {
     case 1082: // date
     case 1083: // time
       return <MdDateRange />;
+    case 650: // cidr
+      return <TbNetwork />;
     case 1114:
     case 1184: // timestamp
       return <MdAccessTime />;
-    case 1009: // array
+    case 1009:
+    case 1015:
+    case 1005:
+    case 1007: // array
       return <MdDataArray />;
     default:
       return <MdOutlineApps />;
