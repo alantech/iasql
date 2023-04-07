@@ -1,0 +1,495 @@
+---
+slug: why-sql-for-infrastructure
+title: Why SQL is right for Infrastructure Management
+authors: [dfellis, depombo]
+date: 2023-04-06
+image: /home/iasql-connector.gif
+tags: [deep-dives]
+---
+
+# Why SQL is right for Infrastructure Management
+
+Infrastructure is the heart of your company. Without it, nothing can actually be done and there'd be no reason for customers to pay you. For software companies that infrastructure is the software that its engineers directly write, and usually the cloud infrastructure and services it runs on top of and integrates with.
+
+In this post, we will geek out on various software abstractions and data structures, tools used by professionals of various sorts, and dig into the pros and cons of these with respect to cloud infrastructure management in particular. We'll see that while SQL has its own warts, it is the "least worst" of all of the options out there.
+
+<!--truncate-->
+
+## Following these instructions is imperative
+
+The simplest way to define how to set something up is to write up a list of instructions to follow, in order, to build whatever infrastructure you're dealing with, whether its the instructions on how to build a restaurant or an AWS Fargate cluster. This list of steps to process (with a LISt Processor, or [LISP](https://en.wikipedia.org/wiki/Lisp_%28programming_language%29), if you will 😉), which can include instructions to repeat or skip over steps based on conditions you have run into, is called [imperative programming](https://en.wikipedia.org/wiki/Imperative_programming) in the software world.
+
+:::note Imperative Restaurant Instructions
+
+![Man in hard-hat builds your restaurant](/img/why-sql-for-infrastructure/man-in-hard-hat-builds-your-restaurant.png)
+
+1. Design restaurant.
+2. Flatten the ground.
+3. Prop up pieces of wood next to each other.
+4. Bang nails into wood.
+5. Is restaurant finished? No, go to 3.
+
+:::
+
+For your cloud infrastructure, this is similar to using the [AWS SDK](https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/) and directly calling the various methods, checking their results and eventually arriving at the desired infrastructure. It is *also* like following a step-by-step guide clicking through the various AWS console UI elements to set up your infrastructure, like in [this guide](https://towardsdatascience.com/deploy-your-python-app-with-aws-fargate-tutorial-7a48535da586). The latter may not be automated, to you, but to your company executives it is as they don't care how the infrastructure building was accomplished as long as it was done quickly, cheaply, and reliably, and you know they always want all three. 😉
+
+Imperative infrastructure management works *well* for initial setup of new infrastructure. There's nothing there to interfere with it, so you can just write the "happy path" and get it working. And if that fails, you can just tear it all down and start all over again if that's cheap, which it is for cloud infrastructure (though not for building a restaurant), so the [cyclomatic complexity](https://en.wikipedia.org/wiki/Cyclomatic_complexity) of the code you write is low and everyone can follow along with it. For example, one can use the [`aws` cli application](https://aws.amazon.com/cli/) inside of a [`bash` script](https://www.gnu.org/software/bash/) to create a new [ssh keypair](https://en.wikipedia.org/wiki/Ssh-keygen) in AWS, a [security group](https://docs.aws.amazon.com/vpc/latest/userguide/security-groups.html) enabling ssh access, a new EC2 instance associated with both, and then access that instance (to demonstrate that it works).
+
+```bash
+#!/bin/bash
+
+aws ec2 create-key-pair \
+  --region us-west-2 \
+  --key-name login \
+  --key-type ed25519 | \
+  jq -r .KeyMaterial > login.pem
+chmod 600 login.pem
+SG_ID=$(aws ec2 create-security-group \
+  --group-name login-sg \
+  --description "Login security group" \
+  --region us-west-2 \
+  --vpc-id $(aws ec2 describe-vpcs \
+    --region us-west-2 | \
+    jq -r '.Vpcs[] | select(.IsDefault = true) | .VpcId') | \
+  jq -r .GroupId)
+aws ec2 authorize-security-group-ingress \
+  --group-name login-sg \
+  --region us-west-2 \
+  --ip-permissions 'IpProtocol=tcp,FromPort=22,ToPort=22,IpRanges=[{CidrIp=0.0.0.0/0}]' > /dev/null
+INSTANCE_ID=$(aws ec2 run-instances \
+  --region us-west-2 \
+  --subnet-id $(aws ec2 describe-subnets \
+    --region us-west-2 | \
+    jq -r .Subnets[0].SubnetId) \
+  --instance-type t3.small \
+  --image-id resolve:ssm:/aws/service/canonical/ubuntu/server/20.04/stable/current/amd64/hvm/ebs-gp2/ami-id \
+  --security-group-ids ${SG_ID} \
+  --key-name login \
+  --associate-public-ip-address \
+  --tag-specifications 'ResourceType=instance,Tags=[{Key=name,Value=login-inst}]' \
+  --output json | \
+  jq -r .Instances[0].InstanceId)
+echo EC2 instance ${INSTANCE_ID} starting 
+aws ec2 wait instance-status-ok \
+  --region us-west-2 \
+  --instance-ids ${INSTANCE_ID}
+PUBLIC_IP=$(aws ec2 describe-instances \
+  --region us-west-2 \
+  --filters Name=tag:name,Values=[login-inst] \
+  --filters Name=instance-state-name,Values=[running] | \
+  jq -r .Reservations[0].Instances[0].PublicIpAddress)
+echo Server accessible at ${PUBLIC_IP}
+ssh -i login.pem -o "StrictHostKeyChecking no" ubuntu@${PUBLIC_IP} uname -a
+```
+
+Keep in mind that this is a *simple* script that does not handle failure of any of the commands called, creating one EC2 instance with two supporting elements (a security group to allow access to the SSH port and an SSH keypair to log into the instance). If you intend to actually use it multiple times, several of the arguments currently hardwired should be turned into shell arguments themselves, and all of the error paths should be tackled.
+
+However, the vast majority of the time you are not creating clones of the same infrastructure over and over again, instead you need to make changes to your existing infrastructure, and that original code is more than likely useless to you. To get from the *current* state of your infrastructure to your *desired* state, you need to call different APIs than you did before, and its much riskier to make a mistake because this infrastructure is already in use.
+
+## Declare your intentions at once
+
+When the desired state is relatively simple to define and the mechanism to reach that state is not that important, writing up a declaration of what is needed and letting something/someone else deal with it is the most logical abstraction. This would be like drafting up the architectural draft for your new restaurant and paying a contracting company to actually build it, or [writing HTML and letting a web browser render it](https://en.wikipedia.org/wiki/Declarative_programming#Domain-specific_languages), or writing a [Terraform HCL](https://github.com/hashicorp/hcl) file and letting the Terraform CLI tool `apply` it. This is called [declarative programming](https://en.wikipedia.org/wiki/Declarative_programming) in the software world, and has many advantages (and a few disadvantages!) for cloud infrastructure management.
+
+:::note Declarative Restaurant Instructions
+
+![King in robes on throne](/img/why-sql-for-infrastructure/king-in-robes-on-throne.png)
+
+*By decree of the king, a restaurant shall be built!*
+
+:::
+
+In declarative programming you have some initial state and in comparatively dense and high-level declarative code define the desired state. In many use-cases (like web browsers and sometimes for restaurant-building contractors) the initial state is "blank" and the engine that transforms the declarative code into imperative operations can often be a relatively straightforward [interpreter](https://en.wikipedia.org/wiki/Interpreter_%28computing%29) walking the [AST](https://en.wikipedia.org/wiki/Abstract_syntax_tree) of the declarative code.
+
+Infrastructure management *generally* is not that straightforward. Changes to infrastructure require in-place mutations of the current state or a full [blue/green deployment](https://en.wikipedia.org/wiki/Blue-green_deployment) of the entirety of your production infrastructure is very expensive, requiring all resource costs to be doubled, and deployments to require some amount of downtime for users to swap over and state to be resynchronized. Particularly for databases this approach is essentially impossible as there is too much state to swap, which is what makes database migrations tricky when dropping data.
+
+So declarative programming for infrastructure, also known as [Infrastructure as Code](https://en.wikipedia.org/wiki/Infrastructure_as_code), must take the existing state and generate the imperative operations to perform based on the differences between the existing state and the declared desired state. This is like a contracting company being given an architecture draft for a new restaurant and being told to remodel an existing commercial space (maybe it was also a restaurant, maybe it was a clothing store, etc) and the contracting company figuring out what needs to be torn down first, what can be re-used, and what needs to be built new.
+
+```hcl
+terraform {
+  required_providers {
+    aws = {
+      source = "hashicorp/aws"
+      version = "4.60.0"
+    }
+  }
+}
+
+data "external" "example" {
+  program = [
+    "bash",
+    "-c",
+    <<-EOT
+      if [ ! -f ./login.pem ]; then
+        # Terraform doesn't support creating the PEM file via AWS. It has to be
+        # created locally and then imported into AWS. Inside of a conditional so
+        # we don't accidentally re-create the file between 'plan' and 'apply'
+        yes '' | ssh-keygen -t ed25519 -m PEM -f login.pem
+      fi
+      chmod 600 login.pem
+      # The output of this script needs to be JSON formatted. This is a bit wonky
+      # but building it over time via 'jq' operators is actually harder to follow
+      echo {
+      echo   '"access_key_id": "'$(aws configure get aws_access_key_id)'",'
+      echo   '"secret_access_key": "'$(aws configure get aws_secret_access_key)'",'
+      echo   '"public_key": "'$(cat login.pem.pub)'"'
+      echo }
+    EOT
+  ]
+}
+
+provider "aws" {
+  region = "us-west-2"
+  access_key = data.external.example.result["access_key_id"]
+  secret_key = data.external.example.result["secret_access_key"]
+}
+
+resource "aws_key_pair" "login" {
+  key_name = "login"
+  public_key = data.external.example.result["public_key"]
+}
+
+resource "aws_security_group" "login_sg" {
+  name = "login-sg"
+  description = "Login security group"
+  ingress {
+    from_port = 22
+    to_port = 22
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_instance" "login" {
+  ami = "resolve:ssm:/aws/service/canonical/ubuntu/server/20.04/stable/current/amd64/hvm/ebs-gp2/ami-id"
+  instance_type = "t3.small"
+  associate_public_ip_address = true
+  key_name = aws_key_pair.login.key_name
+  vpc_security_group_ids = [aws_security_group.login_sg.id]
+  tags = {
+    name = "login-inst"
+  }
+}
+```
+
+This example still requires the following lines from the imperative example to get the public IP address of the new EC2 instance and log into it:
+
+```bash
+PUBLIC_IP=$(aws ec2 describe-instances \
+  --region us-west-2 \
+  --filters Name=tag:name,Values=[login-inst] \
+  --filters Name=instance-state-name,Values=[running] | \
+  jq -r .Reservations[0].Instances[0].PublicIpAddress)
+echo Server accessible at ${PUBLIC_IP}
+ssh -i login.pem -o "StrictHostKeyChecking no" ubuntu@${PUBLIC_IP} uname -a
+```
+
+This diffing of original and desired state can be resolved several ways. The contracting company could spend a lot of time inspecting the existing commercial space to find absolutely every piece that can be re-used, removing them and setting them aside with the materials that need to be purchased, then rework the interior walls, and build everything from scratch, or it could decide to tear everything out back into an empty space and rebuild from scratch (like what your web browser does between web pages), or perhaps you need to keep the space mostly usable for customers, minimizing disruption to the current operations while things are changed. This last case is what infrastructure management tools need to tackle your infrastructure with the least amount of downtime or no downtime at all, if you're *careful* with it.
+
+How can you "careful" with declarative programming tools, if you don't have direct control over what they do? Terraform does this with a [plan](https://developer.hashicorp.com/terraform/cli/commands/plan) command, which performs the diffing of current and desired state and reports back to you the operations it expects to execute to do so. Terraform will tell you when a change it intends to make is going to provision new resources, alter existing resources, drop resources, and *replace* resources. That last one is particularly annoying when it shows up because it means the change you want to perform can only be done by dropping it and recreating it with the new configuration.
+
+```bash
+$ terraform plan
+
+data.external.example: Reading...
+data.external.example: Read complete after 1s [id=-]
+
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  + create
+
+Terraform will perform the following actions:
+
+  # aws_instance.login will be created
+  + resource "aws_instance" "login" {
+      + ami                                  = "resolve:ssm:/aws/service/canonical/ubuntu/server/20.04/stable/current/amd64/hvm/ebs-gp2/ami-id"
+      + arn                                  = (known after apply)
+      + associate_public_ip_address          = true
+      + availability_zone                    = (known after apply)
+      + cpu_core_count                       = (known after apply)
+      + cpu_threads_per_core                 = (known after apply)
+      + disable_api_stop                     = (known after apply)
+      + disable_api_termination              = (known after apply)
+      + ebs_optimized                        = (known after apply)
+      + get_password_data                    = false
+      + host_id                              = (known after apply)
+      + host_resource_group_arn              = (known after apply)
+      + iam_instance_profile                 = (known after apply)
+      + id                                   = (known after apply)
+      + instance_initiated_shutdown_behavior = (known after apply)
+      + instance_state                       = (known after apply)
+      + instance_type                        = "t3.small"
+      + ipv6_address_count                   = (known after apply)
+      + ipv6_addresses                       = (known after apply)
+      + key_name                             = "login"
+      + monitoring                           = (known after apply)
+      + outpost_arn                          = (known after apply)
+      + password_data                        = (known after apply)
+      + placement_group                      = (known after apply)
+      + placement_partition_number           = (known after apply)
+      + primary_network_interface_id         = (known after apply)
+      + private_dns                          = (known after apply)
+      + private_ip                           = (known after apply)
+      + public_dns                           = (known after apply)
+      + public_ip                            = (known after apply)
+      + secondary_private_ips                = (known after apply)
+      + security_groups                      = (known after apply)
+      + source_dest_check                    = true
+      + subnet_id                            = (known after apply)
+      + tags                                 = {
+          + "name" = "login-inst"
+        }
+      + tags_all                             = {
+          + "name" = "login-inst"
+        }
+      + tenancy                              = (known after apply)
+      + user_data                            = (known after apply)
+      + user_data_base64                     = (known after apply)
+      + user_data_replace_on_change          = false
+      + vpc_security_group_ids               = (known after apply)
+    }
+
+  # aws_key_pair.login will be created
+  + resource "aws_key_pair" "login" {
+      + arn             = (known after apply)
+      + fingerprint     = (known after apply)
+      + id              = (known after apply)
+      + key_name        = "login"
+      + key_name_prefix = (known after apply)
+      + key_pair_id     = (known after apply)
+      + key_type        = (known after apply)
+      + public_key      = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIF4yiy4lef2WFQ7zdtuOZUHz9onyADTJ16l0OX8a211y damocles@zelbinion"
+      + tags_all        = (known after apply)
+    }
+
+  # aws_security_group.login_sg will be created
+  + resource "aws_security_group" "login_sg" {
+      + arn                    = (known after apply)
+      + description            = "Login security group"
+      + egress                 = (known after apply)
+      + id                     = (known after apply)
+      + ingress                = [
+          + {
+              + cidr_blocks      = [
+                  + "0.0.0.0/0",
+                ]
+              + description      = ""
+              + from_port        = 22
+              + ipv6_cidr_blocks = []
+              + prefix_list_ids  = []
+              + protocol         = "tcp"
+              + security_groups  = []
+              + self             = false
+              + to_port          = 22
+            },
+        ]
+      + name                   = "login-sg"
+      + name_prefix            = (known after apply)
+      + owner_id               = (known after apply)
+      + revoke_rules_on_delete = false
+      + tags_all               = (known after apply)
+      + vpc_id                 = (known after apply)
+    }
+
+Plan: 3 to add, 0 to change, 0 to destroy.
+
+─────────────────────────────────────────────────────────────────────────────
+
+Note: You didn't use the -out option to save this plan, so Terraform can't
+guarantee to take exactly these actions if you run "terraform apply" now.
+```
+
+When you see steps where Terraform plans to drop or replace resources, you can decide if that's actually alright, or if it will negatively impact your business during the deployment, and then you can abort and define an intermediate state to first transition to, usually creating a new resource without dropping the old one, then do whatever operation is necessary to move internal state to it, then continue by deleting the old resource. This is like checking up on your contracting company before they start doing their work to make sure they don't do anything strange you don't want, and sometimes needing to handhold them through details of your business to come up with the new plan of action.
+
+Until cloud resource management is as quick to execute as a webpage render where state changes can be done faster than a human can respond, this sort of hand-holding is necessary for live infrastructure with uptime guarantees. Declarative programming, at least for cloud infrastructure management, is a [leaky abstraction](https://en.wikipedia.org/wiki/Leaky_abstraction) over the imperative operations that need to be executed.
+
+The Terraform HCL files don't have the prior state encoded into them, nor does it depend on being stored within a git repository to provide that prior state, so how does Terraform get that initial state to operate on? Terraform maintains an [internal statefile](https://developer.hashicorp.com/terraform/language/state) to perform the diffing against. It has a mechanism to [refresh that state](https://developer.hashicorp.com/terraform/cli/commands/refresh), but being a JSON blob with poor typing, can [become corrupted, requiring manual intervention](https://faun.pub/cleaning-up-a-terraform-state-file-the-right-way-ab509f6e47f3).
+
+Why does Terraform need this JSON-based statefile when it has the much cleaner HCL format that you use as a developer? This is because HCL, as a language that provides affordances to the developer's own intuition on how to structure their representation of their infrastructure, does not have a [canonical form](https://en.wikipedia.org/wiki/Canonical_form) to make these comparisons with. Terraform must first pre-process the HCL into an internal data structure which it can then generate a [diff](https://en.wikipedia.org/wiki/Diff) that can then be used to determine the operations to perform. The JSON-based statefile is likely a very close representation of this internal data structure, and manual editing of it is highly discouraged because the details of it likely vary from release to release with an internal migration mechanism performed on upgrade of the Terraform CLI.
+
+Needing to learn Terraform's HCL language to make infrastructure changes has been cited as a [weakness](https://www.pulumi.com/why-pulumi/) that can be mitigated by wrapping it in the syntaxes more familiar to the user like [Terraform CDK](https://developer.hashicorp.com/terraform/cdktf), [Pulumi](https://www.pulumi.com), or [AWS CDK](https://docs.aws.amazon.com/cdk/v2/guide/home.html). This *is* a weakness, but we believe that the HCL-to-Statefile transformation being [surjective](https://en.wikipedia.org/wiki/Surjective_function) instead of [bijective](https://en.wikipedia.org/wiki/Bijection) is actually the bigger issue.
+
+:::note Surjective Function *f* Diagram
+
+![Surjective Diagram](https://upload.wikimedia.org/wikipedia/commons/6/6c/Surjection.svg)
+
+[*From Wikipedia*](https://en.wikipedia.org/wiki/Surjective_function#/media/File:Surjection.svg) A function *f* is surjective if all of its inputs *X* map to all outputs *Y*, but overlaps can occur.
+
+This is like multiple Terraform HCL representations all mapping to the exact same cloud infrastructure.
+
+:::
+
+<!-- TODO: This section could ideally show some way you can trigger a corruption of the statefile vs AWS's actual state -->
+
+## The Objective is Bi- hmmmm....
+
+:::note Bijective Function *f* Diagram
+
+![Bijective Diagram](https://upload.wikimedia.org/wikipedia/commons/a/a5/Bijection.svg)
+
+[*From Wikipedia*](https://en.wikipedia.org/wiki/Bijection#/media/File:Bijection.svg) A function *f* is bijective if all of its inputs *X* map to all outputs *Y* exactly once.
+
+:::
+
+A bijective function has a one-to-one mapping of all state in one set with all state in another set. Both representations are equivalent (given the appropriate transform functions), both sets (of possible cloud states) are the same size (conceptually), and for any one particular state in one set there is exactly one state in the other set. Programming Languages don't fit the bill here, as was demonstrated earlier, but what does? What, exactly, defines your cloud resources in the most minimal way?
+
+The best answer in most cases is ~~[water vapor](https://en.wikipedia.org/wiki/Cloud)~~ [Entities](https://en.wikipedia.org/wiki/Entity#In_computer_science). Each cloud resource has some unique identifier and a set of properties that configure it. Some of those properties can be relations or dependencies on other cloud resources. The ordering of the entities does not matter, so long as the dependencies are explicitly defined to make determination of the order of operations possible. You may have noticed that this sounds a lot like [Objects](https://en.wikipedia.org/wiki/Object_%28computer_science%29) in [Object-Oriented Programming](https://en.wikipedia.org/wiki/Object-oriented_programming). It is very much the same, with the only difference being that the unique identifier *must* be unique, so if we considered an array of pointers to these objects as the entity IDs, multiple pointers to the same object wouldn't be allowed.
+
+This means the representation of your cloud resources should be *data*, not code. Particularly, it should be [relational data](https://en.wikipedia.org/wiki/Relational_model) to allow the references/relations with other entities that actually exist within your cloud. Modeling each entity as a wholly-siloed object without those relations explicitly tracked *might* work for read-only cases, but puts the burden of properly joining the entities on the user and could lead to unexpected errors during mutation if the disjointed state is not carefully kept in sync. This mutation of that data would be the code, and fits very well into a classic [REST architecture](https://www.redhat.com/en/blog/rest-architecture) (in the original sense, though it could also work in the [Web-oriented RESTful meaning](https://en.wikipedia.org/wiki/Overview_of_RESTful_API_Description_Languages#Hypertext-driven_API).
+
+Since your infrastructure is actually data, just about any data format *could* be used to store it, as demonstrated by Terraform's usage of JSON under-the-hood. Some will require more application-level guarantees on top of the data format to achieve all of the necessary components, however. For instance JSON does not have any native way to represent *references* to other JSON objects that are not wholly contained within the object in question, so you would need to define a way to represent them and enforce it within your application. [YAML does support them via tags](https://yaml.org/spec/1.2.2/#24-tags) but being a markup language has multiple equivalent representations and is therefore not suitable for this purpose (without a strict linter to reduce it back down to a canonical form). There are also [binary formats that can encode references](https://capnproto.org/language.html#dynamically-typed-fields) with [SQLite's file format](https://www.sqlite.org/cli.html) arguably being the most prolific.
+
+SQL immediately stands out here because it was designed for making [relational algebra](https://en.wikipedia.org/wiki/Relational_algebra), the other side of the [Entity-Relationship model](https://en.wikipedia.org/wiki/Entity%E2%80%93relationship_model), accessible. There are likely more people who know SQL than any programming language (for IaC) or data format you could choose to represent your cloud infrastructure. Many non-programmers know it, as well, such as data scientists, business analysts, accountants, etc, and there is an entire ecosystem of useful functionality you gain "for free" by using a SQL representation than just about any format out there. Furthermore, a powerful SQL engine like the open source [PostgreSQL](https://postgresql.org) provides tools capable of elevating the infrastructure management *experience* beyond what IaC can do today.
+
+### The Advantages of SQL Databases for Infrastructure Management
+
+First, by defining [foreign key relations](https://www.postgresql.org/docs/current/tutorial-fk.html) between tables, the database can immediately inform you if you have dependencies that must be created before you can create the resource you desire. It will simply return an error message to you if you have inserted an incomplete record missing any required fields.
+
+"But," you say, "programming languages with solid type systems, like [Rust](https://www.rust-lang.org), can also do that for you." That is true, and this was not an attempt to disparage them, merely to show that you aren't losing anything by using SQL as the representation. There are, however, ways SQL goes above and beyond. By defining [unique, not-null, and check constraints](https://www.postgresql.org/docs/current/ddl-constraints.html) on top of a [rich type system](https://www.postgresql.org/docs/current/datatype.html) the database can prevent you from inserting faulty data to a greater degree than even Rust, as the constraints can be against the live state of your infrastructure itself. Instead of code needing to deal with unexpected values further down the line, the faulty data can be prevented from ever being inserted. Rust's compiler making sure that you handle every possible branch is an awesome thing, but SQL has the power to make more of these branches impossible in the first place.
+
+By being in a database, you can answer questions about your infrastructure via queries, and in the case of security vulnerabilities or expensive misconfigurations you can update that state across the board at the same time. The shared, live nature of the SQL database more closely matches the reality of the cloud infrastructure, while the more malleable nature of the querying in the Structured Query Language lets you cross-check in many dimensions the AWS console does not.
+
+There's a further advantage by having a bijective relationship with your cloud: you can re-synchronize the database with your cloud at any time, avoiding statefile issues by never getting too out-of-date, and being almost impossible to corrupt. Software bugs are unavoidable, but since populating the database is trivial (compared to the cloud account itself), it could simply be dropped and recreated at any time without an impact on your own usage.
+
+Most SQL databases have the concept of [trigger functions](https://www.postgresql.org/docs/current/sql-createtrigger.html#SQL-CREATETRIGGER-EXAMPLES) that execute based on changes to the database itself. With a collection of automatically-created trigger functions, an [audit log](https://en.wikipedia.org/wiki/Audit_trail) can be maintained, which can keep track of who made what cloud changes and when they did, going a step further than even a git repository of IaC changes, as changes done manually through the AWS console will also show up (though these would not have a database user to tie them to).
+
+Trigger functions have other uses that don't even have an analogous concept in IaC tooling. For instance, trigger functions can be added to automatically re-insert deleted records of sensitive cloud resources for automated [Chaos Engineering](https://en.wikipedia.org/wiki/Chaos_engineering) recovery. Either a mutation that was attempted by a developer that shouldn't be allowed (without also going through the much larger change of removing said trigger function first) so the resource is never deleted in the first place, as well as automatic recreation of the desired resource in the cloud if deleted via the AWS console or dropped during an outage.
+
+SQL Database [Snapshotting](https://en.wikipedia.org/wiki/Snapshot_%28computer_storage%29) could be used to quickly revert all infrastructure changes for infrastructure without hidden state (eg, the snapshot of your load balancers' prior state would successfully restore the load balancer configuration, but a dropped database restored via a snapshot would not restore the data within, only that you had such a database in the first place and you would still need to manually re-load a backup snapshot of those, as well).
+
+Database engines also represent a standardized protocol to interface with your data. This standard opens up a world of possibilities that can encompass the imperative and declarative infrastructure management styles and go beyond them. You can:
+  - Perform operations on your database via scripts and the [`psql` CLI](https://www.postgresql.org/docs/current/app-psql.html) tool, using whatever mix of declarative and imperative styles you prefer, mutating various tables declaratively and calling [`AWS SDK functions directly`](/docs/modules/aws/aws_sdk/?view=code-examples) where and when you see fit.
+  - Integrate the database into your application itself with a [postgres client library](https://node-postgres.com/) allowing your applications to make infrastructure changes (like provisioning sharded resources for a client that wants isolation, or using a more accurate forecasting model to pre-allocate more resources before the storm hits).
+  - Connect with a [SQL IDE](https://www.jetbrains.com/datagrip/features/postgresql/) for a variety of reasons, such as outage mitigation or inspection of your infrastructure in a tabular (Excel-like) view.
+  - Connect the database to a [graphical dashboard](https://grafana.com/docs/grafana/latest/datasources/postgres/) for live visualization of your infrastructure's state and any other metadata transferred through.
+  - Connect it to a [low code tool](https://docs.retool.com/docs/postgresql-integration) for rapid response dashboards for your infrastructure with buttons you can tackle known outage vectors near-instantly, or just to make self-service provisioning of new microservices in the infrastructure team's preferred way.
+
+There are negatives to representing your infrastructure as SQL, of course, as there is no perfect solution for all situations, but we believe [IaSQL](https://iasql.com) is a superset versus IaC in all but one category.
+
+SQL is an old, irregular language to work with, but it is better known than HCL and SQL already has it's own Pulumi/CDK in the form of every ORM with introspection (like [Javascript's Prisma](https://www.prisma.io/docs/concepts/components/introspection), [Python's Django](https://docs.djangoproject.com/en/4.1/howto/legacy-databases/), [Go's XO](https://github.com/xo/xo) etc) and QueryBuilder ([LINQ](https://learn.microsoft.com/en-us/dotnet/csharp/programming-guide/concepts/linq/), [Knex](https://knexjs.org/), etc) in whatever programming language you prefer. You probably already know it.
+
+Peer review of changes is *different* versus IaC. Instead of writing HCL or other IaC code, having it reviewed, and then `apply`ing it, you can enter an [IaSQL transaction](/docs/transaction), make the desired changes with Postgres acting as your IDE, automatically blocking many impossible changes via types and relations, and use [`iasql_create_review`](/docs/review/) to create a review artifact for your team *after* IaSQL has already vetted it for technical correctness. This vetting makes the result superior to the traditional peer review system in IaC.
+
+Database schemas can be overwhelming, and a schema accurately representing *all* of AWS would be dizzying. HCL and other IaC tools let you elide parts of AWS via a module system, so we have implemented our own [module system](/docs/module) on top of Postgres inspired equally by programming language module systems and Linux distro package managers. This module system takes the place the usual database [schema migration system](https://en.wikipedia.org/wiki/Schema_migration) for the management of the tables in the database, which may feel unusual at first, but we believe it is superior (for this use-case).
+
+Even with IaC tools letting you ignore details you don't specifically need, AWS and other clouds expose many details in multiple layers for you to control when often you just need the same subset of functionality over-and-over, so these IaC tools have higher-level modules for these cookie-cutter use-cases. For IaSQL we [did the same](/docs/low-level-vs-high-level), though in a way that coexists with the lower-level modules so you can still query those details later, if you like. [Here](/blog/ecs-simplified) is an example of a high-level module that greatly simplifies ECS fargate. 
+
+IaSQL is declarative like IaC, so the leaky abstraction problem of declarative programming can still impact things. Like IaC's `apply` concept IaSQL has [its own transaction system](/docs/transaction) (separate from the actual [database transaction system](https://www.postgresql.org/docs/current/tutorial-transactions.html)) that will let you enqueue changes and preview what actions the engine will take before commiting to it (or rolling it back). Going beyond that and acknowledging that sometimes you need to directly work in the lower abstraction layer, IaSQL exposes optional [raw SDK access](https://iasql.com/docs/modules/aws/aws_sdk/) within the database to handle those tougher situations, and can then re-synchronize the declarative state afterwards.
+
+As IaSQL is able to both push changes from the database to the cloud and pull changes from the cloud to the database versus the one-way push from HCL that Terraform provides, you can make changes directly in the AWS console, then inspect the audit log directly or [call a special formatting function](https://iasql.com/docs/modules/builtin/tables/iasql_functions_rpcs_iasql_get_sql_since.IasqlGetSqlSince/) to see what SQL statements were the equivalent of those console changes. This reduces the learning curve of IaSQL and also lowers the barrier to entry in comparison to IaC. You can continue using other cloud management tooling in conjunction with IaSQL (including to a degree IaC) and IaSQL will show you "it's way" of doing the same when it syncs.
+
+Finally, IaSQL makes your infrastructure *accessible* to a much large portion of your company than IaC tools can. Data Scientists who know SQL could help with the provisioning of their own batch processing code, EngSec can query *all* company infrastructure for security vulnerabilities and propose changes to improve things, Business Analysts in Growth teams can query actual traffic information from the live infrastructure (with read-only AWS credentials, of course), Finance auditors can query your infrastructure joined on pricing data and figure out *accurate* expense reporting per division, and DevOps can run queries joined on CloudWatch utilization stats to automatically identify overprovisioned services and create recommended auto-load scaling configuration changes. Tons of "not-developer" and "developer-adjacent" roles that can take over a lot of the ancillary burden of maintaining a production system.
+
+But IaSQL is much newer than the IaC tools. We have coverage at the time of writing for 25 different AWS services, but that is admittedly far from complete. IaC tools also have cloud resources they cannot represent, but it is a much smaller percentage. This disadvantage will diminish over time, but creating a bijective entity representation of every cloud service requires more developer firepower than the approach IaC tools have taken, so we expect to always lag temporally on this front. At least, as long as AWS and friends don't follow a resource-oriented standard like [Swagger](https://swagger.io/specification/).
+
+:::note Cloud APIs on Swagger?
+
+![swagger-i-would-be-so-happy](/img/why-sql-for-infrastructure/swagger-i-would-be-so-happy.jpg)
+
+*Me too, Craig, me too...*
+
+:::
+
+With that said, what does our EC2 instance example look like in IaSQL, uh, SQL?
+
+```sql
+-- Assuming that the AWS credentials have already been inserted as done during the setup wizard
+SELECT default_aws_region('us-west-2');
+
+-- Install the necessary modules
+SELECT iasql_install('aws_ec2', 'aws_ec2_metadata', 'ssh_accounts');
+
+-- Create the key-pair and put it in our ssh_credentials table
+-- We will update this later with the public IP address
+INSERT INTO ssh_credentials ("name", hostname, username, private_key)
+VALUES ('login', 'tbd', 'ubuntu', (SELECT privateKey FROM key_pair_request('login', 'us-west-2')));
+
+-- Start an IaSQL transaction so these changes don't mutate our infrastructure immediately
+SELECT iasql_begin();
+
+-- Define the security group
+INSERT INTO security_group (description, group_name)
+VALUES ('Login security group', 'login-sg');
+
+-- And it's ingress rule
+INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, security_group_id)
+SELECT false, 'tcp', 22, 22, '0.0.0.0/0', id
+FROM security_group
+WHERE group_name = 'login-sg';
+
+-- Define the instance and the key-pair to use
+INSERT INTO instance (ami, instance_type, key_pair_name, tags, subnet_id)
+  SELECT
+    'resolve:ssm:/aws/service/canonical/ubuntu/server/20.04/stable/current/amd64/hvm/ebs-gp2/ami-id',
+    't3.small',
+    'login',
+    '{"name":"login"}',
+    id
+  FROM subnet
+  WHERE availability_zone = 'us-west-2a'
+  LIMIT 1;
+
+-- Associate the instance with the security group
+INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
+  (SELECT id FROM instance WHERE tags ->> 'name' = 'login'),
+  (SELECT id FROM security_group WHERE group_name='login-sg' AND region = 'us-west-2');
+```
+
+We can then `SELECT * FROM iasql_preview();` to see what this does, like a `terraform plan`:
+
+:::note `iasql_preview` output
+| action | table_name | id | description |
+| :----- | :--------- | -: | ----------: |
+| create | instance | 1 | 1 |
+| create | security_group | 18 | 18 |
+| create | security_group_rule | 1 | 1 |
+:::
+
+This is a "high level" overview with minimal details. We can get back a listing of all changes, represented in auto-generated SQL with `SELECT * FROM iasql_get_sql_for_transaction();`
+
+```sql
+INSERT INTO security_group (description, group_name, region)
+VALUES ('Login security group', 'login-sg', (SELECT region FROM aws_regions WHERE region = 'us-west-2'));
+
+
+INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, region, security_group_id)
+VALUES ('f', 'tcp', '22', '22', '0.0.0.0/0', (SELECT region FROM aws_regions WHERE region = 'us-west-2'), (SELECT id FROM security_group WHERE group_id = NULL AND region = (SELECT region FROM aws_regions WHERE region = 'us-west-2')));
+
+
+INSERT INTO instance (ami, instance_type, key_pair_name, state, tags, hibernation_enabled, region, subnet_id)
+VALUES ('resolve:ssm:/aws/service/canonical/ubuntu/server/20.04/stable/current/amd64/hvm/ebs-gp2/ami-id', 't3.small', 'login', 'running', '{"name":"login"}'::jsonb, 'f', (SELECT region FROM aws_regions WHERE region = 'us-west-2'), (SELECT id FROM subnet WHERE subnet_id = 'subnet-06140fd708a495450' AND region = (SELECT region FROM aws_regions WHERE region = 'us-west-2')));
+
+
+INSERT INTO instance_security_groups (instance_id, security_group_id)
+VALUES ((SELECT id FROM instance WHERE instance_id = NULL AND region = (SELECT region FROM aws_regions WHERE region = 'us-west-2')), (SELECT id FROM security_group WHERE group_id = NULL AND region = (SELECT region FROM aws_regions WHERE region = 'us-west-2')));
+```
+
+which in this case is very similar to (though a bit more verbose than) our original SQL statements, but if you were going back and forth on what exact changes you're going to make, it can be a good summary.
+
+If we're good with this, we can `SELECT iasql_commit()` to push this to our cloud account and then update our `ssh_credentials` record with the public IP address and check the connection:
+
+```sql
+WITH h AS (
+  SELECT host(im.public_ip_address) AS hostname
+  FROM instance_metadata im
+  INNER JOIN instance i ON im.instance_id = i.instance_id
+  WHERE i.tags ->> 'name' = 'login'
+  LIMIT 1
+)
+UPDATE ssh_credentials SET hostname = h.hostname FROM ssh_credentials, h WHERE hostname = 'tbd';
+
+SELECT * FROM ssh_exec('login', 'uname -a');
+```
+
+## SQL is the least bad option for Infrastructure Management
+
+Infrastructure Management is a complex beast. The cloud APIs are massive with a rich collection of knobs to tweak, and mistakes can be dangerous because the changes often take a long time and recovery even more so. We have learned about the two main types of infrastructure management: imperative and declarative, where ad-hoc usage of the AWS console fits under the imperative umbrella along with scripts calling an SDK, while IaC has until recently been the only way to declaratively manage your infrastructure.
+
+Both imperative and declarative styles have their downsides. Imperative being more explicit makes it more tedious and more prone to error, and the usual execution frequency of *only once* for most production changes makes scripting usually no better than clicking around in the AWS console. Declarative is much less tedious, but because it is a leaky abstraction inspecting its execution plan is critical to make sure it doesn't automatically put you into an outage, and failures during application can still require falling back to imperative mode to get things back into shape from time-to-time.
+
+Also until recently, all declarative approaches have suffered from only being a one-way transition, from your IaC codebase into the cloud, but no good or easy way to synchronize that code with the current state of the cloud if they drift from each other. Because these declarative programming approaches do not have a singular canonical form, they can't be bijective, making the transform back from the other side impossible to square up.
+
+Data, on the other hand, is much easier to normalize in such a way, and relational data models, as found in SQL databases, can naturally model the relationships between cloud services, making it possible to produce a bijective representation. IaSQL takes advantage of this to make a declarative model based on tables and foreign keys that can automatically handle changes done outside of this declarative model, either by dropping down into its own imperative mode or by using any other tooling to manage your infrastructure, giving it a flexibility and resiliency that IaC tools don't have.
+
+On top of this foundation, tooling to replicate or substitute for existing IaC tooling has been added, along with all of the past ~50 years of database tooling and expertise that you can take advantage of, providing a superset of functionality that makes existing use-cases easier and new use-cases possible.
+
+IaSQL is [currently in beta](/blog/beta) and can be used locally with [`docker`](https://hub.docker.com/r/iasql/iasql) or via our [SaaS](/hosted). We're proud of what we have built, and can't wait to hear from you on feature requests and bug reports.
