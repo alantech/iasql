@@ -695,6 +695,7 @@ export async function commit(
     let revertErr;
     if (applyErr) {
       try {
+        logger.scope({ dbId }).debug(`Starting revert phase`);
         await revert(dbId, context, installedModulesSorted, crupdes, currentTransactionId);
       } catch (e) {
         revertErr = e;
