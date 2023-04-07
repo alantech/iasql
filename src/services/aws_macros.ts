@@ -1,6 +1,7 @@
 import { ACM } from '@aws-sdk/client-acm';
 import { ApiGatewayV2 } from '@aws-sdk/client-apigatewayv2';
 import { AppSync } from '@aws-sdk/client-appsync';
+import { CloudFormation } from '@aws-sdk/client-cloudformation';
 import { CloudFront } from '@aws-sdk/client-cloudfront';
 import { CloudWatch } from '@aws-sdk/client-cloudwatch';
 import { CloudWatchLogs } from '@aws-sdk/client-cloudwatch-logs';
@@ -80,6 +81,7 @@ export class AWS {
   snsClient: SNS;
   stsClient: STS;
   sqsClient: SQS;
+  cfClient: CloudFormation;
   ssmClient: SSM;
   dynamoClient: DynamoDB;
   lambdaClient: Lambda;
@@ -168,6 +170,7 @@ export class AWS {
     this.secretsClient = new SecretsManager(awsConfig);
     this.snsClient = new SNS(awsConfig);
     this.sqsClient = new SQS(awsConfig);
+    this.cfClient = new CloudFormation(awsConfig);
     this.stsClient = new STS(awsConfig);
     this.ssmClient = new SSM(awsConfig);
     this.memoryDBClient = new MemoryDB(awsConfig);

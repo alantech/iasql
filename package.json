@@ -75,6 +75,7 @@
     "@aws-sdk/client-acm": "^3.303.0",
     "@aws-sdk/client-apigatewayv2": "^3.303.0",
     "@aws-sdk/client-appsync": "^3.303.0",
+    "@aws-sdk/client-cloudformation": "^3.308.0",
     "@aws-sdk/client-cloudfront": "^3.303.0",
     "@aws-sdk/client-cloudwatch": "^3.303.0",
     "@aws-sdk/client-cloudwatch-logs": "^3.303.0",
