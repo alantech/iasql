@@ -290,16 +290,19 @@ describe('RouteTable Integration Testing', () => {
   it('commits deletion of the routes', commit());
 
   it(
-    'rechecks the routes are still there',
+    'routes to the internet gateway from the default route table should still be there',
     query(
       `
-        SELECT *
+        SELECT ig.internet_gateway_id as ig_id, route.region, route.route_table_id, rt.route_table_id
         FROM route
-        INNER JOIN route_table ON route_table.id = route.route_table_id
-        WHERE route.region = '${region}'
-          AND route_table.id IN (SELECT route_table_id FROM route_table_association WHERE is_main)
-      `,
-      (res: any[]) => expect(res.length).toBeGreaterThan(0),
+          JOIN route_table rt on rt.id = route.route_table_id
+          JOIN vpc v on rt.vpc_id = v.id
+          JOIN internet_gateway ig on v.id = ig.vpc_id
+        WHERE v.is_default AND route.region = '${region}'
+        GROUP BY route.route_table_id, route.region, ig.internet_gateway_id, rt.route_table_id
+        HAVING ('0.0.0.0/0' <> ALL (array_agg(destination)));
+               `,
+      (res: any[]) => expect(res.length).toBe(0),
     ),
   );
 
