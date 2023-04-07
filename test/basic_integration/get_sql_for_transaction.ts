@@ -189,6 +189,30 @@ describe('iasql_get_sql_for_transaction functionality', () => {
 
   it('rollback insert changes', rollback());
 
+  it(
+    'checks load_balancer insertion',
+    query(
+      `
+        SELECT *
+        FROM load_balancer
+        WHERE load_balancer_name = '${lbName}';
+      `,
+      (res: any[]) => expect(res.length).toBe(0),
+    ),
+  );
+
+  it(
+    'check load_balancer_security_groups insertion',
+    query(
+      `
+        SELECT *
+        FROM load_balancer_security_groups
+        WHERE load_balancer_id = (SELECT id FROM load_balancer WHERE load_balancer_name = '${lbName}');
+      `,
+      (res: any[]) => expect(res.length).toBe(0),
+    ),
+  );
+
   itDocs(
     'check sql for transaction',
     query(
