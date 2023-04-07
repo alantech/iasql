@@ -22,7 +22,7 @@ export async function updateTags(client: EC2, resourceId: string, tags?: { [key:
   });
 }
 
-export function convertTagsFromAws(inputTags?: Tag[]) {
+export function convertTagsFromAws(inputTags?: Tag[]): { [key: string]: any } {
   const tags: { [key: string]: any } = {};
   (inputTags || [])
     .filter(t => t.hasOwnProperty('Key') && t.hasOwnProperty('Value'))

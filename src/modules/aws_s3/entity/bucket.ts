@@ -54,6 +54,16 @@ export class Bucket {
 
   /**
    * @public
+   * Complex type to tags for the bucket
+   */
+  @Column({
+    type: 'json',
+    nullable: true,
+  })
+  tags?: { [key: string]: string };
+
+  /**
+   * @public
    * Region for the bucket
    */
   @Column({
