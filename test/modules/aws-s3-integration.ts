@@ -488,7 +488,7 @@ describe('S3 Integration Testing', () => {
                 tags ->> 'tag1' = 'val1' AND
                 tags ->> 'tag2' = 'val2';
     `,
-        (res: any[]) => expect(res[0].length).toBe(1),
+        (res: any[]) => expect(res.length).toBe(1),
       ),
     );
   });
