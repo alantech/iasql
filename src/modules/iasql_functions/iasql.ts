@@ -1600,8 +1600,6 @@ async function apply(
 
       records.forEach(r => {
         r.diff = findDiff(r.dbEntity, r.cloudEntity, r.idGen, r.comparator);
-        if (r.table === 'RegisteredInstance') console.log(`+-+ diff: ${JSON.stringify(r.diff)}`);
-        if (r.table === 'RegisteredInstance') console.log(`+-+ changes: ${JSON.stringify(changesByEntity)}`);
         // If we have changes done by the user to be applied, then filter them.
         // Else, only filter changes done after this commit started to avoid overrides.
         if (changesByEntity) {
@@ -2122,15 +2120,9 @@ async function recreateEntity(
     }
     originalE[eKey] = v;
   });
-  if (entityMetadata.name === 'RegisteredInstance')
-    console.log(
-      `+-+ entity metadata ${entityMetadata.name} originalE before rel: ${JSON.stringify(originalE)}`,
-    );
   await recreateRelation('OneToMany', originalE, entityMetadata, orm);
   await recreateRelation('ManyToOne', originalE, entityMetadata, orm);
   await recreateRelation('OneToOne', originalE, entityMetadata, orm);
-  if (entityMetadata.name === 'RegisteredInstance')
-    console.log(`+-+ originalE with rels: ${JSON.stringify(originalE)}`);
   return Object.keys(originalE).length ? originalE : undefined;
 }
 
@@ -2151,9 +2143,6 @@ async function recreateRelation(
         jc.referencedColumn?.propertyName,
       ]),
     }));
-  if (entityMetadata.name === 'RegisteredInstance')
-    console.log(`+-+ relations: ${JSON.stringify(relations)}`);
-  if (entityMetadata.name === 'RegisteredInstance') console.log(`+-+ mutE: ${JSON.stringify(mutE)}`);
   for (const r of relations) {
     if (isSingleResult) {
       const relE = await orm.findOne(r.targetEntity, {
