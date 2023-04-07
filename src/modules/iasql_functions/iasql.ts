@@ -796,39 +796,48 @@ export async function recreateQueries(
 ): Promise<string[]> {
   const queries: string[] = [];
 
-  // // Fill entity mapper object
-  // const entityMapper: { [key: string]: MapperBase<any> } = {};
-  // const tableToEntityMetadataMapper: { [tableName: string]: EntityMetadata } = {};
-  // for (const cl of changeLogs) {
-  //   const mod = modsIndexedByTable[cl.tableName];
-  //   const mappers = Object.values(mod).filter(val => val instanceof MapperBase);
-  //   mappers.forEach(m => (entityMapper[m.entity.name] = m));
-  //   for (const entityName of Object.keys(entityMapper)) {
-  //     const entity = entityMapper[entityName].entity;
-  //     const entityMetadata = await orm.getEntityMetadata(entity);
-  //     if (cl.tableName === entityMetadata.tableName) {
-  //       tableToEntityMetadataMapper[cl.tableName] = entityMetadata;
-  //     }
-  //   }
-  // }
-  // console.log(`+-+ tableToEntityMetadataMapper: ${inspect(tableToEntityMetadataMapper, { depth: 2 })}`)
-  // // Recreate entities from change logs
-  // const recreatedEntitiesFromChangelogs: any[] = [];
-  // for (const cl of changeLogs) {
-  //   console.log(`+-+ calling recreate entity from recreateQueries for ${cl.tableName}`)
-  //   recreatedEntitiesFromChangelogs.push(
-  //     await recreateEntity(
-  //       !!cl.change?.change ? cl.change.change : cl.change.original,
-  //       tableToEntityMetadataMapper[cl.tableName],
-  //       orm,
-  //     ),
-  //   );
-  // }
-  const changesByEntity: { [entityName: string]: any[] } = await getChangesByEntity(
-    orm,
-    changeLogs,
-    modsIndexedByTable,
-  );
+  // Fill entity mapper object
+  const entityMapper: { [key: string]: MapperBase<any> } = {};
+  // Recreate entities from change logs
+  const recreatedEntitiesFromChangelogs: { [key: string]: any[] } = {};
+  for (const cl of changeLogs) {
+    const mod = modsIndexedByTable[cl.tableName];
+    const mappers = Object.values(mod).filter(val => val instanceof MapperBase);
+    mappers.forEach(m => (entityMapper[m.entity.name] = m));
+    for (const entityName of Object.keys(entityMapper)) {
+      const entity = entityMapper[entityName].entity;
+      const entityMetadata = await orm.getEntityMetadata(entity);
+      if (cl.tableName === entityMetadata.tableName) {
+        const recreatedE = await recreateEntity(
+          !!cl.change?.change ? cl.change.change : cl.change.original,
+          entityMetadata,
+          orm,
+        );
+        if (!!recreatedEntitiesFromChangelogs[entityMetadata.name]) {
+          recreatedEntitiesFromChangelogs[entityMetadata.name].push(recreatedE);
+        } else {
+          recreatedEntitiesFromChangelogs[entityMetadata.name] = [recreatedE];
+        }
+      } else {
+        // it might be a join table
+        const relation = entityMetadata.relations.find(
+          r => r.inverseEntityMetadata?.tableName === cl.tableName,
+        );
+        if (relation) {
+          const recreatedE = await recreateEntity(
+            !!cl.change?.change ? cl.change.change : cl.change.original,
+            entityMetadata,
+            orm,
+          );
+          if (!!recreatedEntitiesFromChangelogs[entityMetadata.name]) {
+            recreatedEntitiesFromChangelogs[entityMetadata.name].push(recreatedE);
+          } else {
+            recreatedEntitiesFromChangelogs[entityMetadata.name] = [recreatedE];
+          }
+        }
+      }
+    }
+  }
 
   for (const cl of changeLogs) {
     let query: string = '';
@@ -846,7 +855,7 @@ export async function recreateQueries(
                 modsIndexedByTable,
                 orm,
                 withRelationSubQueries,
-                changesByEntity,
+                recreatedEntitiesFromChangelogs,
               );
             }),
         );
@@ -867,7 +876,7 @@ export async function recreateQueries(
                 modsIndexedByTable,
                 orm,
                 withRelationSubQueries,
-                changesByEntity,
+                recreatedEntitiesFromChangelogs,
               );
             }),
         );
@@ -888,7 +897,7 @@ export async function recreateQueries(
                 modsIndexedByTable,
                 orm,
                 withRelationSubQueries,
-                changesByEntity,
+                recreatedEntitiesFromChangelogs,
               );
             }),
         );
@@ -903,7 +912,7 @@ export async function recreateQueries(
                 modsIndexedByTable,
                 orm,
                 withRelationSubQueries,
-                changesByEntity,
+                recreatedEntitiesFromChangelogs,
               );
             }),
         );
