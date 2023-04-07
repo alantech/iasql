@@ -26,6 +26,7 @@ import * as AllModules from '../index';
 type Crupde = { [key: string]: { id: string; description: string }[] };
 type CrupdeOperations = { toCreate: Crupde; toUpdate: Crupde; toReplace: Crupde; toDelete: Crupde };
 type ModsIndexedByTable = { [tableName: string]: ModuleInterface };
+type EntitiesIndexesByEntityName = { [entityName: string]: any[] };
 
 export function recordCount(records: { [key: string]: any }[]): [number, number, number] {
   const dbCount = records.reduce((cumu, r) => cumu + r.diff.entitiesInDbOnly.length, 0);
@@ -797,8 +798,11 @@ export async function recreateQueries(
   shouldRecreateSubQueries = false,
 ): Promise<string[]> {
   const queries: string[] = [];
-  const recreatedEntitiesFromChangelogs: { [entityName: string]: any[] } =
-    await recreateEntitiesFromChangelogs(changeLogs, modsIndexedByTable, orm);
+  const recreatedEntitiesFromChangelogs: EntitiesIndexesByEntityName = await recreateEntitiesFromChangelogs(
+    changeLogs,
+    modsIndexedByTable,
+    orm,
+  );
   for (const cl of changeLogs) {
     let query: string = '';
     switch (cl.changeType) {
@@ -902,9 +906,9 @@ async function recreateEntitiesFromChangelogs(
   changeLogs: IasqlAuditLog[],
   modsIndexedByTable: ModsIndexedByTable,
   orm: TypeormWrapper,
-): Promise<{ [entityName: string]: any[] }> {
+): Promise<EntitiesIndexesByEntityName> {
   const entityMapper: { [key: string]: MapperBase<any> } = {};
-  const recreatedEntitiesFromChangelogs: { [entityName: string]: any[] } = {};
+  const recreatedEntitiesFromChangelogs: EntitiesIndexesByEntityName = {};
   for (const cl of changeLogs) {
     const mod = modsIndexedByTable[cl.tableName];
     const mappers = Object.values(mod).filter(val => val instanceof MapperBase);
@@ -1112,7 +1116,7 @@ async function augmentValue(
   modsIndexedByTable: ModsIndexedByTable,
   orm: TypeormWrapper,
   shouldRecreateSubQueries: boolean,
-  changesByEntity?: { [entityName: string]: any[] },
+  changesByEntity?: EntitiesIndexesByEntityName,
 ): Promise<AugmentedValue> {
   const augmentedValue: AugmentedValue = {
     isPrimary: false,
@@ -1226,7 +1230,7 @@ async function recreateSubQuery(
   modsIndexedByTable: ModsIndexedByTable,
   orm: TypeormWrapper,
   shouldRecreateSubQueries: boolean,
-  changesByEntity?: { [entityName: string]: any[] },
+  changesByEntity?: EntitiesIndexesByEntityName,
 ): Promise<string> {
   // Get cloud columns of the entity we want to look for.
   const cloudIds = getCloudId(entityMetadata?.target);
