@@ -826,13 +826,13 @@ export async function recreateQueries(
         if (relation) {
           const recreatedE = await recreateEntity(
             !!cl.change?.change ? cl.change.change : cl.change.original,
-            entityMetadata,
+            relation.inverseEntityMetadata,
             orm,
           );
-          if (!!recreatedEntitiesFromChangelogs[entityMetadata.name]) {
-            recreatedEntitiesFromChangelogs[entityMetadata.name].push(recreatedE);
+          if (!!recreatedEntitiesFromChangelogs[relation.inverseEntityMetadata.name]) {
+            recreatedEntitiesFromChangelogs[relation.inverseEntityMetadata.name].push(recreatedE);
           } else {
-            recreatedEntitiesFromChangelogs[entityMetadata.name] = [recreatedE];
+            recreatedEntitiesFromChangelogs[relation.inverseEntityMetadata.name] = [recreatedE];
           }
         }
       }
@@ -2093,9 +2093,7 @@ async function recreateEntity(
   Object.entries(originalChange).forEach(([k, v]: [string, any]) => {
     const colMetadata = entityMetadata.ownColumns.find(oc => oc.databaseName === k);
     let eKey;
-    if (!!colMetadata?.referencedColumn) {
-      eKey = colMetadata.propertyAliasName;
-    } else if (!!colMetadata) {
+    if (!!colMetadata && !colMetadata.referencedColumn) {
       eKey = colMetadata.propertyName;
     } else {
       eKey = camelCase(k);
@@ -2103,7 +2101,9 @@ async function recreateEntity(
     originalE[eKey] = v;
   });
   if (entityMetadata.name === 'RegisteredInstance')
-    console.log(`+-+ originalE before rel: ${JSON.stringify(originalE)}`);
+    console.log(
+      `+-+ entity metadata ${entityMetadata.name} originalE before rel: ${JSON.stringify(originalE)}`,
+    );
   await recreateRelation('OneToMany', originalE, entityMetadata, orm);
   await recreateRelation('ManyToOne', originalE, entityMetadata, orm);
   await recreateRelation('OneToOne', originalE, entityMetadata, orm);
@@ -2124,7 +2124,10 @@ async function recreateRelation(
     .map(or => ({
       targetEntity: or.inverseEntityMetadata.targetName,
       propertyName: or.propertyName,
-      colsWithReferences: or.joinColumns.map(jc => [jc.propertyAliasName, jc.referencedColumn?.propertyName]),
+      colsWithReferences: or.joinColumns.map(jc => [
+        jc.referencedColumn ? camelCase(jc.databaseName) : jc.propertyName,
+        jc.referencedColumn?.propertyName,
+      ]),
     }));
   if (entityMetadata.name === 'RegisteredInstance')
     console.log(`+-+ relations: ${JSON.stringify(relations)}`);
