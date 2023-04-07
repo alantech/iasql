@@ -796,50 +796,8 @@ export async function recreateQueries(
   withRelationSubQueries = false,
 ): Promise<string[]> {
   const queries: string[] = [];
-
-  // Fill entity mapper object
-  const entityMapper: { [key: string]: MapperBase<any> } = {};
-  // Recreate entities from change logs
-  const recreatedEntitiesFromChangelogs: { [key: string]: any[] } = {};
-  for (const cl of changeLogs) {
-    const mod = modsIndexedByTable[cl.tableName];
-    const mappers = Object.values(mod).filter(val => val instanceof MapperBase);
-    mappers.forEach(m => (entityMapper[m.entity.name] = m));
-    for (const entityName of Object.keys(entityMapper)) {
-      const entity = entityMapper[entityName].entity;
-      const entityMetadata = await orm.getEntityMetadata(entity);
-      if (cl.tableName === entityMetadata.tableName) {
-        const recreatedE = await recreateEntity(
-          !!cl.change?.change ? cl.change.change : cl.change.original,
-          entityMetadata,
-          orm,
-        );
-        if (!!recreatedEntitiesFromChangelogs[entityMetadata.name]) {
-          recreatedEntitiesFromChangelogs[entityMetadata.name].push(recreatedE);
-        } else {
-          recreatedEntitiesFromChangelogs[entityMetadata.name] = [recreatedE];
-        }
-      } else {
-        // it might be a join table
-        const relation = entityMetadata.relations.find(
-          r => r.inverseEntityMetadata?.tableName === cl.tableName,
-        );
-        if (relation) {
-          const recreatedE = await recreateEntity(
-            !!cl.change?.change ? cl.change.change : cl.change.original,
-            relation.inverseEntityMetadata,
-            orm,
-          );
-          if (!!recreatedEntitiesFromChangelogs[relation.inverseEntityMetadata.name]) {
-            recreatedEntitiesFromChangelogs[relation.inverseEntityMetadata.name].push(recreatedE);
-          } else {
-            recreatedEntitiesFromChangelogs[relation.inverseEntityMetadata.name] = [recreatedE];
-          }
-        }
-      }
-    }
-  }
-
+  const recreatedEntitiesFromChangelogs: { [entityName: string]: any[] } =
+    await recreateEntitiesFromChangelogs(changeLogs, modsIndexedByTable, orm);
   for (const cl of changeLogs) {
     let query: string = '';
     switch (cl.changeType) {
@@ -933,6 +891,53 @@ export async function recreateQueries(
     if (query) queries.push(query);
   }
   return queries;
+}
+
+/**
+ * @internal
+ * Recreate entities from change logs indexed by entity name
+ */
+async function recreateEntitiesFromChangelogs(
+  changeLogs: IasqlAuditLog[],
+  modsIndexedByTable: { [key: string]: ModuleInterface },
+  orm: TypeormWrapper,
+): Promise<{ [entityName: string]: any[] }> {
+  const entityMapper: { [key: string]: MapperBase<any> } = {};
+  const recreatedEntitiesFromChangelogs: { [entityName: string]: any[] } = {};
+  for (const cl of changeLogs) {
+    const mod = modsIndexedByTable[cl.tableName];
+    const mappers = Object.values(mod).filter(val => val instanceof MapperBase);
+    mappers.forEach(m => (entityMapper[m.entity.name] = m));
+    for (const entityName of Object.keys(entityMapper)) {
+      const entity = entityMapper[entityName].entity;
+      const entityMetadata = await orm.getEntityMetadata(entity);
+      let metadata;
+      if (cl.tableName === entityMetadata.tableName) {
+        metadata = entityMetadata;
+      } else {
+        // It might be a join table, so if we find a relation with the same table name, we can recreate the entity
+        const relation = entityMetadata.relations.find(
+          r => r.inverseEntityMetadata?.tableName === cl.tableName,
+        );
+        if (relation) {
+          metadata = relation.inverseEntityMetadata;
+        }
+      }
+      if (metadata) {
+        const recreatedE = await recreateEntity(
+          !!cl.change?.change ? cl.change.change : cl.change.original,
+          metadata,
+          orm,
+        );
+        if (!!recreatedEntitiesFromChangelogs[metadata.name]) {
+          recreatedEntitiesFromChangelogs[metadata.name].push(recreatedE);
+        } else {
+          recreatedEntitiesFromChangelogs[metadata.name] = [recreatedE];
+        }
+      }
+    }
+  }
+  return recreatedEntitiesFromChangelogs;
 }
 
 async function getFormattedQuery(
