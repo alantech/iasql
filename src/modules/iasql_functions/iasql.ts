@@ -25,6 +25,7 @@ import * as AllModules from '../index';
 // Crupde = CR-UP-DE, Create/Update/Delete
 type Crupde = { [key: string]: { id: string; description: string }[] };
 type CrupdeOperations = { toCreate: Crupde; toUpdate: Crupde; toReplace: Crupde; toDelete: Crupde };
+type ModsIndexedByTable = { [tableName: string]: ModuleInterface };
 
 export function recordCount(records: { [key: string]: any }[]): [number, number, number] {
   const dbCount = records.reduce((cumu, r) => cumu + r.diff.entitiesInDbOnly.length, 0);
@@ -790,7 +791,7 @@ async function getChangeLogsSinceLastBegin(orm: TypeormWrapper): Promise<IasqlAu
  */
 export async function recreateQueries(
   changeLogs: IasqlAuditLog[],
-  modsIndexedByTable: { [key: string]: ModuleInterface },
+  modsIndexedByTable: ModsIndexedByTable,
   orm: TypeormWrapper,
   inverse = false,
   shouldRecreateSubQueries = false,
@@ -899,7 +900,7 @@ export async function recreateQueries(
  */
 async function recreateEntitiesFromChangelogs(
   changeLogs: IasqlAuditLog[],
-  modsIndexedByTable: { [key: string]: ModuleInterface },
+  modsIndexedByTable: ModsIndexedByTable,
   orm: TypeormWrapper,
 ): Promise<{ [entityName: string]: any[] }> {
   const entityMapper: { [key: string]: MapperBase<any> } = {};
@@ -1044,7 +1045,7 @@ async function getFormattedQuery(
  */
 async function getTableMetadata(
   tableName: string,
-  modsIndexedByTable: { [key: string]: ModuleInterface },
+  modsIndexedByTable: ModsIndexedByTable,
   orm: TypeormWrapper,
 ): Promise<EntityMetadata | RelationMetadata | undefined> {
   const mappers = Object.values(modsIndexedByTable[tableName] ?? {}).filter(val => val instanceof MapperBase);
@@ -1108,7 +1109,7 @@ async function augmentValue(
   tableName: string,
   key: string, // database column name in snake_case
   value: any,
-  modsIndexedByTable: { [key: string]: ModuleInterface },
+  modsIndexedByTable: ModsIndexedByTable,
   orm: TypeormWrapper,
   shouldRecreateSubQueries: boolean,
   changesByEntity?: { [entityName: string]: any[] },
@@ -1222,7 +1223,7 @@ async function recreateSubQuery(
   referencedKey: string,
   value: any,
   entityMetadata: EntityMetadata | undefined,
-  modsIndexedByTable: { [key: string]: ModuleInterface },
+  modsIndexedByTable: ModsIndexedByTable,
   orm: TypeormWrapper,
   shouldRecreateSubQueries: boolean,
   changesByEntity?: { [entityName: string]: any[] },
@@ -2014,7 +2015,7 @@ function updateCommitPlan(crupde: Crupde, entityName: string, mapper: MapperInte
 async function getChangesByEntity(
   orm: TypeormWrapper,
   changesToCommit: IasqlAuditLog[],
-  modsIndexedByTable: { [key: string]: ModuleInterface },
+  modsIndexedByTable: ModsIndexedByTable,
 ): Promise<{ [key: string]: any[] }> {
   const changesByEntity: { [key: string]: any[] } = {};
   for (const c of changesToCommit) {
@@ -2161,8 +2162,8 @@ async function recreateRelation(
   }
 }
 
-export function indexModsByTable(mods: ModuleInterface[]): { [key: string]: ModuleInterface } {
-  const modsIndexedByTable: { [key: string]: ModuleInterface } = {};
+export function indexModsByTable(mods: ModuleInterface[]): ModsIndexedByTable {
+  const modsIndexedByTable: ModsIndexedByTable = {};
   mods.forEach(mod => {
     mod.provides?.tables?.forEach((t: string) => (modsIndexedByTable[t] = mod));
   });
