@@ -19,28 +19,28 @@ import { ActionType, useAppContext } from '../providers/AppProvider';
 function getIconForDataType(dataType: string) {
   switch (dataType) {
     case 'boolean':
-      return <MdOutlineToggleOff />;
+      return <MdOutlineToggleOff title={dataType} />;
     case 'smallint':
     case 'double precision':
     case 'integer':
-      return <MdNumbers />;
+      return <MdNumbers title={dataType} />;
     case 'character varying':
     case 'text':
-      return <MdTextFields />;
+      return <MdTextFields title={dataType} />;
     case 'json':
     case 'jsonb':
-      return <MdDataObject />;
+      return <MdDataObject title={dataType} />;
     case 'timestamp with time zone':
     case 'timestamp without time zone':
-      return <MdDateRange />;
+      return <MdDateRange title={dataType} />;
     case 'cidr':
-      return <TbNetwork />;
+      return <TbNetwork title={dataType} />;
     case 'ARRAY':
-      return <MdDataArray />;
+      return <MdDataArray title={dataType} />;
     case 'USER-DEFINED':
-      return <MdOutlineApps />;
+      return <MdOutlineApps title={dataType} />;
     default:
-      return <MdQuestionMark />;
+      return <MdQuestionMark title={dataType} />;
   }
 }
 
@@ -123,17 +123,9 @@ export default function Schema({
                       <HBox customStyles={'col-span-1'}>
                         {getIconForDataType((meta as columnMetadata).dataType)}
                       </HBox>
-                      <HBox alignment={align.start} customStyles={'col-span-5'}>
+                      <HBox alignment={align.start} customStyles={'col-span-11'}>
                         <p className='text-ellipsis overflow-hidden' title={col}>
                           {col}
-                        </p>
-                      </HBox>
-                      <HBox alignment={align.start} customStyles={'col-span-6'}>
-                        <p
-                          className='text-ellipsis overflow-hidden'
-                          title={(meta as columnMetadata).dataType}
-                        >
-                          {(meta as columnMetadata).dataType}
                         </p>
                       </HBox>
                     </HBox>
