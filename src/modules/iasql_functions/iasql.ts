@@ -968,7 +968,7 @@ async function augmentValue(
   modsIndexedByTable: ModsIndexedByTable,
   orm: TypeormWrapper,
   shouldRecreateSubQueries: boolean,
-  changesByEntity?: EntitiesIndexesByEntityName,
+  recreatedEntitiesFromChangelogs?: EntitiesIndexesByEntityName,
 ): Promise<AugmentedValue> {
   const augmentedValue: AugmentedValue = {
     isPrimary: false,
@@ -998,7 +998,7 @@ async function augmentValue(
           modsIndexedByTable,
           orm,
           shouldRecreateSubQueries,
-          changesByEntity,
+          recreatedEntitiesFromChangelogs,
         );
       }
     }
@@ -1018,7 +1018,7 @@ async function augmentValue(
           modsIndexedByTable,
           orm,
           shouldRecreateSubQueries,
-          changesByEntity,
+          recreatedEntitiesFromChangelogs,
         );
       }
       columnMetadata = metadata.inverseJoinColumns.filter(jc => jc.databaseName === key)?.pop();
@@ -1032,7 +1032,7 @@ async function augmentValue(
           modsIndexedByTable,
           orm,
           shouldRecreateSubQueries,
-          changesByEntity,
+          recreatedEntitiesFromChangelogs,
         );
       }
     }
@@ -1241,7 +1241,7 @@ async function recreateSubQuery(
   modsIndexedByTable: ModsIndexedByTable,
   orm: TypeormWrapper,
   shouldRecreateSubQueries: boolean,
-  changesByEntity?: EntitiesIndexesByEntityName,
+  recreatedEntitiesFromChangelogs?: EntitiesIndexesByEntityName,
 ): Promise<string> {
   // Get cloud columns of the entity we want to look for.
   const cloudIds = getCloudId(entityMetadata?.target);
@@ -1257,7 +1257,7 @@ async function recreateSubQuery(
     }
     // Entity might have been deleted. Let's try to look for in the recreated entities.
     if (e === null) {
-      const changesForEntity = changesByEntity?.[entityMetadata?.name ?? ''];
+      const changesForEntity = recreatedEntitiesFromChangelogs?.[entityMetadata?.name ?? ''];
       e = changesForEntity?.find(re => re[referencedKey] === value);
       if (!e) return '<relation_not_found>';
     }
@@ -1271,7 +1271,7 @@ async function recreateSubQuery(
             modsIndexedByTable,
             orm,
             shouldRecreateSubQueries,
-            changesByEntity,
+            recreatedEntitiesFromChangelogs,
           ),
       ),
     );
@@ -1293,7 +1293,7 @@ async function recreateSubQuery(
               modsIndexedByTable,
               orm,
               shouldRecreateSubQueries,
-              changesByEntity,
+              recreatedEntitiesFromChangelogs,
             ),
         ),
       );
