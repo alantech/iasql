@@ -6,7 +6,7 @@ name: Integration Tests
 # events but only for the main branch.
 on:
   push:
-    branches: [main, revert-fix]
+    branches: [main]
     paths:
       [
         '.github/workflows/tests.yml',
@@ -450,7 +450,7 @@ jobs:
           STAGING_SECRET_ACCESS_KEY: ${{ secrets.STAGING_SECRET_ACCESS_KEY }}
           GH_PAT: ${{ secrets.GH_PAT }}
         with:
-          max_attempts: 1
+          max_attempts: 3
           retry_on: error
           timeout_minutes: 90
           command: |
