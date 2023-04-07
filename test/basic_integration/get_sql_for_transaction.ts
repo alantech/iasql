@@ -17,9 +17,11 @@ import {
   itDocs,
   runCommit,
   runRollback,
+  getPrefix,
 } from '../helpers';
 
-const dbAlias = 'getsqlfortransaction';
+const prefix = getPrefix();
+const dbAlias = `${prefix}getsqlfortransaction`;
 const region = defaultRegion();
 const accessKeyId = process.env.AWS_ACCESS_KEY_ID ?? '';
 const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY ?? '';
