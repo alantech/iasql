@@ -823,7 +823,7 @@ export async function recreateQueries(
         // We get relevant metadata for values
         const augmentedEntries = await Promise.all(
           Object.entries(cl.change.change ?? {})
-            // .filter(([k, v]: [string, any]) => k !== 'id' && v !== null)
+            .filter(([_, v]: [string, any]) => v !== null)
             .map(async ([k, v]: [string, any]) => {
               return await augmentValue(
                 cl.tableName,
@@ -843,7 +843,7 @@ export async function recreateQueries(
         // Augment entries
         const augmentedEntries = await Promise.all(
           Object.entries(cl.change.original ?? {})
-            // .filter(([k, v]: [string, any]) => k !== 'id' && v !== null)
+            .filter(([_, v]: [string, any]) => v !== null)
             .map(async ([k, v]: [string, any]) => {
               return await augmentValue(
                 cl.tableName,
@@ -864,7 +864,7 @@ export async function recreateQueries(
         // Augment entries
         const augmentedOriginalEntries = await Promise.all(
           Object.entries(cl.change.original ?? {})
-            // .filter(([k, v]: [string, any]) => k !== 'id' && v !== null)
+            .filter(([_, v]: [string, any]) => v !== null)
             .map(async ([k, v]: [string, any]) => {
               return await augmentValue(
                 cl.tableName,
@@ -879,7 +879,7 @@ export async function recreateQueries(
         );
         const augmentedChangedEntries = await Promise.all(
           Object.entries(cl.change.change ?? {})
-            // .filter(([k, v]: [string, any]) => k !== 'id' && v !== null)
+            .filter(([_, v]: [string, any]) => v !== null)
             .map(async ([k, v]: [string, any]) => {
               return await augmentValue(
                 cl.tableName,
