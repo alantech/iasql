@@ -11,6 +11,7 @@ import { v4 as uuidv4 } from 'uuid';
 import config from '../../config';
 import { throwError } from '../../config/config';
 import { Context, MapperBase, MapperInterface, ModuleInterface } from '../../modules';
+import { getAwsResolveSupport } from '../../services/aws-resolve-support';
 import { getCloudId } from '../../services/cloud-id';
 import { findDiff } from '../../services/diff';
 import { DepError, lazyLoader } from '../../services/lazy-dep';
@@ -36,6 +37,7 @@ type AugmentedValue = {
   isSubQuery: boolean;
   type?: string;
   isArray: boolean;
+  awsResolveSupport: boolean;
 };
 
 export function recordCount(records: { [key: string]: any }[]): [number, number, number] {
@@ -978,6 +980,7 @@ async function augmentValue(
     isJson: false,
     isSubQuery: false,
     isArray: false,
+    awsResolveSupport: false,
   };
   // We might need to recreate a sub-query because it could be column referencing other table.
   // For this we need to get Typeorm metadata for the `tableName` and inspect the columns and relations in order to recreate the sub-query if necessary.
@@ -987,6 +990,14 @@ async function augmentValue(
   if (value && metadata) {
     // If `metadata instanceof EntityMetadata` means that the `key` is one of the Entity's properties
     if (metadata instanceof EntityMetadata) {
+      // Check if the column supports aws resolve
+      const columnsWithAwsResolveSupport = await getAwsResolveSupport(metadata);
+      for (const column of columnsWithAwsResolveSupport ?? []) {
+        if (snakeCase(column) === key) {
+          augmentedValue.awsResolveSupport = true;
+          break;
+        }
+      }
       columnMetadata = metadata.ownColumns.filter(oc => oc.databaseName === key)?.pop();
       if (shouldRecreateSubQueries && !!columnMetadata?.relationMetadata) {
         augmentedValue.isSubQuery = true;
@@ -1146,15 +1157,15 @@ async function getFormattedQuery(
         `
           DELETE FROM %I
           WHERE ${firstValues
-            // We need to add an special case for AMIs since we know the revolve string can be used and it will not match with the actual AMI assigned
-            .filter(e => e.key !== 'ami')
+            // Ignore columns with AWS resolve support since we know the revolve string can be used and it will not match with the actual value assigned
+            .filter(e => !e.awsResolveSupport)
             .map(e => `${formatValue(e) === 'NULL' ? '%I IS %s' : e.isJson ? '%I::jsonb = %s' : '%I = %s'}`)
             .join(' AND ')};
         `,
         tableName,
         ...firstValues
-          // We need to add an special case for AMIs since we know the revolve string can be used and it will not match with the actual AMI assigned
-          .filter(e => e.key !== 'ami')
+          // Ignore columns with AWS resolve support since we know the revolve string can be used and it will not match with the actual value assigned
+          .filter(e => !e.awsResolveSupport)
           .flatMap(e => {
             if (e.isJson && !Array.isArray(e.value)) {
               // regex to match ::json, ::jsonb or ::simple-json
@@ -1179,8 +1190,8 @@ async function getFormattedQuery(
         UPDATE %I
         SET ${updatedValues?.map(_ => `%I = %s`).join(', ')}
         WHERE ${originalValues
-          // We need to add an special case for AMIs since we know the revolve string can be used and it will not match with the actual AMI assigned
-          ?.filter(e => e.key !== 'ami')
+          // Ignore columns with AWS resolve support since we know the revolve string can be used and it will not match with the actual value assigned
+          ?.filter(e => !e.awsResolveSupport)
           ?.map(e => `${formatValue(e) === 'NULL' ? '%I IS %s' : e.isJson ? '%I::jsonb = %s' : '%I = %s'}`)
           .join(' AND ')};
       `,
@@ -1189,8 +1200,8 @@ async function getFormattedQuery(
           e.isJson && Array.isArray(e.value) ? [e.key, `${formatValue(e)}::jsonb`] : [e.key, formatValue(e)],
         ) ?? []),
         ...(originalValues
-          // We need to add an special case for AMIs since we know the revolve string can be used and it will not match with the actual AMI assigned
-          ?.filter(e => e.key !== 'ami')
+          // Ignore columns with AWS resolve support since we know the revolve string can be used and it will not match with the actual value assigned
+          ?.filter(e => !e.awsResolveSupport)
           ?.flatMap(e => {
             if (e.isJson && !Array.isArray(e.value)) {
               // regex to match ::json, ::jsonb or ::simple-json
@@ -1300,7 +1311,7 @@ async function recreateSubQuery(
     }
     const subQuery = format(
       `SELECT %I FROM %I WHERE ${values
-        ?.filter(v => v.key !== 'ami')
+        ?.filter(v => !v.awsResolveSupport)
         ?.map(v => `${formatValue(v) === 'NULL' ? '%I IS %s' : v.isJson ? '%I::jsonb = %s' : '%I = %s'}`)
         .join(' AND ')}`,
       referencedDbKey,
