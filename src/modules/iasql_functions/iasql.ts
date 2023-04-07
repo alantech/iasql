@@ -793,7 +793,7 @@ export async function recreateQueries(
   modsIndexedByTable: { [key: string]: ModuleInterface },
   orm: TypeormWrapper,
   inverse = false,
-  withRelationSubQueries = false,
+  shouldRecreateSubQueries = false,
 ): Promise<string[]> {
   const queries: string[] = [];
   const recreatedEntitiesFromChangelogs: { [entityName: string]: any[] } =
@@ -813,7 +813,7 @@ export async function recreateQueries(
                 v,
                 modsIndexedByTable,
                 orm,
-                withRelationSubQueries,
+                shouldRecreateSubQueries,
                 recreatedEntitiesFromChangelogs,
               );
             }),
@@ -834,7 +834,7 @@ export async function recreateQueries(
                 v,
                 modsIndexedByTable,
                 orm,
-                withRelationSubQueries,
+                shouldRecreateSubQueries,
                 recreatedEntitiesFromChangelogs,
               );
             }),
@@ -855,7 +855,7 @@ export async function recreateQueries(
                 v,
                 modsIndexedByTable,
                 orm,
-                withRelationSubQueries,
+                shouldRecreateSubQueries,
                 recreatedEntitiesFromChangelogs,
               );
             }),
@@ -870,7 +870,7 @@ export async function recreateQueries(
                 v,
                 modsIndexedByTable,
                 orm,
-                withRelationSubQueries,
+                shouldRecreateSubQueries,
                 recreatedEntitiesFromChangelogs,
               );
             }),
@@ -1110,7 +1110,7 @@ async function augmentValue(
   value: any,
   modsIndexedByTable: { [key: string]: ModuleInterface },
   orm: TypeormWrapper,
-  withRelationSubQueries: boolean,
+  shouldRecreateSubQueries: boolean,
   changesByEntity?: { [entityName: string]: any[] },
 ): Promise<AugmentedValue> {
   const augmentedValue: AugmentedValue = {
@@ -1131,7 +1131,7 @@ async function augmentValue(
     // If `metadata instanceof EntityMetadata` means that the `key` is one of the Entity's properties
     if (metadata instanceof EntityMetadata) {
       columnMetadata = metadata.ownColumns.filter(oc => oc.databaseName === key)?.pop();
-      if (withRelationSubQueries && !!columnMetadata?.relationMetadata) {
+      if (shouldRecreateSubQueries && !!columnMetadata?.relationMetadata) {
         augmentedValue.isSubQuery = true;
         augmentedValue.value = await recreateSubQuery(
           columnMetadata.referencedColumn?.databaseName ?? 'unknown_key',
@@ -1140,7 +1140,7 @@ async function augmentValue(
           columnMetadata.relationMetadata?.inverseEntityMetadata,
           modsIndexedByTable,
           orm,
-          withRelationSubQueries,
+          shouldRecreateSubQueries,
           changesByEntity,
         );
       }
@@ -1151,7 +1151,7 @@ async function augmentValue(
     // the other entities in the relationship.
     if (metadata instanceof RelationMetadata) {
       columnMetadata = metadata.joinColumns.filter(jc => jc.databaseName === key)?.pop();
-      if (withRelationSubQueries && !!columnMetadata?.relationMetadata) {
+      if (shouldRecreateSubQueries && !!columnMetadata?.relationMetadata) {
         augmentedValue.isSubQuery = true;
         augmentedValue.value = await recreateSubQuery(
           columnMetadata.referencedColumn?.databaseName ?? 'unknown_key',
@@ -1160,12 +1160,12 @@ async function augmentValue(
           columnMetadata.relationMetadata?.entityMetadata,
           modsIndexedByTable,
           orm,
-          withRelationSubQueries,
+          shouldRecreateSubQueries,
           changesByEntity,
         );
       }
       columnMetadata = metadata.inverseJoinColumns.filter(jc => jc.databaseName === key)?.pop();
-      if (withRelationSubQueries && !!columnMetadata?.relationMetadata) {
+      if (shouldRecreateSubQueries && !!columnMetadata?.relationMetadata) {
         augmentedValue.isSubQuery = true;
         augmentedValue.value = await recreateSubQuery(
           columnMetadata.referencedColumn?.databaseName ?? 'unknown_key',
@@ -1174,7 +1174,7 @@ async function augmentValue(
           columnMetadata.relationMetadata?.inverseEntityMetadata,
           modsIndexedByTable,
           orm,
-          withRelationSubQueries,
+          shouldRecreateSubQueries,
           changesByEntity,
         );
       }
@@ -1224,7 +1224,7 @@ async function recreateSubQuery(
   entityMetadata: EntityMetadata | undefined,
   modsIndexedByTable: { [key: string]: ModuleInterface },
   orm: TypeormWrapper,
-  withRelationSubQueries: boolean,
+  shouldRecreateSubQueries: boolean,
   changesByEntity?: { [entityName: string]: any[] },
 ): Promise<string> {
   // Get cloud columns of the entity we want to look for.
@@ -1254,7 +1254,7 @@ async function recreateSubQuery(
             e?.[cc.propertyName],
             modsIndexedByTable,
             orm,
-            withRelationSubQueries,
+            shouldRecreateSubQueries,
             changesByEntity,
           ),
       ),
@@ -1276,7 +1276,7 @@ async function recreateSubQuery(
               e?.[dbc.propertyName],
               modsIndexedByTable,
               orm,
-              withRelationSubQueries,
+              shouldRecreateSubQueries,
               changesByEntity,
             ),
         ),
