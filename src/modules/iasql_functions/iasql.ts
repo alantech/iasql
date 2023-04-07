@@ -919,11 +919,11 @@ async function recreateEntitiesFromChangelogs(
   modsIndexedByTable: ModsIndexedByTable,
   orm: TypeormWrapper,
 ): Promise<EntitiesIndexesByEntityName> {
-  const entityMapper: { [key: string]: MapperBase<any> } = {};
   const recreatedEntitiesFromChangelogs: EntitiesIndexesByEntityName = {};
   for (const cl of changeLogs) {
     const mod = modsIndexedByTable[cl.tableName];
     const mappers = Object.values(mod).filter(val => val instanceof MapperBase);
+    const entityMapper: { [key: string]: MapperBase<any> } = {};
     mappers.forEach(m => (entityMapper[m.entity.name] = m));
     for (const entityName of Object.keys(entityMapper)) {
       const entity = entityMapper[entityName].entity;
