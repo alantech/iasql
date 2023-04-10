@@ -296,36 +296,40 @@ describe('iasql_get_sql_since functionality', () => {
 
   it('installs the aws_elb module in the new db', install2(['aws_elb']));
 
-  it(
-    'saves the sql generated in the sql variable to be used in the new db in the next test',
+  it('saves the sql generated in the sql variable to be used in the new db in the next test', (done: (
+    e?: Error,
+  ) => any) => {
     query(
       `
-        SELECT * FROM iasql_get_sql_since('##timestamp##'::timestamp with time zone);
+        SELECT * FROM iasql_get_sql_since('${timestamp}'::timestamp with time zone);
       `,
       (res: any) => {
         expect(res.length).toBe(2);
         sql = res.map((o: { sql: string }) => o.sql).join('\n');
       },
-      false,
+      true,
       () => ({ username, password }),
-      () => ({ timestamp }),
-    ),
-  );
+    )((e?: any) => {
+      if (!!e) return done(e);
+      done();
+    });
+  });
 
-  it(
-    'executes the generated sql to confirm it works',
-    query2(
+  it('executes the generated sql to confirm it works', (done: (e?: Error) => any) => {
+    query(
       `
         BEGIN;
-          ##sql##
+          ${sql}
         COMMIT;
       `,
       undefined,
       true,
       () => ({ username: username2, password: password2 }),
-      () => ({ sql }),
-    ),
-  );
+    )((e?: any) => {
+      if (!!e) return done(e);
+      done();
+    });
+  });
 
   it(
     'checks load_balancer insertion',
