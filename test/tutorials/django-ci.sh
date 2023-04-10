@@ -12,37 +12,14 @@ cd examples/ecs-fargate/django/app
 echo "\nInstall pip packages"
 pip install -r requirements.txt
 
-# install ecs_simplified and codebuild modules
-psql "postgres://$IASQL_USERNAME:$IASQL_PASSWORD@localhost:5432/iasql" -c "
-  SELECT * FROM iasql_install(
-      'aws_ecs_simplified', 'aws_codebuild'
-  );
-"
+echo "\nInstall needed IaSQL modules"
+./manage.py install-modules
 
-echo "\nRun Django migrations - no real action on the database"
+echo "\nRun Django migrations"
 python manage.py migrate --database infra infra
 
 # create the ecs_simplified app
-psql "postgres://$IASQL_USERNAME:$IASQL_PASSWORD@localhost:5432/iasql" -c "
-  SELECT iasql_begin();
-"
-psql "postgres://$IASQL_USERNAME:$IASQL_PASSWORD@localhost:5432/iasql" -c "
-  INSERT INTO ecs_simplified (app_name, public_ip, app_port, image_tag, cpu_mem, desired_count)
-  VALUES ('quickstart', true, 8088, 'latest', 'vCPU2-8GB', 1);
-"
-psql "postgres://$IASQL_USERNAME:$IASQL_PASSWORD@localhost:5432/iasql" -c "
-  SELECT iasql_commit();
-"
-
-psql "postgres://$IASQL_USERNAME:$IASQL_PASSWORD@localhost:5432/iasql" -c "
-  SELECT ecr_build(
-    '$GITHUB_SERVER_URL/$GITHUB_REPOSITORY',
-    (SELECT id FROM repository WHERE repository_name = 'quickstart-repository')::varchar(255),
-    './examples/ecs-fargate/django/app',
-    '${GITHUB_REF}',
-    '${GH_PAT}'
-  );
-"
+./manage.py deploy-to-ecs
 
 # Get DNS name, Set PGPASSWORD environment variable to avoid interaction
 echo "\nGet DNS name..."
