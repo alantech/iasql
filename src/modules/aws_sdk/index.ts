@@ -28,6 +28,7 @@ export class AwsSdkModule extends ModuleBase {
   invokeSns: AwsSdkInvoker;
   invokeSts: AwsSdkInvoker;
   invokeSqs: AwsSdkInvoker;
+  invokeCloudformation: AwsSdkInvoker;
 
   constructor() {
     super();
@@ -58,6 +59,7 @@ export class AwsSdkModule extends ModuleBase {
     this.invokeSns = new AwsSdkInvoker('snsClient', this);
     this.invokeSts = new AwsSdkInvoker('stsClient', this);
     this.invokeSqs = new AwsSdkInvoker('sqsClient', this);
+    this.invokeCloudformation = new AwsSdkInvoker('cfClient', this);
     super.init();
   }
 }
