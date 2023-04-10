@@ -316,7 +316,7 @@ describe('iasql_get_sql_since functionality', () => {
   });
 
   it('executes the generated sql to confirm it works', (done: (e?: Error) => any) => {
-    query(
+    query2(
       `
         BEGIN;
           ${sql}
