@@ -1,8 +1,48 @@
+import {
+  MdDataArray,
+  MdDataObject,
+  MdDateRange,
+  MdNumbers,
+  MdOutlineApps,
+  MdOutlineToggleOff,
+  MdTextFields,
+  MdQuestionMark,
+} from 'react-icons/md';
+import { TbNetwork } from 'react-icons/tb';
+
 import { TableIcon } from '@heroicons/react/outline';
 import { QuestionMarkCircleIcon } from '@heroicons/react/solid';
 
 import { Accordion, align, HBox, VBox } from '../common';
 import { ActionType, useAppContext } from '../providers/AppProvider';
+
+function getIconForDataType(dataType: string) {
+  switch (dataType) {
+    case 'boolean':
+      return <MdOutlineToggleOff title={dataType} />;
+    case 'smallint':
+    case 'double precision':
+    case 'integer':
+      return <MdNumbers title={dataType} />;
+    case 'character varying':
+    case 'text':
+      return <MdTextFields title={dataType} />;
+    case 'json':
+    case 'jsonb':
+      return <MdDataObject title={dataType} />;
+    case 'timestamp with time zone':
+    case 'timestamp without time zone':
+      return <MdDateRange title={dataType} />;
+    case 'cidr':
+      return <TbNetwork title={dataType} />;
+    case 'ARRAY':
+      return <MdDataArray title={dataType} />;
+    case 'USER-DEFINED':
+      return <MdOutlineApps title={dataType} />;
+    default:
+      return <MdQuestionMark title={dataType} />;
+  }
+}
 
 export default function Schema({
   moduleData,
@@ -76,21 +116,16 @@ export default function Schema({
                       key={col}
                       customStyles={
                         (meta as columnMetadata).isMandatory && !tableName.includes('iasql_')
-                          ? 'pl-8 grid grid-cols-2 gap-2 font-bold'
-                          : 'pl-8 grid grid-cols-2 gap-2'
+                          ? 'pl-8 grid grid-cols-12 gap-1 font-bold'
+                          : 'pl-8 grid grid-cols-12 gap-1'
                       }
                     >
-                      <HBox alignment={align.start}>
+                      <HBox customStyles={'col-span-1'}>
+                        {getIconForDataType((meta as columnMetadata).dataType)}
+                      </HBox>
+                      <HBox alignment={align.start} customStyles={'col-span-11'}>
                         <p className='text-ellipsis overflow-hidden' title={col}>
                           {col}
-                        </p>
-                      </HBox>
-                      <HBox alignment={align.start}>
-                        <p
-                          className='text-ellipsis overflow-hidden'
-                          title={(meta as columnMetadata).dataType}
-                        >
-                          {(meta as columnMetadata).dataType}
                         </p>
                       </HBox>
                     </HBox>
