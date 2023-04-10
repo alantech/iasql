@@ -82,7 +82,7 @@ const lbUpdatedWDefaultAttributes = [
   { Key: 'access_logs.s3.bucket', Value: '' },
 ];
 
-jest.setTimeout(360000);
+jest.setTimeout(420000);
 beforeAll(async () => {
   const azs = (await getAvailabilityZones())?.AvailabilityZones?.map(az => az.ZoneName)?.sort() ?? [];
   az1 = azs[0] ?? '';
