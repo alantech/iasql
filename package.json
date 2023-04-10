@@ -105,7 +105,7 @@
     "@aws-sdk/util-waiter": "^3.306.0",
     "@graphile/logger": "^0.2.0",
     "@logdna/logger": "^2.6.6",
-    "@sentry/node": "^7.45.0",
+    "@sentry/node": "^7.47.0",
     "@types/docker-modem": "^3.0.2",
     "@types/dockerode": "^3.3.15",
     "callsite": "^1.0.0",
