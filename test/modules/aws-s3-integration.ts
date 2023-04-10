@@ -463,6 +463,36 @@ describe('S3 Integration Testing', () => {
     );
   });
 
+  describe('S3 bucket tags testing', () => {
+    it('starts a transaction', begin());
+    itDocs(
+      'updates the bucket tags',
+      query(
+        `
+          UPDATE bucket SET tags = '{"tag1": "val1", "tag2": "val2"}'
+            WHERE name = '${s3Name}';
+        `,
+        undefined,
+        true,
+        () => ({ username, password }),
+      ),
+    );
+    it('applies the s3 bucket tags update', commit());
+
+    itDocs(
+      'makes sure the bucket tags are set',
+      query(
+        `
+        SELECT * FROM bucket
+          WHERE name = '${s3Name}' AND
+                tags ->> 'tag1' = 'val1' AND
+                tags ->> 'tag2' = 'val2';
+    `,
+        (res: any[]) => expect(res.length).toBe(1),
+      ),
+    );
+  });
+
   it('starts a transaction', begin());
 
   itDocs(

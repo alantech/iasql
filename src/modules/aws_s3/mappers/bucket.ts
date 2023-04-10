@@ -7,7 +7,8 @@ import {
 
 import { AwsS3Module } from '..';
 import { policiesAreSame } from '../../../services/aws-diff';
-import { AWS, crudBuilder, crudBuilderFormat } from '../../../services/aws_macros';
+import { AWS, crudBuilder, crudBuilderFormat, eqTags } from '../../../services/aws_macros';
+import { convertTagsForAws, convertTagsFromAws } from '../../aws_vpc/mappers/tags';
 import { Context, Crud, MapperBase } from '../../interfaces';
 import { Bucket } from '../entity';
 
@@ -25,7 +26,9 @@ export class BucketMapper extends MapperBase<Bucket> {
   }
 
   equals = (a: Bucket, b: Bucket) =>
-    Object.is(a.createdAt?.toISOString(), b.createdAt?.toISOString()) && policiesAreSame(a.policy, b.policy);
+    Object.is(a.createdAt?.toISOString(), b.createdAt?.toISOString()) &&
+    policiesAreSame(a.policy, b.policy) &&
+    eqTags(a.tags, b.tags);
 
   getBuckets = crudBuilderFormat<S3, 'listBuckets', BucketAWS[]>(
     'listBuckets',
@@ -63,7 +66,25 @@ export class BucketMapper extends MapperBase<Bucket> {
     }
   }
 
+  async getBucketTags(client: S3, bucketName: string) {
+    try {
+      const tags = await client.getBucketTagging({ Bucket: bucketName });
+      return convertTagsFromAws(tags.TagSet);
+    } catch (_) {
+      return undefined;
+    }
+  }
+
   updateBucketPolicy = crudBuilder<S3, 'putBucketPolicy'>('putBucketPolicy', input => input);
+
+  async setBucketTags(client: S3, bucket: Bucket) {
+    await client.putBucketTagging({
+      Bucket: bucket.name,
+      Tagging: {
+        TagSet: convertTagsForAws(bucket.tags ?? {}),
+      },
+    });
+  }
 
   async createBucketPolicy(client: S3, bucket: Bucket, ctx: Context) {
     const input: PutBucketPolicyCommandInput = {
@@ -133,6 +154,7 @@ export class BucketMapper extends MapperBase<Bucket> {
 
             const bucketPolicy = await this.getBucketPolicy(client.s3Client, input);
             const b: Bucket = this.bucketMapper(foundBucket, region);
+            b.tags = await this.getBucketTags(client.s3Client, foundBucket.Name!);
 
             if (bucketPolicy && bucketPolicy.Policy) {
               b.policy = JSON.parse(bucketPolicy.Policy);
@@ -159,17 +181,14 @@ export class BucketMapper extends MapperBase<Bucket> {
           if (!location) location = 'us-east-1';
           if (enabledRegions.includes(location)) {
             // read policy
+            const regionClient = (await ctx.getAwsClient(location)).s3Client as S3;
             const input: GetBucketPolicyCommandInput = {
               Bucket: rawBucket.Name,
             };
 
-            const bucketPolicy = await this.getBucketPolicy(
-              (
-                await ctx.getAwsClient(location)
-              ).s3Client as S3,
-              input,
-            );
+            const bucketPolicy = await this.getBucketPolicy(regionClient, input);
             const b: Bucket = this.bucketMapper(rawBucket, location);
+            b.tags = await this.getBucketTags(regionClient, rawBucket.Name!);
 
             if (bucketPolicy && bucketPolicy.Policy) {
               b.policy = JSON.parse(bucketPolicy.Policy);
@@ -183,7 +202,7 @@ export class BucketMapper extends MapperBase<Bucket> {
       return out;
     },
     updateOrReplace: (a: Bucket, b: Bucket) => {
-      if (!policiesAreSame(a.policy, b.policy)) return 'update';
+      if (!policiesAreSame(a.policy, b.policy) || !eqTags(a.tags, b.tags)) return 'update';
       else return 'replace';
     },
     // TODO: With the model this simple it is actually impossible to really update this thing
@@ -196,11 +215,14 @@ export class BucketMapper extends MapperBase<Bucket> {
       for (const e of es) {
         if (enabledRegions.includes(e.region)) {
           const client = (await ctx.getAwsClient(e.region)) as AWS;
-          const cloudRecord = ctx?.memo?.cloud?.Bucket?.[this.entityId(e)];
+          const cloudRecord: Bucket = ctx?.memo?.cloud?.Bucket?.[this.entityId(e)];
           const isUpdate = Object.is(this.module.bucket.cloud.updateOrReplace(cloudRecord, e), 'update');
           if (isUpdate) {
             e.createdAt = cloudRecord.createdAt;
-            e.policy = await this.module.bucket.createBucketPolicy(client.s3Client, e, ctx);
+            if (!policiesAreSame(cloudRecord.policy, e.policy)) {
+              e.policy = await this.module.bucket.createBucketPolicy(client.s3Client, e, ctx);
+            }
+            if (!eqTags(cloudRecord.tags, e.tags)) await this.setBucketTags(client.s3Client, e);
             out.push(e);
           } else {
             // we cannot modify bucket name or region of the bucket, replace it
