@@ -57,7 +57,7 @@
     "@types/pg": "^8.6.5",
     "@types/pg-format": "^1.0.2",
     "@types/semver": "^7.3.10",
-    "@types/ssh2": "^1.11.8",
+    "@types/ssh2": "^1.11.10",
     "@types/sshpk": "^1.17.1",
     "@types/uuid": "^9.0.1",
     "aws-sdk-client-mock": "^2.1.1",

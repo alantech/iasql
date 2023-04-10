@@ -3254,10 +3254,10 @@
   resolved "https://registry.yarnpkg.com/@types/sinonjs__fake-timers/-/sinonjs__fake-timers-8.1.2.tgz#bf2e02a3dbd4aecaf95942ecd99b7402e03fad5e"
   integrity sha512-9GcLXF0/v3t80caGs5p2rRfkB+a8VBGLJZVih6CNFkx8IZ994wiKKLSRs9nuFwk1HevWs/1mnUmkApGrSGsShA==
 
-"@types/ssh2@*", "@types/ssh2@^1.11.8":
-  version "1.11.8"
-  resolved "https://registry.yarnpkg.com/@types/ssh2/-/ssh2-1.11.8.tgz#7b68d4189e63dc1b90b8e6d8fe58f3eede497fed"
-  integrity sha512-BsD9yrKmD8avjbR+N5tvv0jxYHzizcrC156YkPbNjqbu81tCm4ZdS7D6KtXbZfz+CFHgFrTC7j046Lr39W5eig==
+"@types/ssh2@*", "@types/ssh2@^1.11.10":
+  version "1.11.10"
+  resolved "https://registry.yarnpkg.com/@types/ssh2/-/ssh2-1.11.10.tgz#b38d6814667dab256343aa23179a87514c591465"
+  integrity sha512-b+6fSdTONmCNRDDySZWQPe9f42v09PV2ePuNKMKkDFO4TqQTclX7dI8xISaj9dGckAcVCmaWO/MpoK4IAVfAQA==
   dependencies:
     "@types/node" "^18.11.18"
 
