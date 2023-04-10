@@ -53,7 +53,7 @@
     "@types/lodash.clonedeep": "^4.5.7",
     "@types/lodash.isequal": "^4.5.6",
     "@types/lodash.pick": "^4.4.7",
-    "@types/node": "^18.15.10",
+    "@types/node": "^18.15.11",
     "@types/pg": "^8.6.5",
     "@types/pg-format": "^1.0.2",
     "@types/semver": "^7.3.10",
