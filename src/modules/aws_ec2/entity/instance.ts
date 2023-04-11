@@ -11,6 +11,7 @@ import {
   Unique,
 } from 'typeorm';
 
+import { awsResolveSupport } from '../../../services/aws-resolve-support';
 import { cloudId } from '../../../services/cloud-id';
 import { AwsRegions } from '../../aws_account/entity';
 import { IamRole } from '../../aws_iam/entity';
@@ -66,6 +67,7 @@ export class Instance {
    * @see https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AMIs.html
    */
   @Column()
+  @awsResolveSupport
   ami: string;
 
   /**

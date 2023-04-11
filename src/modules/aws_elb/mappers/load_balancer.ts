@@ -14,6 +14,7 @@ import { AwsElbModule } from '..';
 import { AWS, crudBuilder, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
 import { awsSecurityGroupModule } from '../../aws_security_group';
 import { awsVpcModule } from '../../aws_vpc';
+import { Subnet } from '../../aws_vpc/entity';
 import { Context, Crud, MapperBase } from '../../interfaces';
 import {
   IpAddressType,
@@ -244,7 +245,17 @@ export class LoadBalancerMapper extends MapperBase<LoadBalancer> {
       const out = [];
       for (const e of es) {
         const client = (await ctx.getAwsClient(e.region)) as AWS;
-        const subnets = (await this.getSubnets(client.ec2client)).map(s => s.SubnetId ?? '');
+        const subnets =
+          (await awsVpcModule.subnet.cloud.read(ctx))
+            ?.filter((s: Subnet) => !!s)
+            .filter((s: Subnet) => s.region === e.region && s.vpc.isDefault)
+            .filter((s: Subnet) => {
+              if (e.availabilityZones?.length) {
+                return e.availabilityZones.includes(s.availabilityZone.name);
+              }
+              return true;
+            })
+            .map((s: Subnet) => s.subnetId ?? '') ?? [];
 
         const securityGroups = e.securityGroups?.map(sg => {
           if (!sg.groupId) throw new Error('Security group need to be loaded first');
@@ -412,7 +423,31 @@ export class LoadBalancerMapper extends MapperBase<LoadBalancer> {
           // We need to delete the current cloud record and create the new one.
           // The id will be the same in database since `e` will keep it.
           await this.module.loadBalancer.cloud.delete(cloudRecord, ctx);
-          out.push(await this.module.loadBalancer.cloud.create(e, ctx));
+          let newRecord = await this.module.loadBalancer.cloud.create(e, ctx);
+          if (newRecord && !Array.isArray(newRecord)) {
+            if (
+              !(
+                Object.is(newRecord.attributes?.length, e.attributes?.length) &&
+                (newRecord.attributes?.every(
+                  (aatt: any) =>
+                    !!e.attributes?.find(
+                      batt => Object.is(aatt.Key, batt.Key) && Object.is(aatt.Value, batt.Value),
+                    ),
+                ) ??
+                  false)
+              )
+            ) {
+              // Attributes are not returned by the create call, so we need to update them
+              await this.modifyLoadBalancerAttributes(client.elbClient, {
+                LoadBalancerArn: newRecord.loadBalancerArn,
+                Attributes: e.attributes?.filter(att => !!att),
+              });
+              newRecord = await this.cloud.read(ctx, newRecord.loadBalancerArn);
+              if (!newRecord) continue;
+              await this.module.loadBalancer.db.update(newRecord, ctx);
+            }
+            out.push(newRecord);
+          }
         }
       }
       return out;

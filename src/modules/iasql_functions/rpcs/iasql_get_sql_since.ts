@@ -11,9 +11,8 @@ import {
   RpcBase,
   RpcResponseObject,
 } from '../../interfaces';
-import { getInstalledModules } from '../iasql';
+import { getInstalledModules, recreateQueries } from '../iasql';
 import { indexModsByTable } from '../iasql';
-import { recreateQueries } from './helpers';
 
 /**
  * Method that generates SQL from the audit log from a given point in time.
@@ -51,7 +50,7 @@ export class IasqlGetSqlSince extends RpcBase {
       const changeLogs = await getChangeLogs(limitDate, ctx.orm);
       const installedModules = await getInstalledModules(ctx.orm);
       const modsIndexedByTable = indexModsByTable(installedModules);
-      queries = await recreateQueries(changeLogs, modsIndexedByTable, ctx.orm);
+      queries = await recreateQueries(changeLogs, modsIndexedByTable, ctx.orm, false, true);
     } catch (e) {
       throw e;
     }

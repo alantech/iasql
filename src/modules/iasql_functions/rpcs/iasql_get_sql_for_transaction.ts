@@ -12,9 +12,8 @@ import {
   RpcBase,
   RpcResponseObject,
 } from '../../interfaces';
-import { getInstalledModules } from '../iasql';
+import { getInstalledModules, recreateQueries } from '../iasql';
 import { indexModsByTable } from '../iasql';
-import { recreateQueries } from './helpers';
 
 /**
  * Method that generates SQL from the audit log for a given transaction identifier.
@@ -52,7 +51,7 @@ export class IasqlGetSqlForTransaction extends RpcBase {
       const changeLogs = await getUserChangeLogsByTransaction(ctx.orm, transactionId);
       const installedModules = await getInstalledModules(ctx.orm);
       const modsIndexedByTable = indexModsByTable(installedModules);
-      queries = await recreateQueries(changeLogs, modsIndexedByTable, ctx.orm);
+      queries = await recreateQueries(changeLogs, modsIndexedByTable, ctx.orm, false, true);
     } catch (e) {
       throw e;
     }
