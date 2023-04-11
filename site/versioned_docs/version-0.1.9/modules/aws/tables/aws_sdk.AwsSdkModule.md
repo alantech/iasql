@@ -17,6 +17,8 @@ import TabItem from '@theme/TabItem';
 
 • **invoke\_app\_sync**: `aws_sdk_invoker`
 
+• **invoke\_cloudformation**: `aws_sdk_invoker`
+
 • **invoke\_cloudfront**: `aws_sdk_invoker`
 
 • **invoke\_cloudwatch**: `aws_sdk_invoker`

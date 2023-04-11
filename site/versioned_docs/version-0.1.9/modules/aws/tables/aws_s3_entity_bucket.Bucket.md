@@ -35,3 +35,11 @@ https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-iam-policies.html
 • **region**: `string`
 
 Region for the bucket
+
+• `Optional` **tags**: `Object`
+
+Complex type to tags for the bucket
+
+#### Type definition
+
+▪ [key: `string`]: `string`
