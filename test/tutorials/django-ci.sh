@@ -12,18 +12,14 @@ cd examples/ecs-fargate/django/app
 echo "\nInstall pip packages"
 pip install -r requirements.txt
 
+echo "\nInstall needed IaSQL modules"
+./manage.py install-modules
+
 echo "\nRun Django migrations"
 python manage.py migrate --database infra infra
 
-psql "postgres://$IASQL_USERNAME:$IASQL_PASSWORD@localhost:5432/iasql" -c "
-  SELECT ecr_build(
-    '$GITHUB_SERVER_URL/$GITHUB_REPOSITORY',
-    (SELECT id FROM repository WHERE repository_name = 'quickstart-repository')::varchar(255),
-    './examples/ecs-fargate/django/app',
-    '${GITHUB_REF}',
-    '${GH_PAT}'
-  );
-"
+# create the ecs_simplified app
+./manage.py deploy-to-ecs
 
 # Get DNS name, Set PGPASSWORD environment variable to avoid interaction
 echo "\nGet DNS name..."
