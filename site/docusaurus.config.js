@@ -147,11 +147,6 @@ const testDoc = require('./src/rehype/testdoc');
                   target: '_self',
                   label: 'DbDoc Schema',
                 },
-                {
-                  label: 'Hosted SaaS',
-                  to: 'hosted',
-                  target: '_self',
-                },
               ],
             },
             {
