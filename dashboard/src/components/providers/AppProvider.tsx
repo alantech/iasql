@@ -30,6 +30,8 @@ export enum ActionType {
   InstallModule = 'InstallModule',
   SelectDb = 'SelectDb',
   RunSql = 'RunSql',
+  DiscoverSchema = 'DiscoverSchema',
+  SetConnStr = 'ConnStr',
   RunAutocompleteSql = 'RunAutocompleteSql',
   EditContent = 'EditContent',
   FetchData = 'FetchData',
@@ -60,6 +62,7 @@ interface AppState {
   selectedDb: any;
   oldestVersion?: string;
   latestVersion?: string;
+  connString?: string;
   isRunningSql: boolean;
   databases: any[];
   error: string | null;
@@ -346,6 +349,29 @@ SELECT * FROM iasql_uninstall('${uninstallModule}');
         forceRun: true,
       };
     }
+    case ActionType.SetConnStr: {
+      const { connString } = payload.data;
+      return { ...state, connString };
+    }
+    case ActionType.DiscoverSchema: {
+      console.log(state.connString);
+      const requestOptions = {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conn_str: state.connString }),
+      };
+      //const endpoint = process.env.AUTOCOMPLETE_ENDPOINT ?? 'http://localhost:5000/discover';
+      const endpoint = "http://192.168.2.38:5000/discover"
+      console.log(requestOptions);
+      
+      fetch(endpoint, requestOptions)
+        .then(response => response.json())
+        .catch(error => {
+          console.log("error is");
+          console.log(error);
+          console.error('Error:', error);
+        });
+    }
   }
   return state;
 };
@@ -506,6 +532,12 @@ const middlewareReducer = async (
             runningDb?.alias,
             initializingQueries,
           );
+
+          // rediscover the schema for autocompletion
+          dispatch({
+            action: ActionType.DiscoverSchema,
+          })
+      
         }
       } catch (e: any) {
         if (e.message) {
@@ -603,6 +635,7 @@ const AppProvider = ({ children }: { children: any }) => {
     isDarkMode: false,
     shouldShowDisconnect: false,
     shouldShowConnect: false,
+    connString: '',
     editorSelectedTab: 0,
     editorTabsCreated: 1,
     editorTabs: [
@@ -646,6 +679,7 @@ const AppProvider = ({ children }: { children: any }) => {
         isRunningSql: state.isRunningSql,
         shouldShowDisconnect: state.shouldShowDisconnect,
         shouldShowConnect: state.shouldShowConnect,
+        connString: state.connString,
         editorTabs: state.editorTabs,
         editorSelectedTab: state.editorSelectedTab,
         editorTabsCreated: state.editorTabsCreated,
