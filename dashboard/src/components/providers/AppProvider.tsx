@@ -351,10 +351,10 @@ SELECT * FROM iasql_uninstall('${uninstallModule}');
     }
     case ActionType.SetConnStr: {
       const { connString } = payload.data;
+      sessionStorage.setItem('connString', connString);
       return { ...state, connString };
     }
     case ActionType.DiscoverSchema: {
-      console.log(state.connString);
       const requestOptions = {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -362,7 +362,6 @@ SELECT * FROM iasql_uninstall('${uninstallModule}');
       };
       //const endpoint = process.env.AUTOCOMPLETE_ENDPOINT ?? 'http://localhost:5000/discover';
       const endpoint = "http://192.168.2.38:5000/discover"
-      console.log(requestOptions);
       
       fetch(endpoint, requestOptions)
         .then(response => response.json())
