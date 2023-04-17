@@ -43,7 +43,7 @@ export default function IasqlEditor() {
   const editorRef = useRef(null as null | ReactAce);
   const prevTabsLenRef = useRef(null as null | number);
   const queryParams = useQueryParams();
-  const [suggestions, setSuggestions] = useState<{value: string, meta: string, score: number}[]>([]);
+  const [suggestions, setSuggestions] = useState([]);
 
   // Handlers
   const getInitialQuery = useCallback((sql: string | null) => {
@@ -55,8 +55,6 @@ export default function IasqlEditor() {
   const handleEditorContentUpdate =  useCallback(
     (content: string, event:any) => {
       editorRef?.current?.editor.commands.on('afterExec', eventData => {handleAfterExec(eventData); });
-      if (event && event.action === 'insert' && event.lines.length === 1) setSuggestions([]);
-
       dispatch({ action: ActionType.EditContent, data: { content } });
     },
     [dispatch],
@@ -135,19 +133,24 @@ export default function IasqlEditor() {
     });
   }, []);
 
-  useEffect(() => {
-    const completer = {
-      getCompletions: async function(editor: any, session: any, pos: any, prefix: any, callback: any) {
-        console.log("in get completions");
-        console.log(suggestions);
-        if (suggestions) {
-          callback(null, suggestions);
-        }
-        else callback(null, []);
+  const completer = {
+    getCompletions: async function(editor: any, session: any, pos: any, prefix: any, callback: any) {
+      console.log("in get completions");
+      console.log(suggestions);
+      if (suggestions) {
+        callback(null, suggestions);
       }
+      else callback(null, []);
+    },
+    insertSnippet: function(editor:any, data:any) {
+      /*editor.forEachSelection(function() {
+          editor.insert(data.caption)
+      })*/
+      console.log("in insert match");
+      console.log(data);
     }
-    if (editorRef.current?.editor.completers) editorRef.current.editor.completers = [completer];
-});  
+  }
+  if (editorRef.current?.editor.completers) editorRef.current.editor.completers = [completer];
 
   useEffect(() => {
     if (editorTabs.length !== prevTabsLenRef.current) {
@@ -169,7 +172,6 @@ export default function IasqlEditor() {
       prevTabsLenRef.current = editorTabs.length;
     }
   }, [editorTabs]);
-
 
   const handleAfterExec = debounce((eventData:any) => {
   
@@ -201,23 +203,27 @@ export default function IasqlEditor() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ conn_str: sessionStorage.getItem('connString'), query: finalText }),
           };
-          //const endpoint = process.env.AUTOCOMPLETE_ENDPOINT ?? 'http://localhost:5000/discover';
-          const endpoint = "http://192.168.2.38:5000/autocomplete"
+          const endpoint = process.env.AUTOCOMPLETE_ENDPOINT ?? 'http://localhost:5000/autocomplete';
+          //const endpoint = "http://192.168.2.38:5000/autocomplete"
           fetch(endpoint, requestOptions)
           .then(response => response.json())
           .then(response => {
             if (response['output_text']) {
               // check if response is a valid sql query
-              const sg = [{value: response['output_text'], meta: 'custom', score: 1000}];
-              setSuggestions(sg);
-              editorRef?.current?.editor.execCommand('startAutocomplete');
+              const sg = [{value: '\n'+response['output_text'], meta: 'custom', score: 1000}];
+              setSuggestions(sg as []);
             }
           })
           .catch(error => console.error(error));          
         }
     }
-}, 1000);
+}, 300);
 
+useEffect(() => {
+  if (suggestions.length > 0) {
+    editorRef?.current?.editor.execCommand('startAutocomplete');
+  }
+}, [suggestions]);
 
   return (
     <VBox customClasses='mb-3'>
@@ -247,7 +253,7 @@ export default function IasqlEditor() {
               useWorker: false,
               enableBasicAutocompletion: true,
               enableLiveAutocompletion: true,
-              enableSnippets: false,
+              enableSnippets: true,
               showLineNumbers: true,
               tabSize: 2,
               theme: isDarkMode ? 'ace/theme/monokai' : 'ace/theme/tomorrow',

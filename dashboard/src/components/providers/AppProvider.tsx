@@ -202,6 +202,23 @@ const reducer = (state: AppState, payload: Payload): AppState => {
           forceRun: false,
         };
       }
+
+      // add the query to the index
+      if (queryRes && queryRes.length>0) {
+        const requestOptions = {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: queryRes[0].statement }),
+        };
+        const endpoint = process.env.AUTOCOMPLETE_ENDPOINT ?? 'http://localhost:5000/add';
+        
+        fetch(endpoint, requestOptions)
+          .then(response => response.json())
+          .catch(error => {
+            console.error('Error:', error);
+          });
+        }
+
       return { ...state, editorTabs: tabsCopy, forceRun: false };
     }
     case ActionType.RunAutocompleteSql: {
@@ -360,14 +377,12 @@ SELECT * FROM iasql_uninstall('${uninstallModule}');
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ conn_str: state.connString }),
       };
-      //const endpoint = process.env.AUTOCOMPLETE_ENDPOINT ?? 'http://localhost:5000/discover';
-      const endpoint = "http://192.168.2.38:5000/discover"
+      const endpoint = process.env.AUTOCOMPLETE_ENDPOINT ?? 'http://localhost:5000/discover';
+      //const endpoint = "http://192.168.2.38:5000/discover"
       
       fetch(endpoint, requestOptions)
         .then(response => response.json())
         .catch(error => {
-          console.log("error is");
-          console.log(error);
           console.error('Error:', error);
         });
     }
