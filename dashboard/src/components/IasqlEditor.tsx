@@ -202,6 +202,7 @@ export default function IasqlEditor() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ conn_str: sessionStorage.getItem('connString'), query: finalText }),
+            credentials: 'include' as RequestCredentials
           };
           const endpoint = process.env.AUTOCOMPLETE_ENDPOINT ?? 'http://localhost:5000/autocomplete';
           //const endpoint = "http://192.168.2.38:5000/autocomplete"

@@ -139,6 +139,23 @@ const gettingStarted = `-- Welcome to IaSQL! Steps to get started:
 -- Happy coding :)
 `;
 
+function discoverData(connString: string) {
+  const requestOptions = {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ conn_str: connString }),
+    credentials: 'include' as RequestCredentials,
+  };
+  const endpoint = process.env.AUTOCOMPLETE_ENDPOINT ?? 'http://localhost:5000/discover';
+  //const endpoint = "http://192.168.2.38:5000/discover"
+  
+  fetch(endpoint, requestOptions)
+    .then(response => response.json())
+    .catch(error => {
+      console.error('Error:', error);
+    });
+}
+
 const reducer = (state: AppState, payload: Payload): AppState => {
   const { error } = payload?.data ?? { error: null };
   if (error) {
@@ -209,6 +226,7 @@ const reducer = (state: AppState, payload: Payload): AppState => {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ query: queryRes[0].statement }),
+          credentials: 'include' as RequestCredentials,
         };
         const endpoint = process.env.AUTOCOMPLETE_ENDPOINT ?? 'http://localhost:5000/add';
         
@@ -369,22 +387,14 @@ SELECT * FROM iasql_uninstall('${uninstallModule}');
     case ActionType.SetConnStr: {
       const { connString } = payload.data;
       sessionStorage.setItem('connString', connString);
+
+      // fetch data from database
+      discoverData(connString);
       return { ...state, connString };
     }
     case ActionType.DiscoverSchema: {
-      const requestOptions = {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ conn_str: state.connString }),
-      };
-      const endpoint = process.env.AUTOCOMPLETE_ENDPOINT ?? 'http://localhost:5000/discover';
-      //const endpoint = "http://192.168.2.38:5000/discover"
-      
-      fetch(endpoint, requestOptions)
-        .then(response => response.json())
-        .catch(error => {
-          console.error('Error:', error);
-        });
+      if (state.connString)
+        discoverData(state.connString);
     }
   }
   return state;
