@@ -3,6 +3,6 @@ services:
         build: .
         container_name: flask
         ports:
-            - "5000:5000"
+            - "9877:5000"
         volumes:
             - .:/app
