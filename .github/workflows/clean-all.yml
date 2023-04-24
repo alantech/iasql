@@ -1,0 +1,158 @@
+name: Run clean up On All Test Accounts
+on:
+  push:
+    [clean-acc]
+  pull_request:
+    [clean-acc]
+jobs:
+  setup-variables:
+    runs-on: ubuntu-latest
+    outputs:
+      test-accounts: ${{ steps['set-test-modules'].outputs['test-accounts'] }}
+      registry-image-tag: ${{ steps['set-registry-image-tag'].outputs['registry-image-tag'] }}
+    steps:
+      - uses: actions/checkout@v3
+      - id: set-test-modules
+        name: Set all numbers
+        run: >
+          echo "test-accounts=$(node -e 'console.log(JSON.stringify([...Array(201).keys()]))')" >> $GITHUB_OUTPUT
+      - id: set-registry-image-tag
+        name: Set registry image tag
+        run: echo "registry-image-tag=ghcr.io/iasql/iasql:$GITHUB_SHA" >> $GITHUB_OUTPUT
+
+  build-and-push:
+    runs-on: ubuntu-latest
+    needs:
+      - setup-variables
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          push: true
+          cache-from: type=gha
+          cache-to: type=gha
+          tags: ${{ needs.setup-variables.outputs.registry-image-tag }}
+
+  run-command:
+    runs-on: ubuntu-latest
+    needs:
+      - setup-variables
+      - build-and-push
+    name: run on account ${{ matrix.index }}
+    strategy:
+      fail-fast: false
+      matrix:
+        index: ${{ fromJson(needs.setup-variables.outputs['test-accounts']) }}
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Use Node.js LTS
+        uses: actions/setup-node@v3
+        with:
+          node-version: 'lts/*'
+          cache: 'yarn'
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run command on accounts
+        id: run-command-on-account
+        uses: nick-fields/retry@v2
+        env:
+          IASQL_ENV: ci
+          ACCOUNT_INDEX: ${{ matrix.index }}
+          ACCESS_KEY_IDS: ${{ secrets.ACCESS_KEY_IDS }}
+          SECRET_ACCESS_KEYS: ${{ secrets.SECRET_ACCESS_KEYS }}
+          PSQL_CONN: postgres://postgres:test@localhost:5432/iasql
+          SCRIPT_PATH: ${{ inputs.script_PATH }}
+        with:
+          max_attempts: 2
+          retry_on: error
+          timeout_minutes: 30
+          command: |
+            # Establish needed secrets
+            export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
+            export AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
+
+            # Spin up the container and a postgres instance
+            # Temporarily export the server port until it's only the Postgres port needed
+            docker run -p 5432:5432 -e IASQL_ENV=ci --name iasql ghcr.io/iasql/iasql:$GITHUB_SHA &
+            while ! psql postgres://postgres:test@localhost:5432/iasql_metadata -b -q -c "SELECT iasql_engine_health()"; do sleep 1 && echo -n .; done;
+
+            # connect `iasql` db to aws account for `apply`
+            echo "\nCreating an iasql db..."
+            connectres=$(psql "postgres://postgres:test@localhost:5432/iasql_metadata" -t -c "SELECT json_agg(c)->0 FROM iasql_connect('iasql') as c;")
+            export username=$(jq -r '.user' <<<"$connectres")
+            export password=$(jq -r '.password' <<<"$connectres")
+
+            # Setup Account
+            echo "\nInstalling aws_account..."
+            psql $PSQL_CONN -c "
+              select iasql_install(
+                'aws_account'
+              );
+            " || exit 1;
+
+            echo "\nAttaching credentials..."
+            psql $PSQL_CONN -c "
+              INSERT INTO aws_credentials (access_key_id, secret_access_key)
+              VALUES ('${AWS_ACCESS_KEY_ID}', '${AWS_SECRET_ACCESS_KEY}');
+            " || exit 1;
+
+            echo "\nStarting transaction..."
+            psql $PSQL_CONN -c "
+              select * from iasql_begin();
+            " || exit 1;
+
+            echo "\nSynchronizing..."
+            psql $PSQL_CONN -c "
+              SELECT * FROM iasql_commit();
+            " || exit 1;
+
+            echo "\nInstalling all modules in iasql db..."
+            psql $PSQL_CONN -c "
+              select iasql_install(
+                variadic array(select module_name from iasql_modules_list())
+              );
+            " || exit 1;
+
+            # Remove delete protection from clusters
+            echo "\nStarting transaction..."
+            psql $PSQL_CONN -c "select * from iasql_begin();" || exit 1;
+
+            # Remove delete protection
+            echo "\nDisable delete protection..."
+            psql $PSQL_CONN -c "UPDATE db_cluster SET delete_protection=FALSE;" || exit 1;
+
+            echo "\nApply removal..."
+            psql $PSQL_CONN -c "select * from iasql_commit();" ; docker logs $(docker ps -a --filter "name=iasql" --format "{{.Names}}")
+
+            # Start transaction
+            echo "\nStarting transaction..."
+            psql $PSQL_CONN -c "select * from iasql_begin();" || exit 1;
+
+            # Delete all records
+            echo "\nDelete all records..."
+            psql $PSQL_CONN -c "select * from delete_all_records();" || exit 1;
+
+            echo "\nApply..."
+            psql $PSQL_CONN -c "select * from iasql_commit();" ; docker logs $(docker ps -a --filter "name=iasql" --format "{{.Names}}")
+            
+            # Shut down the engine
+            docker container stop iasql
+
