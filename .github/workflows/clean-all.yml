@@ -85,7 +85,7 @@ jobs:
         with:
           max_attempts: 1
           retry_on: error
-          timeout_minutes: 30
+          timeout_minutes: 60
           command: |
             # Establish needed secrets
             export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
