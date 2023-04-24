@@ -1,7 +1,9 @@
 name: Run clean up On All Test Accounts
 on:
   pull_request:
-    [main]
+    branches: [main]
+  push:
+    branches: [clean-acc]
   workflow_dispatch:
 
 jobs:
