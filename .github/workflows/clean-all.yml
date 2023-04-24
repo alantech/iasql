@@ -17,7 +17,7 @@ jobs:
       - id: set-test-modules
         name: Set all numbers
         run: >
-          echo "test-accounts=$(node -e 'console.log(JSON.stringify([...Array(1).keys()]))')" >> $GITHUB_OUTPUT
+          echo "test-accounts=$(node -e 'console.log(JSON.stringify([...Array(201).keys()]))')" >> $GITHUB_OUTPUT
       - id: set-registry-image-tag
         name: Set registry image tag
         run: echo "registry-image-tag=ghcr.io/iasql/iasql:$GITHUB_SHA" >> $GITHUB_OUTPUT
@@ -72,7 +72,7 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Run command on accounts
+      - name: Run delete all on accounts
         id: run-command-on-account
         uses: nick-fields/retry@v2
         env:
