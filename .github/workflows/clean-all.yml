@@ -1,9 +1,9 @@
 name: Run clean up On All Test Accounts
 on:
-  push:
-    [clean-acc]
   pull_request:
-    [clean-acc]
+    [main]
+  workflow_dispatch:
+
 jobs:
   setup-variables:
     runs-on: ubuntu-latest
