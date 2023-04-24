@@ -17,7 +17,7 @@ jobs:
       - id: set-test-modules
         name: Set all numbers
         run: >
-          echo "test-accounts=$(node -e 'console.log(JSON.stringify([...Array(201).keys()]))')" >> $GITHUB_OUTPUT
+          echo "test-accounts=$(node -e 'console.log(JSON.stringify([...Array(1).keys()]))')" >> $GITHUB_OUTPUT
       - id: set-registry-image-tag
         name: Set registry image tag
         run: echo "registry-image-tag=ghcr.io/iasql/iasql:$GITHUB_SHA" >> $GITHUB_OUTPUT
@@ -127,7 +127,7 @@ jobs:
             " || exit 1;
 
             echo "\nInstalling all modules in iasql db..."
-            psql $PSQL_CONN -c "
+            psql postgres://$username:$password@localhost:5432/iasql -c "
               select iasql_install(
                 variadic array(select module_name from iasql_modules_list())
               );
@@ -139,7 +139,7 @@ jobs:
 
             # Remove delete protection
             echo "\nDisable delete protection..."
-            psql $PSQL_CONN -c "UPDATE db_cluster SET delete_protection=FALSE;" || exit 1;
+            psql postgres://$username:$password@localhost:5432/iasql -c "UPDATE db_cluster SET delete_protection=FALSE;" || exit 1;
 
             echo "\nApply removal..."
             psql $PSQL_CONN -c "select * from iasql_commit();" ; docker logs $(docker ps -a --filter "name=iasql" --format "{{.Names}}")
@@ -150,7 +150,7 @@ jobs:
 
             # Delete all records
             echo "\nDelete all records..."
-            psql $PSQL_CONN -c "select * from delete_all_records();" || exit 1;
+            psql postgres://$username:$password@localhost:5432/iasql -c "select * from delete_all_records();" || exit 1;
 
             echo "\nApply..."
             psql $PSQL_CONN -c "select * from iasql_commit();" ; docker logs $(docker ps -a --filter "name=iasql" --format "{{.Names}}")
