@@ -6,7 +6,7 @@ authors: [mtp1376]
 tags: [tutorial]
 ---
 
-IaSQL is an [open-source](https://github.com/iasql/iasql) software tool that creates a two-way connection between an unmodified PostgreSQL database and an AWS account so you can manage your infrastructure from a database. In this post, we're going to discover an [IaSQL module](docs/module) that's built to make deploying to ECS, simplified. Most of the details for deploying a container to AWS ECS are the same (load balancers, security groups, IAM roles, etc), and we have created the `aws_ecs_simplified` module for you so that you can give it any Github repo with a `Dockerfile` and get your app deployed to ECS in the fastest time possible, with scalability available! All the needed resources are going to be created automatically in your AWS account, and you'll have full access to the details while you're gaining the benefit of a higher-level simple deployment.
+IaSQL is an [open-source](https://github.com/alantech/iasql) software tool that creates a two-way connection between an unmodified PostgreSQL database and an AWS account so you can manage your infrastructure from a database. In this post, we're going to discover an [IaSQL module](docs/module) that's built to make deploying to ECS, simplified. Most of the details for deploying a container to AWS ECS are the same (load balancers, security groups, IAM roles, etc), and we have created the `aws_ecs_simplified` module for you so that you can give it any Github repo with a `Dockerfile` and get your app deployed to ECS in the fastest time possible, with scalability available! All the needed resources are going to be created automatically in your AWS account, and you'll have full access to the details while you're gaining the benefit of a higher-level simple deployment.
 
 <!--truncate-->
 
@@ -25,7 +25,7 @@ I'm not going to continue this long list, since I've already got a headache. Doi
 
 ## ** An Example Usage of the `aws_ecs_simplified` Module **
 
-Let's say we are going to deploy [this simple Express.js app](https://github.com/iasql/iasql/tree/main/examples/ecs-fargate/prisma/app) to the ECS. It has a `Dockerfile` and `package.json` that installs `express` on `npm install`. `npm start` then starts the Express server which listens on port `8088`.
+Let's say we are going to deploy [this simple Express.js app](https://github.com/alantech/iasql/tree/main/examples/ecs-fargate/prisma/app) to the ECS. It has a `Dockerfile` and `package.json` that installs `express` on `npm install`. `npm start` then starts the Express server which listens on port `8088`.
 
 :::note
 `aws_ecs_simplified` is a high-level module we have created to make scalable ECS deployments easier. For more info on high-level vs low-level modules, you can check [this guide](https://iasql.com/docs/low-level-vs-high-level/).
@@ -50,7 +50,7 @@ SELECT
 
 SELECT
   ecr_build (
-    'https://github.com/iasql/iasql/', -- the Github repo URL
+    'https://github.com/alantech/iasql/', -- the Github repo URL
     (
       SELECT
         id
@@ -72,7 +72,7 @@ SELECT
   iasql_install ('aws_ecs_simplified', 'aws_codebuild');
 ```
 
-- This command installs the `aws_ecs_simplified` high-level module. We– at IaSQL– have created that module to make it easy to deploy containerized apps to ECS. The code for it is [here](https://github.com/iasql/iasql/blob/v0.0.22/src/modules/0.0.23/aws_ecs_simplified/sql/after_install.sql). But IaSQL is so flexible that anyone can create their own high-level (and of course, low-level) modules and add it to IaSQL.
+- This command installs the `aws_ecs_simplified` high-level module. We– at IaSQL– have created that module to make it easy to deploy containerized apps to ECS. The code for it is [here](https://github.com/alantech/iasql/blob/v0.0.22/src/modules/0.0.23/aws_ecs_simplified/sql/after_install.sql). But IaSQL is so flexible that anyone can create their own high-level (and of course, low-level) modules and add it to IaSQL.
 
 ```sql
 INSERT INTO
@@ -93,7 +93,7 @@ VALUES
 ```sql
 SELECT
   ecr_build (
-    'https://github.com/iasql/iasql/', -- the Github repo URL
+    'https://github.com/alantech/iasql/', -- the Github repo URL
     (
       SELECT
         id
@@ -141,4 +141,4 @@ WHERE
 
 You want additional rules for the container's security group? No problem! Just write the SQL and execute it, and it will be applied to the cloud within seconds. You want 3 copies of your container to be kept running with a round-robin load balancing on them? It's already there, just do an `UPDATE ecs_simplified SET desired_count = 3 WHERE app_name = 'simple_express';` and it's there for you.
 
-With IaSQL and its flexibility, you can benefit from both the high-level and low-level operations. We have created the `aws_ecs_simplified` module to show the flexibility and power of IaSQL, but the possibilities are endless. IaSQL is also an open-source project, meaning that you can use it to build your very own modules on top of it. If you're into the idea of empowering other developers to do complex infrastructure tasks simply, why don't you take a look at our [contributing guide](https://github.com/iasql/iasql/blob/main/CONTRIBUTING.md) and join our [Discord channel](https://discord.iasql.com)? We'll thoroughly answer any of your questions regarding the usage or development of IaSQL. Looking forward to seeing you in our small, but great community.
+With IaSQL and its flexibility, you can benefit from both the high-level and low-level operations. We have created the `aws_ecs_simplified` module to show the flexibility and power of IaSQL, but the possibilities are endless. IaSQL is also an open-source project, meaning that you can use it to build your very own modules on top of it. If you're into the idea of empowering other developers to do complex infrastructure tasks simply, why don't you take a look at our [contributing guide](https://github.com/alantech/iasql/blob/main/CONTRIBUTING.md) and join our [Discord channel](https://discord.iasql.com)? We'll thoroughly answer any of your questions regarding the usage or development of IaSQL. Looking forward to seeing you in our small, but great community.

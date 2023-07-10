@@ -16,7 +16,7 @@ which is a logical access point and communication channel.
 
 ```
 
-@see https://github.com/iasql/iasql/blob/main/test/modules/aws-sns-integration.ts#L120
+@see https://github.com/alantech/iasql/blob/main/test/modules/aws-sns-integration.ts#L120
 @see https://docs.aws.amazon.com/sns/latest/dg/welcome.html
 
 ## Columns

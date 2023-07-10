@@ -8,7 +8,7 @@ tags: [tutorial]
 
 In this tutorial, we will run SQL queries on an IaSQL [database](/docs/database) to deploy a Node.js HTTP server within a docker container on your AWS account using Fargate ECS, IAM, ECR, and ELB. The container image will be built locally, hosted within a private repository in ECR, and deployed to ECS using Fargate.
 <!--truncate-->
-IaSQL is an [open-source](https://github.com/iasql/iasql) software tool that creates a two-way connection between an unmodified PostgreSQL database and an AWS account so you can manage your infrastructure from a database.
+IaSQL is an [open-source](https://github.com/alantech/iasql) software tool that creates a two-way connection between an unmodified PostgreSQL database and an AWS account so you can manage your infrastructure from a database.
 
 ## Start managing an AWS account with a PostgreSQL IaSQL db
 
@@ -113,7 +113,7 @@ All of these steps will be done in a CodeBuild project in your AWS account. To u
 
 ```sql
 SELECT ecr_build(
-   'https://github.com/iasql/iasql/', -- replace with your own Github repo if you want to use your own codebase
+   'https://github.com/alantech/iasql/', -- replace with your own Github repo if you want to use your own codebase
    (SELECT id
     FROM repository
     WHERE repository_name = 'quickstart-repository')::varchar(255), -- replace quickstart if you've changed the project name
