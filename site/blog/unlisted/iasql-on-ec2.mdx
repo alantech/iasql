@@ -288,7 +288,7 @@ skybase.dev.	        21600	IN	NS	ns-697.awsdns-23.net.
 :::
 
 #### Issue An SSL Certificate For Our Domain
-Having the domain setup in Route53, it's easy to use IaSQL's `certificate_request` RPC to issue a new certificate for it. If you try to go with this procedure through AWS console, you'll need to manually add the CNAME records from the AWS ACM to your hosted zone. But this RPC is implemented in a way that automagically [sets the DNS records](https://github.com/iasql/iasql/blob/v0.1.7/src/modules/aws_acm/rpcs/request.ts#L177-L188), [waits for the certificate to be issued](https://github.com/iasql/iasql/blob/v0.1.7/src/modules/aws_acm/rpcs/request.ts#L197), and then [removes those validation DNS records](https://github.com/iasql/iasql/blob/v0.1.7/src/modules/aws_acm/rpcs/request.ts#L200).
+Having the domain setup in Route53, it's easy to use IaSQL's `certificate_request` RPC to issue a new certificate for it. If you try to go with this procedure through AWS console, you'll need to manually add the CNAME records from the AWS ACM to your hosted zone. But this RPC is implemented in a way that automagically [sets the DNS records](https://github.com/alantech/iasql/blob/v0.1.7/src/modules/aws_acm/rpcs/request.ts#L177-L188), [waits for the certificate to be issued](https://github.com/alantech/iasql/blob/v0.1.7/src/modules/aws_acm/rpcs/request.ts#L197), and then [removes those validation DNS records](https://github.com/alantech/iasql/blob/v0.1.7/src/modules/aws_acm/rpcs/request.ts#L200).
 
 ```sql
 -- SELECT iasql_install('aws_acm'); -- no need for this because aws_route53 depends on it and it's automatically installed

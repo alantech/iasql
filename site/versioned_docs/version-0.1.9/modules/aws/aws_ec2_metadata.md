@@ -34,7 +34,7 @@ Install the AWS EC2 module
 SELECT * FROM iasql_install('aws_ec2_metadata');
 ```
 
-View the metadata for the previously created `i-1` instance. View the table schema [here](https://dbdocs.io/iasql/iasql?table=instance_metadata&schema=public&view=table_structure)
+View the metadata for the previously created `i-1` instance.
 
 ```sql
 SELECT *

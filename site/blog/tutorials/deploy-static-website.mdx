@@ -6,7 +6,7 @@ authors: [mtp1376, depombo]
 tags: [tutorial]
 ---
 
-Did you know you can deploy a static website using a SQL REPL? In this post, we'll show you how to use IaSQL to deploy a static website from your GitHub repository to AWS S3 + Cloudfront services using only SQL queries. IaSQL is an [open-source](https://github.com/iasql/iasql) software tool that creates a two-way connection between an unmodified PostgreSQL database and an AWS account so you can manage your infrastructure from a database.
+Did you know you can deploy a static website using a SQL REPL? In this post, we'll show you how to use IaSQL to deploy a static website from your GitHub repository to AWS S3 + Cloudfront services using only SQL queries. IaSQL is an [open-source](https://github.com/alantech/iasql) software tool that creates a two-way connection between an unmodified PostgreSQL database and an AWS account so you can manage your infrastructure from a database.
 
 We will create and configure an S3 bucket to serve our static website. To enable support for HTTPS, we'll also add a CloudFront distribution. We will also leverage CodeBuild to automatically build the files for our project and copy them to the S3 bucket created already.
 
@@ -69,7 +69,7 @@ FROM
 This is going to upload a file named `hello.txt` in our bucket whose content is `Hello IaSQL!`.
 
 :::note
-You can read the code for [`s3_upload_object` RPC](https://github.com/iasql/iasql/blob/c70f068c7520baf00cea9ddd3a76b8c6dbd2b23b/src/modules/aws_s3/rpcs/s3_upload_object.ts#L27-L33) as well as all other IaSQL modules and RPCs in our GitHub [repository](https://github.com/iasql/iasql/) to see how they work.
+You can read the code for [`s3_upload_object` RPC](https://github.com/alantech/iasql/blob/c70f068c7520baf00cea9ddd3a76b8c6dbd2b23b/src/modules/aws_s3/rpcs/s3_upload_object.ts#L27-L33) as well as all other IaSQL modules and RPCs in our GitHub [repository](https://github.com/alantech/iasql/) to see how they work.
 :::
 
 Let's see if we can access our file using the S3 bucket URL. It should be as follows:

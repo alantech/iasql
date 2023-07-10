@@ -40,27 +40,27 @@ The high-level modules operate on top of the abstraction layer the low-level mod
 
 Therefore, they cannot, on their own, perform arbitrary code execution, but can only perform operations that can be glued together by the low-level modules.
 
-The `aws_ecs_simplified` module is one such example, with the vast majority of code [being pure SQL code](https://github.com/iasql/iasql/blob/v0.0.22/src/modules/0.0.22/aws_ecs_simplified/sql/after_install.sql) defining a new table and trigger functions to mutate the low-level module tables that it abstracts away for you.
+The `aws_ecs_simplified` module is one such example, with the vast majority of code [being pure SQL code](https://github.com/alantech/iasql/blob/v0.0.22/src/modules/0.0.22/aws_ecs_simplified/sql/after_install.sql) defining a new table and trigger functions to mutate the low-level module tables that it abstracts away for you.
 
 For more information on just how nice it is to use a high-level module like `aws_ecs_simplified`, check out [this blog post on "ECS, Simplified"](https://iasql.com/blog/ecs-simplified).
 
 As pure SQL, the barrier to entry in authoring a high-level module is lower, so anyone with the desire can write a high-level module and share it with others, and we hope to make such third-party module installation much simpler soon.
 
-The low-level modules are tables and functions that are created by and interface with IaSQL, where module code is written to execute the necessary cloud API calls, such as [this part of the `aws_ecs_fargate` module for the `cluster` table](https://github.com/iasql/iasql/blob/v0.0.22/src/modules/0.0.22/aws_ecs_fargate/mappers/cluster.ts).
+The low-level modules are tables and functions that are created by and interface with IaSQL, where module code is written to execute the necessary cloud API calls, such as [this part of the `aws_ecs_fargate` module for the `cluster` table](https://github.com/alantech/iasql/blob/v0.0.22/src/modules/0.0.22/aws_ecs_fargate/mappers/cluster.ts).
 
-These low-level modules convert your database changes into API calls, and need to be [thoroughly tested](https://github.com/iasql/iasql/blob/v0.0.22/test/modules/aws-ecs-integration.ts) for correctness and vetted for trustworthiness that they won't utilize your cloud spending account for nefarious purposes.
+These low-level modules convert your database changes into API calls, and need to be [thoroughly tested](https://github.com/alantech/iasql/blob/v0.0.22/test/modules/aws-ecs-integration.ts) for correctness and vetted for trustworthiness that they won't utilize your cloud spending account for nefarious purposes.
 
-For that reason, they *must* be committed to the [IaSQL repository](https://github.com/iasql/iasql) before they can be installed or used, and no third-party low-level modules are allowed.
+For that reason, they *must* be committed to the [IaSQL repository](https://github.com/alantech/iasql) before they can be installed or used, and no third-party low-level modules are allowed.
 
 This makes Low-Level modules in IaSQL similar to the built-in functions and libraries of programming languages: something that you'll often use in your day-to-day, but that most will never contribute to, and that's okay.
 
 As a slight wrinkle, there are also Low-Level and High-Level Postgres Functions in IaSQL. There is a similar distinction between them, where Low-Level Functions are directly powered by IaSQL, while High-Level Functions are pure SQL built on top of other functions, tables, etc. However, some Low-Level Functions can be quite "high level" in user experience.
 
-An "obvious" kind of low-level function comes from the `aws_s3` module, where [the `s3_upload_object` function](https://github.com/iasql/iasql/blob/v0.0.22/src/modules/0.0.22/aws_s3/rpcs/s3_upload_object.ts) allows users to upload new "objects" (files) to an S3 bucket through a SQL statement.
+An "obvious" kind of low-level function comes from the `aws_s3` module, where [the `s3_upload_object` function](https://github.com/alantech/iasql/blob/v0.0.22/src/modules/0.0.22/aws_s3/rpcs/s3_upload_object.ts) allows users to upload new "objects" (files) to an S3 bucket through a SQL statement.
 
 That provides a clear, composable function that you could use in ways never envisioned by the author of the function, such as uploading the results of a SQL query about your infrastructure into an S3 file to be consumed by an internal dashboard.
 
-In contrast, the `aws_ecr` module defines the [`ecr_build` function](https://github.com/iasql/iasql/blob/v0.0.22/src/modules/0.0.22/aws_ecr/rpcs/build.ts) that allows one to very simply build any public Git repo (or private Github repo) with a `Dockerfile` defined and store the results in your ECR repository of choice. It is a low-level module but provides an abstracted interface (over a couple of different AWS services) in a "high-level" way. It's purpose and arguments being so particular to the task it is designed for it is unlikely to ever be used in a way the author did not envision.
+In contrast, the `aws_ecr` module defines the [`ecr_build` function](https://github.com/alantech/iasql/blob/v0.0.22/src/modules/0.0.22/aws_ecr/rpcs/build.ts) that allows one to very simply build any public Git repo (or private Github repo) with a `Dockerfile` defined and store the results in your ECR repository of choice. It is a low-level module but provides an abstracted interface (over a couple of different AWS services) in a "high-level" way. It's purpose and arguments being so particular to the task it is designed for it is unlikely to ever be used in a way the author did not envision.
 
 As an example high-level function, we can look at the low-level `aws_account` module (yes, you can define high-level functions in low-level modules, but not vice-versa), where the [`default_aws_account` function](https://github.com/iasql/iasql/blob/v0.0.22/src/modules/0.0.22/aws_account/sql/after_install.sql#L1-L8) has been defined.
 

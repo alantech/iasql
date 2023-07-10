@@ -11,7 +11,7 @@ In this tutorial, we will run [Django SQL migrations](https://docs.djangoproject
 
 <!--truncate-->
 
-IaSQL is an [open-source](https://github.com/iasql/iasql) software tool that creates a two-way connection between an unmodified PostgreSQL database and an AWS account so you can manage your infrastructure from a database. The code for this tutorial lives in this part of the [repository](https://github.com/iasql/iasql/tree/main/examples/ecs-fargate/django/app/infra/migrations/0003_initial.py).
+IaSQL is an [open-source](https://github.com/alantech/iasql) software tool that creates a two-way connection between an unmodified PostgreSQL database and an AWS account so you can manage your infrastructure from a database. The code for this tutorial lives in this part of the [repository](https://github.com/alantech/iasql/tree/main/examples/ecs-fargate/django/app/infra/migrations/0003_initial.py).
 
 ## Start managing an AWS account with a PostgreSQL IaSQL db
 
@@ -95,7 +95,7 @@ If the function call is successful, it will return a virtual table with a record
 
 ## Connect to the PostgreSQL db and provision cloud resources in your AWS account
 
-1. Get a local copy of the [ECS Fargate examples](https://github.com/iasql/iasql/tree/main/examples/ecs-fargate)
+1. Get a local copy of the [ECS Fargate examples](https://github.com/alantech/iasql/tree/main/examples/ecs-fargate)
 
 2. (Optional) Create and activate a virtual environment to install python dependencies
 
@@ -215,7 +215,7 @@ All of these steps will be done in a CodeBuild project in your AWS account. To u
 ```sql
 SELECT
   ecr_build (
-    'https://github.com/iasql/iasql/', -- replace with your own Github repo if you want to use your own codebase
+    'https://github.com/alantech/iasql/', -- replace with your own Github repo if you want to use your own codebase
     (
       SELECT
         id

@@ -25,7 +25,7 @@ const testDoc = require('./src/rehype/testdoc');
     onBrokenMarkdownLinks: 'throw',
     favicon: 'img/favicon.png',
     projectName: 'iasql',
-    organizationName: 'iasql',
+    organizationName: 'alantech',
     customFields: config,
 
     presets: [
@@ -36,7 +36,7 @@ const testDoc = require('./src/rehype/testdoc');
             routeBasePath: '/docs',
             remarkPlugins: [testDoc],
             sidebarPath: require.resolve('./sidebars.js'),
-            editUrl: 'https://github.com/iasql/iasql/tree/main/site/',
+            editUrl: 'https://github.com/alantech/iasql/tree/main/site/',
           },
           blog: {
             showReadingTime: true,
@@ -45,7 +45,7 @@ const testDoc = require('./src/rehype/testdoc');
             exclude: ['unlisted/*'],
             blogSidebarTitle: 'All posts',
             blogSidebarCount: 'ALL',
-            editUrl: 'https://github.com/iasql/iasql/tree/main/site/',
+            editUrl: 'https://github.com/alantech/iasql/tree/main/site/',
           },
           theme: {
             customCss: require.resolve('./src/css/custom.css'),
@@ -104,19 +104,7 @@ const testDoc = require('./src/rehype/testdoc');
               position: 'right',
             },
             {
-              href: 'https://discord.iasql.com',
-              position: 'right',
-              className: 'header-discord-link',
-              'aria-label': 'Discord',
-            },
-            {
-              href: 'https://reddit.com/r/iasql',
-              position: 'right',
-              className: 'header-reddit-link',
-              'aria-label': 'Reddit',
-            },
-            {
-              href: 'https://github.com/iasql/iasql',
+              href: 'https://github.com/alantech/iasql',
               position: 'right',
               className: 'header-github-link',
               'aria-label': 'GitHub repository',
@@ -126,11 +114,6 @@ const testDoc = require('./src/rehype/testdoc');
             },
           ],
         },
-        announcementBar: {
-          id: 'announcementBar',
-          content: 'If you like IaSQL, subscribe to <a href="/updates">email updates</a> on new features and use cases 📬',
-          isCloseable: true,
-        },
         footer: {
           style: 'light',
           links: [
@@ -139,14 +122,9 @@ const testDoc = require('./src/rehype/testdoc');
               items: [
                 {
                   label: 'GitHub',
-                  to: 'https://github.com/iasql/iasql',
+                  to: 'https://github.com/alantech/iasql',
                   target: '_self',
-                },
-                {
-                  to: 'https://dbdocs.io/iasql/iasql',
-                  target: '_self',
-                  label: 'DbDoc Schema',
-                },
+                }
               ],
             },
             {
@@ -161,33 +139,7 @@ const testDoc = require('./src/rehype/testdoc');
                   label: 'Blog',
                   to: 'blog',
                   target: '_self',
-                },
-                {
-                  label: 'Updates',
-                  to: 'updates',
-                  target: '_self',
-                },
-                {
-                  label: 'RSS Feed',
-                  to: 'blog/rss.xml',
-                },
-              ],
-            },
-            {
-              title: 'Community',
-              items: [
-                {
-                  label: 'Discord',
-                  to: 'https://discord.iasql.com',
-                },
-                {
-                  label: 'Reddit',
-                  to: 'https://reddit.com/r/iasql',
-                },
-                {
-                  label: 'Twitter',
-                  to: 'https://twitter.com/iasql',
-                },
+                }
               ],
             },
           ],
