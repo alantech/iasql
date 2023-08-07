@@ -12,12 +12,12 @@
   version "4.8.0-61.d6e67a83f971b175a593ccc12e15c4a757f93ffe"
   resolved "https://registry.yarnpkg.com/@prisma/engines-version/-/engines-version-4.8.0-61.d6e67a83f971b175a593ccc12e15c4a757f93ffe.tgz#30401aba1029e7d32e3cb717e705a7c92ccc211e"
 
-"@prisma/engines@4.8.1":
-  version "4.8.1"
-  resolved "https://registry.yarnpkg.com/@prisma/engines/-/engines-4.8.1.tgz#8428f7dcd7912c6073024511376595017630dc85"
+"@prisma/engines@5.1.1":
+  version "5.1.1"
+  resolved "https://registry.yarnpkg.com/@prisma/engines/-/engines-5.1.1.tgz#9c26d209f93a563e048eab63b1976f222f1707d0"
 
-prisma@^4.2.1:
-  version "4.8.1"
-  resolved "https://registry.yarnpkg.com/prisma/-/prisma-4.8.1.tgz#ef93cd908809b7d02e9f4bead5eea7733ba50c68"
+prisma@^5.1.1:
+  version "5.1.1"
+  resolved "https://registry.yarnpkg.com/prisma/-/prisma-5.1.1.tgz#8f5c0f9467a828746cb94f846d694dc7b7481a9e"
   dependencies:
-    "@prisma/engines" "4.8.1"
+    "@prisma/engines" "5.1.1"
