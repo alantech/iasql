@@ -2,7 +2,7 @@
   "name": "iasql",
   "version": "0.1.9",
   "description": "Infrastructure as SQL",
-  "license": "AGPL-3.0-only",
+  "license": "MIT",
   "main": "dist/index.js",
   "scripts": {
     "build": "yarn clean && tsc && copyfiles -u 1 src/**/*.sql dist/ && copyfiles -u 1 src/**/*.json dist/",
