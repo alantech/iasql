@@ -8,16 +8,43 @@
   dependencies:
     "@prisma/engines-version" "4.8.0-61.d6e67a83f971b175a593ccc12e15c4a757f93ffe"
 
+"@prisma/debug@5.7.1":
+  version "5.7.1"
+  resolved "https://registry.yarnpkg.com/@prisma/debug/-/debug-5.7.1.tgz#064177066e630beb43492ffa608acc21a118e2ce"
+
 "@prisma/engines-version@4.8.0-61.d6e67a83f971b175a593ccc12e15c4a757f93ffe":
   version "4.8.0-61.d6e67a83f971b175a593ccc12e15c4a757f93ffe"
   resolved "https://registry.yarnpkg.com/@prisma/engines-version/-/engines-version-4.8.0-61.d6e67a83f971b175a593ccc12e15c4a757f93ffe.tgz#30401aba1029e7d32e3cb717e705a7c92ccc211e"
 
-"@prisma/engines@4.8.1":
-  version "4.8.1"
-  resolved "https://registry.yarnpkg.com/@prisma/engines/-/engines-4.8.1.tgz#8428f7dcd7912c6073024511376595017630dc85"
+"@prisma/engines-version@5.7.1-1.0ca5ccbcfa6bdc81c003cf549abe4269f59c41e5":
+  version "5.7.1-1.0ca5ccbcfa6bdc81c003cf549abe4269f59c41e5"
+  resolved "https://registry.yarnpkg.com/@prisma/engines-version/-/engines-version-5.7.1-1.0ca5ccbcfa6bdc81c003cf549abe4269f59c41e5.tgz#b7845425313e5395a3a3e64f3e0d04c1f320fa92"
 
-prisma@^4.2.1:
-  version "4.8.1"
-  resolved "https://registry.yarnpkg.com/prisma/-/prisma-4.8.1.tgz#ef93cd908809b7d02e9f4bead5eea7733ba50c68"
+"@prisma/engines@5.7.1":
+  version "5.7.1"
+  resolved "https://registry.yarnpkg.com/@prisma/engines/-/engines-5.7.1.tgz#631c27daa326bbacd5d7119446e0d3f15c0f274c"
   dependencies:
-    "@prisma/engines" "4.8.1"
+    "@prisma/debug" "5.7.1"
+    "@prisma/engines-version" "5.7.1-1.0ca5ccbcfa6bdc81c003cf549abe4269f59c41e5"
+    "@prisma/fetch-engine" "5.7.1"
+    "@prisma/get-platform" "5.7.1"
+
+"@prisma/fetch-engine@5.7.1":
+  version "5.7.1"
+  resolved "https://registry.yarnpkg.com/@prisma/fetch-engine/-/fetch-engine-5.7.1.tgz#d7baa3493867c6f7cedfc41df477cfd0963059ca"
+  dependencies:
+    "@prisma/debug" "5.7.1"
+    "@prisma/engines-version" "5.7.1-1.0ca5ccbcfa6bdc81c003cf549abe4269f59c41e5"
+    "@prisma/get-platform" "5.7.1"
+
+"@prisma/get-platform@5.7.1":
+  version "5.7.1"
+  resolved "https://registry.yarnpkg.com/@prisma/get-platform/-/get-platform-5.7.1.tgz#bc2fe43838c7d47b321aa4728a0f60990d02bc9e"
+  dependencies:
+    "@prisma/debug" "5.7.1"
+
+prisma@^5.7.1:
+  version "5.7.1"
+  resolved "https://registry.yarnpkg.com/prisma/-/prisma-5.7.1.tgz#af60ed90531adc0ab8a683c9b1fc86d841c39864"
+  dependencies:
+    "@prisma/engines" "5.7.1"
